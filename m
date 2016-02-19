@@ -1,37 +1,73 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH v2 5/5] gpio: allow setting ARCH_NR_GPIOS from Kconfig
-Date: Fri, 19 Feb 2016 00:23:39 +0100
-Message-ID: <CACRpkdaSxhBrSt5qcUUJPcN6nv9Go96TP52cyU_nBZZM0phuPA@mail.gmail.com>
-References: <455637086-2794174-1-git-send-email-arnd@arndb.de>
-	<1455637261-2920972-1-git-send-email-arnd@arndb.de>
-	<1455637261-2920972-5-git-send-email-arnd@arndb.de>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
+Date: Fri, 19 Feb 2016 13:15:09 +0100
+Message-ID: <20160219121509.GD12690@dhcp22.suse.cz>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f181.google.com ([209.85.214.181]:34746 "EHLO
-	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1947286AbcBRXXk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Feb 2016 18:23:40 -0500
-Received: by mail-ob0-f181.google.com with SMTP id kf7so8695457obb.1
-        for <linux-arch@vger.kernel.org>; Thu, 18 Feb 2016 15:23:40 -0800 (PST)
-In-Reply-To: <1455637261-2920972-5-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Bjorn Helgaas <bhelgaas@google.com>, Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lars-Peter Clausen <lars@metafoo.de>, Ralf Baechle <ralf@linux-mips.org>, Linux MIPS <linux-mips@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 16, 2016 at 4:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+Are there any fundamenta lobjections to the patchset? I plan to resubmit
+next week with the changes from the feedback along with the mmap_sem
+down_write_killable usage.
 
-> The ARM version of asm/gpio.h basically just contains the same definitions
-> as the gpiolib version, with the exception of ARCH_NR_GPIOS.
->
-> This adds the option for overriding the constant through Kconfig to
-> the architecture-independent header, so we can remove the ARM specific
-> file later.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+On Tue 02-02-16 21:19:17, Michal Hocko wrote:
+> Hi,
+> the following patchset implements a killable variant of write lock for
+> rw_semaphore. My usecase is to turn as many mmap_sem write users to use
+> a killable variant which will be helpful for the oom_reaper [1] to
+> asynchronously tear down the oom victim address space which requires
+> mmap_sem for read. This will reduce a likelihood of OOM livelocks caused
+> by oom victim being stuck on a lock or other resource which prevents it
+> to reach its exit path and release the memory. I haven't implemented
+> the killable variant of the read lock because I do not have any usecase
+> for this API.
+> 
+> The patchset is organized as follows.
+> - Patch 1 is a trivial cleanup
+> - Patch 2, I belive, shouldn't introduce any functional changes as per
+>   Documentation/memory-barriers.txt.
+> - Patch 3 is the preparatory work and necessary infrastructure for
+>   down_write_killable. It implements generic __down_write_killable
+>   and prepares the write lock slow path to bail out earlier when told so
+> - Patch 4-9 are implementing arch specific __down_write_killable. One
+>   patch per architecture. I haven't even tried to compile test anything but
+>   sparch which uses CONFIG_RWSEM_GENERIC_SPINLOCK in allnoconfig.
+>   Those shold be mostly trivial.
+> - One exception is x86 which replaces the current implementation of
+>   __down_write with the generic one to make easier to read and get rid
+>   of one level of indirection to the slow path. More on that in patch 10.
+>   I do not have any problems to drop patch 10 and rework 11 to the current
+>   inline asm but I think the easier code would be better.
+> - finally patch 11 implements down_write_killable and ties everything
+>   together. I am not really an expert on lockdep so I hope I got it right.
+> 
+> Many of arch specific patches are basically same and I can squash them
+> into one patch if this is preferred but I thought that one patch per
+> arch is preferable.
+> 
+> My patch to change mmap_sem write users to killable form is not part
+> of the series because it is not finished yet but I guess it is not
+> really necessary for the RFC. The API is used in the same way as
+> mutex_lock_killable.
+> 
+> I have tested on x86 with OOM situations with high mmap_sem contention
+> (basically many parallel page faults racing with many parallel mmap/munmap
+> tight loops) so the waiters for the write locks are routinely interrupted
+> by SIGKILL.
+> 
+> Patches should apply cleanly on both Linus and next tree.
+> 
+> Any feedback is highly appreciated.
+> ---
+> [1] http://lkml.kernel.org/r/1452094975-551-1-git-send-email-mhocko@kernel.org
 
-Patch applied.
-
-Yours,
-Linus Walleij
+-- 
+Michal Hocko
+SUSE Labs
