@@ -1,66 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59504 "EHLO mail.zytor.com"
+Received: from mx2.suse.de ([195.135.220.15]:40672 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1422898AbcBSUhR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Feb 2016 15:37:17 -0500
-Subject: Re: [RFC v2 2/7] tables.h: add linker table support
+	id S2993996AbcBSVTw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Feb 2016 16:19:52 -0500
+Date: Fri, 19 Feb 2016 22:19:48 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [RFC v2 0/7] linux: add linker tables
+Message-ID: <20160219211948.GW25240@wotan.suse.de>
 References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-3-git-send-email-mcgrof@kernel.org>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <56C77C17.7030208@zytor.com>
-Date: Fri, 19 Feb 2016 12:33:27 -0800
+ <56C7781D.3040603@zytor.com>
 MIME-Version: 1.0
-In-Reply-To: <1455889559-9428-3-git-send-email-mcgrof@kernel.org>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <56C7781D.3040603@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com
-Message-ID: <20160219203327.-s8l5zfUjXrFHjmnqFOAebDkCfbsN5VCevdKbxJq_jw@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com
+Message-ID: <20160219211948.yQm7LBwDNq-Fd3UHVqCUUzmeegeUjHdx7lslzUCMHzk@z>
 
-On 02/19/2016 05:45 AM, Luis R. Rodriguez wrote:
-> +/**
-> + * LINKTABLE_RUN_ERR - run each linker table entry func and return error if any
-> + *
-> + * @tbl: linker table
-> + * @func: structure name for the function name we want to call.
-> + * @args...: arguments to pass to func
-> + *
-> + * Example usage:
-> + *
-> + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns, some_run,);
-> + */
-> +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
-> +({									\
-> +	size_t i;							\
-> +	int err = 0;							\
-> +	for (i = 0; !err && i < LINKTABLE_SIZE(tbl); i++)		\
-> +		err = (tbl[i]).func (args);				\
-> +		err; \
-> +})
+On Fri, Feb 19, 2016 at 12:16:29PM -0800, H. Peter Anvin wrote:
+> On 02/19/2016 05:45 AM, Luis R. Rodriguez wrote:
+> > This is my v2 of the original linker table work [0], now with
+> > six proof of concepts ports of existing code using custom section
+> > with custom linker script modifications:
+> > 
+> >   * DEFINE_LINKTABLE_TEXT(char, kprobes);
+> >   * DEFINE_LINKTABLE_DATA(struct jump_entry, __jump_table);
+> >   * DEFINE_LINKTABLE_DATA(struct _ddebug, __verbose);
+> >   * DEFINE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
+> >   * DEFINE_LINKTABLE_INIT(struct x86_init_fn, x86_init_fns);
+> >   * DEFINE_LINKTABLE_INIT_DATA(unsigned long, _kprobe_blacklist);
+> > 
+> > I've tested all except jump tables, I'd appreaciate some help with that.
+> > 
+> 
+> We should add support for read-mostly, probably. 
 
-This is wrong and pointless.  As written it returns the error code of
-the last instance.
+Sure, any candidate in mind? I actually don't see any hacks built
+on top of READ_MOSTLY_DATA include/asm-generic/vmlinux.lds.h so
+pointers appreciated for a case I could try.
 
-What I suggested for this macro was that we ought to exit the loop on error.
+> In fact, some of these probably *are* read-mostly.
 
-Furthermore:
+To avoid regressions I made sure to use the same exact section that
+these original solutions came from, do we want to move some? If so
+I think perhaps that's best done as a separate atomic patch and
+it may be easier to read and review once ported on linker tables?
 
-1. Using an advancing pointer would make more sense than a counter.
-2. .func doesn't make any sense -- it ought to be "func"; otherwise you
-    can't call into either a table containing pure function pointers,
-    nor into a field of table *pointed to* by the table; which is
-    likely to be quite common.
-
-    So the idea is to use something like:
-
-    /* Array of function pointers */
-    LINKTABLE_RUN_ALL(frobnicator_fns, , arg1, arg2);
-
-    /* Array of structures */
-    LINKTABLE_RUN_ALL(frobnicator_fns, .some_run, arg1, arg2);
-
-    /* Array of structure pointers */
-    LINKTABLE_RUN_ALL(frobnicator_fns, ->some_run, arg1, arg2);
-
+ Luis
