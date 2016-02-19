@@ -1,71 +1,74 @@
-From: "Long, Wai Man" <waiman.long@hpe.com>
-Subject: Re: [PATCH] locking/qspinlock: move __ARCH_SPIN_LOCK_UNLOCKED to
- qspinlock_types.h
-Date: Fri, 19 Feb 2016 21:09:16 +0000
-Message-ID: <DF4PR84MB01387137F726244CB2DE148CF1A00@DF4PR84MB0138.NAMPRD84.PROD.OUTLOOK.COM>
-References: <1455907767-17821-1-git-send-email-dan.streetman@canonical.com>
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [RFC v2 2/7] tables.h: add linker table support
+Date: Fri, 19 Feb 2016 22:12:10 +0100
+Message-ID: <20160219211210.GV25240@wotan.suse.de>
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-3-git-send-email-mcgrof@kernel.org>
+ <56C77C17.7030208@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1455907767-17821-1-git-send-email-dan.streetman@canonical.com>
-Content-Language: en-US
-Content-ID: <5E9DC8A92C6ED44DAEEDD20F9C95289F@HPEnterprise.onmicrosoft.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Streetman <dan.streetman@canonical.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dan Streetman <ddstreet@ieee.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:39735 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S2993863AbcBSVMN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Feb 2016 16:12:13 -0500
+Content-Disposition: inline
+In-Reply-To: <56C77C17.7030208@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com
 
-On 02/19/2016 01:49 PM, Dan Streetman wrote:
-> Move __ARCH_SPIN_LOCK_UNLOCKED definition from qspinlock.h into
-> qspinlock_types.h.
->
-> The definition of __ARCH_SPIN_LOCK_UNLOCKED comes from the build arch's
-> include files; but on x86 when CONFIG_QUEUED_SPINLOCKS is set, it just
-> it's defined in asm-generic/qspinlock.h.  In most cases, this doesn't
-> matter because linux/spinlock.h includes asm/spinlock.h, which for x86
-> includes asm-generic/qspinlock.h.  However, any code that only includes
-> linux/mutex.h will break, because it only includes asm/spinlock_types.h.
->
-> For example, this breaks systemtap, which only includes mutex.h.
->
-> Signed-off-by: Dan Streetman<dan.streetman@canonical.com>
-> Cc: Dan Streetman<ddstreet@ieee.org>
-> ---
->   include/asm-generic/qspinlock.h       | 5 -----
->   include/asm-generic/qspinlock_types.h | 5 +++++
->   2 files changed, 5 insertions(+), 5 deletions(-)
->
-> diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-> index 39e1cb2..35a52a8 100644
-> --- a/include/asm-generic/qspinlock.h
-> +++ b/include/asm-generic/qspinlock.h
-> @@ -120,11 +120,6 @@ static __always_inline bool virt_spin_lock(struct qspinlock *lock)
->   #endif
->
->   /*
-> - * Initializier
-> - */
-> -#define	__ARCH_SPIN_LOCK_UNLOCKED	{ ATOMIC_INIT(0) }
-> -
-> -/*
->    * Remapping spinlock architecture specific functions to the corresponding
->    * queued spinlock functions.
->    */
-> diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-> index 85f888e..034acd0 100644
-> --- a/include/asm-generic/qspinlock_types.h
-> +++ b/include/asm-generic/qspinlock_types.h
-> @@ -33,6 +33,11 @@ typedef struct qspinlock {
->   } arch_spinlock_t;
->
->   /*
-> + * Initializier
-> + */
-> +#define	__ARCH_SPIN_LOCK_UNLOCKED	{ ATOMIC_INIT(0) }
-> +
-> +/*
->    * Bitfields in the atomic value:
->    *
->    * When NR_CPUS<  16K
-Acked-by: Waiman Long <Waiman.Long@hpe.com>
+On Fri, Feb 19, 2016 at 12:33:27PM -0800, H. Peter Anvin wrote:
+> On 02/19/2016 05:45 AM, Luis R. Rodriguez wrote:
+> > +/**
+> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return error if any
+> > + *
+> > + * @tbl: linker table
+> > + * @func: structure name for the function name we want to call.
+> > + * @args...: arguments to pass to func
+> > + *
+> > + * Example usage:
+> > + *
+> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns, some_run,);
+> > + */
+> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
+> > +({									\
+> > +	size_t i;							\
+> > +	int err = 0;							\
+> > +	for (i = 0; !err && i < LINKTABLE_SIZE(tbl); i++)		\
+> > +		err = (tbl[i]).func (args);				\
+> > +		err; \
+> > +})
+> 
+> This is wrong and pointless.  As written it returns the error code of
+> the last instance.
+> 
+> What I suggested for this macro was that we ought to exit the loop on error.
+> 
+> Furthermore:
+> 
+> 1. Using an advancing pointer would make more sense than a counter.
+
+OK I'll modify to use LINKTABLE_FOR_EACH and much cleaner and obvious
+code to bail on error.
+
+> 2. .func doesn't make any sense -- it ought to be "func"; otherwise you
+>     can't call into either a table containing pure function pointers,
+>     nor into a field of table *pointed to* by the table; which is
+>     likely to be quite common.
+> 
+>     So the idea is to use something like:
+> 
+>     /* Array of function pointers */
+>     LINKTABLE_RUN_ALL(frobnicator_fns, , arg1, arg2);
+> 
+>     /* Array of structures */
+>     LINKTABLE_RUN_ALL(frobnicator_fns, .some_run, arg1, arg2);
+> 
+>     /* Array of structure pointers */
+>     LINKTABLE_RUN_ALL(frobnicator_fns, ->some_run, arg1, arg2);
+
+Ah that's sexy, thanks. Will amend.
+
+  Luis
