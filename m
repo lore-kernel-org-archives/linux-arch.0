@@ -1,67 +1,75 @@
-From: Dan Streetman <dan.streetman@canonical.com>
-Subject: [PATCH] locking/qspinlock: move __ARCH_SPIN_LOCK_UNLOCKED to qspinlock_types.h
-Date: Fri, 19 Feb 2016 13:49:27 -0500
-Message-ID: <1455907767-17821-1-git-send-email-dan.streetman@canonical.com>
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [RFC v2 1/7] sections.h: add sections header to collect all
+ section info
+Date: Fri, 19 Feb 2016 21:06:03 +0100
+Message-ID: <20160219200603.GR25240@wotan.suse.de>
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-2-git-send-email-mcgrof@kernel.org>
+ <20160219162329.GA24924@kroah.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:52518 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423636AbcBSSv7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Feb 2016 13:51:59 -0500
+Received: from mx2.suse.de ([195.135.220.15]:35096 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751400AbcBSUGR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Feb 2016 15:06:17 -0500
+Content-Disposition: inline
+In-Reply-To: <20160219162329.GA24924@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hpe.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Dan Streetman <dan.streetman@canonical.com>, Dan Streetman <ddstreet@ieee.org>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com
 
-Move __ARCH_SPIN_LOCK_UNLOCKED definition from qspinlock.h into
-qspinlock_types.h.
+On Fri, Feb 19, 2016 at 08:23:29AM -0800, Greg KH wrote:
+> On Fri, Feb 19, 2016 at 05:45:53AM -0800, Luis R. Rodriguez wrote:
+> > Linux makes extensive use of custom ELF header sections,
+> > documentation for these are well scatterred. Unify this
+> > documentation in a central place.
+> 
+> Minor questions:
+> 
+> > +      <para>
+> > +        You should have received a copy of the GNU General Public
+> > +        License along with this documentation; if not, write to the Free
+> > +        Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+> > +        MA 02111-1307 USA
+> > +      </para>
+> 
+> Unless you are willing to personally track the office moves of the FSF
+> for the next 20+ years, just drop this paragraph please :)
 
-The definition of __ARCH_SPIN_LOCK_UNLOCKED comes from the build arch's
-include files; but on x86 when CONFIG_QUEUED_SPINLOCKS is set, it just
-it's defined in asm-generic/qspinlock.h.  In most cases, this doesn't
-matter because linux/spinlock.h includes asm/spinlock.h, which for x86
-includes asm-generic/qspinlock.h.  However, any code that only includes
-linux/mutex.h will break, because it only includes asm/spinlock_types.h.
+Sure.
 
-For example, this breaks systemtap, which only includes mutex.h.
+> > +++ b/include/linux/sections.h
+> > @@ -0,0 +1,224 @@
+> > +#ifndef _LINUX_SECTIONS_H
+> > +#define _LINUX_SECTIONS_H
+> > +/*
+> > + * Linux ELF sections
+> > + *
+> > + * Copyright (C) 2016 Luis R. Rodriguez <mcgrof@kernel.org>
+> > + *
+> > + * This program is free software; you can redistribute it and/or modify
+> > + * it under the terms of the GNU General Public License as published by
+> > + * the Free Software Foundation; either version 2 of the License, or
+> > + * (at your option) any later version.
+> 
+> Do you really mean "any later version"?
 
-Signed-off-by: Dan Streetman <dan.streetman@canonical.com>
-Cc: Dan Streetman <ddstreet@ieee.org>
----
- include/asm-generic/qspinlock.h       | 5 -----
- include/asm-generic/qspinlock_types.h | 5 +++++
- 2 files changed, 5 insertions(+), 5 deletions(-)
+Yes.
 
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index 39e1cb2..35a52a8 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -120,11 +120,6 @@ static __always_inline bool virt_spin_lock(struct qspinlock *lock)
- #endif
- 
- /*
-- * Initializier
-- */
--#define	__ARCH_SPIN_LOCK_UNLOCKED	{ ATOMIC_INIT(0) }
--
--/*
-  * Remapping spinlock architecture specific functions to the corresponding
-  * queued spinlock functions.
-  */
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index 85f888e..034acd0 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -33,6 +33,11 @@ typedef struct qspinlock {
- } arch_spinlock_t;
- 
- /*
-+ * Initializier
-+ */
-+#define	__ARCH_SPIN_LOCK_UNLOCKED	{ ATOMIC_INIT(0) }
-+
-+/*
-  * Bitfields in the atomic value:
-  *
-  * When NR_CPUS < 16K
--- 
-2.5.0
+> > + * Due to this file being licensed under the GPL there is controversy over
+> > + * whether this permits you to write a module that #includes this file
+> > + * without placing your module under the GPL.  Please consult a lawyer for
+> > + * advice before doing this.
+> 
+> Interesting wording, 
+
+This was copied from security.h. 
+
+> I don't think there's any "controversy" here, so I'd drop that word if at all
+> possible.
+
+Change it for something else? Any preference?
+
+  Luis
