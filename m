@@ -1,126 +1,335 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:50817 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:50959 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1425091AbcBSNqN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Feb 2016 08:46:13 -0500
+	id S1425193AbcBSNqS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Feb 2016 08:46:18 -0500
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [RFC v2 3/7] firmware: port built-in section to linker table
-Date: Fri, 19 Feb 2016 05:45:55 -0800
-Message-ID: <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
+Subject: [RFC v2 5/7] jump_label: port __jump_table to linker tables
+Date: Fri, 19 Feb 2016 05:45:57 -0800
+Message-ID: <1455889559-9428-6-git-send-email-mcgrof@kernel.org>
 In-Reply-To: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
 References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de
 Cc: x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20160219134555.Z0IQmpXyOogHz3V50UfyniC_cbDB8M8WaYmUtnb9ob0@z>
+Message-ID: <20160219134557.01UGWNl1BOVOfYkwAoZWoWrNlUmSr_NmswNW96hyRXU@z>
 
-This ports built-in firmware to use linker tables,
-this replaces the custom section solution with a
-generic solution.
+Move the __jump_table from the a custom section solution
+to a generic solution, this avoiding extra vmlinux.lds.h
+customizations.
 
-This also demos the use of the .rodata (SECTION_RO)
-linker tables.
-
-Tested with 0 built-in firmware, 1 and 2 built-in
-firmwares successfully.
+This also demos the use of the .data (SECTION_DATA)
+linker tables and of push_section_tbl().
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- arch/x86/kernel/cpu/microcode/core.c |  7 +++----
- drivers/base/firmware_class.c        | 11 +++++------
- firmware/Makefile                    |  2 +-
- include/asm-generic/vmlinux.lds.h    |  7 -------
- 4 files changed, 9 insertions(+), 18 deletions(-)
+ arch/arm/include/asm/jump_label.h     |  4 ++--
+ arch/arm64/include/asm/jump_label.h   |  4 ++--
+ arch/mips/include/asm/jump_label.h    |  4 ++--
+ arch/powerpc/include/asm/jump_label.h |  6 +++---
+ arch/s390/include/asm/jump_label.h    |  4 ++--
+ arch/sparc/include/asm/jump_label.h   |  4 ++--
+ arch/x86/include/asm/jump_label.h     |  9 +++++----
+ include/asm-generic/vmlinux.lds.h     |  4 ----
+ include/linux/jump_label.h            |  5 +++--
+ kernel/jump_label.c                   | 16 +++++++++-------
+ kernel/module.c                       |  4 +++-
+ 11 files changed, 33 insertions(+), 31 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
-index faec7120c508..7ee73cd64c95 100644
---- a/arch/x86/kernel/cpu/microcode/core.c
-+++ b/arch/x86/kernel/cpu/microcode/core.c
-@@ -99,15 +99,14 @@ static bool __init check_loader_disabled_bsp(void)
- 	return *res;
- }
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+DECLARE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
- 
- bool get_builtin_firmware(struct cpio_data *cd, const char *name)
+diff --git a/arch/arm/include/asm/jump_label.h b/arch/arm/include/asm/jump_label.h
+index 34f7b6980d21..c1df4f105df3 100644
+--- a/arch/arm/include/asm/jump_label.h
++++ b/arch/arm/include/asm/jump_label.h
+@@ -12,7 +12,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
  {
- #ifdef CONFIG_FW_LOADER
--	struct builtin_fw *b_fw;
-+	const struct builtin_fw *b_fw;
- 
--	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
-+	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
- 		if (!strcmp(name, b_fw->name)) {
- 			cd->size = b_fw->size;
- 			cd->data = b_fw->data;
-diff --git a/drivers/base/firmware_class.c b/drivers/base/firmware_class.c
-index b9250e564ebf..50b9cf3d0294 100644
---- a/drivers/base/firmware_class.c
-+++ b/drivers/base/firmware_class.c
-@@ -42,14 +42,13 @@ MODULE_LICENSE("GPL");
- 
- #ifdef CONFIG_FW_LOADER
- 
--extern struct builtin_fw __start_builtin_fw[];
--extern struct builtin_fw __end_builtin_fw[];
-+DEFINE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
- 
- static bool fw_get_builtin_firmware(struct firmware *fw, const char *name)
+ 	asm_volatile_goto("1:\n\t"
+ 		 WASM(nop) "\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+ 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
+@@ -26,7 +26,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
  {
--	struct builtin_fw *b_fw;
-+	const struct builtin_fw *b_fw;
- 
--	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
-+	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
- 		if (strcmp(name, b_fw->name) == 0) {
- 			fw->size = b_fw->size;
- 			fw->data = b_fw->data;
-@@ -62,9 +61,9 @@ static bool fw_get_builtin_firmware(struct firmware *fw, const char *name)
- 
- static bool fw_is_builtin_firmware(const struct firmware *fw)
+ 	asm_volatile_goto("1:\n\t"
+ 		 WASM(b) " %l[l_yes]\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+ 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
+diff --git a/arch/arm64/include/asm/jump_label.h b/arch/arm64/include/asm/jump_label.h
+index 1b5e0e843c3a..18f5ca294eaa 100644
+--- a/arch/arm64/include/asm/jump_label.h
++++ b/arch/arm64/include/asm/jump_label.h
+@@ -29,7 +29,7 @@
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
  {
--	struct builtin_fw *b_fw;
-+	const struct builtin_fw *b_fw;
+ 	asm goto("1: nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".align 3\n\t"
+ 		 ".quad 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+@@ -43,7 +43,7 @@ l_yes:
+ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
+ {
+ 	asm goto("1: b %l[l_yes]\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".align 3\n\t"
+ 		 ".quad 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+diff --git a/arch/mips/include/asm/jump_label.h b/arch/mips/include/asm/jump_label.h
+index e77672539e8e..13e70e290830 100644
+--- a/arch/mips/include/asm/jump_label.h
++++ b/arch/mips/include/asm/jump_label.h
+@@ -30,7 +30,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:\t" NOP_INSN "\n\t"
+ 		"nop\n\t"
+-		".pushsection __jump_table,  \"aw\"\n\t"
++		push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
+ 		".popsection\n\t"
+ 		: :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -44,7 +44,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ {
+ 	asm_volatile_goto("1:\tj %l[l_yes]\n\t"
+ 		"nop\n\t"
+-		".pushsection __jump_table,  \"aw\"\n\t"
++		push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
+ 		".popsection\n\t"
+ 		: :  "i" (&((char *)key)[branch]) : : l_yes);
+diff --git a/arch/powerpc/include/asm/jump_label.h b/arch/powerpc/include/asm/jump_label.h
+index 47e155f15433..5fffc7b12361 100644
+--- a/arch/powerpc/include/asm/jump_label.h
++++ b/arch/powerpc/include/asm/jump_label.h
+@@ -22,7 +22,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 "nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+ 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -36,7 +36,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 "b %l[l_yes]\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+ 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -61,7 +61,7 @@ struct jump_entry {
+ #else
+ #define ARCH_STATIC_BRANCH(LABEL, KEY)		\
+ 1098:	nop;					\
+-	.pushsection __jump_table, "aw";	\
++	.pushsection .data.tbl.__jump_table.all, "aw";	\
+ 	FTR_ENTRY_LONG 1098b, LABEL, KEY;	\
+ 	.popsection
+ #endif
+diff --git a/arch/s390/include/asm/jump_label.h b/arch/s390/include/asm/jump_label.h
+index 7f9fd5e3f1bf..1ebfb7ddcb11 100644
+--- a/arch/s390/include/asm/jump_label.h
++++ b/arch/s390/include/asm/jump_label.h
+@@ -15,7 +15,7 @@
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
+ {
+ 	asm_volatile_goto("0:	brcl 0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
+-		".pushsection __jump_table, \"aw\"\n"
++		".pushsection .data.tbl.__jump_table.all, \"aw\"\n"
+ 		".balign 8\n"
+ 		".quad 0b, %l[label], %0\n"
+ 		".popsection\n"
+@@ -29,7 +29,7 @@ label:
+ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
+ {
+ 	asm_volatile_goto("0:	brcl 15, %l[label]\n"
+-		".pushsection __jump_table, \"aw\"\n"
++		".pushsection .data.tbl.__jump_table.all, \"aw\"\n"
+ 		".balign 8\n"
+ 		".quad 0b, %l[label], %0\n"
+ 		".popsection\n"
+diff --git a/arch/sparc/include/asm/jump_label.h b/arch/sparc/include/asm/jump_label.h
+index 62d0354d1727..848bece455bb 100644
+--- a/arch/sparc/include/asm/jump_label.h
++++ b/arch/sparc/include/asm/jump_label.h
+@@ -12,7 +12,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ 	asm_volatile_goto("1:\n\t"
+ 		 "nop\n\t"
+ 		 "nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".align 4\n\t"
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+@@ -28,7 +28,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ 	asm_volatile_goto("1:\n\t"
+ 		 "b %l[l_yes]\n\t"
+ 		 "nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		 ".align 4\n\t"
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
+index adc54c12cbd1..5b80a0e755df 100644
+--- a/arch/x86/include/asm/jump_label.h
++++ b/arch/x86/include/asm/jump_label.h
+@@ -29,12 +29,13 @@
  
--	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++)
-+	LINKTABLE_FOR_EACH(b_fw, builtin_fw)
- 		if (fw->data == b_fw->data)
- 			return true;
+ #include <linux/stringify.h>
+ #include <linux/types.h>
++#include <asm-generic/sections.h>
  
-diff --git a/firmware/Makefile b/firmware/Makefile
-index e297e1b52636..e13549362577 100644
---- a/firmware/Makefile
-+++ b/firmware/Makefile
-@@ -164,7 +164,7 @@ quiet_cmd_fwbin = MK_FW   $@
- 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
- 		  echo "_fw_$${FWSTR}_name:"				>>$@;\
- 		  echo "    .string \"$$FWNAME\""			>>$@;\
--		  echo "    .section .builtin_fw,\"a\",$${PROGBITS}"	>>$@;\
-+		  echo "    .section .rodata.tbl.builtin_fw.all,\"a\",$${PROGBITS}"	>>$@;\
- 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
- 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_name"		>>$@;\
- 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_bin"		>>$@;\
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
+ {
+ 	asm_volatile_goto("1:"
+ 		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
++		push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		_ASM_ALIGN "\n\t"
+ 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
+ 		".popsection \n\t"
+@@ -50,7 +51,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ 	asm_volatile_goto("1:"
+ 		".byte 0xe9\n\t .long %l[l_yes] - 2f\n\t"
+ 		"2:\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
++		push_section_tbl(SECTION_DATA, __jump_table, all, aw)
+ 		_ASM_ALIGN "\n\t"
+ 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
+ 		".popsection \n\t"
+@@ -85,7 +86,7 @@ struct jump_entry {
+ 	.else
+ 	.byte		STATIC_KEY_INIT_NOP
+ 	.endif
+-	.pushsection __jump_table, "aw"
++	.pushsection .data.tbl.__jump_table.all, "aw"
+ 	_ASM_ALIGN
+ 	_ASM_PTR	.Lstatic_jump_\@, \target, \key
+ 	.popsection
+@@ -101,7 +102,7 @@ struct jump_entry {
+ 	.long		\target - .Lstatic_jump_after_\@
+ .Lstatic_jump_after_\@:
+ 	.endif
+-	.pushsection __jump_table, "aw"
++	.pushsection .data.tbl.__jump_table.all, "aw"
+ 	_ASM_ALIGN
+ 	_ASM_PTR	.Lstatic_jump_\@, \target, \key + 1
+ 	.popsection
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index eb23738ef4bd..91815fb1f2fa 100644
+index 91815fb1f2fa..11e1adcbcb24 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -302,13 +302,6 @@
- 		VMLINUX_SYMBOL(__end_pci_fixups_suspend_late) = .;	\
- 	}								\
- 									\
--	/* Built-in firmware blobs */					\
--	.builtin_fw        : AT(ADDR(.builtin_fw) - LOAD_OFFSET) {	\
--		VMLINUX_SYMBOL(__start_builtin_fw) = .;			\
--		*(.builtin_fw)						\
--		VMLINUX_SYMBOL(__end_builtin_fw) = .;			\
--	}								\
--									\
- 	TRACEDATA							\
- 									\
- 	/* Kernel symbol table: Normal symbols */			\
+@@ -210,10 +210,6 @@
+ 	STRUCT_ALIGN();							\
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+-	. = ALIGN(8);                                                   \
+-	VMLINUX_SYMBOL(__start___jump_table) = .;                       \
+-	*(__jump_table)                                                 \
+-	VMLINUX_SYMBOL(__stop___jump_table) = .;                        \
+ 	. = ALIGN(8);							\
+ 	VMLINUX_SYMBOL(__start___verbose) = .;                          \
+ 	*(__verbose)                                                    \
+diff --git a/include/linux/jump_label.h b/include/linux/jump_label.h
+index 0536524bb9eb..42b68b1e4a39 100644
+--- a/include/linux/jump_label.h
++++ b/include/linux/jump_label.h
+@@ -1,6 +1,8 @@
+ #ifndef _LINUX_JUMP_LABEL_H
+ #define _LINUX_JUMP_LABEL_H
+ 
++#include <linux/tables.h>
++
+ /*
+  * Jump label support
+  *
+@@ -138,8 +140,7 @@ static __always_inline bool static_key_true(struct static_key *key)
+ 	return !arch_static_branch(key, true);
+ }
+ 
+-extern struct jump_entry __start___jump_table[];
+-extern struct jump_entry __stop___jump_table[];
++DECLARE_LINKTABLE_DATA(struct jump_entry, __jump_table);
+ 
+ extern void jump_label_init(void);
+ extern void jump_label_lock(void);
+diff --git a/kernel/jump_label.c b/kernel/jump_label.c
+index 05254eeb4b4e..66d6e24148be 100644
+--- a/kernel/jump_label.c
++++ b/kernel/jump_label.c
+@@ -17,6 +17,8 @@
+ 
+ #ifdef HAVE_JUMP_LABEL
+ 
++DEFINE_LINKTABLE_DATA(struct jump_entry, __jump_table);
++
+ /* mutex to protect coming/going of the the jump_label table */
+ static DEFINE_MUTEX(jump_label_mutex);
+ 
+@@ -200,15 +202,14 @@ static void __jump_label_update(struct static_key *key,
+ 
+ void __init jump_label_init(void)
+ {
+-	struct jump_entry *iter_start = __start___jump_table;
+-	struct jump_entry *iter_stop = __stop___jump_table;
+ 	struct static_key *key = NULL;
+ 	struct jump_entry *iter;
+ 
+ 	jump_label_lock();
+-	jump_label_sort_entries(iter_start, iter_stop);
++	jump_label_sort_entries(LINKTABLE_START(__jump_table),
++				LINKTABLE_END(__jump_table));
+ 
+-	for (iter = iter_start; iter < iter_stop; iter++) {
++	LINKTABLE_FOR_EACH(iter, __jump_table) {
+ 		struct static_key *iterk;
+ 
+ 		/* rewrite NOPs */
+@@ -450,8 +451,9 @@ early_initcall(jump_label_init_module);
+  */
+ int jump_label_text_reserved(void *start, void *end)
+ {
+-	int ret = __jump_label_text_reserved(__start___jump_table,
+-			__stop___jump_table, start, end);
++	int ret = __jump_label_text_reserved(LINKTABLE_START(__jump_table),
++					     LINKTABLE_END(__jump_table),
++					     start, end);
+ 
+ 	if (ret)
+ 		return ret;
+@@ -464,7 +466,7 @@ int jump_label_text_reserved(void *start, void *end)
+ 
+ static void jump_label_update(struct static_key *key)
+ {
+-	struct jump_entry *stop = __stop___jump_table;
++	struct jump_entry *stop = LINKTABLE_END(__jump_table);
+ 	struct jump_entry *entry = static_key_entries(key);
+ #ifdef CONFIG_MODULES
+ 	struct module *mod;
+diff --git a/kernel/module.c b/kernel/module.c
+index 9537da37ce87..42249ee8e462 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -2930,7 +2930,9 @@ static int find_module_sections(struct module *mod, struct load_info *info)
+ 					     &mod->num_tracepoints);
+ #endif
+ #ifdef HAVE_JUMP_LABEL
+-	mod->jump_entries = section_objs(info, "__jump_table",
++	mod->jump_entries = section_objs(info,
++					SECTION_TBL(SECTION_DATA,
++						    __jump_table,),
+ 					sizeof(*mod->jump_entries),
+ 					&mod->num_jump_entries);
+ #endif
 -- 
 2.7.0
 
