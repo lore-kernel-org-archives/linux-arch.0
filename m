@@ -1,138 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:54482 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932136AbcBSQUo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Feb 2016 11:20:44 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2] [RFC] ARM: modify pgd_t definition for TRANSPARENT_HUGEPAGE_PUD
-Date: Fri, 19 Feb 2016 17:19:35 +0100
-Message-ID: <1455898786-2720743-1-git-send-email-arnd@arndb.de>
+Received: from terminus.zytor.com ([198.137.202.10]:59429 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1422953AbcBSUal (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Feb 2016 15:30:41 -0500
+Subject: Re: [RFC v2 2/7] tables.h: add linker table support
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-3-git-send-email-mcgrof@kernel.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <56C77A53.6060708@zytor.com>
+Date: Fri, 19 Feb 2016 12:25:55 -0800
+MIME-Version: 1.0
+In-Reply-To: <1455889559-9428-3-git-send-email-mcgrof@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@linux.intel.com>, Jan Kara <jack@suse.cz>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160219161935.1NL3qyivwkkO5Bk_OAh4sO5a2DJ51VicpU-l_Vd6gIg@z>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com
+Message-ID: <20160219202555.izqLmZTpvcK0j__Fkv-_8WrH_r9z7bpsvBb9wL9M4JY@z>
 
-I ran into build errors on ARM after Willy's newly added generic
-TRANSPARENT_HUGEPAGE_PUD support. We don't support this feature
-on ARM at all, but the patch causes a build error anyway:
+On 02/19/2016 05:45 AM, Luis R. Rodriguez wrote:
+> +
+> +/**
+> + * DOC: Regular linker linker table constructors
+> + *
+> + * Regular constructors are expected to be used for valid linker table entries.
+> + * Valid uses of weak entries other than the beginning and is currently
+> + * untested but should in theory work.
+> + */
+> +
+> +/**
+> + * LINKTABLE_TEXT - Declares a linker table entry for execution
+> + *
+> + * @name: linker table name
+> + * @level: order level
+> + *
+> + * Declares a linker table to be used for execution.
+> + */
+> +#define LINKTABLE_TEXT(name, level)					\
+> +	      __typeof__(name[0])					\
+> +	      __attribute__((used,					\
+> +			     __aligned__(LINKTABLE_ALIGNMENT(name)),	\
+> +			     section(SECTION_TBL(SECTION_TEXT, name, level))))
 
-In file included from ../kernel/memremap.c:17:0:
-../include/linux/pfn_t.h:108:7: error: 'pud_mkdevmap' declared as function returning an array
- pud_t pud_mkdevmap(pud_t pud);
+I'm really confused by this.  Text should obviously be readonly, but I'm
+not at all clear how this works here.
 
-We don't use a PUD on ARM, so pud_t is defined as pmd_t, which
-in turn is defined as
+The issue with linktables for text is kind of confusing if nothing else;
+Russel is right about that.  It doesn't prevent us from doing something
+similar, but perhaps it ought to have a different name.
 
-typedef unsigned long pgd_t[2];
+For one thing, priority level is meaningless for text, since it is not a
+table that can be indexed into.
 
-on NOMMU and on 2-level MMU configurations. There is an (unused)
-other definition using a struct around the array, which happens to
-work fine here.
-
-There is a comment in the file about the fact the other version
-is "easier on the compiler", and I've traced that version back
-to linux-2.1.80 when ARM support was first merged back in 1998.
-
-It's probably a safe assumption that this is no longer necessary:
-The same logic existed in asm-i386 at the time but was removed
-a year later in 2.3.23pre3. The STRICT_MM_TYPECHECKS logic
-also ended up getting copied into other architectures, which
-use them in various ways:
-
-* both defined, but using strict:
-arch/alpha/include/asm/page.h:#define STRICT_MM_TYPECHECKS
-arch/sparc/include/asm/page_64.h:#define STRICT_MM_TYPECHECKS
-arch/ia64/include/asm/page.h:#  define STRICT_MM_TYPECHECKS
-arch/parisc/include/asm/page.h:#define STRICT_MM_TYPECHECKS
-
-* both defined, but using non-strict:
-arch/arc/include/asm/page.h:#undef STRICT_MM_TYPECHECKS
-arch/arm/include/asm/pgtable-2level-types.h:#undef STRICT_MM_TYPECHECKS
-arch/arm/include/asm/pgtable-3level-types.h:#undef STRICT_MM_TYPECHECKS
-arch/arm64/include/asm/pgtable-types.h:#undef STRICT_MM_TYPECHECKS
-arch/sparc/include/asm/page_32.h:/* #define STRICT_MM_TYPECHECKS */
-arch/unicore32/include/asm/page.h:#undef STRICT_MM_TYPECHECKS
-
-* Kconfig option:
-arch/powerpc/Kconfig.debug:config STRICT_MM_TYPECHECKS
-			 	default n
-
-Everthing else uses only the strict definitions.
-
-For the moment, this only does the minimal change to fix things
-on ARM in linux-next. At least in case of sparc32, passing structs
-to functions is traditionally inefficient and the non-strict version
-should be kept, whether we change any of the other architectures
-depends on further testing.
-
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Fixes: a27da20ed50e ("mm: add support for PUD-sized transparent hugepages")
-Link: http://www.spinics.net/lists/linux-mm/msg101404.html
----
- arch/arm/include/asm/page-nommu.h           | 4 ++--
- arch/arm/include/asm/pgtable-2level-types.h | 7 +++----
- 2 files changed, 5 insertions(+), 6 deletions(-)
-
-diff --git a/arch/arm/include/asm/page-nommu.h b/arch/arm/include/asm/page-nommu.h
-index d1b162a18dcb..3db1ca22fecb 100644
---- a/arch/arm/include/asm/page-nommu.h
-+++ b/arch/arm/include/asm/page-nommu.h
-@@ -31,12 +31,12 @@
-  */
- typedef unsigned long pte_t;
- typedef unsigned long pmd_t;
--typedef unsigned long pgd_t[2];
-+typedef struct { unsigned long pgd[2]; } pgd_t;
- typedef unsigned long pgprot_t;
- 
- #define pte_val(x)      (x)
- #define pmd_val(x)      (x)
--#define pgd_val(x)	((x)[0])
-+#define pgd_val(x)	((x).pgd[0])
- #define pgprot_val(x)   (x)
- 
- #define __pte(x)        (x)
-diff --git a/arch/arm/include/asm/pgtable-2level-types.h b/arch/arm/include/asm/pgtable-2level-types.h
-index 66cb5b0e89c5..9b9815d5ebd6 100644
---- a/arch/arm/include/asm/pgtable-2level-types.h
-+++ b/arch/arm/include/asm/pgtable-2level-types.h
-@@ -24,6 +24,9 @@
- typedef u32 pteval_t;
- typedef u32 pmdval_t;
- 
-+typedef struct { pmdval_t pgd[2]; } pgd_t;
-+#define pgd_val(x)	((x).pgd[0])
-+
- #undef STRICT_MM_TYPECHECKS
- 
- #ifdef STRICT_MM_TYPECHECKS
-@@ -32,12 +35,10 @@ typedef u32 pmdval_t;
-  */
- typedef struct { pteval_t pte; } pte_t;
- typedef struct { pmdval_t pmd; } pmd_t;
--typedef struct { pmdval_t pgd[2]; } pgd_t;
- typedef struct { pteval_t pgprot; } pgprot_t;
- 
- #define pte_val(x)      ((x).pte)
- #define pmd_val(x)      ((x).pmd)
--#define pgd_val(x)	((x).pgd[0])
- #define pgprot_val(x)   ((x).pgprot)
- 
- #define __pte(x)        ((pte_t) { (x) } )
-@@ -50,12 +51,10 @@ typedef struct { pteval_t pgprot; } pgprot_t;
-  */
- typedef pteval_t pte_t;
- typedef pmdval_t pmd_t;
--typedef pmdval_t pgd_t[2];
- typedef pteval_t pgprot_t;
- 
- #define pte_val(x)      (x)
- #define pmd_val(x)      (x)
--#define pgd_val(x)	((x)[0])
- #define pgprot_val(x)   (x)
- 
- #define __pte(x)        (x)
--- 
-2.7.0
+	-hpa
 
