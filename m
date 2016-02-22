@@ -1,23 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:58230 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:58224 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753064AbcBWJKO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:10:14 -0500
-Date: Mon, 22 Feb 2016 04:18:45 -0800
+	with ESMTP id S932745AbcBWJKM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:10:12 -0500
+Date: Mon, 22 Feb 2016 04:20:21 -0800
 From: =?UTF-8?B?dGlwLWJvdCBmb3IgS2VlcyBDb29rIDx0aXBib3RAenl0b3IuY29tPg==?=@zytor.com
-Message-ID: <tip-d2aa1acad22f1bdd0cfa67b3861800e392254454@git.kernel.org>
-Reply-To: arnd@arndb.de, david.brown@linaro.org,
-	  linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
-	  keescook@chromium.org, bp@alien8.de, mpe@ellerman.id.au,
-	  minipli@googlemail.com, tglx@linutronix.de, peterz@infradead.org,
-	  dvlasenk@redhat.com, re.emese@gmail.com, hpa@zytor.com,
-	  mingo@kernel.org, luto@amacapital.net, brgerst@gmail.com,
-	  linux-kernel@vger.kernel.org, pageexec@freemail.hu
-In-Reply-To: <1455748879-21872-3-git-send-email-keescook@chromium.org>
-References: <1455748879-21872-3-git-send-email-keescook@chromium.org>
-Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gbW0vaW5pdDogQWRkICdyb2RhdGE9b2ZmJyBib28=?=
- =?UTF-8?B?dCBjbWRsaW5lIHBhcmFtZXRlciB0byBkaXNhYmxlIHJlYWQtb25seSBrZXJuZWw=?=
- =?UTF-8?B?IG1hcHBpbmdz?=
+Message-ID: <tip-018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5@git.kernel.org>
+Reply-To: arnd@arndb.de, brgerst@gmail.com, re.emese@gmail.com,
+	  tglx@linutronix.de, pageexec@freemail.hu,
+	  torvalds@linux-foundation.org, minipli@googlemail.com,
+	  hpa@zytor.com, peterz@infradead.org, bp@alien8.de,
+	  linux-kernel@vger.kernel.org, luto@kernel.org,
+	  spender@grsecurity.net, dvlasenk@redhat.com, mingo@kernel.org,
+	  luto@amacapital.net, david.brown@linaro.org, mpe@ellerman.id.au,
+	  keescook@chromium.org, hpa@linux.intel.com,
+	  linux-arch@vger.kernel.org
+In-Reply-To: <1455748879-21872-7-git-send-email-keescook@chromium.org>
+References: <1455748879-21872-7-git-send-email-keescook@chromium.org>
+Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0geDg2L3Zkc286IE1hcmsgdGhlIHZEU08gY29kZSA=?=
+ =?UTF-8?B?cmVhZC1vbmx5IGFmdGVyIGluaXQ=?=
 MIME-Version: =?UTF-8?B?MS4w?=
 Content-Transfer-Encoding: =?UTF-8?B?OGJpdA==?=
 Content-Type: =?UTF-8?B?dGV4dC9wbGFpbjsgY2hhcnNldD1VVEYtOA==?=
@@ -25,35 +26,74 @@ Content-Disposition: =?UTF-8?B?aW5saW5l?=
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: =?UTF-8?B?bGludXgtdGlwLWNvbW1pdHNAdmdlci5rZXJuZWwub3Jn?=@zytor.com
-Cc: minipli@googlemail.com, mpe@ellerman.id.au, linux-arch@vger.kernel.org, david.brown@linaro.org, arnd@arndb.de, keescook@chromium.org, bp@alien8.de, torvalds@linux-foundation.org, pageexec@freemail.hu, linux-kernel@vger.kernel.org, brgerst@gmail.com, luto@amacapital.net, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, re.emese@gmail.com, peterz@infradead.org, dvlasenk@redhat.com
-Message-ID: <20160222121845.sNgr6zMCbmFgcQJKtg1Z9J2y3XHwCe661Cf97ru-73I@z>
+Cc: luto@amacapital.net, david.brown@linaro.org, mpe@ellerman.id.au, keescook@chromium.org, hpa@linux.intel.com, linux-arch@vger.kernel.org, bp@alien8.de, linux-kernel@vger.kernel.org, luto@kernel.org, spender@grsecurity.net, dvlasenk@redhat.com, mingo@kernel.org, pageexec@freemail.hu, tglx@linutronix.de, hpa@zytor.com, minipli@googlemail.com, torvalds@linux-foundation.org, peterz@infradead.org, arnd@arndb.de, brgerst@gmail.com, re.emese@gmail.com
+Message-ID: <20160222122021.TPEv8ibHntR4K9WWkNxM_tKnGA6kflvBQ31B6UKzC1k@z>
 
-Commit-ID:  d2aa1acad22f1bdd0cfa67b3861800e392254454
-Gitweb:     http://git.kernel.org/tip/d2aa1acad22f1bdd0cfa67b3861800e392254454
+Commit-ID:  018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5
+Gitweb:     http://git.kernel.org/tip/018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5
 Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 17 Feb 2016 14:41:13 -0800
+AuthorDate: Wed, 17 Feb 2016 14:41:17 -0800
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Mon, 22 Feb 2016 08:51:37 +0100
+CommitDate: Mon, 22 Feb 2016 08:51:39 +0100
 
-mm/init: Add 'rodata=off' boot cmdline parameter to disable read-only kernel mappings
+x86/vdso: Mark the vDSO code read-only after init
 
-It may be useful to debug writes to the readonly sections of memory,
-so provide a cmdline "rodata=off" to allow for this. This can be
-expanded in the future to support "log" and "write" modes, but that
-will need to be architecture-specific.
+The vDSO does not need to be writable after __init, so mark it as
+__ro_after_init. The result kills the exploit method of writing to the
+vDSO from kernel space resulting in userspace executing the modified code,
+as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
 
-This also makes KDB software breakpoints more usable, as read-only
-mappings can now be disabled on any kernel.
+The memory map (with added vDSO address reporting) shows the vDSO moving
+into read-only memory:
 
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
+Before:
+	[    0.143067] vDSO @ ffffffff82004000
+	[    0.143551] vDSO @ ffffffff82006000
+	---[ High Kernel Mapping ]---
+	0xffffffff80000000-0xffffffff81000000      16M                         pmd
+	0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+	0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+	0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+	0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+	0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+	0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+	0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+	0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+	0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+	0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+	0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+After:
+	[    0.145062] vDSO @ ffffffff81da1000
+	[    0.146057] vDSO @ ffffffff81da4000
+	---[ High Kernel Mapping ]---
+	0xffffffff80000000-0xffffffff81000000      16M                         pmd
+	0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+	0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+	0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+	0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+	0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+	0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+	0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+	0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+	0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+	0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+	0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+Based on work by PaX Team and Brad Spengler.
+
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
 Cc: Andy Lutomirski <luto@amacapital.net>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brad Spengler <spender@grsecurity.net>
 Cc: Brian Gerst <brgerst@gmail.com>
 Cc: David Brown <david.brown@linaro.org>
 Cc: Denys Vlasenko <dvlasenk@redhat.com>
 Cc: Emese Revfy <re.emese@gmail.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Mathias Krause <minipli@googlemail.com>
 Cc: Michael Ellerman <mpe@ellerman.id.au>
@@ -62,97 +102,22 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: kernel-hardening@lists.openwall.com
 Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1455748879-21872-3-git-send-email-keescook@chromium.org
+Link: http://lkml.kernel.org/r/1455748879-21872-7-git-send-email-keescook@chromium.org
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- Documentation/kernel-parameters.txt |  4 ++++
- init/main.c                         | 27 +++++++++++++++++++++++----
- kernel/debug/kdb/kdb_bp.c           |  4 +---
- 3 files changed, 28 insertions(+), 7 deletions(-)
+ arch/x86/entry/vdso/vdso2c.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 9a53c92..0003367 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -3491,6 +3491,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 
- 	ro		[KNL] Mount root device read-only on boot
- 
-+	rodata=		[KNL]
-+		on	Mark read-only kernel memory as read-only (default).
-+		off	Leave read-only kernel memory writable for debugging.
-+
- 	root=		[KNL] Root filesystem
- 			See name_to_dev_t comment in init/do_mounts.c.
- 
-diff --git a/init/main.c b/init/main.c
-index 58c9e37..928a343 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -93,9 +93,6 @@ static int kernel_init(void *);
- extern void init_IRQ(void);
- extern void fork_init(void);
- extern void radix_tree_init(void);
--#ifndef CONFIG_DEBUG_RODATA
--static inline void mark_rodata_ro(void) { }
--#endif
- 
- /*
-  * Debug helper: via this flag we know that we are in 'early bootup code'
-@@ -929,6 +926,28 @@ static int try_to_run_init_process(const char *init_filename)
- 
- static noinline void __init kernel_init_freeable(void);
- 
-+#ifdef CONFIG_DEBUG_RODATA
-+static bool rodata_enabled = true;
-+static int __init set_debug_rodata(char *str)
-+{
-+	return strtobool(str, &rodata_enabled);
-+}
-+__setup("rodata=", set_debug_rodata);
-+
-+static void mark_readonly(void)
-+{
-+	if (rodata_enabled)
-+		mark_rodata_ro();
-+	else
-+		pr_info("Kernel memory protection disabled.\n");
-+}
-+#else
-+static inline void mark_readonly(void)
-+{
-+	pr_warn("This architecture does not have kernel memory protection.\n");
-+}
-+#endif
-+
- static int __ref kernel_init(void *unused)
- {
- 	int ret;
-@@ -937,7 +956,7 @@ static int __ref kernel_init(void *unused)
- 	/* need to finish all async __init code before freeing the memory */
- 	async_synchronize_full();
- 	free_initmem();
--	mark_rodata_ro();
-+	mark_readonly();
- 	system_state = SYSTEM_RUNNING;
- 	numa_default_policy();
- 
-diff --git a/kernel/debug/kdb/kdb_bp.c b/kernel/debug/kdb/kdb_bp.c
-index e1dbf4a..90ff129 100644
---- a/kernel/debug/kdb/kdb_bp.c
-+++ b/kernel/debug/kdb/kdb_bp.c
-@@ -153,13 +153,11 @@ static int _kdb_bp_install(struct pt_regs *regs, kdb_bp_t *bp)
- 	} else {
- 		kdb_printf("%s: failed to set breakpoint at 0x%lx\n",
- 			   __func__, bp->bp_addr);
--#ifdef CONFIG_DEBUG_RODATA
- 		if (!bp->bp_type) {
- 			kdb_printf("Software breakpoints are unavailable.\n"
--				   "  Change the kernel CONFIG_DEBUG_RODATA=n\n"
-+				   "  Boot the kernel with rodata=off\n"
- 				   "  OR use hw breaks: help bph\n");
- 		}
--#endif
- 		return 1;
- 	}
- 	return 0;
+diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
+index 0224987..3f69326 100644
+--- a/arch/x86/entry/vdso/vdso2c.h
++++ b/arch/x86/entry/vdso/vdso2c.h
+@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	fprintf(outfile, "#include <asm/vdso.h>\n");
+ 	fprintf(outfile, "\n");
+ 	fprintf(outfile,
+-		"static unsigned char raw_data[%lu] __page_aligned_data = {",
++		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
+ 		mapping_size);
+ 	for (j = 0; j < stripped_len; j++) {
+ 		if (j % 10 == 0)
