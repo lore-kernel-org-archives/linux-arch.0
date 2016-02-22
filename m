@@ -1,162 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44768 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756128AbcBWAwt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Feb 2016 19:52:49 -0500
-Date: Tue, 23 Feb 2016 01:52:44 +0100
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [Xen-devel] [RFC v2 7/7] kprobes: port to linker table
-Message-ID: <20160223005244.GE25240@wotan.suse.de>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-8-git-send-email-mcgrof@kernel.org>
- <50399556C9727B4D88A595C8584AAB37B4E0F41C@GSjpTKYDCembx32.service.hitachi.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <50399556C9727B4D88A595C8584AAB37B4E0F41C@GSjpTKYDCembx32.service.hitachi.net>
+Received: from terminus.zytor.com ([198.137.202.10]:58450 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932949AbcBWJL1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:11:27 -0500
+Date: Mon, 22 Feb 2016 04:20:45 -0800
+From: =?UTF-8?B?dGlwLWJvdCBmb3IgRGF2aWQgQnJvd24gPHRpcGJvdEB6eXRvci5jb20+?=@zytor.com
+Message-ID: <tip-11bf9b865898961cee60a41c483c9f27ec76e12e@git.kernel.org>
+Reply-To: tglx@linutronix.de, keescook@chromium.org, re.emese@gmail.com,
+	  pageexec@freemail.hu, bp@alien8.de, linux-arch@vger.kernel.org,
+	  hpa@zytor.com, luto@amacapital.net, arnd@arndb.de,
+	  linux-kernel@vger.kernel.org, david.brown@linaro.org,
+	  torvalds@linux-foundation.org, brgerst@gmail.com,
+	  minipli@googlemail.com, linux@arm.linux.org.uk,
+	  dvlasenk@redhat.com, nathan_lynch@mentor.com, mpe@ellerman.id.au,
+	  spender@grsecurity.net, mingo@kernel.org, peterz@infradead.org
+In-Reply-To: <1455748879-21872-8-git-send-email-keescook@chromium.org>
+References: <1455748879-21872-8-git-send-email-keescook@chromium.org>
+Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gQVJNL3Zkc286IE1hcmsgdGhlIHZEU08gY29kZSA=?=
+ =?UTF-8?B?cmVhZC1vbmx5IGFmdGVyIGluaXQ=?=
+MIME-Version: =?UTF-8?B?MS4w?=
+Content-Transfer-Encoding: =?UTF-8?B?OGJpdA==?=
+Content-Type: =?UTF-8?B?dGV4dC9wbGFpbjsgY2hhcnNldD1VVEYtOA==?=
+Content-Disposition: =?UTF-8?B?aW5saW5l?=
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?B?5bmz5p2+6ZuF5bezIC8gSElSQU1BVFXvvIxNQVNBTUk=?= <masami.hiramatsu.pt@hitachi.com>
-Cc: "'Luis R. Rodriguez'" <mcgrof@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "ming.lei@canonical.com" <ming.lei@canonical.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "x86@kernel.org" <x86@kernel.org>, "anil.s.keshavamurthy@intel.com" <anil.s.keshavamurthy@intel.com>, "arnd@arndb.de" <arnd@arndb.de>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "jbaron@akamai.com" <jbaron@akamai.com>, "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "andriy.shevchenko@linux.intel.com" <andriy.shevchenko@linux.intel.com>, "mcb30@ipxe.org" <mcb30@ipxe.org>, "jgross@suse.com" <jgross@suse.com>, "ananth@in.ibm.com" <ananth@in.ibm.com>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "luto@amacapital.net" <luto@amacapital.net>, "david.vrabel@citrix.com" <david.vrabel@citrix.com>, "dwmw2@infradead.org" <dwmw2@infradead.org>, "davem@davemloft.net" <davem@davemloft.net>
-Message-ID: <20160223005244.tLJYzf-n2Pj46c4Klr7-PmlUoWB3zso9biVxo3GpVBQ@z>
+To: =?UTF-8?B?bGludXgtdGlwLWNvbW1pdHNAdmdlci5rZXJuZWwub3Jn?=@zytor.com
+Cc: hpa@zytor.com, linux-arch@vger.kernel.org, bp@alien8.de, re.emese@gmail.com, pageexec@freemail.hu, keescook@chromium.org, tglx@linutronix.de, peterz@infradead.org, spender@grsecurity.net, mpe@ellerman.id.au, mingo@kernel.org, dvlasenk@redhat.com, nathan_lynch@mentor.com, linux@arm.linux.org.uk, brgerst@gmail.com, minipli@googlemail.com, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, david.brown@linaro.org, luto@amacapital.net, arnd@arndb.de
+Message-ID: <20160222122045.4BZcjKyY5xiZt7X60vlWA2ZjQw_2aKaVymhnvPuZKoM@z>
 
-On Mon, Feb 22, 2016 at 01:34:05AM +0000, 平松雅巳 / HIRAMATU，MASAMI wrote:
-> >From: Luis R. Rodriguez [mailto:mcgrof@kernel.org]
-> >
-> >kprobe makes use of two custom sections:
-> >
-> >type       name                  begin                    end
-> >init.data _kprobe_blacklist __start_kprobe_blacklist	__stop_kprobe_blacklist
-> >text      .kprobes.text     __kprobes_text_start        __kprobes_text_end
-> >
-> >Port these to the linker table generic solution. This lets
-> >us remove all the custom kprobe section declarations on the
-> >linker script.
-> >
-> >Tested with CONFIG_KPROBES_SANITY_TEST, it passes with:
-> >
-> >Kprobe smoke test: started
-> >Kprobe smoke test: passed successfully
-> >
-> >Then tested CONFIG_SAMPLE_KPROBES on do_fork, and the
-> >kprobe bites and kicks as expected. Lastly tried registering
-> >a kprobe on a kprobe blacklisted symbol (NOKPROBE_SYMBOL()),
-> >and confirms that fails to work.
-> 
-> Could you also check to run the testcases by using ftracetest as below?
-> 
-> $ cd tools/testing/selftests/ftrace/
-> $ sudo ./ftracetest
+Commit-ID:  11bf9b865898961cee60a41c483c9f27ec76e12e
+Gitweb:     http://git.kernel.org/tip/11bf9b865898961cee60a41c483c9f27ec76e12e
+Author:     David Brown <david.brown@linaro.org>
+AuthorDate: Wed, 17 Feb 2016 14:41:18 -0800
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Mon, 22 Feb 2016 08:51:39 +0100
 
-Sure, it all passed:
+ARM/vdso: Mark the vDSO code read-only after init
 
-$ sudo ./ftracetest
-=== Ftrace unit tests ===
-[1] Basic trace file check	[PASS]
-[2] Basic test for tracers	[PASS]
-[3] Basic trace clock test	[PASS]
-[4] Basic event tracing check	[PASS]
-[5] event tracing - enable/disable with event level files	[PASS]
-[6] event tracing - enable/disable with subsystem level files	[PASS]
-[7] event tracing - enable/disable with top level files	[PASS]
-[8] ftrace - function graph filters with stack tracer	[PASS]
-[9] ftrace - function graph filters	[PASS]
-[10] ftrace - function profiler with function tracing	[PASS]
-[11] Test creation and deletion of trace instances	[PASS]
-[12] Kprobe dynamic event - adding and removing	[PASS]
-[13] Kprobe dynamic event - busy event check	[PASS]
-[14] Kprobe dynamic event with arguments	[PASS]
-[15] Kprobe dynamic event with function tracer	[PASS]
-[16] Kretprobe dynamic event with arguments	[PASS]
+Although the ARM vDSO is cleanly separated by code/data with the code
+being read-only in userspace mappings, the code page is still writable
+from the kernel.
 
-# of passed:  16
-# of failed:  0
-# of unresolved:  0
-# of untested:  0
-# of unsupported:  0
-# of xfailed:  0
-# of undefined(test bug):  0
+There have been exploits (such as http://itszn.com/blog/?p=21) that
+take advantage of this on x86 to go from a bad kernel write to full
+root.
 
-> And I'm not sure about linker table.
+Prevent this specific exploit class on ARM as well by putting the vDSO
+code page in post-init read-only memory as well.
 
-So there's really a few parts to the linker table work, out of
-the ones that relate to kprobes:
+Before:
+	vdso: 1 text pages at base 80927000
+	root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
+	---[ Modules ]---
+	---[ Kernel Mapping ]---
+	0x80000000-0x80100000           1M     RW NX SHD
+	0x80100000-0x80600000           5M     ro x  SHD
+	0x80600000-0x80800000           2M     ro NX SHD
+	0x80800000-0xbe000000         984M     RW NX SHD
 
-  * linker tables try to generalize our section use, and provide some
-    helpers for common section use
-  * provides helpers to make it easier to make custom section,
-    but by re-using standard sections
-  * when a custom section uses standard sections and helpers
-    we also get a few gains:
-    - developers reviewing code can more easily get a quicker
-      understanding and have expectations set of how the code
-      feature using the custom section could be used
-    - people grep'ing on the kernel can more easily find
-      specific types of custom section use by looking for
-      the type of interest
-    - developers adding features do not need to modify
-      any linker scripts (vmlinux.lds.S) to make use of
-      custom sections
+After:
+	vdso: 1 text pages at base 8072b000
+	root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
+	---[ Modules ]---
+	---[ Kernel Mapping ]---
+	0x80000000-0x80100000           1M     RW NX SHD
+	0x80100000-0x80600000           5M     ro x  SHD
+	0x80600000-0x80800000           2M     ro NX SHD
+	0x80800000-0xbe000000         984M     RW NX SHD
 
-In kprobe's case, since it uses two custom sections, we have
-only a small use for the first case: .kprobe.text is just used
-as a place holder for future developer annotated special cased
-executable code. It also makes use of the generic helpers:
-LINKTABLE_ADDR_WITHIN(), LINKTABLE_START(), LINKTABLE_END().
+Inspired by https://lkml.org/lkml/2016/1/19/494 based on work by the
+PaX Team, Brad Spengler, and Kees Cook.
 
-The second use case, for the _kprobe_blacklist, makes much more
-use of the more advanced linker table helpers, for instance the
-iterator LINKTABLE_FOR_EACH().
+Signed-off-by: David Brown <david.brown@linaro.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brad Spengler <spender@grsecurity.net>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: Emese Revfy <re.emese@gmail.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mathias Krause <minipli@googlemail.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nathan Lynch <nathan_lynch@mentor.com>
+Cc: PaX Team <pageexec@freemail.hu>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: kernel-hardening@lists.openwall.com
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org
+Link: http://lkml.kernel.org/r/1455748879-21872-8-git-send-email-keescook@chromium.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ arch/arm/vdso/vdso.S | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-For both though we now have each custom section's actual section
-clearly highlighted:
-
-  * kprobes: .text (SECTION_TEXT)
-  * kprobe blacklist: init.data (SECTION_INIT_DATA)
-
-A reader / developer can more easily gain an understanding
-of how the above custom sections could be used just by its
-type.
-
-Another feature of linker tables, but outside of the scope of how kprobe
-would use linker tables, is the ability to enable folks to avoid code
-bit rot by using table-$(CONFIG_FOO) instead of oby-$(CONFIG_FOO) on
-init paths of code but since this is outside of the scope of how kprobe would
-use I leave that just as a reference as another part of linker table.
-Unless of course you want to make people force compile all kprobe
-support code but only have it linked in when actually enabled. That
-would be outside of the scope and purpose of this patch though.
-
-> Is that possible to support
-> __kprobes prefix, which moves the functions into kprobes.text?
-
-Absolutely, the respective change was just to annotate and make
-it clear the section kprobes were using:
-
--# define __kprobes     __attribute__((__section__(".kprobes.text")))
-+#include <linux/sections.h>
-+# define __kprobes     __attribute__((__section__(SECTION_TBL(SECTION_TEXT, kprobes, all))))
-
-> Actually, I'm on the way to replacing __kprobes to NOKPROBE_SYMBOL
-> macro, since NOKPROBE_SYMBOL() doesn't effect the kernel text itself.
-> On x86, it is already replaced (see commit 820aede0209a), and same
-> work should be done on other archs. So, could you hold this after
-> that?
-
-Sure.
-
-> I think we should remove .kprobes.text first 
-
-You mean just remove the incorrect users of .kprobes.text because as I read
-what you described above we have abuse of __kprobes use to protect against
-kprobes being introduced on those routines, and we should be using
-NOKPROBE_SYMBOL() instead. So from what I gather its not that you will
-remove .kprobes.text but rather clean our current abuse of __kprobes
-for protection to use NOKPROBE_SYMBOL() instead. Is that right?
-
-> and move to  linker table.
-
-Sure, can you Cc me on your patches? I can follow up later.
-
-  Luis
+diff --git a/arch/arm/vdso/vdso.S b/arch/arm/vdso/vdso.S
+index b2b97e3..a62a7b6 100644
+--- a/arch/arm/vdso/vdso.S
++++ b/arch/arm/vdso/vdso.S
+@@ -23,9 +23,8 @@
+ #include <linux/const.h>
+ #include <asm/page.h>
+ 
+-	__PAGE_ALIGNED_DATA
+-
+ 	.globl vdso_start, vdso_end
++	.section .data..ro_after_init
+ 	.balign PAGE_SIZE
+ vdso_start:
+ 	.incbin "arch/arm/vdso/vdso.so"
