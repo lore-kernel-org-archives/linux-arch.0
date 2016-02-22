@@ -1,22 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:58222 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:58172 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932730AbcBWJKM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:10:12 -0500
-Date: Mon, 22 Feb 2016 04:19:57 -0800
+	with ESMTP id S932581AbcBWJKD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:10:03 -0500
+Date: Mon, 22 Feb 2016 04:19:33 -0800
 From: =?UTF-8?B?dGlwLWJvdCBmb3IgS2VlcyBDb29rIDx0aXBib3RAenl0b3IuY29tPg==?=@zytor.com
-Message-ID: <tip-7cca071ccbd2a293ea69168ace6abbcdce53098e@git.kernel.org>
-Reply-To: minipli@googlemail.com, linux-arch@vger.kernel.org,
-	  torvalds@linux-foundation.org, linux-kernel@vger.kernel.org,
-	  bp@alien8.de, brgerst@gmail.com, peterz@infradead.org,
-	  mingo@kernel.org, dvlasenk@redhat.com, tglx@linutronix.de,
-	  arnd@arndb.de, david.brown@linaro.org, luto@amacapital.net,
-	  pageexec@freemail.hu, keescook@chromium.org, re.emese@gmail.com,
-	  mpe@ellerman.id.au, hpa@zytor.com
-In-Reply-To: <1455748879-21872-6-git-send-email-keescook@chromium.org>
-References: <1455748879-21872-6-git-send-email-keescook@chromium.org>
-Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gbGtkdG06IFZlcmlmeSB0aGF0ICdfX3JvX2FmdGU=?=
- =?UTF-8?B?cl9pbml0JyB3b3JrcyBjb3JyZWN0bHk=?=
+Message-ID: <tip-c74ba8b3480da6ddaea17df2263ec09b869ac496@git.kernel.org>
+Reply-To: arnd@arndb.de, bp@alien8.de, tglx@linutronix.de,
+	  brgerst@gmail.com, torvalds@linux-foundation.org,
+	  dvlasenk@redhat.com, mpe@ellerman.id.au, luto@amacapital.net,
+	  peterz@infradead.org, pageexec@freemail.hu,
+	  keescook@chromium.org, minipli@googlemail.com,
+	  re.emese@gmail.com, david.brown@linaro.org, hpa@zytor.com,
+	  linux-arch@vger.kernel.org, mingo@kernel.org,
+	  linux-kernel@vger.kernel.org, spender@grsecurity.net
+In-Reply-To: <1455748879-21872-5-git-send-email-keescook@chromium.org>
+References: <1455748879-21872-5-git-send-email-keescook@chromium.org>
+Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gYXJjaDogSW50cm9kdWNlIHBvc3QtaW5pdCByZWE=?=
+ =?UTF-8?B?ZC1vbmx5IG1lbW9yeQ==?=
 MIME-Version: =?UTF-8?B?MS4w?=
 Content-Transfer-Encoding: =?UTF-8?B?OGJpdA==?=
 Content-Type: =?UTF-8?B?dGV4dC9wbGFpbjsgY2hhcnNldD1VVEYtOA==?=
@@ -24,26 +25,42 @@ Content-Disposition: =?UTF-8?B?aW5saW5l?=
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: =?UTF-8?B?bGludXgtdGlwLWNvbW1pdHNAdmdlci5rZXJuZWwub3Jn?=@zytor.com
-Cc: linux-kernel@vger.kernel.org, brgerst@gmail.com, bp@alien8.de, peterz@infradead.org, mingo@kernel.org, dvlasenk@redhat.com, minipli@googlemail.com, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, mpe@ellerman.id.au, hpa@zytor.com, tglx@linutronix.de, arnd@arndb.de, david.brown@linaro.org, luto@amacapital.net, pageexec@freemail.hu, keescook@chromium.org, re.emese@gmail.com
-Message-ID: <20160222121957.rU7f8YFVOu9pQ7-TcLfmFBnx-o_392P-w7ilIHRVLog@z>
+Cc: peterz@infradead.org, minipli@googlemail.com, keescook@chromium.org, pageexec@freemail.hu, re.emese@gmail.com, linux-arch@vger.kernel.org, hpa@zytor.com, david.brown@linaro.org, mingo@kernel.org, linux-kernel@vger.kernel.org, spender@grsecurity.net, arnd@arndb.de, tglx@linutronix.de, bp@alien8.de, dvlasenk@redhat.com, torvalds@linux-foundation.org, brgerst@gmail.com, mpe@ellerman.id.au, luto@amacapital.net
+Message-ID: <20160222121933.o3abebx9baoLVxYC2ZUvFRh9xb3iwWAYT5ixqDf77WE@z>
 
-Commit-ID:  7cca071ccbd2a293ea69168ace6abbcdce53098e
-Gitweb:     http://git.kernel.org/tip/7cca071ccbd2a293ea69168ace6abbcdce53098e
+Commit-ID:  c74ba8b3480da6ddaea17df2263ec09b869ac496
+Gitweb:     http://git.kernel.org/tip/c74ba8b3480da6ddaea17df2263ec09b869ac496
 Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 17 Feb 2016 14:41:16 -0800
+AuthorDate: Wed, 17 Feb 2016 14:41:15 -0800
 Committer:  Ingo Molnar <mingo@kernel.org>
 CommitDate: Mon, 22 Feb 2016 08:51:38 +0100
 
-lkdtm: Verify that '__ro_after_init' works correctly
+arch: Introduce post-init read-only memory
 
-The new __ro_after_init section should be writable before init, but
-not after. Validate that it gets updated at init and can't be written
-to afterwards.
+One of the easiest ways to protect the kernel from attack is to reduce
+the internal attack surface exposed when a "write" flaw is available. By
+making as much of the kernel read-only as possible, we reduce the
+attack surface.
+
+Many things are written to only during __init, and never changed
+again. These cannot be made "const" since the compiler will do the wrong
+thing (we do actually need to write to them). Instead, move these items
+into a memory region that will be made read-only during mark_rodata_ro()
+which happens after all kernel __init code has finished.
+
+This introduces __ro_after_init as a way to mark such memory, and adds
+some documentation about the existing __read_mostly marking.
+
+This improves the security of the Linux kernel by marking formerly
+read-write memory regions as read-only on a fully booted up system.
+
+Based on work by PaX Team and Brad Spengler.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Cc: Andy Lutomirski <luto@amacapital.net>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brad Spengler <spender@grsecurity.net>
 Cc: Brian Gerst <brgerst@gmail.com>
 Cc: David Brown <david.brown@linaro.org>
 Cc: Denys Vlasenko <dvlasenk@redhat.com>
@@ -57,79 +74,66 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: kernel-hardening@lists.openwall.com
 Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1455748879-21872-6-git-send-email-keescook@chromium.org
+Link: http://lkml.kernel.org/r/1455748879-21872-5-git-send-email-keescook@chromium.org
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
- 1 file changed, 26 insertions(+), 3 deletions(-)
+ arch/parisc/include/asm/cache.h   |  3 +++
+ include/asm-generic/vmlinux.lds.h |  1 +
+ include/linux/cache.h             | 14 ++++++++++++++
+ 3 files changed, 18 insertions(+)
 
-diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
-index 11fdadc..2a6eaf1 100644
---- a/drivers/misc/lkdtm.c
-+++ b/drivers/misc/lkdtm.c
-@@ -103,6 +103,7 @@ enum ctype {
- 	CT_EXEC_USERSPACE,
- 	CT_ACCESS_USERSPACE,
- 	CT_WRITE_RO,
-+	CT_WRITE_RO_AFTER_INIT,
- 	CT_WRITE_KERN,
- };
+diff --git a/arch/parisc/include/asm/cache.h b/arch/parisc/include/asm/cache.h
+index 3d0e17b..df0f52b 100644
+--- a/arch/parisc/include/asm/cache.h
++++ b/arch/parisc/include/asm/cache.h
+@@ -22,6 +22,9 @@
  
-@@ -140,6 +141,7 @@ static char* cp_type[] = {
- 	"EXEC_USERSPACE",
- 	"ACCESS_USERSPACE",
- 	"WRITE_RO",
-+	"WRITE_RO_AFTER_INIT",
- 	"WRITE_KERN",
- };
+ #define __read_mostly __attribute__((__section__(".data..read_mostly")))
  
-@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
- static u8 data_area[EXEC_SIZE];
- 
- static const unsigned long rodata = 0xAA55AA55;
-+static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
- 
- module_param(recur_count, int, 0644);
- MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
-@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
- 		break;
- 	}
- 	case CT_WRITE_RO: {
--		unsigned long *ptr;
-+		/* Explicitly cast away "const" for the test. */
-+		unsigned long *ptr = (unsigned long *)&rodata;
- 
--		ptr = (unsigned long *)&rodata;
-+		pr_info("attempting bad rodata write at %p\n", ptr);
-+		*ptr ^= 0xabcd1234;
- 
--		pr_info("attempting bad write at %p\n", ptr);
-+		break;
-+	}
-+	case CT_WRITE_RO_AFTER_INIT: {
-+		unsigned long *ptr = &ro_after_init;
++/* Read-only memory is marked before mark_rodata_ro() is called. */
++#define __ro_after_init	__read_mostly
 +
-+		/*
-+		 * Verify we were written to during init. Since an Oops
-+		 * is considered a "success", a failure is to just skip the
-+		 * real test.
-+		 */
-+		if ((*ptr & 0xAA) != 0xAA) {
-+			pr_info("%p was NOT written during init!?\n", ptr);
-+			break;
-+		}
-+
-+		pr_info("attempting bad ro_after_init write at %p\n", ptr);
- 		*ptr ^= 0xabcd1234;
+ void parisc_cache_init(void);	/* initializes cache-flushing */
+ void disable_sr_hashing_asm(int); /* low level support for above */
+ void disable_sr_hashing(void);   /* turns off space register hashing */
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index c4bd0e2..772c784 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -256,6 +256,7 @@
+ 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
+ 		VMLINUX_SYMBOL(__start_rodata) = .;			\
+ 		*(.rodata) *(.rodata.*)					\
++		*(.data..ro_after_init)	/* Read only after init */	\
+ 		*(__vermagic)		/* Kernel version magic */	\
+ 		. = ALIGN(8);						\
+ 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 17e7e82..1be04f8 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -12,10 +12,24 @@
+ #define SMP_CACHE_BYTES L1_CACHE_BYTES
+ #endif
  
- 		break;
-@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
- 	int n_debugfs_entries = 1; /* Assume only the direct entry */
- 	int i;
++/*
++ * __read_mostly is used to keep rarely changing variables out of frequently
++ * updated cachelines. If an architecture doesn't support it, ignore the
++ * hint.
++ */
+ #ifndef __read_mostly
+ #define __read_mostly
+ #endif
  
-+	/* Make sure we can write to __ro_after_init values during __init */
-+	ro_after_init |= 0xAA;
++/*
++ * __ro_after_init is used to mark things that are read-only after init (i.e.
++ * after mark_rodata_ro() has been called). These are effectively read-only,
++ * but may get written to during init, so can't live in .rodata (via "const").
++ */
++#ifndef __ro_after_init
++#define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
++#endif
 +
- 	/* Register debugfs interface */
- 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
- 	if (!lkdtm_debugfs_root) {
+ #ifndef ____cacheline_aligned
+ #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
+ #endif
