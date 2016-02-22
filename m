@@ -1,46 +1,40 @@
 From: =?UTF-8?B?dGlwLWJvdCBmb3IgS2VlcyBDb29rIDx0aXBib3RAenl0b3IuY29tPg==?=@zytor.com
-Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gbW0vaW5pdDogQWRkICdyb2RhdGE9b2ZmJyBib28=?=
- =?UTF-8?B?dCBjbWRsaW5lIHBhcmFtZXRlciB0byBkaXNhYmxlIHJlYWQtb25seSBrZXJuZWw=?=
- =?UTF-8?B?IG1hcHBpbmdz?=
-Date: Mon, 22 Feb 2016 04:18:45 -0800
-Message-ID: <tip-d2aa1acad22f1bdd0cfa67b3861800e392254454@git.kernel.org>
-References: <1455748879-21872-3-git-send-email-keescook@chromium.org>
-Reply-To: arnd@arndb.de, david.brown@linaro.org,
-	  linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
-	  keescook@chromium.org, bp@alien8.de, mpe@ellerman.id.au,
-	  minipli@googlemail.com, tglx@linutronix.de, peterz@infradead.org,
-	  dvlasenk@redhat.com, re.emese@gmail.com, hpa@zytor.com,
-	  mingo@kernel.org, luto@amacapital.net, brgerst@gmail.com,
-	  linux-kernel@vger.kernel.org, pageexec@freemail.hu
+Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0gbGtkdG06IFZlcmlmeSB0aGF0ICdfX3JvX2FmdGU=?=
+ =?UTF-8?B?cl9pbml0JyB3b3JrcyBjb3JyZWN0bHk=?=
+Date: Mon, 22 Feb 2016 04:19:57 -0800
+Message-ID: <tip-7cca071ccbd2a293ea69168ace6abbcdce53098e@git.kernel.org>
+References: <1455748879-21872-6-git-send-email-keescook@chromium.org>
+Reply-To: minipli@googlemail.com, linux-arch@vger.kernel.org,
+	  torvalds@linux-foundation.org, linux-kernel@vger.kernel.org,
+	  bp@alien8.de, brgerst@gmail.com, peterz@infradead.org,
+	  mingo@kernel.org, dvlasenk@redhat.com, tglx@linutronix.de,
+	  arnd@arndb.de, david.brown@linaro.org, luto@amacapital.net,
+	  pageexec@freemail.hu, keescook@chromium.org, re.emese@gmail.com,
+	  mpe@ellerman.id.au, hpa@zytor.com
 Mime-Version: =?UTF-8?B?MS4w?=
 Content-Type: =?UTF-8?B?dGV4dC9wbGFpbjsgY2hhcnNldD1VVEYtOA==?=
 Content-Transfer-Encoding: =?UTF-8?B?OGJpdA==?=
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1455748879-21872-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1455748879-21872-6-git-send-email-keescook@chromium.org>
 Content-Disposition: =?UTF-8?B?aW5saW5l?=
 Sender: linux-kernel-owner@vger.kernel.org
 To: =?UTF-8?B?bGludXgtdGlwLWNvbW1pdHNAdmdlci5rZXJuZWwub3Jn?=@zytor.com
-Cc: minipli@googlemail.com, mpe@ellerman.id.au, linux-arch@vger.kernel.org, david.brown@linaro.org, arnd@arndb.de, keescook@chromium.org, bp@alien8.de, torvalds@linux-foundation.org, pageexec@freemail.hu, linux-kernel@vger.kernel.org, brgerst@gmail.com, luto@amacapital.net, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, re.emese@gmail.com, peterz@infradead.org, dvlasenk@redhat.com
+Cc: linux-kernel@vger.kernel.org, brgerst@gmail.com, bp@alien8.de, peterz@infradead.org, mingo@kernel.org, dvlasenk@redhat.com, minipli@googlemail.com, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, mpe@ellerman.id.au, hpa@zytor.com, tglx@linutronix.de, arnd@arndb.de, david.brown@linaro.org, luto@amacapital.net, pageexec@freemail.hu, keescook@chromium.org, re.emese@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  d2aa1acad22f1bdd0cfa67b3861800e392254454
-Gitweb:     http://git.kernel.org/tip/d2aa1acad22f1bdd0cfa67b3861800e392254454
+Commit-ID:  7cca071ccbd2a293ea69168ace6abbcdce53098e
+Gitweb:     http://git.kernel.org/tip/7cca071ccbd2a293ea69168ace6abbcdce53098e
 Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 17 Feb 2016 14:41:13 -0800
+AuthorDate: Wed, 17 Feb 2016 14:41:16 -0800
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Mon, 22 Feb 2016 08:51:37 +0100
+CommitDate: Mon, 22 Feb 2016 08:51:38 +0100
 
-mm/init: Add 'rodata=off' boot cmdline parameter to disable read-only kernel mappings
+lkdtm: Verify that '__ro_after_init' works correctly
 
-It may be useful to debug writes to the readonly sections of memory,
-so provide a cmdline "rodata=off" to allow for this. This can be
-expanded in the future to support "log" and "write" modes, but that
-will need to be architecture-specific.
+The new __ro_after_init section should be writable before init, but
+not after. Validate that it gets updated at init and can't be written
+to afterwards.
 
-This also makes KDB software breakpoints more usable, as read-only
-mappings can now be disabled on any kernel.
-
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 Cc: Andy Lutomirski <luto@amacapital.net>
 Cc: Arnd Bergmann <arnd@arndb.de>
@@ -49,6 +43,7 @@ Cc: Brian Gerst <brgerst@gmail.com>
 Cc: David Brown <david.brown@linaro.org>
 Cc: Denys Vlasenko <dvlasenk@redhat.com>
 Cc: Emese Revfy <re.emese@gmail.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Mathias Krause <minipli@googlemail.com>
 Cc: Michael Ellerman <mpe@ellerman.id.au>
@@ -57,97 +52,79 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: kernel-hardening@lists.openwall.com
 Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1455748879-21872-3-git-send-email-keescook@chromium.org
+Link: http://lkml.kernel.org/r/1455748879-21872-6-git-send-email-keescook@chromium.org
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- Documentation/kernel-parameters.txt |  4 ++++
- init/main.c                         | 27 +++++++++++++++++++++++----
- kernel/debug/kdb/kdb_bp.c           |  4 +---
- 3 files changed, 28 insertions(+), 7 deletions(-)
+ drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 9a53c92..0003367 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -3491,6 +3491,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
+index 11fdadc..2a6eaf1 100644
+--- a/drivers/misc/lkdtm.c
++++ b/drivers/misc/lkdtm.c
+@@ -103,6 +103,7 @@ enum ctype {
+ 	CT_EXEC_USERSPACE,
+ 	CT_ACCESS_USERSPACE,
+ 	CT_WRITE_RO,
++	CT_WRITE_RO_AFTER_INIT,
+ 	CT_WRITE_KERN,
+ };
  
- 	ro		[KNL] Mount root device read-only on boot
+@@ -140,6 +141,7 @@ static char* cp_type[] = {
+ 	"EXEC_USERSPACE",
+ 	"ACCESS_USERSPACE",
+ 	"WRITE_RO",
++	"WRITE_RO_AFTER_INIT",
+ 	"WRITE_KERN",
+ };
  
-+	rodata=		[KNL]
-+		on	Mark read-only kernel memory as read-only (default).
-+		off	Leave read-only kernel memory writable for debugging.
-+
- 	root=		[KNL] Root filesystem
- 			See name_to_dev_t comment in init/do_mounts.c.
+@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
+ static u8 data_area[EXEC_SIZE];
  
-diff --git a/init/main.c b/init/main.c
-index 58c9e37..928a343 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -93,9 +93,6 @@ static int kernel_init(void *);
- extern void init_IRQ(void);
- extern void fork_init(void);
- extern void radix_tree_init(void);
--#ifndef CONFIG_DEBUG_RODATA
--static inline void mark_rodata_ro(void) { }
--#endif
+ static const unsigned long rodata = 0xAA55AA55;
++static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
  
- /*
-  * Debug helper: via this flag we know that we are in 'early bootup code'
-@@ -929,6 +926,28 @@ static int try_to_run_init_process(const char *init_filename)
- 
- static noinline void __init kernel_init_freeable(void);
- 
-+#ifdef CONFIG_DEBUG_RODATA
-+static bool rodata_enabled = true;
-+static int __init set_debug_rodata(char *str)
-+{
-+	return strtobool(str, &rodata_enabled);
-+}
-+__setup("rodata=", set_debug_rodata);
-+
-+static void mark_readonly(void)
-+{
-+	if (rodata_enabled)
-+		mark_rodata_ro();
-+	else
-+		pr_info("Kernel memory protection disabled.\n");
-+}
-+#else
-+static inline void mark_readonly(void)
-+{
-+	pr_warn("This architecture does not have kernel memory protection.\n");
-+}
-+#endif
-+
- static int __ref kernel_init(void *unused)
- {
- 	int ret;
-@@ -937,7 +956,7 @@ static int __ref kernel_init(void *unused)
- 	/* need to finish all async __init code before freeing the memory */
- 	async_synchronize_full();
- 	free_initmem();
--	mark_rodata_ro();
-+	mark_readonly();
- 	system_state = SYSTEM_RUNNING;
- 	numa_default_policy();
- 
-diff --git a/kernel/debug/kdb/kdb_bp.c b/kernel/debug/kdb/kdb_bp.c
-index e1dbf4a..90ff129 100644
---- a/kernel/debug/kdb/kdb_bp.c
-+++ b/kernel/debug/kdb/kdb_bp.c
-@@ -153,13 +153,11 @@ static int _kdb_bp_install(struct pt_regs *regs, kdb_bp_t *bp)
- 	} else {
- 		kdb_printf("%s: failed to set breakpoint at 0x%lx\n",
- 			   __func__, bp->bp_addr);
--#ifdef CONFIG_DEBUG_RODATA
- 		if (!bp->bp_type) {
- 			kdb_printf("Software breakpoints are unavailable.\n"
--				   "  Change the kernel CONFIG_DEBUG_RODATA=n\n"
-+				   "  Boot the kernel with rodata=off\n"
- 				   "  OR use hw breaks: help bph\n");
- 		}
--#endif
- 		return 1;
+ module_param(recur_count, int, 0644);
+ MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
+@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
+ 		break;
  	}
- 	return 0;
+ 	case CT_WRITE_RO: {
+-		unsigned long *ptr;
++		/* Explicitly cast away "const" for the test. */
++		unsigned long *ptr = (unsigned long *)&rodata;
+ 
+-		ptr = (unsigned long *)&rodata;
++		pr_info("attempting bad rodata write at %p\n", ptr);
++		*ptr ^= 0xabcd1234;
+ 
+-		pr_info("attempting bad write at %p\n", ptr);
++		break;
++	}
++	case CT_WRITE_RO_AFTER_INIT: {
++		unsigned long *ptr = &ro_after_init;
++
++		/*
++		 * Verify we were written to during init. Since an Oops
++		 * is considered a "success", a failure is to just skip the
++		 * real test.
++		 */
++		if ((*ptr & 0xAA) != 0xAA) {
++			pr_info("%p was NOT written during init!?\n", ptr);
++			break;
++		}
++
++		pr_info("attempting bad ro_after_init write at %p\n", ptr);
+ 		*ptr ^= 0xabcd1234;
+ 
+ 		break;
+@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
+ 	int n_debugfs_entries = 1; /* Assume only the direct entry */
+ 	int i;
+ 
++	/* Make sure we can write to __ro_after_init values during __init */
++	ro_after_init |= 0xAA;
++
+ 	/* Register debugfs interface */
+ 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
+ 	if (!lkdtm_debugfs_root) {
