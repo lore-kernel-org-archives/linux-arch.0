@@ -1,118 +1,109 @@
-From: =?UTF-8?B?dGlwLWJvdCBmb3IgS2VlcyBDb29rIDx0aXBib3RAenl0b3IuY29tPg==?=@zytor.com
-Subject: =?UTF-8?B?W3RpcDptbS9yZWFkb25seV0geDg2L3Zkc286IE1hcmsgdGhlIHZEU08gY29kZSA=?=
- =?UTF-8?B?cmVhZC1vbmx5IGFmdGVyIGluaXQ=?=
-Date: Mon, 22 Feb 2016 04:20:21 -0800
-Message-ID: <tip-018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5@git.kernel.org>
-References: <1455748879-21872-7-git-send-email-keescook@chromium.org>
-Reply-To: arnd@arndb.de, brgerst@gmail.com, re.emese@gmail.com,
-	  tglx@linutronix.de, pageexec@freemail.hu,
-	  torvalds@linux-foundation.org, minipli@googlemail.com,
-	  hpa@zytor.com, peterz@infradead.org, bp@alien8.de,
-	  linux-kernel@vger.kernel.org, luto@kernel.org,
-	  spender@grsecurity.net, dvlasenk@redhat.com, mingo@kernel.org,
-	  luto@amacapital.net, david.brown@linaro.org, mpe@ellerman.id.au,
-	  keescook@chromium.org, hpa@linux.intel.com,
-	  linux-arch@vger.kernel.org
-Mime-Version: =?UTF-8?B?MS4w?=
-Content-Type: =?UTF-8?B?dGV4dC9wbGFpbjsgY2hhcnNldD1VVEYtOA==?=
-Content-Transfer-Encoding: =?UTF-8?B?OGJpdA==?=
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1455748879-21872-7-git-send-email-keescook@chromium.org>
-Content-Disposition: =?UTF-8?B?aW5saW5l?=
-Sender: linux-kernel-owner@vger.kernel.org
-To: =?UTF-8?B?bGludXgtdGlwLWNvbW1pdHNAdmdlci5rZXJuZWwub3Jn?=@zytor.com
-Cc: luto@amacapital.net, david.brown@linaro.org, mpe@ellerman.id.au, keescook@chromium.org, hpa@linux.intel.com, linux-arch@vger.kernel.org, bp@alien8.de, linux-kernel@vger.kernel.org, luto@kernel.org, spender@grsecurity.net, dvlasenk@redhat.com, mingo@kernel.org, pageexec@freemail.hu, tglx@linutronix.de, hpa@zytor.com, minipli@googlemail.com, torvalds@linux-foundation.org, peterz@infradead.org, arnd@arndb.de, brgerst@gmail.com, re.emese@gmail.com
-List-Id: linux-arch.vger.kernel.org
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 23 Feb 2016 09:51:07 +0000
+Message-ID: <20160223095107.GC21143@jhogan-linux.le.imgtec.org>
+References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
+ <1667268.iM977TQnEK@wuerfel>
+ <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
+ <4206493.gjdgtfndZ8@wuerfel>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="4ZLFUWh1odzi/v6L"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:35158 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750740AbcBWJvK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:51:10 -0500
+Content-Disposition: inline
+In-Reply-To: <4206493.gjdgtfndZ8@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 
-Commit-ID:  018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5
-Gitweb:     http://git.kernel.org/tip/018ef8dcf3de5f62e2cc1a9273cc27e1c6ba8de5
-Author:     Kees Cook <keescook@chromium.org>
-AuthorDate: Wed, 17 Feb 2016 14:41:17 -0800
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Mon, 22 Feb 2016 08:51:39 +0100
+--4ZLFUWh1odzi/v6L
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-x86/vdso: Mark the vDSO code read-only after init
+Hi Michal,
 
-The vDSO does not need to be writable after __init, so mark it as
-__ro_after_init. The result kills the exploit method of writing to the
-vDSO from kernel space resulting in userspace executing the modified code,
-as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
+On Tue, Jan 19, 2016 at 03:27:24PM +0100, Arnd Bergmann wrote:
+> On Tuesday 19 January 2016 14:22:13 James Hogan wrote:
+> > On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
+> > > On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
+> > > > When a header file is removed from generic-y (often accompanied by =
+the
+> > > > addition of an arch specific header), the generated wrapper file wi=
+ll
+> > > > persist, and in some cases may still take precedence over the new a=
+rch
+> > > > header.
+> > > >=20
+> > > > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+> > > > context") removed ucontext.h from generic-y in arch/mips/include/as=
+m/,
+> > > > and added an arch/mips/include/uapi/asm/ucontext.h. The continued u=
+se of
+> > > > the wrapper when reusing a dirty build tree resulted in build failu=
+res
+> > > > in arch/mips/kernel/signal.c:
+> > > >=20
+> > > > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=
+=80=99:
+> > > > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=
+=E2=80=99 has no member named =E2=80=98uc_extcontext=E2=80=99
+> > > >   return &uc->uc_extcontext;
+> > > >             ^
+> > > >=20
+> > > > Fix by detecting and removing wrapper headers in generated header
+> > > > directories that do not correspond to a filename in generic-y, genh=
+dr-y,
+> > > > or the newly introduced generated-y.
+> > >=20
+> > > Good idea.
+> > >=20
+> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> >=20
+> > Thanks Arnd
+> >=20
+> > > Can you merge this through the mips tree, or do you need me to pick it
+> > > up through asm-generic?
+> >=20
+> > I was envisaging the kbuild tree tbh, but I don't really mind how it
+> > gets merged. This patch depends on patch 1, which adds generated-y to
+> > x86 so we don't delete their other generated headers, but other than
+> > that it doesn't really have any dependencies.
+>=20
+> Ok, the kbuild tree works fine too, and I guess the x86 tree would
+> also be fine if that helps avoid the dependency.
 
-The memory map (with added vDSO address reporting) shows the vDSO moving
-into read-only memory:
+Were you okay to take these patches, or would you prefer they go via the
+MIPS tree?
 
-Before:
-	[    0.143067] vDSO @ ffffffff82004000
-	[    0.143551] vDSO @ ffffffff82006000
-	---[ High Kernel Mapping ]---
-	0xffffffff80000000-0xffffffff81000000      16M                         pmd
-	0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-	0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-	0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-	0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-	0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
-	0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
-	0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
-	0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
-	0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
-	0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-	0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+Thanks
+James
 
-After:
-	[    0.145062] vDSO @ ffffffff81da1000
-	[    0.146057] vDSO @ ffffffff81da4000
-	---[ High Kernel Mapping ]---
-	0xffffffff80000000-0xffffffff81000000      16M                         pmd
-	0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-	0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-	0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-	0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-	0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
-	0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
-	0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
-	0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
-	0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
-	0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-	0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+--4ZLFUWh1odzi/v6L
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-Based on work by PaX Team and Brad Spengler.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Acked-by: Andy Lutomirski <luto@kernel.org>
-Acked-by: H. Peter Anvin <hpa@linux.intel.com>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brad Spengler <spender@grsecurity.net>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: David Brown <david.brown@linaro.org>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: Emese Revfy <re.emese@gmail.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mathias Krause <minipli@googlemail.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: PaX Team <pageexec@freemail.hu>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: kernel-hardening@lists.openwall.com
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Link: http://lkml.kernel.org/r/1455748879-21872-7-git-send-email-keescook@chromium.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- arch/x86/entry/vdso/vdso2c.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+iQIcBAEBCAAGBQJWzCuLAAoJEGwLaZPeOHZ6y0QQAJL67+KgctHHDL1wPNksjxaR
+fvBuO401HDcxEG3gSlbFHYseQoUoamOO/VnMOJuExDdI7Ni4smf3RLZSNCtq4Z3a
+KmGIQKwUfqfZqaQUCqwSUM84wd5ZravahegTLiIO1eQD+KZAIJ1GJACm0i+PCf3R
+FlhvoFaszx1wbPB9IquNJ56EEq+KW0UrmLdRBaJ8l1h1BKU5yKRNHWToQ8Y5c9wn
+zrW59Rdo6ApU38KKjueycEw/vV4PUl0V3sd+TUhaFTNfnHvqyrEoq3UWPxYD/NFI
+6xlkuwj5zw9pDRhSDQ/garAUBXxnzlSCs3ckp6Qn3zqXFbQfVVRYuifUVe6+2Ghw
+Lo23XwXO1785ctY6Ucqbn+ayn+fJrp1HMDPSSh48njX/2pZzqRG6bCf2V7Y9nqmR
+xelqodsIgBQLwaLhc2GHWCsomYC2nmyuWYc+62ejKWaJlZPzWcyPORqs6fbXrUKl
+8wU1i9DcbyyPae2yMXb5U55vtLpk6s0ZJgA5eXnGGeWj6a6dm+9gXHvo+hEriWNG
+ZhrDni2JPVDm5NzlpModcNEmeeRFSgJpe/+UVhP9krpQ8ehKxJybYToAQbUEug/i
+Onzk6FlkFiLiOmJPUBsoDC0hWD0mAZ9cPEvPwxTPEeqq6bMi+MO7SCiTkTvB9P9u
+q6ObpxlafO+ioYNFdHa8
+=zDnk
+-----END PGP SIGNATURE-----
 
-diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
-index 0224987..3f69326 100644
---- a/arch/x86/entry/vdso/vdso2c.h
-+++ b/arch/x86/entry/vdso/vdso2c.h
-@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
- 	fprintf(outfile, "#include <asm/vdso.h>\n");
- 	fprintf(outfile, "\n");
- 	fprintf(outfile,
--		"static unsigned char raw_data[%lu] __page_aligned_data = {",
-+		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
- 		mapping_size);
- 	for (j = 0; j < stripped_len; j++) {
- 		if (j % 10 == 0)
+--4ZLFUWh1odzi/v6L--
