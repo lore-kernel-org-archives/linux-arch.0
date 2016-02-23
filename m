@@ -1,229 +1,170 @@
-From: Aleksey Makarov <aleksey.makarov@linaro.org>
-Subject: [PATCH 5/8] ACPI: parse DBG2 table
-Date: Mon, 22 Feb 2016 16:46:53 +0300
-Message-ID: <1456148818-26257-6-git-send-email-aleksey.makarov@linaro.org>
-References: <1456148818-26257-1-git-send-email-aleksey.makarov@linaro.org>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [Xen-devel] [RFC v2 7/7] kprobes: port to linker table
+Date: Tue, 23 Feb 2016 01:52:44 +0100
+Message-ID: <20160223005244.GE25240@wotan.suse.de>
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-8-git-send-email-mcgrof@kernel.org>
+ <50399556C9727B4D88A595C8584AAB37B4E0F41C@GSjpTKYDCembx32.service.hitachi.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f48.google.com ([209.85.215.48]:34616 "EHLO
-	mail-lf0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755099AbcBVNrs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Feb 2016 08:47:48 -0500
-Received: by mail-lf0-f48.google.com with SMTP id j78so93760884lfb.1
-        for <linux-arch@vger.kernel.org>; Mon, 22 Feb 2016 05:47:47 -0800 (PST)
-In-Reply-To: <1456148818-26257-1-git-send-email-aleksey.makarov@linaro.org>
+Received: from mx2.suse.de ([195.135.220.15]:44768 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756128AbcBWAwt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Feb 2016 19:52:49 -0500
+Content-Disposition: inline
+In-Reply-To: <50399556C9727B4D88A595C8584AAB37B4E0F41C@GSjpTKYDCembx32.service.hitachi.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-acpi@vger.kernel.org
-Cc: linux-serial@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Aleksey Makarov <aleksey.makarov@linaro.org>, Russell King <linux@arm.linux.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Leif Lindholm <leif.lindholm@linaro.org>, Graeme Gregory <graeme.gregory@linaro.org>, Al Stone <ahs3@redhat.com>, Christopher Covington <cov@codeaurora.org>, Len Brown <lenb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: =?utf-8?B?5bmz5p2+6ZuF5bezIC8gSElSQU1BVFXvvIxNQVNBTUk=?= <masami.hiramatsu.pt@hitachi.com>
+Cc: "'Luis R. Rodriguez'" <mcgrof@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "ming.lei@canonical.com" <ming.lei@canonical.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "x86@kernel.org" <x86@kernel.org>, "anil.s.keshavamurthy@intel.com" <anil.s.keshavamurthy@intel.com>, "arnd@arndb.de" <arnd@arndb.de>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "jbaron@akamai.com" <jbaron@akamai.com>, "boris.ostrovsky@oracle.com" <boris.ostrovsky@oracle.com>, "andriy.shevchenko@linux.intel.com" <andriy.shevchenko@linux.intel.com>, "mcb30@ipxe.org" <mcb30@ipxe.org>, jgross@suse.c
 
-'ARM Server Base Boot Requiremets' [1] mentions DBG2 (Microsoft Debug
-Port Table 2) [2] as a mandatory ACPI table that specifies debug ports.
+On Mon, Feb 22, 2016 at 01:34:05AM +0000, =E5=B9=B3=E6=9D=BE=E9=9B=85=E5=
+=B7=B3 / HIRAMATU=EF=BC=8CMASAMI wrote:
+> >From: Luis R. Rodriguez [mailto:mcgrof@kernel.org]
+> >
+> >kprobe makes use of two custom sections:
+> >
+> >type       name                  begin                    end
+> >init.data _kprobe_blacklist __start_kprobe_blacklist	__stop_kprobe_b=
+lacklist
+> >text      .kprobes.text     __kprobes_text_start        __kprobes_te=
+xt_end
+> >
+> >Port these to the linker table generic solution. This lets
+> >us remove all the custom kprobe section declarations on the
+> >linker script.
+> >
+> >Tested with CONFIG_KPROBES_SANITY_TEST, it passes with:
+> >
+> >Kprobe smoke test: started
+> >Kprobe smoke test: passed successfully
+> >
+> >Then tested CONFIG_SAMPLE_KPROBES on do_fork, and the
+> >kprobe bites and kicks as expected. Lastly tried registering
+> >a kprobe on a kprobe blacklisted symbol (NOKPROBE_SYMBOL()),
+> >and confirms that fails to work.
+>=20
+> Could you also check to run the testcases by using ftracetest as belo=
+w?
+>=20
+> $ cd tools/testing/selftests/ftrace/
+> $ sudo ./ftracetest
 
-- Implement macros
+Sure, it all passed:
 
-	ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)
+$ sudo ./ftracetest
+=3D=3D=3D Ftrace unit tests =3D=3D=3D
+[1] Basic trace file check	[PASS]
+[2] Basic test for tracers	[PASS]
+[3] Basic trace clock test	[PASS]
+[4] Basic event tracing check	[PASS]
+[5] event tracing - enable/disable with event level files	[PASS]
+[6] event tracing - enable/disable with subsystem level files	[PASS]
+[7] event tracing - enable/disable with top level files	[PASS]
+[8] ftrace - function graph filters with stack tracer	[PASS]
+[9] ftrace - function graph filters	[PASS]
+[10] ftrace - function profiler with function tracing	[PASS]
+[11] Test creation and deletion of trace instances	[PASS]
+[12] Kprobe dynamic event - adding and removing	[PASS]
+[13] Kprobe dynamic event - busy event check	[PASS]
+[14] Kprobe dynamic event with arguments	[PASS]
+[15] Kprobe dynamic event with function tracer	[PASS]
+[16] Kretprobe dynamic event with arguments	[PASS]
 
-  that defines a handler for the port of given type and subtype.
+# of passed:  16
+# of failed:  0
+# of unresolved:  0
+# of untested:  0
+# of unsupported:  0
+# of xfailed:  0
+# of undefined(test bug):  0
 
-- For each declared port that is also described in the ACPI DBG2 table
-  call the provided callback.
+> And I'm not sure about linker table.
 
-[1] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.den0044a/index.html
-[2] http://go.microsoft.com/fwlink/p/?LinkId=234837
+So there's really a few parts to the linker table work, out of
+the ones that relate to kprobes:
 
-Signed-off-by: Aleksey Makarov <aleksey.makarov@linaro.org>
----
- drivers/acpi/Kconfig              |  3 ++
- drivers/acpi/Makefile             |  1 +
- drivers/acpi/dbg2.c               | 85 +++++++++++++++++++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/acpi_dbg2.h         | 48 ++++++++++++++++++++++
- 5 files changed, 138 insertions(+)
- create mode 100644 drivers/acpi/dbg2.c
- create mode 100644 include/linux/acpi_dbg2.h
+  * linker tables try to generalize our section use, and provide some
+    helpers for common section use
+  * provides helpers to make it easier to make custom section,
+    but by re-using standard sections
+  * when a custom section uses standard sections and helpers
+    we also get a few gains:
+    - developers reviewing code can more easily get a quicker
+      understanding and have expectations set of how the code
+      feature using the custom section could be used
+    - people grep'ing on the kernel can more easily find
+      specific types of custom section use by looking for
+      the type of interest
+    - developers adding features do not need to modify
+      any linker scripts (vmlinux.lds.S) to make use of
+      custom sections
 
-diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
-index 65fb483..660666e 100644
---- a/drivers/acpi/Kconfig
-+++ b/drivers/acpi/Kconfig
-@@ -57,6 +57,9 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
- config ACPI_CCA_REQUIRED
- 	bool
- 
-+config ACPI_DBG2_TABLE
-+	bool
-+
- config ACPI_DEBUGGER
- 	bool "AML debugger interface"
- 	select ACPI_DEBUG
-diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
-index 346101c..ff5e4f0 100644
---- a/drivers/acpi/Makefile
-+++ b/drivers/acpi/Makefile
-@@ -82,6 +82,7 @@ obj-$(CONFIG_ACPI_CUSTOM_METHOD)+= custom_method.o
- obj-$(CONFIG_ACPI_BGRT)		+= bgrt.o
- obj-$(CONFIG_ACPI_CPPC_LIB)	+= cppc_acpi.o
- obj-$(CONFIG_ACPI_DEBUGGER_USER) += acpi_dbg.o
-+obj-$(CONFIG_ACPI_DBG2_TABLE)	+= dbg2.o
- 
- # processor has its own "processor." module_param namespace
- processor-y			:= processor_driver.o
-diff --git a/drivers/acpi/dbg2.c b/drivers/acpi/dbg2.c
-new file mode 100644
-index 0000000..8a79117
---- /dev/null
-+++ b/drivers/acpi/dbg2.c
-@@ -0,0 +1,85 @@
-+/*
-+ * Copyright (c) 2012, Intel Corporation
-+ * Copyright (c) 2015, 2016 Linaro Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ */
-+
-+#define pr_fmt(fmt) "ACPI: DBG2: " fmt
-+
-+#include <linux/acpi_dbg2.h>
-+#include <linux/acpi.h>
-+#include <linux/kernel.h>
-+
-+static const char * __init type2string(u16 type)
-+{
-+	switch (type) {
-+	case ACPI_DBG2_SERIAL_PORT:
-+		return "SERIAL";
-+	case ACPI_DBG2_1394_PORT:
-+		return "1394";
-+	case ACPI_DBG2_USB_PORT:
-+		return "USB";
-+	case ACPI_DBG2_NET_PORT:
-+		return "NET";
-+	default:
-+		return "?";
-+	}
-+}
-+
-+static const char * __init subtype2string(u16 subtype)
-+{
-+	switch (subtype) {
-+	case ACPI_DBG2_16550_COMPATIBLE:
-+		return "16550_COMPATIBLE";
-+	case ACPI_DBG2_16550_SUBSET:
-+		return "16550_SUBSET";
-+	case ACPI_DBG2_ARM_PL011:
-+		return "ARM_PL011";
-+	case ACPI_DBG2_ARM_SBSA_32BIT:
-+		return "ARM_SBSA_32BIT";
-+	case ACPI_DBG2_ARM_SBSA_GENERIC:
-+		return "ARM_SBSA_GENERIC";
-+	case ACPI_DBG2_ARM_DCC:
-+		return "ARM_DCC";
-+	case ACPI_DBG2_BCM2835:
-+		return "BCM2835";
-+	default:
-+		return "?";
-+	}
-+}
-+
-+int __init acpi_dbg2_setup(struct acpi_table_header *table, const void *data)
-+{
-+	struct acpi_table_dbg2 *dbg2 = (struct acpi_table_dbg2 *)table;
-+	struct acpi_dbg2_data *dbg2_data = (struct acpi_dbg2_data *)data;
-+	struct acpi_dbg2_device *dbg2_device, *dbg2_end;
-+	int i;
-+
-+	dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2,
-+				   dbg2->info_offset);
-+	dbg2_end = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2, table->length);
-+
-+	for (i = 0; i < dbg2->info_count; i++) {
-+		if (dbg2_device + 1 > dbg2_end) {
-+			pr_err("device pointer overflows, bad table\n");
-+			return 0;
-+		}
-+
-+		if (dbg2_device->port_type == dbg2_data->port_type &&
-+		    dbg2_device->port_subtype == dbg2_data->port_subtype) {
-+			pr_info("debug port type: %s subtype: %s\n",
-+				type2string(dbg2_device->port_type),
-+				subtype2string(dbg2_device->port_subtype));
-+			dbg2_data->setup(dbg2_device, dbg2_data->data);
-+		}
-+
-+		dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2_device,
-+					   dbg2_device->length);
-+	}
-+
-+	return 0;
-+}
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2..ad9752c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -526,6 +526,7 @@
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(clksrc)					\
-+	ACPI_PROBE_TABLE(dbg2)						\
- 	EARLYCON_TABLE()						\
- 	EARLYCON_OF_TABLES()
- 
-diff --git a/include/linux/acpi_dbg2.h b/include/linux/acpi_dbg2.h
-new file mode 100644
-index 0000000..465afcb
---- /dev/null
-+++ b/include/linux/acpi_dbg2.h
-@@ -0,0 +1,48 @@
-+#ifndef _ACPI_DBG2_H_
-+#define _ACPI_DBG2_H_
-+
-+#ifdef CONFIG_ACPI_DBG2_TABLE
-+
-+#include <linux/kernel.h>
-+
-+struct acpi_dbg2_device;
-+struct acpi_table_header;
-+
-+struct acpi_dbg2_data {
-+	u16 port_type;
-+	u16 port_subtype;
-+	int (*setup)(struct acpi_dbg2_device *, void *);
-+	void *data;
-+};
-+
-+int acpi_dbg2_setup(struct acpi_table_header *header, const void *data);
-+
-+/*
-+ * ACPI_DBG2_DECLARE() - Define handler for ACPI DBG2 port
-+ * @name:	Identifier to compose name of table data
-+ * @type:	Type of the port
-+ * @subtype:	Subtype of the port
-+ * @setup_fn:	Function to be called to setup the port
-+ *		(of type int (*)(struct acpi_dbg2_device *, void *);)
-+ * @data_ptr:	Sideband data provided back to the driver
-+ */
-+#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
-+	static const struct acpi_dbg2_data				\
-+		__acpi_dbg2_data_##name __used = {			\
-+			.port_type = type,				\
-+			.port_subtype = subtype,			\
-+			.setup = setup_fn,				\
-+			.data = data_ptr,				\
-+		   };							\
-+	ACPI_DECLARE_PROBE_ENTRY(dbg2, name, ACPI_SIG_DBG2,		\
-+				 acpi_dbg2_setup, &__acpi_dbg2_data_##name)
-+
-+#else
-+
-+#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
-+	static const void *__acpi_dbg_data_##name[]			\
-+		__used __initdata = { (void *)setup_fn,	(void *)data_ptr }
-+
-+#endif
-+
-+#endif
--- 
-2.7.1
+In kprobe's case, since it uses two custom sections, we have
+only a small use for the first case: .kprobe.text is just used
+as a place holder for future developer annotated special cased
+executable code. It also makes use of the generic helpers:
+LINKTABLE_ADDR_WITHIN(), LINKTABLE_START(), LINKTABLE_END().
+
+The second use case, for the _kprobe_blacklist, makes much more
+use of the more advanced linker table helpers, for instance the
+iterator LINKTABLE_FOR_EACH().
+
+=46or both though we now have each custom section's actual section
+clearly highlighted:
+
+  * kprobes: .text (SECTION_TEXT)
+  * kprobe blacklist: init.data (SECTION_INIT_DATA)
+
+A reader / developer can more easily gain an understanding
+of how the above custom sections could be used just by its
+type.
+
+Another feature of linker tables, but outside of the scope of how kprob=
+e
+would use linker tables, is the ability to enable folks to avoid code
+bit rot by using table-$(CONFIG_FOO) instead of oby-$(CONFIG_FOO) on
+init paths of code but since this is outside of the scope of how kprobe=
+ would
+use I leave that just as a reference as another part of linker table.
+Unless of course you want to make people force compile all kprobe
+support code but only have it linked in when actually enabled. That
+would be outside of the scope and purpose of this patch though.
+
+> Is that possible to support
+> __kprobes prefix, which moves the functions into kprobes.text?
+
+Absolutely, the respective change was just to annotate and make
+it clear the section kprobes were using:
+
+-# define __kprobes     __attribute__((__section__(".kprobes.text")))
++#include <linux/sections.h>
++# define __kprobes     __attribute__((__section__(SECTION_TBL(SECTION_=
+TEXT, kprobes, all))))
+
+> Actually, I'm on the way to replacing __kprobes to NOKPROBE_SYMBOL
+> macro, since NOKPROBE_SYMBOL() doesn't effect the kernel text itself.
+> On x86, it is already replaced (see commit 820aede0209a), and same
+> work should be done on other archs. So, could you hold this after
+> that?
+
+Sure.
+
+> I think we should remove .kprobes.text first=20
+
+You mean just remove the incorrect users of .kprobes.text because as I =
+read
+what you described above we have abuse of __kprobes use to protect agai=
+nst
+kprobes being introduced on those routines, and we should be using
+NOKPROBE_SYMBOL() instead. So from what I gather its not that you will
+remove .kprobes.text but rather clean our current abuse of __kprobes
+for protection to use NOKPROBE_SYMBOL() instead. Is that right?
+
+> and move to  linker table.
+
+Sure, can you Cc me on your patches? I can follow up later.
+
+  Luis
