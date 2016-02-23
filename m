@@ -1,109 +1,80 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Tue, 23 Feb 2016 09:51:07 +0000
-Message-ID: <20160223095107.GC21143@jhogan-linux.le.imgtec.org>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
- <1667268.iM977TQnEK@wuerfel>
- <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
- <4206493.gjdgtfndZ8@wuerfel>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Interesting csd deadlock on ARC
+Date: Tue, 23 Feb 2016 10:58:24 +0100
+Message-ID: <20160223095824.GH6356@twins.programming.kicks-ass.net>
+References: <56C6BA82.1060909@synopsys.com>
+ <56CBEC66.2030401@synopsys.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="4ZLFUWh1odzi/v6L"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:35158 "EHLO
-	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750740AbcBWJvK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 04:51:10 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <4206493.gjdgtfndZ8@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+In-Reply-To: <56CBEC66.2030401@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Frederic Weisbecker <fweisbec@gmail.com>, lkml <linux-kernel@vger.kernel.org>, Noam Camus <noamc@ezchip.com>, arcml <linux-snps-arc@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
---4ZLFUWh1odzi/v6L
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Tue, Feb 23, 2016 at 10:51:42AM +0530, Vineet Gupta wrote:
+> On Friday 19 February 2016 12:17 PM, Vineet Gupta wrote:
+> > Hi Peter,
+> > 
+> > I've been debugging a csd_lock_wait() deadlock on SMP+PREEMPT ARC HS38x2 and it
+> > turned out to be lot more interesting than I'd hoped for. This is stock v4.4
+> > 
+> > Trouble starts with an IPI to self which doesn't get delivered as the inter-core
+> > interrupt providing h/w is not capable of IPI to self (which I found as part of
+> > debugging this). Subsequent IPIs from other cores to this core get elided as well
+> > due to the IPI coalescing optimization in arch/arc/kernel/smp.c: ipi_send_msg_one()
+> > 
+> > There are ways to use a different h/w mechanism to solve the trigger issue and I'd
+> > hoped to just implement arch_irq_work_raise(). 
 
-Hi Michal,
+Yes, there are other architectures that use other means for self-IPI,
+IIRC PowerPC has to program their timer in the past to generate a local
+interrupt.
 
-On Tue, Jan 19, 2016 at 03:27:24PM +0100, Arnd Bergmann wrote:
-> On Tuesday 19 January 2016 14:22:13 James Hogan wrote:
-> > On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
-> > > On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
-> > > > When a header file is removed from generic-y (often accompanied by =
-the
-> > > > addition of an arch specific header), the generated wrapper file wi=
-ll
-> > > > persist, and in some cases may still take precedence over the new a=
-rch
-> > > > header.
-> > > >=20
-> > > > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
-> > > > context") removed ucontext.h from generic-y in arch/mips/include/as=
-m/,
-> > > > and added an arch/mips/include/uapi/asm/ucontext.h. The continued u=
-se of
-> > > > the wrapper when reusing a dirty build tree resulted in build failu=
-res
-> > > > in arch/mips/kernel/signal.c:
-> > > >=20
-> > > > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=
-=80=99:
-> > > > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=
-=E2=80=99 has no member named =E2=80=98uc_extcontext=E2=80=99
-> > > >   return &uc->uc_extcontext;
-> > > >             ^
-> > > >=20
-> > > > Fix by detecting and removing wrapper headers in generated header
-> > > > directories that do not correspond to a filename in generic-y, genh=
-dr-y,
-> > > > or the newly introduced generated-y.
-> > >=20
-> > > Good idea.
-> > >=20
-> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> >=20
-> > Thanks Arnd
-> >=20
-> > > Can you merge this through the mips tree, or do you need me to pick it
-> > > up through asm-generic?
-> >=20
-> > I was envisaging the kbuild tree tbh, but I don't really mind how it
-> > gets merged. This patch depends on patch 1, which adds generated-y to
-> > x86 so we don't delete their other generated headers, but other than
-> > that it doesn't really have any dependencies.
->=20
-> Ok, the kbuild tree works fine too, and I guess the x86 tree would
-> also be fine if that helps avoid the dependency.
+> > But the trouble is the call stack
+> > for this issue: IPI to self is triggered from
+> > 
+> > sys_sched_setscheduler
+> >    __balance_callback
+> >        pull_rt_task
+> >          irq_work_queue_on  <-- called with @cpu == self
+> > 
+> > Looking into irq_work.c, irq_work_queue() is what is semantically needed,
+> > specifically arch_irq_work_raise() will not be called, which means I need
+> > arch_send_call_function_single_ipi() to be able to IPI to self cpu also. Is that
+> > expected from arch code....
+> 
+> What I actually meant was is it OK for irq_work_queue_on() to be called locally
+> (is this a sched bug/optimization(. Further if it is OK to be called, does it need
+> to do behave more like irq_work_queue() i.e. call arch_irq_work_raise() or
+> arch_send_call_function_single_ipi() is expected to handle sending IPI to self !
 
-Were you okay to take these patches, or would you prefer they go via the
-MIPS tree?
+Right, so I'm not actually sure we started out with this requirement.
+But you're not the first to run into this, see:
 
-Thanks
-James
+  lkml.kernel.org/r/CAJZ5v0gLankSuziQq25qTCyNqeOX43yD9jnJu_XXwbdyajfmKg@mail.gmail.com
 
---4ZLFUWh1odzi/v6L
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Initially I think irq_work_queue_on() was only used remotely, but I
+think it makes sense to allow the current cpu, esp. since people seem to
+be using it like that.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+Now the distinct difference between arch_irq_work_raise() and
+arch_send_call_function_single_ipi() is that arch_irq_work_raise()
+should be NMI-safe.
 
-iQIcBAEBCAAGBQJWzCuLAAoJEGwLaZPeOHZ6y0QQAJL67+KgctHHDL1wPNksjxaR
-fvBuO401HDcxEG3gSlbFHYseQoUoamOO/VnMOJuExDdI7Ni4smf3RLZSNCtq4Z3a
-KmGIQKwUfqfZqaQUCqwSUM84wd5ZravahegTLiIO1eQD+KZAIJ1GJACm0i+PCf3R
-FlhvoFaszx1wbPB9IquNJ56EEq+KW0UrmLdRBaJ8l1h1BKU5yKRNHWToQ8Y5c9wn
-zrW59Rdo6ApU38KKjueycEw/vV4PUl0V3sd+TUhaFTNfnHvqyrEoq3UWPxYD/NFI
-6xlkuwj5zw9pDRhSDQ/garAUBXxnzlSCs3ckp6Qn3zqXFbQfVVRYuifUVe6+2Ghw
-Lo23XwXO1785ctY6Ucqbn+ayn+fJrp1HMDPSSh48njX/2pZzqRG6bCf2V7Y9nqmR
-xelqodsIgBQLwaLhc2GHWCsomYC2nmyuWYc+62ejKWaJlZPzWcyPORqs6fbXrUKl
-8wU1i9DcbyyPae2yMXb5U55vtLpk6s0ZJgA5eXnGGeWj6a6dm+9gXHvo+hEriWNG
-ZhrDni2JPVDm5NzlpModcNEmeeRFSgJpe/+UVhP9krpQ8ehKxJybYToAQbUEug/i
-Onzk6FlkFiLiOmJPUBsoDC0hWD0mAZ9cPEvPwxTPEeqq6bMi+MO7SCiTkTvB9P9u
-q6ObpxlafO+ioYNFdHa8
-=zDnk
------END PGP SIGNATURE-----
+So on x86 it has to be extra careful about the lapic state, whereas the
+regular IPI code doesn't.
 
---4ZLFUWh1odzi/v6L--
+I seem to have forgotten the status of NMIs on ARC, but this is
+something to make a note of.
