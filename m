@@ -1,58 +1,100 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: Interesting csd deadlock on ARC
-Date: Tue, 23 Feb 2016 10:51:42 +0530
-Message-ID: <56CBEC66.2030401@synopsys.com>
-References: <56C6BA82.1060909@synopsys.com>
+From: Pan Xinhui <xinhui@linux.vnet.ibm.com>
+Subject: [PATCH] asm-generic/cmpxchg: use BUILD_BUG() when detect unfit, {cmp}xchg
+ size
+Date: Tue, 23 Feb 2016 16:40:23 +0800
+Message-ID: <56CC1AF7.5090300@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:52886 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750780AbcBWFWc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 00:22:32 -0500
-In-Reply-To: <56C6BA82.1060909@synopsys.com>
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:54719 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932717AbcBWImd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Feb 2016 03:42:33 -0500
+Received: from localhost
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <xinhui@linux.vnet.ibm.com>;
+	Tue, 23 Feb 2016 18:42:30 +1000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>, arcml <linux-snps-arc@lists.infradead.org>, Noam Camus <noamc@ezchip.com>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>
 
-On Friday 19 February 2016 12:17 PM, Vineet Gupta wrote:
-> Hi Peter,
-> 
-> I've been debugging a csd_lock_wait() deadlock on SMP+PREEMPT ARC HS38x2 and it
-> turned out to be lot more interesting than I'd hoped for. This is stock v4.4
-> 
-> Trouble starts with an IPI to self which doesn't get delivered as the inter-core
-> interrupt providing h/w is not capable of IPI to self (which I found as part of
-> debugging this). Subsequent IPIs from other cores to this core get elided as well
-> due to the IPI coalescing optimization in arch/arc/kernel/smp.c: ipi_send_msg_one()
-> 
-> There are ways to use a different h/w mechanism to solve the trigger issue and I'd
-> hoped to just implement arch_irq_work_raise(). But the trouble is the call stack
-> for this issue: IPI to self is triggered from
-> 
-> sys_sched_setscheduler
->    __balance_callback
->        pull_rt_task
->          irq_work_queue_on  <-- called with @cpu == self
-> 
-> Looking into irq_work.c, irq_work_queue() is what is semantically needed,
-> specifically arch_irq_work_raise() will not be called, which means I need
-> arch_send_call_function_single_ipi() to be able to IPI to self cpu also. Is that
-> expected from arch code....
+From: pan xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-What I actually meant was is it OK for irq_work_queue_on() to be called locally
-(is this a sched bug/optimization(. Further if it is OK to be called, does it need
-to do behave more like irq_work_queue() i.e. call arch_irq_work_raise() or
-arch_send_call_function_single_ipi() is expected to handle sending IPI to self !
+__xchg_called_with_bad_pointer/wrong_size_cmpxchg can't tell us what
+codes use {cmp}xchg in incorrect way.  And no error will be reported
+until the link stage. To fix such kinds of issues in a easy way, We
+use BUILD_BUG().
 
-> 
-> Just wanted to understand before writing patches...
-> 
-> Test case triggering is harmless looking LTP: trace_sched -c 1
-> It is kind of scheduler fizzer as it triggers a whole bunch of sched activity.
-> 
-> Thx,
-> -Vineet
-> 
+Signed-off-by: pan xinhui <xinhui.pan@linux.vnet.ibm.com>
+---
+ include/asm-generic/cmpxchg-local.h | 8 +++-----
+ include/asm-generic/cmpxchg.h       | 9 ++-------
+ 2 files changed, 5 insertions(+), 12 deletions(-)
+
+diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+index 70bef78..6d78291 100644
+--- a/include/asm-generic/cmpxchg-local.h
++++ b/include/asm-generic/cmpxchg-local.h
+@@ -3,9 +3,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/irqflags.h>
+-
+-extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
+-	__noreturn;
++#include <linux/bug.h>
+ 
+ /*
+  * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
+@@ -20,7 +18,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
+ 	 * Sanity checking, compile-time.
+ 	 */
+ 	if (size == 8 && sizeof(unsigned long) != 8)
+-		wrong_size_cmpxchg(ptr);
++		BUILD_BUG();
+ 
+ 	raw_local_irq_save(flags);
+ 	switch (size) {
+@@ -41,7 +39,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
+ 			*(u64 *)ptr = (u64)new;
+ 		break;
+ 	default:
+-		wrong_size_cmpxchg(ptr);
++		BUILD_BUG();
+ 	}
+ 	raw_local_irq_restore(flags);
+ 	return prev;
+diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+index e5f9080..ffaa4ce 100644
+--- a/include/asm-generic/cmpxchg.h
++++ b/include/asm-generic/cmpxchg.h
+@@ -12,15 +12,10 @@
+ 
+ #include <linux/types.h>
+ #include <linux/irqflags.h>
++#include <linux/bug.h>
+ 
+ #ifndef xchg
+ 
+-/*
+- * This function doesn't exist, so you'll get a linker error if
+- * something tries to do an invalidly-sized xchg().
+- */
+-extern void __xchg_called_with_bad_pointer(void);
+-
+ static inline
+ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ {
+@@ -74,7 +69,7 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ #endif /* CONFIG_64BIT */
+ 
+ 	default:
+-		__xchg_called_with_bad_pointer();
++		BUILD_BUG();
+ 		return x;
+ 	}
+ }
+-- 
+2.5.0
