@@ -1,223 +1,61 @@
-From: Aleksey Makarov <aleksey.makarov@linaro.org>
-Subject: [PATCH v2 5/8] ACPI: parse DBG2 table
-Date: Wed, 24 Feb 2016 20:10:14 +0300
-Message-ID: <1456333819-13482-6-git-send-email-aleksey.makarov@linaro.org>
-References: <1456333819-13482-1-git-send-email-aleksey.makarov@linaro.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH v2 0/5] all: s390: make compat wrappers the generic solution
+Date: Wed, 24 Feb 2016 21:34:09 +0300
+Message-ID: <1456338854-14901-1-git-send-email-ynorov@caviumnetworks.com>
+Mime-Version: 1.0
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1456333819-13482-1-git-send-email-aleksey.makarov@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-acpi@vger.kernel.org
-Cc: linux-serial@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Aleksey Makarov <aleksey.makarov@linaro.org>, Russell King <linux@arm.linux.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Leif Lindholm <leif.lindholm@linaro.org>, Graeme Gregory <graeme.gregory@linaro.org>, Al Stone <ahs3@redhat.com>, Christopher Covington <cov@codeaurora.org>, Len Brown <lenb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: heiko.carstens@de.ibm.com, arnd@arndb.de, catalin.marinas@arm.com, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, Yury Norov <ynorov@caviumnetworks.com>
 List-Id: linux-arch.vger.kernel.org
 
-'ARM Server Base Boot Requiremets' [1] mentions DBG2 (Microsoft Debug
-Port Table 2) [2] as a mandatory ACPI table that specifies debug ports.
+The problem that makes us use wrappers is that some compat
+architectures allows user code to access top halves of registers.
+This is not a problem for syscalls that are already handled by compat
+code, or for that who has types of the same size in kernel and
+userspace. In case of s390 and lp64/ilp32 the problem is in pointer
+types, long, unsigned long.
 
-- Implement macros
+S390 folks already have the solution for it. In this patchset,
+it is turned to be general, as arm64/ilp32 needs it too.
 
-	ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)
+This patchset is created as the part of the work of enabling arm64
+with ILP32 user mode. See details here:
+http://thread.gmane.org/gmane.linux.kernel/2126946
 
-  that defines a handler for the port of given type and subtype.
+This is the implementation of one of two possible approaches. First
+one defines new syscall handler declaration macro, that creates both compat and
+non-compat handlers, see [1]. This one declares all wrappers in separated file
+kernel/compat_wrapper.c
 
-- For each declared port that is also described in the ACPI DBG2 table
-  call the provided callback.
+Build-tested on s390.
 
-[1] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.den0044a/index.html
-[2] http://go.microsoft.com/fwlink/p/?LinkId=234837
+[1] http://www.spinics.net/lists/linux-s390/msg11593.html
 
-Signed-off-by: Aleksey Makarov <aleksey.makarov@linaro.org>
----
- drivers/acpi/Kconfig              |  3 ++
- drivers/acpi/Makefile             |  1 +
- drivers/acpi/dbg2.c               | 85 +++++++++++++++++++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/acpi_dbg2.h         | 48 ++++++++++++++++++++++
- 5 files changed, 138 insertions(+)
- create mode 100644 drivers/acpi/dbg2.c
- create mode 100644 include/linux/acpi_dbg2.h
+Yury Norov (5):
+  all: syscall wrappers: add documentation
+  all: introduce COMPAT_WRAPPER option and enable it for s390
+  all: s390: move wrapper infrastructure to generic headers
+  all: s390: move compat_wrappers.c from arch/s390/kernel to kernel/
+  all: wrap needed syscalls in generic unistd
 
-diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
-index 65fb483..660666e 100644
---- a/drivers/acpi/Kconfig
-+++ b/drivers/acpi/Kconfig
-@@ -57,6 +57,9 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
- config ACPI_CCA_REQUIRED
- 	bool
- 
-+config ACPI_DBG2_TABLE
-+	bool
-+
- config ACPI_DEBUGGER
- 	bool "AML debugger interface"
- 	select ACPI_DEBUG
-diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
-index 7395928..3b5f1ea 100644
---- a/drivers/acpi/Makefile
-+++ b/drivers/acpi/Makefile
-@@ -83,6 +83,7 @@ obj-$(CONFIG_ACPI_CUSTOM_METHOD)+= custom_method.o
- obj-$(CONFIG_ACPI_BGRT)		+= bgrt.o
- obj-$(CONFIG_ACPI_CPPC_LIB)	+= cppc_acpi.o
- obj-$(CONFIG_ACPI_DEBUGGER_USER) += acpi_dbg.o
-+obj-$(CONFIG_ACPI_DBG2_TABLE)	+= dbg2.o
- 
- # processor has its own "processor." module_param namespace
- processor-y			:= processor_driver.o
-diff --git a/drivers/acpi/dbg2.c b/drivers/acpi/dbg2.c
-new file mode 100644
-index 0000000..8a79117
---- /dev/null
-+++ b/drivers/acpi/dbg2.c
-@@ -0,0 +1,85 @@
-+/*
-+ * Copyright (c) 2012, Intel Corporation
-+ * Copyright (c) 2015, 2016 Linaro Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ */
-+
-+#define pr_fmt(fmt) "ACPI: DBG2: " fmt
-+
-+#include <linux/acpi_dbg2.h>
-+#include <linux/acpi.h>
-+#include <linux/kernel.h>
-+
-+static const char * __init type2string(u16 type)
-+{
-+	switch (type) {
-+	case ACPI_DBG2_SERIAL_PORT:
-+		return "SERIAL";
-+	case ACPI_DBG2_1394_PORT:
-+		return "1394";
-+	case ACPI_DBG2_USB_PORT:
-+		return "USB";
-+	case ACPI_DBG2_NET_PORT:
-+		return "NET";
-+	default:
-+		return "?";
-+	}
-+}
-+
-+static const char * __init subtype2string(u16 subtype)
-+{
-+	switch (subtype) {
-+	case ACPI_DBG2_16550_COMPATIBLE:
-+		return "16550_COMPATIBLE";
-+	case ACPI_DBG2_16550_SUBSET:
-+		return "16550_SUBSET";
-+	case ACPI_DBG2_ARM_PL011:
-+		return "ARM_PL011";
-+	case ACPI_DBG2_ARM_SBSA_32BIT:
-+		return "ARM_SBSA_32BIT";
-+	case ACPI_DBG2_ARM_SBSA_GENERIC:
-+		return "ARM_SBSA_GENERIC";
-+	case ACPI_DBG2_ARM_DCC:
-+		return "ARM_DCC";
-+	case ACPI_DBG2_BCM2835:
-+		return "BCM2835";
-+	default:
-+		return "?";
-+	}
-+}
-+
-+int __init acpi_dbg2_setup(struct acpi_table_header *table, const void *data)
-+{
-+	struct acpi_table_dbg2 *dbg2 = (struct acpi_table_dbg2 *)table;
-+	struct acpi_dbg2_data *dbg2_data = (struct acpi_dbg2_data *)data;
-+	struct acpi_dbg2_device *dbg2_device, *dbg2_end;
-+	int i;
-+
-+	dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2,
-+				   dbg2->info_offset);
-+	dbg2_end = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2, table->length);
-+
-+	for (i = 0; i < dbg2->info_count; i++) {
-+		if (dbg2_device + 1 > dbg2_end) {
-+			pr_err("device pointer overflows, bad table\n");
-+			return 0;
-+		}
-+
-+		if (dbg2_device->port_type == dbg2_data->port_type &&
-+		    dbg2_device->port_subtype == dbg2_data->port_subtype) {
-+			pr_info("debug port type: %s subtype: %s\n",
-+				type2string(dbg2_device->port_type),
-+				subtype2string(dbg2_device->port_subtype));
-+			dbg2_data->setup(dbg2_device, dbg2_data->data);
-+		}
-+
-+		dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2_device,
-+					   dbg2_device->length);
-+	}
-+
-+	return 0;
-+}
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e9a81a6..ab6a727 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -525,6 +525,7 @@
- 	IRQCHIP_OF_MATCH_TABLE()					\
- 	ACPI_PROBE_TABLE(irqchip)					\
- 	ACPI_PROBE_TABLE(clksrc)					\
-+	ACPI_PROBE_TABLE(dbg2)						\
- 	EARLYCON_TABLE()
- 
- #define INIT_TEXT							\
-diff --git a/include/linux/acpi_dbg2.h b/include/linux/acpi_dbg2.h
-new file mode 100644
-index 0000000..125ae7e
---- /dev/null
-+++ b/include/linux/acpi_dbg2.h
-@@ -0,0 +1,48 @@
-+#ifndef _ACPI_DBG2_H_
-+#define _ACPI_DBG2_H_
-+
-+#ifdef CONFIG_ACPI_DBG2_TABLE
-+
-+#include <linux/kernel.h>
-+
-+struct acpi_dbg2_device;
-+struct acpi_table_header;
-+
-+struct acpi_dbg2_data {
-+	u16 port_type;
-+	u16 port_subtype;
-+	int (*setup)(struct acpi_dbg2_device *, void *);
-+	void *data;
-+};
-+
-+int acpi_dbg2_setup(struct acpi_table_header *header, const void *data);
-+
-+/**
-+ * ACPI_DBG2_DECLARE() - Define handler for ACPI DBG2 port
-+ * @name:	Identifier to compose name of table data
-+ * @type:	Type of the port
-+ * @subtype:	Subtype of the port
-+ * @setup_fn:	Function to be called to setup the port
-+ *		(of type int (*)(struct acpi_dbg2_device *, void *);)
-+ * @data_ptr:	Sideband data provided back to the driver
-+ */
-+#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
-+	static const struct acpi_dbg2_data				\
-+		__acpi_dbg2_data_##name __used = {			\
-+			.port_type = type,				\
-+			.port_subtype = subtype,			\
-+			.setup = setup_fn,				\
-+			.data = data_ptr,				\
-+		   };							\
-+	ACPI_DECLARE_PROBE_ENTRY(dbg2, name, ACPI_SIG_DBG2,		\
-+				 acpi_dbg2_setup, &__acpi_dbg2_data_##name)
-+
-+#else
-+
-+#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
-+	static const void *__acpi_dbg_data_##name[]			\
-+		__used __initdata = { (void *)setup_fn,	(void *)data_ptr }
-+
-+#endif
-+
-+#endif
+ Documentation/adding-syscalls.txt |  32 +++++
+ arch/Kconfig                      |   4 +
+ arch/s390/Kconfig                 |   1 +
+ arch/s390/include/asm/compat.h    |  17 ++-
+ arch/s390/kernel/Makefile         |   2 +-
+ arch/s390/kernel/compat_wrapper.c | 180 ------------------------
+ include/linux/compat.h            | 278 ++++++++++++++++++++++++++++++++++++++
+ include/linux/syscalls.h          |  57 +-------
+ include/linux/syscalls_structs.h  |  60 ++++++++
+ include/uapi/asm-generic/unistd.h | 231 +++++++++++++++----------------
+ kernel/Makefile                   |   1 +
+ kernel/compat_wrapper.c           | 170 +++++++++++++++++++++++
+ 12 files changed, 680 insertions(+), 353 deletions(-)
+ delete mode 100644 arch/s390/kernel/compat_wrapper.c
+ create mode 100644 include/linux/syscalls_structs.h
+ create mode 100644 kernel/compat_wrapper.c
+
 -- 
-2.7.1
+2.5.0
