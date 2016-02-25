@@ -1,41 +1,70 @@
-From: Vineet Gupta <vgupta@synopsys.com>
-Subject: Re: Interesting csd deadlock on ARC
-Date: Thu, 25 Feb 2016 21:28:02 +0530
-Message-ID: <56CF248A.3070805@synopsys.com>
-References: <56C6BA82.1060909@synopsys.com> <56CBEC66.2030401@synopsys.com>
- <20160223095824.GH6356@twins.programming.kicks-ass.net>
- <56CD36CD.2080303@synopsys.com>
- <20160225140654.GL6357@twins.programming.kicks-ass.net>
- <56CF0E6B.5020903@synopsys.com>
- <20160225143046.GR19428@n2100.arm.linux.org.uk>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 2/5] all: introduce COMPAT_WRAPPER option and enable it
+ for s390
+Date: Thu, 25 Feb 2016 23:19:26 +0300
+Message-ID: <20160225201926.GA16123@yury-N73SV>
+References: <1456338854-14901-1-git-send-email-ynorov@caviumnetworks.com>
+ <1456338854-14901-3-git-send-email-ynorov@caviumnetworks.com>
+ <20160225084943.GB3980@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160225143046.GR19428@n2100.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Frederic Weisbecker <fweisbec@gmail.com>, lkml <linux-kernel@vger.kernel.org>, Noam Camus <noamc@ezchip.com>, arcml <linux-snps-arc@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bl2on0074.outbound.protection.outlook.com ([65.55.169.74]:2801
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S933600AbcBYUT5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Feb 2016 15:19:57 -0500
+Content-Disposition: inline
+In-Reply-To: <20160225084943.GB3980@osiris>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, linux-doc@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, pinskia@gmail.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, joseph@codesourcery.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
 
-On Thursday 25 February 2016 08:00 PM, Russell King - ARM Linux wrote:
-> On Thu, Feb 25, 2016 at 07:53:39PM +0530, Vineet Gupta wrote:
->> But then ARM CONFIG_SMP on UP hardware will still crap out because there
->> is no way to send IPI to self. Same as the bug in above discussion. I'm
->> surprised they way ARM guys worked around it.
+On Thu, Feb 25, 2016 at 09:49:43AM +0100, Heiko Carstens wrote:
+> On Wed, Feb 24, 2016 at 09:34:11PM +0300, Yury Norov wrote:
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> > ---
+> >  arch/Kconfig      | 4 ++++
+> >  arch/s390/Kconfig | 1 +
+> >  2 files changed, 5 insertions(+)
+> > 
+> > diff --git a/arch/Kconfig b/arch/Kconfig
+> > index f6b649d..6393093 100644
+> > --- a/arch/Kconfig
+> > +++ b/arch/Kconfig
+> > @@ -583,6 +583,10 @@ config HAVE_COPY_THREAD_TLS
+> >  	  normal C parameter passing, rather than extracting the syscall
+> >  	  argument from pt_regs.
+> > 
+> > +config COMPAT_WRAPPER
+> > +	bool
+> > +	depends on COMPAT
+> > +
+> >  #
+> >  # ABI hall of shame
+> >  #
+> > diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> > index 3be9c83..082b861 100644
+> > --- a/arch/s390/Kconfig
+> > +++ b/arch/s390/Kconfig
+> > @@ -333,6 +333,7 @@ config COMPAT
+> >  	select COMPAT_BINFMT_ELF if BINFMT_ELF
+> >  	select ARCH_WANT_OLD_COMPAT_IPC
+> >  	select COMPAT_OLD_SIGACTION
+> > +	select COMPAT_WRAPPER
+> >  	depends on MULTIUSER
+> >  	help
+> >  	  Select this option if you want to enable your system kernel to
 > 
-> We haven't worked around it - the code which provoked the oops that was
-> seen (in the cpufreq code) was changed not to call it, which has the
-> effect of making the problem "go away", at least for now.
+> Maybe merge this into patch 4/5?
+
+Then bisectability will suffer, as next patch needs COMPAT_WRAPPER
+enabled.
+
 > 
-> We still have the problem that if it does get called on UP, it'll blow
-> up - and I don't see any point in complicating the code for something
-> that never happens right now.
-
-Right so my statement "workaround" was technically incorrect. But like you say,
-it's a ticking bomb which will certainly go off on your SMP on UP systems the
-moment someone adds irq_work_queue_on() in some obscure corner of generic code.
-
-And I think this merits fixing in generic code !
-
--Vineet
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
