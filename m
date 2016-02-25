@@ -1,48 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp06.uk.ibm.com ([195.75.94.102]:42451 "EHLO
-	e06smtp06.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758272AbcBYIvv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2016 03:51:51 -0500
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:47887 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760141AbcBYIwm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2016 03:52:42 -0500
 Received: from localhost
-	by e06smtp06.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Thu, 25 Feb 2016 08:51:50 -0000
-Date: Thu, 25 Feb 2016 09:51:40 +0100
+	Thu, 25 Feb 2016 08:52:36 -0000
+Date: Thu, 25 Feb 2016 09:52:27 +0100
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 3/5] all: s390: move wrapper infrastructure to generic
- headers
-Message-ID: <20160225085140.GC3980@osiris>
+Subject: Re: [PATCH 4/5] all: s390: move compat_wrappers.c from
+ arch/s390/kernel to kernel/
+Message-ID: <20160225085227.GD3980@osiris>
 References: <1456338854-14901-1-git-send-email-ynorov@caviumnetworks.com>
- <1456338854-14901-4-git-send-email-ynorov@caviumnetworks.com>
+ <1456338854-14901-5-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1456338854-14901-4-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1456338854-14901-5-git-send-email-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yury Norov <ynorov@caviumnetworks.com>
 Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com
-Message-ID: <20160225085140.8i-qLUab7G-KDu0pTBy3oCwiFU7xqNgQRmijv5rIg2c@z>
+Message-ID: <20160225085227.nsamepb6Yl6XvLsVRtltlvyh2pXR9iPWoSA4bcom5aw@z>
 
-On Wed, Feb 24, 2016 at 09:34:12PM +0300, Yury Norov wrote:
-> diff --git a/include/linux/syscalls_structs.h b/include/linux/syscalls_structs.h
-> new file mode 100644
-> index 0000000..a920cbc
-> --- /dev/null
-> +++ b/include/linux/syscalls_structs.h
-> @@ -0,0 +1,60 @@
-> +#ifndef _LINUX_SYSCALL_STRUCTS_H
-> +#define _LINUX_SYSCALL_STRUCTS_H
-> +
-> +struct epoll_event;
-> +struct iattr;
-> +struct inode;
-> +struct iocb;
-> +struct io_event;
-> +struct iovec;
-> +struct itimerspec;
-> +struct itimerval;
+On Wed, Feb 24, 2016 at 09:34:13PM +0300, Yury Norov wrote:
+> Some syscalls are declared conditionally, so corresponding wrappers
+> are conditional accordingly.
+> 
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> ---
+>  arch/s390/kernel/Makefile         |   2 +-
+>  arch/s390/kernel/compat_wrapper.c | 129 -----------------------------
+>  kernel/Makefile                   |   1 +
+>  kernel/compat_wrapper.c           | 170 ++++++++++++++++++++++++++++++++++++++
+>  4 files changed, 172 insertions(+), 130 deletions(-)
+>  delete mode 100644 arch/s390/kernel/compat_wrapper.c
+>  create mode 100644 kernel/compat_wrapper.c
 
-This is not needed for s390, right? So might be worth a separate patch
-which moves the forward declarations?
+Generated code looks identical on s390 and of course still works!
 
