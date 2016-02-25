@@ -1,47 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:33285 "EHLO
-	mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932407AbcBYP6J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2016 10:58:09 -0500
-Subject: Re: Interesting csd deadlock on ARC
-References: <56C6BA82.1060909@synopsys.com> <56CBEC66.2030401@synopsys.com>
- <20160223095824.GH6356@twins.programming.kicks-ass.net>
- <56CD36CD.2080303@synopsys.com>
- <20160225140654.GL6357@twins.programming.kicks-ass.net>
- <56CF0E6B.5020903@synopsys.com>
- <20160225143046.GR19428@n2100.arm.linux.org.uk>
-From: Vineet Gupta <vgupta@synopsys.com>
-Message-ID: <56CF248A.3070805@synopsys.com>
-Date: Thu, 25 Feb 2016 21:28:02 +0530
+Received: from mail-by2on0080.outbound.protection.outlook.com ([207.46.100.80]:2304
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1758126AbcBYUYQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Feb 2016 15:24:16 -0500
+Date: Thu, 25 Feb 2016 23:23:50 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 3/5] all: s390: move wrapper infrastructure to generic
+ headers
+Message-ID: <20160225202350.GB16123@yury-N73SV>
+References: <1456338854-14901-1-git-send-email-ynorov@caviumnetworks.com>
+ <1456338854-14901-4-git-send-email-ynorov@caviumnetworks.com>
+ <20160225085140.GC3980@osiris>
 MIME-Version: 1.0
-In-Reply-To: <20160225143046.GR19428@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <20160225085140.GC3980@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Frederic Weisbecker <fweisbec@gmail.com>, lkml <linux-kernel@vger.kernel.org>, Noam Camus <noamc@ezchip.com>, arcml <linux-snps-arc@lists.infradead.org>
-Message-ID: <20160225155802.3oYmqoDsDBGfI8yXisjfPAgk1bhynu3ufh9dF9w9dX8@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com
+Message-ID: <20160225202350.jutqy7QTFBpveTD6-qR1ANwuVh7K6MClJdzNaYtgouA@z>
 
-On Thursday 25 February 2016 08:00 PM, Russell King - ARM Linux wrote:
-> On Thu, Feb 25, 2016 at 07:53:39PM +0530, Vineet Gupta wrote:
->> But then ARM CONFIG_SMP on UP hardware will still crap out because there
->> is no way to send IPI to self. Same as the bug in above discussion. I'm
->> surprised they way ARM guys worked around it.
+On Thu, Feb 25, 2016 at 09:51:40AM +0100, Heiko Carstens wrote:
+> On Wed, Feb 24, 2016 at 09:34:12PM +0300, Yury Norov wrote:
+> > diff --git a/include/linux/syscalls_structs.h b/include/linux/syscalls_structs.h
+> > new file mode 100644
+> > index 0000000..a920cbc
+> > --- /dev/null
+> > +++ b/include/linux/syscalls_structs.h
+> > @@ -0,0 +1,60 @@
+> > +#ifndef _LINUX_SYSCALL_STRUCTS_H
+> > +#define _LINUX_SYSCALL_STRUCTS_H
+> > +
+> > +struct epoll_event;
+> > +struct iattr;
+> > +struct inode;
+> > +struct iocb;
+> > +struct io_event;
+> > +struct iovec;
+> > +struct itimerspec;
+> > +struct itimerval;
 > 
-> We haven't worked around it - the code which provoked the oops that was
-> seen (in the cpufreq code) was changed not to call it, which has the
-> effect of making the problem "go away", at least for now.
-> 
-> We still have the problem that if it does get called on UP, it'll blow
-> up - and I don't see any point in complicating the code for something
-> that never happens right now.
+> This is not needed for s390, right? So might be worth a separate patch
+> which moves the forward declarations?
 
-Right so my statement "workaround" was technically incorrect. But like you say,
-it's a ticking bomb which will certainly go off on your SMP on UP systems the
-moment someone adds irq_work_queue_on() in some obscure corner of generic code.
-
-And I think this merits fixing in generic code !
-
--Vineet
-
+This patch also introduces __SC_WRAP, not needed as well. The idea of
+this patch is to introduce all the tricky machinery at once. If you
+think we need split it, I'm OK, but maybe it's enough to add more
+detailed description... What do you think?
