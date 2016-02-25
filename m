@@ -1,46 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:33343 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760634AbcBYOHA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2016 09:07:00 -0500
-Date: Thu, 25 Feb 2016 15:06:54 +0100
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:33285 "EHLO
+	mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932407AbcBYP6J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Feb 2016 10:58:09 -0500
 Subject: Re: Interesting csd deadlock on ARC
-Message-ID: <20160225140654.GL6357@twins.programming.kicks-ass.net>
-References: <56C6BA82.1060909@synopsys.com>
- <56CBEC66.2030401@synopsys.com>
+References: <56C6BA82.1060909@synopsys.com> <56CBEC66.2030401@synopsys.com>
  <20160223095824.GH6356@twins.programming.kicks-ass.net>
  <56CD36CD.2080303@synopsys.com>
+ <20160225140654.GL6357@twins.programming.kicks-ass.net>
+ <56CF0E6B.5020903@synopsys.com>
+ <20160225143046.GR19428@n2100.arm.linux.org.uk>
+From: Vineet Gupta <vgupta@synopsys.com>
+Message-ID: <56CF248A.3070805@synopsys.com>
+Date: Thu, 25 Feb 2016 21:28:02 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <56CD36CD.2080303@synopsys.com>
+In-Reply-To: <20160225143046.GR19428@n2100.arm.linux.org.uk>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Frederic Weisbecker <fweisbec@gmail.com>, lkml <linux-kernel@vger.kernel.org>, Noam Camus <noamc@ezchip.com>, arcml <linux-snps-arc@lists.infradead.org>
-Message-ID: <20160225140654.AgbvWY4mLEIQUcGgVak2eIVnvv8-wLyTIQnu2QJCweE@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Frederic Weisbecker <fweisbec@gmail.com>, lkml <linux-kernel@vger.kernel.org>, Noam Camus <noamc@ezchip.com>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20160225155802.3oYmqoDsDBGfI8yXisjfPAgk1bhynu3ufh9dF9w9dX8@z>
 
-On Wed, Feb 24, 2016 at 10:21:25AM +0530, Vineet Gupta wrote:
-> >> What I actually meant was is it OK for irq_work_queue_on() to be called locally
-> >> (is this a sched bug/optimization(. Further if it is OK to be called, does it need
-> >> to do behave more like irq_work_queue() i.e. call arch_irq_work_raise() or
-> >> arch_send_call_function_single_ipi() is expected to handle sending IPI to self !
-> > 
-> > Right, so I'm not actually sure we started out with this requirement.
-> > But you're not the first to run into this, see:
-> > 
-> >   lkml.kernel.org/r/CAJZ5v0gLankSuziQq25qTCyNqeOX43yD9jnJu_XXwbdyajfmKg@mail.gmail.com
-> > 
-> > Initially I think irq_work_queue_on() was only used remotely, but I
-> > think it makes sense to allow the current cpu, esp. since people seem to
-> > be using it like that.
+On Thursday 25 February 2016 08:00 PM, Russell King - ARM Linux wrote:
+> On Thu, Feb 25, 2016 at 07:53:39PM +0530, Vineet Gupta wrote:
+>> But then ARM CONFIG_SMP on UP hardware will still crap out because there
+>> is no way to send IPI to self. Same as the bug in above discussion. I'm
+>> surprised they way ARM guys worked around it.
 > 
-> So it seems Russell's questions in the thread above stands still. IMO we need to
-> massage irq_work_queue_on() to handle the case of called for local cpu. This will
-> automatically take care of CONFIG_SMP kernel running on UP hardware.
+> We haven't worked around it - the code which provoked the oops that was
+> seen (in the cpufreq code) was changed not to call it, which has the
+> effect of making the problem "go away", at least for now.
+> 
+> We still have the problem that if it does get called on UP, it'll blow
+> up - and I don't see any point in complicating the code for something
+> that never happens right now.
 
-Hmm, I missed that there was still an open question.
+Right so my statement "workaround" was technically incorrect. But like you say,
+it's a ticking bomb which will certainly go off on your SMP on UP systems the
+moment someone adds irq_work_queue_on() in some obscure corner of generic code.
 
-Afaict the only thing that needs doing to the generic code is drop the
-CONFIG_SMP guard, no?
+And I think this merits fixing in generic code !
+
+-Vineet
+
