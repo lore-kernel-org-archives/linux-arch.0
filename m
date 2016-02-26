@@ -1,182 +1,140 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 14/20] cpu/hotplug: Split out the state walk into functions
-Date: Fri, 26 Feb 2016 18:43:37 -0000
-Message-ID: <20160226182341.374946234@linutronix.de>
+Subject: [patch 20/20] rcu: Make CPU_DYING_IDLE an explicit call
+Date: Fri, 26 Feb 2016 18:43:44 -0000
+Message-ID: <20160226182341.870167933@linutronix.de>
 References: <20160226164321.657646833@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline;
- filename=hotplug--Create-state-walk-functions.patch
+ filename=rcu--Make-CPU_DYING_IDLE-an-explicit-call.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-We need that for running callbacks on the AP and the BP.
+Make the RCU CPU_DYING_IDLE callback an explicit function call, so it gets
+invoked at the proper place.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/cpu.c |  111 ++++++++++++++++++++++++++++++++++++-----------------------
- 1 file changed, 68 insertions(+), 43 deletions(-)
+ include/linux/cpu.h      |    4 +---
+ include/linux/notifier.h |    2 ++
+ include/linux/rcupdate.h |    4 +---
+ kernel/cpu.c             |    1 +
+ kernel/rcu/tree.c        |   26 +++++++++++++++-----------
+ kernel/sched/idle.c      |    2 --
+ 6 files changed, 20 insertions(+), 19 deletions(-)
 
+Index: b/include/linux/cpu.h
+===================================================================
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -101,9 +101,7 @@ enum {
+ 					* Called on the new cpu, just before
+ 					* enabling interrupts. Must not sleep,
+ 					* must not fail */
+-#define CPU_DYING_IDLE		0x000B /* CPU (unsigned)v dying, reached
+-					* idle loop. */
+-#define CPU_BROKEN		0x000C /* CPU (unsigned)v did not die properly,
++#define CPU_BROKEN		0x000B /* CPU (unsigned)v did not die properly,
+ 					* perhaps due to preemption. */
+ 
+ /* Used for CPU hotplug events occurring while tasks are frozen due to a suspend
+Index: b/include/linux/notifier.h
+===================================================================
+--- a/include/linux/notifier.h
++++ b/include/linux/notifier.h
+@@ -47,6 +47,8 @@
+  * runtime initialization.
+  */
+ 
++struct notifier_block;
++
+ typedef	int (*notifier_fn_t)(struct notifier_block *nb,
+ 			unsigned long action, void *data);
+ 
+Index: b/include/linux/rcupdate.h
+===================================================================
+--- a/include/linux/rcupdate.h
++++ b/include/linux/rcupdate.h
+@@ -332,9 +332,7 @@ void rcu_init(void);
+ void rcu_sched_qs(void);
+ void rcu_bh_qs(void);
+ void rcu_check_callbacks(int user);
+-struct notifier_block;
+-int rcu_cpu_notify(struct notifier_block *self,
+-		   unsigned long action, void *hcpu);
++void rcu_report_dead(unsigned int cpu);
+ 
+ #ifndef CONFIG_TINY_RCU
+ void rcu_end_inkernel_boot(void);
 Index: b/kernel/cpu.c
 ===================================================================
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -329,10 +329,74 @@ static int bringup_cpu(unsigned int cpu)
- 	return 0;
+@@ -762,6 +762,7 @@ void cpuhp_report_idle_dead(void)
+ 	BUG_ON(st->state != CPUHP_AP_OFFLINE);
+ 	st->state = CPUHP_AP_IDLE_DEAD;
+ 	complete(&st->done);
++	rcu_report_dead(smp_processor_id());
  }
  
-+/*
-+ * Hotplug state machine related functions
-+ */
-+static void undo_cpu_down(unsigned int cpu, struct cpuhp_cpu_state *st,
-+			  struct cpuhp_step *steps)
-+{
-+	for (st->state++; st->state < st->target; st->state++) {
-+		struct cpuhp_step *step = steps + st->state;
-+
-+		if (!step->skip_onerr)
-+			cpuhp_invoke_callback(cpu, st->state, step->startup);
-+	}
-+}
-+
-+static int cpuhp_down_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
-+				struct cpuhp_step *steps, enum cpuhp_state target)
-+{
-+	enum cpuhp_state prev_state = st->state;
-+	int ret = 0;
-+
-+	for (; st->state > target; st->state--) {
-+		struct cpuhp_step *step = steps + st->state;
-+
-+		ret = cpuhp_invoke_callback(cpu, st->state, step->teardown);
-+		if (ret) {
-+			st->target = prev_state;
-+			undo_cpu_down(cpu, st, steps);
-+			break;
-+		}
-+	}
-+	return ret;
-+}
-+
-+static void undo_cpu_up(unsigned int cpu, struct cpuhp_cpu_state *st,
-+			struct cpuhp_step *steps)
-+{
-+	for (st->state--; st->state > st->target; st->state--) {
-+		struct cpuhp_step *step = steps + st->state;
-+
-+		if (!step->skip_onerr)
-+			cpuhp_invoke_callback(cpu, st->state, step->teardown);
-+	}
-+}
-+
-+static int cpuhp_up_callbacks(unsigned int cpu, struct cpuhp_cpu_state *st,
-+			      struct cpuhp_step *steps, enum cpuhp_state target)
-+{
-+	enum cpuhp_state prev_state = st->state;
-+	int ret = 0;
-+
-+	while (st->state < target) {
-+		struct cpuhp_step *step;
-+
-+		st->state++;
-+		step = steps + st->state;
-+		ret = cpuhp_invoke_callback(cpu, st->state, step->startup);
-+		if (ret) {
-+			st->target = prev_state;
-+			undo_cpu_up(cpu, st, steps);
-+			break;
-+		}
-+	}
-+	return ret;
-+}
-+
- #ifdef CONFIG_HOTPLUG_CPU
- EXPORT_SYMBOL(register_cpu_notifier);
- EXPORT_SYMBOL(__register_cpu_notifier);
--
- void unregister_cpu_notifier(struct notifier_block *nb)
- {
- 	cpu_maps_update_begin();
-@@ -537,15 +601,6 @@ static int notify_dead(unsigned int cpu)
- #endif
- 
- #ifdef CONFIG_HOTPLUG_CPU
--static void undo_cpu_down(unsigned int cpu, struct cpuhp_cpu_state *st)
--{
--	for (st->state++; st->state < st->target; st->state++) {
--		struct cpuhp_step *step = cpuhp_bp_states + st->state;
--
--		if (!step->skip_onerr)
--			cpuhp_invoke_callback(cpu, st->state, step->startup);
--	}
--}
- 
- /* Requires cpu_add_remove_lock to be held */
- static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
-@@ -567,16 +622,8 @@ static int __ref _cpu_down(unsigned int
- 
- 	prev_state = st->state;
- 	st->target = target;
--	for (; st->state > st->target; st->state--) {
--		struct cpuhp_step *step = cpuhp_bp_states + st->state;
-+	ret = cpuhp_down_callbacks(cpu, st, cpuhp_bp_states, target);
- 
--		ret = cpuhp_invoke_callback(cpu, st->state, step->teardown);
--		if (ret) {
--			st->target = prev_state;
--			undo_cpu_down(cpu, st);
--			break;
--		}
--	}
- 	hasdied = prev_state != st->state && st->state == CPUHP_OFFLINE;
- 
- 	cpu_hotplug_done();
-@@ -645,22 +692,12 @@ static int cpuhp_set_cpu_active(unsigned
- 	return 0;
+ #else
+Index: b/kernel/rcu/tree.c
+===================================================================
+--- a/kernel/rcu/tree.c
++++ b/kernel/rcu/tree.c
+@@ -4247,6 +4247,21 @@ static void rcu_prepare_cpu(int cpu)
+ 		rcu_init_percpu_data(cpu, rsp);
  }
  
--static void undo_cpu_up(unsigned int cpu, struct cpuhp_cpu_state *st)
--{
--	for (st->state--; st->state > st->target; st->state--) {
--		struct cpuhp_step *step = cpuhp_bp_states + st->state;
++#ifdef CONFIG_HOTPLUG_CPU
++void rcu_report_dead(unsigned int cpu)
++{
++	struct rcu_state *rsp;
++
++	/* QS for any half-done expedited RCU-sched GP. */
++	preempt_disable();
++	rcu_report_exp_rdp(&rcu_sched_state,
++			   this_cpu_ptr(rcu_sched_state.rda), true);
++	preempt_enable();
++	for_each_rcu_flavor(rsp)
++		rcu_cleanup_dying_idle_cpu(cpu, rsp);
++}
++#endif
++
+ /*
+  * Handle CPU online/offline notification events.
+  */
+@@ -4278,17 +4293,6 @@ int rcu_cpu_notify(struct notifier_block
+ 		for_each_rcu_flavor(rsp)
+ 			rcu_cleanup_dying_cpu(rsp);
+ 		break;
+-	case CPU_DYING_IDLE:
+-		/* QS for any half-done expedited RCU-sched GP. */
+-		preempt_disable();
+-		rcu_report_exp_rdp(&rcu_sched_state,
+-				   this_cpu_ptr(rcu_sched_state.rda), true);
+-		preempt_enable();
 -
--		if (!step->skip_onerr)
--			cpuhp_invoke_callback(cpu, st->state, step->teardown);
--	}
--}
--
- /* Requires cpu_add_remove_lock to be held */
- static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
- {
- 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
- 	struct task_struct *idle;
--	int prev_state, ret = 0;
-+	int ret = 0;
- 
- 	cpu_hotplug_begin();
- 
-@@ -687,20 +724,8 @@ static int _cpu_up(unsigned int cpu, int
- 
- 	cpuhp_tasks_frozen = tasks_frozen;
- 
--	prev_state = st->state;
- 	st->target = target;
--	while (st->state < st->target) {
--		struct cpuhp_step *step;
--
--		st->state++;
--		step = cpuhp_bp_states + st->state;
--		ret = cpuhp_invoke_callback(cpu, st->state, step->startup);
--		if (ret) {
--			st->target = prev_state;
--			undo_cpu_up(cpu, st);
--			break;
+-		for_each_rcu_flavor(rsp) {
+-			rcu_cleanup_dying_idle_cpu(cpu, rsp);
 -		}
--	}
-+	ret = cpuhp_up_callbacks(cpu, st, cpuhp_bp_states, target);
- out:
- 	cpu_hotplug_done();
- 	return ret;
+-		break;
+ 	case CPU_DEAD:
+ 	case CPU_DEAD_FROZEN:
+ 	case CPU_UP_CANCELED:
+Index: b/kernel/sched/idle.c
+===================================================================
+--- a/kernel/sched/idle.c
++++ b/kernel/sched/idle.c
+@@ -220,8 +220,6 @@ static void cpu_idle_loop(void)
+ 			rmb();
+ 
+ 			if (cpu_is_offline(smp_processor_id())) {
+-				rcu_cpu_notify(NULL, CPU_DYING_IDLE,
+-					       (void *)(long)smp_processor_id());
+ 				cpuhp_report_idle_dead();
+ 				arch_cpu_idle_dead();
+ 			}
