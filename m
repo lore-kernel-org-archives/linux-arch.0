@@ -1,224 +1,228 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 18/20] cpu/hotplug: Let upcoming cpu bring itself fully up
-Date: Fri, 26 Feb 2016 18:43:41 -0000
-Message-ID: <20160226182341.697655464@linutronix.de>
+Subject: [patch 15/20] cpu/hotplug: Create hotplug threads
+Date: Fri, 26 Feb 2016 18:43:38 -0000
+Message-ID: <20160226182341.454541272@linutronix.de>
 References: <20160226164321.657646833@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline;
- filename=hotplug--Let-upcoming-cpu-bring-itself-fully-up.patch
+Content-Disposition: inline; filename=hotplug--Create-hotplug-threads.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Let the upcoming cpu kick the hotplug thread and let itself complete the
-bringup. That way the controll side can just wait for the completion or later
-when we made the hotplug machinery async not care at all.
+In order to let the hotplugged cpu take care of the setup/teardown, we need a
+seperate hotplug thread.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/cpuhotplug.h |    9 ++++--
- kernel/cpu.c               |   66 +++++++++++++++++++++++++--------------------
- kernel/sched/idle.c        |    2 +
- 3 files changed, 45 insertions(+), 32 deletions(-)
+ kernel/cpu.c     |  145 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ kernel/smp.c     |    1 
+ kernel/smpboot.h |    2 
+ 3 files changed, 147 insertions(+), 1 deletion(-)
 
-Index: b/include/linux/cpuhotplug.h
-===================================================================
---- a/include/linux/cpuhotplug.h
-+++ b/include/linux/cpuhotplug.h
-@@ -10,9 +10,6 @@ enum cpuhp_state {
- 	CPUHP_AP_NOTIFY_STARTING,
- 	CPUHP_AP_ONLINE,
- 	CPUHP_TEARDOWN_CPU,
--	CPUHP_CPU_SET_ACTIVE,
--	CPUHP_KICK_AP_THREAD,
--	CPUHP_BP_ONLINE,
- 	CPUHP_AP_ONLINE_IDLE,
- 	CPUHP_AP_SMPBOOT_THREADS,
- 	CPUHP_AP_NOTIFY_ONLINE,
-@@ -86,4 +83,10 @@ static inline void cpuhp_remove_state_no
- 	__cpuhp_remove_state(state, false);
- }
- 
-+#ifdef CONFIG_SMP
-+void cpuhp_online_idle(enum cpuhp_state state);
-+#else
-+static inline void cpuhp_online_idle(enum cpuhp_state state) { }
-+#endif
-+
- #endif
 Index: b/kernel/cpu.c
 ===================================================================
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -329,6 +329,14 @@ static int notify_starting(unsigned int
- 	return 0;
+@@ -22,6 +22,7 @@
+ #include <linux/lockdep.h>
+ #include <linux/tick.h>
+ #include <linux/irq.h>
++#include <linux/smpboot.h>
+ 
+ #include <trace/events/power.h>
+ #define CREATE_TRACE_POINTS
+@@ -33,10 +34,24 @@
+  * cpuhp_cpu_state - Per cpu hotplug state storage
+  * @state:	The current cpu state
+  * @target:	The target state
++ * @thread:	Pointer to the hotplug thread
++ * @should_run:	Thread should execute
++ * @cb_stat:	The state for a single callback (install/uninstall)
++ * @cb:		Single callback function (install/uninstall)
++ * @result:	Result of the operation
++ * @done:	Signal completion to the issuer of the task
+  */
+ struct cpuhp_cpu_state {
+ 	enum cpuhp_state	state;
+ 	enum cpuhp_state	target;
++#ifdef CONFIG_SMP
++	struct task_struct	*thread;
++	bool			should_run;
++	enum cpuhp_state	cb_state;
++	int			(*cb)(unsigned int cpu);
++	int			result;
++	struct completion	done;
++#endif
+ };
+ 
+ static DEFINE_PER_CPU(struct cpuhp_cpu_state, cpuhp_state);
+@@ -394,6 +409,134 @@ static int cpuhp_up_callbacks(unsigned i
+ 	return ret;
  }
  
-+static int bringup_wait_for_ap(unsigned int cpu)
++/*
++ * The cpu hotplug threads manage the bringup and teardown of the cpus
++ */
++static void cpuhp_create(unsigned int cpu)
 +{
 +	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
 +
++	init_completion(&st->done);
++}
++
++static int cpuhp_should_run(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
++
++	return st->should_run;
++}
++
++/* Execute the teardown callbacks. Used to be CPU_DOWN_PREPARE */
++static int cpuhp_ap_offline(unsigned int cpu, struct cpuhp_cpu_state *st)
++{
++	enum cpuhp_state target = max((int)st->target, CPUHP_AP_ONLINE);
++
++	return cpuhp_down_callbacks(cpu, st, cpuhp_ap_states, target);
++}
++
++/* Execute the online startup callbacks. Used to be CPU_ONLINE */
++static int cpuhp_ap_online(unsigned int cpu, struct cpuhp_cpu_state *st)
++{
++	return cpuhp_up_callbacks(cpu, st, cpuhp_ap_states, st->target);
++}
++
++/*
++ * Execute teardown/startup callbacks on the plugged cpu. Also used to invoke
++ * callbacks when a state gets [un]installed at runtime.
++ */
++static void cpuhp_thread_fun(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
++	int ret = 0;
++
++	/*
++	 * Paired with the mb() in cpuhp_kick_ap_work and
++	 * cpuhp_invoke_ap_callback, so the work set is consistent visible.
++	 */
++	smp_mb();
++	if (!st->should_run)
++		return;
++
++	st->should_run = false;
++
++	/* Single callback invocation for [un]install ? */
++	if (st->cb) {
++		if (st->cb_state < CPUHP_AP_ONLINE) {
++			local_irq_disable();
++			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
++			local_irq_enable();
++		} else {
++			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
++		}
++	} else {
++		/* Regular hotplug work */
++		if (st->state < st->target)
++			ret = cpuhp_ap_online(cpu, st);
++		else if (st->state > st->target)
++			ret = cpuhp_ap_offline(cpu, st);
++	}
++	st->result = ret;
++	complete(&st->done);
++}
++
++/* Invoke a single callback on a remote cpu */
++static int cpuhp_invoke_ap_callback(int cpu, enum cpuhp_state state,
++				    int (*cb)(unsigned int))
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++
++	if (!cpu_online(cpu))
++		return 0;
++
++	st->cb_state = state;
++	st->cb = cb;
++	/*
++	 * Make sure the above stores are visible before should_run becomes
++	 * true. Paired with the mb() above in cpuhp_thread_fun()
++	 */
++	smp_mb();
++	st->should_run = true;
++	wake_up_process(st->thread);
 +	wait_for_completion(&st->done);
 +	return st->result;
 +}
 +
- static int bringup_cpu(unsigned int cpu)
- {
- 	struct task_struct *idle = idle_thread_get(cpu);
-@@ -340,8 +348,9 @@ static int bringup_cpu(unsigned int cpu)
- 		cpu_notify(CPU_UP_CANCELED, cpu);
- 		return ret;
- 	}
-+	ret = bringup_wait_for_ap(cpu);
- 	BUG_ON(!cpu_online(cpu));
--	return 0;
-+	return ret;
- }
- 
- /*
-@@ -470,7 +479,7 @@ static void cpuhp_thread_fun(unsigned in
- 		}
- 	} else {
- 		/* Cannot happen .... */
--		BUG_ON(st->state < CPUHP_KICK_AP_THREAD);
-+		BUG_ON(st->state < CPUHP_AP_ONLINE_IDLE);
- 
- 		/* Regular hotplug work */
- 		if (st->state < st->target)
-@@ -780,7 +789,7 @@ static int __ref _cpu_down(unsigned int
- 	 * If the current CPU state is in the range of the AP hotplug thread,
- 	 * then we need to kick the thread.
- 	 */
--	if (st->state >= CPUHP_KICK_AP_THREAD) {
-+	if (st->state > CPUHP_TEARDOWN_CPU) {
- 		ret = cpuhp_kick_ap_work(cpu);
- 		/*
- 		 * The AP side has done the error rollback already. Just
-@@ -793,11 +802,11 @@ static int __ref _cpu_down(unsigned int
- 		 * We might have stopped still in the range of the AP hotplug
- 		 * thread. Nothing to do anymore.
- 		 */
--		if (st->state >= CPUHP_KICK_AP_THREAD)
-+		if (st->state > CPUHP_TEARDOWN_CPU)
- 			goto out;
- 	}
- 	/*
--	 * The AP brought itself down below CPUHP_KICK_AP_THREAD. So we need
-+	 * The AP brought itself down to CPUHP_TEARDOWN_CPU. So we need
- 	 * to do the further cleanups.
- 	 */
- 	ret = cpuhp_down_callbacks(cpu, st, cpuhp_bp_states, target);
-@@ -859,18 +868,32 @@ void notify_cpu_starting(unsigned int cp
- 
- /*
-  * Called from the idle task. We need to set active here, so we can kick off
-- * the stopper thread.
-+ * the stopper thread and unpark the smpboot threads. If the target state is
-+ * beyond CPUHP_AP_ONLINE_IDLE we kick cpuhp thread and let it bring up the
-+ * cpu further.
-  */
--static int cpuhp_set_cpu_active(unsigned int cpu)
-+void cpuhp_online_idle(enum cpuhp_state state)
- {
--	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
-+	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
-+	unsigned int cpu = smp_processor_id();
++/* Regular hotplug invocation of the AP hotplug thread */
++static int cpuhp_kick_ap_work(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++	enum cpuhp_state state = st->state;
 +
-+	/* Happens for the boot cpu */
-+	if (state != CPUHP_AP_ONLINE_IDLE)
-+		return;
++	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
++	st->result = 0;
++	st->cb = NULL;
++	/*
++	 * Make sure the above stores are visible before should_run becomes
++	 * true. Paired with the mb() above in cpuhp_thread_fun()
++	 */
++	smp_mb();
++	st->should_run = true;
++	wake_up_process(st->thread);
++	wait_for_completion(&st->done);
++	trace_cpuhp_exit(cpu, st->state, state, st->result);
++	return st->result;
++}
 +
-+	st->state = CPUHP_AP_ONLINE_IDLE;
- 
- 	/* The cpu is marked online, set it active now */
- 	set_cpu_active(cpu, true);
--	/* Unpark the stopper thread and the hotplug thread */
-+	/* Unpark the stopper thread and the hotplug thread of this cpu */
- 	stop_machine_unpark(cpu);
- 	kthread_unpark(st->thread);
--	return 0;
++static struct smp_hotplug_thread cpuhp_threads = {
++	.store			= &cpuhp_state.thread,
++	.create			= &cpuhp_create,
++	.thread_should_run	= cpuhp_should_run,
++	.thread_fn		= cpuhp_thread_fun,
++	.thread_comm		= "cpuhp/%u",
++	.selfparking		= true,
++};
 +
-+	/* Should we go further up ? */
-+	if (st->target > CPUHP_AP_ONLINE_IDLE)
-+		__cpuhp_kick_ap_work(st);
-+	else
-+		complete(&st->done);
- }
++void __init cpuhp_threads_init(void)
++{
++	BUG_ON(smpboot_register_percpu_thread(&cpuhp_threads));
++	kthread_unpark(this_cpu_read(cpuhp_state.thread));
++}
++
+ #ifdef CONFIG_HOTPLUG_CPU
+ EXPORT_SYMBOL(register_cpu_notifier);
+ EXPORT_SYMBOL(__register_cpu_notifier);
+@@ -997,7 +1140,7 @@ static int cpuhp_cb_check(enum cpuhp_sta
  
- /* Requires cpu_add_remove_lock to be held */
-@@ -910,7 +933,7 @@ static int _cpu_up(unsigned int cpu, int
- 	 * If the current CPU state is in the range of the AP hotplug thread,
- 	 * then we need to kick the thread once more.
- 	 */
--	if (st->state >= CPUHP_KICK_AP_THREAD) {
-+	if (st->state > CPUHP_BRINGUP_CPU) {
- 		ret = cpuhp_kick_ap_work(cpu);
- 		/*
- 		 * The AP side has done the error rollback already. Just
-@@ -922,10 +945,10 @@ static int _cpu_up(unsigned int cpu, int
- 
- 	/*
- 	 * Try to reach the target state. We max out on the BP at
--	 * CPUHP_KICK_AP_THREAD. After that the AP hotplug thread is
-+	 * CPUHP_BRINGUP_CPU. After that the AP hotplug thread is
- 	 * responsible for bringing it up to the target state.
- 	 */
--	target = min((int)target, CPUHP_KICK_AP_THREAD);
-+	target = min((int)target, CPUHP_BRINGUP_CPU);
- 	ret = cpuhp_up_callbacks(cpu, st, cpuhp_bp_states, target);
- out:
- 	cpu_hotplug_done();
-@@ -1146,22 +1169,7 @@ static struct cpuhp_step cpuhp_bp_states
- 		.teardown		= takedown_cpu,
- 		.cant_stop		= true,
- 	},
--	[CPUHP_CPU_SET_ACTIVE] = {
--		.name			= "cpu:active",
--		.startup		= cpuhp_set_cpu_active,
--		.teardown		= NULL,
--	},
--	[CPUHP_KICK_AP_THREAD] = {
--		.name			= "cpuhp:kickthread",
--		.startup		= cpuhp_kick_ap_work,
--		.teardown		= cpuhp_kick_ap_work,
--	},
- #endif
--	[CPUHP_BP_ONLINE] = {
--		.name			= "online",
--		.startup		= NULL,
--		.teardown		= NULL,
--	},
- };
- 
- /* Application processor state steps */
-@@ -1204,7 +1212,7 @@ static bool cpuhp_is_ap_state(enum cpuhp
+ static bool cpuhp_is_ap_state(enum cpuhp_state state)
  {
- 	if (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE)
- 		return true;
--	return state > CPUHP_BP_ONLINE;
-+	return state > CPUHP_BRINGUP_CPU;
+-	return (state > CPUHP_AP_OFFLINE && state < CPUHP_AP_ONLINE);
++	return (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE);
  }
  
  static struct cpuhp_step *cpuhp_get_step(enum cpuhp_state state)
-Index: b/kernel/sched/idle.c
+Index: b/kernel/smp.c
 ===================================================================
---- a/kernel/sched/idle.c
-+++ b/kernel/sched/idle.c
-@@ -4,6 +4,7 @@
- #include <linux/sched.h>
- #include <linux/cpu.h>
- #include <linux/cpuidle.h>
-+#include <linux/cpuhotplug.h>
- #include <linux/tick.h>
- #include <linux/mm.h>
- #include <linux/stackprotector.h>
-@@ -276,5 +277,6 @@ static void cpu_idle_loop(void)
- void cpu_startup_entry(enum cpuhp_state state)
- {
- 	arch_cpu_idle_prepare();
-+	cpuhp_online_idle(state);
- 	cpu_idle_loop();
- }
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -569,6 +569,7 @@ void __init smp_init(void)
+ 	unsigned int cpu;
+ 
+ 	idle_threads_init();
++	cpuhp_threads_init();
+ 
+ 	/* FIXME: This should be done in userspace --RR */
+ 	for_each_present_cpu(cpu) {
+Index: b/kernel/smpboot.h
+===================================================================
+--- a/kernel/smpboot.h
++++ b/kernel/smpboot.h
+@@ -17,4 +17,6 @@ int smpboot_create_threads(unsigned int
+ int smpboot_park_threads(unsigned int cpu);
+ int smpboot_unpark_threads(unsigned int cpu);
+ 
++void __init cpuhp_threads_init(void);
++
+ #endif
