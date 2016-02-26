@@ -1,64 +1,37 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Fw: Getting an early start on C++ standards issues...
-Date: Fri, 26 Feb 2016 13:33:46 -0800
-Message-ID: <20160226213346.GL3522@linux.vnet.ibm.com>
-References: <20160226145057.GA6734@linux.vnet.ibm.com>
- <20160226152238.GE29125@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [patch 10/20] cpu/hotplug: Make target state writeable
+Date: Sat, 27 Feb 2016 00:46:18 +0100
+Message-ID: <6355023.m2RKuauZef@vostro.rjw.lan>
+References: <20160226164321.657646833@linutronix.de> <20160226182341.022814799@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e19.ny.us.ibm.com ([129.33.205.209]:46368 "EHLO
-	e19.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755261AbcBZVds (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 16:33:48 -0500
-Received: from localhost
-	by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 26 Feb 2016 16:33:47 -0500
-Received: from b01cxnp23032.gho.pok.ibm.com (b01cxnp23032.gho.pok.ibm.com [9.57.198.27])
-	by d01dlp01.pok.ibm.com (Postfix) with ESMTP id 0D84538C8046
-	for <linux-arch@vger.kernel.org>; Fri, 26 Feb 2016 16:33:46 -0500 (EST)
-Received: from d01av01.pok.ibm.com (d01av01.pok.ibm.com [9.56.224.215])
-	by b01cxnp23032.gho.pok.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id u1QLXjHv34603052
-	for <linux-arch@vger.kernel.org>; Fri, 26 Feb 2016 21:33:45 GMT
-Received: from d01av01.pok.ibm.com (localhost [127.0.0.1])
-	by d01av01.pok.ibm.com (8.14.4/8.14.4/NCO v10.0 AVout) with ESMTP id u1QLXi7H006626
-	for <linux-arch@vger.kernel.org>; Fri, 26 Feb 2016 16:33:45 -0500
-Content-Disposition: inline
-In-Reply-To: <20160226152238.GE29125@arm.com>
+Received: from v094114.home.net.pl ([79.96.170.134]:46643 "HELO
+	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1755700AbcBZXon (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 18:44:43 -0500
+In-Reply-To: <20160226182341.022814799@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: ralf@linux-mips.org, tony.luck@intel.com, fenghua.yu@intel.com, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 
-On Fri, Feb 26, 2016 at 03:22:38PM +0000, Will Deacon wrote:
-> On Fri, Feb 26, 2016 at 06:50:57AM -0800, Paul E. McKenney wrote:
-> > Hello!
-> 
-> Hi Paul,
-> 
-> > Do ARM, MIPS, and IA64 data/address/control dependencies apply to loads
-> > and stores from vector instructions?  The use case appears to be that the
-> > dependency chain is headed by a normal load instruction, and a dependency
-> > to a later vector load/store is desired.
-> > 
-> > Any other weakly ordered architectures with vector instructions?
-> 
-> We certainly have instructions that don't honour address dependencies,
-> for example LDNP (load non-temporal pair), and these could be used by
-> variants of memcpy. x86 has something similar with MOVNTDQA[1].
-> 
-> It's highly likely that we'd consider similar relaxations for extensions
-> to our vector instructions in future revisions of the ARM architecture,
-> so I don't think we should generally rely on address dependencies
-> providing order for vectorised code.
+Hi Thomas,
 
-Thank you for the information, Will!
+On Friday, February 26, 2016 06:43:32 PM Thomas Gleixner wrote:
+> Make it possible to write a target state to the per cpu state file, so we can
+> switch between states.
 
-							Thanx, Paul
+One thing that potentially may be problematic here is that any kind of
+"offline" operations needs to be carried out under device_hotplug_lock,
+because there are cases in which devices (including CPUs) are taken
+offline in groups and if one offline fails, the whole operation has to
+be rolled back.
 
-> Will
-> 
-> [1] http://www.felixcloutier.com/x86/MOVNTDQA.html
-> 
+So if you put a CPU into one of the intermediate states manually and
+something like the above happens in parallel with it, they may not
+play well together IMO.
+
+Thanks,
+Rafael
