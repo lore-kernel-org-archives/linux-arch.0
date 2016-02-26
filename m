@@ -1,332 +1,313 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 17/20] arch/hotplug: Call into idle with a proper state
-Date: Fri, 26 Feb 2016 18:43:40 -0000
-Message-ID: <20160226182341.614102639@linutronix.de>
+Subject: [patch 16/20] cpu/hotplug: Move online calls to hotplugged cpu
+Date: Fri, 26 Feb 2016 18:43:39 -0000
+Message-ID: <20160226182341.536364371@linutronix.de>
 References: <20160226164321.657646833@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline;
- filename=arch-hotplug--Call-into-idle-with-a-proper-state.patch
+ filename=hotplug--Move-online-calls-to-hotplugged-cpu.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Let the non boot cpus call into idle with the corresponding hotplug state, so
-the hotplug core can handle the further bringup. That's a first step to
-convert the boot side of the hotplugged cpus to do all the synchronization
-with the other side through the state machine. For now it'll only start the
-hotplug thread and kick the full bringup of the cpu.
+Let the hotplugged cpu invoke the setup/teardown callbacks
+(CPU_ONLINE/CPU_DOWN_PREPARE) itself.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/alpha/kernel/smp.c         |    2 +-
- arch/arc/kernel/smp.c           |    2 +-
- arch/arm/kernel/smp.c           |    2 +-
- arch/arm64/kernel/smp.c         |    2 +-
- arch/blackfin/mach-common/smp.c |    2 +-
- arch/hexagon/kernel/smp.c       |    2 +-
- arch/ia64/kernel/smpboot.c      |    2 +-
- arch/m32r/kernel/smpboot.c      |    2 +-
- arch/metag/kernel/smp.c         |    2 +-
- arch/mips/kernel/smp.c          |    2 +-
- arch/mn10300/kernel/smp.c       |    2 +-
- arch/parisc/kernel/smp.c        |    2 +-
- arch/powerpc/kernel/smp.c       |    2 +-
- arch/s390/kernel/smp.c          |    2 +-
- arch/sh/kernel/smp.c            |    2 +-
- arch/sparc/kernel/smp_32.c      |    2 +-
- arch/sparc/kernel/smp_64.c      |    2 +-
- arch/tile/kernel/smpboot.c      |    2 +-
- arch/x86/kernel/smpboot.c       |    2 +-
- arch/x86/xen/smp.c              |    2 +-
- arch/xtensa/kernel/smp.c        |    2 +-
- include/linux/cpuhotplug.h      |    1 +
- 22 files changed, 22 insertions(+), 21 deletions(-)
+ include/linux/cpuhotplug.h |   10 +--
+ kernel/cpu.c               |  144 ++++++++++++++++++++++++++++++---------------
+ 2 files changed, 102 insertions(+), 52 deletions(-)
 
-Index: b/arch/alpha/kernel/smp.c
-===================================================================
---- a/arch/alpha/kernel/smp.c
-+++ b/arch/alpha/kernel/smp.c
-@@ -168,7 +168,7 @@ smp_callin(void)
- 	      cpuid, current, current->active_mm));
- 
- 	preempt_disable();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
-Index: b/arch/arc/kernel/smp.c
-===================================================================
---- a/arch/arc/kernel/smp.c
-+++ b/arch/arc/kernel/smp.c
-@@ -142,7 +142,7 @@ void start_kernel_secondary(void)
- 
- 	local_irq_enable();
- 	preempt_disable();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- /*
-Index: b/arch/arm/kernel/smp.c
-===================================================================
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -409,7 +409,7 @@ asmlinkage void secondary_start_kernel(v
- 	/*
- 	 * OK, it's off to the idle thread for us
- 	 */
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- void __init smp_cpus_done(unsigned int max_cpus)
-Index: b/arch/arm64/kernel/smp.c
-===================================================================
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -195,7 +195,7 @@ asmlinkage void secondary_start_kernel(v
- 	/*
- 	 * OK, it's off to the idle thread for us
- 	 */
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- #ifdef CONFIG_HOTPLUG_CPU
-Index: b/arch/blackfin/mach-common/smp.c
-===================================================================
---- a/arch/blackfin/mach-common/smp.c
-+++ b/arch/blackfin/mach-common/smp.c
-@@ -333,7 +333,7 @@ void secondary_start_kernel(void)
- 
- 	/* We are done with local CPU inits, unblock the boot CPU. */
- 	set_cpu_online(cpu, true);
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- void __init smp_prepare_boot_cpu(void)
-Index: b/arch/hexagon/kernel/smp.c
-===================================================================
---- a/arch/hexagon/kernel/smp.c
-+++ b/arch/hexagon/kernel/smp.c
-@@ -180,7 +180,7 @@ void start_secondary(void)
- 
- 	local_irq_enable();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- 
-Index: b/arch/ia64/kernel/smpboot.c
-===================================================================
---- a/arch/ia64/kernel/smpboot.c
-+++ b/arch/ia64/kernel/smpboot.c
-@@ -454,7 +454,7 @@ start_secondary (void *unused)
- 	preempt_disable();
- 	smp_callin();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 	return 0;
- }
- 
-Index: b/arch/m32r/kernel/smpboot.c
-===================================================================
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -432,7 +432,7 @@ int __init start_secondary(void *unused)
- 	 */
- 	local_flush_tlb_all();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 	return 0;
- }
- 
-Index: b/arch/metag/kernel/smp.c
-===================================================================
---- a/arch/metag/kernel/smp.c
-+++ b/arch/metag/kernel/smp.c
-@@ -396,7 +396,7 @@ asmlinkage void secondary_start_kernel(v
- 	/*
- 	 * OK, it's off to the idle thread for us
- 	 */
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- void __init smp_cpus_done(unsigned int max_cpus)
-Index: b/arch/mips/kernel/smp.c
-===================================================================
---- a/arch/mips/kernel/smp.c
-+++ b/arch/mips/kernel/smp.c
-@@ -191,7 +191,7 @@ asmlinkage void start_secondary(void)
- 	WARN_ON_ONCE(!irqs_disabled());
- 	mp_ops->smp_finish();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- static void stop_this_cpu(void *dummy)
-Index: b/arch/mn10300/kernel/smp.c
-===================================================================
---- a/arch/mn10300/kernel/smp.c
-+++ b/arch/mn10300/kernel/smp.c
-@@ -675,7 +675,7 @@ int __init start_secondary(void *unused)
- #ifdef CONFIG_GENERIC_CLOCKEVENTS
- 	init_clockevents();
- #endif
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 	return 0;
- }
- 
-Index: b/arch/parisc/kernel/smp.c
-===================================================================
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -305,7 +305,7 @@ void __init smp_callin(void)
- 
- 	local_irq_enable();  /* Interrupts have been off until now */
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 
- 	/* NOTREACHED */
- 	panic("smp_callin() AAAAaaaaahhhh....\n");
-Index: b/arch/powerpc/kernel/smp.c
-===================================================================
---- a/arch/powerpc/kernel/smp.c
-+++ b/arch/powerpc/kernel/smp.c
-@@ -727,7 +727,7 @@ void start_secondary(void *unused)
- 
- 	local_irq_enable();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 
- 	BUG();
- }
-Index: b/arch/s390/kernel/smp.c
-===================================================================
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -798,7 +798,7 @@ static void smp_start_secondary(void *cp
- 	set_cpu_online(smp_processor_id(), true);
- 	inc_irq_stat(CPU_RST);
- 	local_irq_enable();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- /* Upping and downing of CPUs */
-Index: b/arch/sh/kernel/smp.c
-===================================================================
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -203,7 +203,7 @@ asmlinkage void start_secondary(void)
- 	set_cpu_online(cpu, true);
- 	per_cpu(cpu_state, cpu) = CPU_ONLINE;
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- extern struct {
-Index: b/arch/sparc/kernel/smp_32.c
-===================================================================
---- a/arch/sparc/kernel/smp_32.c
-+++ b/arch/sparc/kernel/smp_32.c
-@@ -364,7 +364,7 @@ static void sparc_start_secondary(void *
- 	local_irq_enable();
- 
- 	wmb();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- 
- 	/* We should never reach here! */
- 	BUG();
-Index: b/arch/sparc/kernel/smp_64.c
-===================================================================
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -134,7 +134,7 @@ void smp_callin(void)
- 
- 	local_irq_enable();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- void cpu_panic(void)
-Index: b/arch/tile/kernel/smpboot.c
-===================================================================
---- a/arch/tile/kernel/smpboot.c
-+++ b/arch/tile/kernel/smpboot.c
-@@ -208,7 +208,7 @@ void online_secondary(void)
- 	/* Set up tile-timer clock-event device on this cpu */
- 	setup_tile_timer();
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-Index: b/arch/x86/kernel/smpboot.c
-===================================================================
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -248,7 +248,7 @@ static void notrace start_secondary(void
- 	x86_cpuinit.setup_percpu_clockev();
- 
- 	wmb();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- void __init smp_store_boot_cpu_info(void)
-Index: b/arch/x86/xen/smp.c
-===================================================================
---- a/arch/x86/xen/smp.c
-+++ b/arch/x86/xen/smp.c
-@@ -112,7 +112,7 @@ asmlinkage __visible void cpu_bringup_an
- 		xen_pvh_secondary_vcpu_init(cpu);
- #endif
- 	cpu_bringup();
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- static void xen_smp_intr_free(unsigned int cpu)
-Index: b/arch/xtensa/kernel/smp.c
-===================================================================
---- a/arch/xtensa/kernel/smp.c
-+++ b/arch/xtensa/kernel/smp.c
-@@ -157,7 +157,7 @@ void secondary_start_kernel(void)
- 
- 	complete(&cpu_running);
- 
--	cpu_startup_entry(CPUHP_ONLINE);
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
- }
- 
- static void mx_cpu_start(void *p)
 Index: b/include/linux/cpuhotplug.h
 ===================================================================
 --- a/include/linux/cpuhotplug.h
 +++ b/include/linux/cpuhotplug.h
-@@ -13,6 +13,7 @@ enum cpuhp_state {
+@@ -11,10 +11,12 @@ enum cpuhp_state {
+ 	CPUHP_AP_ONLINE,
+ 	CPUHP_TEARDOWN_CPU,
  	CPUHP_CPU_SET_ACTIVE,
- 	CPUHP_KICK_AP_THREAD,
- 	CPUHP_BP_ONLINE,
-+	CPUHP_AP_ONLINE_IDLE,
- 	CPUHP_AP_SMPBOOT_THREADS,
- 	CPUHP_AP_NOTIFY_ONLINE,
- 	CPUHP_AP_ONLINE_DYN,
+-	CPUHP_SMPBOOT_THREADS,
+-	CPUHP_NOTIFY_ONLINE,
+-	CPUHP_ONLINE_DYN,
+-	CPUHP_ONLINE_DYN_END		= CPUHP_ONLINE_DYN + 30,
++	CPUHP_KICK_AP_THREAD,
++	CPUHP_BP_ONLINE,
++	CPUHP_AP_SMPBOOT_THREADS,
++	CPUHP_AP_NOTIFY_ONLINE,
++	CPUHP_AP_ONLINE_DYN,
++	CPUHP_AP_ONLINE_DYN_END		= CPUHP_AP_ONLINE_DYN + 30,
+ 	CPUHP_ONLINE,
+ };
+ 
+Index: b/kernel/cpu.c
+===================================================================
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -429,7 +429,7 @@ static int cpuhp_should_run(unsigned int
+ /* Execute the teardown callbacks. Used to be CPU_DOWN_PREPARE */
+ static int cpuhp_ap_offline(unsigned int cpu, struct cpuhp_cpu_state *st)
+ {
+-	enum cpuhp_state target = max((int)st->target, CPUHP_AP_ONLINE);
++	enum cpuhp_state target = max((int)st->target, CPUHP_TEARDOWN_CPU);
+ 
+ 	return cpuhp_down_callbacks(cpu, st, cpuhp_ap_states, target);
+ }
+@@ -469,6 +469,9 @@ static void cpuhp_thread_fun(unsigned in
+ 			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
+ 		}
+ 	} else {
++		/* Cannot happen .... */
++		BUG_ON(st->state < CPUHP_KICK_AP_THREAD);
++
+ 		/* Regular hotplug work */
+ 		if (st->state < st->target)
+ 			ret = cpuhp_ap_online(cpu, st);
+@@ -502,12 +505,8 @@ static int cpuhp_invoke_ap_callback(int
+ }
+ 
+ /* Regular hotplug invocation of the AP hotplug thread */
+-static int cpuhp_kick_ap_work(unsigned int cpu)
++static void __cpuhp_kick_ap_work(struct cpuhp_cpu_state *st)
+ {
+-	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
+-	enum cpuhp_state state = st->state;
+-
+-	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
+ 	st->result = 0;
+ 	st->cb = NULL;
+ 	/*
+@@ -517,6 +516,15 @@ static int cpuhp_kick_ap_work(unsigned i
+ 	smp_mb();
+ 	st->should_run = true;
+ 	wake_up_process(st->thread);
++}
++
++static int cpuhp_kick_ap_work(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++	enum cpuhp_state state = st->state;
++
++	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
++	__cpuhp_kick_ap_work(st);
+ 	wait_for_completion(&st->done);
+ 	trace_cpuhp_exit(cpu, st->state, state, st->result);
+ 	return st->result;
+@@ -688,6 +696,9 @@ static int takedown_cpu(unsigned int cpu
+ 	else
+ 		synchronize_rcu();
+ 
++	/* Park the hotplug thread */
++	kthread_park(per_cpu_ptr(&cpuhp_state, cpu)->thread);
++
+ 	/*
+ 	 * Prevent irq alloc/free while the dying cpu reorganizes the
+ 	 * interrupt affinities.
+@@ -765,10 +776,34 @@ static int __ref _cpu_down(unsigned int
+ 
+ 	prev_state = st->state;
+ 	st->target = target;
++	/*
++	 * If the current CPU state is in the range of the AP hotplug thread,
++	 * then we need to kick the thread.
++	 */
++	if (st->state >= CPUHP_KICK_AP_THREAD) {
++		ret = cpuhp_kick_ap_work(cpu);
++		/*
++		 * The AP side has done the error rollback already. Just
++		 * return the error code..
++		 */
++		if (ret)
++			goto out;
++
++		/*
++		 * We might have stopped still in the range of the AP hotplug
++		 * thread. Nothing to do anymore.
++		 */
++		if (st->state >= CPUHP_KICK_AP_THREAD)
++			goto out;
++	}
++	/*
++	 * The AP brought itself down below CPUHP_KICK_AP_THREAD. So we need
++	 * to do the further cleanups.
++	 */
+ 	ret = cpuhp_down_callbacks(cpu, st, cpuhp_bp_states, target);
+ 
+ 	hasdied = prev_state != st->state && st->state == CPUHP_OFFLINE;
+-
++out:
+ 	cpu_hotplug_done();
+ 	/* This post dead nonsense must die */
+ 	if (!ret && hasdied)
+@@ -828,10 +863,13 @@ void notify_cpu_starting(unsigned int cp
+  */
+ static int cpuhp_set_cpu_active(unsigned int cpu)
+ {
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++
+ 	/* The cpu is marked online, set it active now */
+ 	set_cpu_active(cpu, true);
+-	/* Unpark the stopper thread */
++	/* Unpark the stopper thread and the hotplug thread */
+ 	stop_machine_unpark(cpu);
++	kthread_unpark(st->thread);
+ 	return 0;
+ }
+ 
+@@ -868,6 +906,26 @@ static int _cpu_up(unsigned int cpu, int
+ 	cpuhp_tasks_frozen = tasks_frozen;
+ 
+ 	st->target = target;
++	/*
++	 * If the current CPU state is in the range of the AP hotplug thread,
++	 * then we need to kick the thread once more.
++	 */
++	if (st->state >= CPUHP_KICK_AP_THREAD) {
++		ret = cpuhp_kick_ap_work(cpu);
++		/*
++		 * The AP side has done the error rollback already. Just
++		 * return the error code..
++		 */
++		if (ret)
++			goto out;
++	}
++
++	/*
++	 * Try to reach the target state. We max out on the BP at
++	 * CPUHP_KICK_AP_THREAD. After that the AP hotplug thread is
++	 * responsible for bringing it up to the target state.
++	 */
++	target = min((int)target, CPUHP_KICK_AP_THREAD);
+ 	ret = cpuhp_up_callbacks(cpu, st, cpuhp_bp_states, target);
+ out:
+ 	cpu_hotplug_done();
+@@ -1093,19 +1151,13 @@ static struct cpuhp_step cpuhp_bp_states
+ 		.startup		= cpuhp_set_cpu_active,
+ 		.teardown		= NULL,
+ 	},
+-	[CPUHP_SMPBOOT_THREADS] = {
+-		.name			= "smpboot:threads",
+-		.startup		= smpboot_unpark_threads,
+-		.teardown		= smpboot_park_threads,
+-	},
+-	[CPUHP_NOTIFY_ONLINE] = {
+-		.name			= "notify:online",
+-		.startup		= notify_online,
+-		.teardown		= notify_down_prepare,
+-		.cant_stop		= true,
++	[CPUHP_KICK_AP_THREAD] = {
++		.name			= "cpuhp:kickthread",
++		.startup		= cpuhp_kick_ap_work,
++		.teardown		= cpuhp_kick_ap_work,
+ 	},
+ #endif
+-	[CPUHP_ONLINE] = {
++	[CPUHP_BP_ONLINE] = {
+ 		.name			= "online",
+ 		.startup		= NULL,
+ 		.teardown		= NULL,
+@@ -1122,6 +1174,16 @@ static struct cpuhp_step cpuhp_ap_states
+ 		.skip_onerr		= true,
+ 		.cant_stop		= true,
+ 	},
++	[CPUHP_AP_SMPBOOT_THREADS] = {
++		.name			= "smpboot:threads",
++		.startup		= smpboot_unpark_threads,
++		.teardown		= smpboot_park_threads,
++	},
++	[CPUHP_AP_NOTIFY_ONLINE] = {
++		.name			= "notify:online",
++		.startup		= notify_online,
++		.teardown		= notify_down_prepare,
++	},
+ #endif
+ 	[CPUHP_ONLINE] = {
+ 		.name			= "online",
+@@ -1140,7 +1202,9 @@ static int cpuhp_cb_check(enum cpuhp_sta
+ 
+ static bool cpuhp_is_ap_state(enum cpuhp_state state)
+ {
+-	return (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE);
++	if (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE)
++		return true;
++	return state > CPUHP_BP_ONLINE;
+ }
+ 
+ static struct cpuhp_step *cpuhp_get_step(enum cpuhp_state state)
+@@ -1172,14 +1236,6 @@ static void *cpuhp_get_teardown_cb(enum
+ 	return cpuhp_get_step(state)->teardown;
+ }
+ 
+-/* Helper function to run callback on the target cpu */
+-static void cpuhp_on_cpu_cb(void *__cb)
+-{
+-	int (*cb)(unsigned int cpu) = __cb;
+-
+-	BUG_ON(cb(smp_processor_id()));
+-}
+-
+ /*
+  * Call the startup/teardown function for a step either on the AP or
+  * on the current CPU.
+@@ -1191,26 +1247,18 @@ static int cpuhp_issue_call(int cpu, enu
+ 
+ 	if (!cb)
+ 		return 0;
+-
+-	/*
+-	 * This invokes the callback directly for now. In a later step we
+-	 * convert that to use cpuhp_invoke_callback().
+-	 */
+-	if (cpuhp_is_ap_state(state)) {
+-		/*
+-		 * Note, that a function called on the AP is not
+-		 * allowed to fail.
+-		 */
+-		if (cpu_online(cpu))
+-			smp_call_function_single(cpu, cpuhp_on_cpu_cb, cb, 1);
+-		return 0;
+-	}
+-
+ 	/*
+ 	 * The non AP bound callbacks can fail on bringup. On teardown
+ 	 * e.g. module removal we crash for now.
+ 	 */
+-	ret = cb(cpu);
++#ifdef CONFIG_SMP
++	if (cpuhp_is_ap_state(state))
++		ret = cpuhp_invoke_ap_callback(cpu, state, cb);
++	else
++		ret = cpuhp_invoke_callback(cpu, state, cb);
++#else
++	ret = cpuhp_invoke_callback(cpu, state, cb);
++#endif
+ 	BUG_ON(ret && !bringup);
+ 	return ret;
+ }
+@@ -1252,11 +1300,11 @@ static int cpuhp_reserve_state(enum cpuh
+ 	enum cpuhp_state i;
+ 
+ 	mutex_lock(&cpuhp_state_mutex);
+-	for (i = CPUHP_ONLINE_DYN; i <= CPUHP_ONLINE_DYN_END; i++) {
+-		if (cpuhp_bp_states[i].name)
++	for (i = CPUHP_AP_ONLINE_DYN; i <= CPUHP_AP_ONLINE_DYN_END; i++) {
++		if (cpuhp_ap_states[i].name)
+ 			continue;
+ 
+-		cpuhp_bp_states[i].name = "Reserved";
++		cpuhp_ap_states[i].name = "Reserved";
+ 		mutex_unlock(&cpuhp_state_mutex);
+ 		return i;
+ 	}
+@@ -1289,7 +1337,7 @@ int __cpuhp_setup_state(enum cpuhp_state
+ 	get_online_cpus();
+ 
+ 	/* currently assignments for the ONLINE state are possible */
+-	if (state == CPUHP_ONLINE_DYN) {
++	if (state == CPUHP_AP_ONLINE_DYN) {
+ 		dyn_state = 1;
+ 		ret = cpuhp_reserve_state(state);
+ 		if (ret < 0)
