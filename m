@@ -1,137 +1,197 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 08/20] cpu/hotplug: Hand in target state to _cpu_up/down
-Date: Fri, 26 Feb 2016 18:43:30 -0000
-Message-ID: <20160226182340.862113133@linutronix.de>
+Subject: [patch 07/20] cpu/hotplug: Convert the hotplugged cpu work to a state
+ machine
+Date: Fri, 26 Feb 2016 18:43:29 -0000
+Message-ID: <20160226182340.770651526@linutronix.de>
 References: <20160226164321.657646833@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline;
- filename=hotplug--Hand-in-target-state-to-_cpu_up-down.patch
+ filename=cpu-hotplug-Convert-the-hotplugged-processor-work-to.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-We want to be able to bringup/teardown the cpu to a particular state. Add a
-target argument to _cpu_up/down.
+Move the functions which need to run on the hotplugged processor into
+a state machine array and let the code iterate through these functions.
+
+In a later state, this will grow synchronization points between the
+control processor and the hotplugged processor, so we can move the
+various architecture implementations of the synchronizations to the
+core.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/cpu.c |   31 ++++++++++++++++++++-----------
- 1 file changed, 20 insertions(+), 11 deletions(-)
+ include/linux/cpuhotplug.h |    4 ++
+ kernel/cpu.c               |   81 ++++++++++++++++++++++++++++++++++++---------
+ 2 files changed, 70 insertions(+), 15 deletions(-)
 
+Index: b/include/linux/cpuhotplug.h
+===================================================================
+--- a/include/linux/cpuhotplug.h
++++ b/include/linux/cpuhotplug.h
+@@ -6,6 +6,10 @@ enum cpuhp_state {
+ 	CPUHP_CREATE_THREADS,
+ 	CPUHP_NOTIFY_PREPARE,
+ 	CPUHP_BRINGUP_CPU,
++	CPUHP_AP_OFFLINE,
++	CPUHP_AP_NOTIFY_STARTING,
++	CPUHP_AP_ONLINE,
++	CPUHP_TEARDOWN_CPU,
+ 	CPUHP_NOTIFY_ONLINE,
+ 	CPUHP_ONLINE,
+ };
 Index: b/kernel/cpu.c
 ===================================================================
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -547,7 +547,8 @@ static void undo_cpu_down(unsigned int c
+@@ -57,6 +57,7 @@ struct cpuhp_step {
+ };
+ 
+ static struct cpuhp_step cpuhp_bp_states[];
++static struct cpuhp_step cpuhp_ap_states[];
+ 
+ /**
+  * cpuhp_invoke_callback _ Invoke the callbacks for a given state
+@@ -304,6 +305,12 @@ static int notify_online(unsigned int cp
+ 	return 0;
  }
  
- /* Requires cpu_add_remove_lock to be held */
--static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
-+static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
-+			   enum cpuhp_state target)
- {
- 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
- 	int prev_state, ret = 0;
-@@ -564,7 +565,7 @@ static int __ref _cpu_down(unsigned int
- 	cpuhp_tasks_frozen = tasks_frozen;
- 
- 	prev_state = st->state;
--	st->target = CPUHP_OFFLINE;
-+	st->target = target;
- 	for (; st->state > st->target; st->state--) {
- 		struct cpuhp_step *step = cpuhp_bp_states + st->state;
- 
-@@ -584,7 +585,7 @@ static int __ref _cpu_down(unsigned int
- 	return ret;
- }
- 
--int cpu_down(unsigned int cpu)
-+static int do_cpu_down(unsigned int cpu, enum cpuhp_state target)
- {
- 	int err;
- 
-@@ -595,12 +596,16 @@ int cpu_down(unsigned int cpu)
- 		goto out;
- 	}
- 
--	err = _cpu_down(cpu, 0);
-+	err = _cpu_down(cpu, 0, target);
- 
- out:
- 	cpu_maps_update_done();
- 	return err;
- }
-+int cpu_down(unsigned int cpu)
++static int notify_starting(unsigned int cpu)
 +{
-+	return do_cpu_down(cpu, CPUHP_OFFLINE);
++	cpu_notify(CPU_STARTING, cpu);
++	return 0;
 +}
- EXPORT_SYMBOL(cpu_down);
- #endif /*CONFIG_HOTPLUG_CPU*/
- 
-@@ -669,7 +674,7 @@ static void undo_cpu_up(unsigned int cpu
- }
- 
- /* Requires cpu_add_remove_lock to be held */
--static int _cpu_up(unsigned int cpu, int tasks_frozen)
-+static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
- {
- 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
- 	struct task_struct *idle;
-@@ -692,7 +697,7 @@ static int _cpu_up(unsigned int cpu, int
- 	cpuhp_tasks_frozen = tasks_frozen;
- 
- 	prev_state = st->state;
--	st->target = CPUHP_ONLINE;
-+	st->target = target;
- 	while (st->state < st->target) {
- 		struct cpuhp_step *step;
- 
-@@ -710,7 +715,7 @@ static int _cpu_up(unsigned int cpu, int
- 	return ret;
- }
- 
--int cpu_up(unsigned int cpu)
-+static int do_cpu_up(unsigned int cpu, enum cpuhp_state target)
- {
- 	int err = 0;
- 
-@@ -734,12 +739,16 @@ int cpu_up(unsigned int cpu)
- 		goto out;
- 	}
- 
--	err = _cpu_up(cpu, 0);
--
-+	err = _cpu_up(cpu, 0, target);
- out:
- 	cpu_maps_update_done();
- 	return err;
- }
 +
-+int cpu_up(unsigned int cpu)
+ static int bringup_cpu(unsigned int cpu)
+ {
+ 	struct task_struct *idle = idle_thread_get(cpu);
+@@ -421,9 +428,17 @@ static int notify_down_prepare(unsigned
+ 	return err;
+ }
+ 
++static int notify_dying(unsigned int cpu)
 +{
-+	return do_cpu_up(cpu, CPUHP_ONLINE);
++	cpu_notify(CPU_DYING, cpu);
++	return 0;
 +}
- EXPORT_SYMBOL_GPL(cpu_up);
++
+ /* Take this CPU down. */
+ static int take_cpu_down(void *_param)
+ {
++	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
++	enum cpuhp_state target = max((int)st->target, CPUHP_AP_OFFLINE);
+ 	int err, cpu = smp_processor_id();
  
- #ifdef CONFIG_PM_SLEEP_SMP
-@@ -762,7 +771,7 @@ int disable_nonboot_cpus(void)
- 		if (cpu == first_cpu)
- 			continue;
- 		trace_suspend_resume(TPS("CPU_OFF"), cpu, true);
--		error = _cpu_down(cpu, 1);
-+		error = _cpu_down(cpu, 1, CPUHP_OFFLINE);
- 		trace_suspend_resume(TPS("CPU_OFF"), cpu, false);
- 		if (!error)
- 			cpumask_set_cpu(cpu, frozen_cpus);
-@@ -812,7 +821,7 @@ void enable_nonboot_cpus(void)
+ 	/* Ensure this CPU doesn't handle any more interrupts. */
+@@ -431,7 +446,12 @@ static int take_cpu_down(void *_param)
+ 	if (err < 0)
+ 		return err;
  
- 	for_each_cpu(cpu, frozen_cpus) {
- 		trace_suspend_resume(TPS("CPU_ON"), cpu, true);
--		error = _cpu_up(cpu, 1);
-+		error = _cpu_up(cpu, 1, CPUHP_ONLINE);
- 		trace_suspend_resume(TPS("CPU_ON"), cpu, false);
- 		if (!error) {
- 			pr_info("CPU%d is up\n", cpu);
+-	cpu_notify(CPU_DYING, cpu);
++	/* Invoke the former CPU_DYING callbacks */
++	for (; st->state > target; st->state--) {
++		struct cpuhp_step *step = cpuhp_ap_states + st->state;
++
++		cpuhp_invoke_callback(cpu, st->state, step->teardown);
++	}
+ 	/* Give up timekeeping duties */
+ 	tick_handover_do_timer();
+ 	/* Park the stopper thread */
+@@ -512,6 +532,7 @@ static int notify_dead(unsigned int cpu)
+ #define notify_down_prepare	NULL
+ #define takedown_cpu		NULL
+ #define notify_dead		NULL
++#define notify_dying		NULL
+ #endif
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+@@ -615,6 +636,28 @@ void smpboot_thread_init(void)
+ 	register_cpu_notifier(&smpboot_thread_notifier);
+ }
+ 
++/**
++ * notify_cpu_starting(cpu) - call the CPU_STARTING notifiers
++ * @cpu: cpu that just started
++ *
++ * This function calls the cpu_chain notifiers with CPU_STARTING.
++ * It must be called by the arch code on the new cpu, before the new cpu
++ * enables interrupts and before the "boot" cpu returns from __cpu_up().
++ */
++void notify_cpu_starting(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++	enum cpuhp_state target = min((int)st->target, CPUHP_AP_ONLINE);
++
++	while (st->state < target) {
++		struct cpuhp_step *step;
++
++		st->state++;
++		step = cpuhp_ap_states + st->state;
++		cpuhp_invoke_callback(cpu, st->state, step->startup);
++	}
++}
++
+ static void undo_cpu_up(unsigned int cpu, struct cpuhp_cpu_state *st)
+ {
+ 	for (st->state--; st->state > st->target; st->state--) {
+@@ -842,19 +885,6 @@ core_initcall(cpu_hotplug_pm_sync_init);
+ 
+ #endif /* CONFIG_PM_SLEEP_SMP */
+ 
+-/**
+- * notify_cpu_starting(cpu) - call the CPU_STARTING notifiers
+- * @cpu: cpu that just started
+- *
+- * This function calls the cpu_chain notifiers with CPU_STARTING.
+- * It must be called by the arch code on the new cpu, before the new cpu
+- * enables interrupts and before the "boot" cpu returns from __cpu_up().
+- */
+-void notify_cpu_starting(unsigned int cpu)
+-{
+-	cpu_notify(CPU_STARTING, cpu);
+-}
+-
+ #endif /* CONFIG_SMP */
+ 
+ /* Boot processor state steps */
+@@ -879,8 +909,12 @@ static struct cpuhp_step cpuhp_bp_states
+ 	[CPUHP_BRINGUP_CPU] = {
+ 		.name			= "cpu:bringup",
+ 		.startup		= bringup_cpu,
++		.teardown		= NULL,
++	},
++	[CPUHP_TEARDOWN_CPU] = {
++		.name			= "cpu:teardown",
++		.startup		= NULL,
+ 		.teardown		= takedown_cpu,
+-		.skip_onerr		= true,
+ 	},
+ 	[CPUHP_NOTIFY_ONLINE] = {
+ 		.name			= "notify:online",
+@@ -889,6 +923,23 @@ static struct cpuhp_step cpuhp_bp_states
+ 	},
+ #endif
+ 	[CPUHP_ONLINE] = {
++		.name			= "online",
++		.startup		= NULL,
++		.teardown		= NULL,
++	},
++};
++
++/* Application processor state steps */
++static struct cpuhp_step cpuhp_ap_states[] = {
++#ifdef CONFIG_SMP
++	[CPUHP_AP_NOTIFY_STARTING] = {
++		.name			= "notify:starting",
++		.startup		= notify_starting,
++		.teardown		= notify_dying,
++		.skip_onerr		= true,
++	},
++#endif
++	[CPUHP_ONLINE] = {
+ 		.name			= "online",
+ 		.startup		= NULL,
+ 		.teardown		= NULL,
