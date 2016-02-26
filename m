@@ -1,235 +1,235 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33418 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33462 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754760AbcBZSpA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 13:45:00 -0500
-Message-ID: <20160226164321.657646833@linutronix.de>
-Date: Fri, 26 Feb 2016 18:43:21 -0000
+	with ESMTP id S1422975AbcBZSpF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 13:45:05 -0500
+Message-ID: <20160226182341.454541272@linutronix.de>
+Date: Fri, 26 Feb 2016 18:43:38 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 00/20] cpu/hotplug: Core infrastructure for cpu hotplug rework
+Subject: [patch 15/20] cpu/hotplug: Create hotplug threads
+References: <20160226164321.657646833@linutronix.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Disposition: inline; filename=hotplug--Create-hotplug-threads.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
-Message-ID: <20160226184321.IH9MrnWkjKEN4Wa-KZaLSRYrB4IpgEb6pp9xFIQeQh0@z>
+Message-ID: <20160226184338.eL_MnqRbz5cAxDa_ySbw4N1JN2S7XmYGIVESQzuIO9g@z>
 
-Hi folks!
+In order to let the hotplugged cpu take care of the setup/teardown, we need a
+seperate hotplug thread.
 
-the following series contains the core infrastructure of our ongoing cpu
-hotplug refactoring work. It's a follow up to the work I've done in 2013
-
-	https://lwn.net/Articles/535764/
-
-What's wrong with the current cpu hotplug infrastructure?
-
- - Asymmetry
-
-   The hotplug notifier mechanism is asymmetric versus the bringup and
-   teardown. This is mostly caused by the notifier mechanism.
-
- - Largely undocumented dependencies
-
-   While some notifiers use explicitely defined notifier priorities, we have
-   quite some notifiers which use numerical priorities to express
-   dependencies without any documentation why.
-
- - Control processor driven
-
-   Most of the bringup/teardown of a cpu is driven by a control
-   processor. While it is understandable, that preperatory steps, like idle
-   thread creation, memory allocation for and initialization of essential
-   facilities needs to be done before a cpu can boot, there is no reason why
-   everything else must run on a control processor. Todays bringup looks like
-   this:
-
-   Control CPU  	   	Booting CPU
-
-   do preparatory steps
-   kick cpu into life
-
-				do low level init
-
-   sync with booting cpu	sync with control cpu
-   
-   bring the rest up
-
-
- - All or nothing approach
-
-   There is no way to do partial bringups. That's something which is really
-   desired because we waste e.g. at boot substantial amount of time just busy
-   waiting that the cpu comes to life. That's stupid as we could very well do
-   preparatory steps and the initial IPI for other cpus and then go back and
-   do the necessary low level synchronization with the freshly booted cpu.
-
- - Minimal debuggability
-
-   Due to the notifier based design, it's impossible to switch between two
-   stages of the bringup/teardown back and forth in order to test the
-   correctness. So in many hotplug notifiers the cancel mechanisms are either
-   not existant or completely untested.
-
- - Notifier [un]registering is tidious
-
-   To [un]register notifiers we need to protect against hotplug at every
-   callsite. There is no mechanism that bringup/teardown callbacks are issued
-   on the online cpus, so every caller needs to do it itself. That also
-   includes error rollback.
-
-
-What's the new design?
-
-   The base of the new design is a symmetric state machine, where both the
-   control processor and the booting/dying cpu execute a well defined set of
-   states. Each state is symmetric in the end, except for some well defined
-   exceptions, and the bringup/teardown can be stopped and reversed at almost
-   all states.
-
-   So the bringup of a cpu will look like this in the future:
-
-   Control CPU  	   	Booting CPU
-
-   do preparatory steps
-   kick cpu into life
-
-				do low level init
-
-   sync with booting cpu	sync with control cpu
-   
-				bring itself up
-
-   The synchronization step does not require the control cpu to wait. That
-   mechanism can be done asynchronously via a worker or some other mechanism.
-
-   The teardown can be made very similar, so that the dying cpu cleans up and
-   brings itself down. Cleanups which need to be done after the cpu is gone,
-   can be scheduled asynchronously as well.
-
-There is a long way to this, as we need to refactor the notion when a cpu is
-available. Today we set the cpu online right after it comes out of the low
-level bringup, which is not really correct.
-
-The proper mechanism is to set it to available, i.e. cpu local threads, like
-softirqd, hotplug thread etc. can be scheduled on that cpu, and once it
-finished all booting steps, it's set to online, so general workloads can be
-scheduled on it. The reverse happens on teardown. First thing to do is to
-forbid scheduling of general workloads, then teardown all the per cpu
-resources and finally shut it off completely.
-
-
-The following patch series implements the basic infrastructure for this at the
-core level. This includes the following:
-
- - Basic state machine implementation with well defined states, so ordering
-   and prioritization can be expressed.
-
- - Interfaces to [un]register state callbacks
-
-   This invokes the bringup/teardown callback on all online cpus with the
-   proper protection in place and [un]installs the callbacks in the state
-   machine array.
-
-   For callbacks which have no particular ordering requirement we have a
-   dynamic state space, so that drivers don't have to register an explicit
-   hotplug state.
-
-   If a callback fails, the code automatically does a rollback to the previous
-   state.
-
-
- - Sysfs interface to drive the state machine to a particular step.
-
-   This is only partially functional today. Full functionality and therefor
-   testability will be achieved once we converted all existing hotplug
-   notifiers over to the new scheme.
-
-
- - Run all CPU_ONLINE/DOWN_PREPARE notifiers on the booting/dying processor:
-
-    Control CPU  	   	Booting CPU
-
-    do preparatory steps
-    kick cpu into life
-
-				do low level init
-
-    sync with booting cpu	sync with control cpu
-    wait for boot     		
-				bring itself up
-
-    				Signal completion to control cpu
-				
-In a previous step of this work we've done a full tree mechanical conversion
-of all hotplug notifiers to the new scheme. The balance is a net removal of
-about 4000 lines of code.
-
-This is not included in this post, as we decided to take a different
-approach. Instead of mechanically converting everything over, we will do a
-proper overhaul of the usage sites one by one so they nicely fit into the
-symmetric callback scheme.
-
-I decided to do that after I looked at the ugliness of some of the converted
-sites and figured out that their hotplug mechanism is completely buggered
-anyway. So there is no point to do a mechanical conversion first as we need to
-go through the usage sites one by one again in order to achieve a full
-symmetric and testable behaviour.
-
-The lot is also available at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git WIP.hotplug
-
-Thanks,
-
-	tglx
-
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/ia64/kernel/smpboot.c        |    2 
- arch/metag/kernel/smp.c           |    2 
- arch/sparc/kernel/smp_32.c        |    2 
- arch/sparc/kernel/smp_64.c        |    2 
- arch/tile/kernel/smpboot.c        |    2 
- arch/x86/kernel/process.c         |   12 
- arch/x86/xen/smp.c                |    2 
- b/arch/alpha/kernel/smp.c         |    2 
- b/arch/arc/kernel/smp.c           |    2 
- b/arch/arm/kernel/smp.c           |    2 
- b/arch/arm64/kernel/smp.c         |    2 
- b/arch/blackfin/mach-common/smp.c |    2 
- b/arch/hexagon/kernel/smp.c       |    2 
- b/arch/m32r/kernel/smpboot.c      |    2 
- b/arch/mips/kernel/smp.c          |    2 
- b/arch/mn10300/kernel/smp.c       |    2 
- b/arch/parisc/kernel/smp.c        |    2 
- b/arch/powerpc/kernel/smp.c       |    2 
- b/arch/s390/kernel/smp.c          |    2 
- b/arch/sh/kernel/smp.c            |    2 
- b/arch/x86/kernel/smpboot.c       |    2 
- b/arch/xtensa/kernel/smp.c        |    2 
- b/include/linux/cpuhotplug.h      |   93 +++
- b/include/trace/events/cpuhp.h    |   66 ++
- include/linux/cpu.h               |   27 
- include/linux/notifier.h          |    2 
- include/linux/rcupdate.h          |    4 
- init/main.c                       |   16 
- kernel/cpu.c                      | 1099 +++++++++++++++++++++++++++++++++-----
- kernel/rcu/tree.c                 |   26 
- kernel/sched/core.c               |   10 
- kernel/sched/idle.c               |   24 
- kernel/smp.c                      |    1 
- kernel/smpboot.c                  |    6 
- kernel/smpboot.h                  |    6 
- lib/Kconfig.debug                 |   13 
- 36 files changed, 1217 insertions(+), 230 deletions(-)
+ kernel/cpu.c     |  145 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ kernel/smp.c     |    1 
+ kernel/smpboot.h |    2 
+ 3 files changed, 147 insertions(+), 1 deletion(-)
 
-
-
-
-
-
-
-   
-
-   
-
+Index: b/kernel/cpu.c
+===================================================================
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -22,6 +22,7 @@
+ #include <linux/lockdep.h>
+ #include <linux/tick.h>
+ #include <linux/irq.h>
++#include <linux/smpboot.h>
+ 
+ #include <trace/events/power.h>
+ #define CREATE_TRACE_POINTS
+@@ -33,10 +34,24 @@
+  * cpuhp_cpu_state - Per cpu hotplug state storage
+  * @state:	The current cpu state
+  * @target:	The target state
++ * @thread:	Pointer to the hotplug thread
++ * @should_run:	Thread should execute
++ * @cb_stat:	The state for a single callback (install/uninstall)
++ * @cb:		Single callback function (install/uninstall)
++ * @result:	Result of the operation
++ * @done:	Signal completion to the issuer of the task
+  */
+ struct cpuhp_cpu_state {
+ 	enum cpuhp_state	state;
+ 	enum cpuhp_state	target;
++#ifdef CONFIG_SMP
++	struct task_struct	*thread;
++	bool			should_run;
++	enum cpuhp_state	cb_state;
++	int			(*cb)(unsigned int cpu);
++	int			result;
++	struct completion	done;
++#endif
+ };
+ 
+ static DEFINE_PER_CPU(struct cpuhp_cpu_state, cpuhp_state);
+@@ -394,6 +409,134 @@ static int cpuhp_up_callbacks(unsigned i
+ 	return ret;
+ }
+ 
++/*
++ * The cpu hotplug threads manage the bringup and teardown of the cpus
++ */
++static void cpuhp_create(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++
++	init_completion(&st->done);
++}
++
++static int cpuhp_should_run(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
++
++	return st->should_run;
++}
++
++/* Execute the teardown callbacks. Used to be CPU_DOWN_PREPARE */
++static int cpuhp_ap_offline(unsigned int cpu, struct cpuhp_cpu_state *st)
++{
++	enum cpuhp_state target = max((int)st->target, CPUHP_AP_ONLINE);
++
++	return cpuhp_down_callbacks(cpu, st, cpuhp_ap_states, target);
++}
++
++/* Execute the online startup callbacks. Used to be CPU_ONLINE */
++static int cpuhp_ap_online(unsigned int cpu, struct cpuhp_cpu_state *st)
++{
++	return cpuhp_up_callbacks(cpu, st, cpuhp_ap_states, st->target);
++}
++
++/*
++ * Execute teardown/startup callbacks on the plugged cpu. Also used to invoke
++ * callbacks when a state gets [un]installed at runtime.
++ */
++static void cpuhp_thread_fun(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = this_cpu_ptr(&cpuhp_state);
++	int ret = 0;
++
++	/*
++	 * Paired with the mb() in cpuhp_kick_ap_work and
++	 * cpuhp_invoke_ap_callback, so the work set is consistent visible.
++	 */
++	smp_mb();
++	if (!st->should_run)
++		return;
++
++	st->should_run = false;
++
++	/* Single callback invocation for [un]install ? */
++	if (st->cb) {
++		if (st->cb_state < CPUHP_AP_ONLINE) {
++			local_irq_disable();
++			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
++			local_irq_enable();
++		} else {
++			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
++		}
++	} else {
++		/* Regular hotplug work */
++		if (st->state < st->target)
++			ret = cpuhp_ap_online(cpu, st);
++		else if (st->state > st->target)
++			ret = cpuhp_ap_offline(cpu, st);
++	}
++	st->result = ret;
++	complete(&st->done);
++}
++
++/* Invoke a single callback on a remote cpu */
++static int cpuhp_invoke_ap_callback(int cpu, enum cpuhp_state state,
++				    int (*cb)(unsigned int))
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++
++	if (!cpu_online(cpu))
++		return 0;
++
++	st->cb_state = state;
++	st->cb = cb;
++	/*
++	 * Make sure the above stores are visible before should_run becomes
++	 * true. Paired with the mb() above in cpuhp_thread_fun()
++	 */
++	smp_mb();
++	st->should_run = true;
++	wake_up_process(st->thread);
++	wait_for_completion(&st->done);
++	return st->result;
++}
++
++/* Regular hotplug invocation of the AP hotplug thread */
++static int cpuhp_kick_ap_work(unsigned int cpu)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
++	enum cpuhp_state state = st->state;
++
++	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
++	st->result = 0;
++	st->cb = NULL;
++	/*
++	 * Make sure the above stores are visible before should_run becomes
++	 * true. Paired with the mb() above in cpuhp_thread_fun()
++	 */
++	smp_mb();
++	st->should_run = true;
++	wake_up_process(st->thread);
++	wait_for_completion(&st->done);
++	trace_cpuhp_exit(cpu, st->state, state, st->result);
++	return st->result;
++}
++
++static struct smp_hotplug_thread cpuhp_threads = {
++	.store			= &cpuhp_state.thread,
++	.create			= &cpuhp_create,
++	.thread_should_run	= cpuhp_should_run,
++	.thread_fn		= cpuhp_thread_fun,
++	.thread_comm		= "cpuhp/%u",
++	.selfparking		= true,
++};
++
++void __init cpuhp_threads_init(void)
++{
++	BUG_ON(smpboot_register_percpu_thread(&cpuhp_threads));
++	kthread_unpark(this_cpu_read(cpuhp_state.thread));
++}
++
+ #ifdef CONFIG_HOTPLUG_CPU
+ EXPORT_SYMBOL(register_cpu_notifier);
+ EXPORT_SYMBOL(__register_cpu_notifier);
+@@ -997,7 +1140,7 @@ static int cpuhp_cb_check(enum cpuhp_sta
+ 
+ static bool cpuhp_is_ap_state(enum cpuhp_state state)
+ {
+-	return (state > CPUHP_AP_OFFLINE && state < CPUHP_AP_ONLINE);
++	return (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE);
+ }
+ 
+ static struct cpuhp_step *cpuhp_get_step(enum cpuhp_state state)
+Index: b/kernel/smp.c
+===================================================================
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -569,6 +569,7 @@ void __init smp_init(void)
+ 	unsigned int cpu;
+ 
+ 	idle_threads_init();
++	cpuhp_threads_init();
+ 
+ 	/* FIXME: This should be done in userspace --RR */
+ 	for_each_present_cpu(cpu) {
+Index: b/kernel/smpboot.h
+===================================================================
+--- a/kernel/smpboot.h
++++ b/kernel/smpboot.h
+@@ -17,4 +17,6 @@ int smpboot_create_threads(unsigned int
+ int smpboot_park_threads(unsigned int cpu);
+ int smpboot_unpark_threads(unsigned int cpu);
+ 
++void __init cpuhp_threads_init(void);
++
+ #endif
 
 
