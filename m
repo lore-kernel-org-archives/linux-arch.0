@@ -1,320 +1,213 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:33473 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:33405 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422920AbcBZSpM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 13:45:12 -0500
-Message-ID: <20160226182341.536364371@linutronix.de>
-Date: Fri, 26 Feb 2016 18:43:39 -0000
+	with ESMTP id S1422920AbcBZSo7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Feb 2016 13:44:59 -0500
+Message-ID: <20160226182341.022814799@linutronix.de>
+Date: Fri, 26 Feb 2016 18:43:32 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 16/20] cpu/hotplug: Move online calls to hotplugged cpu
+Subject: [patch 10/20] cpu/hotplug: Make target state writeable
 References: <20160226164321.657646833@linutronix.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Content-Disposition: inline;
- filename=hotplug--Move-online-calls-to-hotplugged-cpu.patch
+ filename=hotplug--Make-target-state-writeable.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
-Message-ID: <20160226184339.he-3l5apPtRH7G3_Jqvu684gqQGH8onIhTvYkpoyrwc@z>
+Message-ID: <20160226184332.vm-qJJHKjo5yKmmkAyHDllh3T_4ujZu3uNx1bKdOfCk@z>
 
-Let the hotplugged cpu invoke the setup/teardown callbacks
-(CPU_ONLINE/CPU_DOWN_PREPARE) itself.
+Make it possible to write a target state to the per cpu state file, so we can
+switch between states.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/cpuhotplug.h |   10 +--
- kernel/cpu.c               |  144 ++++++++++++++++++++++++++++++---------------
- 2 files changed, 102 insertions(+), 52 deletions(-)
+ kernel/cpu.c      |   66 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ lib/Kconfig.debug |   13 ++++++++++
+ 2 files changed, 71 insertions(+), 8 deletions(-)
 
-Index: b/include/linux/cpuhotplug.h
-===================================================================
---- a/include/linux/cpuhotplug.h
-+++ b/include/linux/cpuhotplug.h
-@@ -11,10 +11,12 @@ enum cpuhp_state {
- 	CPUHP_AP_ONLINE,
- 	CPUHP_TEARDOWN_CPU,
- 	CPUHP_CPU_SET_ACTIVE,
--	CPUHP_SMPBOOT_THREADS,
--	CPUHP_NOTIFY_ONLINE,
--	CPUHP_ONLINE_DYN,
--	CPUHP_ONLINE_DYN_END		= CPUHP_ONLINE_DYN + 30,
-+	CPUHP_KICK_AP_THREAD,
-+	CPUHP_BP_ONLINE,
-+	CPUHP_AP_SMPBOOT_THREADS,
-+	CPUHP_AP_NOTIFY_ONLINE,
-+	CPUHP_AP_ONLINE_DYN,
-+	CPUHP_AP_ONLINE_DYN_END		= CPUHP_AP_ONLINE_DYN + 30,
- 	CPUHP_ONLINE,
- };
- 
 Index: b/kernel/cpu.c
 ===================================================================
 --- a/kernel/cpu.c
 +++ b/kernel/cpu.c
-@@ -429,7 +429,7 @@ static int cpuhp_should_run(unsigned int
- /* Execute the teardown callbacks. Used to be CPU_DOWN_PREPARE */
- static int cpuhp_ap_offline(unsigned int cpu, struct cpuhp_cpu_state *st)
- {
--	enum cpuhp_state target = max((int)st->target, CPUHP_AP_ONLINE);
-+	enum cpuhp_state target = max((int)st->target, CPUHP_TEARDOWN_CPU);
- 
- 	return cpuhp_down_callbacks(cpu, st, cpuhp_ap_states, target);
- }
-@@ -469,6 +469,9 @@ static void cpuhp_thread_fun(unsigned in
- 			ret = cpuhp_invoke_callback(cpu, st->cb_state, st->cb);
- 		}
- 	} else {
-+		/* Cannot happen .... */
-+		BUG_ON(st->state < CPUHP_KICK_AP_THREAD);
-+
- 		/* Regular hotplug work */
- 		if (st->state < st->target)
- 			ret = cpuhp_ap_online(cpu, st);
-@@ -502,12 +505,8 @@ static int cpuhp_invoke_ap_callback(int
- }
- 
- /* Regular hotplug invocation of the AP hotplug thread */
--static int cpuhp_kick_ap_work(unsigned int cpu)
-+static void __cpuhp_kick_ap_work(struct cpuhp_cpu_state *st)
- {
--	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
--	enum cpuhp_state state = st->state;
--
--	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
- 	st->result = 0;
- 	st->cb = NULL;
- 	/*
-@@ -517,6 +516,15 @@ static int cpuhp_kick_ap_work(unsigned i
- 	smp_mb();
- 	st->should_run = true;
- 	wake_up_process(st->thread);
-+}
-+
-+static int cpuhp_kick_ap_work(unsigned int cpu)
-+{
-+	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
-+	enum cpuhp_state state = st->state;
-+
-+	trace_cpuhp_enter(cpu, st->target, state, cpuhp_kick_ap_work);
-+	__cpuhp_kick_ap_work(st);
- 	wait_for_completion(&st->done);
- 	trace_cpuhp_exit(cpu, st->state, state, st->result);
- 	return st->result;
-@@ -688,6 +696,9 @@ static int takedown_cpu(unsigned int cpu
- 	else
- 		synchronize_rcu();
- 
-+	/* Park the hotplug thread */
-+	kthread_park(per_cpu_ptr(&cpuhp_state, cpu)->thread);
-+
- 	/*
- 	 * Prevent irq alloc/free while the dying cpu reorganizes the
- 	 * interrupt affinities.
-@@ -765,10 +776,34 @@ static int __ref _cpu_down(unsigned int
- 
- 	prev_state = st->state;
- 	st->target = target;
-+	/*
-+	 * If the current CPU state is in the range of the AP hotplug thread,
-+	 * then we need to kick the thread.
-+	 */
-+	if (st->state >= CPUHP_KICK_AP_THREAD) {
-+		ret = cpuhp_kick_ap_work(cpu);
-+		/*
-+		 * The AP side has done the error rollback already. Just
-+		 * return the error code..
-+		 */
-+		if (ret)
-+			goto out;
-+
-+		/*
-+		 * We might have stopped still in the range of the AP hotplug
-+		 * thread. Nothing to do anymore.
-+		 */
-+		if (st->state >= CPUHP_KICK_AP_THREAD)
-+			goto out;
-+	}
-+	/*
-+	 * The AP brought itself down below CPUHP_KICK_AP_THREAD. So we need
-+	 * to do the further cleanups.
-+	 */
- 	ret = cpuhp_down_callbacks(cpu, st, cpuhp_bp_states, target);
- 
- 	hasdied = prev_state != st->state && st->state == CPUHP_OFFLINE;
--
-+out:
- 	cpu_hotplug_done();
- 	/* This post dead nonsense must die */
- 	if (!ret && hasdied)
-@@ -828,10 +863,13 @@ void notify_cpu_starting(unsigned int cp
+@@ -48,12 +48,14 @@ static DEFINE_PER_CPU(struct cpuhp_cpu_s
+  * @teardown:	Teardown function of the step
+  * @skip_onerr:	Do not invoke the functions on error rollback
+  *		Will go away once the notifiers	are gone
++ * @cant_stop:	Bringup/teardown can't be stopped at this step
   */
- static int cpuhp_set_cpu_active(unsigned int cpu)
- {
-+	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
-+
- 	/* The cpu is marked online, set it active now */
- 	set_cpu_active(cpu, true);
--	/* Unpark the stopper thread */
-+	/* Unpark the stopper thread and the hotplug thread */
- 	stop_machine_unpark(cpu);
-+	kthread_unpark(st->thread);
- 	return 0;
- }
+ struct cpuhp_step {
+ 	const char	*name;
+ 	int		(*startup)(unsigned int cpu);
+ 	int		(*teardown)(unsigned int cpu);
+ 	bool		skip_onerr;
++	bool		cant_stop;
+ };
  
-@@ -868,6 +906,26 @@ static int _cpu_up(unsigned int cpu, int
- 	cpuhp_tasks_frozen = tasks_frozen;
+ static DEFINE_MUTEX(cpuhp_state_mutex);
+@@ -558,7 +560,7 @@ static int __ref _cpu_down(unsigned int
+ 	if (num_online_cpus() == 1)
+ 		return -EBUSY;
  
- 	st->target = target;
+-	if (!cpu_online(cpu))
++	if (!cpu_present(cpu))
+ 		return -EINVAL;
+ 
+ 	cpu_hotplug_begin();
+@@ -683,16 +685,25 @@ static int _cpu_up(unsigned int cpu, int
+ 
+ 	cpu_hotplug_begin();
+ 
+-	if (cpu_online(cpu) || !cpu_present(cpu)) {
++	if (!cpu_present(cpu)) {
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
+ 
+-	/* Let it fail before we try to bring the cpu up */
+-	idle = idle_thread_get(cpu);
+-	if (IS_ERR(idle)) {
+-		ret = PTR_ERR(idle);
 +	/*
-+	 * If the current CPU state is in the range of the AP hotplug thread,
-+	 * then we need to kick the thread once more.
++	 * The caller of do_cpu_up might have raced with another
++	 * caller. Ignore it for now.
 +	 */
-+	if (st->state >= CPUHP_KICK_AP_THREAD) {
-+		ret = cpuhp_kick_ap_work(cpu);
-+		/*
-+		 * The AP side has done the error rollback already. Just
-+		 * return the error code..
-+		 */
-+		if (ret)
++	if (st->state >= target)
+ 		goto out;
++
++	if (st->state == CPUHP_OFFLINE) {
++		/* Let it fail before we try to bring the cpu up */
++		idle = idle_thread_get(cpu);
++		if (IS_ERR(idle)) {
++			ret = PTR_ERR(idle);
 +			goto out;
-+	}
-+
-+	/*
-+	 * Try to reach the target state. We max out on the BP at
-+	 * CPUHP_KICK_AP_THREAD. After that the AP hotplug thread is
-+	 * responsible for bringing it up to the target state.
-+	 */
-+	target = min((int)target, CPUHP_KICK_AP_THREAD);
- 	ret = cpuhp_up_callbacks(cpu, st, cpuhp_bp_states, target);
- out:
- 	cpu_hotplug_done();
-@@ -1093,19 +1151,13 @@ static struct cpuhp_step cpuhp_bp_states
- 		.startup		= cpuhp_set_cpu_active,
++		}
+ 	}
+ 
+ 	cpuhp_tasks_frozen = tasks_frozen;
+@@ -909,27 +920,32 @@ static struct cpuhp_step cpuhp_bp_states
+ 		.name			= "threads:create",
+ 		.startup		= smpboot_create_threads,
  		.teardown		= NULL,
++		.cant_stop		= true,
  	},
--	[CPUHP_SMPBOOT_THREADS] = {
--		.name			= "smpboot:threads",
--		.startup		= smpboot_unpark_threads,
--		.teardown		= smpboot_park_threads,
--	},
--	[CPUHP_NOTIFY_ONLINE] = {
--		.name			= "notify:online",
--		.startup		= notify_online,
--		.teardown		= notify_down_prepare,
--		.cant_stop		= true,
-+	[CPUHP_KICK_AP_THREAD] = {
-+		.name			= "cpuhp:kickthread",
-+		.startup		= cpuhp_kick_ap_work,
-+		.teardown		= cpuhp_kick_ap_work,
- 	},
- #endif
--	[CPUHP_ONLINE] = {
-+	[CPUHP_BP_ONLINE] = {
- 		.name			= "online",
- 		.startup		= NULL,
- 		.teardown		= NULL,
-@@ -1122,6 +1174,16 @@ static struct cpuhp_step cpuhp_ap_states
+ 	[CPUHP_NOTIFY_PREPARE] = {
+ 		.name			= "notify:prepare",
+ 		.startup		= notify_prepare,
+ 		.teardown		= notify_dead,
  		.skip_onerr		= true,
- 		.cant_stop		= true,
++		.cant_stop		= true,
  	},
-+	[CPUHP_AP_SMPBOOT_THREADS] = {
-+		.name			= "smpboot:threads",
-+		.startup		= smpboot_unpark_threads,
-+		.teardown		= smpboot_park_threads,
-+	},
-+	[CPUHP_AP_NOTIFY_ONLINE] = {
-+		.name			= "notify:online",
-+		.startup		= notify_online,
-+		.teardown		= notify_down_prepare,
-+	},
+ 	[CPUHP_BRINGUP_CPU] = {
+ 		.name			= "cpu:bringup",
+ 		.startup		= bringup_cpu,
+ 		.teardown		= NULL,
++		.cant_stop		= true,
+ 	},
+ 	[CPUHP_TEARDOWN_CPU] = {
+ 		.name			= "cpu:teardown",
+ 		.startup		= NULL,
+ 		.teardown		= takedown_cpu,
++		.cant_stop		= true,
+ 	},
+ 	[CPUHP_NOTIFY_ONLINE] = {
+ 		.name			= "notify:online",
+ 		.startup		= notify_online,
+ 		.teardown		= notify_down_prepare,
++		.cant_stop		= true,
+ 	},
  #endif
  	[CPUHP_ONLINE] = {
- 		.name			= "online",
-@@ -1140,7 +1202,9 @@ static int cpuhp_cb_check(enum cpuhp_sta
- 
- static bool cpuhp_is_ap_state(enum cpuhp_state state)
- {
--	return (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE);
-+	if (state >= CPUHP_AP_OFFLINE && state <= CPUHP_AP_ONLINE)
-+		return true;
-+	return state > CPUHP_BP_ONLINE;
+@@ -947,6 +963,7 @@ static struct cpuhp_step cpuhp_ap_states
+ 		.startup		= notify_starting,
+ 		.teardown		= notify_dying,
+ 		.skip_onerr		= true,
++		.cant_stop		= true,
+ 	},
+ #endif
+ 	[CPUHP_ONLINE] = {
+@@ -979,6 +996,39 @@ static ssize_t show_cpuhp_state(struct d
  }
+ static DEVICE_ATTR(state, 0444, show_cpuhp_state, NULL);
  
- static struct cpuhp_step *cpuhp_get_step(enum cpuhp_state state)
-@@ -1172,14 +1236,6 @@ static void *cpuhp_get_teardown_cb(enum
- 	return cpuhp_get_step(state)->teardown;
- }
- 
--/* Helper function to run callback on the target cpu */
--static void cpuhp_on_cpu_cb(void *__cb)
--{
--	int (*cb)(unsigned int cpu) = __cb;
--
--	BUG_ON(cb(smp_processor_id()));
--}
--
- /*
-  * Call the startup/teardown function for a step either on the AP or
-  * on the current CPU.
-@@ -1191,26 +1247,18 @@ static int cpuhp_issue_call(int cpu, enu
- 
- 	if (!cb)
- 		return 0;
--
--	/*
--	 * This invokes the callback directly for now. In a later step we
--	 * convert that to use cpuhp_invoke_callback().
--	 */
--	if (cpuhp_is_ap_state(state)) {
--		/*
--		 * Note, that a function called on the AP is not
--		 * allowed to fail.
--		 */
--		if (cpu_online(cpu))
--			smp_call_function_single(cpu, cpuhp_on_cpu_cb, cb, 1);
--		return 0;
--	}
--
- 	/*
- 	 * The non AP bound callbacks can fail on bringup. On teardown
- 	 * e.g. module removal we crash for now.
- 	 */
--	ret = cb(cpu);
-+#ifdef CONFIG_SMP
-+	if (cpuhp_is_ap_state(state))
-+		ret = cpuhp_invoke_ap_callback(cpu, state, cb);
-+	else
-+		ret = cpuhp_invoke_callback(cpu, state, cb);
++static ssize_t write_cpuhp_target(struct device *dev,
++				  struct device_attribute *attr,
++				  const char *buf, size_t count)
++{
++	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, dev->id);
++	struct cpuhp_step *sp;
++	int target, ret;
++
++	ret = kstrtoint(buf, 10, &target);
++	if (ret)
++		return ret;
++
++#ifdef CONFIG_CPU_HOTPLUG_STATE_CONTROL
++	if (target < CPUHP_OFFLINE || target > CPUHP_ONLINE)
++		return -EINVAL;
 +#else
-+	ret = cpuhp_invoke_callback(cpu, state, cb);
++	if (target != CPUHP_OFFLINE && target != CPUHP_ONLINE)
++		return -EINVAL;
 +#endif
- 	BUG_ON(ret && !bringup);
- 	return ret;
++	mutex_lock(&cpuhp_state_mutex);
++	sp = cpuhp_get_step(target);
++	ret = !sp->name || sp->cant_stop ? -EINVAL : 0;
++	mutex_unlock(&cpuhp_state_mutex);
++	if (ret)
++		return ret;
++
++	if (st->state < target)
++		ret = do_cpu_up(dev->id, target);
++	else
++		ret = do_cpu_down(dev->id, target);
++	return ret ? ret : count;
++}
++
+ static ssize_t show_cpuhp_target(struct device *dev,
+ 				 struct device_attribute *attr, char *buf)
+ {
+@@ -986,7 +1036,7 @@ static ssize_t show_cpuhp_target(struct
+ 
+ 	return sprintf(buf, "%d\n", st->target);
  }
-@@ -1252,11 +1300,11 @@ static int cpuhp_reserve_state(enum cpuh
- 	enum cpuhp_state i;
+-static DEVICE_ATTR(target, 0444, show_cpuhp_target, NULL);
++static DEVICE_ATTR(target, 0644, show_cpuhp_target, write_cpuhp_target);
+ 
+ static struct attribute *cpuhp_cpu_attrs[] = {
+ 	&dev_attr_state.attr,
+@@ -1007,7 +1057,7 @@ static ssize_t show_cpuhp_states(struct
+ 	int i;
  
  	mutex_lock(&cpuhp_state_mutex);
--	for (i = CPUHP_ONLINE_DYN; i <= CPUHP_ONLINE_DYN_END; i++) {
--		if (cpuhp_bp_states[i].name)
-+	for (i = CPUHP_AP_ONLINE_DYN; i <= CPUHP_AP_ONLINE_DYN_END; i++) {
-+		if (cpuhp_ap_states[i].name)
- 			continue;
+-	for (i = 0; i <= CPUHP_ONLINE; i++) {
++	for (i = CPUHP_OFFLINE; i <= CPUHP_ONLINE; i++) {
+ 		struct cpuhp_step *sp = cpuhp_get_step(i);
  
--		cpuhp_bp_states[i].name = "Reserved";
-+		cpuhp_ap_states[i].name = "Reserved";
- 		mutex_unlock(&cpuhp_state_mutex);
- 		return i;
- 	}
-@@ -1289,7 +1337,7 @@ int __cpuhp_setup_state(enum cpuhp_state
- 	get_online_cpus();
+ 		if (sp->name) {
+Index: b/lib/Kconfig.debug
+===================================================================
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1442,6 +1442,19 @@ config DEBUG_BLOCK_EXT_DEVT
  
- 	/* currently assignments for the ONLINE state are possible */
--	if (state == CPUHP_ONLINE_DYN) {
-+	if (state == CPUHP_AP_ONLINE_DYN) {
- 		dyn_state = 1;
- 		ret = cpuhp_reserve_state(state);
- 		if (ret < 0)
+ 	  Say N if you are unsure.
+ 
++config CPU_HOTPLUG_STATE_CONTROL
++	bool "Enable CPU hotplug state control"
++	depends on DEBUG_KERNEL
++	depends on HOTPLUG_CPU
++	default n
++	help
++	  Allows to write steps between "offline" and "online" to the CPUs
++	  sysfs target file so states can be stepped granular. This is a debug
++	  option for now as the hotplug machinery cannot be stopped and
++	  restarted at arbitrary points yet.
++
++	  Say N if your are unsure.
++
+ config NOTIFIER_ERROR_INJECTION
+ 	tristate "Notifier error injection"
+ 	depends on DEBUG_KERNEL
 
 
