@@ -1,66 +1,285 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [patch 20/20] rcu: Make CPU_DYING_IDLE an explicit call
-Date: Sat, 27 Feb 2016 08:33:07 -0800
-Message-ID: <20160227163307.GS3522@linux.vnet.ibm.com>
-References: <20160226164321.657646833@linutronix.de>
- <20160226182341.870167933@linutronix.de>
- <20160227021429.GN3522@linux.vnet.ibm.com>
- <20160227022308.GA3959@linux.vnet.ibm.com>
- <alpine.DEB.2.11.1602270840510.3638@nanos>
- <20160227110528.GR3522@linux.vnet.ibm.com>
- <alpine.DEB.2.11.1602271228570.3638@nanos>
+Subject: Re: [isocpp-parallel] Proposal for new memory_order_consume
+ definition
+Date: Sat, 27 Feb 2016 09:06:15 -0800
+Message-ID: <20160227170615.GU3522@linux.vnet.ibm.com>
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e17.ny.us.ibm.com ([129.33.205.207]:36577 "EHLO
-	e17.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756331AbcB0QdM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Feb 2016 11:33:12 -0500
+Received: from e38.co.us.ibm.com ([32.97.110.159]:53846 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756340AbcB0RGT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Feb 2016 12:06:19 -0500
 Received: from localhost
-	by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Sat, 27 Feb 2016 11:33:11 -0500
+	Sat, 27 Feb 2016 10:06:18 -0700
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.11.1602271228570.3638@nanos>
+In-Reply-To: <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
+To: parallel@lists.isocpp.org
+Cc: linux-arch@vger.kernel.org, gcc@gcc.gnu.org, p796231 <Peter.Sewell@cl.cam.ac.uk>, llvm-dev@lists.llvm.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, Luc Maranget <luc.maranget@inria.fr>, akpm@linux-foundation.org, Jade Alglave <j.alglave@ucl.ac.uk>, torvalds@linux-foundation.org, mingo@kernel.org
 
-On Sat, Feb 27, 2016 at 12:30:33PM +0100, Thomas Gleixner wrote:
-> On Sat, 27 Feb 2016, Paul E. McKenney wrote:
-> > On Sat, Feb 27, 2016 at 08:47:41AM +0100, Thomas Gleixner wrote:
-> > > On Fri, 26 Feb 2016, Paul E. McKenney wrote:
-> > > > > > --- a/kernel/cpu.c
-> > > > > > +++ b/kernel/cpu.c
-> > > > > > @@ -762,6 +762,7 @@ void cpuhp_report_idle_dead(void)
-> > > > > >  	BUG_ON(st->state != CPUHP_AP_OFFLINE);
-> > > > > >  	st->state = CPUHP_AP_IDLE_DEAD;
-> > > > > >  	complete(&st->done);
-> > > > > 
-> > > > > What prevents the other CPU from killing this CPU at this point, so
-> > > > > that this CPU does not tell RCU that it is dead?
-> > > > >
-> > > > > I agree that the odds should be low, but there are all manner of things
-> > > > > that might delay a CPU for just a little bit too long...
-> > > > > 
-> > > > > Or am I missing something subtle here?
-> > > 
-> > > No. The reason why I moved the rcu call past the complete is, that otherwise
-> > > complete() complains about rcu being dead already. Hmm, but you are right. In
-> > > theory the other side could allow physical removal before it actually told rcu
-> > > that it's gone.
-> > 
-> > There is one case where this is OK, and that is where the outgoing CPU
-> > puts itself to sleep (or whatever) without help from the other CPU.
-> 
-> That's the case. It's the last call before the outgoing CPU goes into
-> arch_cpu_idle_dead(). There is no involvement of the controlling CPU at this
-> point. It just wants to know, that the outgoing one is dead finally.
+On Thu, Feb 25, 2016 at 04:46:50PM -0800, Hans Boehm wrote:
+> If carries_dependency affects semantics, then it should not be an att=
+ribute.
 
-Ah, so you have gotten rid of all the things like arm's and xtensa's
-platform_cpu_kill(), where the surviving CPU does things like stopping
-the outgoing CPU's clock?  That would make things simpler!
+I am not picky about the form of the marking.
+
+> The original design, or at least my understanding of it, was that it =
+not
+> have semantics; it was only a suggestion to the compiler that it shou=
+ld
+> preserve dependencies instead of inserting a fence at the call site.
+> Dependency-based ordering would be preserved in either case.  But I t=
+hink
+> we're moving away from that view towards something that doesn't quiet=
+ly add
+> fences.
+
+Yes, we do need to allow typical implementations to avoid quiet fence
+addition.
+
+> I do not think we can quite get away with defining a dependency in a =
+way
+> that is unconditionally preserved by existing compilers, and thus I t=
+hink
+> that we do probably need annotations along the dependency path.  I ju=
+st
+> don't see a way to otherwise deal with the case in which a compiler i=
+nfers
+> an equivalent pointer and dereferences that instead of the original. =
+ This
+> can happen under so many (unlikely but) hard-to-define conditions tha=
+t it
+> seems undefinable in an implementation-independent manner. "If the
+> implementation is able then <the semantics change>" is, in my opinion=
+, not
+> acceptable standards text.
+
+Hmmm...
+
+But we do already have something very similar with signed integer
+overflow.  If the compiler can see a way to generate faster code that
+does not handle the overflow case, then the semantics suddenly change
+from twos-complement arithmetic to something very strange.  The standar=
+d
+does not specify all the ways that the implementation might deduce that
+faster code can be generated by ignoring the overflow case, it instead
+simply says that signed integer overflow invoked undefined behavior.
+
+And if that is a problem, you use unsigned integers instead of signed
+integers.
+
+So it seems that we should be able to do something very similar here.
+If you don't use marking, and the compiler deduces that a given pointer
+that carries a given dependency is equal to some other pointer not
+carrying that same dependency, there is no dependency ordering.  And,
+just as with the signed-integer-overflow case, if that is a problem for
+you, you can mark the pointers that you intend to carry dependencies.
+
+In both the signed-integer-overflow and pointer-value-deduction cases,
+most use cases don't need to care.  In the integer case, this is becaus=
+e
+most use cases have small integer values that don't overflow.  In the
+pointer case, this is because when the data structure is composed of
+lots of heap-allocated data items, the compiler really cannot deduce
+anything.
+
+Other safe pointer use cases involve statically allocated data items
+whose contents are compile-time constants (thus avoiding the need for
+any sort of ordering) and sentinel data items (as in the Linux kernel's
+cicular linked lists) where there is no dereferencing.
+
+> Thus I see no way to both avoid adding syntax to functions that prese=
+rve
+> dependencies and continue to allow existing transformations that remo=
+ve
+> dependencies we care about, e.g. due to equality comparisons.  We can
+> hopefully ensure that without annotations compilers break things with=
+ very
+> low probability, so that there is a reasonable path forward for exist=
+ing
+> code relying on dependency ordering (which currently also breaks with=
+ very
+> low probability unless you understand what the compiler is doing).  B=
+ut I
+> don't see a way for the standard to guarantee correctness without the=
+ added
+> syntax (or added optimization constraints that effectively assume all
+> functions were annotated).
+
+Your second sentence ("We can hopefully ensure...") does give me hope
+that we might be able to reach agreement.  The intent of P0190R0 is
+to define a subset of operations where dependencies will be carried.
+Note that P0190R0 does call out comparisons as potentially unsafe.
 
 							Thanx, Paul
+
+> On Sat, Feb 20, 2016 at 11:53 AM, Paul E. McKenney <
+> paulmck@linux.vnet.ibm.com> wrote:
+>=20
+> > On Fri, Feb 19, 2016 at 09:15:16PM -0500, Tony V E wrote:
+> > > There's at least one easy answer in there:
+> > >
+> > > > =E2=80=8EIf implementations must support annotation, what form =
+should that
+> > >       annotation take?  P0190R0 recommends the [[carries_dependen=
+cy]]
+> > >       attribute, but I am not picky as long as it can be (1) appl=
+ied
+> > >       to all relevant pointer-like objects and (2) used in C as w=
+ell
+> > >       as C++.  ;-)
+> > >
+> > > If an implementation must support it, then it is not an annotatio=
+n but a
+> > keyword. So no [[]]
+> >
+> > I would be good with that approach, especially if the WG14 continue=
+s
+> > to stay away from annotations.
+> >
+> > For whatever it is worth, the introduction of intrinsics for compar=
+isons
+> > that avoid breaking dependencies enables the annotation to remain
+> > optional.
+> >
+> >                                                         Thanx, Paul
+> >
+> > > Sent from my BlackBerry portable Babbage Device
+> > >   Original Message
+> > > From: Paul E. McKenney
+> > > Sent: Thursday, February 18, 2016 4:58 AM
+> > > To: parallel@lists.isocpp.org; linux-kernel@vger.kernel.org;
+> > linux-arch@vger.kernel.org; gcc@gcc.gnu.org; llvm-dev@lists.llvm.or=
+g
+> > > Reply To: parallel@lists.isocpp.org
+> > > Cc: peterz@infradead.org; j.alglave@ucl.ac.uk; will.deacon@arm.co=
+m;
+> > dhowells@redhat.com; Ramana.Radhakrishnan@arm.com; luc.maranget@inr=
+ia.fr;
+> > akpm@linux-foundation.org; Peter.Sewell@cl.cam.ac.uk;
+> > torvalds@linux-foundation.org; mingo@kernel.org
+> > > Subject: [isocpp-parallel] Proposal for new memory_order_consume
+> > definition
+> > >
+> > > Hello!
+> > >
+> > > A proposal (quaintly identified as P0190R0) for a new
+> > memory_order_consume
+> > > definition may be found here:
+> > >
+> > > http://www2.rdrop.com/users/paulmck/submission/consume.2016.02.10=
+b.pdf
+> > >
+> > > As requested at the October C++ Standards Committee meeting, this
+> > > is a follow-on to P0098R1 that picks one alternative and describe=
+s
+> > > it in detail. This approach focuses on existing practice, with th=
+e
+> > > goal of supporting existing code with existing compilers. In the =
+last
+> > > clang/LLVM patch I saw for basic support of this change, you coul=
+d count
+> > > the changed lines and still have lots of fingers and toes left ov=
+er.
+> > > Those who have been following this story will recognize that this=
+ is
+> > > a very happy contrast to work that would be required to implement=
+ the
+> > > definition in the current standard.
+> > >
+> > > I expect that P0190R0 will be discussed at the upcoming C++ Stand=
+ards
+> > > Committee meeting taking place the week of February 29th. Points =
+of
+> > > discussion are likely to include:
+> > >
+> > > o     May memory_order_consume dependency ordering be used in
+> > > unannotated code? I believe that this must be the case,
+> > > especially given that this is our experience base. P0190R0
+> > > therefore recommends this approach.
+> > >
+> > > o     If memory_order_consume dependency ordering can be used in
+> > > unannotated code, must implementations support annotation?
+> > > I believe that annotation support should be required, at the very
+> > > least for formal verification, which can be quite difficult to
+> > > carry out on unannotated code. In addition, it seems likely
+> > > that annotations can enable much better diagnostics. P0190R0
+> > > therefore recommends this approach.
+> > >
+> > > o     If implementations must support annotation, what form shoul=
+d that
+> > > annotation take? P0190R0 recommends the [[carries_dependency]]
+> > > attribute, but I am not picky as long as it can be (1) applied
+> > > to all relevant pointer-like objects and (2) used in C as well
+> > > as C++. ;-)
+> > >
+> > > o     If memory_order_consume dependency ordering can be used in
+> > > unannotated code, how best to define the situations where
+> > > the compiler can determine the exact value of the pointer in
+> > > question? (In current defacto implementations, this can
+> > > defeat dependency ordering. Interestingly enough, this case
+> > > is not present in the Linux kernel, but still needs to be
+> > > defined.)
+> > >
+> > > Options include:
+> > >
+> > > o     Provide new intrinsics that carry out the
+> > > comparisons, but guarantee to preserve dependencies,
+> > > as recommended by P0190R0 (std::pointer_cmp_eq_dep(),
+> > > std::pointer_cmp_ne_dep(), std::pointer_cmp_gt_dep(),
+> > > std::pointer_cmp_ge_dep(), std::pointer_cmp_lt_dep(),
+> > > and std::pointer_cmp_le_dep()).
+> > >
+> > > o     State that -any- comparison involving an unannotated
+> > > pointer loses the dependency.
+> > >
+> > > o     How is the common idiom of marking pointers by setting low-=
+order
+> > > bits to be supported when those pointers carry dependencies?
+> > > At the moment, I believe that setting bits in pointers results in
+> > > undefined behavior even without dependency ordering, so P0190R0
+> > > kicks this particular can down the road. One option that
+> > > has been suggested is to provide intrinsics for this purpose.
+> > > (Sorry, but I forget who suggested this.)
+> > >
+> > > Thoughts?
+> > >
+> > > Thanx, Paul
+> > >
+> > > _______________________________________________
+> > > Parallel mailing list
+> > > Parallel@lists.isocpp.org
+> > > Subscription: http://lists.isocpp.org/mailman/listinfo.cgi/parall=
+el
+> > > Link to this post: http://lists.isocpp.org/parallel/2016/02/0040.=
+php
+> > > _______________________________________________
+> > > Parallel mailing list
+> > > Parallel@lists.isocpp.org
+> > > Subscription: http://lists.isocpp.org/mailman/listinfo.cgi/parall=
+el
+> > > Link to this post: http://lists.isocpp.org/parallel/2016/02/0045.=
+php
+> >
+> > _______________________________________________
+> > Parallel mailing list
+> > Parallel@lists.isocpp.org
+> > Subscription: http://lists.isocpp.org/mailman/listinfo.cgi/parallel
+> > Link to this post: http://lists.isocpp.org/parallel/2016/02/0046.ph=
+p
+
+> _______________________________________________
+> Parallel mailing list
+> Parallel@lists.isocpp.org
+> Subscription: http://lists.isocpp.org/mailman/listinfo.cgi/parallel
+> Link to this post: http://lists.isocpp.org/parallel/2016/02/0049.php
