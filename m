@@ -1,55 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35634 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756335AbcB0LcK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Feb 2016 06:32:10 -0500
-Date: Sat, 27 Feb 2016 12:30:33 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 20/20] rcu: Make CPU_DYING_IDLE an explicit call
-In-Reply-To: <20160227110528.GR3522@linux.vnet.ibm.com>
-Message-ID: <alpine.DEB.2.11.1602271228570.3638@nanos>
-References: <20160226164321.657646833@linutronix.de> <20160226182341.870167933@linutronix.de> <20160227021429.GN3522@linux.vnet.ibm.com> <20160227022308.GA3959@linux.vnet.ibm.com> <alpine.DEB.2.11.1602270840510.3638@nanos>
- <20160227110528.GR3522@linux.vnet.ibm.com>
+Received: from e32.co.us.ibm.com ([32.97.110.150]:60760 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756780AbcB0XKk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Feb 2016 18:10:40 -0500
+Received: from localhost
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Sat, 27 Feb 2016 16:10:39 -0700
+Date: Sat, 27 Feb 2016 15:10:33 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [isocpp-parallel] Proposal for new memory_order_consume
+ definition
+Message-ID: <20160227231033.GW3522@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+ <20160227170615.GU3522@linux.vnet.ibm.com>
+ <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
-Message-ID: <20160227113033.epOUnb4kxgKrB9DzNS-YmvsRzKB6TQBI_2HBC4aB834@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Jade Alglave <j.alglave@ucl.ac.uk>, p796231 <Peter.Sewell@cl.cam.ac.uk>, gcc@gcc.gnu.org, llvm-dev@lists.llvm.org, Luc Maranget <luc.maranget@inria.fr>, mingo@kernel.org, akpm@linux-foundation.org, dhowells@redhat.com, linux-kernel@vger.kernel.org, parallel@lists.isocpp.org, will.deacon@arm.com, peterz@infradead.org, Ramana.Radhakrishnan@arm.com
+Message-ID: <20160227231033.M1U5ioRpt0nGiFcUdRMNWffX0S9wwX-MFsSIv3bPfWI@z>
 
-On Sat, 27 Feb 2016, Paul E. McKenney wrote:
-> On Sat, Feb 27, 2016 at 08:47:41AM +0100, Thomas Gleixner wrote:
-> > On Fri, 26 Feb 2016, Paul E. McKenney wrote:
-> > > > > --- a/kernel/cpu.c
-> > > > > +++ b/kernel/cpu.c
-> > > > > @@ -762,6 +762,7 @@ void cpuhp_report_idle_dead(void)
-> > > > >  	BUG_ON(st->state != CPUHP_AP_OFFLINE);
-> > > > >  	st->state = CPUHP_AP_IDLE_DEAD;
-> > > > >  	complete(&st->done);
-> > > > 
-> > > > What prevents the other CPU from killing this CPU at this point, so
-> > > > that this CPU does not tell RCU that it is dead?
-> > > >
-> > > > I agree that the odds should be low, but there are all manner of things
-> > > > that might delay a CPU for just a little bit too long...
-> > > > 
-> > > > Or am I missing something subtle here?
-> > 
-> > No. The reason why I moved the rcu call past the complete is, that otherwise
-> > complete() complains about rcu being dead already. Hmm, but you are right. In
-> > theory the other side could allow physical removal before it actually told rcu
-> > that it's gone.
+On Sat, Feb 27, 2016 at 11:16:51AM -0800, Linus Torvalds wrote:
+> On Feb 27, 2016 09:06, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+> wrote:
+> >
+> >
+> > But we do already have something very similar with signed integer
+> > overflow.  If the compiler can see a way to generate faster code that
+> > does not handle the overflow case, then the semantics suddenly change
+> > from twos-complement arithmetic to something very strange.  The standard
+> > does not specify all the ways that the implementation might deduce that
+> > faster code can be generated by ignoring the overflow case, it instead
+> > simply says that signed integer overflow invoked undefined behavior.
+> >
+> > And if that is a problem, you use unsigned integers instead of signed
+> > integers.
 > 
-> There is one case where this is OK, and that is where the outgoing CPU
-> puts itself to sleep (or whatever) without help from the other CPU.
+> Actually, in the case of there Linux kernel we just tell the compiler to
+> not be an ass. We use
+> 
+>   -fno-strict-overflow
 
-That's the case. It's the last call before the outgoing CPU goes into
-arch_cpu_idle_dead(). There is no involvement of the controlling CPU at this
-point. It just wants to know, that the outgoing one is dead finally.
+That is the one!
 
-Thanks,
+> or something. I forget the exact compiler flag needed for "the standard is
+> as broken piece of shit and made things undefined for very bad reasons".
+> 
+> See also there idiotic standard C alias rules. Same deal.
 
-	tglx
+For which we use -fno-strict-aliasing.
 
+> So no, standards aren't that important. When the standards screw up, the
+> right answer is not to turn the other cheek.
+
+Agreed, hence my current (perhaps quixotic and insane) attempt to get
+the standard to do something useful for dependency ordering.  But if
+that doesn't work, yes, a fallback position is to get the relevant
+compilers to provide flags to avoid problematic behavior, similar to
+-fno-strict-overflow.
+
+							Thanx, Paul
+
+> And undefined behavior is pretty much *always* a sign of "the standard is
+> wrong".
+> 
+>      Linus
 
