@@ -1,84 +1,64 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [patch 01/20] idle: Move x86ism out of generic code
-Date: Sat, 27 Feb 2016 15:29:39 -0500
-Message-ID: <CAMzpN2j=Nb25x6UQqa6r3UbWgrrhoRb-72U+zOFVA7RrqQ0Z3A@mail.gmail.com>
-References: <20160226164321.657646833@linutronix.de>
-	<20160226182340.242063758@linutronix.de>
+From: "Paul E. McKenney via llvm-dev" <llvm-dev@lists.llvm.org>
+Subject: Re: [isocpp-parallel] Proposal for new
+ memory_order_consume definition
+Date: Sat, 27 Feb 2016 15:10:33 -0800
+Message-ID: <20160227231033.GW3522@linux.vnet.ibm.com>
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+ <20160227170615.GU3522@linux.vnet.ibm.com>
+ <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f44.google.com ([209.85.218.44]:35464 "EHLO
-	mail-oi0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2992522AbcB0U3k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Feb 2016 15:29:40 -0500
-In-Reply-To: <20160226182340.242063758@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <llvm-dev-bounces@lists.llvm.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
+List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
+List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
+List-Post: <mailto:llvm-dev@lists.llvm.org>
+List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
+List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
+Errors-To: llvm-dev-bounces@lists.llvm.org
+Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, gcc@gcc.gnu.org, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, Luc Maranget <luc.maranget@inria.fr>, akpm@linux-foundation.org, Jade Alglave <j.alglave@ucl.ac.uk>, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 26, 2016 at 1:43 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> We have an arch specific callback here already.
->
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  arch/x86/kernel/process.c |   12 ++++++++++++
->  kernel/sched/idle.c       |   15 ---------------
->  2 files changed, 12 insertions(+), 15 deletions(-)
->
-> Index: b/arch/x86/kernel/process.c
-> ===================================================================
-> --- a/arch/x86/kernel/process.c
-> +++ b/arch/x86/kernel/process.c
-> @@ -271,6 +271,18 @@ void exit_idle(void)
->  }
->  #endif
->
-> +void arch_cpu_idle_prepare(void)
-> +{
-> +       /*
-> +        * If we're the non-boot CPU, nothing set the stack canary up
-> +        * for us. The boot CPU already has it initialized but no harm
-> +        * in doing it again. This is a good place for updating it, as
-> +        * we wont ever return from this function (so the invalid
-> +        * canaries already on the stack wont ever trigger).
-> +        */
-> +       boot_init_stack_canary();
-> +}
-> +
->  void arch_cpu_idle_enter(void)
->  {
->         local_touch_nmi();
-> Index: b/kernel/sched/idle.c
-> ===================================================================
-> --- a/kernel/sched/idle.c
-> +++ b/kernel/sched/idle.c
-> @@ -275,21 +275,6 @@ static void cpu_idle_loop(void)
->
->  void cpu_startup_entry(enum cpuhp_state state)
->  {
-> -       /*
-> -        * This #ifdef needs to die, but it's too late in the cycle to
-> -        * make this generic (arm and sh have never invoked the canary
-> -        * init for the non boot cpus!). Will be fixed in 3.11
-> -        */
-> -#ifdef CONFIG_X86
-> -       /*
-> -        * If we're the non-boot CPU, nothing set the stack canary up
-> -        * for us. The boot CPU already has it initialized but no harm
-> -        * in doing it again. This is a good place for updating it, as
-> -        * we wont ever return from this function (so the invalid
-> -        * canaries already on the stack wont ever trigger).
-> -        */
-> -       boot_init_stack_canary();
-> -#endif
->         arch_cpu_idle_prepare();
->         cpu_idle_loop();
->  }
-
-Does this actually work with stack protector enabled?
-boot_init_stack_canary() is inlined while arch_cpu_idle_prepare() is
-not.
-
---
-Brian Gerst
+T24gU2F0LCBGZWIgMjcsIDIwMTYgYXQgMTE6MTY6NTFBTSAtMDgwMCwgTGludXMgVG9ydmFsZHMg
+d3JvdGU6Cj4gT24gRmViIDI3LCAyMDE2IDA5OjA2LCAiUGF1bCBFLiBNY0tlbm5leSIgPHBhdWxt
+Y2tAbGludXgudm5ldC5pYm0uY29tPgo+IHdyb3RlOgo+ID4KPiA+Cj4gPiBCdXQgd2UgZG8gYWxy
+ZWFkeSBoYXZlIHNvbWV0aGluZyB2ZXJ5IHNpbWlsYXIgd2l0aCBzaWduZWQgaW50ZWdlcgo+ID4g
+b3ZlcmZsb3cuICBJZiB0aGUgY29tcGlsZXIgY2FuIHNlZSBhIHdheSB0byBnZW5lcmF0ZSBmYXN0
+ZXIgY29kZSB0aGF0Cj4gPiBkb2VzIG5vdCBoYW5kbGUgdGhlIG92ZXJmbG93IGNhc2UsIHRoZW4g
+dGhlIHNlbWFudGljcyBzdWRkZW5seSBjaGFuZ2UKPiA+IGZyb20gdHdvcy1jb21wbGVtZW50IGFy
+aXRobWV0aWMgdG8gc29tZXRoaW5nIHZlcnkgc3RyYW5nZS4gIFRoZSBzdGFuZGFyZAo+ID4gZG9l
+cyBub3Qgc3BlY2lmeSBhbGwgdGhlIHdheXMgdGhhdCB0aGUgaW1wbGVtZW50YXRpb24gbWlnaHQg
+ZGVkdWNlIHRoYXQKPiA+IGZhc3RlciBjb2RlIGNhbiBiZSBnZW5lcmF0ZWQgYnkgaWdub3Jpbmcg
+dGhlIG92ZXJmbG93IGNhc2UsIGl0IGluc3RlYWQKPiA+IHNpbXBseSBzYXlzIHRoYXQgc2lnbmVk
+IGludGVnZXIgb3ZlcmZsb3cgaW52b2tlZCB1bmRlZmluZWQgYmVoYXZpb3IuCj4gPgo+ID4gQW5k
+IGlmIHRoYXQgaXMgYSBwcm9ibGVtLCB5b3UgdXNlIHVuc2lnbmVkIGludGVnZXJzIGluc3RlYWQg
+b2Ygc2lnbmVkCj4gPiBpbnRlZ2Vycy4KPiAKPiBBY3R1YWxseSwgaW4gdGhlIGNhc2Ugb2YgdGhl
+cmUgTGludXgga2VybmVsIHdlIGp1c3QgdGVsbCB0aGUgY29tcGlsZXIgdG8KPiBub3QgYmUgYW4g
+YXNzLiBXZSB1c2UKPiAKPiAgIC1mbm8tc3RyaWN0LW92ZXJmbG93CgpUaGF0IGlzIHRoZSBvbmUh
+Cgo+IG9yIHNvbWV0aGluZy4gSSBmb3JnZXQgdGhlIGV4YWN0IGNvbXBpbGVyIGZsYWcgbmVlZGVk
+IGZvciAidGhlIHN0YW5kYXJkIGlzCj4gYXMgYnJva2VuIHBpZWNlIG9mIHNoaXQgYW5kIG1hZGUg
+dGhpbmdzIHVuZGVmaW5lZCBmb3IgdmVyeSBiYWQgcmVhc29ucyIuCj4gCj4gU2VlIGFsc28gdGhl
+cmUgaWRpb3RpYyBzdGFuZGFyZCBDIGFsaWFzIHJ1bGVzLiBTYW1lIGRlYWwuCgpGb3Igd2hpY2gg
+d2UgdXNlIC1mbm8tc3RyaWN0LWFsaWFzaW5nLgoKPiBTbyBubywgc3RhbmRhcmRzIGFyZW4ndCB0
+aGF0IGltcG9ydGFudC4gV2hlbiB0aGUgc3RhbmRhcmRzIHNjcmV3IHVwLCB0aGUKPiByaWdodCBh
+bnN3ZXIgaXMgbm90IHRvIHR1cm4gdGhlIG90aGVyIGNoZWVrLgoKQWdyZWVkLCBoZW5jZSBteSBj
+dXJyZW50IChwZXJoYXBzIHF1aXhvdGljIGFuZCBpbnNhbmUpIGF0dGVtcHQgdG8gZ2V0CnRoZSBz
+dGFuZGFyZCB0byBkbyBzb21ldGhpbmcgdXNlZnVsIGZvciBkZXBlbmRlbmN5IG9yZGVyaW5nLiAg
+QnV0IGlmCnRoYXQgZG9lc24ndCB3b3JrLCB5ZXMsIGEgZmFsbGJhY2sgcG9zaXRpb24gaXMgdG8g
+Z2V0IHRoZSByZWxldmFudApjb21waWxlcnMgdG8gcHJvdmlkZSBmbGFncyB0byBhdm9pZCBwcm9i
+bGVtYXRpYyBiZWhhdmlvciwgc2ltaWxhciB0bwotZm5vLXN0cmljdC1vdmVyZmxvdy4KCgkJCQkJ
+CQlUaGFueCwgUGF1bAoKPiBBbmQgdW5kZWZpbmVkIGJlaGF2aW9yIGlzIHByZXR0eSBtdWNoICph
+bHdheXMqIGEgc2lnbiBvZiAidGhlIHN0YW5kYXJkIGlzCj4gd3JvbmciLgo+IAo+ICAgICAgTGlu
+dXMKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxMVk0g
+RGV2ZWxvcGVycyBtYWlsaW5nIGxpc3QKbGx2bS1kZXZAbGlzdHMubGx2bS5vcmcKaHR0cDovL2xp
+c3RzLmxsdm0ub3JnL2NnaS1iaW4vbWFpbG1hbi9saXN0aW5mby9sbHZtLWRldgo=
