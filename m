@@ -1,70 +1,83 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [isocpp-parallel] Proposal for new memory_order_consume definition
-Date: Sun, 28 Feb 2016 08:13:51 -0800
-Message-ID: <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
+From: via llvm-dev <llvm-dev@lists.llvm.org>
+Subject: Re: [isocpp-parallel] Proposal for new
+	memory_order_consume definition
+Date: Sun, 28 Feb 2016 23:50:08 +0700
+Message-ID: <20160228165008.5468244.19084.78457@pathscale.com>
 References: <20160218011033.GA1505@linux.vnet.ibm.com>
-	<20160220021516.4898897.32908.5212@gmail.com>
-	<20160220195318.GF3522@linux.vnet.ibm.com>
-	<CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
-	<20160227170615.GU3522@linux.vnet.ibm.com>
-	<CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
-	<20160227231033.GW3522@linux.vnet.ibm.com>
-	<20160228082702.GA300@x4>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+ <20160227170615.GU3522@linux.vnet.ibm.com>
+ <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
+ <20160227231033.GW3522@linux.vnet.ibm.com>
+ <20160228082702.GA300@x4>
+ <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
+Reply-To: cbergstrom@pathscale.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f170.google.com ([209.85.223.170]:35884 "EHLO
-	mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757588AbcB1QNw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Feb 2016 11:13:52 -0500
-In-Reply-To: <20160228082702.GA300@x4>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Markus Trippelsdorf <markus@trippelsdorf.de>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Jade Alglave <j.alglave@ucl.ac.uk>, Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <llvm-dev-bounces@lists.llvm.org>
+In-Reply-To: <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
+List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
+List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
+List-Post: <mailto:llvm-dev@lists.llvm.org>
+List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
+List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
+Errors-To: llvm-dev-bounces@lists.llvm.org
+Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
+To: Linus Torvalds via llvm-dev <torvalds@linux-foundation.org>, Markus Trippelsdorf <markus@trippelsdorf.de>
+Cc: linux-arch@vger.kernel.org, gcc@gcc.gnu.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Jade Alglave <j.alglave@ucl.ac.uk>, Ingo Molnar <mingo@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Feb 28, 2016 at 12:27 AM, Markus Trippelsdorf
-<markus@trippelsdorf.de> wrote:
->> >
->> >   -fno-strict-overflow
->>
->>   -fno-strict-aliasing.
->
-> Do not forget -fno-delete-null-pointer-checks.
->
-> So the kernel obviously is already using its own C dialect, that is
-> pretty far from standard C.
-> All these options also have a negative impact on the performance of the
-> generated code.
-
-They really don't.
-
-Have you ever seen code that cared about signed integer overflow?
-Yeah, getting it right can make the compiler generate an extra ALU
-instruction once in a blue moon, but trust me - you'll never notice.
-You *will* notice when you suddenly have a crash or a security issue
-due to bad code generation, though.
-
-The idiotic C alias rules aren't even worth discussing. They were a
-mistake. The kernel doesn't use some "C dialect pretty far from
-standard C". Yeah, let's just say that the original C designers were
-better at their job than a gaggle of standards people who were making
-bad crap up to make some Fortran-style programs go faster.
-
-They don't speed up normal code either, they just introduce undefined
-behavior in a lot of code.
-
-And deleting NULL pointer checks because somebody made a mistake, and
-then turning that small mistake into a real and exploitable security
-hole? Not so smart either.
-
-The fact is, undefined compiler behavior is never a good idea. Not for
-serious projects.
-
-Performance doesn't come from occasional small and odd
-micro-optimizations. I care about performance a lot, and I actually
-look at generated code and do profiling etc. None of those three
-options have *ever* shown up as issues. But the incorrect code they
-generate? It has.
-
-     Linus
+U29tZXRpbWVzIExpbnVzIHNheXMgc29tZSByZWFsbHkgZmxpcHBhbnQgYW5kIGZ1bm55IHRoaW5n
+cyBidXQgZ29zaCBJIGNvdWxkbid0IGFncmVlIG1vcmUuLiB3aXRoIG9uZSB0aW55IG5pdC4uCgpQ
+cm9wZXJseSB3cml0dGVuIEZvcnRyYW4gYW5kIGEgZ29vZCBjb21waWxlciBpcyBwb3RlbnRpYWxs
+eSBhcyBmYXN0IG9yIGZhc3RlciB0aGFuIHR5cGljYWwgQyB2ZXJzaW9uIGluIEhQQyBjb2Rlcy4g
+KHllcyB5b3UgbWF5IGJlIGFibGUgdG8gZ2V0IHRoZSBjIHZlcnNpb24gZmFzdGVyLCBidXQgaXQg
+d291bGQgdGFrZSBzb21lIGVmZm9ydC4pCgrCoCBPcmlnaW5hbCBNZXNzYWdlIMKgCkZyb206IExp
+bnVzIFRvcnZhbGRzIHZpYSBsbHZtLWRldgpTZW50OiBTdW5kYXksIEZlYnJ1YXJ5IDI4LCAyMDE2
+IDIzOjEzClRvOiBNYXJrdXMgVHJpcHBlbHNkb3JmClJlcGx5IFRvOiBMaW51cyBUb3J2YWxkcwpD
+YzogbGludXgtYXJjaEB2Z2VyLmtlcm5lbC5vcmc7IGdjY0BnY2MuZ251Lm9yZzsgSmFkZSBBbGds
+YXZlOyBwYXJhbGxlbEBsaXN0cy5pc29jcHAub3JnOyBsbHZtLWRldkBsaXN0cy5sbHZtLm9yZzsg
+V2lsbCBEZWFjb247IExpbnV4IEtlcm5lbCBNYWlsaW5nIExpc3Q7IERhdmlkIEhvd2VsbHM7IFBl
+dGVyIFppamxzdHJhOyBSYW1hbmEgUmFkaGFrcmlzaG5hbjsgTHVjIE1hcmFuZ2V0OyBBbmRyZXcg
+TW9ydG9uOyBQYXVsIE1jS2VubmV5OyBJbmdvIE1vbG5hcgpTdWJqZWN0OiBSZTogW2xsdm0tZGV2
+XSBbaXNvY3BwLXBhcmFsbGVsXSBQcm9wb3NhbCBmb3IgbmV3IG1lbW9yeV9vcmRlcl9jb25zdW1l
+IGRlZmluaXRpb24KCk9uIFN1biwgRmViIDI4LCAyMDE2IGF0IDEyOjI3IEFNLCBNYXJrdXMgVHJp
+cHBlbHNkb3JmCjxtYXJrdXNAdHJpcHBlbHNkb3JmLmRlPiB3cm90ZToKPj4gPgo+PiA+IC1mbm8t
+c3RyaWN0LW92ZXJmbG93Cj4+Cj4+IC1mbm8tc3RyaWN0LWFsaWFzaW5nLgo+Cj4gRG8gbm90IGZv
+cmdldCAtZm5vLWRlbGV0ZS1udWxsLXBvaW50ZXItY2hlY2tzLgo+Cj4gU28gdGhlIGtlcm5lbCBv
+YnZpb3VzbHkgaXMgYWxyZWFkeSB1c2luZyBpdHMgb3duIEMgZGlhbGVjdCwgdGhhdCBpcwo+IHBy
+ZXR0eSBmYXIgZnJvbSBzdGFuZGFyZCBDLgo+IEFsbCB0aGVzZSBvcHRpb25zIGFsc28gaGF2ZSBh
+IG5lZ2F0aXZlIGltcGFjdCBvbiB0aGUgcGVyZm9ybWFuY2Ugb2YgdGhlCj4gZ2VuZXJhdGVkIGNv
+ZGUuCgpUaGV5IHJlYWxseSBkb24ndC4KCkhhdmUgeW91IGV2ZXIgc2VlbiBjb2RlIHRoYXQgY2Fy
+ZWQgYWJvdXQgc2lnbmVkIGludGVnZXIgb3ZlcmZsb3c/ClllYWgsIGdldHRpbmcgaXQgcmlnaHQg
+Y2FuIG1ha2UgdGhlIGNvbXBpbGVyIGdlbmVyYXRlIGFuIGV4dHJhIEFMVQppbnN0cnVjdGlvbiBv
+bmNlIGluIGEgYmx1ZSBtb29uLCBidXQgdHJ1c3QgbWUgLSB5b3UnbGwgbmV2ZXIgbm90aWNlLgpZ
+b3UgKndpbGwqIG5vdGljZSB3aGVuIHlvdSBzdWRkZW5seSBoYXZlIGEgY3Jhc2ggb3IgYSBzZWN1
+cml0eSBpc3N1ZQpkdWUgdG8gYmFkIGNvZGUgZ2VuZXJhdGlvbiwgdGhvdWdoLgoKVGhlIGlkaW90
+aWMgQyBhbGlhcyBydWxlcyBhcmVuJ3QgZXZlbiB3b3J0aCBkaXNjdXNzaW5nLiBUaGV5IHdlcmUg
+YQptaXN0YWtlLiBUaGUga2VybmVsIGRvZXNuJ3QgdXNlIHNvbWUgIkMgZGlhbGVjdCBwcmV0dHkg
+ZmFyIGZyb20Kc3RhbmRhcmQgQyIuIFllYWgsIGxldCdzIGp1c3Qgc2F5IHRoYXQgdGhlIG9yaWdp
+bmFsIEMgZGVzaWduZXJzIHdlcmUKYmV0dGVyIGF0IHRoZWlyIGpvYiB0aGFuIGEgZ2FnZ2xlIG9m
+IHN0YW5kYXJkcyBwZW9wbGUgd2hvIHdlcmUgbWFraW5nCmJhZCBjcmFwIHVwIHRvIG1ha2Ugc29t
+ZSBGb3J0cmFuLXN0eWxlIHByb2dyYW1zIGdvIGZhc3Rlci4KClRoZXkgZG9uJ3Qgc3BlZWQgdXAg
+bm9ybWFsIGNvZGUgZWl0aGVyLCB0aGV5IGp1c3QgaW50cm9kdWNlIHVuZGVmaW5lZApiZWhhdmlv
+ciBpbiBhIGxvdCBvZiBjb2RlLgoKQW5kIGRlbGV0aW5nIE5VTEwgcG9pbnRlciBjaGVja3MgYmVj
+YXVzZSBzb21lYm9keSBtYWRlIGEgbWlzdGFrZSwgYW5kCnRoZW4gdHVybmluZyB0aGF0IHNtYWxs
+IG1pc3Rha2UgaW50byBhIHJlYWwgYW5kIGV4cGxvaXRhYmxlIHNlY3VyaXR5CmhvbGU/IE5vdCBz
+byBzbWFydCBlaXRoZXIuCgpUaGUgZmFjdCBpcywgdW5kZWZpbmVkIGNvbXBpbGVyIGJlaGF2aW9y
+IGlzIG5ldmVyIGEgZ29vZCBpZGVhLiBOb3QgZm9yCnNlcmlvdXMgcHJvamVjdHMuCgpQZXJmb3Jt
+YW5jZSBkb2Vzbid0IGNvbWUgZnJvbSBvY2Nhc2lvbmFsIHNtYWxsIGFuZCBvZGQKbWljcm8tb3B0
+aW1pemF0aW9ucy4gSSBjYXJlIGFib3V0IHBlcmZvcm1hbmNlIGEgbG90LCBhbmQgSSBhY3R1YWxs
+eQpsb29rIGF0IGdlbmVyYXRlZCBjb2RlIGFuZCBkbyBwcm9maWxpbmcgZXRjLiBOb25lIG9mIHRo
+b3NlIHRocmVlCm9wdGlvbnMgaGF2ZSAqZXZlciogc2hvd24gdXAgYXMgaXNzdWVzLiBCdXQgdGhl
+IGluY29ycmVjdCBjb2RlIHRoZXkKZ2VuZXJhdGU/IEl0IGhhcy4KCkxpbnVzCl9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxMVk0gRGV2ZWxvcGVycyBtYWls
+aW5nIGxpc3QKbGx2bS1kZXZAbGlzdHMubGx2bS5vcmcKaHR0cDovL2xpc3RzLmxsdm0ub3JnL2Nn
+aS1iaW4vbWFpbG1hbi9saXN0aW5mby9sbHZtLWRldgpfX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fXwpMTFZNIERldmVsb3BlcnMgbWFpbGluZyBsaXN0Cmxsdm0t
+ZGV2QGxpc3RzLmxsdm0ub3JnCmh0dHA6Ly9saXN0cy5sbHZtLm9yZy9jZ2ktYmluL21haWxtYW4v
+bGlzdGluZm8vbGx2bS1kZXYK
