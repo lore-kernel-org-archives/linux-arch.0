@@ -1,54 +1,43 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 10/20] cpu/hotplug: Make target state writeable
-Date: Mon, 29 Feb 2016 16:49:24 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1602291648210.3638@nanos>
-References: <20160226164321.657646833@linutronix.de> <6355023.m2RKuauZef@vostro.rjw.lan> <alpine.DEB.2.11.1602270823480.3638@nanos> <1490843.2y32Taz9fS@vostro.rjw.lan> <alpine.DEB.2.11.1602281545140.3638@nanos>
+From: "Mr. DOUGLAS" <douglascontact6048@live.com>
+Subject: =?utf-8?q?INFORMA=C3=87=C3=83O_IMPORTANTE__RE=3A_Consultoria_de_Investime?=
+ =?utf-8?q?nto_em_sua_Localidade=2E?=
+Date: Sun, 28 Feb 2016 04:38:32 -0800
+Message-ID: <20160228133730.167608FD61B__28131.4781903804$1456761200$gmane$org@webmail.cefet-rj.br>
+Reply-To: johnsondouglas8738@gmail.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:41230 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751299AbcB2PvD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 10:51:03 -0500
-In-Reply-To: <alpine.DEB.2.11.1602281545140.3638@nanos>
+Received: from webmail.cefet-rj.br ([200.9.149.52]:48817 "EHLO
+	webmail.cefet-rj.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754636AbcB2PxG convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 10:53:06 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
+To: Recipients <douglascontact6048@live.com>
 
-On Sun, 28 Feb 2016, Thomas Gleixner wrote:
-> 
-> Understood. I'll fix that thing up so that won't happen and I put it on the
-> list of things to look at deeper.
+Oi,
 
-The below delta patch should do what you need, right?
+Temos planejado investir alguns fundos no seu pa=EDs.
 
-Thanks,
+Responder se voc=EA estiver interessado.
 
-	tglx
+Sauda=E7=F5es,
+Sir Henry Neville Lindley Keswick
+Presidente da Jardine Matheson Holdings Ltd
+https://en.wikipedia.org/wiki/Keswick_family
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D
 
-8<-------------
+Hi friend,
 
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -1461,6 +1461,11 @@ static ssize_t write_cpuhp_target(struct
- 	if (target != CPUHP_OFFLINE && target != CPUHP_ONLINE)
- 		return -EINVAL;
- #endif
-+
-+	ret = lock_device_hotplug_sysfs();
-+	if (ret)
-+		return ret;
-+
- 	mutex_lock(&cpuhp_state_mutex);
- 	sp = cpuhp_get_step(target);
- 	ret = !sp->name || sp->cant_stop ? -EINVAL : 0;
-@@ -1472,6 +1477,8 @@ static ssize_t write_cpuhp_target(struct
- 		ret = do_cpu_up(dev->id, target);
- 	else
- 		ret = do_cpu_down(dev->id, target);
-+
-+	unlock_device_hotplug();
- 	return ret ? ret : count;
- }
- 
+Our family is interested in investing funds in your locality.
+
+More information for you interest .
+
+Greetings,
+Sir Henry Neville Lindley Keswick
+Chairman of Jardine Matheson Holdings Ltd
+https://en.wikipedia.org/wiki/Keswick_family
