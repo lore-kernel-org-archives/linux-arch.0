@@ -1,25 +1,21 @@
 From: kbuild test robot <lkp@intel.com>
-Subject: Re: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for
- mmap_sem for write killable
-Date: Mon, 29 Feb 2016 21:45:29 +0800
-Message-ID: <201602292105.AxEWbFGJ%fengguang.wu@intel.com>
-References: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
+Subject: Re: [PATCH 08/18] mm, fork: make dup_mmap wait for mmap_sem for
+ write killable
+Date: Mon, 29 Feb 2016 21:48:39 +0800
+Message-ID: <201602292150.WEqPRm1s%fengguang.wu@intel.com>
+References: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="wRRV7LY7NUeQGEoC"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:10462 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753545AbcB2Nqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 08:46:33 -0500
+Content-Type: multipart/mixed; boundary="jI8keyz6grp/JLjh"
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: Michal Hocko <mhocko@kernel.org>
 Cc: kbuild-all@01.org, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>Oleg Nesterov <ol>
+List-Id: linux-arch.vger.kernel.org
 
 
---wRRV7LY7NUeQGEoC
+--jI8keyz6grp/JLjh
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 
@@ -38,35 +34,35 @@ reproduce:
 
 All errors (new ones prefixed by >>):
 
-   arch/x86/entry/vdso/vma.c: In function 'map_vdso':
->> arch/x86/entry/vdso/vma.c:177:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
-     if (down_write_killable(&mm->mmap_sem))
+   kernel/fork.c: In function 'dup_mmap':
+>> kernel/fork.c:416:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
+     if (down_write_killable(&oldmm->mmap_sem)) {
          ^
    cc1: some warnings being treated as errors
 
-vim +/down_write_killable +177 arch/x86/entry/vdso/vma.c
+vim +/down_write_killable +416 kernel/fork.c
 
-   171			addr = vdso_addr(current->mm->start_stack,
-   172					 image->size - image->sym_vvar_start);
-   173		} else {
-   174			addr = 0;
-   175		}
-   176	
- > 177		if (down_write_killable(&mm->mmap_sem))
-   178			return -EINTR;
-   179	
-   180		addr = get_unmapped_area(NULL, addr,
+   410		struct vm_area_struct *mpnt, *tmp, *prev, **pprev;
+   411		struct rb_node **rb_link, *rb_parent;
+   412		int retval;
+   413		unsigned long charge;
+   414	
+   415		uprobe_start_dup_mmap();
+ > 416		if (down_write_killable(&oldmm->mmap_sem)) {
+   417			uprobe_end_dup_mmap();
+   418			return -EINTR;
+   419		}
 
 ---
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
---wRRV7LY7NUeQGEoC
+--jI8keyz6grp/JLjh
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename=".config.gz"
 Content-Transfer-Encoding: base64
 
-H4sICMJK1FYAAy5jb25maWcAjFxPd9u2st/3U+ikb3HvIo3tOG563vECIkEJFUHQAChb3vC4
+H4sICG1L1FYAAy5jb25maWcAjFxPd9u2st/3U+ikb3HvIo3tOG563vECIkEJFUHQAChb3vC4
 ttL61LF7Lbk3/fZvBiBFABwqLxuHmMH/wcxvZgD9+MOPM/a2f/l6t3+8v3t6+mf2+/Z5+3q3
 3z7Mvjw+bf93lqtZpeyM58L+BMzl4/Pbtw+PHz9fzM5/+vTTyfvX+4vZavv6vH2aZS/PXx5/
 f4Pajy/PP/wI3JmqCrFoL87nws4ed7Pnl/1st93/0JXffL5oP55d/hN8Dx+iMlY3mRWqanOe
@@ -626,4 +622,10 @@ hKp4Nd4DfwCRMzkJZ/EiXCVMPQj5CaaU9e5khhulyvMO/r61G5JI9Sft2F33rsdXS8A9U/Ej
 pZ5Ej5jzRtn8ae5ZtqbnWR7SeaqWvtY4C5WohvAj8KRVU7nFuHk17IFBitK+8bKP0MUPmRNz
 EPpxw5Bo9joFmk5FJNvrBqXAiWFhQowXz7zEn2sA+f9p6OtnA84BAA==
 
---wRRV7LY7NUeQGEoC--
+--jI8keyz6grp/JLjh--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
