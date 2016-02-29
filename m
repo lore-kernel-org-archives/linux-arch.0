@@ -1,42 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46216 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:35205 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750843AbcB2RXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 12:23:42 -0500
-Date: Mon, 29 Feb 2016 18:23:34 +0100
+	id S1752750AbcB2Riy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Feb 2016 12:38:54 -0500
+Date: Mon, 29 Feb 2016 18:38:45 +0100
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
-Message-ID: <20160229172333.GB3615@redhat.com>
+Subject: Re: [PATCH 07/18] mm, proc: make clear_refs killable
+Message-ID: <20160229173845.GC3615@redhat.com>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-14-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-8-git-send-email-mhocko@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1456752417-9626-14-git-send-email-mhocko@kernel.org>
+In-Reply-To: <1456752417-9626-8-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160229172334.CTtKGOtCj4vuS5_1A-kAsjczB_wwryt0YwLWDCo6DWM@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160229173845.ybSpxLn596IfiAZN2eYfnf4TuKe8kNogcSISFcBbqNw@z>
 
 On 02/29, Michal Hocko wrote:
 >
-> @@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
->  	if (!vma)
->  		return -ENOMEM;
->  
-> -	down_write(&mm->mmap_sem);
-> +	if (down_write_killable(&mm->mmap_sem)) {
-> +		err = -EINTR;
-> +		goto err_free;
-> +	}
->  	vma->vm_mm = mm;
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -1027,11 +1027,15 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
+>  		};
+>
+>  		if (type == CLEAR_REFS_MM_HIWATER_RSS) {
+> +			if (down_write_killable(&mm->mmap_sem)) {
+> +				put_task_struct(task);
+> +				return -EINTR;
+> +			}
+> +
+>  			/*
+>  			 * Writing 5 to /proc/pid/clear_refs resets the peak
+>  			 * resident set size to this mm's current rss value.
+>  			 */
+> -			down_write(&mm->mmap_sem);
+>  			reset_mm_hiwater_rss(mm);
+>  			up_write(&mm->mmap_sem);
+>  			goto out_mm;
+> @@ -1043,7 +1047,10 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
+>  				if (!(vma->vm_flags & VM_SOFTDIRTY))
+>  					continue;
+>  				up_read(&mm->mmap_sem);
+> -				down_write(&mm->mmap_sem);
+> +				if (down_write_killable(&mm->mmap_sem)) {
+> +					put_task_struct(task);
+> +					return -EINTR;
+> +				}
 
-I won't argue, but this looks unnecessary. Nobody else can see this new mm,
-down_write() can't block.
-
-In fact I think we can just remove down_write/up_write here. Except perhaps
-there is lockdep_assert_held() somewhere in these paths.
+Both lack mmput() afaics. Don't you need "goto out_mm" rather then "return" ? In
+this case you do not need put_task_struct().
 
 Oleg.
 
