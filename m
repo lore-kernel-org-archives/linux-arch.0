@@ -1,66 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0071.outbound.protection.outlook.com ([157.56.111.71]:13088
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750975AbcB2OK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 09:10:29 -0500
-Subject: Re: [PATCH 17/18] drm/radeon: make radeon_mn_get wait for mmap_sem
- killable
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:35539 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750772AbcB2OQZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 09:16:25 -0500
+Date: Mon, 29 Feb 2016 15:16:22 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/18] change mmap_sem taken for write killable
+Message-ID: <20160229141622.GC16930@dhcp22.suse.cz>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-18-git-send-email-mhocko@kernel.org>
-From: =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>
-Message-ID: <56D4493B.7010004@amd.com>
-Date: Mon, 29 Feb 2016 14:35:55 +0100
+ <20160229140416.GA12506@node.shutemov.name>
 MIME-Version: 1.0
-In-Reply-To: <1456752417-9626-18-git-send-email-mhocko@kernel.org>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160229140416.GA12506@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20160229133555.6b_mpYeTnmbos-H1Lpve_HkfMXS1Cv_EaS_hOajtpOQ@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20160229141622.pGKPRDuAsSro2PDJASU9aB_ijrfttTjH54U9JBwvmoA@z>
 
-[Dropping CCing the individual people, but adding the dri-devel mailing 
-list as well instead].
+On Mon 29-02-16 17:04:16, Kirill A. Shutemov wrote:
+[...]
+> > Most of the patches are really trivial because the lock is help from a
+> > shallow syscall paths where we can return EINTR trivially. Others seem
+> > to be easy as well as the callers are already handling fatal errors and
+> > bail and return to userspace which should be sufficient to handle the
+> > failure gracefully. I am not familiar with all those code paths so a
+> > deeper review is really appreciated.
+> 
+> What about effect on userspace? IIUC, we would have now EINTR returned
+> from bunch of syscall, which haven't had this errno on the table before.
+> Should we care?
 
-Am 29.02.2016 um 14:26 schrieb Michal Hocko:
-> From: Michal Hocko <mhocko@suse.com>
->
-> radeon_mn_get which is called during ioct path relies on mmap_sem for
-> write. If the waiting task gets killed by the oom killer it would block
-> oom_reaper from asynchronous address space reclaim and reduce the
-> chances of timely OOM resolving. Wait for the lock in the killable mode
-> and return with EINTR if the task got killed while waiting.
->
-> Cc: Alex Deucher <alexander.deucher@amd.com>
-> Cc: "Christian König" <christian.koenig@amd.com>
-> Cc: David Airlie <airlied@linux.ie>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-
-This one and patch #18 in this series are Reviewed-by: Christian König 
-<christian.koenig@amd.com>.
-
-Nice to see some improvements on this side,
-Christian.
-
-> ---
->   drivers/gpu/drm/radeon/radeon_mn.c | 4 +++-
->   1 file changed, 3 insertions(+), 1 deletion(-)
->
-> diff --git a/drivers/gpu/drm/radeon/radeon_mn.c b/drivers/gpu/drm/radeon/radeon_mn.c
-> index eef006c48584..896f2cf51e4e 100644
-> --- a/drivers/gpu/drm/radeon/radeon_mn.c
-> +++ b/drivers/gpu/drm/radeon/radeon_mn.c
-> @@ -186,7 +186,9 @@ static struct radeon_mn *radeon_mn_get(struct radeon_device *rdev)
->   	struct radeon_mn *rmn;
->   	int r;
->   
-> -	down_write(&mm->mmap_sem);
-> +	if (down_write_killable(&mm->mmap_sem))
-> +		return ERR_PTR(-EINTR);
-> +
->   	mutex_lock(&rdev->mn_lock);
->   
->   	hash_for_each_possible(rdev->mn_hash, rmn, node, (unsigned long)mm)
-
+Those function will return EINTR only when the current was _killed_ when
+we do not return to the userspace. So there shouldn't be any visible
+effect.
+-- 
+Michal Hocko
+SUSE Labs
