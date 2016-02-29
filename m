@@ -1,13 +1,13 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Date: Mon, 29 Feb 2016 13:58:24 +0100
-Message-ID: <1456750705-7141-11-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 09/11] xtensa, rwsem: provide __down_write_killable
+Date: Mon, 29 Feb 2016 13:58:23 +0100
+Message-ID: <1456750705-7141-10-git-send-email-mhocko@kernel.org>
 References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:33376 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753310AbcB2M6t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 07:58:49 -0500
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36304 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753260AbcB2M6r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 07:58:47 -0500
 In-Reply-To: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -17,89 +17,36 @@ Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thoma
 From: Michal Hocko <mhocko@suse.com>
 
 which uses the same fast path as __down_write except it falls back to
-call_rwsem_down_write_failed_killable slow path and return -EINTR if
-killed. To prevent from code duplication extract the skeleton of
-__down_write into a helper macro which just takes the semaphore
-and the slow path function to be called.
+rwsem_down_write_failed_killable slow path and return -EINTR if killed.
 
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/x86/include/asm/rwsem.h | 41 ++++++++++++++++++++++++++++-------------
- arch/x86/lib/rwsem.S         |  8 ++++++++
- 2 files changed, 36 insertions(+), 13 deletions(-)
+ arch/xtensa/include/asm/rwsem.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index 4a8292a0d6e1..d759c5f70f49 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -99,21 +99,36 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- /*
-  * lock for writing
-  */
-+#define ____down_write(sem, slow_path)			\
-+({							\
-+	long tmp;					\
-+	struct rw_semaphore* ret = sem;			\
-+	asm volatile("# beginning down_write\n\t"	\
-+		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
-+		     /* adds 0xffff0001, returns the old value */ \
-+		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
-+		     /* was the active mask 0 before? */\
-+		     "  jz        1f\n"			\
-+		     "  call " slow_path "\n"		\
-+		     "1:\n"				\
-+		     "# ending down_write"		\
-+		     : "+m" (sem->count), "=d" (tmp), "+a" (ret)	\
-+		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
-+		     : "memory", "cc");			\
-+	ret;						\
-+})
-+
- static inline void __down_write(struct rw_semaphore *sem)
- {
--	long tmp;
--	asm volatile("# beginning down_write\n\t"
--		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"
--		     /* adds 0xffff0001, returns the old value */
--		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t"
--		     /* was the active mask 0 before? */
--		     "  jz        1f\n"
--		     "  call call_rwsem_down_write_failed\n"
--		     "1:\n"
--		     "# ending down_write"
--		     : "+m" (sem->count), "=d" (tmp)
--		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS)
--		     : "memory", "cc");
-+	____down_write(sem, "call_rwsem_down_write_failed");
-+}
-+
-+static inline int __down_write_killable(struct rw_semaphore *sem)
-+{
-+	if (IS_ERR(____down_write(sem, "call_rwsem_down_write_failed_killable")))
-+		return -EINTR;
-+
-+	return 0;
+diff --git a/arch/xtensa/include/asm/rwsem.h b/arch/xtensa/include/asm/rwsem.h
+index 593483f6e1ff..6283823b8040 100644
+--- a/arch/xtensa/include/asm/rwsem.h
++++ b/arch/xtensa/include/asm/rwsem.h
+@@ -59,6 +59,19 @@ static inline void __down_write(struct rw_semaphore *sem)
+ 		rwsem_down_write_failed(sem);
  }
  
- /*
-diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
-index be110efa0096..4534a7e912f3 100644
---- a/arch/x86/lib/rwsem.S
-+++ b/arch/x86/lib/rwsem.S
-@@ -106,6 +106,14 @@ ENTRY(call_rwsem_down_write_failed)
- 	ret
- ENDPROC(call_rwsem_down_write_failed)
- 
-+ENTRY(call_rwsem_down_write_failed_killable)
-+	save_common_regs
-+	movq %rax,%rdi
-+	call rwsem_down_write_failed_killable
-+	restore_common_regs
-+	ret
-+ENDPROC(call_rwsem_down_write_failed_killable)
++static inline int __down_write_killable(struct rw_semaphore *sem)
++{
++	int tmp;
 +
- ENTRY(call_rwsem_wake)
- 	FRAME_BEGIN
- 	/* do nothing if still outstanding active readers */
++	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
++				(atomic_t *)(&sem->count));
++	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
++		if (IS_ERR(rwsem_down_write_failed_killable(sem)))
++			return -EINTR;
++
++	return 0;
++}
++
+ static inline int __down_write_trylock(struct rw_semaphore *sem)
+ {
+ 	int tmp;
 -- 
 2.7.0
