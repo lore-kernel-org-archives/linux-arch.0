@@ -1,49 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:34043 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754569AbcB2N1f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:35 -0500
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:33941 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754044AbcB2N1Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:24 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 15/18] uprobes: wait for mmap_sem for write killable
-Date: Mon, 29 Feb 2016 14:26:54 +0100
-Message-ID: <1456752417-9626-16-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 08/18] mm, fork: make dup_mmap wait for mmap_sem for write killable
+Date: Mon, 29 Feb 2016 14:26:47 +0100
+Message-ID: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160229132654.1b9PTpPQdJMht2CMqSTa16qnK_q-9wAHYw1hsjBXfsM@z>
+Message-ID: <20160229132647.PJvRIrjTN2u9UCyBD8AZ_4oyBO_0LWIPwR4XZO_50yk@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-xol_add_vma needs mmap_sem for write. If the waiting task gets killed by
-the oom killer it would block oom_reaper from asynchronous address space
-reclaim and reduce the chances of timely OOM resolving. Wait for the
-lock in the killable mode and return with EINTR if the task got killed
-while waiting.
+dup_mmap needs to lock current's mm mmap_sem for write. If the waiting
+task gets killed by the oom killer it would block oom_reaper from
+asynchronous address space reclaim and reduce the chances of timely OOM
+resolving. Wait for the lock in the killable mode and return with EINTR
+if the task got killed while waiting.
 
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- kernel/events/uprobes.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ kernel/fork.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
-index 8eef5f55d3f0..a79315d0f711 100644
---- a/kernel/events/uprobes.c
-+++ b/kernel/events/uprobes.c
-@@ -1130,7 +1130,9 @@ static int xol_add_vma(struct mm_struct *mm, struct xol_area *area)
- 	struct vm_area_struct *vma;
- 	int ret;
+diff --git a/kernel/fork.c b/kernel/fork.c
+index d277e83ed3e0..e064bc8453dc 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -413,7 +413,10 @@ static int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+ 	unsigned long charge;
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
+ 	uprobe_start_dup_mmap();
+-	down_write(&oldmm->mmap_sem);
++	if (down_write_killable(&oldmm->mmap_sem)) {
++		uprobe_end_dup_mmap();
 +		return -EINTR;
-+
- 	if (mm->uprobes_state.xol_area) {
- 		ret = -EALREADY;
- 		goto fail;
++	}
+ 	flush_cache_dup_mm(oldmm);
+ 	uprobe_dup_mmap(oldmm, mm);
+ 	/*
 -- 
 2.7.0
 
