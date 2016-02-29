@@ -1,67 +1,42 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 07/18] mm, proc: make clear_refs killable
-Date: Mon, 29 Feb 2016 18:53:39 +0100
-Message-ID: <20160229175338.GM16930@dhcp22.suse.cz>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 08/18] mm, fork: make dup_mmap wait for mmap_sem for
+ write killable
+Date: Mon, 29 Feb 2016 18:54:18 +0100
+Message-ID: <20160229175418.GD3615@redhat.com>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-8-git-send-email-mhocko@kernel.org>
- <20160229173845.GC3615@redhat.com>
+ <1456752417-9626-9-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:36106 "EHLO
-	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752398AbcB2Rxm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 12:53:42 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:53638 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753252AbcB2RyZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Feb 2016 12:54:25 -0500
 Content-Disposition: inline
-In-Reply-To: <20160229173845.GC3615@redhat.com>
+In-Reply-To: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
+To: Michal Hocko <mhocko@kernel.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>
 
-On Mon 29-02-16 18:38:45, Oleg Nesterov wrote:
-> On 02/29, Michal Hocko wrote:
-> >
-> > --- a/fs/proc/task_mmu.c
-> > +++ b/fs/proc/task_mmu.c
-> > @@ -1027,11 +1027,15 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
-> >  		};
-> >
-> >  		if (type == CLEAR_REFS_MM_HIWATER_RSS) {
-> > +			if (down_write_killable(&mm->mmap_sem)) {
-> > +				put_task_struct(task);
-> > +				return -EINTR;
-> > +			}
-> > +
-> >  			/*
-> >  			 * Writing 5 to /proc/pid/clear_refs resets the peak
-> >  			 * resident set size to this mm's current rss value.
-> >  			 */
-> > -			down_write(&mm->mmap_sem);
-> >  			reset_mm_hiwater_rss(mm);
-> >  			up_write(&mm->mmap_sem);
-> >  			goto out_mm;
-> > @@ -1043,7 +1047,10 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
-> >  				if (!(vma->vm_flags & VM_SOFTDIRTY))
-> >  					continue;
-> >  				up_read(&mm->mmap_sem);
-> > -				down_write(&mm->mmap_sem);
-> > +				if (down_write_killable(&mm->mmap_sem)) {
-> > +					put_task_struct(task);
-> > +					return -EINTR;
-> > +				}
-> 
-> Both lack mmput() afaics. Don't you need "goto out_mm" rather then "return" ?
+On 02/29, Michal Hocko wrote:
+>
+> --- a/kernel/fork.c
+> +++ b/kernel/fork.c
+> @@ -413,7 +413,10 @@ static int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+>  	unsigned long charge;
+>  
+>  	uprobe_start_dup_mmap();
+> -	down_write(&oldmm->mmap_sem);
+> +	if (down_write_killable(&oldmm->mmap_sem)) {
+> +		uprobe_end_dup_mmap();
+> +		return -EINTR;
+> +	}
 
-Of course I need! Thanks for catching that.
+This is really cosmetic and subjective, I won't insist if you prefer it this way.
 
-> In this case you do not need put_task_struct().
+But perhaps it makes sense to add another "fail" label above uprobe_end_dup_mmap()
+we already have... IMO it is always better to avoid duplicating when it comes to
+"unlock".
 
-Why not? Both are after get_proc_task which takes a reference to the
-task...
-
-I will send an updated patch. Thanks!
-
--- 
-Michal Hocko
-SUSE Labs
+Oleg.
