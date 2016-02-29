@@ -1,69 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:36725 "EHLO
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:34043 "EHLO
 	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751099AbcB2N1W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:22 -0500
+	with ESMTP id S1754569AbcB2N1f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:35 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 07/18] mm, proc: make clear_refs killable
-Date: Mon, 29 Feb 2016 14:26:46 +0100
-Message-ID: <1456752417-9626-8-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 15/18] uprobes: wait for mmap_sem for write killable
+Date: Mon, 29 Feb 2016 14:26:54 +0100
+Message-ID: <1456752417-9626-16-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160229132646.iJcnX6WWDQI5pUzXOSrrFGLHN_6hXQ5_8g3D4d3p7wU@z>
+Message-ID: <20160229132654.1b9PTpPQdJMht2CMqSTa16qnK_q-9wAHYw1hsjBXfsM@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-CLEAR_REFS_MM_HIWATER_RSS and CLEAR_REFS_SOFT_DIRTY are relying on
-mmap_sem for write. If the waiting task gets killed by the oom killer
-and it would operate on the current's mm it would block oom_reaper from
-asynchronous address space reclaim and reduce the chances of timely OOM
-resolving. Wait for the lock in the killable mode and return with EINTR
-if the task got killed while waiting. This will also expedite the return
-to the userspace and do_exit even if the mm is remote.
+xol_add_vma needs mmap_sem for write. If the waiting task gets killed by
+the oom killer it would block oom_reaper from asynchronous address space
+reclaim and reduce the chances of timely OOM resolving. Wait for the
+lock in the killable mode and return with EINTR if the task got killed
+while waiting.
 
-Cc: Petr Cermak <petrcermak@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- fs/proc/task_mmu.c | 11 +++++++++--
- 1 file changed, 9 insertions(+), 2 deletions(-)
+ kernel/events/uprobes.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 9df431642042..fc303fa1f5c0 100644
---- a/fs/proc/task_mmu.c
-+++ b/fs/proc/task_mmu.c
-@@ -1027,11 +1027,15 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
- 		};
+diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
+index 8eef5f55d3f0..a79315d0f711 100644
+--- a/kernel/events/uprobes.c
++++ b/kernel/events/uprobes.c
+@@ -1130,7 +1130,9 @@ static int xol_add_vma(struct mm_struct *mm, struct xol_area *area)
+ 	struct vm_area_struct *vma;
+ 	int ret;
  
- 		if (type == CLEAR_REFS_MM_HIWATER_RSS) {
-+			if (down_write_killable(&mm->mmap_sem)) {
-+				put_task_struct(task);
-+				return -EINTR;
-+			}
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
 +
- 			/*
- 			 * Writing 5 to /proc/pid/clear_refs resets the peak
- 			 * resident set size to this mm's current rss value.
- 			 */
--			down_write(&mm->mmap_sem);
- 			reset_mm_hiwater_rss(mm);
- 			up_write(&mm->mmap_sem);
- 			goto out_mm;
-@@ -1043,7 +1047,10 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
- 				if (!(vma->vm_flags & VM_SOFTDIRTY))
- 					continue;
- 				up_read(&mm->mmap_sem);
--				down_write(&mm->mmap_sem);
-+				if (down_write_killable(&mm->mmap_sem)) {
-+					put_task_struct(task);
-+					return -EINTR;
-+				}
- 				for (vma = mm->mmap; vma; vma = vma->vm_next) {
- 					vma->vm_flags &= ~VM_SOFTDIRTY;
- 					vma_set_page_prot(vma);
+ 	if (mm->uprobes_state.xol_area) {
+ 		ret = -EALREADY;
+ 		goto fail;
 -- 
 2.7.0
 
