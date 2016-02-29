@@ -1,68 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:36709 "EHLO
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36694 "EHLO
 	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753508AbcB2N1U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:20 -0500
+	with ESMTP id S1753542AbcB2N1S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:18 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 06/18] mm: make vm_brk killable
-Date: Mon, 29 Feb 2016 14:26:45 +0100
-Message-ID: <1456752417-9626-7-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 05/18] mm, elf: handle vm_brk error
+Date: Mon, 29 Feb 2016 14:26:44 +0100
+Message-ID: <1456752417-9626-6-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160229132645.GpTu5y4EFYlWXPsyv_-ZDGkrCXRd6Upoar-1tw7OZAw@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20160229132644.5hy4MoalFnU5NiKVPB2Mk9-C_XeYkUgbmBzqTAyQGWA@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-Now that all the callers handle vm_brk failure we can change it
-wait for mmap_sem killable to help oom_reaper to not get blocked
-just because vm_brk gets blocked behind mmap_sem readers.
+load_elf_library doesn't handle vm_brk failure although nothing really
+indicates it cannot do that because the function is allowed to fail
+due to vm_mmap failures already. This might be not a problem now
+but later patch will make vm_brk killable (resp. mmap_sem for write
+waiting will become killable) and so the failure will be more probable.
 
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- include/linux/mm.h | 2 +-
- mm/mmap.c          | 9 +++------
- 2 files changed, 4 insertions(+), 7 deletions(-)
+ fs/binfmt_elf.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 4ee6a3561540..dccaea8682f2 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2077,7 +2077,7 @@ static inline void mm_populate(unsigned long addr, unsigned long len) {}
- #endif
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 7d914c67a9d0..2e45ae57ea88 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1176,8 +1176,11 @@ static int load_elf_library(struct file *file)
+ 	len = ELF_PAGESTART(eppnt->p_filesz + eppnt->p_vaddr +
+ 			    ELF_MIN_ALIGN - 1);
+ 	bss = eppnt->p_memsz + eppnt->p_vaddr;
+-	if (bss > len)
+-		vm_brk(len, bss - len);
++	if (bss > len) {
++		error = vm_brk(len, bss - len);
++		if (BAD_ADDR(error))
++			goto out_free_ph;
++	}
+ 	error = 0;
  
- /* These take the mm semaphore themselves */
--extern unsigned long vm_brk(unsigned long, unsigned long);
-+extern unsigned long __must_check vm_brk(unsigned long, unsigned long);
- extern int vm_munmap(unsigned long, size_t);
- extern unsigned long __must_check vm_mmap(struct file *, unsigned long,
-         unsigned long, unsigned long,
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 5d33c841e3a2..3f264fb14118 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -2718,12 +2718,9 @@ unsigned long vm_brk(unsigned long addr, unsigned long len)
- 	unsigned long ret;
- 	bool populate;
- 
--	/*
--	 * XXX not all users are chcecking the return value, convert
--	 * to down_write_killable after they are able to cope with
--	 * error
--	 */
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
-+
- 	ret = do_brk(addr, len);
- 	populate = ((mm->def_flags & VM_LOCKED) != 0);
- 	up_write(&mm->mmap_sem);
+ out_free_ph:
 -- 
 2.7.0
 
