@@ -1,7 +1,7 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 14/18] prctl: make PR_SET_THP_DISABLE wait for mmap_sem killable
-Date: Mon, 29 Feb 2016 14:26:53 +0100
-Message-ID: <1456752417-9626-15-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
+Date: Mon, 29 Feb 2016 14:26:52 +0100
+Message-ID: <1456752417-9626-14-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
@@ -12,32 +12,57 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
 
-PR_SET_THP_DISABLE requires mmap_sem for write. If the waiting
-task gets killed by the oom killer it would block oom_reaper from
-asynchronous address space reclaim and reduce the chances of timely OOM
-resolving. Wait for the lock in the killable mode and return with EINTR
-if the task got killed while waiting.
+setup_arg_pages requires mmap_sem for write. If the waiting task
+gets killed by the oom killer it would block oom_reaper from
+asynchronous address space reclaim and reduce the chances of timely
+OOM resolving. Wait for the lock in the killable mode and return with
+EINTR if the task got killed while waiting. All the callers are already
+handling error path and the fatal signal doesn't need any additional
+treatment.
 
-Cc: Alex Thorlton <athorlton@sgi.com>
+The same applies to __bprm_mm_init.
+
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- kernel/sys.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ fs/exec.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/sys.c b/kernel/sys.c
-index cf8ba545c7d3..89d5be418157 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -2246,7 +2246,8 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
- 	case PR_SET_THP_DISABLE:
- 		if (arg3 || arg4 || arg5)
- 			return -EINVAL;
--		down_write(&me->mm->mmap_sem);
-+		if (down_write_killable(&me->mm->mmap_sem))
-+			return -EINTR;
- 		if (arg2)
- 			me->mm->def_flags |= VM_NOHUGEPAGE;
- 		else
+diff --git a/fs/exec.c b/fs/exec.c
+index c4010b8207a1..29f2f22ae067 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
+ 	if (!vma)
+ 		return -ENOMEM;
+ 
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem)) {
++		err = -EINTR;
++		goto err_free;
++	}
+ 	vma->vm_mm = mm;
+ 
+ 	/*
+@@ -294,6 +297,7 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
+ 	return 0;
+ err:
+ 	up_write(&mm->mmap_sem);
++err_free:
+ 	bprm->vma = NULL;
+ 	kmem_cache_free(vm_area_cachep, vma);
+ 	return err;
+@@ -700,7 +704,9 @@ int setup_arg_pages(struct linux_binprm *bprm,
+ 		bprm->loader -= stack_shift;
+ 	bprm->exec -= stack_shift;
+ 
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
++
+ 	vm_flags = VM_STACK_FLAGS;
+ 
+ 	/*
 -- 
 2.7.0
 
