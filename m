@@ -1,7 +1,7 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 06/18] mm: make vm_brk killable
-Date: Mon, 29 Feb 2016 14:26:45 +0100
-Message-ID: <1456752417-9626-7-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 09/18] ipc, shm: make shmem attach/detach wait for mmap_sem killable
+Date: Mon, 29 Feb 2016 14:26:48 +0100
+Message-ID: <1456752417-9626-10-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
@@ -12,52 +12,46 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
 
-Now that all the callers handle vm_brk failure we can change it
-wait for mmap_sem killable to help oom_reaper to not get blocked
-just because vm_brk gets blocked behind mmap_sem readers.
+shmat and shmdt rely on mmap_sem for write. If the waiting task
+gets killed by the oom killer it would block oom_reaper from
+asynchronous address space reclaim and reduce the chances of timely
+OOM resolving. Wait for the lock in the killable mode and return with
+EINTR if the task got killed while waiting.
 
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Davidlohr Bueso <dave@stgolabs.net>
+Cc: Hugh Dickins <hughd@google.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- include/linux/mm.h | 2 +-
- mm/mmap.c          | 9 +++------
- 2 files changed, 4 insertions(+), 7 deletions(-)
+ ipc/shm.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 4ee6a3561540..dccaea8682f2 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2077,7 +2077,7 @@ static inline void mm_populate(unsigned long addr, unsigned long len) {}
- #endif
+diff --git a/ipc/shm.c b/ipc/shm.c
+index 331fc1b0b3c7..b8cfa05940d2 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -1200,7 +1200,11 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg, ulong *raddr,
+ 	if (err)
+ 		goto out_fput;
  
- /* These take the mm semaphore themselves */
--extern unsigned long vm_brk(unsigned long, unsigned long);
-+extern unsigned long __must_check vm_brk(unsigned long, unsigned long);
- extern int vm_munmap(unsigned long, size_t);
- extern unsigned long __must_check vm_mmap(struct file *, unsigned long,
-         unsigned long, unsigned long,
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 5d33c841e3a2..3f264fb14118 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -2718,12 +2718,9 @@ unsigned long vm_brk(unsigned long addr, unsigned long len)
- 	unsigned long ret;
- 	bool populate;
+-	down_write(&current->mm->mmap_sem);
++	if (down_write_killable(&current->mm->mmap_sem)) {
++		err = -EINVAL;
++		goto out_fput;
++	}
++
+ 	if (addr && !(shmflg & SHM_REMAP)) {
+ 		err = -EINVAL;
+ 		if (addr + size < addr)
+@@ -1271,7 +1275,8 @@ SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
+ 	if (addr & ~PAGE_MASK)
+ 		return retval;
  
--	/*
--	 * XXX not all users are chcecking the return value, convert
--	 * to down_write_killable after they are able to cope with
--	 * error
--	 */
 -	down_write(&mm->mmap_sem);
 +	if (down_write_killable(&mm->mmap_sem))
 +		return -EINTR;
-+
- 	ret = do_brk(addr, len);
- 	populate = ((mm->def_flags & VM_LOCKED) != 0);
- 	up_write(&mm->mmap_sem);
+ 
+ 	/*
+ 	 * This function tries to be smart and unmap shm segments that
 -- 
 2.7.0
 
