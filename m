@@ -1,38 +1,69 @@
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [RFC v2 3/7] firmware: port built-in section to linker table
-Date: Mon, 29 Feb 2016 19:56:06 +0100
-Message-ID: <20160229185606.GD25240@wotan.suse.de>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
- <1456740770.4666.366.camel@infradead.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 01/20] idle: Move x86ism out of generic code
+Date: Mon, 29 Feb 2016 20:35:41 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1602292026050.3638@nanos>
+References: <20160226164321.657646833@linutronix.de> <20160226182340.242063758@linutronix.de> <CAMzpN2j=Nb25x6UQqa6r3UbWgrrhoRb-72U+zOFVA7RrqQ0Z3A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1456740770.4666.366.camel@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, xen-devel@lists.xensource.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:42325 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751299AbcB2ThR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 14:37:17 -0500
+In-Reply-To: <CAMzpN2j=Nb25x6UQqa6r3UbWgrrhoRb-72U+zOFVA7RrqQ0Z3A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, Yoshinori Sato <ysato@users.sourceforge.jp>
 
-On Mon, Feb 29, 2016 at 10:12:50AM +0000, David Woodhouse wrote:
-> On Fri, 2016-02-19 at 05:45 -0800, Luis R. Rodriguez wrote:
-> > This ports built-in firmware to use linker tables,
-> > this replaces the custom section solution with a
-> > generic solution.
-> > 
-> > This also demos the use of the .rodata (SECTION_RO)
-> > linker tables.
-> > 
-> > Tested with 0 built-in firmware, 1 and 2 built-in
-> > firmwares successfully.
+On Sat, 27 Feb 2016, Brian Gerst wrote:
+> >         arch_cpu_idle_prepare();
+> >         cpu_idle_loop();
+> >  }
 > 
-> I think we'd do better to rip this support out entirely. It just isn't
-> needed; firmware can live in an initramfs and don't even need *any*
-> actual running userspace support to load it from there these days, do
-> we?
+> Does this actually work with stack protector enabled?
+> boot_init_stack_canary() is inlined while arch_cpu_idle_prepare() is
+> not.
 
-I think this is reasonable if and only if we really don't know of anyone
-out there not able to use initramfs. I'm happy to rip it out.
+Stupid me. No it does of course not. I could have sworn that I tested that,
+but obvioulsy not.
 
-  Luis
+I drop that patch, but actually the real question is whether we can drop that
+'#ifdef x86' around that boot_init_stack_canary() invocation.
+
+AFAICT, neither arm, arm64 nor mips and sh call it on anything else than the
+boot cpu. I can't see why that would be an issue on those architectures and
+why it would be a problem if the boot cpu calls it again here.
+
+CC'ed the relevant maintainers. Is there any issue with the patch below?
+
+Thanks,
+
+	tglx
+
+8<------------------
+
+--- a/kernel/sched/idle.c
++++ b/kernel/sched/idle.c
+@@ -276,12 +276,6 @@ static void cpu_idle_loop(void)
+ void cpu_startup_entry(enum cpuhp_state state)
+ {
+ 	/*
+-	 * This #ifdef needs to die, but it's too late in the cycle to
+-	 * make this generic (arm and sh have never invoked the canary
+-	 * init for the non boot cpus!). Will be fixed in 3.11
+-	 */
+-#ifdef CONFIG_X86
+-	/*
+ 	 * If we're the non-boot CPU, nothing set the stack canary up
+ 	 * for us. The boot CPU already has it initialized but no harm
+ 	 * in doing it again. This is a good place for updating it, as
+@@ -289,7 +283,7 @@ void cpu_startup_entry(enum cpuhp_state
+ 	 * canaries already on the stack wont ever trigger).
+ 	 */
+ 	boot_init_stack_canary();
+-#endif
++
+ 	arch_cpu_idle_prepare();
+ 	cpu_idle_loop();
+ }
