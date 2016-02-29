@@ -1,69 +1,44 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 01/20] idle: Move x86ism out of generic code
-Date: Mon, 29 Feb 2016 20:35:41 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1602292026050.3638@nanos>
-References: <20160226164321.657646833@linutronix.de> <20160226182340.242063758@linutronix.de> <CAMzpN2j=Nb25x6UQqa6r3UbWgrrhoRb-72U+zOFVA7RrqQ0Z3A@mail.gmail.com>
+From: Lawrence Crowl <Lawrence@Crowl.org>
+Subject: Re: [isocpp-parallel] Proposal for new memory_order_consume definition
+Date: Mon, 29 Feb 2016 11:38:33 -0800
+Message-ID: <CAA+UVZT9vK8CZdRr8P9=cDT6OhCz=zieHY81txnNdAAF4v_sPA@mail.gmail.com>
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+	<20160220021516.4898897.32908.5212@gmail.com>
+	<20160220195318.GF3522@linux.vnet.ibm.com>
+	<CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+	<20160227170615.GU3522@linux.vnet.ibm.com>
+	<CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
+	<20160227231033.GW3522@linux.vnet.ibm.com>
+	<20160228082702.GA300@x4>
+	<CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:42325 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751299AbcB2ThR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 14:37:17 -0500
-In-Reply-To: <CAMzpN2j=Nb25x6UQqa6r3UbWgrrhoRb-72U+zOFVA7RrqQ0Z3A@mail.gmail.com>
+Received: from mail-yk0-f180.google.com ([209.85.160.180]:32872 "EHLO
+	mail-yk0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753109AbcB2Tie (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 14:38:34 -0500
+In-Reply-To: <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brian Gerst <brgerst@gmail.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, Yoshinori Sato <ysato@users.sourceforge.jp>
+To: parallel@lists.isocpp.org
+Cc: Markus Trippelsdorf <markus@trippelsdorf.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Jade Alglave <j.alglave@ucl.ac.uk>, llvm-dev@lists.llvm.org, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 
-On Sat, 27 Feb 2016, Brian Gerst wrote:
-> >         arch_cpu_idle_prepare();
-> >         cpu_idle_loop();
-> >  }
-> 
-> Does this actually work with stack protector enabled?
-> boot_init_stack_canary() is inlined while arch_cpu_idle_prepare() is
-> not.
+On 2/28/16, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> The fact is, undefined compiler behavior is never a good idea. Not for
+> serious projects.
 
-Stupid me. No it does of course not. I could have sworn that I tested that,
-but obvioulsy not.
+Actually, undefined behavior is essential for serious projects, but
+not for the reasons mentioned.
 
-I drop that patch, but actually the real question is whether we can drop that
-'#ifdef x86' around that boot_init_stack_canary() invocation.
+If the language has no undefined behavior, then from the compiler's view,
+there is no such thing as a bad program.  All programs will compile and
+enter functional debug (possibly after shipping to customer).  On the
+other hand, a language with undefined behavior makes it possible for
+compilers (and their run-time support) to identify a program as wrong.
 
-AFAICT, neither arm, arm64 nor mips and sh call it on anything else than the
-boot cpu. I can't see why that would be an issue on those architectures and
-why it would be a problem if the boot cpu calls it again here.
+The problem with the latest spate of compiler optimizations was not the
+optimization, but the lack of warnings about exploiting undefined behavior.
 
-CC'ed the relevant maintainers. Is there any issue with the patch below?
-
-Thanks,
-
-	tglx
-
-8<------------------
-
---- a/kernel/sched/idle.c
-+++ b/kernel/sched/idle.c
-@@ -276,12 +276,6 @@ static void cpu_idle_loop(void)
- void cpu_startup_entry(enum cpuhp_state state)
- {
- 	/*
--	 * This #ifdef needs to die, but it's too late in the cycle to
--	 * make this generic (arm and sh have never invoked the canary
--	 * init for the non boot cpus!). Will be fixed in 3.11
--	 */
--#ifdef CONFIG_X86
--	/*
- 	 * If we're the non-boot CPU, nothing set the stack canary up
- 	 * for us. The boot CPU already has it initialized but no harm
- 	 * in doing it again. This is a good place for updating it, as
-@@ -289,7 +283,7 @@ void cpu_startup_entry(enum cpuhp_state
- 	 * canaries already on the stack wont ever trigger).
- 	 */
- 	boot_init_stack_canary();
--#endif
-+
- 	arch_cpu_idle_prepare();
- 	cpu_idle_loop();
- }
+-- 
+Lawrence Crowl
