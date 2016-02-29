@@ -1,181 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:32793 "EHLO
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:33731 "EHLO
 	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754240AbcB2N11 (ORCPT
+	with ESMTP id S1754222AbcB2N11 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:27 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for mmap_sem for write killable
-Date: Mon, 29 Feb 2016 14:26:49 +0100
-Message-ID: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 04/18] mm, aout: handle vm_brk failures
+Date: Mon, 29 Feb 2016 14:26:43 +0100
+Message-ID: <1456752417-9626-5-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160229132649.6kNs6z-mfALCNziH8IcTEGoXsmUQIWuwGMtGKUiOug0@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Ingo Molnar <mingo@redhat.com>, Alexander Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20160229132643.BU_qptufXWQQ-MJtJbafzkweRR7kbDZ6yaZOSJn322E@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-most architectures are relying on mmap_sem for write in their
-arch_setup_additional_pages. If the waiting task gets killed by the oom
-killer it would block oom_reaper from asynchronous address space reclaim
-and reduce the chances of timely OOM resolving. Wait for the lock in
-the killable mode and return with EINTR if the task got killed while
-waiting.
+vm_brk is allowed to fail but load_aout_binary simply ignores the error
+and happily continues. I haven't noticed any problem from that in real
+life but later patches will make the failure more likely because
+vm_brk will become killable (resp. mmap_sem for write waiting will become
+killable) so we should be more careful now.
 
-Cc: linux-arch@vger.kernel.org
-Cc: Andy Lutomirski <luto@amacapital.net>
+The error handling should be quite straightforward because there are
+calls to vm_mmap which check the error properly already. The only
+notable exception is set_brk which is called after beyond_if label.
+But nothing indicates that we cannot move it above set_binfmt as the two
+do not depend on each other and fail before we do set_binfmt and alter
+reference counting.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/arm/kernel/process.c          | 3 ++-
- arch/arm64/kernel/vdso.c           | 6 ++++--
- arch/hexagon/kernel/vdso.c         | 3 ++-
- arch/mips/kernel/vdso.c            | 3 ++-
- arch/powerpc/kernel/vdso.c         | 3 ++-
- arch/s390/kernel/vdso.c            | 3 ++-
- arch/sh/kernel/vsyscall/vsyscall.c | 4 +++-
- arch/x86/entry/vdso/vma.c          | 3 ++-
- arch/x86/um/vdso/vma.c             | 3 ++-
- 9 files changed, 21 insertions(+), 10 deletions(-)
+ arch/x86/ia32/ia32_aout.c | 22 +++++++++++++++-------
+ fs/binfmt_aout.c          |  9 +++++++--
+ 2 files changed, 22 insertions(+), 9 deletions(-)
 
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index 4adfb46e3ee9..94cccae090fa 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -420,7 +420,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	npages = 1; /* for sigpage */
- 	npages += vdso_total_pages;
+diff --git a/arch/x86/ia32/ia32_aout.c b/arch/x86/ia32/ia32_aout.c
+index ae6aad1d24f7..f5e737ff0022 100644
+--- a/arch/x86/ia32/ia32_aout.c
++++ b/arch/x86/ia32/ia32_aout.c
+@@ -116,13 +116,13 @@ static struct linux_binfmt aout_format = {
+ 	.min_coredump	= PAGE_SIZE
+ };
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	hint = sigpage_addr(mm, npages);
- 	addr = get_unmapped_area(NULL, hint, npages << PAGE_SHIFT, 0, 0);
- 	if (IS_ERR_VALUE(addr)) {
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 97bc68f4c689..d7423dfb4a4a 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -95,7 +95,8 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
- 	};
- 	void *ret;
+-static void set_brk(unsigned long start, unsigned long end)
++static unsigned long set_brk(unsigned long start, unsigned long end)
+ {
+ 	start = PAGE_ALIGN(start);
+ 	end = PAGE_ALIGN(end);
+ 	if (end <= start)
+-		return;
+-	vm_brk(start, end - start);
++		return start;
++	return vm_brk(start, end - start);
+ }
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	current->mm->context.vdso = (void *)addr;
+ #ifdef CONFIG_COREDUMP
+@@ -349,7 +349,10 @@ static int load_aout_binary(struct linux_binprm *bprm)
+ #endif
  
- 	/* Map vectors page at the high address. */
-@@ -163,7 +164,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
- 	/* Be sure to map the data page */
- 	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
- 	if (IS_ERR_VALUE(vdso_base)) {
- 		ret = ERR_PTR(vdso_base);
-diff --git a/arch/hexagon/kernel/vdso.c b/arch/hexagon/kernel/vdso.c
-index 0bf5a87e4d0a..3ea968415539 100644
---- a/arch/hexagon/kernel/vdso.c
-+++ b/arch/hexagon/kernel/vdso.c
-@@ -65,7 +65,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	unsigned long vdso_base;
- 	struct mm_struct *mm = current->mm;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	/* Try to get it loaded right near ld.so/glibc. */
- 	vdso_base = STACK_TOP;
-diff --git a/arch/mips/kernel/vdso.c b/arch/mips/kernel/vdso.c
-index 975e99759bab..54e1663ce639 100644
---- a/arch/mips/kernel/vdso.c
-+++ b/arch/mips/kernel/vdso.c
-@@ -104,7 +104,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	struct resource gic_res;
- 	int ret;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	/*
- 	 * Determine total area size. This includes the VDSO data itself, the
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index def1b8b5e6c1..6767605ea8da 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -195,7 +195,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	 * and end up putting it elsewhere.
- 	 * Add enough to the size so that the result can be aligned.
- 	 */
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, vdso_base,
- 				      (vdso_pages << PAGE_SHIFT) +
- 				      ((VDSO_ALIGNMENT - 1) & PAGE_MASK),
-diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
-index 94495cac8be3..5904abf6b1ae 100644
---- a/arch/s390/kernel/vdso.c
-+++ b/arch/s390/kernel/vdso.c
-@@ -216,7 +216,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	 * it at vdso_base which is the "natural" base for it, but we might
- 	 * fail and end up putting it elsewhere.
- 	 */
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, 0, vdso_pages << PAGE_SHIFT, 0, 0);
- 	if (IS_ERR_VALUE(vdso_base)) {
- 		rc = vdso_base;
-diff --git a/arch/sh/kernel/vsyscall/vsyscall.c b/arch/sh/kernel/vsyscall/vsyscall.c
-index ea2aa1393b87..cc0cc5b4ff18 100644
---- a/arch/sh/kernel/vsyscall/vsyscall.c
-+++ b/arch/sh/kernel/vsyscall/vsyscall.c
-@@ -64,7 +64,9 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	unsigned long addr;
- 	int ret;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
+ 		if (!bprm->file->f_op->mmap || (fd_offset & ~PAGE_MASK) != 0) {
+-			vm_brk(N_TXTADDR(ex), ex.a_text+ex.a_data);
++			error = vm_brk(N_TXTADDR(ex), ex.a_text+ex.a_data);
++			if (IS_ERR_VALUE(error))
++				return error;
 +
- 	addr = get_unmapped_area(NULL, 0, PAGE_SIZE, 0, 0);
- 	if (IS_ERR_VALUE(addr)) {
- 		ret = addr;
-diff --git a/arch/x86/entry/vdso/vma.c b/arch/x86/entry/vdso/vma.c
-index 10f704584922..69d861f67c47 100644
---- a/arch/x86/entry/vdso/vma.c
-+++ b/arch/x86/entry/vdso/vma.c
-@@ -174,7 +174,8 @@ static int map_vdso(const struct vdso_image *image, bool calculate_addr)
- 		addr = 0;
+ 			read_code(bprm->file, N_TXTADDR(ex), fd_offset,
+ 					ex.a_text+ex.a_data);
+ 			goto beyond_if;
+@@ -372,10 +375,13 @@ static int load_aout_binary(struct linux_binprm *bprm)
+ 		if (error != N_DATADDR(ex))
+ 			return error;
  	}
++
+ beyond_if:
+-	set_binfmt(&aout_format);
++	error = set_brk(current->mm->start_brk, current->mm->brk);
++	if (IS_ERR_VALUE(error))
++		return error;
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
+-	set_brk(current->mm->start_brk, current->mm->brk);
++	set_binfmt(&aout_format);
  
- 	addr = get_unmapped_area(NULL, addr,
- 				 image->size - image->sym_vvar_start, 0, 0);
-diff --git a/arch/x86/um/vdso/vma.c b/arch/x86/um/vdso/vma.c
-index 237c6831e095..6be22f991b59 100644
---- a/arch/x86/um/vdso/vma.c
-+++ b/arch/x86/um/vdso/vma.c
-@@ -61,7 +61,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	if (!vdso_enabled)
- 		return 0;
+ 	current->mm->start_stack =
+ 		(unsigned long)create_aout_tables((char __user *)bprm->p, bprm);
+@@ -434,7 +440,9 @@ static int load_aout_library(struct file *file)
+ 			error_time = jiffies;
+ 		}
+ #endif
+-		vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
++		retval = vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
++		if (IS_ERR_VALUE(retval))
++			goto out;
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
+ 		read_code(file, start_addr, N_TXTOFF(ex),
+ 			  ex.a_text + ex.a_data);
+diff --git a/fs/binfmt_aout.c b/fs/binfmt_aout.c
+index 4c556680fa74..5fb075f05706 100644
+--- a/fs/binfmt_aout.c
++++ b/fs/binfmt_aout.c
+@@ -297,7 +297,10 @@ static int load_aout_binary(struct linux_binprm * bprm)
+ 		}
  
- 	err = install_special_mapping(mm, um_vdso_addr, PAGE_SIZE,
- 		VM_READ|VM_EXEC|
+ 		if (!bprm->file->f_op->mmap||((fd_offset & ~PAGE_MASK) != 0)) {
+-			vm_brk(N_TXTADDR(ex), ex.a_text+ex.a_data);
++			error = vm_brk(N_TXTADDR(ex), ex.a_text+ex.a_data);
++			if (IS_ERR_VALUE(error))
++				return error;
++
+ 			read_code(bprm->file, N_TXTADDR(ex), fd_offset,
+ 				  ex.a_text + ex.a_data);
+ 			goto beyond_if;
+@@ -378,7 +381,9 @@ static int load_aout_library(struct file *file)
+ 			       "N_TXTOFF is not page aligned. Please convert library: %pD\n",
+ 			       file);
+ 		}
+-		vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
++		retval = vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
++		if (IS_ERR_VALUE(retval))
++			goto out;
+ 		
+ 		read_code(file, start_addr, N_TXTOFF(ex),
+ 			  ex.a_text + ex.a_data);
 -- 
 2.7.0
 
