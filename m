@@ -1,42 +1,89 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 08/18] mm, fork: make dup_mmap wait for mmap_sem for
- write killable
-Date: Mon, 29 Feb 2016 18:54:18 +0100
-Message-ID: <20160229175418.GD3615@redhat.com>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-9-git-send-email-mhocko@kernel.org>
+From: Linus Torvalds via llvm-dev <llvm-dev@lists.llvm.org>
+Subject: Re: [isocpp-parallel] Proposal for new
+	memory_order_consume definition
+Date: Mon, 29 Feb 2016 09:57:13 -0800
+Message-ID: <CA+55aFy0RnpxjK7e3ScHpvwesyuXz8AWaPaTy=4QbcPV7dRKqw@mail.gmail.com>
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+ <20160227170615.GU3522@linux.vnet.ibm.com>
+ <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
+ <20160227231033.GW3522@linux.vnet.ibm.com>
+ <20160228082702.GA300@x4>
+ <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
+ <alpine.LSU.2.20.1602291825401.20277@wotan.suse.de>
+Reply-To: Linus Torvalds <torvalds@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53638 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753252AbcB2RyZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 12:54:25 -0500
-Content-Disposition: inline
-In-Reply-To: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <llvm-dev-bounces@lists.llvm.org>
+In-Reply-To: <alpine.LSU.2.20.1602291825401.20277@wotan.suse.de>
+List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
+List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
+List-Post: <mailto:llvm-dev@lists.llvm.org>
+List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
+List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
+Errors-To: llvm-dev-bounces@lists.llvm.org
+Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
+To: Michael Matz <matz@suse.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Jade Alglave <j.alglave@ucl.ac.uk>, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Markus Trippelsdorf <markus@trippelsdorf.de>
+List-Id: linux-arch.vger.kernel.org
 
-On 02/29, Michal Hocko wrote:
->
-> --- a/kernel/fork.c
-> +++ b/kernel/fork.c
-> @@ -413,7 +413,10 @@ static int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
->  	unsigned long charge;
->  
->  	uprobe_start_dup_mmap();
-> -	down_write(&oldmm->mmap_sem);
-> +	if (down_write_killable(&oldmm->mmap_sem)) {
-> +		uprobe_end_dup_mmap();
-> +		return -EINTR;
-> +	}
-
-This is really cosmetic and subjective, I won't insist if you prefer it this way.
-
-But perhaps it makes sense to add another "fail" label above uprobe_end_dup_mmap()
-we already have... IMO it is always better to avoid duplicating when it comes to
-"unlock".
-
-Oleg.
+T24gTW9uLCBGZWIgMjksIDIwMTYgYXQgOTozNyBBTSwgTWljaGFlbCBNYXR6IDxtYXR6QHN1c2Uu
+ZGU+IHdyb3RlOgo+Cj5UaGUgaW1wb3J0YW50IHBhcnQgaXMgd2l0aCBpbmR1Y3Rpb24gdmFyaWFi
+bGVzIGNvbnRyb2xsaW5nCj4gbG9vcHM6Cj4KPiAgIHNob3J0IGk7ICBmb3IgKGkgPSBzdGFydDsg
+aSA8IGVuZDsgaSsrKQo+IHZzLgo+ICAgdW5zaWduZWQgc2hvcnQgdTsgZm9yICh1ID0gc3RhcnQ7
+IHUgPCBlbmQ7IHUrKykKPgo+IEZvciB0aGUgZm9ybWVyIHlvdSdyZSBhbGxvd2VkIHRvIGFzc3Vt
+ZSB0aGF0IHRoZSBsb29wIHdpbGwgdGVybWluYXRlLCBhbmQKPiB0aGF0IGl0cyBpdGVyYXRpb24g
+Y291bnQgaXMgZWFzaWx5IGNvbXB1dGFibGUuICBGb3IgdGhlIGxhdHRlciB5b3UgZ2V0Cj4gbW9k
+dWxvIGFyaXRobWV0aWMgYW5kIChpZiBzdGFydC9lbmQgYXJlIG9mIGxhcmdlciB0eXBlIHRoYW4g
+dSwgc2F5ICdpbnQnKQo+IGl0IG1pZ2h0IG5vdCBldmVuIHRlcm1pbmF0ZSBhdCBhbGwuICBUaGF0
+IGhhcyBkaXJlY3QgY29uc2VxdWVuY2VzIG9mCj4gdmVjdG9yaXphYmlsaXR5IG9mIHN1Y2ggbG9v
+cHMgKG9yIHByb2ZpdGFiaWxpdHkgb2Ygc3VjaCB0cmFuc2Zvcm1hdGlvbikKPiBhbmQgaGVuY2Ug
+cXVpdGUgaW1wb3J0YW50IHBlcmZvcm1hbmNlIGltcGxpY2F0aW9ucyBpbiBwcmFjdGljZS4KClN0
+b3AgYnVsbHNoaXR0aW5nIG1lLgoKSXQgd291bGQgZ2VuZXJhbGx5IGZvcmNlIHRoZSBjb21waWxl
+ciB0byBhZGQgYSBmZXcgZXh0cmEgY2hlY2tzIHdoZW4KeW91IGRvIHZlY3Rvcml6ZSAob3IsIG1v
+cmUgZ2VuZXJhbGx5LCBkbyBhbnkga2luZCBvZiBsb29wIHVucm9sbGluZyksCmFuZCB5ZXMsIGl0
+IHdvdWxkIG1ha2UgdGhpbmdzIHNsaWdodGx5IG1vcmUgcGFpbmZ1bC4gWW91IG1pZ2h0LCBmb3IK
+ZXhhbXBsZSwgbmVlZCB0byBhZGQgY29kZSB0byBoYW5kbGUgdGhlIHdyYXBhcm91bmQgYW5kIGhh
+dmUgYSBtb3JlCmNvbXBsZXggbm9uLXVucm9sbGVkIGhlYWQvdGFpbCB2ZXJzaW9uIGZvciB0aGF0
+IGNhc2UuCgpJbiB0aGVvcnkgeW91IGNvdWxkIGRvIGEgd2hvbGUgInJlc3RhcnQgdGhlIHVucm9s
+bGVkIGxvb3AgYXJvdW5kIHRoZQppbmRleCB3cmFwYXJvdW5kIiBpZiB5b3UgYWN0dWFsbHkgY2Fy
+ZWQgYWJvdXQgdGhlIHBlcmZvcm1hbmNlIG9mIHN1Y2gKYSBjYXNlIC0gYnV0IHNpbmNlIG5vYm9k
+eSB3b3VsZCBldmVyIGNhcmUgYWJvdXQgdGhhdCwgaXQncyBtb3JlIGxpa2VseQp0aGF0IHlvdSdk
+IGp1c3QgZG8gaXQgd2l0aCBhIG5vbi11bnJvbGxlZCBmYWxsYmFjayAod2hpY2ggd291bGQgbGlr
+ZWx5CmJlIGlkZW50aWNhbCB0byB0aGUgdGFpbCBmaXh1cCkuCgpJdCB3b3VsZCBiZSBwYWluZnVs
+LCB5ZXMuCgpCdXQgaXQgd291bGRuJ3QgYmUgZnVuZGFtZW50YWxseSBoYXJkLCBvciBodXJ0IGFj
+dHVhbCBwZXJmb3JtYW5jZSBmdW5kYW1lbnRhbGx5LgoKSXQgd291bGQgYmUgX2luY29udmVuaWVu
+dF8gZm9yIGNvbXBpbGVyIHdyaXRlcnMsIGFuZCB0aGUgYmFkIG9uZXMKd291bGQgYXJndWUgdmVo
+ZW1lbnRseSBhZ2FpbnN0IGl0LgoKLi4gYW5kIGl0J3MgaG93IGEgImdvIGZhc3QiIG1vZGUgd291
+bGQgYmUgaW1wbGVtZW50ZWQgYnkgYSBjb21waWxlcgp3cml0ZXIgaW5pdGlhbGx5IGFzIGEgY29t
+cGlsZXIgb3B0aW9uLCBmb3IgdGhvc2UgSFBDIHBlb3BsZS4gVGhlbiB5b3UKaGF2ZSBhIHVzZSBj
+YXNlIGFuZCBpbXBsZW1lbnRhdGlvbiBleGFtcGxlLCBhbmQgY2FuIGdvIHRvIHRoZQpzdGFuZGFy
+ZHMgYm9keSBhbmQgc2F5ICJsb29rLCB3ZSBoYXZlIHBlb3BsZSB3aG8gdXNlIHRoaXMgYWxyZWFk
+eSwgaXQKYnJlYWtzIGFsbW9zdCBubyBjb2RlLCBhbmQgaXQgbWFrZXMgb3VyIGNvbXBpbGVyIGFi
+bGUgdG8gZ2VuZXJhdGUgbXVjaApmYXN0ZXIgY29kZSIuCgpXaGljaCBpcyB3aHkgdGhlIHN0YW5k
+YXJkIHdhcyB3cml0dGVuIHRvIGJlIGdvb2QgZm9yIGNvbXBpbGVyIHdyaXRlcnMsCm5vdCBhY3R1
+YWwgdXNlcnMuCgpPZiBjb3Vyc2UsIGluIHJlYWwgbGlmZSBIUEMgcGVyZm9ybWFuY2UgaXMgb2Z0
+ZW4gbW9yZSBhYm91dCBkb2luZyB0aGUKY2FjaGUgYmxvY2tpbmcgZXRjLCBhbmQgSSd2ZSBzZWVu
+IHBlb3BsZSBtb3ZlIHRvIG1vcmUgcGFyYW1ldGVyaXplZApsYW5ndWFnZXMgcmF0aGVyIHRoYW4g
+QyB0byBnZXQgYmVzdCBwZXJmb3JtYW5jZS4gR2VuZXJhdGUgdGhlIGNvZGUKZnJvbSBhIG11Y2gg
+aGlnaGVyLWxldmVsIGRlc2NyaXB0aW9uLCBhbmQgYmUgYWJsZSB0byBkbyBhIG11Y2ggYmV0dGVy
+CmpvYiwgYW5kIGxlYXZlIEMgdG8gZG8gdGhlIGxvdy1sZXZlbCBqb2IsIGFuZCBsZXQgcGVvcGxl
+IGRvIHRoZQppbXBvcnRhbnQgcGFydC4KCkJ1dCBuby4gSW5zdGVhZCB0aGUgQyBjb21waWxlciBw
+ZW9wbGUgc3RpbGwgYXJndWUgZm9yIGJhZCBmZWF0dXJlcwp0aGF0IHdlcmUgYSBtaXNkZXNpZ24g
+YW5kIGEgd2FydCBvbiB0aGUgbGFuZ3VhZ2UuCgpBdCB0aGUgdmVyeSBsZWFzdCBpdCBzaG91bGQg
+aGF2ZSBiZWVuIGxlZnQgYXMgYSAiZ28gdW5zYWZlLCBnbyBmYXN0IgpvcHRpb24sIGFuZCBzdGFu
+ZGFyZGl6ZSAqdGhhdCosIGluc3RlYWQgb2Ygc2NyZXdpbmcgZXZlcnlib2R5IGVsc2UKb3Zlci4K
+ClRoZSBIUEMgcGVvcGxlIGVuZCB1cCBvZnRlbiB1c2luZyB0aG9zZSBhbnl3YXksIGJlY2F1c2Ug
+aXQgdHVybnMgb3V0CnRoYXQgdGhleSdsbCBoYXBwaWx5IGdldCByaWQgb2YgcHJvcGVyIHJvdW5k
+aW5nIGV0YyBpZiBpdCBidXlzIHRoZW0gYQpjb3VwbGUgb2YgcGVyY2VudCBvbiB0aGVpciB3b3Jr
+bG9hZC4gIFRoaW5ncyBsaWtlICJJIHJlYWxseSB3YW50IHlvdQp0byBnZW5lcmF0ZSBtdWx0aXBs
+eS1hY2N1bXVsYXRlIGluc3RydWN0aW9ucyBiZWNhdXNlIEkgZG9uJ3QgbWluZApoYXZpbmcgaW50
+ZXJtZWRpYXRlcyB3aXRoIGhpZ2hlciBwcmVjaXNpb24iIGV0Yy4KCiAgICAgICAgICAgICBMaW51
+cwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMTFZNIERl
+dmVsb3BlcnMgbWFpbGluZyBsaXN0Cmxsdm0tZGV2QGxpc3RzLmxsdm0ub3JnCmh0dHA6Ly9saXN0
+cy5sbHZtLm9yZy9jZ2ktYmluL21haWxtYW4vbGlzdGluZm8vbGx2bS1kZXYK
