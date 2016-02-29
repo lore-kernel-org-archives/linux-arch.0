@@ -1,7 +1,7 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
-Date: Mon, 29 Feb 2016 14:26:52 +0100
-Message-ID: <1456752417-9626-14-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 16/18] drm/i915: make i915_gem_mmap_ioctl wait for mmap_sem killable
+Date: Mon, 29 Feb 2016 14:26:55 +0100
+Message-ID: <1456752417-9626-17-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
@@ -12,57 +12,35 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
 
-setup_arg_pages requires mmap_sem for write. If the waiting task
-gets killed by the oom killer it would block oom_reaper from
-asynchronous address space reclaim and reduce the chances of timely
-OOM resolving. Wait for the lock in the killable mode and return with
-EINTR if the task got killed while waiting. All the callers are already
-handling error path and the fatal signal doesn't need any additional
-treatment.
+i915_gem_mmap_ioctl relies on mmap_sem for write. If the waiting
+task gets killed by the oom killer it would block oom_reaper from
+asynchronous address space reclaim and reduce the chances of timely OOM
+resolving. Wait for the lock in the killable mode and return with EINTR
+if the task got killed while waiting.
 
-The same applies to __bprm_mm_init.
-
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Daniel Vetter <daniel.vetter@intel.com>
+Cc: David Airlie <airlied@linux.ie>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- fs/exec.c | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+ drivers/gpu/drm/i915/i915_gem.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/fs/exec.c b/fs/exec.c
-index c4010b8207a1..29f2f22ae067 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
- 	if (!vma)
- 		return -ENOMEM;
+diff --git a/drivers/gpu/drm/i915/i915_gem.c b/drivers/gpu/drm/i915/i915_gem.c
+index f68f34606f2f..a50136cbd332 100644
+--- a/drivers/gpu/drm/i915/i915_gem.c
++++ b/drivers/gpu/drm/i915/i915_gem.c
+@@ -1754,7 +1754,10 @@ i915_gem_mmap_ioctl(struct drm_device *dev, void *data,
+ 		struct mm_struct *mm = current->mm;
+ 		struct vm_area_struct *vma;
  
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem)) {
-+		err = -EINTR;
-+		goto err_free;
-+	}
- 	vma->vm_mm = mm;
- 
- 	/*
-@@ -294,6 +297,7 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
- 	return 0;
- err:
- 	up_write(&mm->mmap_sem);
-+err_free:
- 	bprm->vma = NULL;
- 	kmem_cache_free(vm_area_cachep, vma);
- 	return err;
-@@ -700,7 +704,9 @@ int setup_arg_pages(struct linux_binprm *bprm,
- 		bprm->loader -= stack_shift;
- 	bprm->exec -= stack_shift;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
-+
- 	vm_flags = VM_STACK_FLAGS;
- 
- 	/*
+-		down_write(&mm->mmap_sem);
++		if (down_write_killable(&mm->mmap_sem)) {
++			drm_gem_object_unreference_unlocked(obj);
++			return -EINTR;
++		}
+ 		vma = find_vma(mm, addr);
+ 		if (vma)
+ 			vma->vm_page_prot =
 -- 
 2.7.0
 
