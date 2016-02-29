@@ -1,20 +1,18 @@
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 15/18] uprobes: wait for mmap_sem for write killable
-Date: Mon, 29 Feb 2016 18:12:11 +0100
-Message-ID: <20160229171211.GA3615@redhat.com>
+Subject: Re: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
+Date: Mon, 29 Feb 2016 18:23:34 +0100
+Message-ID: <20160229172333.GB3615@redhat.com>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-16-git-send-email-mhocko@kernel.org>
- <20160229155712.GA1964@redhat.com>
- <20160229162840.GH16930@dhcp22.suse.cz>
+ <1456752417-9626-14-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49163 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:46216 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750947AbcB2RMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 12:12:20 -0500
+	id S1750843AbcB2RXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Feb 2016 12:23:42 -0500
 Content-Disposition: inline
-In-Reply-To: <20160229162840.GH16930@dhcp22.suse.cz>
+In-Reply-To: <1456752417-9626-14-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>
@@ -22,25 +20,21 @@ Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.or
 
 On 02/29, Michal Hocko wrote:
 >
-> Ahh, I see. I didn't understand what is the purpose of the warning. Does
-> the following work for you?
-> ---
-> diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
-> index a79315d0f711..fb4a6bcc88ce 100644
-> --- a/kernel/events/uprobes.c
-> +++ b/kernel/events/uprobes.c
-> @@ -1470,7 +1470,8 @@ static void dup_xol_work(struct callback_head *work)
->  	if (current->flags & PF_EXITING)
->  		return;
->
-> -	if (!__create_xol_area(current->utask->dup_xol_addr))
-> +	if (!__create_xol_area(current->utask->dup_xol_addr) &&
-> +			!fatal_signal_pending(current)
->  		uprobe_warn(current, "dup xol area");
->  }
+> @@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
+>  	if (!vma)
+>  		return -ENOMEM;
+>  
+> -	down_write(&mm->mmap_sem);
+> +	if (down_write_killable(&mm->mmap_sem)) {
+> +		err = -EINTR;
+> +		goto err_free;
+> +	}
+>  	vma->vm_mm = mm;
 
-Yes, I think this is fine.
+I won't argue, but this looks unnecessary. Nobody else can see this new mm,
+down_write() can't block.
 
-Probably deserves a cleanup, but we can do it later.
+In fact I think we can just remove down_write/up_write here. Except perhaps
+there is lockdep_assert_held() somewhere in these paths.
 
 Oleg.
