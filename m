@@ -1,21 +1,25 @@
 From: kbuild test robot <lkp@intel.com>
-Subject: Re: [PATCH 01/18] mm: Make mmap_sem for write waits killable for mm
- syscalls
-Date: Mon, 29 Feb 2016 21:44:27 +0800
-Message-ID: <201602292152.f1UkUXsw%fengguang.wu@intel.com>
-References: <1456752417-9626-2-git-send-email-mhocko@kernel.org>
+Subject: Re: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for
+ mmap_sem for write killable
+Date: Mon, 29 Feb 2016 21:45:29 +0800
+Message-ID: <201602292105.AxEWbFGJ%fengguang.wu@intel.com>
+References: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="9amGYk9869ThD9tj"
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: multipart/mixed; boundary="wRRV7LY7NUeQGEoC"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:10462 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753545AbcB2Nqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Feb 2016 08:46:33 -0500
 Content-Disposition: inline
-In-Reply-To: <1456752417-9626-2-git-send-email-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
+In-Reply-To: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>
 Cc: kbuild-all@01.org, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>Oleg Nesterov <ol>
-List-Id: linux-arch.vger.kernel.org
 
 
---9amGYk9869ThD9tj
+--wRRV7LY7NUeQGEoC
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 
@@ -34,59 +38,35 @@ reproduce:
 
 All errors (new ones prefixed by >>):
 
-   mm/util.c: In function 'vm_mmap_pgoff':
->> mm/util.c:331:8: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
-       if (down_write_killable(&mm->mmap_sem))
-           ^
-   cc1: some warnings being treated as errors
---
-   mm/mlock.c: In function 'do_mlock':
->> mm/mlock.c:638:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
-     if (down_write_killable(&current->mm->mmap_sem))
-         ^
-   cc1: some warnings being treated as errors
---
-   mm/mmap.c: In function 'SYSC_brk':
->> mm/mmap.c:185:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
+   arch/x86/entry/vdso/vma.c: In function 'map_vdso':
+>> arch/x86/entry/vdso/vma.c:177:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
      if (down_write_killable(&mm->mmap_sem))
          ^
    cc1: some warnings being treated as errors
---
-   mm/mprotect.c: In function 'SYSC_mprotect':
->> mm/mprotect.c:381:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
-     if (down_write_killable(&current->mm->mmap_sem))
-         ^
-   cc1: some warnings being treated as errors
---
-   mm/mremap.c: In function 'SYSC_mremap':
->> mm/mremap.c:505:6: error: implicit declaration of function 'down_write_killable' [-Werror=implicit-function-declaration]
-     if (down_write_killable(&current->mm->mmap_sem))
-         ^
-   cc1: some warnings being treated as errors
 
-vim +/down_write_killable +331 mm/util.c
+vim +/down_write_killable +177 arch/x86/entry/vdso/vma.c
 
-   325		struct mm_struct *mm = current->mm;
-   326		unsigned long populate;
-   327	
-   328		ret = security_mmap_file(file, prot, flag);
-   329		if (!ret) {
-   330			if (killable) {
- > 331				if (down_write_killable(&mm->mmap_sem))
-   332					return -EINTR;
-   333			} else {
-   334				down_write(&mm->mmap_sem);
+   171			addr = vdso_addr(current->mm->start_stack,
+   172					 image->size - image->sym_vvar_start);
+   173		} else {
+   174			addr = 0;
+   175		}
+   176	
+ > 177		if (down_write_killable(&mm->mmap_sem))
+   178			return -EINTR;
+   179	
+   180		addr = get_unmapped_area(NULL, addr,
 
 ---
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
---9amGYk9869ThD9tj
+--wRRV7LY7NUeQGEoC
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename=".config.gz"
 Content-Transfer-Encoding: base64
 
-H4sICGFK1FYAAy5jb25maWcAjFxPd9u2st/3U+ikb3HvIo3tOG563vECIkEJFUHQAChb3vC4
+H4sICMJK1FYAAy5jb25maWcAjFxPd9u2st/3U+ikb3HvIo3tOG563vECIkEJFUHQAChb3vC4
 ttL61LF7Lbk3/fZvBiBFABwqLxuHmMH/wcxvZgD9+MOPM/a2f/l6t3+8v3t6+mf2+/Z5+3q3
 3z7Mvjw+bf93lqtZpeyM58L+BMzl4/Pbtw+PHz9fzM5/+vTTyfvX+4vZavv6vH2aZS/PXx5/
 f4Pajy/PP/wI3JmqCrFoL87nws4ed7Pnl/1st93/0JXffL5oP55d/hN8Dx+iMlY3mRWqanOe
@@ -646,10 +626,4 @@ hKp4Nd4DfwCRMzkJZ/EiXCVMPQj5CaaU9e5khhulyvMO/r61G5JI9Sft2F33rsdXS8A9U/Ej
 pZ5Ej5jzRtn8ae5ZtqbnWR7SeaqWvtY4C5WohvAj8KRVU7nFuHk17IFBitK+8bKP0MUPmRNz
 EPpxw5Bo9joFmk5FJNvrBqXAiWFhQowXz7zEn2sA+f9p6OtnA84BAA==
 
---9amGYk9869ThD9tj--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+--wRRV7LY7NUeQGEoC--
