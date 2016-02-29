@@ -1,49 +1,107 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 08/11] sparc, rwsem: provide __down_write_killable
-Date: Mon, 29 Feb 2016 13:58:22 +0100
-Message-ID: <1456750705-7141-9-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 11/11] locking, rwsem: provide down_write_killable
+Date: Mon, 29 Feb 2016 13:58:25 +0100
+Message-ID: <1456750705-7141-12-git-send-email-mhocko@kernel.org>
 References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36327 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752001AbcB2M6u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 07:58:50 -0500
 In-Reply-To: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
 
-which uses the same fast path as __down_write except it falls back to
-rwsem_down_write_failed_killable slow path and return -EINTR if killed.
+Now that all the architectures implement the necessary glue code
+we can introduce down_write_killable. The only difference wrt. regular
+down_write is that the slow path waits in TASK_KILLABLE state and the
+interruption by the fatal signal is reported as -EINTR to the caller.
 
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/sparc/include/asm/rwsem.h | 13 +++++++++++++
- 1 file changed, 13 insertions(+)
+ include/linux/lockdep.h | 15 +++++++++++++++
+ include/linux/rwsem.h   |  1 +
+ kernel/locking/rwsem.c  | 19 +++++++++++++++++++
+ 3 files changed, 35 insertions(+)
 
-diff --git a/arch/sparc/include/asm/rwsem.h b/arch/sparc/include/asm/rwsem.h
-index e5a0d575bc7f..c1e9e32e8b63 100644
---- a/arch/sparc/include/asm/rwsem.h
-+++ b/arch/sparc/include/asm/rwsem.h
-@@ -55,6 +55,19 @@ static inline void __down_write(struct rw_semaphore *sem)
- 		rwsem_down_write_failed(sem);
- }
+diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
+index d026b190c530..accfe56d8c51 100644
+--- a/include/linux/lockdep.h
++++ b/include/linux/lockdep.h
+@@ -444,6 +444,18 @@ do {								\
+ 	lock_acquired(&(_lock)->dep_map, _RET_IP_);			\
+ } while (0)
  
-+static inline int __down_write_killable(struct rw_semaphore *sem)
++#define LOCK_CONTENDED_RETURN(_lock, try, lock)			\
++({								\
++	int ____err = 0;					\
++	if (!try(_lock)) {					\
++		lock_contended(&(_lock)->dep_map, _RET_IP_);	\
++		____err = lock(_lock);				\
++	}							\
++	if (!____err)						\
++		lock_acquired(&(_lock)->dep_map, _RET_IP_);	\
++	____err;						\
++})
++
+ #else /* CONFIG_LOCK_STAT */
+ 
+ #define lock_contended(lockdep_map, ip) do {} while (0)
+@@ -452,6 +464,9 @@ do {								\
+ #define LOCK_CONTENDED(_lock, try, lock) \
+ 	lock(_lock)
+ 
++#define LOCK_CONTENDED_RETURN(_lock, try, lock) \
++	lock(_lock)
++
+ #endif /* CONFIG_LOCK_STAT */
+ 
+ #ifdef CONFIG_LOCKDEP
+diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
+index 7d7ae029dac5..d1c12d160ace 100644
+--- a/include/linux/rwsem.h
++++ b/include/linux/rwsem.h
+@@ -118,6 +118,7 @@ extern int down_read_trylock(struct rw_semaphore *sem);
+  * lock for writing
+  */
+ extern void down_write(struct rw_semaphore *sem);
++extern int __must_check down_write_killable(struct rw_semaphore *sem);
+ 
+ /*
+  * trylock for writing -- returns 1 if successful, 0 if contention
+diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
+index 205be0ce34de..c817216c1615 100644
+--- a/kernel/locking/rwsem.c
++++ b/kernel/locking/rwsem.c
+@@ -55,6 +55,25 @@ void __sched down_write(struct rw_semaphore *sem)
+ EXPORT_SYMBOL(down_write);
+ 
+ /*
++ * lock for writing
++ */
++int __sched down_write_killable(struct rw_semaphore *sem)
 +{
-+	long tmp;
++	might_sleep();
++	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_);
 +
-+	tmp = atomic64_add_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				  (atomic64_t *)(&sem->count));
-+	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
-+		if (IS_ERR(rwsem_down_write_failed_killable(sem)))
-+			return -EINTR;
++	if (LOCK_CONTENDED_RETURN(sem, __down_write_trylock, __down_write_killable)) {
++		rwsem_release(&sem->dep_map, 1, _RET_IP_);
++		return -EINTR;
++	}
 +
++	rwsem_set_owner(sem);
 +	return 0;
 +}
 +
- static inline int __down_write_trylock(struct rw_semaphore *sem)
- {
- 	long tmp;
++EXPORT_SYMBOL(down_write_killable);
++
++/*
+  * trylock for writing -- returns 1 if successful, 0 if contention
+  */
+ int down_write_trylock(struct rw_semaphore *sem)
 -- 
 2.7.0
-
