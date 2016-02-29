@@ -1,8 +1,8 @@
 From: James Y Knight via llvm-dev <llvm-dev@lists.llvm.org>
 Subject: Re: [isocpp-parallel] Proposal for new
  memory_order_consume definition
-Date: Mon, 29 Feb 2016 16:10:11 -0500
-Message-ID: <CAA2zVHoWMXS1JCzyMCV-ZQqtdAvDWUezShH42hrbAK4owhhmGw@mail.gmail.com>
+Date: Mon, 29 Feb 2016 16:12:41 -0500
+Message-ID: <CAA2zVHrqioevDtXZjcxXWCVxyr9sjrATVsV6a6Ne0nX1krykVw@mail.gmail.com>
 References: <20160218011033.GA1505@linux.vnet.ibm.com>
  <20160220021516.4898897.32908.5212@gmail.com>
  <20160220195318.GF3522@linux.vnet.ibm.com>
@@ -15,7 +15,8 @@ References: <20160218011033.GA1505@linux.vnet.ibm.com>
  <CAA+UVZT9vK8CZdRr8P9=cDT6OhCz=zieHY81txnNdAAF4v_sPA@mail.gmail.com>
 Reply-To: James Y Knight <jyknight@google.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============7178735686557785091=="
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <llvm-dev-bounces@lists.llvm.org>
 In-Reply-To: <CAA+UVZT9vK8CZdRr8P9=cDT6OhCz=zieHY81txnNdAAF4v_sPA@mail.gmail.com>
 List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
@@ -31,125 +32,43 @@ To: Lawrence Crowl <Lawrence@crowl.org>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, parallel@lists.isocpp.org, llvm-dev <llvm-dev@lists.llvm.org>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Jade Alglave <j.alglave@ucl.ac.uk>, Ingo Molnar <mingo@kernel.org>, Markus Trippelsdorf <markus@trippelsdorf.de>
 List-Id: linux-arch.vger.kernel.org
 
---===============7178735686557785091==
-Content-Type: multipart/alternative; boundary=089e0149d0200a7747052cef13df
-
---089e0149d0200a7747052cef13df
-Content-Type: text/plain; charset=UTF-8
-
-No, you really don't need undefined behavior in the standard in order to
-enable bug-finding.
-
-The standard could've (and still could...) make signed integer overflow "
-implementation-defined" rather than "undefined". Compilers would thus be
-required to have *some documented meaning* for it (e.g. wrap
-2's-complement, wrap 1's-complement, saturate to min/max, trap, or
-whatever...), but must not have the current "Anything goes! I can set your
-cat on fire if the optimizer feels like it today!" behavior.
-
-Such a change to the standard would not reduce any ability to do error
-checking, as compilers that want to be helpful could perfectly-well define
-it to trap at runtime when given certain compiler flags, and perfectly well
-warn you of your dependence upon unportable implementation-defined behavior
-(or, that your program is going to trap), at build-time.
-
-On Mon, Feb 29, 2016 at 2:38 PM, Lawrence Crowl via llvm-dev <
-llvm-dev@lists.llvm.org> wrote:
-
-> On 2/28/16, Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> > The fact is, undefined compiler behavior is never a good idea. Not for
-> > serious projects.
->
-> Actually, undefined behavior is essential for serious projects, but
-> not for the reasons mentioned.
->
-> If the language has no undefined behavior, then from the compiler's view,
-> there is no such thing as a bad program.  All programs will compile and
-> enter functional debug (possibly after shipping to customer).  On the
-> other hand, a language with undefined behavior makes it possible for
-> compilers (and their run-time support) to identify a program as wrong.
->
-> The problem with the latest spate of compiler optimizations was not the
-> optimization, but the lack of warnings about exploiting undefined behavior.
->
-> --
-> Lawrence Crowl
-> _______________________________________________
-> LLVM Developers mailing list
-> llvm-dev@lists.llvm.org
-> http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev
->
-
---089e0149d0200a7747052cef13df
-Content-Type: text/html; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-
-<div dir=3D"ltr">No, you really don&#39;t need undefined behavior in the st=
-andard in order to enable bug-finding.<div><br></div><div><div style=3D"fon=
-t-size:12.8px">The standard could&#39;ve (and still could...) make signed i=
-nteger overflow &quot;<span class=3D"">implementation</span>-<span class=3D=
-"">defined</span>&quot; rather than &quot;undefined&quot;. Compilers=C2=A0w=
-ould thus=C2=A0be required to have *some documented meaning* for it (e.g. w=
-rap 2&#39;s-complement, wrap 1&#39;s-complement, saturate to min/max, trap,=
- or whatever...), but must not have the current &quot;Anything goes! I can =
-set your cat on fire if the optimizer feels like it today!&quot; behavior.<=
-/div><div style=3D"font-size:12.8px"><span style=3D"font-size:12.8px"><br><=
-/span></div><div style=3D"font-size:12.8px"><span style=3D"font-size:12.8px=
-">Such a change to the standard</span><span style=3D"font-size:12.8px">=C2=
-=A0would not reduce any ability to do error checking, as compilers that wan=
-t to be helpful could perfectly-well define it to trap at runtime when give=
-n certain compiler flags, and perfectly well warn you of your dependence up=
-on unportable implementation-defined behavior (or, that your program is goi=
-ng to trap), at build-time.</span></div></div></div><div class=3D"gmail_ext=
-ra"><br><div class=3D"gmail_quote">On Mon, Feb 29, 2016 at 2:38 PM, Lawrenc=
-e Crowl via llvm-dev <span dir=3D"ltr">&lt;<a href=3D"mailto:llvm-dev@lists=
-.llvm.org" target=3D"_blank">llvm-dev@lists.llvm.org</a>&gt;</span> wrote:<=
-br><blockquote class=3D"gmail_quote" style=3D"margin:0 0 0 .8ex;border-left=
-:1px #ccc solid;padding-left:1ex"><span class=3D"">On 2/28/16, Linus Torval=
-ds &lt;<a href=3D"mailto:torvalds@linux-foundation.org">torvalds@linux-foun=
-dation.org</a>&gt; wrote:<br>
-&gt; The fact is, undefined compiler behavior is never a good idea. Not for=
-<br>
-&gt; serious projects.<br>
-<br>
-</span>Actually, undefined behavior is essential for serious projects, but<=
-br>
-not for the reasons mentioned.<br>
-<br>
-If the language has no undefined behavior, then from the compiler&#39;s vie=
-w,<br>
-there is no such thing as a bad program.=C2=A0 All programs will compile an=
-d<br>
-enter functional debug (possibly after shipping to customer).=C2=A0 On the<=
-br>
-other hand, a language with undefined behavior makes it possible for<br>
-compilers (and their run-time support) to identify a program as wrong.<br>
-<br>
-The problem with the latest spate of compiler optimizations was not the<br>
-optimization, but the lack of warnings about exploiting undefined behavior.=
-<br>
-<span class=3D"HOEnZb"><font color=3D"#888888"><br>
---<br>
-Lawrence Crowl<br>
-</font></span><div class=3D"HOEnZb"><div class=3D"h5">_____________________=
-__________________________<br>
-LLVM Developers mailing list<br>
-<a href=3D"mailto:llvm-dev@lists.llvm.org">llvm-dev@lists.llvm.org</a><br>
-<a href=3D"http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev" rel=3D"=
-noreferrer" target=3D"_blank">http://lists.llvm.org/cgi-bin/mailman/listinf=
-o/llvm-dev</a><br>
-</div></div></blockquote></div><br></div>
-
---089e0149d0200a7747052cef13df--
-
---===============7178735686557785091==
-Content-Type: text/plain; charset="utf-8"
-MIME-Version: 1.0
-Content-Transfer-Encoding: base64
-Content-Disposition: inline
-
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTExWTSBEZXZl
-bG9wZXJzIG1haWxpbmcgbGlzdApsbHZtLWRldkBsaXN0cy5sbHZtLm9yZwpodHRwOi8vbGlzdHMu
-bGx2bS5vcmcvY2dpLWJpbi9tYWlsbWFuL2xpc3RpbmZvL2xsdm0tZGV2Cg==
-
---===============7178735686557785091==--
+Tm8sIHlvdSByZWFsbHkgZG9uJ3QgbmVlZCB1bmRlZmluZWQgYmVoYXZpb3IgaW4gdGhlIHN0YW5k
+YXJkIGluIG9yZGVyCnRvIGVuYWJsZSBidWctZmluZGluZy4KClRoZSBzdGFuZGFyZCBjb3VsZCd2
+ZSAoYW5kIHN0aWxsIGNvdWxkLi4uKSBtYWtlIHNpZ25lZCBpbnRlZ2VyCm92ZXJmbG93ICJpbXBs
+ZW1lbnRhdGlvbi1kZWZpbmVkIiByYXRoZXIgdGhhbiAidW5kZWZpbmVkIi4gQ29tcGlsZXJzCndv
+dWxkIHRodXMgYmUgcmVxdWlyZWQgdG8gaGF2ZSAqc29tZSBkb2N1bWVudGVkIG1lYW5pbmcqIGZv
+ciBpdCAoZS5nLgp3cmFwIDIncy1jb21wbGVtZW50LCB3cmFwIDEncy1jb21wbGVtZW50LCBzYXR1
+cmF0ZSB0byBtaW4vbWF4LCB0cmFwLApvciB3aGF0ZXZlci4uLiksIGJ1dCBtdXN0IG5vdCBoYXZl
+IHRoZSBjdXJyZW50ICJBbnl0aGluZyBnb2VzISBJIGNhbgpzZXQgeW91ciBjYXQgb24gZmlyZSBp
+ZiB0aGUgb3B0aW1pemVyIGZlZWxzIGxpa2UgaXQgdG9kYXkhIiBiZWhhdmlvci4KClN1Y2ggYSBj
+aGFuZ2UgdG8gdGhlIHN0YW5kYXJkIHdvdWxkIG5vdCByZWR1Y2UgYW55IGFiaWxpdHkgdG8gZG8g
+ZXJyb3IKY2hlY2tpbmcsIGFzIGNvbXBpbGVycyB0aGF0IHdhbnQgdG8gYmUgaGVscGZ1bCBjb3Vs
+ZCBwZXJmZWN0bHktd2VsbApkZWZpbmUgaXQgdG8gdHJhcCBhdCBydW50aW1lIHdoZW4gZ2l2ZW4g
+Y2VydGFpbiBjb21waWxlciBmbGFncywgYW5kCnBlcmZlY3RseSB3ZWxsIHdhcm4geW91IG9mIHlv
+dXIgZGVwZW5kZW5jZSB1cG9uIHVucG9ydGFibGUKaW1wbGVtZW50YXRpb24tZGVmaW5lZCBiZWhh
+dmlvciAob3IsIHRoYXQgeW91ciBwcm9ncmFtIGlzIGdvaW5nIHRvCnRyYXApLCBhdCBidWlsZC10
+aW1lLgoKW1NlbmRpbmcgYWdhaW4gYXMgYSBwbGFpbi10ZXh0IGVtYWlsLCBzaW5jZSBhIGJ1bmNo
+IG9mIG1haWxpbmcgbGlzdHMKYXBwYXJlbnRseSBoYXRlIG9uIG11bHRpcGFydCBtZXNzYWdlcyB0
+aGF0IGV2ZW4gY29udGFpbiBhIHRleHQvaHRtbApwYXJ0Li4uXQoKT24gTW9uLCBGZWIgMjksIDIw
+MTYgYXQgMjozOCBQTSwgTGF3cmVuY2UgQ3Jvd2wgdmlhIGxsdm0tZGV2CjxsbHZtLWRldkBsaXN0
+cy5sbHZtLm9yZz4gd3JvdGU6Cj4gT24gMi8yOC8xNiwgTGludXMgVG9ydmFsZHMgPHRvcnZhbGRz
+QGxpbnV4LWZvdW5kYXRpb24ub3JnPiB3cm90ZToKPj4gVGhlIGZhY3QgaXMsIHVuZGVmaW5lZCBj
+b21waWxlciBiZWhhdmlvciBpcyBuZXZlciBhIGdvb2QgaWRlYS4gTm90IGZvcgo+PiBzZXJpb3Vz
+IHByb2plY3RzLgo+Cj4gQWN0dWFsbHksIHVuZGVmaW5lZCBiZWhhdmlvciBpcyBlc3NlbnRpYWwg
+Zm9yIHNlcmlvdXMgcHJvamVjdHMsIGJ1dAo+IG5vdCBmb3IgdGhlIHJlYXNvbnMgbWVudGlvbmVk
+Lgo+Cj4gSWYgdGhlIGxhbmd1YWdlIGhhcyBubyB1bmRlZmluZWQgYmVoYXZpb3IsIHRoZW4gZnJv
+bSB0aGUgY29tcGlsZXIncyB2aWV3LAo+IHRoZXJlIGlzIG5vIHN1Y2ggdGhpbmcgYXMgYSBiYWQg
+cHJvZ3JhbS4gIEFsbCBwcm9ncmFtcyB3aWxsIGNvbXBpbGUgYW5kCj4gZW50ZXIgZnVuY3Rpb25h
+bCBkZWJ1ZyAocG9zc2libHkgYWZ0ZXIgc2hpcHBpbmcgdG8gY3VzdG9tZXIpLiAgT24gdGhlCj4g
+b3RoZXIgaGFuZCwgYSBsYW5ndWFnZSB3aXRoIHVuZGVmaW5lZCBiZWhhdmlvciBtYWtlcyBpdCBw
+b3NzaWJsZSBmb3IKPiBjb21waWxlcnMgKGFuZCB0aGVpciBydW4tdGltZSBzdXBwb3J0KSB0byBp
+ZGVudGlmeSBhIHByb2dyYW0gYXMgd3JvbmcuCj4KPiBUaGUgcHJvYmxlbSB3aXRoIHRoZSBsYXRl
+c3Qgc3BhdGUgb2YgY29tcGlsZXIgb3B0aW1pemF0aW9ucyB3YXMgbm90IHRoZQo+IG9wdGltaXph
+dGlvbiwgYnV0IHRoZSBsYWNrIG9mIHdhcm5pbmdzIGFib3V0IGV4cGxvaXRpbmcgdW5kZWZpbmVk
+IGJlaGF2aW9yLgo+Cj4gLS0KPiBMYXdyZW5jZSBDcm93bAo+IF9fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fCj4gTExWTSBEZXZlbG9wZXJzIG1haWxpbmcgbGlz
+dAo+IGxsdm0tZGV2QGxpc3RzLmxsdm0ub3JnCj4gaHR0cDovL2xpc3RzLmxsdm0ub3JnL2NnaS1i
+aW4vbWFpbG1hbi9saXN0aW5mby9sbHZtLWRldgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fXwpMTFZNIERldmVsb3BlcnMgbWFpbGluZyBsaXN0Cmxsdm0tZGV2
+QGxpc3RzLmxsdm0ub3JnCmh0dHA6Ly9saXN0cy5sbHZtLm9yZy9jZ2ktYmluL21haWxtYW4vbGlz
+dGluZm8vbGx2bS1kZXYK
