@@ -1,11 +1,8 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 17/18] drm/radeon: make radeon_mn_get wait for mmap_sem killable
-Date: Mon, 29 Feb 2016 14:26:56 +0100
-Message-ID: <1456752417-9626-18-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 18/18] drm/amdgpu: make amdgpu_mn_get wait for mmap_sem killable
+Date: Mon, 29 Feb 2016 14:26:57 +0100
+Message-ID: <1456752417-9626-19-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: owner-linux-mm@kvack.org
@@ -15,42 +12,40 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
 
-radeon_mn_get which is called during ioct path relies on mmap_sem for
+amdgpu_mn_get which is called during ioct path relies on mmap_sem for
 write. If the waiting task gets killed by the oom killer it would block
 oom_reaper from asynchronous address space reclaim and reduce the
 chances of timely OOM resolving. Wait for the lock in the killable mode
 and return with EINTR if the task got killed while waiting.
 
-Cc: Alex Deucher <alexander.deucher@amd.com>
-Cc: "Christian K=C3=B6nig" <christian.koenig@amd.com>
 Cc: David Airlie <airlied@linux.ie>
+Cc: Alex Deucher <alexander.deucher@amd.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- drivers/gpu/drm/radeon/radeon_mn.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/gpu/drm/radeon/radeon_mn.c b/drivers/gpu/drm/radeon/=
-radeon_mn.c
-index eef006c48584..896f2cf51e4e 100644
---- a/drivers/gpu/drm/radeon/radeon_mn.c
-+++ b/drivers/gpu/drm/radeon/radeon_mn.c
-@@ -186,7 +186,9 @@ static struct radeon_mn *radeon_mn_get(struct radeon_=
-device *rdev)
- 	struct radeon_mn *rmn;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
+index d7ec9bd6755f..6f44f1c23be3 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
+@@ -181,7 +181,10 @@ static struct amdgpu_mn *amdgpu_mn_get(struct amdgpu_device *adev)
  	int r;
-=20
+ 
+ 	mutex_lock(&adev->mn_lock);
 -	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return ERR_PTR(-EINTR);
-+
- 	mutex_lock(&rdev->mn_lock);
-=20
- 	hash_for_each_possible(rdev->mn_hash, rmn, node, (unsigned long)mm)
---=20
++	if (down_write_killable(&mm->mmap_sem)) {
++		mutex_unlock(&adev->mn_lock);
++		return -EINTR;
++	}
+ 
+ 	hash_for_each_possible(adev->mn_hash, rmn, node, (unsigned long)mm)
+ 		if (rmn->mm == mm)
+-- 
 2.7.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
 the body to majordomo@kvack.org.  For more info on Linux MM,
 see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
