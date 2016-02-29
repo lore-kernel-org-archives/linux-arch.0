@@ -1,34 +1,56 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 0/18] change mmap_sem taken for write killable
-Date: Mon, 29 Feb 2016 14:31:53 +0100
-Message-ID: <20160229133153.GA16930@dhcp22.suse.cz>
+From: =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>
+Subject: Re: [PATCH 17/18] drm/radeon: make radeon_mn_get wait for mmap_sem
+ killable
+Date: Mon, 29 Feb 2016 14:35:55 +0100
+Message-ID: <56D4493B.7010004@amd.com>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-18-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset="utf-8"; Format="flowed"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <1456752417-9626-18-git-send-email-mhocko@kernel.org>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon 29-02-16 14:26:39, Michal Hocko wrote:
-[...]
-> As this work is touching more areas which are not directly connected I
-> have tried to keep the CC list as small as possible and people who I
-> believed would be familiar are CCed only to the specific patches (all
-> should have received the cover though).
-
-Damnt it. I thought that git-send-email will not use the same CC list
-for all patches and use it only for the cover if the particular patches
-have their CC list. I am sorry for the excessive spamming!
--- 
-Michal Hocko
-SUSE Labs
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+W0Ryb3BwaW5nIENDaW5nIHRoZSBpbmRpdmlkdWFsIHBlb3BsZSwgYnV0IGFkZGluZyB0aGUgZHJp
+LWRldmVsIG1haWxpbmcgCmxpc3QgYXMgd2VsbCBpbnN0ZWFkXS4KCkFtIDI5LjAyLjIwMTYgdW0g
+MTQ6MjYgc2NocmllYiBNaWNoYWwgSG9ja286Cj4gRnJvbTogTWljaGFsIEhvY2tvIDxtaG9ja29A
+c3VzZS5jb20+Cj4KPiByYWRlb25fbW5fZ2V0IHdoaWNoIGlzIGNhbGxlZCBkdXJpbmcgaW9jdCBw
+YXRoIHJlbGllcyBvbiBtbWFwX3NlbSBmb3IKPiB3cml0ZS4gSWYgdGhlIHdhaXRpbmcgdGFzayBn
+ZXRzIGtpbGxlZCBieSB0aGUgb29tIGtpbGxlciBpdCB3b3VsZCBibG9jawo+IG9vbV9yZWFwZXIg
+ZnJvbSBhc3luY2hyb25vdXMgYWRkcmVzcyBzcGFjZSByZWNsYWltIGFuZCByZWR1Y2UgdGhlCj4g
+Y2hhbmNlcyBvZiB0aW1lbHkgT09NIHJlc29sdmluZy4gV2FpdCBmb3IgdGhlIGxvY2sgaW4gdGhl
+IGtpbGxhYmxlIG1vZGUKPiBhbmQgcmV0dXJuIHdpdGggRUlOVFIgaWYgdGhlIHRhc2sgZ290IGtp
+bGxlZCB3aGlsZSB3YWl0aW5nLgo+Cj4gQ2M6IEFsZXggRGV1Y2hlciA8YWxleGFuZGVyLmRldWNo
+ZXJAYW1kLmNvbT4KPiBDYzogIkNocmlzdGlhbiBLw7ZuaWciIDxjaHJpc3RpYW4ua29lbmlnQGFt
+ZC5jb20+Cj4gQ2M6IERhdmlkIEFpcmxpZSA8YWlybGllZEBsaW51eC5pZT4KPiBTaWduZWQtb2Zm
+LWJ5OiBNaWNoYWwgSG9ja28gPG1ob2Nrb0BzdXNlLmNvbT4KClRoaXMgb25lIGFuZCBwYXRjaCAj
+MTggaW4gdGhpcyBzZXJpZXMgYXJlIFJldmlld2VkLWJ5OiBDaHJpc3RpYW4gS8O2bmlnIAo8Y2hy
+aXN0aWFuLmtvZW5pZ0BhbWQuY29tPi4KCk5pY2UgdG8gc2VlIHNvbWUgaW1wcm92ZW1lbnRzIG9u
+IHRoaXMgc2lkZSwKQ2hyaXN0aWFuLgoKPiAtLS0KPiAgIGRyaXZlcnMvZ3B1L2RybS9yYWRlb24v
+cmFkZW9uX21uLmMgfCA0ICsrKy0KPiAgIDEgZmlsZSBjaGFuZ2VkLCAzIGluc2VydGlvbnMoKyks
+IDEgZGVsZXRpb24oLSkKPgo+IGRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3Jh
+ZGVvbl9tbi5jIGIvZHJpdmVycy9ncHUvZHJtL3JhZGVvbi9yYWRlb25fbW4uYwo+IGluZGV4IGVl
+ZjAwNmM0ODU4NC4uODk2ZjJjZjUxZTRlIDEwMDY0NAo+IC0tLSBhL2RyaXZlcnMvZ3B1L2RybS9y
+YWRlb24vcmFkZW9uX21uLmMKPiArKysgYi9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3JhZGVvbl9t
+bi5jCj4gQEAgLTE4Niw3ICsxODYsOSBAQCBzdGF0aWMgc3RydWN0IHJhZGVvbl9tbiAqcmFkZW9u
+X21uX2dldChzdHJ1Y3QgcmFkZW9uX2RldmljZSAqcmRldikKPiAgIAlzdHJ1Y3QgcmFkZW9uX21u
+ICpybW47Cj4gICAJaW50IHI7Cj4gICAKPiAtCWRvd25fd3JpdGUoJm1tLT5tbWFwX3NlbSk7Cj4g
+KwlpZiAoZG93bl93cml0ZV9raWxsYWJsZSgmbW0tPm1tYXBfc2VtKSkKPiArCQlyZXR1cm4gRVJS
+X1BUUigtRUlOVFIpOwo+ICsKPiAgIAltdXRleF9sb2NrKCZyZGV2LT5tbl9sb2NrKTsKPiAgIAo+
+ICAgCWhhc2hfZm9yX2VhY2hfcG9zc2libGUocmRldi0+bW5faGFzaCwgcm1uLCBub2RlLCAodW5z
+aWduZWQgbG9uZyltbSkKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fCmRyaS1kZXZlbCBtYWlsaW5nIGxpc3QKZHJpLWRldmVsQGxpc3RzLmZyZWVkZXNrdG9w
+Lm9yZwpodHRwczovL2xpc3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1k
+ZXZlbAo=
