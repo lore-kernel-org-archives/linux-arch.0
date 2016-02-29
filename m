@@ -1,73 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:34018 "EHLO
-	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754677AbcB2N1h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:37 -0500
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:32906 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754751AbcB2N1l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:41 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
-Date: Mon, 29 Feb 2016 14:26:52 +0100
-Message-ID: <1456752417-9626-14-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 18/18] drm/amdgpu: make amdgpu_mn_get wait for mmap_sem killable
+Date: Mon, 29 Feb 2016 14:26:57 +0100
+Message-ID: <1456752417-9626-19-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160229132652.eaUZFbYoX-ldyZBYAdgFiEUGs2GY-a7SqC8VtuuUh98@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160229132657.DDwa4LXji5FAm8vFJE-21K6U0ohp0EPst0o5kL8xIeU@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-setup_arg_pages requires mmap_sem for write. If the waiting task
-gets killed by the oom killer it would block oom_reaper from
-asynchronous address space reclaim and reduce the chances of timely
-OOM resolving. Wait for the lock in the killable mode and return with
-EINTR if the task got killed while waiting. All the callers are already
-handling error path and the fatal signal doesn't need any additional
-treatment.
+amdgpu_mn_get which is called during ioct path relies on mmap_sem for
+write. If the waiting task gets killed by the oom killer it would block
+oom_reaper from asynchronous address space reclaim and reduce the
+chances of timely OOM resolving. Wait for the lock in the killable mode
+and return with EINTR if the task got killed while waiting.
 
-The same applies to __bprm_mm_init.
-
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: David Airlie <airlied@linux.ie>
+Cc: Alex Deucher <alexander.deucher@amd.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- fs/exec.c | 10 ++++++++--
- 1 file changed, 8 insertions(+), 2 deletions(-)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/fs/exec.c b/fs/exec.c
-index c4010b8207a1..29f2f22ae067 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
- 	if (!vma)
- 		return -ENOMEM;
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
+index d7ec9bd6755f..6f44f1c23be3 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
+@@ -181,7 +181,10 @@ static struct amdgpu_mn *amdgpu_mn_get(struct amdgpu_device *adev)
+ 	int r;
  
+ 	mutex_lock(&adev->mn_lock);
 -	down_write(&mm->mmap_sem);
 +	if (down_write_killable(&mm->mmap_sem)) {
-+		err = -EINTR;
-+		goto err_free;
-+	}
- 	vma->vm_mm = mm;
- 
- 	/*
-@@ -294,6 +297,7 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
- 	return 0;
- err:
- 	up_write(&mm->mmap_sem);
-+err_free:
- 	bprm->vma = NULL;
- 	kmem_cache_free(vm_area_cachep, vma);
- 	return err;
-@@ -700,7 +704,9 @@ int setup_arg_pages(struct linux_binprm *bprm,
- 		bprm->loader -= stack_shift;
- 	bprm->exec -= stack_shift;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
++		mutex_unlock(&adev->mn_lock);
 +		return -EINTR;
-+
- 	vm_flags = VM_STACK_FLAGS;
++	}
  
- 	/*
+ 	hash_for_each_possible(adev->mn_hash, rmn, node, (unsigned long)mm)
+ 		if (rmn->mm == mm)
 -- 
 2.7.0
 
