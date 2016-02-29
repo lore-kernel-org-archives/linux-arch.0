@@ -1,52 +1,51 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 05/18] mm, elf: handle vm_brk error
-Date: Mon, 29 Feb 2016 14:26:44 +0100
-Message-ID: <1456752417-9626-6-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 08/18] mm, fork: make dup_mmap wait for mmap_sem for write killable
+Date: Mon, 29 Feb 2016 14:26:47 +0100
+Message-ID: <1456752417-9626-9-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:33941 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754044AbcB2N1Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:24 -0500
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.or>
-List-Id: linux-arch.vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 
 From: Michal Hocko <mhocko@suse.com>
 
-load_elf_library doesn't handle vm_brk failure although nothing really
-indicates it cannot do that because the function is allowed to fail
-due to vm_mmap failures already. This might be not a problem now
-but later patch will make vm_brk killable (resp. mmap_sem for write
-waiting will become killable) and so the failure will be more probable.
+dup_mmap needs to lock current's mm mmap_sem for write. If the waiting
+task gets killed by the oom killer it would block oom_reaper from
+asynchronous address space reclaim and reduce the chances of timely OOM
+resolving. Wait for the lock in the killable mode and return with EINTR
+if the task got killed while waiting.
 
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- fs/binfmt_elf.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ kernel/fork.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 7d914c67a9d0..2e45ae57ea88 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1176,8 +1176,11 @@ static int load_elf_library(struct file *file)
- 	len = ELF_PAGESTART(eppnt->p_filesz + eppnt->p_vaddr +
- 			    ELF_MIN_ALIGN - 1);
- 	bss = eppnt->p_memsz + eppnt->p_vaddr;
--	if (bss > len)
--		vm_brk(len, bss - len);
-+	if (bss > len) {
-+		error = vm_brk(len, bss - len);
-+		if (BAD_ADDR(error))
-+			goto out_free_ph;
-+	}
- 	error = 0;
+diff --git a/kernel/fork.c b/kernel/fork.c
+index d277e83ed3e0..e064bc8453dc 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -413,7 +413,10 @@ static int dup_mmap(struct mm_struct *mm, struct mm_struct *oldmm)
+ 	unsigned long charge;
  
- out_free_ph:
+ 	uprobe_start_dup_mmap();
+-	down_write(&oldmm->mmap_sem);
++	if (down_write_killable(&oldmm->mmap_sem)) {
++		uprobe_end_dup_mmap();
++		return -EINTR;
++	}
+ 	flush_cache_dup_mm(oldmm);
+ 	uprobe_dup_mmap(oldmm, mm);
+ 	/*
 -- 
 2.7.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
