@@ -1,176 +1,63 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 02/11] locking, rwsem: drop explicit memory barriers
-Date: Mon, 29 Feb 2016 13:58:16 +0100
-Message-ID: <1456750705-7141-3-git-send-email-mhocko@kernel.org>
-References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
+Subject: [PATCH 0/11] introduce down_write_killable for rw_semaphore
+Date: Mon, 29 Feb 2016 13:58:14 +0100
+Message-ID: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:34366 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752532AbcB2M6e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 07:58:34 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
 
-From: Michal Hocko <mhocko@suse.com>
+Hi,
+I have posted this series [1] and there didn't seem to be any
+fundamental objections except for x86 maintainers who preferred the asm
+__down_write implementation which I have reworked for this series. Apart
+from that I have refreshed on top of the current linux-next and fixed
+one unused variable warning which happened to trigger a compilation
+failure on ppc.
 
-sh and xtensa seem to be the only architectures which use explicit
-memory barriers for rw_semaphore operations even though they are not
-really needed because there is the full memory barrier is always implied
-by atomic_{inc,dec,add,sub}_return resp. cmpxchg. Remove them.
+The following patchset implements a killable variant of write lock for
+rw_semaphore. My usecase is to turn as many mmap_sem write users to use
+a killable variant which will be helpful for the oom_reaper [2] to
+asynchronously tear down the oom victim address space which requires
+mmap_sem for read. This will reduce a likelihood of OOM livelocks caused
+by oom victim being stuck on a lock or other resource which prevents it
+to reach its exit path and release the memory. I haven't implemented
+the killable variant of the read lock because I do not have any usecase
+for this API.
 
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/sh/include/asm/rwsem.h     | 14 ++------------
- arch/xtensa/include/asm/rwsem.h | 14 ++------------
- 2 files changed, 4 insertions(+), 24 deletions(-)
+The patchset is organized as follows.
+- Patch 1 is a trivial cleanup
+- Patch 2, I belive, shouldn't introduce any functional changes as per
+  Documentation/memory-barriers.txt.
+- Patch 3 is the preparatory work and necessary infrastructure for
+  down_write_killable. It implements generic __down_write_killable
+  and prepares the write lock slow path to bail out earlier when told so
+- Patch 4-1- are implementing arch specific __down_write_killable. One
+  patch per architecture.
+- finally patch 11 implements down_write_killable and ties everything
+  together. I am not really an expert on lockdep so I hope I got it right.
 
-diff --git a/arch/sh/include/asm/rwsem.h b/arch/sh/include/asm/rwsem.h
-index a5104bebd1eb..f6c951c7a875 100644
---- a/arch/sh/include/asm/rwsem.h
-+++ b/arch/sh/include/asm/rwsem.h
-@@ -24,9 +24,7 @@
-  */
- static inline void __down_read(struct rw_semaphore *sem)
- {
--	if (atomic_inc_return((atomic_t *)(&sem->count)) > 0)
--		smp_wmb();
--	else
-+	if (atomic_inc_return((atomic_t *)(&sem->count)) <= 0)
- 		rwsem_down_read_failed(sem);
- }
- 
-@@ -37,7 +35,6 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- 	while ((tmp = sem->count) >= 0) {
- 		if (tmp == cmpxchg(&sem->count, tmp,
- 				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			smp_wmb();
- 			return 1;
- 		}
- 	}
-@@ -53,9 +50,7 @@ static inline void __down_write(struct rw_semaphore *sem)
- 
- 	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
- 				(atomic_t *)(&sem->count));
--	if (tmp == RWSEM_ACTIVE_WRITE_BIAS)
--		smp_wmb();
--	else
-+	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
- 		rwsem_down_write_failed(sem);
- }
- 
-@@ -65,7 +60,6 @@ static inline int __down_write_trylock(struct rw_semaphore *sem)
- 
- 	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
- 		      RWSEM_ACTIVE_WRITE_BIAS);
--	smp_wmb();
- 	return tmp == RWSEM_UNLOCKED_VALUE;
- }
- 
-@@ -76,7 +70,6 @@ static inline void __up_read(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_dec_return((atomic_t *)(&sem->count));
- 	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
- 		rwsem_wake(sem);
-@@ -87,7 +80,6 @@ static inline void __up_read(struct rw_semaphore *sem)
-  */
- static inline void __up_write(struct rw_semaphore *sem)
- {
--	smp_wmb();
- 	if (atomic_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
- 			      (atomic_t *)(&sem->count)) < 0)
- 		rwsem_wake(sem);
-@@ -108,7 +100,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_add_return(-RWSEM_WAITING_BIAS, (atomic_t *)(&sem->count));
- 	if (tmp < 0)
- 		rwsem_downgrade_wake(sem);
-@@ -119,7 +110,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
-  */
- static inline int rwsem_atomic_update(int delta, struct rw_semaphore *sem)
- {
--	smp_mb();
- 	return atomic_add_return(delta, (atomic_t *)(&sem->count));
- }
- 
-diff --git a/arch/xtensa/include/asm/rwsem.h b/arch/xtensa/include/asm/rwsem.h
-index 249619e7e7f2..593483f6e1ff 100644
---- a/arch/xtensa/include/asm/rwsem.h
-+++ b/arch/xtensa/include/asm/rwsem.h
-@@ -29,9 +29,7 @@
-  */
- static inline void __down_read(struct rw_semaphore *sem)
- {
--	if (atomic_add_return(1,(atomic_t *)(&sem->count)) > 0)
--		smp_wmb();
--	else
-+	if (atomic_add_return(1,(atomic_t *)(&sem->count)) <= 0)
- 		rwsem_down_read_failed(sem);
- }
- 
-@@ -42,7 +40,6 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- 	while ((tmp = sem->count) >= 0) {
- 		if (tmp == cmpxchg(&sem->count, tmp,
- 				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			smp_wmb();
- 			return 1;
- 		}
- 	}
-@@ -58,9 +55,7 @@ static inline void __down_write(struct rw_semaphore *sem)
- 
- 	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
- 				(atomic_t *)(&sem->count));
--	if (tmp == RWSEM_ACTIVE_WRITE_BIAS)
--		smp_wmb();
--	else
-+	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
- 		rwsem_down_write_failed(sem);
- }
- 
-@@ -70,7 +65,6 @@ static inline int __down_write_trylock(struct rw_semaphore *sem)
- 
- 	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
- 		      RWSEM_ACTIVE_WRITE_BIAS);
--	smp_wmb();
- 	return tmp == RWSEM_UNLOCKED_VALUE;
- }
- 
-@@ -81,7 +75,6 @@ static inline void __up_read(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_sub_return(1,(atomic_t *)(&sem->count));
- 	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
- 		rwsem_wake(sem);
-@@ -92,7 +85,6 @@ static inline void __up_read(struct rw_semaphore *sem)
-  */
- static inline void __up_write(struct rw_semaphore *sem)
- {
--	smp_wmb();
- 	if (atomic_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
- 			      (atomic_t *)(&sem->count)) < 0)
- 		rwsem_wake(sem);
-@@ -113,7 +105,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_add_return(-RWSEM_WAITING_BIAS, (atomic_t *)(&sem->count));
- 	if (tmp < 0)
- 		rwsem_downgrade_wake(sem);
-@@ -124,7 +115,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
-  */
- static inline int rwsem_atomic_update(int delta, struct rw_semaphore *sem)
- {
--	smp_mb();
- 	return atomic_add_return(delta, (atomic_t *)(&sem->count));
- }
- 
--- 
-2.7.0
+Many of arch specific patches are basically same and I can squash them
+into one patch if this is preferred but I thought that one patch per
+arch is preferable.
 
+My patch to change mmap_sem write users to killable form is not part of
+the series because it is a larger change and I would like to prevent
+from spamming people too much. I will post the series shortly.
+
+I have tested on x86 with OOM situations with high mmap_sem contention
+(basically many parallel page faults racing with many parallel mmap/munmap
+tight loops) so the waiters for the write locks are routinely interrupted
+by SIGKILL.
+
+Patches should apply cleanly on both Linus and next tree.
+
+[1] http://lkml.kernel.org/r/1454444369-2146-1-git-send-email-mhocko@kernel.org
+[2] http://lkml.kernel.org/r/1452094975-551-1-git-send-email-mhocko@kernel.org
+
+Any feedback is highly appreciated.
