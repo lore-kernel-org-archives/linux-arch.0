@@ -1,58 +1,60 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Subject: Re: [PATCH 12/18] aio: make aio_setup_ring killable
-Date: Mon, 29 Feb 2016 11:17:31 -0500
-Message-ID: <x491t7vmqxw.fsf@segfault.boston.devel.redhat.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 15/18] uprobes: wait for mmap_sem for write killable
+Date: Mon, 29 Feb 2016 17:28:40 +0100
+Message-ID: <20160229162840.GH16930@dhcp22.suse.cz>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
-	<1456752417-9626-13-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-16-git-send-email-mhocko@kernel.org>
+ <20160229155712.GA1964@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52212 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751979AbcB2QRh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 11:17:37 -0500
-In-Reply-To: <1456752417-9626-13-git-send-email-mhocko@kernel.org> (Michal
-	Hocko's message of "Mon, 29 Feb 2016 14:26:51 +0100")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?utf-8?Q?K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>Pe
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20160229155712.GA1964@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-Michal Hocko <mhocko@kernel.org> writes:
+On Mon 29-02-16 16:57:13, Oleg Nesterov wrote:
+> On 02/29, Michal Hocko wrote:
+> >
+> > --- a/kernel/events/uprobes.c
+> > +++ b/kernel/events/uprobes.c
+> > @@ -1130,7 +1130,9 @@ static int xol_add_vma(struct mm_struct *mm, struct xol_area *area)
+> >  	struct vm_area_struct *vma;
+> >  	int ret;
+> >
+> > -	down_write(&mm->mmap_sem);
+> > +	if (down_write_killable(&mm->mmap_sem))
+> > +		return -EINTR;
+> > +
+> 
+> Yes, but then dup_xol_work() should probably check fatal_signal_pending() to
+> suppress uprobe_warn(), the warning looks like a kernel problem.
 
-> From: Michal Hocko <mhocko@suse.com>
->
-> aio_setup_ring waits for mmap_sem in writable mode. If the waiting
-> task gets killed by the oom killer it would block oom_reaper from
-> asynchronous address space reclaim and reduce the chances of timely
-> OOM resolving. Wait for the lock in the killable mode and return with
-> EINTR if the task got killed while waiting. This will also expedite
-> the return to the userspace and do_exit.
->
-> Cc: Benjamin LaHaise <bcrl@kvack.org>
-> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
->  fs/aio.c | 7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
->
-> diff --git a/fs/aio.c b/fs/aio.c
-> index 56bcdf4105f4..1c2e7e2c1b2b 100644
-> --- a/fs/aio.c
-> +++ b/fs/aio.c
-> @@ -520,7 +520,12 @@ static int aio_setup_ring(struct kioctx *ctx)
->  	ctx->mmap_size = nr_pages * PAGE_SIZE;
->  	pr_debug("attempting mmap of %lu bytes\n", ctx->mmap_size);
->  
-> -	down_write(&mm->mmap_sem);
-> +	if (down_write_killable(&mm->mmap_sem)) {
-> +		ctx->mmap_size = 0;
-> +		aio_free_ring(ctx);
-> +		return -EINTR;
-> +	}
-> +
->  	ctx->mmap_base = do_mmap_pgoff(ctx->aio_ring_file, 0, ctx->mmap_size,
->  				       PROT_READ | PROT_WRITE,
->  				       MAP_SHARED, 0, &unused);
+Ahh, I see. I didn't understand what is the purpose of the warning. Does
+the following work for you?
+---
+diff --git a/kernel/events/uprobes.c b/kernel/events/uprobes.c
+index a79315d0f711..fb4a6bcc88ce 100644
+--- a/kernel/events/uprobes.c
++++ b/kernel/events/uprobes.c
+@@ -1470,7 +1470,8 @@ static void dup_xol_work(struct callback_head *work)
+ 	if (current->flags & PF_EXITING)
+ 		return;
+ 
+-	if (!__create_xol_area(current->utask->dup_xol_addr))
++	if (!__create_xol_area(current->utask->dup_xol_addr) &&
++			!fatal_signal_pending(current)
+ 		uprobe_warn(current, "dup xol area");
+ }
+ 
+-- 
+Michal Hocko
+SUSE Labs
 
-Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
