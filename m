@@ -1,58 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41991 "EHLO mx1.redhat.com"
+Received: from mx2.suse.de ([195.135.220.15]:49165 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751070AbcB2SK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Feb 2016 13:10:29 -0500
-Date: Mon, 29 Feb 2016 19:10:19 +0100
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 13/18] exec: make exec path waiting for mmap_sem killable
-Message-ID: <20160229181018.GF3615@redhat.com>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-14-git-send-email-mhocko@kernel.org>
- <20160229172333.GB3615@redhat.com>
- <20160229174739.GL16930@dhcp22.suse.cz>
+	id S1750957AbcB2S4Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Feb 2016 13:56:16 -0500
+Date: Mon, 29 Feb 2016 19:56:06 +0100
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [RFC v2 3/7] firmware: port built-in section to linker table
+Message-ID: <20160229185606.GD25240@wotan.suse.de>
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
+ <1456740770.4666.366.camel@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160229174739.GL16930@dhcp22.suse.cz>
+In-Reply-To: <1456740770.4666.366.camel@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160229181019.h-9WSwO_7BtA-d66zeYc9mmMo8PAflBK0ZXUpj4HkMU@z>
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, xen-devel@lists.xensource.com
+Message-ID: <20160229185606.263iu4rJLsWd1HURye_b_DrLpOZSsqurVl6ihBWQ_XA@z>
 
-On 02/29, Michal Hocko wrote:
->
-> On Mon 29-02-16 18:23:34, Oleg Nesterov wrote:
-> > On 02/29, Michal Hocko wrote:
-> > >
-> > > @@ -267,7 +267,10 @@ static int __bprm_mm_init(struct linux_binprm *bprm)
-> > >  	if (!vma)
-> > >  		return -ENOMEM;
-> > >
-> > > -	down_write(&mm->mmap_sem);
-> > > +	if (down_write_killable(&mm->mmap_sem)) {
-> > > +		err = -EINTR;
-> > > +		goto err_free;
-> > > +	}
-> > >  	vma->vm_mm = mm;
-> >
-> > I won't argue, but this looks unnecessary. Nobody else can see this new mm,
-> > down_write() can't block.
-> >
-> > In fact I think we can just remove down_write/up_write here. Except perhaps
-> > there is lockdep_assert_held() somewhere in these paths.
->
-> This is what I had initially but then I've noticed that mm_alloc() does
-> mm_init(current)->init_new_context(current)
+On Mon, Feb 29, 2016 at 10:12:50AM +0000, David Woodhouse wrote:
+> On Fri, 2016-02-19 at 05:45 -0800, Luis R. Rodriguez wrote:
+> > This ports built-in firmware to use linker tables,
+> > this replaces the custom section solution with a
+> > generic solution.
+> > 
+> > This also demos the use of the .rodata (SECTION_RO)
+> > linker tables.
+> > 
+> > Tested with 0 built-in firmware, 1 and 2 built-in
+> > firmwares successfully.
+> 
+> I think we'd do better to rip this support out entirely. It just isn't
+> needed; firmware can live in an initramfs and don't even need *any*
+> actual running userspace support to load it from there these days, do
+> we?
 
-yes, and init_new_context() is arch dependant...
+I think this is reasonable if and only if we really don't know of anyone
+out there not able to use initramfs. I'm happy to rip it out.
 
-> code doesn't seem much harder to follow, the callers are already
-> handling all error paths so I guess it would be better to simply move on
-> this.
-
-Yes, agreed, please forget.
-
-Oleg.
-
+  Luis
