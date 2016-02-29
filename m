@@ -1,147 +1,181 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:33708 "EHLO
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:32793 "EHLO
 	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750861AbcB2N1N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:13 -0500
+	with ESMTP id S1754240AbcB2N11 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 08:27:27 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 02/18] mm: make vm_mmap killable
-Date: Mon, 29 Feb 2016 14:26:41 +0100
-Message-ID: <1456752417-9626-3-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for mmap_sem for write killable
+Date: Mon, 29 Feb 2016 14:26:49 +0100
+Message-ID: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160229132641.Z24jMt0NgryxmzP5T0_DqcKgpDgm0n0wB4IoLzq_MeQ@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?q?Christian=20K=C3=B6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160229132649.6kNs6z-mfALCNziH8IcTEGoXsmUQIWuwGMtGKUiOug0@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-All the callers of vm_mmap seem to check for the failure already
-and bail out in one way or another on the error which means that
-we can change it to use killable version of vm_mmap_pgoff and return
--EINTR if the current task gets killed while waiting for mmap_sem.
-This also means that vm_mmap_pgoff can be killable by default and
-drop the additional parameter.
+most architectures are relying on mmap_sem for write in their
+arch_setup_additional_pages. If the waiting task gets killed by the oom
+killer it would block oom_reaper from asynchronous address space reclaim
+and reduce the chances of timely OOM resolving. Wait for the lock in
+the killable mode and return with EINTR if the task got killed while
+waiting.
 
-This will help in the OOM conditions when the oom victim might be stuck
-waiting for the mmap_sem for write which in turn can block oom_reaper
-which relies on the mmap_sem for read to make a forward progress
-and reclaim the address space of the victim.
-
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Mel Gorman <mgorman@suse.de>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: linux-arch@vger.kernel.org
+Cc: Andy Lutomirski <luto@amacapital.net>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- include/linux/mm.h |  2 +-
- mm/internal.h      |  3 +--
- mm/mmap.c          |  2 +-
- mm/nommu.c         |  2 +-
- mm/util.c          | 13 ++++---------
- 5 files changed, 8 insertions(+), 14 deletions(-)
+ arch/arm/kernel/process.c          | 3 ++-
+ arch/arm64/kernel/vdso.c           | 6 ++++--
+ arch/hexagon/kernel/vdso.c         | 3 ++-
+ arch/mips/kernel/vdso.c            | 3 ++-
+ arch/powerpc/kernel/vdso.c         | 3 ++-
+ arch/s390/kernel/vdso.c            | 3 ++-
+ arch/sh/kernel/vsyscall/vsyscall.c | 4 +++-
+ arch/x86/entry/vdso/vma.c          | 3 ++-
+ arch/x86/um/vdso/vma.c             | 3 ++-
+ 9 files changed, 21 insertions(+), 10 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 8a84cf07da8c..4ee6a3561540 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2079,7 +2079,7 @@ static inline void mm_populate(unsigned long addr, unsigned long len) {}
- /* These take the mm semaphore themselves */
- extern unsigned long vm_brk(unsigned long, unsigned long);
- extern int vm_munmap(unsigned long, size_t);
--extern unsigned long vm_mmap(struct file *, unsigned long,
-+extern unsigned long __must_check vm_mmap(struct file *, unsigned long,
-         unsigned long, unsigned long,
-         unsigned long, unsigned long);
+diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
+index 4adfb46e3ee9..94cccae090fa 100644
+--- a/arch/arm/kernel/process.c
++++ b/arch/arm/kernel/process.c
+@@ -420,7 +420,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	npages = 1; /* for sigpage */
+ 	npages += vdso_total_pages;
  
-diff --git a/mm/internal.h b/mm/internal.h
-index 26576cb3247e..d8d4c32bfce4 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -446,8 +446,7 @@ extern u32 hwpoison_filter_enable;
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 	hint = sigpage_addr(mm, npages);
+ 	addr = get_unmapped_area(NULL, hint, npages << PAGE_SHIFT, 0, 0);
+ 	if (IS_ERR_VALUE(addr)) {
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 97bc68f4c689..d7423dfb4a4a 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -95,7 +95,8 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
+ 	};
+ 	void *ret;
  
- extern unsigned long  __must_check vm_mmap_pgoff(struct file *, unsigned long,
-         unsigned long, unsigned long,
--        unsigned long, unsigned long,
--        bool);
-+        unsigned long, unsigned long);
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 	current->mm->context.vdso = (void *)addr;
  
- extern void set_pageblock_order(void);
- unsigned long reclaim_clean_pages_from_list(struct zone *zone,
-diff --git a/mm/mmap.c b/mm/mmap.c
-index a8ea76c22bb6..4e1f852a52ff 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1337,7 +1337,7 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
+ 	/* Map vectors page at the high address. */
+@@ -163,7 +164,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	/* Be sure to map the data page */
+ 	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
  
- 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
- 
--	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff, true);
-+	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff);
- out_fput:
- 	if (file)
- 		fput(file);
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 50b1d32921c2..de8b6b6580c1 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -1448,7 +1448,7 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
- 
- 	flags &= ~(MAP_EXECUTABLE | MAP_DENYWRITE);
- 
--	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff, true);
-+	retval = vm_mmap_pgoff(file, addr, len, prot, flags, pgoff);
- 
- 	if (file)
- 		fput(file);
-diff --git a/mm/util.c b/mm/util.c
-index 98eeec742254..0e383fe48145 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -319,7 +319,7 @@ EXPORT_SYMBOL_GPL(get_user_pages_fast);
- 
- unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot,
--	unsigned long flag, unsigned long pgoff, bool killable)
-+	unsigned long flag, unsigned long pgoff)
- {
- 	unsigned long ret;
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
+ 	if (IS_ERR_VALUE(vdso_base)) {
+ 		ret = ERR_PTR(vdso_base);
+diff --git a/arch/hexagon/kernel/vdso.c b/arch/hexagon/kernel/vdso.c
+index 0bf5a87e4d0a..3ea968415539 100644
+--- a/arch/hexagon/kernel/vdso.c
++++ b/arch/hexagon/kernel/vdso.c
+@@ -65,7 +65,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	unsigned long vdso_base;
  	struct mm_struct *mm = current->mm;
-@@ -327,12 +327,8 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
  
- 	ret = security_mmap_file(file, prot, flag);
- 	if (!ret) {
--		if (killable) {
--			if (down_write_killable(&mm->mmap_sem))
--				return -EINTR;
--		} else {
--			down_write(&mm->mmap_sem);
--		}
-+		if (down_write_killable(&mm->mmap_sem))
-+			return -EINTR;
- 		ret = do_mmap_pgoff(file, addr, len, prot, flag, pgoff,
- 				    &populate);
- 		up_write(&mm->mmap_sem);
-@@ -342,7 +338,6 @@ unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
- 	return ret;
- }
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
  
--/* XXX are all callers checking an error */
- unsigned long vm_mmap(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot,
- 	unsigned long flag, unsigned long offset)
-@@ -352,7 +347,7 @@ unsigned long vm_mmap(struct file *file, unsigned long addr,
- 	if (unlikely(offset_in_page(offset)))
- 		return -EINVAL;
+ 	/* Try to get it loaded right near ld.so/glibc. */
+ 	vdso_base = STACK_TOP;
+diff --git a/arch/mips/kernel/vdso.c b/arch/mips/kernel/vdso.c
+index 975e99759bab..54e1663ce639 100644
+--- a/arch/mips/kernel/vdso.c
++++ b/arch/mips/kernel/vdso.c
+@@ -104,7 +104,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	struct resource gic_res;
+ 	int ret;
  
--	return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT, false);
-+	return vm_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
- }
- EXPORT_SYMBOL(vm_mmap);
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
  
+ 	/*
+ 	 * Determine total area size. This includes the VDSO data itself, the
+diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
+index def1b8b5e6c1..6767605ea8da 100644
+--- a/arch/powerpc/kernel/vdso.c
++++ b/arch/powerpc/kernel/vdso.c
+@@ -195,7 +195,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	 * and end up putting it elsewhere.
+ 	 * Add enough to the size so that the result can be aligned.
+ 	 */
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 	vdso_base = get_unmapped_area(NULL, vdso_base,
+ 				      (vdso_pages << PAGE_SHIFT) +
+ 				      ((VDSO_ALIGNMENT - 1) & PAGE_MASK),
+diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
+index 94495cac8be3..5904abf6b1ae 100644
+--- a/arch/s390/kernel/vdso.c
++++ b/arch/s390/kernel/vdso.c
+@@ -216,7 +216,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	 * it at vdso_base which is the "natural" base for it, but we might
+ 	 * fail and end up putting it elsewhere.
+ 	 */
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 	vdso_base = get_unmapped_area(NULL, 0, vdso_pages << PAGE_SHIFT, 0, 0);
+ 	if (IS_ERR_VALUE(vdso_base)) {
+ 		rc = vdso_base;
+diff --git a/arch/sh/kernel/vsyscall/vsyscall.c b/arch/sh/kernel/vsyscall/vsyscall.c
+index ea2aa1393b87..cc0cc5b4ff18 100644
+--- a/arch/sh/kernel/vsyscall/vsyscall.c
++++ b/arch/sh/kernel/vsyscall/vsyscall.c
+@@ -64,7 +64,9 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	unsigned long addr;
+ 	int ret;
+ 
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
++
+ 	addr = get_unmapped_area(NULL, 0, PAGE_SIZE, 0, 0);
+ 	if (IS_ERR_VALUE(addr)) {
+ 		ret = addr;
+diff --git a/arch/x86/entry/vdso/vma.c b/arch/x86/entry/vdso/vma.c
+index 10f704584922..69d861f67c47 100644
+--- a/arch/x86/entry/vdso/vma.c
++++ b/arch/x86/entry/vdso/vma.c
+@@ -174,7 +174,8 @@ static int map_vdso(const struct vdso_image *image, bool calculate_addr)
+ 		addr = 0;
+ 	}
+ 
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 
+ 	addr = get_unmapped_area(NULL, addr,
+ 				 image->size - image->sym_vvar_start, 0, 0);
+diff --git a/arch/x86/um/vdso/vma.c b/arch/x86/um/vdso/vma.c
+index 237c6831e095..6be22f991b59 100644
+--- a/arch/x86/um/vdso/vma.c
++++ b/arch/x86/um/vdso/vma.c
+@@ -61,7 +61,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	if (!vdso_enabled)
+ 		return 0;
+ 
+-	down_write(&mm->mmap_sem);
++	if (down_write_killable(&mm->mmap_sem))
++		return -EINTR;
+ 
+ 	err = install_special_mapping(mm, um_vdso_addr, PAGE_SIZE,
+ 		VM_READ|VM_EXEC|
 -- 
 2.7.0
 
