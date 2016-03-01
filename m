@@ -1,74 +1,41 @@
-From: James Y Knight via llvm-dev <llvm-dev@lists.llvm.org>
-Subject: Re: [isocpp-parallel] Proposal for new
- memory_order_consume definition
-Date: Mon, 29 Feb 2016 16:12:41 -0500
-Message-ID: <CAA2zVHrqioevDtXZjcxXWCVxyr9sjrATVsV6a6Ne0nX1krykVw@mail.gmail.com>
-References: <20160218011033.GA1505@linux.vnet.ibm.com>
- <20160220021516.4898897.32908.5212@gmail.com>
- <20160220195318.GF3522@linux.vnet.ibm.com>
- <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
- <20160227170615.GU3522@linux.vnet.ibm.com>
- <CA+55aFyHmykKc=YybJMo9ZUO352MY5noJVB4-K1Lkjmw4UHXfA@mail.gmail.com>
- <20160227231033.GW3522@linux.vnet.ibm.com>
- <20160228082702.GA300@x4>
- <CA+55aFyauwKmUdxfrKcy5Q2kvdej5fWt6xL+amVyPFhzmHMcsg@mail.gmail.com>
- <CAA+UVZT9vK8CZdRr8P9=cDT6OhCz=zieHY81txnNdAAF4v_sPA@mail.gmail.com>
-Reply-To: James Y Knight <jyknight@google.com>
+From: Simon Horman <simon.horman@netronome.com>
+Subject: Re: [PATCH] asm-generic: remove old nonatomic-io wrapper files
+Date: Tue, 1 Mar 2016 09:13:42 +0900
+Message-ID: <20160301001338.GA14413@vergenet.net>
+References: <1456496980-1852604-1-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <llvm-dev-bounces@lists.llvm.org>
-In-Reply-To: <CAA+UVZT9vK8CZdRr8P9=cDT6OhCz=zieHY81txnNdAAF4v_sPA@mail.gmail.com>
-List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
- <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
-List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
-List-Post: <mailto:llvm-dev@lists.llvm.org>
-List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
-List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
- <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
-Errors-To: llvm-dev-bounces@lists.llvm.org
-Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
-To: Lawrence Crowl <Lawrence@crowl.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, parallel@lists.isocpp.org, llvm-dev <llvm-dev@lists.llvm.org>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Luc Maranget <luc.maranget@inria.fr>, Andrew Morton <akpm@linux-foundation.org>, Jade Alglave <j.alglave@ucl.ac.uk>, Ingo Molnar <mingo@kernel.org>, Markus Trippelsdorf <markus@trippelsdorf.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f181.google.com ([209.85.192.181]:35109 "EHLO
+	mail-pf0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751665AbcCAAOC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 19:14:02 -0500
+Received: by mail-pf0-f181.google.com with SMTP id w128so56288719pfb.2
+        for <linux-arch@vger.kernel.org>; Mon, 29 Feb 2016 16:14:01 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <1456496980-1852604-1-git-send-email-arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>, linux-arm-kernel@lists.infradead.org, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Rolf Neugebauer <rolf.neugebauer@netronome.com>, "David S. Miller" <davem@davemloft.net>, Yisen Zhuang <yisen.zhuang@huawei.com>, yankejian <yankejian@huawei.com>, kenneth Lee <liguozhu@hisilicon.com>, huangdaode <huangdaode@hisilicon.com>, lipeng <lipeng321@huawei.com>, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, netdev@vger.kernel.org, oss-drivers@netronome.com, linux-arch@vger.kernel.org
 
-Tm8sIHlvdSByZWFsbHkgZG9uJ3QgbmVlZCB1bmRlZmluZWQgYmVoYXZpb3IgaW4gdGhlIHN0YW5k
-YXJkIGluIG9yZGVyCnRvIGVuYWJsZSBidWctZmluZGluZy4KClRoZSBzdGFuZGFyZCBjb3VsZCd2
-ZSAoYW5kIHN0aWxsIGNvdWxkLi4uKSBtYWtlIHNpZ25lZCBpbnRlZ2VyCm92ZXJmbG93ICJpbXBs
-ZW1lbnRhdGlvbi1kZWZpbmVkIiByYXRoZXIgdGhhbiAidW5kZWZpbmVkIi4gQ29tcGlsZXJzCndv
-dWxkIHRodXMgYmUgcmVxdWlyZWQgdG8gaGF2ZSAqc29tZSBkb2N1bWVudGVkIG1lYW5pbmcqIGZv
-ciBpdCAoZS5nLgp3cmFwIDIncy1jb21wbGVtZW50LCB3cmFwIDEncy1jb21wbGVtZW50LCBzYXR1
-cmF0ZSB0byBtaW4vbWF4LCB0cmFwLApvciB3aGF0ZXZlci4uLiksIGJ1dCBtdXN0IG5vdCBoYXZl
-IHRoZSBjdXJyZW50ICJBbnl0aGluZyBnb2VzISBJIGNhbgpzZXQgeW91ciBjYXQgb24gZmlyZSBp
-ZiB0aGUgb3B0aW1pemVyIGZlZWxzIGxpa2UgaXQgdG9kYXkhIiBiZWhhdmlvci4KClN1Y2ggYSBj
-aGFuZ2UgdG8gdGhlIHN0YW5kYXJkIHdvdWxkIG5vdCByZWR1Y2UgYW55IGFiaWxpdHkgdG8gZG8g
-ZXJyb3IKY2hlY2tpbmcsIGFzIGNvbXBpbGVycyB0aGF0IHdhbnQgdG8gYmUgaGVscGZ1bCBjb3Vs
-ZCBwZXJmZWN0bHktd2VsbApkZWZpbmUgaXQgdG8gdHJhcCBhdCBydW50aW1lIHdoZW4gZ2l2ZW4g
-Y2VydGFpbiBjb21waWxlciBmbGFncywgYW5kCnBlcmZlY3RseSB3ZWxsIHdhcm4geW91IG9mIHlv
-dXIgZGVwZW5kZW5jZSB1cG9uIHVucG9ydGFibGUKaW1wbGVtZW50YXRpb24tZGVmaW5lZCBiZWhh
-dmlvciAob3IsIHRoYXQgeW91ciBwcm9ncmFtIGlzIGdvaW5nIHRvCnRyYXApLCBhdCBidWlsZC10
-aW1lLgoKW1NlbmRpbmcgYWdhaW4gYXMgYSBwbGFpbi10ZXh0IGVtYWlsLCBzaW5jZSBhIGJ1bmNo
-IG9mIG1haWxpbmcgbGlzdHMKYXBwYXJlbnRseSBoYXRlIG9uIG11bHRpcGFydCBtZXNzYWdlcyB0
-aGF0IGV2ZW4gY29udGFpbiBhIHRleHQvaHRtbApwYXJ0Li4uXQoKT24gTW9uLCBGZWIgMjksIDIw
-MTYgYXQgMjozOCBQTSwgTGF3cmVuY2UgQ3Jvd2wgdmlhIGxsdm0tZGV2CjxsbHZtLWRldkBsaXN0
-cy5sbHZtLm9yZz4gd3JvdGU6Cj4gT24gMi8yOC8xNiwgTGludXMgVG9ydmFsZHMgPHRvcnZhbGRz
-QGxpbnV4LWZvdW5kYXRpb24ub3JnPiB3cm90ZToKPj4gVGhlIGZhY3QgaXMsIHVuZGVmaW5lZCBj
-b21waWxlciBiZWhhdmlvciBpcyBuZXZlciBhIGdvb2QgaWRlYS4gTm90IGZvcgo+PiBzZXJpb3Vz
-IHByb2plY3RzLgo+Cj4gQWN0dWFsbHksIHVuZGVmaW5lZCBiZWhhdmlvciBpcyBlc3NlbnRpYWwg
-Zm9yIHNlcmlvdXMgcHJvamVjdHMsIGJ1dAo+IG5vdCBmb3IgdGhlIHJlYXNvbnMgbWVudGlvbmVk
-Lgo+Cj4gSWYgdGhlIGxhbmd1YWdlIGhhcyBubyB1bmRlZmluZWQgYmVoYXZpb3IsIHRoZW4gZnJv
-bSB0aGUgY29tcGlsZXIncyB2aWV3LAo+IHRoZXJlIGlzIG5vIHN1Y2ggdGhpbmcgYXMgYSBiYWQg
-cHJvZ3JhbS4gIEFsbCBwcm9ncmFtcyB3aWxsIGNvbXBpbGUgYW5kCj4gZW50ZXIgZnVuY3Rpb25h
-bCBkZWJ1ZyAocG9zc2libHkgYWZ0ZXIgc2hpcHBpbmcgdG8gY3VzdG9tZXIpLiAgT24gdGhlCj4g
-b3RoZXIgaGFuZCwgYSBsYW5ndWFnZSB3aXRoIHVuZGVmaW5lZCBiZWhhdmlvciBtYWtlcyBpdCBw
-b3NzaWJsZSBmb3IKPiBjb21waWxlcnMgKGFuZCB0aGVpciBydW4tdGltZSBzdXBwb3J0KSB0byBp
-ZGVudGlmeSBhIHByb2dyYW0gYXMgd3JvbmcuCj4KPiBUaGUgcHJvYmxlbSB3aXRoIHRoZSBsYXRl
-c3Qgc3BhdGUgb2YgY29tcGlsZXIgb3B0aW1pemF0aW9ucyB3YXMgbm90IHRoZQo+IG9wdGltaXph
-dGlvbiwgYnV0IHRoZSBsYWNrIG9mIHdhcm5pbmdzIGFib3V0IGV4cGxvaXRpbmcgdW5kZWZpbmVk
-IGJlaGF2aW9yLgo+Cj4gLS0KPiBMYXdyZW5jZSBDcm93bAo+IF9fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fCj4gTExWTSBEZXZlbG9wZXJzIG1haWxpbmcgbGlz
-dAo+IGxsdm0tZGV2QGxpc3RzLmxsdm0ub3JnCj4gaHR0cDovL2xpc3RzLmxsdm0ub3JnL2NnaS1i
-aW4vbWFpbG1hbi9saXN0aW5mby9sbHZtLWRldgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fXwpMTFZNIERldmVsb3BlcnMgbWFpbGluZyBsaXN0Cmxsdm0tZGV2
-QGxpc3RzLmxsdm0ub3JnCmh0dHA6Ly9saXN0cy5sbHZtLm9yZy9jZ2ktYmluL21haWxtYW4vbGlz
-dGluZm8vbGx2bS1kZXYK
+On Fri, Feb 26, 2016 at 03:29:05PM +0100, Arnd Bergmann wrote:
+> The two header files got moved to include/linux, and most
+> users were already converted, this changes the remaining drivers
+> and removes the files.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  drivers/dma/idma64.h                                | 2 +-
+>  drivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c | 2 +-
+>  drivers/net/ethernet/netronome/nfp/nfp_net.h        | 2 +-
+
+The NFP portion:
+
+Acked-by: Simon Horman <simon.horman@netronome.com>
+
+>  include/asm-generic/io-64-nonatomic-hi-lo.h         | 2 --
+>  include/asm-generic/io-64-nonatomic-lo-hi.h         | 2 --
+>  5 files changed, 3 insertions(+), 7 deletions(-)
+>  delete mode 100644 include/asm-generic/io-64-nonatomic-hi-lo.h
+>  delete mode 100644 include/asm-generic/io-64-nonatomic-lo-hi.h
