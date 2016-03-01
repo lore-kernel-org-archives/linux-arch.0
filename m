@@ -1,99 +1,56 @@
-From: "Paul E. McKenney via llvm-dev" <llvm-dev@lists.llvm.org>
-Subject: Re: [isocpp-parallel] Proposal for new
- memory_order_consume definition
-Date: Mon, 29 Feb 2016 17:28:20 -0800
-Message-ID: <20160301012820.GJ3577@linux.vnet.ibm.com>
-References: <20160218011033.GA1505@linux.vnet.ibm.com>
- <20160220021516.4898897.32908.5212@gmail.com>
- <20160220195318.GF3522@linux.vnet.ibm.com>
- <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
- <20160227170615.GU3522@linux.vnet.ibm.com>
- <alpine.LSU.2.20.1602291837100.20277@wotan.suse.de>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [patch 10/20] cpu/hotplug: Make target state writeable
+Date: Tue, 01 Mar 2016 02:53:07 +0100
+Message-ID: <1663539.5mkFR3orCE@vostro.rjw.lan>
+References: <20160226164321.657646833@linutronix.de> <alpine.DEB.2.11.1602281545140.3638@nanos> <alpine.DEB.2.11.1602291648210.3638@nanos>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <llvm-dev-bounces@lists.llvm.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.LSU.2.20.1602291837100.20277@wotan.suse.de>
-List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
- <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
-List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
-List-Post: <mailto:llvm-dev@lists.llvm.org>
-List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
-List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
- <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
-Errors-To: llvm-dev-bounces@lists.llvm.org
-Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
-To: Michael Matz <matz@suse.de>
-Cc: linux-arch@vger.kernel.org, gcc@gcc.gnu.org, Jade Alglave <j.alglave@ucl.ac.uk>, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, Luc Maranget <luc.maranget@inria.fr>, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from v094114.home.net.pl ([79.96.170.134]:64241 "HELO
+	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1750754AbcCABv2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 20:51:28 -0500
+In-Reply-To: <alpine.DEB.2.11.1602291648210.3638@nanos>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Peter Anvin <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Rusty Russell <rusty@rustcorp.com.au>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Rafael Wysocki <rafael.j.wysocki@intel.com>, Arjan van de Ven <arjan@linux.intel.com>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Sebastian Siewior <bigeasy@linutronix.de>, Paul Turner <pjt@google.com>
 
-T24gTW9uLCBGZWIgMjksIDIwMTYgYXQgMDc6MTc6NTVQTSArMDEwMCwgTWljaGFlbCBNYXR6IHdy
-b3RlOgo+IEhpLAo+IAo+IE9uIFNhdCwgMjcgRmViIDIwMTYsIFBhdWwgRS4gTWNLZW5uZXkgd3Jv
-dGU6Cj4gCj4gPiBCdXQgd2UgZG8gYWxyZWFkeSBoYXZlIHNvbWV0aGluZyB2ZXJ5IHNpbWlsYXIg
-d2l0aCBzaWduZWQgaW50ZWdlcgo+ID4gb3ZlcmZsb3cuICBJZiB0aGUgY29tcGlsZXIgY2FuIHNl
-ZSBhIHdheSB0byBnZW5lcmF0ZSBmYXN0ZXIgY29kZSB0aGF0Cj4gPiBkb2VzIG5vdCBoYW5kbGUg
-dGhlIG92ZXJmbG93IGNhc2UsIHRoZW4gdGhlIHNlbWFudGljcyBzdWRkZW5seSBjaGFuZ2UKPiA+
-IGZyb20gdHdvcy1jb21wbGVtZW50IGFyaXRobWV0aWMgdG8gc29tZXRoaW5nIHZlcnkgc3RyYW5n
-ZS4gIFRoZSBzdGFuZGFyZAo+ID4gZG9lcyBub3Qgc3BlY2lmeSBhbGwgdGhlIHdheXMgdGhhdCB0
-aGUgaW1wbGVtZW50YXRpb24gbWlnaHQgZGVkdWNlIHRoYXQKPiA+IGZhc3RlciBjb2RlIGNhbiBi
-ZSBnZW5lcmF0ZWQgYnkgaWdub3JpbmcgdGhlIG92ZXJmbG93IGNhc2UsIGl0IGluc3RlYWQKPiA+
-IHNpbXBseSBzYXlzIHRoYXQgc2lnbmVkIGludGVnZXIgb3ZlcmZsb3cgaW52b2tlZCB1bmRlZmlu
-ZWQgYmVoYXZpb3IuCj4gPiAKPiA+IEFuZCBpZiB0aGF0IGlzIGEgcHJvYmxlbSwgeW91IHVzZSB1
-bnNpZ25lZCBpbnRlZ2VycyBpbnN0ZWFkIG9mIHNpZ25lZAo+ID4gaW50ZWdlcnMuCj4gPiAKPiA+
-IFNvIGl0IHNlZW1zIHRoYXQgd2Ugc2hvdWxkIGJlIGFibGUgdG8gZG8gc29tZXRoaW5nIHZlcnkg
-c2ltaWxhciBoZXJlLgo+IAo+IEZvciB0aGlzIGNhc2UgdGhlIGltcG9ydGFudCBwaWNlIG9mIGlu
-Zm9ybWF0aW9uIHRvIGNvbnZleSBvbmUgb3IgdGhlIG90aGVyIAo+IG1lYW5pbmcgaW4gc291cmNl
-IGNvZGUgaXMgdGhlIF90eXBlXyBvZiBpbnZvbHZlZCBlbnRpdGllcywgbm90IGFubm90YXRpb25z
-IAo+IG9uIHRoZSBvcGVyYXRpb25zLiAgc2lnbmVkIHR5cGUgLT4gdW5kZWZpbmVkIG92ZXJmbG93
-LCB1bnNpZ25lZCB0eXBlIC0+IAo+IG1vZHVsbyBhcml0aG1ldGljOyBlYXN5LCBhbmQgaXQgbmlj
-ZWx5IGNhcnJpZXMgYXV0b21hdGljYWxseSB0aHJvdWdoIAo+IG9wZXJhdGlvbiBjaGFpbnMgKGFu
-ZCBwb2ludGVycykgd2l0aG91dCBhbnkgYW5ub3RhdGlvbnMuCj4gCj4gSSBmZWVsIG11Y2ggb2Yg
-dGhlIGNvbXBsZXhpdHkgaW4gdGhlIG1lbW9yeSBvcmRlciBzcGVjaWZpY2F0aW9ucywgYWxzbyAK
-PiB3aXRoIHlvdXIgcmVjZW50IChtdWNoIGJldHRlcikgd29yZGluZyB0byBleHBsYWluIGRlcGVu
-ZGVuY3kgY2hhaW5zLCB3b3VsZCAKPiBiZSBtdWNoIGVhc2llciBpZiB0aGUgJ2NhcnJpZXMtZGVw
-ZW5kZW5jeScgd291bGQgYmUgZW5jb2RlZCBpbnRvIHRoZSB0eXBlcyAKPiBvZiBvcGVyYW5kcy4g
-IEZvciBwdXJwb3NlIG9mIGV4YW1wbGUsIGxldCdzIGNhbGwgdGhlIG1hcmtlciAiYmxhZWgiIChu
-b3QgCj4gYXRvbWljIHRvIG5vdCBjb25mdXNlIHdpdGggZXhpc3RpbmcgdXNlIDopICk6Cj4gCj4g
-aW50IGZvbzsKPiBibGFlaCBpbnQgZ2xvYmFsOwo+IGludCAqc29tZXA7Cj4gYmxhZSBpbnQgKmJs
-YWVocDsKPiBmICgpIHsKPiAgIGJsYWVocCA9ICZmb287ICAvLyBtaWdodCBiZSBva2F5LCBhZGRz
-IHJlc3RyaWN0aW9ucyBvbiBhY2Nlc3NlcyB0aHJvdWdoIAo+ICAgICAgICAgICAgICAgICAgIC8v
-IGJsYWVocCwgYnV0IG5vdCB0aHJvdWdoICdmb28nIGRpcmVjdGx5Cj4gICBibGFlaHAgPSAmZ2xv
-YmFsOwo+ICAgaWYgKHNvbWVwID09IGJsYWVocCkKPiAgICAgewo+ICAgICAgIC8qIEV2ZW4gdGhv
-dWdoIHRoZSB2YWx1ZSBpcyBlcXVhbCAuLi4gKi8KPiAgICAgICAuLi4gKmJsYWVocCAuLi4gLyog
-Li4uIGEgY29tcGlsZXIgY2FuJ3QgcmV3cml0ZSB0aGlzIGludG8gKnNvbWVwICovCj4gICAgIH0K
-PiB9Cj4gCj4gQSAiY2Fycmllcy1kZXBlbmRlbmN5IiBvbiBzb21lIG9wZXJhdGlvbiAoZS5nLiBh
-IGNhbGwpIHdvdWxkIGJlIGFkZGVkIGJ5IAo+IHVzaW5nIGEgcHJvcGVybHkgdHlwZWQgcG9pbnRl
-ciBhdCB0aG9zZSBhcmd1bWVudHMgKG9yIHJldHVybiB0eXBlKSB3aGVyZSAKPiBpdCBtYXR0ZXJz
-LiAgWW91IGNhbid0IGdpdmUgYSBibGFlaCBwb2ludGVyIHRvIHNvbWV0aGluZyBvbmx5IGFjY2Vw
-dGluZyAKPiBub24tYmxhZWggcG9pbnRlcnMgKHdpdGhvdXQgY2FzdCkuCj4gCj4gUG9pbnRlciBh
-ZGRpdGlvbiBhbmQgc2ltaWxhciB0cmFuc2Zvcm1hdGlvbnMgaW52b2x2aW5nIGEgYmxhZWggcG9p
-bnRlciBhbmQgCj4gc29tZSBpbnRlZ2VyIHdvdWxkIHN0aWxsIGdpdmUgYSBibGFlaCBwb2ludGVy
-LCBhbmQgaGVuY2UgYnkgZGVmYXVsdCBhbHNvIAo+IHNvbHZlIHRoZSBwcm9ibGVtIG9mIGNhbmNl
-bGxhdGlvbnMuCj4gCj4gU3VjaCBtYXJraW5nIHZpYSB0eXBlcyB3b3VsZCBub3Qgc29sdmUgYWxs
-IHByb2JsZW1zIGluIGFuIG9wdGltYWwgd2F5IGlmIAo+IHlvdSBoYWQgdHdvIG92ZXJsYXBwaW5n
-IGJ1dCBpbmRlcGVuZGVuZCBkZXBlbmRlbmN5IGNoYWlucyAoYWxsIG9mIHRoZW0gCj4gd291bGQg
-Y29sbGFwc2UgdG8gb25lIGNoYWluIGFuZCBoZW5jZSBtYWRlIGRlcGVuZGVuZCwgd2hpY2ggc3Rp
-bGwgaXMgCj4gY29uc2VydmF0aXZlbHkgY29ycmVjdCkuCj4gCj4gT1RPSCBpbnRyb2R1Y2luZyBu
-ZXcgdHlwZSBxdWFsaWZpZXJzIGlzIGEgbXVjaCBsYXJnZXIgdW5kZXJ0YWtpbmcsIHNvIEkgCj4g
-Y2FuIHVuZGVyc3RhbmQgb25lIHdhbnRzIHRvIGF2b2lkIHRoaXMuICBJIHRoaW5rIGl0J2QgdWx0
-aW1hdGVseSBiZSAKPiBjbGVhcmVyLCB0aG91Z2guCgpBcyBoYXMgYmVlbiBzdGF0ZWQgaW4gdGhp
-cyB0aHJlYWQsIHdlIGRvIG5lZWQgdGhlIHVubWFya2VkIHZhcmlhbnQuCgpGb3IgdGhlIG1hcmtl
-ZCB2YXJpYW50LCB0aGVyZSBhcmUgcXVpdGUgYSBmZXcgcG9zc2libGUgc29sdXRpb25zIHdpdGgK
-dmFyeWluZyBhZHZhbnRhZ2VzIGFuZCBkaXNhZHZhbnRhZ2VzOgoKbwlBdHRyaWJ1dGUgYWxyZWFk
-eSBleGlzdHMsIGJ1dCBpcyBub3QgY2FycmllZCBieSB0aGUgdHlwZSBzeXN0ZW0uCglDb3VsZCBi
-ZSBlbmZvcmNlZCBieSBleHRlcm5hbCB0b29scy4KCm8JU3RvcmFnZSBjbGFzcyBjb3VsZCBiZSBh
-ZGRlZCB3aXRoIGZld2VyIGVmZmVjdHMgb24gdGhlIHR5cGUKCXN5c3RlbSwgYnV0IHRoZSByZWFj
-dGlvbiB0byB0aGlzIHN1Z2dlc3Rpb24gaW4gT2N0b2JlciB3YXMKCW5vdCBhbGwgdGhhdCBwb3Np
-dGl2ZS4KCm8JTm9uLXR5cGUga2V5d29yZHMgZm9yIG9iamVjdHMgaGFzIGJlZW4gc3VnZ2VzdGVk
-LCBtaWdodCBiZSB3b3J0aAoJcmV2aXNpdGluZy4KCm8JQWRkaW5nIHRvIHRoZSB0eXBlIHN5c3Rl
-bSBhbGxvd3MgdHlwZSBlbmZvcmNlbWVudCBvbiB0aGUgb25lCgloYW5kLCBidXQgbWFrZXMgaXQg
-aGFyZGVyIHRvIHdyaXRlIGNvZGUgdGhhdCBjYW4gYmUgdXNlZCBmb3IKCWJvdGggUkNVLXByb3Rl
-Y3RlZCBhbmQgbm90LVJDVS1wcm90ZWN0ZWQgZGF0YSBzdHJ1Y3R1cmVzLgoJKFRoaXMgc29ydCBv
-ZiB0aGluZyBpcyBub3QgdW5jb21tb24gaW4gdGhlIExpbnV4IGtlcm5lbC4pCgpUaGVyZSBhcmUg
-cHJvYmFibHkgb3RoZXJzLCBidXQgdGhvc2UgYXJlIHRoZSBvbmVzIEkgcmVjYWxsIGF0IHRoZQpt
-b21lbnQuCgoJCQkJCQkJVGhhbngsIFBhdWwKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fCkxMVk0gRGV2ZWxvcGVycyBtYWlsaW5nIGxpc3QKbGx2bS1kZXZA
-bGlzdHMubGx2bS5vcmcKaHR0cDovL2xpc3RzLmxsdm0ub3JnL2NnaS1iaW4vbWFpbG1hbi9saXN0
-aW5mby9sbHZtLWRldgo=
+On Monday, February 29, 2016 04:49:24 PM Thomas Gleixner wrote:
+> On Sun, 28 Feb 2016, Thomas Gleixner wrote:
+> > 
+> > Understood. I'll fix that thing up so that won't happen and I put it on the
+> > list of things to look at deeper.
+> 
+> The below delta patch should do what you need, right?
+
+Yup, thanks!
+
+Rafael
+
+
+> 8<-------------
+> 
+> --- a/kernel/cpu.c
+> +++ b/kernel/cpu.c
+> @@ -1461,6 +1461,11 @@ static ssize_t write_cpuhp_target(struct
+>  	if (target != CPUHP_OFFLINE && target != CPUHP_ONLINE)
+>  		return -EINVAL;
+>  #endif
+> +
+> +	ret = lock_device_hotplug_sysfs();
+> +	if (ret)
+> +		return ret;
+> +
+>  	mutex_lock(&cpuhp_state_mutex);
+>  	sp = cpuhp_get_step(target);
+>  	ret = !sp->name || sp->cant_stop ? -EINVAL : 0;
+> @@ -1472,6 +1477,8 @@ static ssize_t write_cpuhp_target(struct
+>  		ret = do_cpu_up(dev->id, target);
+>  	else
+>  		ret = do_cpu_down(dev->id, target);
+> +
+> +	unlock_device_hotplug();
+>  	return ret ? ret : count;
+>  }
