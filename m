@@ -1,102 +1,99 @@
-From: Yisen Zhuang <Yisen.zhuang@huawei.com>
-Subject: Re: [PATCH] asm-generic: remove old nonatomic-io wrapper files
-Date: Tue, 1 Mar 2016 08:59:22 +0800
-Message-ID: <56D4E96A.20509@huawei.com>
-References: <1456496980-1852604-1-git-send-email-arnd@arndb.de>
+From: "Paul E. McKenney via llvm-dev" <llvm-dev@lists.llvm.org>
+Subject: Re: [isocpp-parallel] Proposal for new
+ memory_order_consume definition
+Date: Mon, 29 Feb 2016 17:28:20 -0800
+Message-ID: <20160301012820.GJ3577@linux.vnet.ibm.com>
+References: <20160218011033.GA1505@linux.vnet.ibm.com>
+ <20160220021516.4898897.32908.5212@gmail.com>
+ <20160220195318.GF3522@linux.vnet.ibm.com>
+ <CAPUmR1bw=N4NkjAK1zn_X0+84KEaEAM6HZCHZJy_txqC9hMgSg@mail.gmail.com>
+ <20160227170615.GU3522@linux.vnet.ibm.com>
+ <alpine.LSU.2.20.1602291837100.20277@wotan.suse.de>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([119.145.14.65]:54133 "EHLO
-	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750779AbcCABBJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Feb 2016 20:01:09 -0500
-In-Reply-To: <1456496980-1852604-1-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, linux-arm-kernel@lists.infradead.org, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, Jakub Kicinski <jakub.kicinski@netronome.com>, Rolf Neugebauer <rolf.neugebauer@netronome.com>, "David S. Miller" <davem@davemloft.net>, yankejian <yankejian@huawei.com>, kenneth Lee <liguozhu@hisilicon.com>, huangdaode <huangdaode@hisilicon.com>, lipeng <lipeng321@huawei.com>, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, netdev@vger.kernel.org, oss-drivers@netronome.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <llvm-dev-bounces@lists.llvm.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.20.1602291837100.20277@wotan.suse.de>
+List-Unsubscribe: <http://lists.llvm.org/cgi-bin/mailman/options/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=unsubscribe>
+List-Archive: <http://lists.llvm.org/pipermail/llvm-dev/>
+List-Post: <mailto:llvm-dev@lists.llvm.org>
+List-Help: <mailto:llvm-dev-request@lists.llvm.org?subject=help>
+List-Subscribe: <http://lists.llvm.org/cgi-bin/mailman/listinfo/llvm-dev>,
+ <mailto:llvm-dev-request@lists.llvm.org?subject=subscribe>
+Errors-To: llvm-dev-bounces@lists.llvm.org
+Sender: "llvm-dev" <llvm-dev-bounces@lists.llvm.org>
+To: Michael Matz <matz@suse.de>
+Cc: linux-arch@vger.kernel.org, gcc@gcc.gnu.org, Jade Alglave <j.alglave@ucl.ac.uk>, parallel@lists.isocpp.org, llvm-dev@lists.llvm.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, Luc Maranget <luc.maranget@inria.fr>, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-=E5=9C=A8 2016/2/26 22:29, Arnd Bergmann =E5=86=99=E9=81=93:
-> The two header files got moved to include/linux, and most
-> users were already converted, this changes the remaining drivers
-> and removes the files.
->=20
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  drivers/dma/idma64.h                                | 2 +-
->  drivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c | 2 +-
-
-The HNS portion:
-
-Acked-by: Yisen Zhuang <yisen.zhuang@huawei.com>
-
->  drivers/net/ethernet/netronome/nfp/nfp_net.h        | 2 +-
->  include/asm-generic/io-64-nonatomic-hi-lo.h         | 2 --
->  include/asm-generic/io-64-nonatomic-lo-hi.h         | 2 --
->  5 files changed, 3 insertions(+), 7 deletions(-)
->  delete mode 100644 include/asm-generic/io-64-nonatomic-hi-lo.h
->  delete mode 100644 include/asm-generic/io-64-nonatomic-lo-hi.h
->=20
-> diff --git a/drivers/dma/idma64.h b/drivers/dma/idma64.h
-> index 8423f13ed0da..a52ad6bcf86a 100644
-> --- a/drivers/dma/idma64.h
-> +++ b/drivers/dma/idma64.h
-> @@ -16,7 +16,7 @@
->  #include <linux/spinlock.h>
->  #include <linux/types.h>
-> =20
-> -#include <asm-generic/io-64-nonatomic-lo-hi.h>
-> +#include <linux/io-64-nonatomic-lo-hi.h>
-> =20
->  #include "virt-dma.h"
-> =20
-> diff --git a/drivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c b/dr=
-ivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c
-> index 802d55457f19..fd90f3737963 100644
-> --- a/drivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c
-> +++ b/drivers/net/ethernet/hisilicon/hns/hns_dsaf_xgmac.c
-> @@ -7,7 +7,7 @@
->   * (at your option) any later version.
->   */
-> =20
-> -#include <asm-generic/io-64-nonatomic-hi-lo.h>
-> +#include <linux/io-64-nonatomic-hi-lo.h>
->  #include <linux/of_mdio.h>
->  #include "hns_dsaf_main.h"
->  #include "hns_dsaf_mac.h"
-> diff --git a/drivers/net/ethernet/netronome/nfp/nfp_net.h b/drivers/n=
-et/ethernet/netronome/nfp/nfp_net.h
-> index ab264e1bccd0..75683fb26734 100644
-> --- a/drivers/net/ethernet/netronome/nfp/nfp_net.h
-> +++ b/drivers/net/ethernet/netronome/nfp/nfp_net.h
-> @@ -45,7 +45,7 @@
->  #include <linux/interrupt.h>
->  #include <linux/netdevice.h>
->  #include <linux/pci.h>
-> -#include <asm-generic/io-64-nonatomic-hi-lo.h>
-> +#include <linux/io-64-nonatomic-hi-lo.h>
-> =20
->  #include "nfp_net_ctrl.h"
-> =20
-> diff --git a/include/asm-generic/io-64-nonatomic-hi-lo.h b/include/as=
-m-generic/io-64-nonatomic-hi-lo.h
-> deleted file mode 100644
-> index 32b73abce1b0..000000000000
-> --- a/include/asm-generic/io-64-nonatomic-hi-lo.h
-> +++ /dev/null
-> @@ -1,2 +0,0 @@
-> -/* XXX: delete asm-generic/io-64-nonatomic-hi-lo.h after converting =
-new users */
-> -#include <linux/io-64-nonatomic-hi-lo.h>
-> diff --git a/include/asm-generic/io-64-nonatomic-lo-hi.h b/include/as=
-m-generic/io-64-nonatomic-lo-hi.h
-> deleted file mode 100644
-> index 55a627c37721..000000000000
-> --- a/include/asm-generic/io-64-nonatomic-lo-hi.h
-> +++ /dev/null
-> @@ -1,2 +0,0 @@
-> -/* XXX: delete asm-generic/io-64-nonatomic-lo-hi.h after converting =
-new users */
-> -#include <linux/io-64-nonatomic-lo-hi.h>
->=20
+T24gTW9uLCBGZWIgMjksIDIwMTYgYXQgMDc6MTc6NTVQTSArMDEwMCwgTWljaGFlbCBNYXR6IHdy
+b3RlOgo+IEhpLAo+IAo+IE9uIFNhdCwgMjcgRmViIDIwMTYsIFBhdWwgRS4gTWNLZW5uZXkgd3Jv
+dGU6Cj4gCj4gPiBCdXQgd2UgZG8gYWxyZWFkeSBoYXZlIHNvbWV0aGluZyB2ZXJ5IHNpbWlsYXIg
+d2l0aCBzaWduZWQgaW50ZWdlcgo+ID4gb3ZlcmZsb3cuICBJZiB0aGUgY29tcGlsZXIgY2FuIHNl
+ZSBhIHdheSB0byBnZW5lcmF0ZSBmYXN0ZXIgY29kZSB0aGF0Cj4gPiBkb2VzIG5vdCBoYW5kbGUg
+dGhlIG92ZXJmbG93IGNhc2UsIHRoZW4gdGhlIHNlbWFudGljcyBzdWRkZW5seSBjaGFuZ2UKPiA+
+IGZyb20gdHdvcy1jb21wbGVtZW50IGFyaXRobWV0aWMgdG8gc29tZXRoaW5nIHZlcnkgc3RyYW5n
+ZS4gIFRoZSBzdGFuZGFyZAo+ID4gZG9lcyBub3Qgc3BlY2lmeSBhbGwgdGhlIHdheXMgdGhhdCB0
+aGUgaW1wbGVtZW50YXRpb24gbWlnaHQgZGVkdWNlIHRoYXQKPiA+IGZhc3RlciBjb2RlIGNhbiBi
+ZSBnZW5lcmF0ZWQgYnkgaWdub3JpbmcgdGhlIG92ZXJmbG93IGNhc2UsIGl0IGluc3RlYWQKPiA+
+IHNpbXBseSBzYXlzIHRoYXQgc2lnbmVkIGludGVnZXIgb3ZlcmZsb3cgaW52b2tlZCB1bmRlZmlu
+ZWQgYmVoYXZpb3IuCj4gPiAKPiA+IEFuZCBpZiB0aGF0IGlzIGEgcHJvYmxlbSwgeW91IHVzZSB1
+bnNpZ25lZCBpbnRlZ2VycyBpbnN0ZWFkIG9mIHNpZ25lZAo+ID4gaW50ZWdlcnMuCj4gPiAKPiA+
+IFNvIGl0IHNlZW1zIHRoYXQgd2Ugc2hvdWxkIGJlIGFibGUgdG8gZG8gc29tZXRoaW5nIHZlcnkg
+c2ltaWxhciBoZXJlLgo+IAo+IEZvciB0aGlzIGNhc2UgdGhlIGltcG9ydGFudCBwaWNlIG9mIGlu
+Zm9ybWF0aW9uIHRvIGNvbnZleSBvbmUgb3IgdGhlIG90aGVyIAo+IG1lYW5pbmcgaW4gc291cmNl
+IGNvZGUgaXMgdGhlIF90eXBlXyBvZiBpbnZvbHZlZCBlbnRpdGllcywgbm90IGFubm90YXRpb25z
+IAo+IG9uIHRoZSBvcGVyYXRpb25zLiAgc2lnbmVkIHR5cGUgLT4gdW5kZWZpbmVkIG92ZXJmbG93
+LCB1bnNpZ25lZCB0eXBlIC0+IAo+IG1vZHVsbyBhcml0aG1ldGljOyBlYXN5LCBhbmQgaXQgbmlj
+ZWx5IGNhcnJpZXMgYXV0b21hdGljYWxseSB0aHJvdWdoIAo+IG9wZXJhdGlvbiBjaGFpbnMgKGFu
+ZCBwb2ludGVycykgd2l0aG91dCBhbnkgYW5ub3RhdGlvbnMuCj4gCj4gSSBmZWVsIG11Y2ggb2Yg
+dGhlIGNvbXBsZXhpdHkgaW4gdGhlIG1lbW9yeSBvcmRlciBzcGVjaWZpY2F0aW9ucywgYWxzbyAK
+PiB3aXRoIHlvdXIgcmVjZW50IChtdWNoIGJldHRlcikgd29yZGluZyB0byBleHBsYWluIGRlcGVu
+ZGVuY3kgY2hhaW5zLCB3b3VsZCAKPiBiZSBtdWNoIGVhc2llciBpZiB0aGUgJ2NhcnJpZXMtZGVw
+ZW5kZW5jeScgd291bGQgYmUgZW5jb2RlZCBpbnRvIHRoZSB0eXBlcyAKPiBvZiBvcGVyYW5kcy4g
+IEZvciBwdXJwb3NlIG9mIGV4YW1wbGUsIGxldCdzIGNhbGwgdGhlIG1hcmtlciAiYmxhZWgiIChu
+b3QgCj4gYXRvbWljIHRvIG5vdCBjb25mdXNlIHdpdGggZXhpc3RpbmcgdXNlIDopICk6Cj4gCj4g
+aW50IGZvbzsKPiBibGFlaCBpbnQgZ2xvYmFsOwo+IGludCAqc29tZXA7Cj4gYmxhZSBpbnQgKmJs
+YWVocDsKPiBmICgpIHsKPiAgIGJsYWVocCA9ICZmb287ICAvLyBtaWdodCBiZSBva2F5LCBhZGRz
+IHJlc3RyaWN0aW9ucyBvbiBhY2Nlc3NlcyB0aHJvdWdoIAo+ICAgICAgICAgICAgICAgICAgIC8v
+IGJsYWVocCwgYnV0IG5vdCB0aHJvdWdoICdmb28nIGRpcmVjdGx5Cj4gICBibGFlaHAgPSAmZ2xv
+YmFsOwo+ICAgaWYgKHNvbWVwID09IGJsYWVocCkKPiAgICAgewo+ICAgICAgIC8qIEV2ZW4gdGhv
+dWdoIHRoZSB2YWx1ZSBpcyBlcXVhbCAuLi4gKi8KPiAgICAgICAuLi4gKmJsYWVocCAuLi4gLyog
+Li4uIGEgY29tcGlsZXIgY2FuJ3QgcmV3cml0ZSB0aGlzIGludG8gKnNvbWVwICovCj4gICAgIH0K
+PiB9Cj4gCj4gQSAiY2Fycmllcy1kZXBlbmRlbmN5IiBvbiBzb21lIG9wZXJhdGlvbiAoZS5nLiBh
+IGNhbGwpIHdvdWxkIGJlIGFkZGVkIGJ5IAo+IHVzaW5nIGEgcHJvcGVybHkgdHlwZWQgcG9pbnRl
+ciBhdCB0aG9zZSBhcmd1bWVudHMgKG9yIHJldHVybiB0eXBlKSB3aGVyZSAKPiBpdCBtYXR0ZXJz
+LiAgWW91IGNhbid0IGdpdmUgYSBibGFlaCBwb2ludGVyIHRvIHNvbWV0aGluZyBvbmx5IGFjY2Vw
+dGluZyAKPiBub24tYmxhZWggcG9pbnRlcnMgKHdpdGhvdXQgY2FzdCkuCj4gCj4gUG9pbnRlciBh
+ZGRpdGlvbiBhbmQgc2ltaWxhciB0cmFuc2Zvcm1hdGlvbnMgaW52b2x2aW5nIGEgYmxhZWggcG9p
+bnRlciBhbmQgCj4gc29tZSBpbnRlZ2VyIHdvdWxkIHN0aWxsIGdpdmUgYSBibGFlaCBwb2ludGVy
+LCBhbmQgaGVuY2UgYnkgZGVmYXVsdCBhbHNvIAo+IHNvbHZlIHRoZSBwcm9ibGVtIG9mIGNhbmNl
+bGxhdGlvbnMuCj4gCj4gU3VjaCBtYXJraW5nIHZpYSB0eXBlcyB3b3VsZCBub3Qgc29sdmUgYWxs
+IHByb2JsZW1zIGluIGFuIG9wdGltYWwgd2F5IGlmIAo+IHlvdSBoYWQgdHdvIG92ZXJsYXBwaW5n
+IGJ1dCBpbmRlcGVuZGVuZCBkZXBlbmRlbmN5IGNoYWlucyAoYWxsIG9mIHRoZW0gCj4gd291bGQg
+Y29sbGFwc2UgdG8gb25lIGNoYWluIGFuZCBoZW5jZSBtYWRlIGRlcGVuZGVuZCwgd2hpY2ggc3Rp
+bGwgaXMgCj4gY29uc2VydmF0aXZlbHkgY29ycmVjdCkuCj4gCj4gT1RPSCBpbnRyb2R1Y2luZyBu
+ZXcgdHlwZSBxdWFsaWZpZXJzIGlzIGEgbXVjaCBsYXJnZXIgdW5kZXJ0YWtpbmcsIHNvIEkgCj4g
+Y2FuIHVuZGVyc3RhbmQgb25lIHdhbnRzIHRvIGF2b2lkIHRoaXMuICBJIHRoaW5rIGl0J2QgdWx0
+aW1hdGVseSBiZSAKPiBjbGVhcmVyLCB0aG91Z2guCgpBcyBoYXMgYmVlbiBzdGF0ZWQgaW4gdGhp
+cyB0aHJlYWQsIHdlIGRvIG5lZWQgdGhlIHVubWFya2VkIHZhcmlhbnQuCgpGb3IgdGhlIG1hcmtl
+ZCB2YXJpYW50LCB0aGVyZSBhcmUgcXVpdGUgYSBmZXcgcG9zc2libGUgc29sdXRpb25zIHdpdGgK
+dmFyeWluZyBhZHZhbnRhZ2VzIGFuZCBkaXNhZHZhbnRhZ2VzOgoKbwlBdHRyaWJ1dGUgYWxyZWFk
+eSBleGlzdHMsIGJ1dCBpcyBub3QgY2FycmllZCBieSB0aGUgdHlwZSBzeXN0ZW0uCglDb3VsZCBi
+ZSBlbmZvcmNlZCBieSBleHRlcm5hbCB0b29scy4KCm8JU3RvcmFnZSBjbGFzcyBjb3VsZCBiZSBh
+ZGRlZCB3aXRoIGZld2VyIGVmZmVjdHMgb24gdGhlIHR5cGUKCXN5c3RlbSwgYnV0IHRoZSByZWFj
+dGlvbiB0byB0aGlzIHN1Z2dlc3Rpb24gaW4gT2N0b2JlciB3YXMKCW5vdCBhbGwgdGhhdCBwb3Np
+dGl2ZS4KCm8JTm9uLXR5cGUga2V5d29yZHMgZm9yIG9iamVjdHMgaGFzIGJlZW4gc3VnZ2VzdGVk
+LCBtaWdodCBiZSB3b3J0aAoJcmV2aXNpdGluZy4KCm8JQWRkaW5nIHRvIHRoZSB0eXBlIHN5c3Rl
+bSBhbGxvd3MgdHlwZSBlbmZvcmNlbWVudCBvbiB0aGUgb25lCgloYW5kLCBidXQgbWFrZXMgaXQg
+aGFyZGVyIHRvIHdyaXRlIGNvZGUgdGhhdCBjYW4gYmUgdXNlZCBmb3IKCWJvdGggUkNVLXByb3Rl
+Y3RlZCBhbmQgbm90LVJDVS1wcm90ZWN0ZWQgZGF0YSBzdHJ1Y3R1cmVzLgoJKFRoaXMgc29ydCBv
+ZiB0aGluZyBpcyBub3QgdW5jb21tb24gaW4gdGhlIExpbnV4IGtlcm5lbC4pCgpUaGVyZSBhcmUg
+cHJvYmFibHkgb3RoZXJzLCBidXQgdGhvc2UgYXJlIHRoZSBvbmVzIEkgcmVjYWxsIGF0IHRoZQpt
+b21lbnQuCgoJCQkJCQkJVGhhbngsIFBhdWwKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fCkxMVk0gRGV2ZWxvcGVycyBtYWlsaW5nIGxpc3QKbGx2bS1kZXZA
+bGlzdHMubGx2bS5vcmcKaHR0cDovL2xpc3RzLmxsdm0ub3JnL2NnaS1iaW4vbWFpbG1hbi9saXN0
+aW5mby9sbHZtLWRldgo=
