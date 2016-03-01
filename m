@@ -1,164 +1,257 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [RFC v2 3/7] firmware: port built-in section to linker table
-Date: Tue, 01 Mar 2016 08:10:24 -0800
-Message-ID: <1456848624.2369.9.camel@HansenPartnership.com>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
-	 <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
-	 <1456740770.4666.366.camel@infradead.org>
+From: Aleksey Makarov <aleksey.makarov@linaro.org>
+Subject: Re: [PATCH v3 4/7] ACPI: parse DBG2 table
+Date: Tue, 1 Mar 2016 19:24:20 +0300
+Message-ID: <56D5C234.70305@linaro.org>
+References: <1456749726-30261-1-git-send-email-aleksey.makarov@linaro.org>
+ <1456749726-30261-5-git-send-email-aleksey.makarov@linaro.org>
+ <56D5ABE1.7010905@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="sha-256";
-	protocol="application/x-pkcs7-signature";
-	boundary="=-SBwz3LE/SaOrr9huADhg"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1456740770.4666.366.camel@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, xen-devel@lists.xensource.com
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <56D5ABE1.7010905@hurleysoftware.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Peter Hurley <peter@hurleysoftware.com>, linux-acpi@vger.kernel.org
+Cc: linux-serial@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Leif Lindholm <leif.lindholm@linaro.org>, Graeme Gregory <graeme.gregory@linaro.org>, Al Stone <ahs3@redhat.com>, Christopher Covington <cov@codeaurora.org>, Matthias Brugger <mbrugger@suse.com>, Len Brown <lenb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
---=-SBwz3LE/SaOrr9huADhg
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Mon, 2016-02-29 at 10:12 +0000, David Woodhouse wrote:
-> On Fri, 2016-02-19 at 05:45 -0800, Luis R. Rodriguez wrote:
-> > This ports built-in firmware to use linker tables,
-> > this replaces the custom section solution with a
-> > generic solution.
-> >=20
-> > This also demos the use of the .rodata (SECTION_RO)
-> > linker tables.
-> >=20
-> > Tested with 0 built-in firmware, 1 and 2 built-in
-> > firmwares successfully.
->=20
-> I think we'd do better to rip this support out entirely. It just=20
-> isn't needed; firmware can live in an initramfs and don't even need=20
-> *any* actual running userspace support to load it from there these=20
-> days, do we?
+On 03/01/2016 05:49 PM, Peter Hurley wrote:
+> On 02/29/2016 04:42 AM, Aleksey Makarov wrote:
+>> 'ARM Server Base Boot Requirements' [1] mentions DBG2 (Microsoft Debug
+>> Port Table 2) [2] as a mandatory ACPI table that specifies debug ports.
+>>
+>> - Implement macros
+>>
+>> 	ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)
+>>
+>>   that defines a handler for the port of given type and subtype.
+>>
+>> - For each declared port that is also described in the ACPI DBG2 table
+>>   call the provided callback.
+> 
+> On 02/22/2016 06:43 AM, Aleksey Makarov wrote:
+>> On 02/19/2016 08:20 PM, Christopher Covington wrote:
+>>> Can the device specified in DBG2 be used for both earlycon and KGDB? If it can only be used for one, let's make sure the choice of earlycon vs KGDB is intentional rather than accidental.
+>>
+>> I just sent the DBG2 series.  It enables an earlycon on DBG2 port with
+>> an "earlycon=acpi_dbg2" option (we can discuss particular name).
+>> If you need KGDB on that port just support it for that port in the kernel
+>> (i. e. add a new instance of ACPI_DBG2_DECLARE() macros for that port, see the patches)
+>> and change the command line options.
+>> I hope that is OK.  We could continue this discussion in the DBG2 thread.
+> 
+> This method will not work for kgdb, since kgdb doesn't actually
+> implement the i/o but rather runs on top of a console.
 
-We have lots of SCSI drivers with built in firmware.  The obvious
-examples are 53c700, aic7xxx and aic79xx.  For them, we actually have
-the firmware compilers in tree.  The firmware model they use just isn't
-amenable to the firmware loader: they're not monolithic blobs, it's a
-set of firmware scripts we use to handle particular operations before
-giving control back to the host, so the firmware and the driver are
-very much symbiotic.
+I see. Thank you for pointing this out.
 
-On the other hand, I don't think any of them uses firmware sections, so
-it's not an argument for not ripping out this type.
+I don't have requirements to implement running kgdb over the serial port
+specified with DBG2.  This feature should be supported separately.
 
-James
+Thank you
+Aleksey Makarov
 
---=-SBwz3LE/SaOrr9huADhg
-Content-Type: application/x-pkcs7-signature; name="smime.p7s"
-Content-Disposition: attachment; filename="smime.p7s"
-Content-Transfer-Encoding: base64
-
-MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCCEvow
-ggY0MIIEHKADAgECAgEeMA0GCSqGSIb3DQEBBQUAMH0xCzAJBgNVBAYTAklMMRYwFAYDVQQKEw1T
-dGFydENvbSBMdGQuMSswKQYDVQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWduaW5n
-MSkwJwYDVQQDEyBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTAeFw0wNzEwMjQyMTAx
-NTVaFw0xNzEwMjQyMTAxNTVaMIGMMQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRk
-LjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlmaWNhdGUgU2lnbmluZzE4MDYGA1UEAxMv
-U3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVkaWF0ZSBDbGllbnQgQ0EwggEiMA0GCSqG
-SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDHCYPMzi3YGrEppC4Tq5a+ijKDjKaIQZZVR63UbxIP6uq/
-I0fhCu+cQhoUfE6ERKKnu8zPf1Jwuk0tsvVCk6U9b+0UjM0dLep3ZdE1gblK/1FwYT5Pipsu2yOM
-luLqwvsuz9/9f1+1PKHG/FaR/wpbfuIqu54qzHDYeqiUfsYzoVflR80DAC7hmJ+SmZnNTWyUGHJb
-BpA8Q89lGxahNvuryGaC/o2/ceD2uYDX9U8Eg5DpIpGQdcbQeGarV04WgAUjjXX5r/2dabmtxWMZ
-whZna//jdiSyrrSMTGKkDiXm6/3/4ebfeZuCYKzN2P8O2F/Xe2AC/Y7zeEsnR7FOp+uXAgMBAAGj
-ggGtMIIBqTAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBBjAdBgNVHQ4EFgQUU3Ltkpzg
-2ssBXHx+ljVO8tS4UYIwHwYDVR0jBBgwFoAUTgvvGqRAW6UXaYcwyjRoQ9BBrvIwZgYIKwYBBQUH
-AQEEWjBYMCcGCCsGAQUFBzABhhtodHRwOi8vb2NzcC5zdGFydHNzbC5jb20vY2EwLQYIKwYBBQUH
-MAKGIWh0dHA6Ly93d3cuc3RhcnRzc2wuY29tL3Nmc2NhLmNydDBbBgNVHR8EVDBSMCegJaAjhiFo
-dHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS9zZnNjYS5jcmwwJ6AloCOGIWh0dHA6Ly9jcmwuc3RhcnRz
-c2wuY29tL3Nmc2NhLmNybDCBgAYDVR0gBHkwdzB1BgsrBgEEAYG1NwECATBmMC4GCCsGAQUFBwIB
-FiJodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS9wb2xpY3kucGRmMDQGCCsGAQUFBwIBFihodHRwOi8v
-d3d3LnN0YXJ0c3NsLmNvbS9pbnRlcm1lZGlhdGUucGRmMA0GCSqGSIb3DQEBBQUAA4ICAQAKgwh9
-eKssBly4Y4xerhy5I3dNoXHYfYa8PlVLL/qtXnkFgdtY1o95CfegFJTwqBBmf8pyTUnFsukDFUI2
-2zF5bVHzuJ+GxhnSqN2sD1qetbYwBYK2iyYA5Pg7Er1A+hKMIzEzcduRkIMmCeUTyMyikfbUFvIB
-ivtvkR8ZFAk22BZy+pJfAoedO61HTz4qSfQoCRcLN5A0t4DkuVhTMXIzuQ8CnykhExD6x4e6ebIb
-rjZLb7L+ocR0y4YjCl/Pd4MXU91y0vTipgr/O75CDUHDRHCCKBVmz/Rzkc/b970MEeHt5LC3NiWT
-gBSvrLEuVzBKM586YoRD9Dy3OHQgWI270g+5MYA8GfgI/EPT5G7xPbCDz+zjdH89PeR3U4So4lSX
-ur6H6vp+m9TQXPF3a0LwZrp8MQ+Z77U1uL7TelWO5lApsbAonrqASfTpaprFVkL4nyGH+NHST2ZJ
-PWIBk81i6Vw0ny0qZW2Niy/QvVNKbb43A43ny076khXO7cNbBIRdJ/6qQNq9Bqb5C0Q5nEsFcj75
-oxQRqlKf6TcvGbjxkJh8BYtv9ePsXklAxtm8J7GCUBthHSQgepbkOexhJ0wP8imUkyiPHQ0GvEnd
-83129fZjoEhdGwXV27ioRKbj/cIq7JRXun0NbeY+UdMYu9jGfIpDLtUUGSgsg2zMGs5R4jCCBl0w
-ggVFoAMCAQICAw1qzTANBgkqhkiG9w0BAQUFADCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0
-YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcx
-ODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENB
-MB4XDTE1MDMyMTA2MzIyMVoXDTE2MDMyMTE2MjE0N1owZjEuMCwGA1UEAwwlSmFtZXMuQm90dG9t
-bGV5QEhhbnNlblBhcnRuZXJzaGlwLmNvbTE0MDIGCSqGSIb3DQEJARYlSmFtZXMuQm90dG9tbGV5
-QEhhbnNlblBhcnRuZXJzaGlwLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKgy
-u7x+ZiMyg3zICQoaB8dy1/h+EdoGbFbn27SR/VDHQSqFhXYgt1falPCqI+45s3ZVLGQAUuMWiP19
-pLLrl6vZxhmoGVoAKKJtpEsLa4PMYKrz6l7Vk6iklyi8ZR29EvgXdydeSHaF9/0tBbEbuK3DKgcr
-sFaVBHj9LoIt5ZRn3AKAqK3DuZdSTvzSPZAkZRuHRKkhlZlWZ3Bh4IV/323YCo0QtS7LheC63Iit
-7D5YlsWij8M8FhFKf5z8SwvryY8TjtbDDkppgQkewZaVf3Eg9TDYEBIA5Rc4iNjjLoPKSlw3Yizq
-RbuKcaX+LwXB4ldYD18Db+xUj4Tp+UN/CBECAwEAAaOCAuswggLnMAkGA1UdEwQCMAAwCwYDVR0P
-BAQDAgSwMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDBDAdBgNVHQ4EFgQUi4Y59d09Quzu
-+0/NVz4+wralXOAwHwYDVR0jBBgwFoAUU3Ltkpzg2ssBXHx+ljVO8tS4UYIwMAYDVR0RBCkwJ4El
-SmFtZXMuQm90dG9tbGV5QEhhbnNlblBhcnRuZXJzaGlwLmNvbTCCAUwGA1UdIASCAUMwggE/MIIB
-OwYLKwYBBAGBtTcBAgMwggEqMC4GCCsGAQUFBwIBFiJodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS9w
-b2xpY3kucGRmMIH3BggrBgEFBQcCAjCB6jAnFiBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1dGhv
-cml0eTADAgEBGoG+VGhpcyBjZXJ0aWZpY2F0ZSB3YXMgaXNzdWVkIGFjY29yZGluZyB0byB0aGUg
-Q2xhc3MgMSBWYWxpZGF0aW9uIHJlcXVpcmVtZW50cyBvZiB0aGUgU3RhcnRDb20gQ0EgcG9saWN5
-LCByZWxpYW5jZSBvbmx5IGZvciB0aGUgaW50ZW5kZWQgcHVycG9zZSBpbiBjb21wbGlhbmNlIG9m
-IHRoZSByZWx5aW5nIHBhcnR5IG9ibGlnYXRpb25zLjA2BgNVHR8ELzAtMCugKaAnhiVodHRwOi8v
-Y3JsLnN0YXJ0c3NsLmNvbS9jcnR1MS1jcmwuY3JsMIGOBggrBgEFBQcBAQSBgTB/MDkGCCsGAQUF
-BzABhi1odHRwOi8vb2NzcC5zdGFydHNzbC5jb20vc3ViL2NsYXNzMS9jbGllbnQvY2EwQgYIKwYB
-BQUHMAKGNmh0dHA6Ly9haWEuc3RhcnRzc2wuY29tL2NlcnRzL3N1Yi5jbGFzczEuY2xpZW50LmNh
-LmNydDAjBgNVHRIEHDAahhhodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS8wDQYJKoZIhvcNAQEFBQAD
-ggEBAHJmVHEc33FRRzkHReScwIu/t2Ngo9QcAMHZ9WCf6y0p/GevKbFAy+eF+kRlNLxgh7paVkr2
-0EXzRJZWN7ah5Ox1ngAZYhJOBi2vqvg5JpxWAxHO6h59VImK1hYvHy4z9+wQSrLlS6WbdCMv6TMH
-tRSkuMJ/46nJfHKrhHBJtbFCgY3dpSZ30schYVJwk6ctuB5t2ULxwg2g8Jhhx/bGtuxK0CWDfZ+i
-pEmynbu0b7rn37qVSwY42U9M6BvFlGlLkFAmBJFKsP8zVDVLfC2M81kbMN9hn0ylAstw7C/akEVF
-ZNo+PNGUtGs6K+wFxa5VRteW2/Wz2mn9vpLC8iORnFswggZdMIIFRaADAgECAgMNas0wDQYJKoZI
-hvcNAQEFBQAwgYwxCzAJBgNVBAYTAklMMRYwFAYDVQQKEw1TdGFydENvbSBMdGQuMSswKQYDVQQL
-EyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWduaW5nMTgwNgYDVQQDEy9TdGFydENvbSBD
-bGFzcyAxIFByaW1hcnkgSW50ZXJtZWRpYXRlIENsaWVudCBDQTAeFw0xNTAzMjEwNjMyMjFaFw0x
-NjAzMjExNjIxNDdaMGYxLjAsBgNVBAMMJUphbWVzLkJvdHRvbWxleUBIYW5zZW5QYXJ0bmVyc2hp
-cC5jb20xNDAyBgkqhkiG9w0BCQEWJUphbWVzLkJvdHRvbWxleUBIYW5zZW5QYXJ0bmVyc2hpcC5j
-b20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCoMru8fmYjMoN8yAkKGgfHctf4fhHa
-BmxW59u0kf1Qx0EqhYV2ILdX2pTwqiPuObN2VSxkAFLjFoj9faSy65er2cYZqBlaACiibaRLC2uD
-zGCq8+pe1ZOopJcovGUdvRL4F3cnXkh2hff9LQWxG7itwyoHK7BWlQR4/S6CLeWUZ9wCgKitw7mX
-Uk780j2QJGUbh0SpIZWZVmdwYeCFf99t2AqNELUuy4XgutyIrew+WJbFoo/DPBYRSn+c/EsL68mP
-E47Www5KaYEJHsGWlX9xIPUw2BASAOUXOIjY4y6DykpcN2Is6kW7inGl/i8FweJXWA9fA2/sVI+E
-6flDfwgRAgMBAAGjggLrMIIC5zAJBgNVHRMEAjAAMAsGA1UdDwQEAwIEsDAdBgNVHSUEFjAUBggr
-BgEFBQcDAgYIKwYBBQUHAwQwHQYDVR0OBBYEFIuGOfXdPULs7vtPzVc+PsK2pVzgMB8GA1UdIwQY
-MBaAFFNy7ZKc4NrLAVx8fpY1TvLUuFGCMDAGA1UdEQQpMCeBJUphbWVzLkJvdHRvbWxleUBIYW5z
-ZW5QYXJ0bmVyc2hpcC5jb20wggFMBgNVHSAEggFDMIIBPzCCATsGCysGAQQBgbU3AQIDMIIBKjAu
-BggrBgEFBQcCARYiaHR0cDovL3d3dy5zdGFydHNzbC5jb20vcG9saWN5LnBkZjCB9wYIKwYBBQUH
-AgIwgeowJxYgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwAwIBARqBvlRoaXMgY2Vy
-dGlmaWNhdGUgd2FzIGlzc3VlZCBhY2NvcmRpbmcgdG8gdGhlIENsYXNzIDEgVmFsaWRhdGlvbiBy
-ZXF1aXJlbWVudHMgb2YgdGhlIFN0YXJ0Q29tIENBIHBvbGljeSwgcmVsaWFuY2Ugb25seSBmb3Ig
-dGhlIGludGVuZGVkIHB1cnBvc2UgaW4gY29tcGxpYW5jZSBvZiB0aGUgcmVseWluZyBwYXJ0eSBv
-YmxpZ2F0aW9ucy4wNgYDVR0fBC8wLTAroCmgJ4YlaHR0cDovL2NybC5zdGFydHNzbC5jb20vY3J0
-dTEtY3JsLmNybDCBjgYIKwYBBQUHAQEEgYEwfzA5BggrBgEFBQcwAYYtaHR0cDovL29jc3Auc3Rh
-cnRzc2wuY29tL3N1Yi9jbGFzczEvY2xpZW50L2NhMEIGCCsGAQUFBzAChjZodHRwOi8vYWlhLnN0
-YXJ0c3NsLmNvbS9jZXJ0cy9zdWIuY2xhc3MxLmNsaWVudC5jYS5jcnQwIwYDVR0SBBwwGoYYaHR0
-cDovL3d3dy5zdGFydHNzbC5jb20vMA0GCSqGSIb3DQEBBQUAA4IBAQByZlRxHN9xUUc5B0XknMCL
-v7djYKPUHADB2fVgn+stKfxnrymxQMvnhfpEZTS8YIe6WlZK9tBF80SWVje2oeTsdZ4AGWISTgYt
-r6r4OSacVgMRzuoefVSJitYWLx8uM/fsEEqy5Uulm3QjL+kzB7UUpLjCf+OpyXxyq4RwSbWxQoGN
-3aUmd9LHIWFScJOnLbgebdlC8cINoPCYYcf2xrbsStAlg32foqRJsp27tG+659+6lUsGONlPTOgb
-xZRpS5BQJgSRSrD/M1Q1S3wtjPNZGzDfYZ9MpQLLcOwv2pBFRWTaPjzRlLRrOivsBcWuVUbXltv1
-s9pp/b6SwvIjkZxbMYIDfzCCA3sCAQEwgZQwgYwxCzAJBgNVBAYTAklMMRYwFAYDVQQKEw1TdGFy
-dENvbSBMdGQuMSswKQYDVQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWduaW5nMTgw
-NgYDVQQDEy9TdGFydENvbSBDbGFzcyAxIFByaW1hcnkgSW50ZXJtZWRpYXRlIENsaWVudCBDQQID
-DWrNMA0GCWCGSAFlAwQCAQUAoIIBuzAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3
-DQEJBTEPFw0xNjAzMDExNjEwMjRaMC8GCSqGSIb3DQEJBDEiBCBBlajebEmZ0Oipib+KXxvX2Gnn
-p0uMaBkW8VFYcqAhrTCBpQYJKwYBBAGCNxAEMYGXMIGUMIGMMQswCQYDVQQGEwJJTDEWMBQGA1UE
-ChMNU3RhcnRDb20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlmaWNhdGUgU2ln
-bmluZzE4MDYGA1UEAxMvU3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVkaWF0ZSBDbGll
-bnQgQ0ECAw1qzTCBpwYLKoZIhvcNAQkQAgsxgZeggZQwgYwxCzAJBgNVBAYTAklMMRYwFAYDVQQK
-Ew1TdGFydENvbSBMdGQuMSswKQYDVQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWdu
-aW5nMTgwNgYDVQQDEy9TdGFydENvbSBDbGFzcyAxIFByaW1hcnkgSW50ZXJtZWRpYXRlIENsaWVu
-dCBDQQIDDWrNMA0GCSqGSIb3DQEBAQUABIIBAI2cBCaPwd8gpJWleOlnOybLoukSzx8QxTArwXDh
-ecIrZ/axGueotDha2HgpQvEDJdxrtEPcK0m2KhsP983xKKrGKd35CQu6JR53VhT/z43I7r4Az2co
-AMRPdBz0HV35nLhhb5NDfcDJsiZaMHIUvWDXcr7cNOic2UuiLTqBNXexdO4dd9HFkTQf56VAEOzy
-EUJXY4C0ANIAHVPIrA6svuKu7vRsTvWTvlX4MD7fv335tsSR/uwKnDphGk3ktSdcNXb2zGmqul0J
-KSODKTswWNUShRKYE7kXtTaxSckOGOWzIVRuqzFTm89ZBvyzc2fmsavIpFM9GrmjY+VEgWI/HjYA
-AAAAAAA=
-
-
---=-SBwz3LE/SaOrr9huADhg--
+>> [1] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.den0044a/index.html
+>> [2] http://go.microsoft.com/fwlink/p/?LinkId=234837
+>>
+>> Signed-off-by: Aleksey Makarov <aleksey.makarov@linaro.org>
+>> ---
+>>  drivers/acpi/Kconfig              |  3 ++
+>>  drivers/acpi/Makefile             |  1 +
+>>  drivers/acpi/dbg2.c               | 88 +++++++++++++++++++++++++++++++++++++++
+>>  include/asm-generic/vmlinux.lds.h |  1 +
+>>  include/linux/acpi_dbg2.h         | 48 +++++++++++++++++++++
+>>  5 files changed, 141 insertions(+)
+>>  create mode 100644 drivers/acpi/dbg2.c
+>>  create mode 100644 include/linux/acpi_dbg2.h
+>>
+>> diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+>> index 65fb483..660666e 100644
+>> --- a/drivers/acpi/Kconfig
+>> +++ b/drivers/acpi/Kconfig
+>> @@ -57,6 +57,9 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
+>>  config ACPI_CCA_REQUIRED
+>>  	bool
+>>  
+>> +config ACPI_DBG2_TABLE
+>> +	bool
+>> +
+>>  config ACPI_DEBUGGER
+>>  	bool "AML debugger interface"
+>>  	select ACPI_DEBUG
+>> diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+>> index 7395928..3b5f1ea 100644
+>> --- a/drivers/acpi/Makefile
+>> +++ b/drivers/acpi/Makefile
+>> @@ -83,6 +83,7 @@ obj-$(CONFIG_ACPI_CUSTOM_METHOD)+= custom_method.o
+>>  obj-$(CONFIG_ACPI_BGRT)		+= bgrt.o
+>>  obj-$(CONFIG_ACPI_CPPC_LIB)	+= cppc_acpi.o
+>>  obj-$(CONFIG_ACPI_DEBUGGER_USER) += acpi_dbg.o
+>> +obj-$(CONFIG_ACPI_DBG2_TABLE)	+= dbg2.o
+>>  
+>>  # processor has its own "processor." module_param namespace
+>>  processor-y			:= processor_driver.o
+>> diff --git a/drivers/acpi/dbg2.c b/drivers/acpi/dbg2.c
+>> new file mode 100644
+>> index 0000000..0f0f6ca
+>> --- /dev/null
+>> +++ b/drivers/acpi/dbg2.c
+>> @@ -0,0 +1,88 @@
+>> +/*
+>> + * Copyright (c) 2012, Intel Corporation
+>> + * Copyright (c) 2015, 2016 Linaro Ltd.
+>> + *
+>> + * This program is free software; you can redistribute it and/or modify
+>> + * it under the terms of the GNU General Public License version 2 as
+>> + * published by the Free Software Foundation.
+>> + *
+>> + */
+>> +
+>> +#define pr_fmt(fmt) "ACPI: DBG2: " fmt
+>> +
+>> +#include <linux/acpi_dbg2.h>
+>> +#include <linux/acpi.h>
+>> +#include <linux/kernel.h>
+>> +
+>> +static const char * __init type2string(u16 type)
+>> +{
+>> +	switch (type) {
+>> +	case ACPI_DBG2_SERIAL_PORT:
+>> +		return "SERIAL";
+>> +	case ACPI_DBG2_1394_PORT:
+>> +		return "1394";
+>> +	case ACPI_DBG2_USB_PORT:
+>> +		return "USB";
+>> +	case ACPI_DBG2_NET_PORT:
+>> +		return "NET";
+>> +	default:
+>> +		return "?";
+>> +	}
+>> +}
+>> +
+>> +static const char * __init subtype2string(u16 subtype)
+>> +{
+>> +	switch (subtype) {
+>> +	case ACPI_DBG2_16550_COMPATIBLE:
+>> +		return "16550_COMPATIBLE";
+>> +	case ACPI_DBG2_16550_SUBSET:
+>> +		return "16550_SUBSET";
+>> +	case ACPI_DBG2_ARM_PL011:
+>> +		return "ARM_PL011";
+>> +	case ACPI_DBG2_ARM_SBSA_32BIT:
+>> +		return "ARM_SBSA_32BIT";
+>> +	case ACPI_DBG2_ARM_SBSA_GENERIC:
+>> +		return "ARM_SBSA_GENERIC";
+>> +	case ACPI_DBG2_ARM_DCC:
+>> +		return "ARM_DCC";
+>> +	case ACPI_DBG2_BCM2835:
+>> +		return "BCM2835";
+>> +	default:
+>> +		return "?";
+>> +	}
+>> +}
+>> +
+>> +int __init acpi_dbg2_setup(struct acpi_table_header *table, const void *data)
+>> +{
+>> +	struct acpi_table_dbg2 *dbg2 = (struct acpi_table_dbg2 *)table;
+>> +	struct acpi_dbg2_data *dbg2_data = (struct acpi_dbg2_data *)data;
+>> +	struct acpi_dbg2_device *dbg2_device, *dbg2_end;
+>> +	int i;
+>> +
+>> +	dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2,
+>> +				   dbg2->info_offset);
+>> +	dbg2_end = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2, table->length);
+>> +
+>> +	for (i = 0; i < dbg2->info_count; i++) {
+>> +		if (dbg2_device + 1 > dbg2_end) {
+>> +			pr_err("device pointer overflows, bad table\n");
+>> +			return 0;
+>> +		}
+>> +
+>> +		if (dbg2_device->port_type == dbg2_data->port_type &&
+>> +		    dbg2_device->port_subtype == dbg2_data->port_subtype) {
+>> +			if (dbg2_device->port_type == ACPI_DBG2_SERIAL_PORT)
+>> +				pr_info("debug port: SERIAL; subtype: %s\n",
+>> +				     subtype2string(dbg2_device->port_subtype));
+>> +			else
+>> +				pr_info("debug port: %s\n",
+>> +					type2string(dbg2_device->port_type));
+>> +			dbg2_data->setup(dbg2_device, dbg2_data->data);
+>> +		}
+>> +
+>> +		dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2_device,
+>> +					   dbg2_device->length);
+>> +	}
+>> +
+>> +	return 0;
+>> +}
+>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>> index 8f5a12a..8cc49ba 100644
+>> --- a/include/asm-generic/vmlinux.lds.h
+>> +++ b/include/asm-generic/vmlinux.lds.h
+>> @@ -526,6 +526,7 @@
+>>  	IRQCHIP_OF_MATCH_TABLE()					\
+>>  	ACPI_PROBE_TABLE(irqchip)					\
+>>  	ACPI_PROBE_TABLE(clksrc)					\
+>> +	ACPI_PROBE_TABLE(dbg2)						\
+>>  	EARLYCON_TABLE()
+>>  
+>>  #define INIT_TEXT							\
+>> diff --git a/include/linux/acpi_dbg2.h b/include/linux/acpi_dbg2.h
+>> new file mode 100644
+>> index 0000000..125ae7e
+>> --- /dev/null
+>> +++ b/include/linux/acpi_dbg2.h
+>> @@ -0,0 +1,48 @@
+>> +#ifndef _ACPI_DBG2_H_
+>> +#define _ACPI_DBG2_H_
+>> +
+>> +#ifdef CONFIG_ACPI_DBG2_TABLE
+>> +
+>> +#include <linux/kernel.h>
+>> +
+>> +struct acpi_dbg2_device;
+>> +struct acpi_table_header;
+>> +
+>> +struct acpi_dbg2_data {
+>> +	u16 port_type;
+>> +	u16 port_subtype;
+>> +	int (*setup)(struct acpi_dbg2_device *, void *);
+>> +	void *data;
+>> +};
+>> +
+>> +int acpi_dbg2_setup(struct acpi_table_header *header, const void *data);
+>> +
+>> +/**
+>> + * ACPI_DBG2_DECLARE() - Define handler for ACPI DBG2 port
+>> + * @name:	Identifier to compose name of table data
+>> + * @type:	Type of the port
+>> + * @subtype:	Subtype of the port
+>> + * @setup_fn:	Function to be called to setup the port
+>> + *		(of type int (*)(struct acpi_dbg2_device *, void *);)
+>> + * @data_ptr:	Sideband data provided back to the driver
+>> + */
+>> +#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
+>> +	static const struct acpi_dbg2_data				\
+>> +		__acpi_dbg2_data_##name __used = {			\
+>> +			.port_type = type,				\
+>> +			.port_subtype = subtype,			\
+>> +			.setup = setup_fn,				\
+>> +			.data = data_ptr,				\
+>> +		   };							\
+>> +	ACPI_DECLARE_PROBE_ENTRY(dbg2, name, ACPI_SIG_DBG2,		\
+>> +				 acpi_dbg2_setup, &__acpi_dbg2_data_##name)
+>> +
+>> +#else
+>> +
+>> +#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
+>> +	static const void *__acpi_dbg_data_##name[]			\
+>> +		__used __initdata = { (void *)setup_fn,	(void *)data_ptr }
+>> +
+>> +#endif
+>> +
+>> +#endif
+>>
+> 
