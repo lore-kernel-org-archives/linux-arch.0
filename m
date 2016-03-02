@@ -1,61 +1,66 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 1/2] topology, cleanup: Avoid redefinition of
- cpumask_of_pcibus in asm header files.
-Date: Wed, 2 Mar 2016 02:17:10 +0000
-Message-ID: <20160302021710.GJ14022@arm.com>
-References: <1456358528-24213-1-git-send-email-ddaney.cavm@gmail.com>
- <1456358528-24213-2-git-send-email-ddaney.cavm@gmail.com>
+From: Christopher Covington <cov@codeaurora.org>
+Subject: Re: [PATCH 0/2] Tracking user space vDSO remaping
+Date: Wed, 2 Mar 2016 07:13:10 -0500
+Message-ID: <56D6D8D6.6060306@codeaurora.org>
+References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1456358528-24213-2-git-send-email-ddaney.cavm@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, Mark Rutland <mark.rutland@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.ker
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, criu@openvz.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, Laura Abbott <labbott@fedoraproject.org>, David Brown <david.brown@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 24, 2016 at 04:02:07PM -0800, David Daney wrote:
-> From: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> 
-> At present cpumask_of_pcibus is defined for !CONFIG_NUMA and moving out
-> to common will allow to use for numa too. This also avoids
-> redefinition of this macro in respective architecture header files.
-> 
-> Reviewed-by: Robert Richter <rrichter@cavium.com>
-> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> Signed-off-by: David Daney <david.daney@cavium.com>
-> ---
->  arch/arm64/include/asm/topology.h   | 3 ---
->  arch/ia64/include/asm/topology.h    | 4 ----
->  arch/metag/include/asm/topology.h   | 3 ---
->  arch/powerpc/include/asm/topology.h | 4 ----
->  arch/s390/include/asm/pci.h         | 2 +-
->  arch/s390/include/asm/topology.h    | 1 +
->  arch/sh/include/asm/topology.h      | 3 ---
->  arch/tile/include/asm/pci.h         | 2 --
->  arch/tile/include/asm/topology.h    | 3 +++
->  arch/x86/include/asm/pci.h          | 2 +-
->  arch/x86/include/asm/topology.h     | 1 +
->  include/asm-generic/topology.h      | 4 ++--
->  12 files changed, 9 insertions(+), 23 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/topology.h b/arch/arm64/include/asm/topology.h
-> index 8b57339..6e1f62c 100644
-> --- a/arch/arm64/include/asm/topology.h
-> +++ b/arch/arm64/include/asm/topology.h
-> @@ -26,9 +26,6 @@ const struct cpumask *cpu_coregroup_mask(int cpu);
->  
->  struct pci_bus;
->  int pcibus_to_node(struct pci_bus *bus);
-> -#define cpumask_of_pcibus(bus)	(pcibus_to_node(bus) == -1 ?		\
-> -				 cpu_all_mask :				\
-> -				 cpumask_of_node(pcibus_to_node(bus)))
->  
->  #endif /* CONFIG_NUMA */
+Hi,
 
-Looks like a sensible clean up to me (on top of the arm64 NUMA patches):
+On 03/20/2015 11:53 AM, Laurent Dufour wrote:
+> CRIU is recreating the process memory layout by remapping the checkpointee
+> memory area on top of the current process (criu). This includes remapping
+> the vDSO to the place it has at checkpoint time.
+> 
+> However some architectures like powerpc are keeping a reference to the vDSO
+> base address to build the signal return stack frame by calling the vDSO
+> sigreturn service. So once the vDSO has been moved, this reference is no
+> more valid and the signal frame built later are not usable.
+> 
+> This patch serie is introducing a new mm hook 'arch_remap' which is called
+> when mremap is done and the mm lock still hold. The next patch is adding the
+> vDSO remap and unmap tracking to the powerpc architecture.
+> 
+> Laurent Dufour (2):
+>   mm: Introducing arch_remap hook
+>   powerpc/mm: Tracking vDSO remap
+> 
+>  arch/powerpc/include/asm/mmu_context.h   | 35 +++++++++++++++++++++++++++++++-
+>  arch/s390/include/asm/mmu_context.h      |  6 ++++++
+>  arch/um/include/asm/mmu_context.h        |  5 +++++
+>  arch/unicore32/include/asm/mmu_context.h |  6 ++++++
+>  arch/x86/include/asm/mmu_context.h       |  6 ++++++
+>  include/asm-generic/mm_hooks.h           |  6 ++++++
+>  mm/mremap.c                              |  9 ++++++--
+>  7 files changed, 70 insertions(+), 3 deletions(-)
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+We would like to be able to remap/unmap the VDSO on arm and arm64 as
+well. When I proposed a patch with mmu_context.h and mmu-arch-hooks.h
+changes to arm64 that were nearly identical to those done to powerpc,
+Will Deacon reasonably suggested [1] attempting to combine the code and
+provide generic VDSO accessors. Unfortunately, I no prior experience
+with generic MM code. Can anyone advise on how to get started with that?
 
-Will
+1. http://www.spinics.net/lists/linux-arm-msm/msg18441.html
+
+Thanks,
+Christopher Covington
+
+-- 
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
