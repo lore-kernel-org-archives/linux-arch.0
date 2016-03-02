@@ -1,65 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:39758 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755176AbcCBMN0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2016 07:13:26 -0500
-Subject: Re: [PATCH 0/2] Tracking user space vDSO remaping
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-From: Christopher Covington <cov@codeaurora.org>
-Message-ID: <56D6D8D6.6060306@codeaurora.org>
-Date: Wed, 2 Mar 2016 07:13:10 -0500
-MIME-Version: 1.0
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Received: from foss.arm.com ([217.140.101.70]:58785 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753865AbcCBO0k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Mar 2016 09:26:40 -0500
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 1/3] kasan: add functions to clear stack poison
+Date: Wed,  2 Mar 2016 14:26:16 +0000
+Message-ID: <1456928778-22491-2-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <1456928778-22491-1-git-send-email-mark.rutland@arm.com>
+References: <1456928778-22491-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, criu@openvz.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, Laura Abbott <labbott@fedoraproject.org>, David Brown <david.brown@linaro.org>
-Message-ID: <20160302121310.FQdB4rXZ-ILwaOvGAWh3YDsMc3WfXUT34y-qI2njy_U@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: akpm@linux-foundation.org, aryabinin@virtuozzo.com, catalin.marinas@arm.com, glider@google.com, lorenzo.pieralisi@arm.com, mark.rutland@arm.com, mingo@redhat.com, peterz@infradead.org, will.deacon@arm.com
+Message-ID: <20160302142616.IyGPusr6HSZRR707t40QkXkfV_w8q4LBP2WEPLKkQww@z>
 
-Hi,
+Functions which the compiler has instrumented for ASAN place poison on
+the stack shadow upon entry and remove this poison prior to returning.
 
-On 03/20/2015 11:53 AM, Laurent Dufour wrote:
-> CRIU is recreating the process memory layout by remapping the checkpointee
-> memory area on top of the current process (criu). This includes remapping
-> the vDSO to the place it has at checkpoint time.
-> 
-> However some architectures like powerpc are keeping a reference to the vDSO
-> base address to build the signal return stack frame by calling the vDSO
-> sigreturn service. So once the vDSO has been moved, this reference is no
-> more valid and the signal frame built later are not usable.
-> 
-> This patch serie is introducing a new mm hook 'arch_remap' which is called
-> when mremap is done and the mm lock still hold. The next patch is adding the
-> vDSO remap and unmap tracking to the powerpc architecture.
-> 
-> Laurent Dufour (2):
->   mm: Introducing arch_remap hook
->   powerpc/mm: Tracking vDSO remap
-> 
->  arch/powerpc/include/asm/mmu_context.h   | 35 +++++++++++++++++++++++++++++++-
->  arch/s390/include/asm/mmu_context.h      |  6 ++++++
->  arch/um/include/asm/mmu_context.h        |  5 +++++
->  arch/unicore32/include/asm/mmu_context.h |  6 ++++++
->  arch/x86/include/asm/mmu_context.h       |  6 ++++++
->  include/asm-generic/mm_hooks.h           |  6 ++++++
->  mm/mremap.c                              |  9 ++++++--
->  7 files changed, 70 insertions(+), 3 deletions(-)
+In some cases (e.g. hotplug and idle), CPUs may exit the kernel a number
+of levels deep in C code. If there are any instrumented functions on
+this critical path, these will leave portions of the stack shadow
+poisoned.
 
-We would like to be able to remap/unmap the VDSO on arm and arm64 as
-well. When I proposed a patch with mmu_context.h and mmu-arch-hooks.h
-changes to arm64 that were nearly identical to those done to powerpc,
-Will Deacon reasonably suggested [1] attempting to combine the code and
-provide generic VDSO accessors. Unfortunately, I no prior experience
-with generic MM code. Can anyone advise on how to get started with that?
+If a CPU returns to the kernel via a different path (e.g. a cold entry),
+then depending on stack frame layout subsequent calls to instrumented
+functions may use regions of the stack with stale poison, resulting in
+(spurious) KASAN splats to the console.
 
-1. http://www.spinics.net/lists/linux-arm-msm/msg18441.html
+To avoid this, we must clear stale poison from the stack prior to
+instrumented functions being called. This patch adds functions to the
+KASAN core for removing poison from (portions of) a task's stack. These
+will be used by subsequent patches to avoid problems with hotplug and
+idle.
 
-Thanks,
-Christopher Covington
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Alexander Potapenko <glider@google.com>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+---
+ include/linux/kasan.h |  6 +++++-
+ mm/kasan/kasan.c      | 20 ++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
 
+diff --git a/include/linux/kasan.h b/include/linux/kasan.h
+index 4b9f85c..0fdc798 100644
+--- a/include/linux/kasan.h
++++ b/include/linux/kasan.h
+@@ -1,6 +1,7 @@
+ #ifndef _LINUX_KASAN_H
+ #define _LINUX_KASAN_H
+ 
++#include <linux/sched.h>
+ #include <linux/types.h>
+ 
+ struct kmem_cache;
+@@ -13,7 +14,6 @@ struct vm_struct;
+ 
+ #include <asm/kasan.h>
+ #include <asm/pgtable.h>
+-#include <linux/sched.h>
+ 
+ extern unsigned char kasan_zero_page[PAGE_SIZE];
+ extern pte_t kasan_zero_pte[PTRS_PER_PTE];
+@@ -43,6 +43,8 @@ static inline void kasan_disable_current(void)
+ 
+ void kasan_unpoison_shadow(const void *address, size_t size);
+ 
++void kasan_unpoison_task_stack(struct task_struct *task);
++
+ void kasan_alloc_pages(struct page *page, unsigned int order);
+ void kasan_free_pages(struct page *page, unsigned int order);
+ 
+@@ -66,6 +68,8 @@ void kasan_free_shadow(const struct vm_struct *vm);
+ 
+ static inline void kasan_unpoison_shadow(const void *address, size_t size) {}
+ 
++static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
++
+ static inline void kasan_enable_current(void) {}
+ static inline void kasan_disable_current(void) {}
+ 
+diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
+index bc0a8d8..76cf26cc 100644
+--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+@@ -20,6 +20,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/kmemleak.h>
++#include <linux/linkage.h>
+ #include <linux/memblock.h>
+ #include <linux/memory.h>
+ #include <linux/mm.h>
+@@ -60,6 +61,25 @@ void kasan_unpoison_shadow(const void *address, size_t size)
+ 	}
+ }
+ 
++static void __kasan_unpoison_stack(struct task_struct *task, void *sp)
++{
++	void *base = task_thread_info(task) + 1;
++	size_t size = sp - base;
++
++	kasan_unpoison_shadow(base, size);
++}
++
++/* Unpoison the entire stack for a task. */
++void kasan_unpoison_task_stack(struct task_struct *task)
++{
++	__kasan_unpoison_stack(task, task_stack_page(task) + THREAD_SIZE);
++}
++
++/* Unpoison the stack for the current task beyond a watermark sp value. */
++asmlinkage void kasan_unpoison_remaining_stack(void *sp)
++{
++	__kasan_unpoison_stack(current, sp);
++}
+ 
+ /*
+  * All functions below always inlined so compiler could
 -- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+1.9.1
+
