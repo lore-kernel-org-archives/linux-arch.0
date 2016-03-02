@@ -1,66 +1,65 @@
-From: Christopher Covington <cov@codeaurora.org>
-Subject: Re: [PATCH 0/2] Tracking user space vDSO remaping
-Date: Wed, 2 Mar 2016 07:13:10 -0500
-Message-ID: <56D6D8D6.6060306@codeaurora.org>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, criu@openvz.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, Laura Abbott <labbott@fedoraproject.org>, David Brown <david.brown@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 0/3] KASAN: clean stale poison upon cold re-entry to kernel
+Date: Wed,  2 Mar 2016 14:26:15 +0000
+Message-ID: <1456928778-22491-1-git-send-email-mark.rutland@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:58772 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752052AbcCBO0f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Mar 2016 09:26:35 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: akpm@linux-foundation.org, aryabinin@virtuozzo.com, catalin.marinas@arm.com, glider@google.com, lorenzo.pieralisi@arm.com, mark.rutland@arm.com, mingo@redhat.com, peterz@infradead.org, will.deacon@arm.com
 
-Hi,
+Functions which the compiler has instrumented for ASAN place poison on
+the stack shadow upon entry and remove this poison prior to returning.
 
-On 03/20/2015 11:53 AM, Laurent Dufour wrote:
-> CRIU is recreating the process memory layout by remapping the checkpointee
-> memory area on top of the current process (criu). This includes remapping
-> the vDSO to the place it has at checkpoint time.
-> 
-> However some architectures like powerpc are keeping a reference to the vDSO
-> base address to build the signal return stack frame by calling the vDSO
-> sigreturn service. So once the vDSO has been moved, this reference is no
-> more valid and the signal frame built later are not usable.
-> 
-> This patch serie is introducing a new mm hook 'arch_remap' which is called
-> when mremap is done and the mm lock still hold. The next patch is adding the
-> vDSO remap and unmap tracking to the powerpc architecture.
-> 
-> Laurent Dufour (2):
->   mm: Introducing arch_remap hook
->   powerpc/mm: Tracking vDSO remap
-> 
->  arch/powerpc/include/asm/mmu_context.h   | 35 +++++++++++++++++++++++++++++++-
->  arch/s390/include/asm/mmu_context.h      |  6 ++++++
->  arch/um/include/asm/mmu_context.h        |  5 +++++
->  arch/unicore32/include/asm/mmu_context.h |  6 ++++++
->  arch/x86/include/asm/mmu_context.h       |  6 ++++++
->  include/asm-generic/mm_hooks.h           |  6 ++++++
->  mm/mremap.c                              |  9 ++++++--
->  7 files changed, 70 insertions(+), 3 deletions(-)
+In some cases (e.g. hotplug and idle), CPUs may exit the kernel a number
+of levels deep in C code. If there are any instrumented functions on
+this critical path, these will leave portions of the idle thread stack
+shadow poisoned.
 
-We would like to be able to remap/unmap the VDSO on arm and arm64 as
-well. When I proposed a patch with mmu_context.h and mmu-arch-hooks.h
-changes to arm64 that were nearly identical to those done to powerpc,
-Will Deacon reasonably suggested [1] attempting to combine the code and
-provide generic VDSO accessors. Unfortunately, I no prior experience
-with generic MM code. Can anyone advise on how to get started with that?
+If a CPU returns to the kernel via a different path (e.g. a cold entry),
+then depending on stack frame layout subsequent calls to instrumented
+functions may use regions of the stack with stale poison, resulting in
+(spurious) KASAN splats to the console.
 
-1. http://www.spinics.net/lists/linux-arm-msm/msg18441.html
+Contemporary GCCs always add stack shadow poisoning when ASAN is
+enabled, even when asked to not instrument a function [1], so we can't
+simply annotate functions on the critical path to avoid poisoning.
+
+Instead, this series explicitly removes any stale poison before it can
+be hit. In the common hotplug case we clear the entire stack shadow in
+common code, before a CPU is brought online.
+
+On architectures which perform a cold return as part of cpu idle may
+retain an architecture-specific amount of stack contents. To retain the
+poison for this retained context, the arch code must call the core KASAN
+code, passing a "watermark" stack pointer value beyond which shadow will
+be cleared. Architectures which don't perform a cold return as part of
+idle do not need any additional code.
+
+This is a combination of previous approaches [2,3], attempting to keep
+as much as possible generic.
 
 Thanks,
-Christopher Covington
+Mark.
+
+[1] https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69863
+[2] http://lists.infradead.org/pipermail/linux-arm-kernel/2016-February/409466.html
+[3] http://lists.infradead.org/pipermail/linux-arm-kernel/2016-February/411850.html
+
+Mark Rutland (3):
+  kasan: add functions to clear stack poison
+  sched/kasan: remove stale KASAN poison after hotplug
+  arm64: kasan: clear stale stack poison
+
+ arch/arm64/kernel/sleep.S |  4 ++++
+ include/linux/kasan.h     |  6 +++++-
+ kernel/sched/core.c       |  3 +++
+ mm/kasan/kasan.c          | 20 ++++++++++++++++++++
+ 4 files changed, 32 insertions(+), 1 deletion(-)
 
 -- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+1.9.1
