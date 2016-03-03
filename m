@@ -1,69 +1,63 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 3/3] arm64: kasan: clear stale stack poison
-Date: Thu, 3 Mar 2016 14:32:46 +0000
-Message-ID: <20160303143237.GA29015@red-moon>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 0/3] KASAN: clean stale poison upon cold re-entry to
+ kernel
+Date: Thu, 3 Mar 2016 14:49:27 +0000
+Message-ID: <20160303144927.GD19139@leverpostej>
 References: <1456928778-22491-1-git-send-email-mark.rutland@arm.com>
- <1456928778-22491-4-git-send-email-mark.rutland@arm.com>
- <20160303141429.GB19139@leverpostej>
+ <20160303120227.GA2484@gmail.com>
+ <20160303123809.GA19139@leverpostej>
+ <56D84A79.2030303@virtuozzo.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160303141429.GB19139@leverpostej>
+In-Reply-To: <56D84A79.2030303@virtuozzo.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, akpm@linux-foundation.org, aryabinin@virtuozzo.com, catalin.marinas@arm.com, glider@google.com, mingo@redhat.com, peterz@infradead.org, will.deacon@arm.com
+To: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Ingo Molnar <mingo@kernel.org>, akpm@linux-foundation.org, catalin.marinas@arm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, glider@google.com, lorenzo.pieralisi@arm.com, mingo@redhat.com, peterz@infradead.org, will.deacon@arm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 03, 2016 at 02:14:29PM +0000, Mark Rutland wrote:
-> On Wed, Mar 02, 2016 at 02:26:18PM +0000, Mark Rutland wrote:
-> > Functions which the compiler has instrumented for ASAN place poison on
-> > the stack shadow upon entry and remove this poison prior to returning.
+On Thu, Mar 03, 2016 at 05:30:17PM +0300, Andrey Ryabinin wrote:
+> On 03/03/2016 03:38 PM, Mark Rutland wrote:
+> > On Thu, Mar 03, 2016 at 01:02:27PM +0100, Ingo Molnar wrote:
+> >>>
+> >>> Mark Rutland (3):
+> >>>   kasan: add functions to clear stack poison
+> >>>   sched/kasan: remove stale KASAN poison after hotplug
+> >>>   arm64: kasan: clear stale stack poison
+> >>>
+> >>>  arch/arm64/kernel/sleep.S |  4 ++++
+> >>>  include/linux/kasan.h     |  6 +++++-
+> >>>  kernel/sched/core.c       |  3 +++
+> >>>  mm/kasan/kasan.c          | 20 ++++++++++++++++++++
+> >>>  4 files changed, 32 insertions(+), 1 deletion(-)
+> >>
+> >> Looks good to me - via which tree would you like to see this merged upstream?
 > > 
-> > In the case of cpuidle, CPUs exit the kernel a number of levels deep
-> > in C code. Any instrumented functions on this critical path will leave
-> > portions of the stack shadow poisoned.
+> > I'd prefer the arm64 tree as arm64 is (the most) affected by the issue
+> > in practice.
 > > 
-> > If CPUs lose context and return to the kernel via a cold path, we
-> > restore a prior context saved in __cpu_suspend_enter are forgotten, and
-> > we never remove the poison they placed in the stack shadow area by
-> > functions calls between this and the actual exit of the kernel.
+> > I'm happy for this to go via another tree if that's simpler; I'm not
+> > aware of anything that's likely to conflict in the arm64 tree.
 > > 
-> > Thus, (depending on stackframe layout) subsequent calls to instrumented
-> > functions may hit this stale poison, resulting in (spurious) KASAN
-> > splats to the console.
+> > Catalin, Andrey, Andrew, any preference?
 > > 
-> > To avoid this, clear any stale poison from the idle thread for a CPU
-> > prior to bringing a CPU online.
-> > 
-> > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> > Cc: Alexander Potapenko <glider@google.com>
-> > Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> > Cc: Will Deacon <will.deacon@arm.com>
-> > ---
-> >  arch/arm64/kernel/sleep.S | 4 ++++
-> >  1 file changed, 4 insertions(+)
-> > 
-> > diff --git a/arch/arm64/kernel/sleep.S b/arch/arm64/kernel/sleep.S
-> > index e33fe33..fd10eb6 100644
-> > --- a/arch/arm64/kernel/sleep.S
-> > +++ b/arch/arm64/kernel/sleep.S
-> > @@ -145,6 +145,10 @@ ENTRY(cpu_resume_mmu)
-> >  ENDPROC(cpu_resume_mmu)
-> >  	.popsection
-> >  cpu_resume_after_mmu:
-> > +#ifdef CONFIG_KASAN
-> > +	mov	x0, sp
-> > +	bl	kasan_unpoison_remaining_stack
-> > +#endif
 > 
-> Lorenzo, as this was following your suggestion [1], I hope that this
-> patch looks ok to you?
+> I don't have any. arm64 tree is fine by me.
 > 
-> Are you happy to provide an Ack / Reviewed-by?
+> For the patchset:
+> 
+> 	Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+> 
 
-Yes sure, thanks for putting it together:
+Cheers!
 
-Reviewed-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Following [1], I intend to change patch 1 to start at task_stack_page(t)
+rather than task_thread_info(task) + 1, to keep things simple.
+
+I assume that your Reviewed-by would still apply in that case?
+
+Thanks,
+Mark.
+
+[1] https://lkml.org/lkml/2016/3/2/428
