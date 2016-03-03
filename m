@@ -1,43 +1,77 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Thu, 3 Mar 2016 13:28:27 -0800
-Message-ID: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH] x86: PAT: Documentation: update overlapping ioremap hack
+ recommendation
+Date: Thu, 3 Mar 2016 13:42:33 -0800
+Message-ID: <20160303214233.GN3577@linux.vnet.ibm.com>
+References: <1457040108-27358-1-git-send-email-mcgrof@kernel.org>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1457040108-27358-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: bp@alien8.de, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
 List-Id: linux-arch.vger.kernel.org
 
-At kernel summit, during the semantics of ioremap() session, Paul
-mentioned we'd write something up to help get some notes out on what
-we need to do and help clarify things. I've run into an issue (just a
-warning) with a user on some odd system that I suspect may be the
-result of a driver using overlapping ioremap() calls on conflicting
-memory regions, so I'm a bit interested to see a resolution to some of
-these lingering discussions now.
+On Thu, Mar 03, 2016 at 01:21:48PM -0800, Luis R. Rodriguez wrote:
+> The current documentation refers to using set_memor_wc() as a
+> possible hole strategy when you have overlapping ioremap() regions,
+> that's incorrect as set_memory_*() helpers can only be used on RAM,
+> not IO memory. This fixes that, and updates the documention to
+> *strongly* discourage overlapping ioremap() memory uses, but also
+> documents a possible solution should there really be no other
+> option.
+> 
+> Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 
-Although we spoke of quite a bit of things, I raised in particular the
-'semantics of overlapping ioremap()' calls as one item of interest we
-should address across architectures. At least on x86 it seems we would
-not get an error if this is done and in fact its expected behavior;
-Toshi had determined we could not enable error'ing out on overlapping
-ioremap() calls given we have a few users that use it intentionally,
-for instance the /dev/mem setup code. I had suggested long ago then
-that one possible resolution was for us to add an API that *enables*
-overlapping ioremap() calls, and only use it on select locations in
-the kernel. This means we only have to convert a few users to that
-call to white list such semantics, and by default we'd disable
-overlapping calls. To kick things off -- is this strategy agreeable
-for all other architectures?
+Given an Acked-by or better from the guys on the TO line, I would be
+happy to queue it.
 
-The problem is that without this it remains up to the developer of the
-driver to avoid overlapping calls, and a user may just get sporadic
-errors if this happens.  As another problem case, set_memor_*() will
-not fail on MMIO even though set_memor_*() is designed only for RAM.
-If the above strategy on avoiding overlapping is agreeable, could the
-next step, or an orthogonal step be to error out on set_memory_*() on
-IO memory?
+							Thanx, Paul
 
-  Luis
+> ---
+>  Documentation/x86/pat.txt | 25 ++++++++++++++-----------
+>  1 file changed, 14 insertions(+), 11 deletions(-)
+> 
+> diff --git a/Documentation/x86/pat.txt b/Documentation/x86/pat.txt
+> index 54944c71b819..8a26b4cdccf6 100644
+> --- a/Documentation/x86/pat.txt
+> +++ b/Documentation/x86/pat.txt
+> @@ -113,18 +113,21 @@ MTRR effects on PAT / non-PAT systems
+>  -------------------------------------
+> 
+>  The following table provides the effects of using write-combining MTRRs when
+> -using ioremap*() calls on x86 for both non-PAT and PAT systems. Ideally
+> -mtrr_add() usage will be phased out in favor of arch_phys_wc_add() which will
+> -be a no-op on PAT enabled systems. The region over which a arch_phys_wc_add()
+> +using ioremap*() calls on x86 for both non-PAT and PAT systems. As of v4.3
+> +mtrr_add() has been phased out in favor of arch_phys_wc_add(), these calls are
+> +a no-op on PAT enabled systems. The region over which an arch_phys_wc_add()
+>  is made, should already have been ioremapped with WC attributes or PAT entries,
+> -this can be done by using ioremap_wc() / set_memory_wc().  Devices which
+> -combine areas of IO memory desired to remain uncacheable with areas where
+> -write-combining is desirable should consider use of ioremap_uc() followed by
+> -set_memory_wc() to white-list effective write-combined areas.  Such use is
+> -nevertheless discouraged as the effective memory type is considered
+> -implementation defined, yet this strategy can be used as last resort on devices
+> -with size-constrained regions where otherwise MTRR write-combining would
+> -otherwise not be effective.
+> +this can be done by using ioremap_wc(). Devices which combine areas of IO
+> +memory desired to remain uncacheable with areas where write-combining is
+> +desirable should consider use of ioremap_wc() followed by an overlapping
+> +ioremap_uc() "hole". For an example of this strategy refer to commit 3cc2dac5be
+> +("drivers/video/fbdev/atyfb: Replace MTRR UC hole with strong UC").
+> +Such use is nevertheless heavily discouraged as the effective memory type is
+> +considered implementation defined. This strategy should only be used used as a
+> +last resort measure.
+> +
+> +Note you cannot use set_memory_*() helpers on ioremap'd regions, even though
+> +its use currently gives no hint of an error.
+> 
+>  ----------------------------------------------------------------------
+>  MTRR Non-PAT   PAT    Linux ioremap value        Effective memory type
+> -- 
+> 2.7.2
+> 
