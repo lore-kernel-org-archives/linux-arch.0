@@ -1,66 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38508 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:38490 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932877AbcCCQyy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 Mar 2016 11:54:54 -0500
+	id S1758292AbcCCQys (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Mar 2016 11:54:48 -0500
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv2 3/3] arm64: kasan: clear stale stack poison
-Date: Thu,  3 Mar 2016 16:54:28 +0000
-Message-ID: <1457024068-2236-4-git-send-email-mark.rutland@arm.com>
+Subject: [PATCHv2 1/3] kasan: add functions to clear stack poison
+Date: Thu,  3 Mar 2016 16:54:26 +0000
+Message-ID: <1457024068-2236-2-git-send-email-mark.rutland@arm.com>
 In-Reply-To: <1457024068-2236-1-git-send-email-mark.rutland@arm.com>
 References: <1457024068-2236-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
 Cc: akpm@linux-foundation.org, aryabinin@virtuozzo.com, catalin.marinas@arm.com, glider@google.com, lorenzo.pieralisi@arm.com, mark.rutland@arm.com, mingo@redhat.com, peterz@infradead.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20160303165428.tbiQ9-vOvdpoHpbbZVvsrYQq6q5sPXmp6zyjIU_h5Vs@z>
+Message-ID: <20160303165426.So2d-WYfbBw_mRiaBwaGSeV7RrtmbB38RuH2Zm1yLkk@z>
 
 Functions which the compiler has instrumented for ASAN place poison on
-the stack shadow upon entry and remove this poison prior to returning.
+the stack shadow upon entry and remove this poision prior to returning.
 
-In the case of cpuidle, CPUs exit the kernel a number of levels deep
-in C code. Any instrumented functions on this critical path will leave
-portions of the stack shadow poisoned.
+In some cases (e.g. hotplug and idle), CPUs may exit the kernel a number
+of levels deep in C code. If there are any instrumented functions on
+this critical path, these will leave portions of the stack shadow
+poisoned.
 
-If CPUs lose context and return to the kernel via a cold path, we
-restore a prior context saved in __cpu_suspend_enter are forgotten, and
-we never remove the poison they placed in the stack shadow area by
-functions calls between this and the actual exit of the kernel.
+If a CPU returns to the kernel via a different path (e.g. a cold entry),
+then depending on stack frame layout subsequent calls to instrumented
+functions may use regions of the stack with stale poison, resulting in
+(spurious) KASAN splats to the console.
 
-Thus, (depending on stackframe layout) subsequent calls to instrumented
-functions may hit this stale poison, resulting in (spurious) KASAN
-splats to the console.
-
-To avoid this, clear any stale poison from the idle thread for a CPU
-prior to bringing a CPU online.
+To avoid this, we must clear stale poison from the stack prior to
+instrumented functions being called. This patch adds functions to the
+KASAN core for removing poison from (portions of) a task's stack. These
+will be used by subsequent patches to avoid problems with hotplug and
+idle.
 
 Signed-off-by: Mark Rutland <mark.rutland@arm.com>
 Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Reviewed-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Alexander Potapenko <glider@google.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm64/kernel/sleep.S | 4 ++++
- 1 file changed, 4 insertions(+)
+ include/linux/kasan.h |  6 +++++-
+ mm/kasan/kasan.c      | 20 ++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/kernel/sleep.S b/arch/arm64/kernel/sleep.S
-index e33fe33..fd10eb6 100644
---- a/arch/arm64/kernel/sleep.S
-+++ b/arch/arm64/kernel/sleep.S
-@@ -145,6 +145,10 @@ ENTRY(cpu_resume_mmu)
- ENDPROC(cpu_resume_mmu)
- 	.popsection
- cpu_resume_after_mmu:
-+#ifdef CONFIG_KASAN
-+	mov	x0, sp
-+	bl	kasan_unpoison_remaining_stack
-+#endif
- 	mov	x0, #0			// return zero on success
- 	ldp	x19, x20, [sp, #16]
- 	ldp	x21, x22, [sp, #32]
+diff --git a/include/linux/kasan.h b/include/linux/kasan.h
+index 4b9f85c..0fdc798 100644
+--- a/include/linux/kasan.h
++++ b/include/linux/kasan.h
+@@ -1,6 +1,7 @@
+ #ifndef _LINUX_KASAN_H
+ #define _LINUX_KASAN_H
+ 
++#include <linux/sched.h>
+ #include <linux/types.h>
+ 
+ struct kmem_cache;
+@@ -13,7 +14,6 @@ struct vm_struct;
+ 
+ #include <asm/kasan.h>
+ #include <asm/pgtable.h>
+-#include <linux/sched.h>
+ 
+ extern unsigned char kasan_zero_page[PAGE_SIZE];
+ extern pte_t kasan_zero_pte[PTRS_PER_PTE];
+@@ -43,6 +43,8 @@ static inline void kasan_disable_current(void)
+ 
+ void kasan_unpoison_shadow(const void *address, size_t size);
+ 
++void kasan_unpoison_task_stack(struct task_struct *task);
++
+ void kasan_alloc_pages(struct page *page, unsigned int order);
+ void kasan_free_pages(struct page *page, unsigned int order);
+ 
+@@ -66,6 +68,8 @@ void kasan_free_shadow(const struct vm_struct *vm);
+ 
+ static inline void kasan_unpoison_shadow(const void *address, size_t size) {}
+ 
++static inline void kasan_unpoison_task_stack(struct task_struct *task) {}
++
+ static inline void kasan_enable_current(void) {}
+ static inline void kasan_disable_current(void) {}
+ 
+diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
+index bc0a8d8..1ad20ad 100644
+--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+@@ -20,6 +20,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/kmemleak.h>
++#include <linux/linkage.h>
+ #include <linux/memblock.h>
+ #include <linux/memory.h>
+ #include <linux/mm.h>
+@@ -60,6 +61,25 @@ void kasan_unpoison_shadow(const void *address, size_t size)
+ 	}
+ }
+ 
++static void __kasan_unpoison_stack(struct task_struct *task, void *sp)
++{
++	void *base = task_stack_page(task);
++	size_t size = sp - base;
++
++	kasan_unpoison_shadow(base, size);
++}
++
++/* Unpoison the entire stack for a task. */
++void kasan_unpoison_task_stack(struct task_struct *task)
++{
++	__kasan_unpoison_stack(task, task_stack_page(task) + THREAD_SIZE);
++}
++
++/* Unpoison the stack for the current task beyond a watermark sp value. */
++asmlinkage void kasan_unpoison_remaining_stack(void *sp)
++{
++	__kasan_unpoison_stack(current, sp);
++}
+ 
+ /*
+  * All functions below always inlined so compiler could
 -- 
 1.9.1
 
