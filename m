@@ -1,61 +1,63 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 0/3] KASAN: clean stale poison upon cold re-entry to
- kernel
-Date: Thu, 3 Mar 2016 18:17:14 +0000
-Message-ID: <20160303181714.GH19139@leverpostej>
-References: <1457024068-2236-1-git-send-email-mark.rutland@arm.com>
- <CAG_fn=WAfu4oD1Qb1xUnX765RpUznWm1y+FKYqqiM8VO53F+Ag@mail.gmail.com>
- <20160303174015.GG19139@leverpostej>
- <CAG_fn=VBOqPSwhKy2OCj7cgM=XaD338L=UfPDcg9X3tCwc6B_g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CAG_fn=VBOqPSwhKy2OCj7cgM=XaD338L=UfPDcg9X3tCwc6B_g@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Alexander Potapenko <glider@google.com>
-Cc: Linux Memory Management List <linux-mm@kvack.org>, mingo@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, catalin.marinas@arm.com, lorenzo.pieralisi@arm.com, peterz@infradead.org, will.deacon@arm.com, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: [PATCH] x86: PAT: Documentation: update overlapping ioremap hack recommendation
+Date: Thu,  3 Mar 2016 13:21:48 -0800
+Message-ID: <1457040108-27358-1-git-send-email-mcgrof@kernel.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: bp@alien8.de, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com
+Cc: toshi.kani@hp.com, paulmck@linux.vnet.ibm.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net, "Luis R. Rodriguez" <mcgrof@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 03, 2016 at 06:45:55PM +0100, Alexander Potapenko wrote:
-> On Thu, Mar 3, 2016 at 6:40 PM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > Hi,
-> >
-> > On Thu, Mar 03, 2016 at 06:17:31PM +0100, Alexander Potapenko wrote:
-> >> Please replace "ASAN" with "KASAN".
-> >>
-> >> On Thu, Mar 3, 2016 at 5:54 PM, Mark Rutland <mark.rutland@arm.com> wrote:
-> >> > Functions which the compiler has instrumented for ASAN place poison on
-> >> > the stack shadow upon entry and remove this poison prior to returning.
+The current documentation refers to using set_memor_wc() as a
+possible hole strategy when you have overlapping ioremap() regions,
+that's incorrect as set_memory_*() helpers can only be used on RAM,
+not IO memory. This fixes that, and updates the documention to
+*strongly* discourage overlapping ioremap() memory uses, but also
+documents a possible solution should there really be no other
+option.
 
-[...]
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ Documentation/x86/pat.txt | 25 ++++++++++++++-----------
+ 1 file changed, 14 insertions(+), 11 deletions(-)
 
-> > For the above, and the rest of the series, ASAN consistently refers to
-> > the compiler AddressSanitizer feature, and KASAN consistently refers to
-> > the Linux-specific infrastructure. A simple s/[^K]ASAN/KASAN/ would
-> > arguably be wrong (e.g. when referring to GCC behaviour above).
-> I don't think there's been any convention about the compiler feature
-> name, we usually talked about ASan as a userspace tool and KASAN as a
-> kernel-space one, although they share the compiler part.
+diff --git a/Documentation/x86/pat.txt b/Documentation/x86/pat.txt
+index 54944c71b819..8a26b4cdccf6 100644
+--- a/Documentation/x86/pat.txt
++++ b/Documentation/x86/pat.txt
+@@ -113,18 +113,21 @@ MTRR effects on PAT / non-PAT systems
+ -------------------------------------
+ 
+ The following table provides the effects of using write-combining MTRRs when
+-using ioremap*() calls on x86 for both non-PAT and PAT systems. Ideally
+-mtrr_add() usage will be phased out in favor of arch_phys_wc_add() which will
+-be a no-op on PAT enabled systems. The region over which a arch_phys_wc_add()
++using ioremap*() calls on x86 for both non-PAT and PAT systems. As of v4.3
++mtrr_add() has been phased out in favor of arch_phys_wc_add(), these calls are
++a no-op on PAT enabled systems. The region over which an arch_phys_wc_add()
+ is made, should already have been ioremapped with WC attributes or PAT entries,
+-this can be done by using ioremap_wc() / set_memory_wc().  Devices which
+-combine areas of IO memory desired to remain uncacheable with areas where
+-write-combining is desirable should consider use of ioremap_uc() followed by
+-set_memory_wc() to white-list effective write-combined areas.  Such use is
+-nevertheless discouraged as the effective memory type is considered
+-implementation defined, yet this strategy can be used as last resort on devices
+-with size-constrained regions where otherwise MTRR write-combining would
+-otherwise not be effective.
++this can be done by using ioremap_wc(). Devices which combine areas of IO
++memory desired to remain uncacheable with areas where write-combining is
++desirable should consider use of ioremap_wc() followed by an overlapping
++ioremap_uc() "hole". For an example of this strategy refer to commit 3cc2dac5be
++("drivers/video/fbdev/atyfb: Replace MTRR UC hole with strong UC").
++Such use is nevertheless heavily discouraged as the effective memory type is
++considered implementation defined. This strategy should only be used used as a
++last resort measure.
++
++Note you cannot use set_memory_*() helpers on ioremap'd regions, even though
++its use currently gives no hint of an error.
+ 
+ ----------------------------------------------------------------------
+ MTRR Non-PAT   PAT    Linux ioremap value        Effective memory type
+-- 
+2.7.2
 
-Ah, ok.
-
-In future I'll speak in terms of "AddressSanitizer instrumentation" or
-something like that, as that's fairly unambigious.
-
-> > If there is a this needs rework, then I'm happy to s/[^K]ASAN/ASan/ to
-> > follow the usual ASan naming convention and avoid confusion. Otherwise,
-> > spinning a v3 is simply churn.
-> I don't insist on changing this, I should've chimed in before.
-> Feel free to retain the above patch description.
-
-No worries, thanks for the info.
-
-Thanks,
-Mark.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
