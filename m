@@ -1,188 +1,73 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH] sparc64: Add support for Application Data Integrity (ADI)
-Date: Thu, 3 Mar 2016 16:51:07 -0700
-Message-ID: <56D8CDEB.3040803@oracle.com>
-References: <1456944849-21869-1-git-send-email-khalid.aziz@oracle.com>
- <CAGRGNgXH1P8Syz_08ZBfR2FZ5CQKghesHakiG56o4DD+_B+gQg@mail.gmail.com>
- <56D8777F.1080703@oracle.com>
- <CAGRGNgWCpJpXNO9Q=UXc6ec-V78PTFownVuedbPfnHyG8BQMoA@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
+Date: Fri, 4 Mar 2016 10:44:24 +0100
+Message-ID: <20160304094424.GA16228@gmail.com>
+References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAGRGNgWCpJpXNO9Q=UXc6ec-V78PTFownVuedbPfnHyG8BQMoA@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Julian Calaby <julian.calaby@gmail.com>
-Cc: "David S. Miller" <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, Konstantin Khlebnikov <koct9i@gmail.com>, oleg@redhat.com, Greg Thelen <gthelen@google.com>, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andy Lutomirski <luto@kernel.org>, ebiederm@xmission.com, Benjamin Segall <bsegall@google.com>, Geert Uytterhoeven <geert@linux-m68k.org>, dave@stgolabs.net, Alexey Dobriyan <adobriyan@gmail.co>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36719 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758913AbcCDJof (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 04:44:35 -0500
+Content-Disposition: inline
+In-Reply-To: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
 
-On 03/03/2016 03:26 PM, Julian Calaby wrote:
-> Hi Khalid,
->
-> On Fri, Mar 4, 2016 at 4:42 AM, Khalid Aziz <khalid.aziz@oracle.com> wrote:
->> On 03/02/2016 06:33 PM, Julian Calaby wrote:
->>>
->>> Hi Khalid,
->>>
->>> A couple of other comments:
->>>
->>> On Thu, Mar 3, 2016 at 5:54 AM, Khalid Aziz <khalid.aziz@oracle.com>
->>> wrote:
->>>>
->>>>
->>>> Enable Application Data Integrity (ADI) support in the sparc
->>>> kernel for applications to use ADI in userspace. ADI is a new
->>>> feature supported on sparc M7 and newer processors. ADI is supported
->>>> for data fetches only and not instruction fetches. This patch adds
->>>> prctl commands to enable and disable ADI (TSTATE.mcde), return ADI
->>>> parameters to userspace, enable/disable MCD (Memory Corruption
->>>> Detection) on selected memory ranges and enable TTE.mcd in PTEs. It
->>>> also adds handlers for all traps related to MCD. ADI is not enabled
->>>> by default for any task and a task must explicitly enable ADI
->>>> (TSTATE.mcde), turn MCD on on a memory range and set version tag
->>>> for ADI to be effective for the task. This patch adds support for
->>>> ADI for hugepages only. Addresses passed into system calls must be
->>>> non-ADI tagged addresses.
->>>>
->>>> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
->>>> ---
->>>> NOTES: ADI is a new feature added to M7 processor to allow hardware
->>>>           to catch rogue accesses to memory. An app can enable ADI on
->>>>           its data pages, set version tags on them and use versioned
->>>>           addresses (bits 63-60 of the address contain a version tag)
->>>>           to access the data pages. If a rogue app attempts to access
->>>>           ADI enabled data pages, its access is blocked and processor
->>>>           generates an exception. Enabling this functionality for all
->>>>           data pages of an app requires adding infrastructure to save
->>>>           version tags for any data pages that get swapped out and
->>>>           restoring those tags when pages are swapped back in. In this
->>>>           first implementation I am enabling ADI for hugepages only
->>>>           since these pages are locked in memory and hence avoid the
->>>>           issue of saving and restoring tags. Once this core functionality
->>>>           is stable, ADI for other memory pages can be enabled more
->>>>           easily.
->>>>
->>>>    Documentation/prctl/sparc_adi.txt     |  62 ++++++++++
->>>>    Documentation/sparc/adi.txt           | 206
->>>> +++++++++++++++++++++++++++++++
->>>>    arch/sparc/Kconfig                    |  12 ++
->>>>    arch/sparc/include/asm/hugetlb.h      |  14 +++
->>>>    arch/sparc/include/asm/hypervisor.h   |   2 +
->>>>    arch/sparc/include/asm/mmu_64.h       |   1 +
->>>>    arch/sparc/include/asm/pgtable_64.h   |  15 +++
->>>>    arch/sparc/include/asm/processor_64.h |  19 +++
->>>>    arch/sparc/include/asm/ttable.h       |  10 ++
->>>>    arch/sparc/include/uapi/asm/asi.h     |   3 +
->>>>    arch/sparc/include/uapi/asm/pstate.h  |  10 ++
->>>>    arch/sparc/kernel/entry.h             |   3 +
->>>>    arch/sparc/kernel/head_64.S           |   1 +
->>>>    arch/sparc/kernel/mdesc.c             |  81 +++++++++++++
->>>>    arch/sparc/kernel/process_64.c        | 221
->>>> ++++++++++++++++++++++++++++++++++
->>>>    arch/sparc/kernel/sun4v_mcd.S         |  16 +++
->>>>    arch/sparc/kernel/traps_64.c          |  96 ++++++++++++++-
->>>>    arch/sparc/kernel/ttable_64.S         |   6 +-
->>>>    include/linux/mm.h                    |   2 +
->>>>    include/uapi/asm-generic/siginfo.h    |   5 +-
->>>>    include/uapi/linux/prctl.h            |  16 +++
->>>>    kernel/sys.c                          |  30 +++++
->>>>    22 files changed, 825 insertions(+), 6 deletions(-)
->>>>    create mode 100644 Documentation/prctl/sparc_adi.txt
->>>>    create mode 100644 Documentation/sparc/adi.txt
->>>>    create mode 100644 arch/sparc/kernel/sun4v_mcd.S
->>>>
->>>> diff --git a/arch/sparc/include/asm/pgtable_64.h
->>>> b/arch/sparc/include/asm/pgtable_64.h
->>>> index 131d36f..cddea30 100644
->>>> --- a/arch/sparc/include/asm/pgtable_64.h
->>>> +++ b/arch/sparc/include/asm/pgtable_64.h
->>>> @@ -162,6 +162,9 @@ bool kern_addr_valid(unsigned long addr);
->>>>    #define _PAGE_E_4V       _AC(0x0000000000000800,UL) /* side-Effect
->>>> */
->>>>    #define _PAGE_CP_4V      _AC(0x0000000000000400,UL) /* Cacheable in
->>>> P-Cache */
->>>>    #define _PAGE_CV_4V      _AC(0x0000000000000200,UL) /* Cacheable in
->>>> V-Cache */
->>>> +/* Bit 9 is used to enable MCD corruption detection instead on M7
->>>> + */
->>>> +#define _PAGE_MCD_4V     _AC(0x0000000000000200,UL) /* Memory Corruption
->>>> */
->>>
->>>
->>> I'm not sure that everywhere _PAGE_CV_4V is used is guarded against
->>> setting it on M7, could someone who knows the code better than I do
->>> please check that? It looks like the tests around it's use are
->>> essentially "is it sun4v".
->>>
->>> I'm probably being paranoid, but reused values like this make me worry.
->>>
->>
->> I took care of this issue in an earlier patch (commit
->> 494e5b6faeda1d1e830a13e10b3c7bc323f35d97 - "sparc: Resolve conflict between
->> sparc v9 and M7 on usage of bit 9 of TTE"), so I think we are ok here.
->
-> Ah, I remember those changes, however I didn't recall which processor
-> they were for, so that's awesome.
->
->>>>    #define _PAGE_P_4V       _AC(0x0000000000000100,UL) /* Privileged Page
->>>> */
->>>>    #define _PAGE_EXEC_4V    _AC(0x0000000000000080,UL) /* Executable Page
->>>> */
->>>>    #define _PAGE_W_4V       _AC(0x0000000000000040,UL) /* Writable
->>>> */
->>>> diff --git a/arch/sparc/include/uapi/asm/pstate.h
->>>> b/arch/sparc/include/uapi/asm/pstate.h
->>>> index cf832e1..d0521db 100644
->>>> --- a/arch/sparc/include/uapi/asm/pstate.h
->>>> +++ b/arch/sparc/include/uapi/asm/pstate.h
->>>> @@ -10,7 +10,12 @@
->>>>     *
->>>> -----------------------------------------------------------------------
->>>>     *  63  12  11   10    9     8    7   6   5     4     3     2     1
->>>> 0
->>>>     */
->>>> +/* IG on V9 conflicts with MCDE on M7. PSTATE_MCDE will only be used on
->>>> + * processors that support ADI which do not use IG, hence there is no
->>>> + * functional conflict
->>>> + */
->>>>    #define PSTATE_IG   _AC(0x0000000000000800,UL) /* Interrupt Globals.
->>>> */
->>>> +#define PSTATE_MCDE _AC(0x0000000000000800,UL) /* MCD Enable
->>>> */
->>>
->>>
->>> Again, I can't tell if the code that uses PSTATE_IG is guarded against
->>> use on M7. Could someone else please check? It's used in cherrs.S
->>> which appears to be Cheetah specific, so that's not a problem, however
->>> it's also used in ultra.S in xcall_sync_tick which might get patched
->>> out however I don't know the code well enough to be certain. I'm also
->>> guessing that as this file is in include/uapi, userspace could use it
->>> for something.
->>
->>
->> My understanding of the code in ultra.S is xcall_sync_tick doe snot get
->> called on sun4v, so PSTATE_IG will not get set unintentionally on M7.
->> include/uapi is an interesting thought. PSTATE is a privileged register, so
->> userspace can not write to it directly without using a system call. I don't
->> think that is an issue here.
->
-> Is it something userspace would interpret then? I guess any software
-> making use of the PSTATE or TSTATE registers would have to handle any
-> processor differences itself.
->
-> Thanks for explaining this!
->
 
-Same limitation applies even in that case. Since this is a privileged 
-register, it can not be read by userspace without going into a system 
-call. From the sparc manual - "......visible only to software running in
-privileged mode; that is, when PSTATE.PRIV = 1."
+* Luis R. Rodriguez <mcgrof@kernel.org> wrote:
+
+> At kernel summit, during the semantics of ioremap() session, Paul
+> mentioned we'd write something up to help get some notes out on what
+> we need to do and help clarify things. I've run into an issue (just a
+> warning) with a user on some odd system that I suspect may be the
+> result of a driver using overlapping ioremap() calls on conflicting
+> memory regions, so I'm a bit interested to see a resolution to some of
+> these lingering discussions now.
+> 
+> Although we spoke of quite a bit of things, I raised in particular the
+> 'semantics of overlapping ioremap()' calls as one item of interest we
+> should address across architectures. At least on x86 it seems we would
+> not get an error if this is done and in fact its expected behavior;
+> Toshi had determined we could not enable error'ing out on overlapping
+> ioremap() calls given we have a few users that use it intentionally,
+> for instance the /dev/mem setup code. I had suggested long ago then
+> that one possible resolution was for us to add an API that *enables*
+> overlapping ioremap() calls, and only use it on select locations in
+> the kernel. This means we only have to convert a few users to that
+> call to white list such semantics, and by default we'd disable
+> overlapping calls. To kick things off -- is this strategy agreeable
+> for all other architectures?
+
+So I'd say that since ioremap() in itself is fragile enough, we should work 
+towards eliminating overlapping ranges.
+
+The thing is, the whole vmap_area logic is based around non-overlapping ranges, 
+sorted into the vmap_area_root rbtree.
+
+Just check the logic in mm/vmalloc.c::alloc_vmap_area(): it's based on finding 
+holes in the kernel-virtual allocations. 'Overlapping ranges' is very much not 
+part of that logic, at least to my understanding.
+
+How are overlapping ioremap()s even possible with that logic? The allocator 
+searches for holes, not allowing for overlaps. What am I missing?
+
+Could you outline a specific case where it's done intentionally - and the purpose 
+behind that intention?
+
+> The problem is that without this it remains up to the developer of the driver to 
+> avoid overlapping calls, and a user may just get sporadic errors if this 
+> happens.  As another problem case, set_memor_*() will not fail on MMIO even 
+> though set_memor_*() is designed only for RAM. If the above strategy on avoiding 
+> overlapping is agreeable, could the next step, or an orthogonal step be to error 
+> out on set_memory_*() on IO memory?
+
+So how do drivers set up WC or WB MMIO areas? Does none of our upstream video 
+drivers do that?
 
 Thanks,
-Khalid
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Ingo
