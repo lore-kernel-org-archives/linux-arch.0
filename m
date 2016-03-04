@@ -1,187 +1,333 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:21169 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756931AbcCCXwT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Mar 2016 18:52:19 -0500
-Subject: Re: [PATCH] sparc64: Add support for Application Data Integrity (ADI)
-References: <1456944849-21869-1-git-send-email-khalid.aziz@oracle.com>
- <CAGRGNgXH1P8Syz_08ZBfR2FZ5CQKghesHakiG56o4DD+_B+gQg@mail.gmail.com>
- <56D8777F.1080703@oracle.com>
- <CAGRGNgWCpJpXNO9Q=UXc6ec-V78PTFownVuedbPfnHyG8BQMoA@mail.gmail.com>
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Message-ID: <56D8CDEB.3040803@oracle.com>
-Date: Thu, 3 Mar 2016 16:51:07 -0700
+Received: from mail-lb0-f169.google.com ([209.85.217.169]:34881 "EHLO
+	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750915AbcCDMUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 07:20:38 -0500
+Received: by mail-lb0-f169.google.com with SMTP id bc4so58861719lbc.2
+        for <linux-arch@vger.kernel.org>; Fri, 04 Mar 2016 04:20:37 -0800 (PST)
+Subject: Re: [PATCH v3 4/7] ACPI: parse DBG2 table
+References: <1456749726-30261-1-git-send-email-aleksey.makarov@linaro.org>
+ <1456749726-30261-5-git-send-email-aleksey.makarov@linaro.org>
+ <56D5ABE1.7010905@hurleysoftware.com> <56D5C234.70305@linaro.org>
+ <56D5CFC9.2010206@hurleysoftware.com> <56D5DD48.6050204@linaro.org>
+ <56D868F5.6030509@hurleysoftware.com>
+From: Aleksey Makarov <aleksey.makarov@linaro.org>
+Message-ID: <56D97D5C.7040702@linaro.org>
+Date: Fri, 4 Mar 2016 15:19:40 +0300
 MIME-Version: 1.0
-In-Reply-To: <CAGRGNgWCpJpXNO9Q=UXc6ec-V78PTFownVuedbPfnHyG8BQMoA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <56D868F5.6030509@hurleysoftware.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Julian Calaby <julian.calaby@gmail.com>
-Cc: "David S. Miller" <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, Arnd Bergmann <arnd@arndb.de>, sparclinux <sparclinux@vger.kernel.org>, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, Konstantin Khlebnikov <koct9i@gmail.com>, oleg@redhat.com, Greg Thelen <gthelen@google.com>, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andy Lutomirski <luto@kernel.org>, ebiederm@xmission.com, Benjamin Segall <bsegall@google.com>, Geert Uytterhoeven <geert@linux-m68k.org>, dave@stgolabs.net, Alexey Dobriyan <adobriyan@gmail.com>, linux-doc@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20160303235107.mfpC7I3ujETJEgLa4cKVgWAKBnLoaAUz8Ge4iUuSnQc@z>
+To: Peter Hurley <peter@hurleysoftware.com>, linux-acpi@vger.kernel.org
+Cc: linux-serial@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "Rafael J . Wysocki" <rjw@rjwysocki.net>, Leif Lindholm <leif.lindholm@linaro.org>, Graeme Gregory <graeme.gregory@linaro.org>, Al Stone <ahs3@redhat.com>, Christopher Covington <cov@codeaurora.org>, Matthias Brugger <mbrugger@suse.com>, Len Brown <lenb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160304121940.DkJt9LDwKbcT7CKKXpWAq4NHvN43YDnY_bl1iUUS3pA@z>
 
-On 03/03/2016 03:26 PM, Julian Calaby wrote:
-> Hi Khalid,
->
-> On Fri, Mar 4, 2016 at 4:42 AM, Khalid Aziz <khalid.aziz@oracle.com> wrote:
->> On 03/02/2016 06:33 PM, Julian Calaby wrote:
->>>
->>> Hi Khalid,
->>>
->>> A couple of other comments:
->>>
->>> On Thu, Mar 3, 2016 at 5:54 AM, Khalid Aziz <khalid.aziz@oracle.com>
->>> wrote:
->>>>
->>>>
->>>> Enable Application Data Integrity (ADI) support in the sparc
->>>> kernel for applications to use ADI in userspace. ADI is a new
->>>> feature supported on sparc M7 and newer processors. ADI is supported
->>>> for data fetches only and not instruction fetches. This patch adds
->>>> prctl commands to enable and disable ADI (TSTATE.mcde), return ADI
->>>> parameters to userspace, enable/disable MCD (Memory Corruption
->>>> Detection) on selected memory ranges and enable TTE.mcd in PTEs. It
->>>> also adds handlers for all traps related to MCD. ADI is not enabled
->>>> by default for any task and a task must explicitly enable ADI
->>>> (TSTATE.mcde), turn MCD on on a memory range and set version tag
->>>> for ADI to be effective for the task. This patch adds support for
->>>> ADI for hugepages only. Addresses passed into system calls must be
->>>> non-ADI tagged addresses.
->>>>
->>>> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
->>>> ---
->>>> NOTES: ADI is a new feature added to M7 processor to allow hardware
->>>>           to catch rogue accesses to memory. An app can enable ADI on
->>>>           its data pages, set version tags on them and use versioned
->>>>           addresses (bits 63-60 of the address contain a version tag)
->>>>           to access the data pages. If a rogue app attempts to access
->>>>           ADI enabled data pages, its access is blocked and processor
->>>>           generates an exception. Enabling this functionality for all
->>>>           data pages of an app requires adding infrastructure to save
->>>>           version tags for any data pages that get swapped out and
->>>>           restoring those tags when pages are swapped back in. In this
->>>>           first implementation I am enabling ADI for hugepages only
->>>>           since these pages are locked in memory and hence avoid the
->>>>           issue of saving and restoring tags. Once this core functionality
->>>>           is stable, ADI for other memory pages can be enabled more
->>>>           easily.
->>>>
->>>>    Documentation/prctl/sparc_adi.txt     |  62 ++++++++++
->>>>    Documentation/sparc/adi.txt           | 206
->>>> +++++++++++++++++++++++++++++++
->>>>    arch/sparc/Kconfig                    |  12 ++
->>>>    arch/sparc/include/asm/hugetlb.h      |  14 +++
->>>>    arch/sparc/include/asm/hypervisor.h   |   2 +
->>>>    arch/sparc/include/asm/mmu_64.h       |   1 +
->>>>    arch/sparc/include/asm/pgtable_64.h   |  15 +++
->>>>    arch/sparc/include/asm/processor_64.h |  19 +++
->>>>    arch/sparc/include/asm/ttable.h       |  10 ++
->>>>    arch/sparc/include/uapi/asm/asi.h     |   3 +
->>>>    arch/sparc/include/uapi/asm/pstate.h  |  10 ++
->>>>    arch/sparc/kernel/entry.h             |   3 +
->>>>    arch/sparc/kernel/head_64.S           |   1 +
->>>>    arch/sparc/kernel/mdesc.c             |  81 +++++++++++++
->>>>    arch/sparc/kernel/process_64.c        | 221
->>>> ++++++++++++++++++++++++++++++++++
->>>>    arch/sparc/kernel/sun4v_mcd.S         |  16 +++
->>>>    arch/sparc/kernel/traps_64.c          |  96 ++++++++++++++-
->>>>    arch/sparc/kernel/ttable_64.S         |   6 +-
->>>>    include/linux/mm.h                    |   2 +
->>>>    include/uapi/asm-generic/siginfo.h    |   5 +-
->>>>    include/uapi/linux/prctl.h            |  16 +++
->>>>    kernel/sys.c                          |  30 +++++
->>>>    22 files changed, 825 insertions(+), 6 deletions(-)
->>>>    create mode 100644 Documentation/prctl/sparc_adi.txt
->>>>    create mode 100644 Documentation/sparc/adi.txt
->>>>    create mode 100644 arch/sparc/kernel/sun4v_mcd.S
->>>>
->>>> diff --git a/arch/sparc/include/asm/pgtable_64.h
->>>> b/arch/sparc/include/asm/pgtable_64.h
->>>> index 131d36f..cddea30 100644
->>>> --- a/arch/sparc/include/asm/pgtable_64.h
->>>> +++ b/arch/sparc/include/asm/pgtable_64.h
->>>> @@ -162,6 +162,9 @@ bool kern_addr_valid(unsigned long addr);
->>>>    #define _PAGE_E_4V       _AC(0x0000000000000800,UL) /* side-Effect
->>>> */
->>>>    #define _PAGE_CP_4V      _AC(0x0000000000000400,UL) /* Cacheable in
->>>> P-Cache */
->>>>    #define _PAGE_CV_4V      _AC(0x0000000000000200,UL) /* Cacheable in
->>>> V-Cache */
->>>> +/* Bit 9 is used to enable MCD corruption detection instead on M7
->>>> + */
->>>> +#define _PAGE_MCD_4V     _AC(0x0000000000000200,UL) /* Memory Corruption
->>>> */
->>>
->>>
->>> I'm not sure that everywhere _PAGE_CV_4V is used is guarded against
->>> setting it on M7, could someone who knows the code better than I do
->>> please check that? It looks like the tests around it's use are
->>> essentially "is it sun4v".
->>>
->>> I'm probably being paranoid, but reused values like this make me worry.
->>>
->>
->> I took care of this issue in an earlier patch (commit
->> 494e5b6faeda1d1e830a13e10b3c7bc323f35d97 - "sparc: Resolve conflict between
->> sparc v9 and M7 on usage of bit 9 of TTE"), so I think we are ok here.
->
-> Ah, I remember those changes, however I didn't recall which processor
-> they were for, so that's awesome.
->
->>>>    #define _PAGE_P_4V       _AC(0x0000000000000100,UL) /* Privileged Page
->>>> */
->>>>    #define _PAGE_EXEC_4V    _AC(0x0000000000000080,UL) /* Executable Page
->>>> */
->>>>    #define _PAGE_W_4V       _AC(0x0000000000000040,UL) /* Writable
->>>> */
->>>> diff --git a/arch/sparc/include/uapi/asm/pstate.h
->>>> b/arch/sparc/include/uapi/asm/pstate.h
->>>> index cf832e1..d0521db 100644
->>>> --- a/arch/sparc/include/uapi/asm/pstate.h
->>>> +++ b/arch/sparc/include/uapi/asm/pstate.h
->>>> @@ -10,7 +10,12 @@
->>>>     *
->>>> -----------------------------------------------------------------------
->>>>     *  63  12  11   10    9     8    7   6   5     4     3     2     1
->>>> 0
->>>>     */
->>>> +/* IG on V9 conflicts with MCDE on M7. PSTATE_MCDE will only be used on
->>>> + * processors that support ADI which do not use IG, hence there is no
->>>> + * functional conflict
->>>> + */
->>>>    #define PSTATE_IG   _AC(0x0000000000000800,UL) /* Interrupt Globals.
->>>> */
->>>> +#define PSTATE_MCDE _AC(0x0000000000000800,UL) /* MCD Enable
->>>> */
->>>
->>>
->>> Again, I can't tell if the code that uses PSTATE_IG is guarded against
->>> use on M7. Could someone else please check? It's used in cherrs.S
->>> which appears to be Cheetah specific, so that's not a problem, however
->>> it's also used in ultra.S in xcall_sync_tick which might get patched
->>> out however I don't know the code well enough to be certain. I'm also
->>> guessing that as this file is in include/uapi, userspace could use it
->>> for something.
+
+
+On 03/03/2016 07:40 PM, Peter Hurley wrote:
+> On 03/01/2016 10:19 AM, Aleksey Makarov wrote:
 >>
 >>
->> My understanding of the code in ultra.S is xcall_sync_tick doe snot get
->> called on sun4v, so PSTATE_IG will not get set unintentionally on M7.
->> include/uapi is an interesting thought. PSTATE is a privileged register, so
->> userspace can not write to it directly without using a system call. I don't
->> think that is an issue here.
->
-> Is it something userspace would interpret then? I guess any software
-> making use of the PSTATE or TSTATE registers would have to handle any
-> processor differences itself.
->
-> Thanks for explaining this!
->
+>> On 03/01/2016 08:22 PM, Peter Hurley wrote:
+>>> On 03/01/2016 08:24 AM, Aleksey Makarov wrote:
+>>>>
+>>>>
+>>>> On 03/01/2016 05:49 PM, Peter Hurley wrote:
+>>>>> On 02/29/2016 04:42 AM, Aleksey Makarov wrote:
+>>>>>> 'ARM Server Base Boot Requirements' [1] mentions DBG2 (Microsoft Debug
+>>>>>> Port Table 2) [2] as a mandatory ACPI table that specifies debug ports.
+>>>>>>
+>>>>>> - Implement macros
+>>>>>>
+>>>>>> 	ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)
+>>>>>>
+>>>>>>   that defines a handler for the port of given type and subtype.
+>>>>>>
+>>>>>> - For each declared port that is also described in the ACPI DBG2 table
+>>>>>>   call the provided callback.
+>>>>>
+>>>>> On 02/22/2016 06:43 AM, Aleksey Makarov wrote:
+>>>>>> On 02/19/2016 08:20 PM, Christopher Covington wrote:
+>>>>>>> Can the device specified in DBG2 be used for both earlycon and KGDB? If it can only be used for one, let's make sure the choice of earlycon vs KGDB is intentional rather than accidental.
+>>>>>>
+>>>>>> I just sent the DBG2 series.  It enables an earlycon on DBG2 port with
+>>>>>> an "earlycon=acpi_dbg2" option (we can discuss particular name).
+>>>>>> If you need KGDB on that port just support it for that port in the kernel
+>>>>>> (i. e. add a new instance of ACPI_DBG2_DECLARE() macros for that port, see the patches)
+>>>>>> and change the command line options.
+>>>>>> I hope that is OK.  We could continue this discussion in the DBG2 thread.
+>>>>>
+>>>>> This method will not work for kgdb, since kgdb doesn't actually
+>>>>> implement the i/o but rather runs on top of a console.
+>>>>
+>>>> I see. Thank you for pointing this out.
+>>>>
+>>>> I don't have requirements to implement running kgdb over the serial port
+>>>> specified with DBG2.  This feature should be supported separately.
+>>>
+>>> And this takes us back full-circle to my initial point regarding
+>>> supporting earlycon via ACPI: which is that my view is earlycon should
+>>> be opt-in for any ACPI-specified console, rather than console via
+>>> SPCR and earlycon via DBG2.
+>>
+>> This is the main point on which we do not agree: 
+>> should SPCR start a new earlycon or match existing full-featured console.
+> 
+> My point of view is not that SPCR should *only* start an earlycon
+> but rather *optionally also* start an earlycon.
 
-Same limitation applies even in that case. Since this is a privileged 
-register, it can not be read by userspace without going into a system 
-call. From the sparc manual - "......visible only to software running in
-privileged mode; that is, when PSTATE.PRIV = 1."
+Again, we have DBG2 to specify earlycon.
+SPCR specifies full-featured console.  DBG2 specifies earlycon.
 
-Thanks,
-Khalid
+> This is the existing behavior of every other firmware-specified console.
+
+It SPCR + DBG2 works exactly as every other firmware-specified console
+(well, after I change "earlycon=acpi_dbg2" to just "earlycon" back)
+plus it allows to specify console and earlycon separately.
+
+>> But I do not see how this kgdb/DBG2 feature makes your point of view
+>> more founded.  Can you please elaborate?
+> 
+> Well, my main concern is that other configurations that you have not
+> provided for will not be supportable at all because of the design choices
+> you're making here.
+> 
+> For example, your current design does not allow for earlycon+console
+> on the SPCR port and debugger on DBG2 port. I think that's a problem.
+
+It can not run earlycon+console on the SPCR port because earlycon
+is specified separately by DBG2.  And that is not a problem, just specify it.
+
+As for debugger, it's not the object of these patchets.
+But I am sure it will not be hard to run it on DBG2, it's just not
+what these patches do.
+
+> Another concern is that, since you haven't accounted for options which
+> we'll want to implement in the near future, that a rewrite will be
+> necessary to implement those.
+
+Correct.  I can not forecast any future design decision.  Nobody can.
+
+> This framework is fairly heavyweight to already not have properly
+> considered how to start kgdb via DBG2.
+
+There is no framework.  It's just a fix for ACPI tables and one simple
+callback function.  No design decisions were made to restrict kdbg via DBG2.
+
+>> On the contrary, if SPCR console is earlycon, we will not be able to
+>> run kgdb on it.
+> 
+> I'm not sure what you mean by "run kgdb on it". What is "it" and why
+> would that be a problem?
+
+kgdb can not run over earlycon.  If SPCR runs earlycon we can not run kgdb over it.
+
+>>>> Thank you
+>>>> Aleksey Makarov
+>>>>
+>>>>>> [1] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.den0044a/index.html
+>>>>>> [2] http://go.microsoft.com/fwlink/p/?LinkId=234837
+>>>>>>
+>>>>>> Signed-off-by: Aleksey Makarov <aleksey.makarov@linaro.org>
+>>>>>> ---
+>>>>>>  drivers/acpi/Kconfig              |  3 ++
+>>>>>>  drivers/acpi/Makefile             |  1 +
+>>>>>>  drivers/acpi/dbg2.c               | 88 +++++++++++++++++++++++++++++++++++++++
+>>>>>>  include/asm-generic/vmlinux.lds.h |  1 +
+>>>>>>  include/linux/acpi_dbg2.h         | 48 +++++++++++++++++++++
+>>>>>>  5 files changed, 141 insertions(+)
+>>>>>>  create mode 100644 drivers/acpi/dbg2.c
+>>>>>>  create mode 100644 include/linux/acpi_dbg2.h
+>>>>>>
+>>>>>> diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+>>>>>> index 65fb483..660666e 100644
+>>>>>> --- a/drivers/acpi/Kconfig
+>>>>>> +++ b/drivers/acpi/Kconfig
+>>>>>> @@ -57,6 +57,9 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
+>>>>>>  config ACPI_CCA_REQUIRED
+>>>>>>  	bool
+>>>>>>  
+>>>>>> +config ACPI_DBG2_TABLE
+>>>>>> +	bool
+>>>>>> +
+>>>>>>  config ACPI_DEBUGGER
+>>>>>>  	bool "AML debugger interface"
+>>>>>>  	select ACPI_DEBUG
+>>>>>> diff --git a/drivers/acpi/Makefile b/drivers/acpi/Makefile
+>>>>>> index 7395928..3b5f1ea 100644
+>>>>>> --- a/drivers/acpi/Makefile
+>>>>>> +++ b/drivers/acpi/Makefile
+>>>>>> @@ -83,6 +83,7 @@ obj-$(CONFIG_ACPI_CUSTOM_METHOD)+= custom_method.o
+>>>>>>  obj-$(CONFIG_ACPI_BGRT)		+= bgrt.o
+>>>>>>  obj-$(CONFIG_ACPI_CPPC_LIB)	+= cppc_acpi.o
+>>>>>>  obj-$(CONFIG_ACPI_DEBUGGER_USER) += acpi_dbg.o
+>>>>>> +obj-$(CONFIG_ACPI_DBG2_TABLE)	+= dbg2.o
+>>>>>>  
+>>>>>>  # processor has its own "processor." module_param namespace
+>>>>>>  processor-y			:= processor_driver.o
+>>>>>> diff --git a/drivers/acpi/dbg2.c b/drivers/acpi/dbg2.c
+>>>>>> new file mode 100644
+>>>>>> index 0000000..0f0f6ca
+>>>>>> --- /dev/null
+>>>>>> +++ b/drivers/acpi/dbg2.c
+>>>>>> @@ -0,0 +1,88 @@
+>>>>>> +/*
+>>>>>> + * Copyright (c) 2012, Intel Corporation
+>>>>>> + * Copyright (c) 2015, 2016 Linaro Ltd.
+>>>>>> + *
+>>>>>> + * This program is free software; you can redistribute it and/or modify
+>>>>>> + * it under the terms of the GNU General Public License version 2 as
+>>>>>> + * published by the Free Software Foundation.
+>>>>>> + *
+>>>>>> + */
+>>>>>> +
+>>>>>> +#define pr_fmt(fmt) "ACPI: DBG2: " fmt
+>>>>>> +
+>>>>>> +#include <linux/acpi_dbg2.h>
+>>>>>> +#include <linux/acpi.h>
+>>>>>> +#include <linux/kernel.h>
+>>>>>> +
+>>>>>> +static const char * __init type2string(u16 type)
+>>>>>> +{
+>>>>>> +	switch (type) {
+>>>>>> +	case ACPI_DBG2_SERIAL_PORT:
+>>>>>> +		return "SERIAL";
+>>>>>> +	case ACPI_DBG2_1394_PORT:
+>>>>>> +		return "1394";
+>>>>>> +	case ACPI_DBG2_USB_PORT:
+>>>>>> +		return "USB";
+>>>>>> +	case ACPI_DBG2_NET_PORT:
+>>>>>> +		return "NET";
+>>>>>> +	default:
+>>>>>> +		return "?";
+>>>>>> +	}
+>>>>>> +}
+>>>>>> +
+>>>>>> +static const char * __init subtype2string(u16 subtype)
+>>>>>> +{
+>>>>>> +	switch (subtype) {
+>>>>>> +	case ACPI_DBG2_16550_COMPATIBLE:
+>>>>>> +		return "16550_COMPATIBLE";
+>>>>>> +	case ACPI_DBG2_16550_SUBSET:
+>>>>>> +		return "16550_SUBSET";
+>>>>>> +	case ACPI_DBG2_ARM_PL011:
+>>>>>> +		return "ARM_PL011";
+>>>>>> +	case ACPI_DBG2_ARM_SBSA_32BIT:
+>>>>>> +		return "ARM_SBSA_32BIT";
+>>>>>> +	case ACPI_DBG2_ARM_SBSA_GENERIC:
+>>>>>> +		return "ARM_SBSA_GENERIC";
+>>>>>> +	case ACPI_DBG2_ARM_DCC:
+>>>>>> +		return "ARM_DCC";
+>>>>>> +	case ACPI_DBG2_BCM2835:
+>>>>>> +		return "BCM2835";
+>>>>>> +	default:
+>>>>>> +		return "?";
+>>>>>> +	}
+>>>>>> +}
+>>>>>> +
+>>>>>> +int __init acpi_dbg2_setup(struct acpi_table_header *table, const void *data)
+>>>>>> +{
+>>>>>> +	struct acpi_table_dbg2 *dbg2 = (struct acpi_table_dbg2 *)table;
+>>>>>> +	struct acpi_dbg2_data *dbg2_data = (struct acpi_dbg2_data *)data;
+>>>>>> +	struct acpi_dbg2_device *dbg2_device, *dbg2_end;
+>>>>>> +	int i;
+>>>>>> +
+>>>>>> +	dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2,
+>>>>>> +				   dbg2->info_offset);
+>>>>>> +	dbg2_end = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2, table->length);
+>>>>>> +
+>>>>>> +	for (i = 0; i < dbg2->info_count; i++) {
+>>>>>> +		if (dbg2_device + 1 > dbg2_end) {
+>>>>>> +			pr_err("device pointer overflows, bad table\n");
+>>>>>> +			return 0;
+>>>>>> +		}
+>>>>>> +
+>>>>>> +		if (dbg2_device->port_type == dbg2_data->port_type &&
+>>>>>> +		    dbg2_device->port_subtype == dbg2_data->port_subtype) {
+>>>>>> +			if (dbg2_device->port_type == ACPI_DBG2_SERIAL_PORT)
+>>>>>> +				pr_info("debug port: SERIAL; subtype: %s\n",
+>>>>>> +				     subtype2string(dbg2_device->port_subtype));
+>>>>>> +			else
+>>>>>> +				pr_info("debug port: %s\n",
+>>>>>> +					type2string(dbg2_device->port_type));
+>>>>>> +			dbg2_data->setup(dbg2_device, dbg2_data->data);
+>>>>>> +		}
+>>>>>> +
+>>>>>> +		dbg2_device = ACPI_ADD_PTR(struct acpi_dbg2_device, dbg2_device,
+>>>>>> +					   dbg2_device->length);
+>>>>>> +	}
+>>>>>> +
+>>>>>> +	return 0;
+>>>>>> +}
+>>>>>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>>>>>> index 8f5a12a..8cc49ba 100644
+>>>>>> --- a/include/asm-generic/vmlinux.lds.h
+>>>>>> +++ b/include/asm-generic/vmlinux.lds.h
+>>>>>> @@ -526,6 +526,7 @@
+>>>>>>  	IRQCHIP_OF_MATCH_TABLE()					\
+>>>>>>  	ACPI_PROBE_TABLE(irqchip)					\
+>>>>>>  	ACPI_PROBE_TABLE(clksrc)					\
+>>>>>> +	ACPI_PROBE_TABLE(dbg2)						\
+>>>>>>  	EARLYCON_TABLE()
+>>>>>>  
+>>>>>>  #define INIT_TEXT							\
+>>>>>> diff --git a/include/linux/acpi_dbg2.h b/include/linux/acpi_dbg2.h
+>>>>>> new file mode 100644
+>>>>>> index 0000000..125ae7e
+>>>>>> --- /dev/null
+>>>>>> +++ b/include/linux/acpi_dbg2.h
+>>>>>> @@ -0,0 +1,48 @@
+>>>>>> +#ifndef _ACPI_DBG2_H_
+>>>>>> +#define _ACPI_DBG2_H_
+>>>>>> +
+>>>>>> +#ifdef CONFIG_ACPI_DBG2_TABLE
+>>>>>> +
+>>>>>> +#include <linux/kernel.h>
+>>>>>> +
+>>>>>> +struct acpi_dbg2_device;
+>>>>>> +struct acpi_table_header;
+>>>>>> +
+>>>>>> +struct acpi_dbg2_data {
+>>>>>> +	u16 port_type;
+>>>>>> +	u16 port_subtype;
+>>>>>> +	int (*setup)(struct acpi_dbg2_device *, void *);
+>>>>>> +	void *data;
+>>>>>> +};
+>>>>>> +
+>>>>>> +int acpi_dbg2_setup(struct acpi_table_header *header, const void *data);
+>>>>>> +
+>>>>>> +/**
+>>>>>> + * ACPI_DBG2_DECLARE() - Define handler for ACPI DBG2 port
+>>>>>> + * @name:	Identifier to compose name of table data
+>>>>>> + * @type:	Type of the port
+>>>>>> + * @subtype:	Subtype of the port
+>>>>>> + * @setup_fn:	Function to be called to setup the port
+>>>>>> + *		(of type int (*)(struct acpi_dbg2_device *, void *);)
+>>>>>> + * @data_ptr:	Sideband data provided back to the driver
+>>>>>> + */
+>>>>>> +#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
+>>>>>> +	static const struct acpi_dbg2_data				\
+>>>>>> +		__acpi_dbg2_data_##name __used = {			\
+>>>>>> +			.port_type = type,				\
+>>>>>> +			.port_subtype = subtype,			\
+>>>>>> +			.setup = setup_fn,				\
+>>>>>> +			.data = data_ptr,				\
+>>>>>> +		   };							\
+>>>>>> +	ACPI_DECLARE_PROBE_ENTRY(dbg2, name, ACPI_SIG_DBG2,		\
+>>>>>> +				 acpi_dbg2_setup, &__acpi_dbg2_data_##name)
+>>>>>> +
+>>>>>> +#else
+>>>>>> +
+>>>>>> +#define ACPI_DBG2_DECLARE(name, type, subtype, setup_fn, data_ptr)	\
+>>>>>> +	static const void *__acpi_dbg_data_##name[]			\
+>>>>>> +		__used __initdata = { (void *)setup_fn,	(void *)data_ptr }
+>>>>>> +
+>>>>>> +#endif
+>>>>>> +
+>>>>>> +#endif
+>>>>>>
+>>>>>
+>>>
+> 
