@@ -1,42 +1,33 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Sat, 5 Mar 2016 12:42:29 +0100
-Message-ID: <20160305114229.GB7259@gmail.com>
-References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
- <20160304094424.GA16228@gmail.com>
- <1457115514.15454.216.camel@hpe.com>
- <CAB=NE6VFGUjDToW5zHgXOgfm9y77DGePe+mGAj=jvHEb8bHcGA@mail.gmail.com>
+Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
+ / non-PAT systems"
+Date: Sat, 5 Mar 2016 12:52:55 +0100
+Message-ID: <20160305115255.GA11846@gmail.com>
+References: <20160304210900.GT3577@linux.vnet.ibm.com>
+ <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:34633 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755832AbcCELme (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2016 06:42:34 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAB=NE6VFGUjDToW5zHgXOgfm9y77DGePe+mGAj=jvHEb8bHcGA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Toshi Kani <toshi.kani@hpe.com>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>, Dennis Dalessandro <dennis.dalessandro@intel.com>, Andy Walls <awalls@md.metrocast.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Julia Lawall <julia.lawall@lip6.fr>
+Cc: paulmck@linux.vnet.ibm.com, bp@alien8.de, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
+List-Id: linux-arch.vger.kernel.org
 
 
 * Luis R. Rodriguez <mcgrof@kernel.org> wrote:
 
-> On Fri, Mar 4, 2016 at 10:18 AM, Toshi Kani <toshi.kani@hpe.com> wrote:
-> > On Fri, 2016-03-04 at 10:44 +0100, Ingo Molnar wrote:
-> >> * Luis R. Rodriguez <mcgrof@kernel.org> wrote:
-> >>
-> >> Could you outline a specific case where it's done intentionally - and the
-> >> purpose behind that intention?
-> >
-> > The term "overlapping" is a bit misleading.
-> 
-> To the driver author its overlapping, its overlapping on the physical address.
+> The current documentation refers to using set_memory_wc() as a
+> possible hole strategy when you have overlapping ioremap() regions,
 
-Guys please stop this crazy talk - when the same physical address is mapped to 
-multiple virtual addresses is called 'aliasing' - the term 'overlapping' is used 
-when memory ranges overlap ...
+The whole explanation should talk about virtual aliases over the same physical 
+address, not some 'overlapping regions'.
+
+I see where this talk about 'overlap' comes: the memtype rbtree in 
+arch/x86/mm/pat_rbtree.c indeed has memtype ranges that may overlap on the 
+physical side. But it is highly confusing to call this 'overlapping' on the driver 
+API documentation level without making it really clear what it's about.
 
 Thanks,
 
