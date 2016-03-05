@@ -1,76 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:58862 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755989AbcCEAeS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 19:34:18 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
-Date: Sat, 05 Mar 2016 01:33:27 +0100
-Message-ID: <3185882.WT2d08mtAT@wuerfel>
-In-Reply-To: <20160305002203.GF55664@google.com>
-References: <1453736525-1959191-2-git-send-email-arnd@arndb.de> <5158260.vK2YuWzYIn@wuerfel> <20160305002203.GF55664@google.com>
+Received: from mx2.suse.de ([195.135.220.15]:36947 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755567AbcCEBDx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Mar 2016 20:03:53 -0500
+Date: Sat, 5 Mar 2016 02:03:46 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
+ / non-PAT systems"
+Message-ID: <20160305010346.GW25240@wotan.suse.de>
+References: <20160304210900.GT3577@linux.vnet.ibm.com>
+ <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+ <20160305000304.GA3577@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160305000304.GA3577@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brian Norris <computersforpeace@gmail.com>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org, Tony Lindgren <tony@atomide.com>
-Message-ID: <20160305003327.70Ey65hrj37K0hGP6USI_mRpuo177Chiz0bnF8v8C_E@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, bp@alien8.de
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
+Message-ID: <20160305010346.fcqowarW7typV0jA3O06-jOFanN0h7HIXAYUgdphJYY@z>
 
-On Friday 04 March 2016 16:22:03 Brian Norris wrote:
-> Hi Arnd,
-> 
-> On Sat, Mar 05, 2016 at 01:19:21AM +0100, Arnd Bergmann wrote:
-> > On Friday 04 March 2016 16:02:25 Brian Norris wrote:
-> > > On Mon, Jan 25, 2016 at 04:41:50PM +0100, Arnd Bergmann wrote:
-> > > > When XIP_KERNEL is enabled, some functions are defined in the .data
-> > > > ELF section because we require them to be in RAM whenever we communicate
-> > > > with the flash chip. However this causes problems when FTRACE is
-> > > > enabled and gcc emits calls to __gnu_mcount_nc in the function
-> > > > prolog:
-> > > > 
-> > > > drivers/built-in.o: In function `cfi_chip_setup':
-> > > > :(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > > drivers/built-in.o: In function `cfi_probe_chip':
-> > > > :(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > > /tmp/ccY172rP.s: Assembler messages:
-> > > > /tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
-> > > > /tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
-> > > > make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
-> > > > /tmp/ccK4rjeO.s: Assembler messages:
-> > > > /tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
-> > > > /tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
-> > > > make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
-> > > > /tmp/ccUvhCYR.s: Assembler messages:
-> > > > /tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
-> > > > /tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
-> > > 
-> > > Can you provide a sample .config that DOES build correctly with
-> > > XIP_KERNEL enabled + this patch? My first attempt yields some other
-> > > failures I don't care to fixup right now...
-> > > 
-> > > Anyway, I don't doubt you have a good fix here, so I can probably take
-> > > it. Any review from others would be welcome though.
+On Fri, Mar 04, 2016 at 04:03:04PM -0800, Paul E. McKenney wrote:
+> On Fri, Mar 04, 2016 at 02:45:01PM -0800, Luis R. Rodriguez wrote:
+> > The current documentation refers to using set_memory_wc() as a
+> > possible hole strategy when you have overlapping ioremap() regions,
+> > that's incorrect as set_memory_*() helpers can only be used on RAM,
+> > not IO memory. Using set_memory_wc() will not fail, that's a problem
+> > which must be corrected in the future. This fixes that, and updates
+> > the documention to *strongly* discourage overlapping ioremap() memory
+> > uses, but also documents a possible solution should there really be
+> > no other option to remain compatible on both PAT and MTRR memory
+> > constarained systems. While at it, this provides some same guidlines
+> > to system designers to remain sane and compatible on both PAT and
+> > non-PAT systems.
 > > 
-> > I found the config in the attachment in my logs.
+> > As per Toshi this also fixes the table for the effective memory type
+> > when using MTRR WC on PAT UC- to WC.
+> > 
+> > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 > 
-> Thanks...
+> And I was really confused during my earlier reply.  For some reason
+> I read the filename as memory-barriers.txt.
 > 
-> > To get this config working, I also needed this hunk from my set of
-> > old unsubmitted patches:
-> 
-> ...but, does anyone care about XIP / MTD_XIP then, if the first two
-> examples we have both have long-standing build issues?
-> 
+> This one is not mine.  Too much time in standards committee meetings,
+> I guess.  ;-)
 
-Probably not. I just checked the third user (omap1), and it seems that one
-has been broken since 2009 with 941132606c76 ("OMAP: Remove OMAP_IO_ADDRESS,
-use OMAP1_IO_ADDRESS and OMAP2_IO_ADDRESS instead"), when Tony replaced
-the inline omap_readl() with an extern function, thus breaking the
-implementation of xip_irqpending() that must be inlined.
+Heh, OK yeah I was confused why you wanted to pick it up but played along.
+Boris, can this go through you as its a follow up that previously went
+through you ?
 
-The other two have apparently been broken since 2011, by other patches
-that also broke compilation.
-
-	Arnd
+  Luis
