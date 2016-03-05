@@ -1,53 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36947 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755567AbcCEBDx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Mar 2016 20:03:53 -0500
-Date: Sat, 5 Mar 2016 02:03:46 +0100
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:35239 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753628AbcCELxB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2016 06:53:01 -0500
+Date: Sat, 5 Mar 2016 12:52:55 +0100
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
  / non-PAT systems"
-Message-ID: <20160305010346.GW25240@wotan.suse.de>
+Message-ID: <20160305115255.GA11846@gmail.com>
 References: <20160304210900.GT3577@linux.vnet.ibm.com>
  <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
- <20160305000304.GA3577@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160305000304.GA3577@linux.vnet.ibm.com>
+In-Reply-To: <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, bp@alien8.de
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
-Message-ID: <20160305010346.fcqowarW7typV0jA3O06-jOFanN0h7HIXAYUgdphJYY@z>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: paulmck@linux.vnet.ibm.com, bp@alien8.de, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
+Message-ID: <20160305115255.H7ElDmEL7dNI_vfR5ZBBYyIJGa4T6tJisYDrlfpIyYg@z>
 
-On Fri, Mar 04, 2016 at 04:03:04PM -0800, Paul E. McKenney wrote:
-> On Fri, Mar 04, 2016 at 02:45:01PM -0800, Luis R. Rodriguez wrote:
-> > The current documentation refers to using set_memory_wc() as a
-> > possible hole strategy when you have overlapping ioremap() regions,
-> > that's incorrect as set_memory_*() helpers can only be used on RAM,
-> > not IO memory. Using set_memory_wc() will not fail, that's a problem
-> > which must be corrected in the future. This fixes that, and updates
-> > the documention to *strongly* discourage overlapping ioremap() memory
-> > uses, but also documents a possible solution should there really be
-> > no other option to remain compatible on both PAT and MTRR memory
-> > constarained systems. While at it, this provides some same guidlines
-> > to system designers to remain sane and compatible on both PAT and
-> > non-PAT systems.
-> > 
-> > As per Toshi this also fixes the table for the effective memory type
-> > when using MTRR WC on PAT UC- to WC.
-> > 
-> > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
-> 
-> And I was really confused during my earlier reply.  For some reason
-> I read the filename as memory-barriers.txt.
-> 
-> This one is not mine.  Too much time in standards committee meetings,
-> I guess.  ;-)
 
-Heh, OK yeah I was confused why you wanted to pick it up but played along.
-Boris, can this go through you as its a follow up that previously went
-through you ?
+* Luis R. Rodriguez <mcgrof@kernel.org> wrote:
 
-  Luis
+> The current documentation refers to using set_memory_wc() as a
+> possible hole strategy when you have overlapping ioremap() regions,
+
+The whole explanation should talk about virtual aliases over the same physical 
+address, not some 'overlapping regions'.
+
+I see where this talk about 'overlap' comes: the memtype rbtree in 
+arch/x86/mm/pat_rbtree.c indeed has memtype ranges that may overlap on the 
+physical side. But it is highly confusing to call this 'overlapping' on the driver 
+API documentation level without making it really clear what it's about.
+
+Thanks,
+
+	Ingo
