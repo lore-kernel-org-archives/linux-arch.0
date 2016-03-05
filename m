@@ -1,87 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:33184 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760332AbcCEAWI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 19:22:08 -0500
-Date: Fri, 4 Mar 2016 16:22:03 -0800
-From: Brian Norris <computersforpeace@gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.187]:64563 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760612AbcCEAZd convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 19:25:33 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
-Message-ID: <20160305002203.GF55664@google.com>
-References: <1453736525-1959191-2-git-send-email-arnd@arndb.de>
- <20160305000225.GB55664@google.com>
- <5158260.vK2YuWzYIn@wuerfel>
+Date: Sat, 05 Mar 2016 01:24:36 +0100
+Message-ID: <3582240.H8v1IXn8EB@wuerfel>
+In-Reply-To: <20160305001057.GC55664@google.com>
+References: <1453736525-1959191-2-git-send-email-arnd@arndb.de> <20160305000225.GB55664@google.com> <20160305001057.GC55664@google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5158260.vK2YuWzYIn@wuerfel>
+Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
-Message-ID: <20160305002203.iwqqn7e9zzYpDA3OkwLR7CImZHODqywhJDYYapytkV8@z>
+To: Brian Norris <computersforpeace@gmail.com>
+Cc: David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org, Robert Jarzmik <robert.jarzmik@free.fr>, Haojian Zhuang <haojian.zhuang@gmail.com>, Daniel Mack <daniel@zonque.org>
+Message-ID: <20160305002436.KCReGl81hrhk1uMBCq2i801YwN4qDGp2Lsr5bTwhiUg@z>
 
-Hi Arnd,
-
-On Sat, Mar 05, 2016 at 01:19:21AM +0100, Arnd Bergmann wrote:
-> On Friday 04 March 2016 16:02:25 Brian Norris wrote:
-> > On Mon, Jan 25, 2016 at 04:41:50PM +0100, Arnd Bergmann wrote:
-> > > When XIP_KERNEL is enabled, some functions are defined in the .data
-> > > ELF section because we require them to be in RAM whenever we communicate
-> > > with the flash chip. However this causes problems when FTRACE is
-> > > enabled and gcc emits calls to __gnu_mcount_nc in the function
-> > > prolog:
-> > > 
-> > > drivers/built-in.o: In function `cfi_chip_setup':
-> > > :(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > drivers/built-in.o: In function `cfi_probe_chip':
-> > > :(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > /tmp/ccY172rP.s: Assembler messages:
-> > > /tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
-> > > make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
-> > > /tmp/ccK4rjeO.s: Assembler messages:
-> > > /tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
-> > > make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
-> > > /tmp/ccUvhCYR.s: Assembler messages:
-> > > /tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
-> > 
-> > Can you provide a sample .config that DOES build correctly with
-> > XIP_KERNEL enabled + this patch? My first attempt yields some other
-> > failures I don't care to fixup right now...
-> > 
-> > Anyway, I don't doubt you have a good fix here, so I can probably take
-> > it. Any review from others would be welcome though.
+On Friday 04 March 2016 16:10:57 Brian Norris wrote:
+>   5d284e353eb1 ARM: pxa: avoid accessing interrupt registers directly
 > 
-> I found the config in the attachment in my logs.
-
-Thanks...
-
-> To get this config working, I also needed this hunk from my set of
-> old unsubmitted patches:
-
-...but, does anyone care about XIP / MTD_XIP then, if the first two
-examples we have both have long-standing build issues?
-
-Regards,
-Brian
-
-> diff --git a/arch/arm/mach-sa1100/include/mach/mtd-xip.h b/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> index b3d684098fbf..cb76096a2e36 100644
-> --- a/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> +++ b/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> @@ -20,7 +20,7 @@
->  #define xip_irqpending()	(ICIP & ICMR)
->  
->  /* we sample OSCR and convert desired delta to usec (1/4 ~= 1000000/3686400) */
-> -#define xip_currtime()		(OSCR)
-> -#define xip_elapsed_since(x)	(signed)((OSCR - (x)) / 4)
-> +#define xip_currtime()		readl_relaxed(OSCR)
-> +#define xip_elapsed_since(x)	(signed)((readl_relaxed(OSCR) - (x)) / 4)
->  
->  #endif /* __ARCH_SA1100_MTD_XIP_H__ */
+>   CC      drivers/mtd/chips/cfi_cmdset_0002.o
+> drivers/mtd/chips/cfi_cmdset_0002.c: In function ‘xip_udelay’:
+> drivers/mtd/chips/cfi_cmdset_0002.c:962:35: warning: initialization makes integer from pointer without a cast [enabled by default]
+> drivers/mtd/chips/cfi_cmdset_0002.c:967:8: error: ‘ICIP’ undeclared (first use in this function)
+> drivers/mtd/chips/cfi_cmdset_0002.c:967:8: note: each undeclared identifier is reported only once for each function it appears in
+> drivers/mtd/chips/cfi_cmdset_0002.c:967:15: error: ‘ICMR’ undeclared (first use in this function)
+> drivers/mtd/chips/cfi_cmdset_0002.c:981:123: error: invalid operands to binary / (have ‘void *’ and ‘int’)
+> drivers/mtd/chips/cfi_cmdset_0002.c:982:14: warning: assignment makes integer from pointer without a cast [enabled by default]
+> drivers/mtd/chips/cfi_cmdset_0002.c:984:124: error: invalid operands to binary / (have ‘void *’ and ‘int’)
+> drivers/mtd/chips/cfi_cmdset_0002.c:1034:10: warning: assignment makes integer from pointer without a cast [enabled by default]
+> drivers/mtd/chips/cfi_cmdset_0002.c:1045:118: error: invalid operands to binary / (have ‘void *’ and ‘int’)
 > 
-> 	Arnd
+> Looks like arch/arm/mach-pxa/include/mach/mtd-xip.h can't find ICIP or ICMR...
+> 
 
+Right, I also have a workaround for that one, but found later that it
+won't work. I think this is the patch that broke it five years ago:
 
+commit 5d284e353eb11ab2e8b1c5671ba06489b0bd1e0c
+Author: Eric Miao <eric.y.miao@gmail.com>
+Date:   Wed Apr 27 22:48:04 2011 +0800
+
+    ARM: pxa: avoid accessing interrupt registers directly
+    
+    Signed-off-by: Eric Miao <eric.y.miao@gmail.com>
+
+diff --git a/arch/arm/mach-pxa/include/mach/regs-intc.h b/arch/arm/mach-pxa/include/mach/regs-intc.h
+deleted file mode 100644
+index 662288eb6f95..000000000000
+--- a/arch/arm/mach-pxa/include/mach/regs-intc.h
++++ /dev/null
+@@ -1,30 +0,0 @@
+-#ifndef __ASM_MACH_REGS_INTC_H
+-#define __ASM_MACH_REGS_INTC_H
+-
+-#include <mach/hardware.h>
+-
+-/*
+- * Interrupt Controller
+- */
+-
+-#define ICIP           __REG(0x40D00000)  /* Interrupt Controller IRQ Pending Register */
+-#define ICMR           __REG(0x40D00004)  /* Interrupt Controller Mask Register */
+-#define ICLR           __REG(0x40D00008)  /* Interrupt Controller Level Register */
+-#define ICFP           __REG(0x40D0000C)  /* Interrupt Controller FIQ Pending Register */
+-#define ICPR           __REG(0x40D00010)  /* Interrupt Controller Pending Register */
+-#define ICCR           __REG(0x40D00014)  /* Interrupt Controller Control Register */
+-#define ICHP           __REG(0x40D00018)  /* Interrupt Controller Highest Priority Register */
+
+and it's possible that nobody ever noticed...
+
+I guess we can bring back the macros for the case that MTD_XIP and XIP_KERNEL
+are both enabled.
+
+	Arnd
