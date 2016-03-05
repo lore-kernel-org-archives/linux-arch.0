@@ -1,80 +1,79 @@
-From: Brian Norris <computersforpeace@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
-Date: Fri, 4 Mar 2016 16:22:03 -0800
-Message-ID: <20160305002203.GF55664@google.com>
+Date: Sat, 05 Mar 2016 01:24:36 +0100
+Message-ID: <3582240.H8v1IXn8EB@wuerfel>
 References: <1453736525-1959191-2-git-send-email-arnd@arndb.de>
- <20160305000225.GB55664@google.com>
- <5158260.vK2YuWzYIn@wuerfel>
+ <20160305000225.GB55664@google.com> <20160305001057.GC55664@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5158260.vK2YuWzYIn@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20160305001057.GC55664@google.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Brian Norris <computersforpeace@gmail.com>
+Cc: linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, linux-kernel@vger.kernel.org, Haojian Zhuang <haojian.zhuang@gmail.com>, linux-mtd@lists.infradead.org, Daniel Mack <daniel@zonque.org>, Robert Jarzmik <robert.jarzmik@free.fr>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
-
-On Sat, Mar 05, 2016 at 01:19:21AM +0100, Arnd Bergmann wrote:
-> On Friday 04 March 2016 16:02:25 Brian Norris wrote:
-> > On Mon, Jan 25, 2016 at 04:41:50PM +0100, Arnd Bergmann wrote:
-> > > When XIP_KERNEL is enabled, some functions are defined in the .data
-> > > ELF section because we require them to be in RAM whenever we communicate
-> > > with the flash chip. However this causes problems when FTRACE is
-> > > enabled and gcc emits calls to __gnu_mcount_nc in the function
-> > > prolog:
-> > > 
-> > > drivers/built-in.o: In function `cfi_chip_setup':
-> > > :(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > drivers/built-in.o: In function `cfi_probe_chip':
-> > > :(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-> > > /tmp/ccY172rP.s: Assembler messages:
-> > > /tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
-> > > make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
-> > > /tmp/ccK4rjeO.s: Assembler messages:
-> > > /tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
-> > > make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
-> > > /tmp/ccUvhCYR.s: Assembler messages:
-> > > /tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
-> > > /tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
-> > 
-> > Can you provide a sample .config that DOES build correctly with
-> > XIP_KERNEL enabled + this patch? My first attempt yields some other
-> > failures I don't care to fixup right now...
-> > 
-> > Anyway, I don't doubt you have a good fix here, so I can probably take
-> > it. Any review from others would be welcome though.
-> 
-> I found the config in the attachment in my logs.
-
-Thanks...
-
-> To get this config working, I also needed this hunk from my set of
-> old unsubmitted patches:
-
-...but, does anyone care about XIP / MTD_XIP then, if the first two
-examples we have both have long-standing build issues?
-
-Regards,
-Brian
-
-> diff --git a/arch/arm/mach-sa1100/include/mach/mtd-xip.h b/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> index b3d684098fbf..cb76096a2e36 100644
-> --- a/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> +++ b/arch/arm/mach-sa1100/include/mach/mtd-xip.h
-> @@ -20,7 +20,7 @@
->  #define xip_irqpending()	(ICIP & ICMR)
->  
->  /* we sample OSCR and convert desired delta to usec (1/4 ~= 1000000/3686400) */
-> -#define xip_currtime()		(OSCR)
-> -#define xip_elapsed_since(x)	(signed)((OSCR - (x)) / 4)
-> +#define xip_currtime()		readl_relaxed(OSCR)
-> +#define xip_elapsed_since(x)	(signed)((readl_relaxed(OSCR) - (x)) / 4)
->  
->  #endif /* __ARCH_SA1100_MTD_XIP_H__ */
-> 
-> 	Arnd
+T24gRnJpZGF5IDA0IE1hcmNoIDIwMTYgMTY6MTA6NTcgQnJpYW4gTm9ycmlzIHdyb3RlOgo+ICAg
+NWQyODRlMzUzZWIxIEFSTTogcHhhOiBhdm9pZCBhY2Nlc3NpbmcgaW50ZXJydXB0IHJlZ2lzdGVy
+cyBkaXJlY3RseQo+IAo+ICAgQ0MgICAgICBkcml2ZXJzL210ZC9jaGlwcy9jZmlfY21kc2V0XzAw
+MDIubwo+IGRyaXZlcnMvbXRkL2NoaXBzL2NmaV9jbWRzZXRfMDAwMi5jOiBJbiBmdW5jdGlvbiDi
+gJh4aXBfdWRlbGF54oCZOgo+IGRyaXZlcnMvbXRkL2NoaXBzL2NmaV9jbWRzZXRfMDAwMi5jOjk2
+MjozNTogd2FybmluZzogaW5pdGlhbGl6YXRpb24gbWFrZXMgaW50ZWdlciBmcm9tIHBvaW50ZXIg
+d2l0aG91dCBhIGNhc3QgW2VuYWJsZWQgYnkgZGVmYXVsdF0KPiBkcml2ZXJzL210ZC9jaGlwcy9j
+ZmlfY21kc2V0XzAwMDIuYzo5Njc6ODogZXJyb3I6IOKAmElDSVDigJkgdW5kZWNsYXJlZCAoZmly
+c3QgdXNlIGluIHRoaXMgZnVuY3Rpb24pCj4gZHJpdmVycy9tdGQvY2hpcHMvY2ZpX2NtZHNldF8w
+MDAyLmM6OTY3Ojg6IG5vdGU6IGVhY2ggdW5kZWNsYXJlZCBpZGVudGlmaWVyIGlzIHJlcG9ydGVk
+IG9ubHkgb25jZSBmb3IgZWFjaCBmdW5jdGlvbiBpdCBhcHBlYXJzIGluCj4gZHJpdmVycy9tdGQv
+Y2hpcHMvY2ZpX2NtZHNldF8wMDAyLmM6OTY3OjE1OiBlcnJvcjog4oCYSUNNUuKAmSB1bmRlY2xh
+cmVkIChmaXJzdCB1c2UgaW4gdGhpcyBmdW5jdGlvbikKPiBkcml2ZXJzL210ZC9jaGlwcy9jZmlf
+Y21kc2V0XzAwMDIuYzo5ODE6MTIzOiBlcnJvcjogaW52YWxpZCBvcGVyYW5kcyB0byBiaW5hcnkg
+LyAoaGF2ZSDigJh2b2lkICrigJkgYW5kIOKAmGludOKAmSkKPiBkcml2ZXJzL210ZC9jaGlwcy9j
+ZmlfY21kc2V0XzAwMDIuYzo5ODI6MTQ6IHdhcm5pbmc6IGFzc2lnbm1lbnQgbWFrZXMgaW50ZWdl
+ciBmcm9tIHBvaW50ZXIgd2l0aG91dCBhIGNhc3QgW2VuYWJsZWQgYnkgZGVmYXVsdF0KPiBkcml2
+ZXJzL210ZC9jaGlwcy9jZmlfY21kc2V0XzAwMDIuYzo5ODQ6MTI0OiBlcnJvcjogaW52YWxpZCBv
+cGVyYW5kcyB0byBiaW5hcnkgLyAoaGF2ZSDigJh2b2lkICrigJkgYW5kIOKAmGludOKAmSkKPiBk
+cml2ZXJzL210ZC9jaGlwcy9jZmlfY21kc2V0XzAwMDIuYzoxMDM0OjEwOiB3YXJuaW5nOiBhc3Np
+Z25tZW50IG1ha2VzIGludGVnZXIgZnJvbSBwb2ludGVyIHdpdGhvdXQgYSBjYXN0IFtlbmFibGVk
+IGJ5IGRlZmF1bHRdCj4gZHJpdmVycy9tdGQvY2hpcHMvY2ZpX2NtZHNldF8wMDAyLmM6MTA0NTox
+MTg6IGVycm9yOiBpbnZhbGlkIG9wZXJhbmRzIHRvIGJpbmFyeSAvIChoYXZlIOKAmHZvaWQgKuKA
+mSBhbmQg4oCYaW504oCZKQo+IAo+IExvb2tzIGxpa2UgYXJjaC9hcm0vbWFjaC1weGEvaW5jbHVk
+ZS9tYWNoL210ZC14aXAuaCBjYW4ndCBmaW5kIElDSVAgb3IgSUNNUi4uLgo+IAoKUmlnaHQsIEkg
+YWxzbyBoYXZlIGEgd29ya2Fyb3VuZCBmb3IgdGhhdCBvbmUsIGJ1dCBmb3VuZCBsYXRlciB0aGF0
+IGl0Cndvbid0IHdvcmsuIEkgdGhpbmsgdGhpcyBpcyB0aGUgcGF0Y2ggdGhhdCBicm9rZSBpdCBm
+aXZlIHllYXJzIGFnbzoKCmNvbW1pdCA1ZDI4NGUzNTNlYjExYWIyZThiMWM1NjcxYmEwNjQ4OWIw
+YmQxZTBjCkF1dGhvcjogRXJpYyBNaWFvIDxlcmljLnkubWlhb0BnbWFpbC5jb20+CkRhdGU6ICAg
+V2VkIEFwciAyNyAyMjo0ODowNCAyMDExICswODAwCgogICAgQVJNOiBweGE6IGF2b2lkIGFjY2Vz
+c2luZyBpbnRlcnJ1cHQgcmVnaXN0ZXJzIGRpcmVjdGx5CiAgICAKICAgIFNpZ25lZC1vZmYtYnk6
+IEVyaWMgTWlhbyA8ZXJpYy55Lm1pYW9AZ21haWwuY29tPgoKZGlmZiAtLWdpdCBhL2FyY2gvYXJt
+L21hY2gtcHhhL2luY2x1ZGUvbWFjaC9yZWdzLWludGMuaCBiL2FyY2gvYXJtL21hY2gtcHhhL2lu
+Y2x1ZGUvbWFjaC9yZWdzLWludGMuaApkZWxldGVkIGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggNjYy
+Mjg4ZWI2Zjk1Li4wMDAwMDAwMDAwMDAKLS0tIGEvYXJjaC9hcm0vbWFjaC1weGEvaW5jbHVkZS9t
+YWNoL3JlZ3MtaW50Yy5oCisrKyAvZGV2L251bGwKQEAgLTEsMzAgKzAsMCBAQAotI2lmbmRlZiBf
+X0FTTV9NQUNIX1JFR1NfSU5UQ19ICi0jZGVmaW5lIF9fQVNNX01BQ0hfUkVHU19JTlRDX0gKLQot
+I2luY2x1ZGUgPG1hY2gvaGFyZHdhcmUuaD4KLQotLyoKLSAqIEludGVycnVwdCBDb250cm9sbGVy
+Ci0gKi8KLQotI2RlZmluZSBJQ0lQICAgICAgICAgICBfX1JFRygweDQwRDAwMDAwKSAgLyogSW50
+ZXJydXB0IENvbnRyb2xsZXIgSVJRIFBlbmRpbmcgUmVnaXN0ZXIgKi8KLSNkZWZpbmUgSUNNUiAg
+ICAgICAgICAgX19SRUcoMHg0MEQwMDAwNCkgIC8qIEludGVycnVwdCBDb250cm9sbGVyIE1hc2sg
+UmVnaXN0ZXIgKi8KLSNkZWZpbmUgSUNMUiAgICAgICAgICAgX19SRUcoMHg0MEQwMDAwOCkgIC8q
+IEludGVycnVwdCBDb250cm9sbGVyIExldmVsIFJlZ2lzdGVyICovCi0jZGVmaW5lIElDRlAgICAg
+ICAgICAgIF9fUkVHKDB4NDBEMDAwMEMpICAvKiBJbnRlcnJ1cHQgQ29udHJvbGxlciBGSVEgUGVu
+ZGluZyBSZWdpc3RlciAqLwotI2RlZmluZSBJQ1BSICAgICAgICAgICBfX1JFRygweDQwRDAwMDEw
+KSAgLyogSW50ZXJydXB0IENvbnRyb2xsZXIgUGVuZGluZyBSZWdpc3RlciAqLwotI2RlZmluZSBJ
+Q0NSICAgICAgICAgICBfX1JFRygweDQwRDAwMDE0KSAgLyogSW50ZXJydXB0IENvbnRyb2xsZXIg
+Q29udHJvbCBSZWdpc3RlciAqLwotI2RlZmluZSBJQ0hQICAgICAgICAgICBfX1JFRygweDQwRDAw
+MDE4KSAgLyogSW50ZXJydXB0IENvbnRyb2xsZXIgSGlnaGVzdCBQcmlvcml0eSBSZWdpc3RlciAq
+LwoKYW5kIGl0J3MgcG9zc2libGUgdGhhdCBub2JvZHkgZXZlciBub3RpY2VkLi4uCgpJIGd1ZXNz
+IHdlIGNhbiBicmluZyBiYWNrIHRoZSBtYWNyb3MgZm9yIHRoZSBjYXNlIHRoYXQgTVREX1hJUCBh
+bmQgWElQX0tFUk5FTAphcmUgYm90aCBlbmFibGVkLgoKCUFybmQKCl9fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBs
+aXN0CmxpbnV4LWFybS1rZXJuZWxAbGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5m
+cmFkZWFkLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
