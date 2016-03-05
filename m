@@ -1,32 +1,38 @@
-From: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
-Subject: RE: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on
- PAT / non-PAT systems"
-Date: Sat, 5 Mar 2016 04:39:58 +0000
-Message-ID: <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
-References: <20160304210900.GT3577@linux.vnet.ibm.com>
- <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+From: Robert Jarzmik <robert.jarzmik@free.fr>
+Subject: Re: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
+Date: Sat, 05 Mar 2016 09:45:21 +0100
+Message-ID: <8737s5wbxa.fsf@belgarion.home>
+References: <1453736525-1959191-2-git-send-email-arnd@arndb.de>
+	<20160305000225.GB55664@google.com>
+	<20160305001057.GC55664@google.com> <3582240.H8v1IXn8EB@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:40953 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759763AbcCEEkZ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2016 23:40:25 -0500
-In-Reply-To: <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
-Content-Language: en-US
+Received: from smtp05.smtpout.orange.fr ([80.12.242.127]:18530 "EHLO
+	smtp.smtpout.orange.fr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752494AbcCEIp1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2016 03:45:27 -0500
+In-Reply-To: <3582240.H8v1IXn8EB@wuerfel> (Arnd Bergmann's message of "Sat, 05
+	Mar 2016 01:24:36 +0100")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "bp@alien8.de" <bp@alien8.de>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "hpa@zytor.com" <hpa@zytor.com>, "toshi.kani@hp.com" <toshi.kani@hp.com>
-Cc: "airlied@redhat.com" <airlied@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "mst@redhat.com" <mst@redhat.com>, "vinod.koul@intel.com" <vinod.koul@intel.com>, "jgross@suse.com" <jgross@suse.com>, "daniel.vetter@ffwll.ch" <daniel.vetter@ffwll.ch>, "luto@amacapital.net" <luto@amacapital.net>, "davem@davemloft.net" <davem@davemloft.net>, "ben@decadent.org.uk" <ben@decadent.org.uk>, "benjamin.poirier@gmail.com" <benjamin.poirier@gmail.com>, "linux-fbdev@vger.kernel.org" <linux-fbdev@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "corbet@lwn.net" <corbet@lwn.net>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org, Haojian Zhuang <haojian.zhuang@gmail.com>, Daniel Mack <daniel@zonque.org>
 
-> -----Original Message-----
-> From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
-> owner@vger.kernel.org] On Behalf Of Luis R. Rodriguez
-> Sent: Friday, March 04, 2016 4:45 PM
-> Subject: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on
-> PAT / non-PAT systems"
-...
-> +MMIO and another PCI BAR for write-combing, if needed.
+Arnd Bergmann <arnd@arndb.de> writes:
 
-typo: combining
+> I guess we can bring back the macros for the case that MTD_XIP and XIP_KERNEL
+> are both enabled.
+>
+> 	Arnd
+I wouldn't have ICMR and ICIP exposed to drivers, Eric's original move looks
+corect to me.
+
+On the other hand, I'm wondering if xip_irqpending(), xip_currtime() and
+xip_cpu_idle() should be declared as functions in mtd-xip.h, and be part of
+something like arch/arm/mach-pxa/xip.c ...
+
+Cheers.
+
+-- 
+Robert
