@@ -1,30 +1,26 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Christoph Hellwig <hch@lst.de>
 Subject: Re: two small PCI header cleanups
-Date: Sun, 6 Mar 2016 21:47:03 +0100
-Message-ID: <201603062147.03753.arnd@arndb.de>
-References: <1457277475-8913-1-git-send-email-hch@lst.de>
+Date: Sun, 6 Mar 2016 21:52:13 +0100
+Message-ID: <20160306205213.GA30838@lst.de>
+References: <1457277475-8913-1-git-send-email-hch@lst.de> <201603062147.03753.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:56219 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750865AbcCFUrM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Mar 2016 15:47:12 -0500
-In-Reply-To: <1457277475-8913-1-git-send-email-hch@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201603062147.03753.arnd@arndb.de>
+Sender: linux-pci-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sunday 06 March 2016, Christoph Hellwig wrote:
-> Move a header from asm-generic to Linux because it isn't a generic arch
-> implementation, and also implement the pci_dma_* helpers in common code.
+On Sun, Mar 06, 2016 at 09:47:03PM +0100, Arnd Bergmann wrote:
+> > Move a header from asm-generic to Linux because it isn't a generic arch
+> > implementation, and also implement the pci_dma_* helpers in common code.
+> > 
 > 
+> Nice cleanup!
+> 
+> Should I take these through the asm-generic tree?
 
-Nice cleanup!
-
-Should I take these through the asm-generic tree?
-
-	Arnd
+I expected Bjoern to takes this throught the PCI tree, but as far
+as I'm concerned your tree is fine as well.
