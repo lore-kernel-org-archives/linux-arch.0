@@ -1,34 +1,56 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
- / non-PAT systems"
-Date: Sat, 5 Mar 2016 12:52:55 +0100
-Message-ID: <20160305115255.GA11846@gmail.com>
-References: <20160304210900.GT3577@linux.vnet.ibm.com>
- <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+Date: Sat, 05 Mar 2016 23:07:02 -0500 (EST)
+Message-ID: <20160305.230702.1325379875282120281.davem@davemloft.net>
+References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: paulmck@linux.vnet.ibm.com, bp@alien8.de, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: khalid.aziz@oracle.com
+Cc: corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Date: Wed,  2 Mar 2016 13:39:37 -0700
 
-* Luis R. Rodriguez <mcgrof@kernel.org> wrote:
+> 	In this
+> 	first implementation I am enabling ADI for hugepages only
+> 	since these pages are locked in memory and hence avoid the
+> 	issue of saving and restoring tags.
 
-> The current documentation refers to using set_memory_wc() as a
-> possible hole strategy when you have overlapping ioremap() regions,
+This makes the feature almost entire useless.
 
-The whole explanation should talk about virtual aliases over the same physical 
-address, not some 'overlapping regions'.
+Non-hugepages must be in the initial implementation.
 
-I see where this talk about 'overlap' comes: the memtype rbtree in 
-arch/x86/mm/pat_rbtree.c indeed has memtype ranges that may overlap on the 
-physical side. But it is highly confusing to call this 'overlapping' on the driver 
-API documentation level without making it really clear what it's about.
+> +	PR_ENABLE_SPARC_ADI - Enable ADI checking in all pages in the address
+> +		range specified. The pages in the range must be already
+> +		locked. This operation enables the TTE.mcd bit for the
+> +		pages specified. arg2 is the starting address for address
+> +		range and must be page aligned. arg3 is the length of
+> +		memory address range and must be a multiple of page size.
 
-Thanks,
+I strongly dislike this interface, and it makes the prtctl cases look
+extremely ugly and hide to the casual reader what the code is actually
+doing.
 
-	Ingo
+This is an mprotect() operation, so add a new flag bit and implement
+this via mprotect please.
+
+Then since you are guarenteed to have a consistent ADI setting for
+every single VMA region, you never "lose" the ADI state when you swap
+out.  It's implicit in the VMA itself, because you'll store in the VMA
+that this is an ADI region.
+
+I also want this enabled unconditionally, without any Kconfig knobs.
+
+Thanks.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
