@@ -1,343 +1,41 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 2/3] pci: move pci-bridge.h out of asm-generic
-Date: Sun,  6 Mar 2016 16:17:54 +0100
-Message-ID: <1457277475-8913-3-git-send-email-hch@lst.de>
-References: <1457277475-8913-1-git-send-email-hch@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
+Date: Sun, 6 Mar 2016 20:56:01 +0100
+Message-ID: <201603062056.01683.arnd@arndb.de>
+References: <1453736525-1959191-2-git-send-email-arnd@arndb.de> <3582240.H8v1IXn8EB@wuerfel> <8737s5wbxa.fsf@belgarion.home>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42205 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751698AbcCFPSA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Mar 2016 10:18:00 -0500
-In-Reply-To: <1457277475-8913-1-git-send-email-hch@lst.de>
+Received: from mout.kundenserver.de ([217.72.192.73]:56979 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750928AbcCFT5G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Mar 2016 14:57:06 -0500
+In-Reply-To: <8737s5wbxa.fsf@belgarion.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bhelgaas@google.com
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Robert Jarzmik <robert.jarzmik@free.fr>
+Cc: Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org, Haojian Zhuang <haojian.zhuang@gmail.com>, Daniel Mack <daniel@zonque.org>
 
-This isn't an asm-generic header, but something used both by common code
-and architectures.
+On Saturday 05 March 2016, Robert Jarzmik wrote:
+> Arnd Bergmann <arnd@arndb.de> writes:
+> 
+> > I guess we can bring back the macros for the case that MTD_XIP and XIP_KERNEL
+> > are both enabled.
+> >
+> > 	Arnd
+> I wouldn't have ICMR and ICIP exposed to drivers, Eric's original move looks
+> corect to me.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
----
- arch/alpha/include/asm/pci.h          |  2 +-
- arch/arm/include/asm/pci.h            |  2 +-
- arch/arm64/include/asm/pci.h          |  2 +-
- arch/mips/include/asm/pci.h           |  2 +-
- arch/powerpc/include/asm/pci-bridge.h |  2 +-
- arch/unicore32/include/asm/pci.h      |  2 +-
- arch/x86/pci/common.c                 |  2 +-
- drivers/of/of_pci.c                   |  2 +-
- drivers/pci/pci.c                     |  2 +-
- drivers/pci/probe.c                   |  2 +-
- drivers/pci/setup-bus.c               |  2 +-
- include/asm-generic/pci-bridge.h      | 74 -----------------------------------
- include/linux/pci-bridge.h            | 74 +++++++++++++++++++++++++++++++++++
- 13 files changed, 85 insertions(+), 85 deletions(-)
- delete mode 100644 include/asm-generic/pci-bridge.h
- create mode 100644 include/linux/pci-bridge.h
+Yes, it's a reasonable cleanup that we have done in many places, except
+this one introduced a regression for MTD_XIP.
 
-diff --git a/arch/alpha/include/asm/pci.h b/arch/alpha/include/asm/pci.h
-index 98f2eee..a742497 100644
---- a/arch/alpha/include/asm/pci.h
-+++ b/arch/alpha/include/asm/pci.h
-@@ -7,7 +7,7 @@
- #include <linux/dma-mapping.h>
- #include <linux/scatterlist.h>
- #include <asm/machvec.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- 
- /*
-  * The following structure is used to manage multiple PCI busses.
-diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
-index a563544..f869627 100644
---- a/arch/arm/include/asm/pci.h
-+++ b/arch/arm/include/asm/pci.h
-@@ -3,7 +3,7 @@
- 
- #ifdef __KERNEL__
- #include <asm-generic/pci-dma-compat.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- 
- #include <asm/mach/pci.h> /* for pci_sys_data */
- 
-diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
-index b008a72..a44f008 100644
---- a/arch/arm64/include/asm/pci.h
-+++ b/arch/arm64/include/asm/pci.h
-@@ -7,7 +7,7 @@
- #include <linux/dma-mapping.h>
- 
- #include <asm/io.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include <asm-generic/pci-dma-compat.h>
- 
- #define PCIBIOS_MIN_IO		0x1000
-diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
-index 98c31e5..bb94de4 100644
---- a/arch/mips/include/asm/pci.h
-+++ b/arch/mips/include/asm/pci.h
-@@ -102,7 +102,7 @@ static inline void pci_resource_to_user(const struct pci_dev *dev, int bar,
- #include <linux/scatterlist.h>
- #include <linux/string.h>
- #include <asm/io.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- 
- struct pci_dev;
- 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 54843ca..fd0363d 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -10,7 +10,7 @@
- #include <linux/pci.h>
- #include <linux/list.h>
- #include <linux/ioport.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- 
- struct device_node;
- 
-diff --git a/arch/unicore32/include/asm/pci.h b/arch/unicore32/include/asm/pci.h
-index 38b3f37..e36ca77 100644
---- a/arch/unicore32/include/asm/pci.h
-+++ b/arch/unicore32/include/asm/pci.h
-@@ -14,7 +14,7 @@
- 
- #ifdef __KERNEL__
- #include <asm-generic/pci-dma-compat.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include <asm-generic/pci.h>
- #include <mach/hardware.h> /* for PCIBIOS_MIN_* */
- 
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index d34b511..edd0022 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -12,7 +12,7 @@
- #include <linux/dmi.h>
- #include <linux/slab.h>
- 
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include <asm/acpi.h>
- #include <asm/segment.h>
- #include <asm/io.h>
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index b1449f7..64705ef 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -5,7 +5,7 @@
- #include <linux/of_device.h>
- #include <linux/of_pci.h>
- #include <linux/slab.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- 
- static inline int __of_pci_pci_compare(struct device_node *node,
- 				       unsigned int data)
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 602eb42..5e5a196 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -25,7 +25,7 @@
- #include <linux/device.h>
- #include <linux/pm_runtime.h>
- #include <linux/pci_hotplug.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include <asm/setup.h>
- #include <linux/aer.h>
- #include "pci.h"
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 6d7ab9b..af4dad3 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -15,7 +15,7 @@
- #include <linux/pci-aspm.h>
- #include <linux/aer.h>
- #include <linux/acpi.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include "pci.h"
- 
- #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
-diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
-index 7796d0a..03c047c 100644
---- a/drivers/pci/setup-bus.c
-+++ b/drivers/pci/setup-bus.c
-@@ -25,7 +25,7 @@
- #include <linux/ioport.h>
- #include <linux/cache.h>
- #include <linux/slab.h>
--#include <asm-generic/pci-bridge.h>
-+#include <linux/pci-bridge.h>
- #include "pci.h"
- 
- unsigned int pci_flags;
-diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
-deleted file mode 100644
-index 20db2e5..0000000
---- a/include/asm-generic/pci-bridge.h
-+++ /dev/null
-@@ -1,74 +0,0 @@
--/*
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
--#ifndef _ASM_GENERIC_PCI_BRIDGE_H
--#define _ASM_GENERIC_PCI_BRIDGE_H
--
--#ifdef __KERNEL__
--
--enum {
--	/* Force re-assigning all resources (ignore firmware
--	 * setup completely)
--	 */
--	PCI_REASSIGN_ALL_RSRC	= 0x00000001,
--
--	/* Re-assign all bus numbers */
--	PCI_REASSIGN_ALL_BUS	= 0x00000002,
--
--	/* Do not try to assign, just use existing setup */
--	PCI_PROBE_ONLY		= 0x00000004,
--
--	/* Don't bother with ISA alignment unless the bridge has
--	 * ISA forwarding enabled
--	 */
--	PCI_CAN_SKIP_ISA_ALIGN	= 0x00000008,
--
--	/* Enable domain numbers in /proc */
--	PCI_ENABLE_PROC_DOMAINS	= 0x00000010,
--	/* ... except for domain 0 */
--	PCI_COMPAT_DOMAIN_0	= 0x00000020,
--
--	/* PCIe downstream ports are bridges that normally lead to only a
--	 * device 0, but if this is set, we scan all possible devices, not
--	 * just device 0.
--	 */
--	PCI_SCAN_ALL_PCIE_DEVS	= 0x00000040,
--};
--
--#ifdef CONFIG_PCI
--extern unsigned int pci_flags;
--
--static inline void pci_set_flags(int flags)
--{
--	pci_flags = flags;
--}
--
--static inline void pci_add_flags(int flags)
--{
--	pci_flags |= flags;
--}
--
--static inline void pci_clear_flags(int flags)
--{
--	pci_flags &= ~flags;
--}
--
--static inline int pci_has_flag(int flag)
--{
--	return pci_flags & flag;
--}
--#else
--static inline void pci_set_flags(int flags) { }
--static inline void pci_add_flags(int flags) { }
--static inline void pci_clear_flags(int flags) { }
--static inline int pci_has_flag(int flag)
--{
--	return 0;
--}
--#endif	/* CONFIG_PCI */
--
--#endif	/* __KERNEL__ */
--#endif	/* _ASM_GENERIC_PCI_BRIDGE_H */
-diff --git a/include/linux/pci-bridge.h b/include/linux/pci-bridge.h
-new file mode 100644
-index 0000000..25416e0
---- /dev/null
-+++ b/include/linux/pci-bridge.h
-@@ -0,0 +1,74 @@
-+/*
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+#ifndef _LINUX_PCI_BRIDGE_H
-+#define _LINUX_PCI_BRIDGE_H
-+
-+#ifdef __KERNEL__
-+
-+enum {
-+	/* Force re-assigning all resources (ignore firmware
-+	 * setup completely)
-+	 */
-+	PCI_REASSIGN_ALL_RSRC	= 0x00000001,
-+
-+	/* Re-assign all bus numbers */
-+	PCI_REASSIGN_ALL_BUS	= 0x00000002,
-+
-+	/* Do not try to assign, just use existing setup */
-+	PCI_PROBE_ONLY		= 0x00000004,
-+
-+	/* Don't bother with ISA alignment unless the bridge has
-+	 * ISA forwarding enabled
-+	 */
-+	PCI_CAN_SKIP_ISA_ALIGN	= 0x00000008,
-+
-+	/* Enable domain numbers in /proc */
-+	PCI_ENABLE_PROC_DOMAINS	= 0x00000010,
-+	/* ... except for domain 0 */
-+	PCI_COMPAT_DOMAIN_0	= 0x00000020,
-+
-+	/* PCIe downstream ports are bridges that normally lead to only a
-+	 * device 0, but if this is set, we scan all possible devices, not
-+	 * just device 0.
-+	 */
-+	PCI_SCAN_ALL_PCIE_DEVS	= 0x00000040,
-+};
-+
-+#ifdef CONFIG_PCI
-+extern unsigned int pci_flags;
-+
-+static inline void pci_set_flags(int flags)
-+{
-+	pci_flags = flags;
-+}
-+
-+static inline void pci_add_flags(int flags)
-+{
-+	pci_flags |= flags;
-+}
-+
-+static inline void pci_clear_flags(int flags)
-+{
-+	pci_flags &= ~flags;
-+}
-+
-+static inline int pci_has_flag(int flag)
-+{
-+	return pci_flags & flag;
-+}
-+#else
-+static inline void pci_set_flags(int flags) { }
-+static inline void pci_add_flags(int flags) { }
-+static inline void pci_clear_flags(int flags) { }
-+static inline int pci_has_flag(int flag)
-+{
-+	return 0;
-+}
-+#endif	/* CONFIG_PCI */
-+
-+#endif	/* __KERNEL__ */
-+#endif	/* _LINUX_PCI_BRIDGE_H */
--- 
-2.1.4
+> On the other hand, I'm wondering if xip_irqpending(), xip_currtime() and
+> xip_cpu_idle() should be declared as functions in mtd-xip.h, and be part of
+> something like arch/arm/mach-pxa/xip.c ...
+
+They have to at least be marked __xipram and must not reference anything
+in .text or .rodata, but there might be additional requirements.
+
+	Arnd
