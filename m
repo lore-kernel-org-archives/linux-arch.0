@@ -1,46 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:48461 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933186AbcCGXfm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 18:35:42 -0500
-Message-ID: <56DE100E.7030109@oracle.com>
-Date: Tue, 08 Mar 2016 10:34:38 +1100
+Received: from aserp1040.oracle.com ([141.146.126.69]:47013 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933350AbcCGXtW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 18:49:22 -0500
+Message-ID: <56DE1341.4080206@oracle.com>
+Date: Tue, 08 Mar 2016 10:48:17 +1100
 From: James Morris <james.l.morris@oracle.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
  (ADI)
-References: <56DDDA31.9090105@oracle.com>	<CALCETrXXU0fs2ezq+Wn_kr4dZTO=0RJmt6b=XBSA-wM7W_9j9A@mail.gmail.com>	<56DDE783.8090009@oracle.com> <20160307.155810.587016604208120674.davem@davemloft.net>
-In-Reply-To: <20160307.155810.587016604208120674.davem@davemloft.net>
-Content-Type: text/plain; charset=windows-1252; format=flowed
+References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com> <20160305.230702.1325379875282120281.davem@davemloft.net> <56DD9949.1000106@oracle.com> <20160307.115626.807716799249471744.davem@davemloft.net> <56DDC2B6.6020009@oracle.com> <CALCETrXN43nT4zq2MpO90VrgK3k+DKHjOHWf7iOhS7TSBmdCPQ@mail.gmail.com> <56DDC6E0.4000907@oracle.com> <CALCETrU5NCzh3b7We8903G0_Tm-oycgP3+gS9fG+vC_rdgTddw@mail.gmail.com> <56DDDA31.9090105@oracle.com> <CALCETrXXU0fs2ezq+Wn_kr4dZTO=0RJmt6b=XBSA-wM7W_9j9A@mail.gmail.com>
+In-Reply-To: <CALCETrXXU0fs2ezq+Wn_kr4dZTO=0RJmt6b=XBSA-wM7W_9j9A@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, khalid.aziz@oracle.com
-Cc: luto@amacapital.net, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20160307233438.Ufcare_GYhcMmMEA3Dwx_9bXEtW5N0EU-KMwv1i2jyQ@z>
+To: Andy Lutomirski <luto@amacapital.net>, Khalid Aziz <khalid.aziz@oracle.com>
+Cc: David Miller <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, Rob Gardner <rob.gardner@oracle.com>, Michal Hocko <mhocko@suse.cz>, chris.hyser@oracle.com, Richard Weinberger <richard@nod.at>, Vlastimil Babka <vbabka@suse.cz>, Konstantin Khlebnikov <koct9i@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Greg Thelen <gthelen@google.com>, Jan Kara <jack@suse.cz>, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andrew Lutomirski <luto@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Benjamin Segall <bsegall@google.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Davidlohr Bueso <dave@stgolabs.net>, Alexey Dobriyan <adobriyan@gmail.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20160307234817.70GpRZrLZS2aiM3dJJuXqys3JuWfmArTapc1OKHs-es@z>
 
-On 03/08/2016 07:58 AM, David Miller wrote:
-> From: Khalid Aziz <khalid.aziz@oracle.com>
-> Date: Mon, 7 Mar 2016 13:41:39 -0700
+On 03/08/2016 06:54 AM, Andy Lutomirski wrote:
 >
->> Shared data may not always be backed by a file. My understanding is
->> one of the use cases is for in-memory databases. This shared space
->> could also be used to hand off transactions in flight to other
->> processes. These transactions in flight would not be backed by a
->> file. Some of these use cases might not use shmfs even. Setting ADI
->> bits at virtual address level catches all these cases since what backs
->> the tagged virtual address can be anything - a mapped file, mmio
->> space, just plain chunk of memory.
+> This makes sense, but I still think the design is poor.  If the hacker
+> gets code execution, then they can trivially brute force the ADI bits.
 >
-> Frankly the most interesting use case to me is simply finding bugs
-> and memory scribbles, and for that we're want to be able to ADI
-> arbitrary memory returned from malloc() and friends.
->
-> I personally see ADI more as a debugging than a security feature,
-> but that's just my view.
 
-This is certainly a major use of the feature. The Solaris folks have 
-made some interesting use of it here:
+ADI in this scenario is intended to prevent the attacker from gaining 
+code execution in the first place.
 
-https://docs.oracle.com/cd/E37069_01/html/E37085/gphwb.html
+
 
