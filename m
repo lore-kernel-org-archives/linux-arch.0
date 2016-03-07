@@ -1,129 +1,117 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
- (ADI)
-Date: Mon, 7 Mar 2016 09:06:21 -0700
-Message-ID: <56DDA6FD.4040404@oracle.com>
-References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
- <20160305.230702.1325379875282120281.davem@davemloft.net>
- <56DD9949.1000106@oracle.com> <56DD9E94.70201@oracle.com>
- <CALCETrXey2_xEXhzjgHtZmf-dLp-9pec===d-8chLxrp8wgRXg@mail.gmail.com>
+From: Toshi Kani <toshi.kani@hpe.com>
+Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
+Date: Mon, 07 Mar 2016 10:03:48 -0700
+Message-ID: <1457370228.15454.311.camel@hpe.com>
+References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
+	 <20160304094424.GA16228@gmail.com> <1457115514.15454.216.camel@hpe.com>
+	 <20160305114012.GA7259@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CALCETrXey2_xEXhzjgHtZmf-dLp-9pec===d-8chLxrp8wgRXg@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>, Rob Gardner <rob.gardner@oracle.com>
-Cc: David Miller <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, chris.hyser@oracle.com, Richard Weinberger <richard@nod.at>, Vlastimil Babka <vbabka@suse.cz>, Konstantin Khlebnikov <koct9i@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Greg Thelen <gthelen@google.com>, Jan Kara <jack@suse.cz>, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andrew Lutomirski <luto@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, bs
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160305114012.GA7259@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/07/2016 08:43 AM, Andy Lutomirski wrote:
-> On Mon, Mar 7, 2016 at 7:30 AM, Rob Gardner <rob.gardner@oracle.com> wrote:
->> On 03/07/2016 07:07 AM, Khalid Aziz wrote:
->>>
->>> On 03/05/2016 09:07 PM, David Miller wrote:
->>>>
->>>> From: Khalid Aziz <khalid.aziz@oracle.com>
->>>> Date: Wed,  2 Mar 2016 13:39:37 -0700
->>>>
->>>>>      In this
->>>>>      first implementation I am enabling ADI for hugepages only
->>>>>      since these pages are locked in memory and hence avoid the
->>>>>      issue of saving and restoring tags.
->>>>
->>>>
->>>> This makes the feature almost entire useless.
->>>>
->>>> Non-hugepages must be in the initial implementation.
->>>
->>>
->>> Hi David,
->>>
->>> Thanks for the feedback. I will get this working for non-hugepages as
->>> well. ADI state of each VMA region is already stored in the VMA itself in my
->>> first implementation, so I do not lose it when the page is swapped out. The
->>> trouble is ADI version tags for each VMA region have to be stored on the
->>> swapped out pages since the ADI version tags are flushed when TLB entry for
->>> a page is flushed.
->>
->>
->>
->> Khalid,
->>
->> Are you sure about that last statement? My understanding is that the tags
->> are stored in physical memory, and remain there until explicitly changed or
->> removed, and so flushing a TLB entry has no effect on the ADI tags. If it
->> worked the way you think, then somebody would have to potentially reload a
->> long list of ADI tags on every TLB miss.
->>
->
-> I'll bite, since this was sent to linux-api:
->
-> Can someone explain what this feature does for the benefit of people
-> who haven't read the manual (and who don't even know where to find the
-> manual)?
->
-> Are the top few bits of a sparc64 virtual address currently
-> must-be-zero?  Does this feature change the semantics so that those
-> bits are ignored for address resolution and instead must match
-> whatever the ADI tag is determined to be during address resolution?
->
-> Is this enforced for both user and kernel accesses?
->
-> Is the actual ADI tag associated with a "page" associated with the
-> page of physical memory or is it associated with a mapping?  That is,
-> if there are two virtual aliases of the same physical page (in the
-> same process or otherwise), does the hardware require them to have the
-> same ADI tag?  If the answer is no, then IMO this is definitely
-> something that should use mprotect and you should seriously consider
-> using something like mprotect_key (new syscall, not in Linus' tree
-> yet) for it.  In fact, you might consider a possible extra parameter
-> to that syscall for this purpose.
->
-> Cc: Dave Hansen.  It seems to be the zeitgeist to throw tag bits at
-> PTEs these days.
->
+On Sat, 2016-03-05 at 12:40 +0100, Ingo Molnar wrote:
+> * Toshi Kani <toshi.kani@hpe.com> wrote:
+>=20
+> > > So I'd say that since ioremap() in itself is fragile enough, we
+> > > should work towards eliminating overlapping ranges.
+> > >=20
+> > > The thing is, the whole vmap_area logic is based around non-
+> > > overlapping ranges, sorted into the vmap_area_root rbtree.
+> > >=20
+> > > Just check the logic in mm/vmalloc.c::alloc_vmap_area(): it's bas=
+ed
+> > > on finding holes in the kernel-virtual allocations. 'Overlapping
+> > > ranges' is very much not part of that logic, at least to my
+> > > understanding.
+> > >=20
+> > > How are overlapping ioremap()s even possible with that logic? The
+> > > allocator searches for holes, not allowing for overlaps. What am =
+I
+> > > missing?
+> > >=20
+> > > Could you outline a specific case where it's done intentionally -=
+ and
+> > > the purpose behind that intention?
+> >=20
+> > The term "overlapping" is a bit misleading. [...]
+>=20
+> A bit? It was totally misleading ...
+>=20
+> You meant virtual aliases for the same physical address, and those of
+> course are allowed, as long the cache attributes are compatible, that=
+ is
+> what the whole memtype infrastructure is about, as you yourself note:
+>=20
+> > [...] =C2=A0This is "alias" mapping -- a physical address range is =
+mapped to
+> > multiple virtual address ranges. =C2=A0There is no overlapping in V=
+MA.
+> >=20
+> > Such alias mappings are used by multiple modules. =C2=A0For instanc=
+e, a PMEM
+> > range is mapped to the kernel and user spaces. =C2=A0/dev/mem is an=
+other
+> > example that creates a user space mapping to a physical address whe=
+re
+> > other mappings may already exist.
+> >=20
+> > Hence, alias mapping itself is a supported use-case. =C2=A0However,=
+ alias
+> > mapping with different cache types is not as it causes undefined
+> > behavior. =C2=A0Therefore, PAT module protects from this case by tr=
+acking
+> > cache types used for mapping physical ranges. =C2=A0When a differen=
+t cache
+> > type is requested, is_new_memtype_allowed() checks if the request n=
+eeds
+> > to be failed or can be changed to the existing type.
+>=20
+> So where is the problem? The memtype implementation and hence most
+> ioremap() users are supposed to be safe. set_memory_*() APIs are supp=
+osed
+> to be safe as well, as they too go via the memtype API.
 
-Hi Andy,
+Let me try to summarize...
 
-The primary purpose of this feature is to prevent rogue accesses to 
-memory regions. If a database were to allocate memory pages to cache 
-database, it can enable ADI on those pages and set version tags. Version 
-tag for a memory address is encoded in bits 63-60 in the virtual 
-address. When accessing an ADI enabled memory region, top 4 bits of the 
-virtual address presented to the MMU must match the version tag set 
-earlier. When these bits do not match a tag, an MCD (Memory Corruption 
-Detected) exception is raised. Kernel sends a SIGBUS to the offending 
-process in response. There is some more info on ADI at 
-<https://swisdev.oracle.com/_files/What-Is-ADI.html>.
+The original issue Luis brought up was that drivers written to work wit=
+h
+MTRR may create a single ioremap range covering multiple cache attribut=
+es
+since MTRR can overwrite cache attribute of a certain range. =C2=A0Conv=
+erting
+such drivers with PAT-based ioremap interfaces, i.e. ioremap_wc() and
+ioremap_nocache(), requires a separate ioremap map for each cache
+attribute, which can be challenging as it may result in overlapping ior=
+emap
+ranges (in his term) with different cache attributes.
 
-Top 4-bits of sparc64 virtual address are used for version tag only when 
-a process has its PSTATE.mcde bit set and it is accessing a memory 
-region that has ADI enabled on it (TTE.mcd set) and a version tag was 
-set on the virtual address being accessed. These 4-bits retain their 
-original semantics in all other cases.
+So, Luis asked about 'sematics of overlapping ioremap()' calls. =C2=A0H=
+ence, I
+responded that aliasing mapping itself is supported, but alias with
+different cache attribute is not. =C2=A0We have checks in place to dete=
+ct such
+condition. =C2=A0Overlapping ioremap calls with a different cache attri=
+bute
+either fails or gets redirected to the existing cache attribute on x86.
 
-ADI version tags are checked for data fetches only. My implementation 
-enforces this for userspace addresses only. Expanding this to include 
-kernel data addresses as well will be a good thing to do to protect 
-kernel data but I want to try to do this incrementally - (1) ADI for 
-userspace addresses only for mlock'd pages, (2) expand support to 
-swappable pages, (3) ADI for kernel data pages, (4)......whatever else 
-makes sense...
+> > I agree that the current implementation is fragile, and some interf=
+aces
+> > skip such check at all, ex.=C2=A0vm_insert_pfn().
+>=20
+> Most of those are really just low level interfaces forl cases that sk=
+ip the memtype infrastructure.
 
-ADI version tag applies to virtual addresses only. If two processes have 
-virtual addresses mapping to the same physical page, they must use the 
-same tag. Hardware will send MCD exception if the tags do not match. 
-This was done to ensure a hack does not bypass ADI protection by simply 
-inserting another VA-to-PA mapping. I do like the idea of mprotect() as 
-David suggested and it can be done with existing mprotect() call. I will 
-have to add a new key PROT_ADI to support this.
+Yes, and I'm just stating the fact that some pfn map use-cases, such as
+mmap, are not tracked in memtype. =C2=A0For example, drm_gem_mmap()
+->=C2=A0drm_gem_mmap_obj() sets its VMA as WC attribute. =C2=A0i915_gem=
+_fault() then
+creates a WC map with=C2=A0vm_insert_pfn() at fault.
 
 Thanks,
-Khalid
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-Toshi
