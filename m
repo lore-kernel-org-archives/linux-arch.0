@@ -1,40 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:38667 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752293AbcCGQhI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Mar 2016 11:37:08 -0500
-Date: Mon, 7 Mar 2016 17:37:05 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 2/3] pci: move pci-bridge.h out of asm-generic
-Message-ID: <20160307163705.GA25780@lst.de>
-References: <1457277475-8913-1-git-send-email-hch@lst.de> <1457277475-8913-3-git-send-email-hch@lst.de> <20160307163529.GA13818@localhost>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160307163529.GA13818@localhost>
+Received: from shards.monkeyblade.net ([149.20.54.216]:51331 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752418AbcCGQ4c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 11:56:32 -0500
+Date: Mon, 07 Mar 2016 11:56:26 -0500 (EST)
+Message-ID: <20160307.115626.807716799249471744.davem@davemloft.net>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <56DD9949.1000106@oracle.com>
+References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
+	<20160305.230702.1325379875282120281.davem@davemloft.net>
+	<56DD9949.1000106@oracle.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20160307163705.zlSXoM0Zg3Lm4T-rUErke_1BWqTH1pjkQQUjb0Y7mys@z>
+To: khalid.aziz@oracle.com
+Cc: corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20160307165626.CICeMzCGdyMYQTj4HkC6Hhr0JmLq5BuxnJMme7YZbVU@z>
 
-On Mon, Mar 07, 2016 at 10:35:29AM -0600, Bjorn Helgaas wrote:
-> I did something similar with
-> http://lkml.kernel.org/r/20160202193026.9258.7573.stgit@bhelgaas-glaptop2.roam.corp.google.com
-> 
-> The generic things in include/asm-generic/pci-bridge.h weren't really
-> bridge-related, so I moved them to include/linux/pci.h instead of creating
-> include/linux/pci-bridge.h.
-> 
-> Then include/asm-generic/pci-bridge.h was empty, so I removed it and the
-> includes of it.
-> 
-> There were a few arch-specific asm/pci-bridge.h files, but they do contain
-> arch-specific things, and they're only included by arch code, so I left
-> them alone.
-> 
-> My changes are in linux-next, and I plan to merge them during the v4.6
-> merge window.
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Date: Mon, 7 Mar 2016 08:07:53 -0700
 
-Even better.  Let's drop this patch, but it would still be good to get
-the other two through one of the trees.
+> PR_GET_SPARC_ADICAPS
+
+Put this into a new ELF auxiliary vector entry via ARCH_DLINFO.
+
+So now all that's left is supposedly the TAG stuff, please explain
+that to me so I can direct you to the correct existing interface to
+provide that as well.
+
+Really, try to avoid prtctl, it's poorly typed and almost worse than
+ioctl().
