@@ -1,50 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:19491 "EHLO
+Received: from aserp1040.oracle.com ([141.146.126.69]:49747 "EHLO
 	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753857AbcCGVeo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 16:34:44 -0500
+	with ESMTP id S1753247AbcCGWbY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 17:31:24 -0500
 Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
  (ADI)
-References: <56DDC2B6.6020009@oracle.com> <56DDC3EB.8060909@oracle.com>
- <56DDC776.3040003@oracle.com>
- <20160307.141600.1873883635480850431.davem@davemloft.net>
+References: <56DDC2B6.6020009@oracle.com>
+ <20160307.140915.1323031236840000210.davem@davemloft.net>
+ <56DDF22D.9090102@oracle.com>
+ <20160307.163401.1082539079648850099.davem@davemloft.net>
 From: Khalid Aziz <khalid.aziz@oracle.com>
-Message-ID: <56DDF3C4.7070701@oracle.com>
-Date: Mon, 7 Mar 2016 14:33:56 -0700
+Message-ID: <56DE00FF.1080807@oracle.com>
+Date: Mon, 7 Mar 2016 15:30:23 -0700
 MIME-Version: 1.0
-In-Reply-To: <20160307.141600.1873883635480850431.davem@davemloft.net>
+In-Reply-To: <20160307.163401.1082539079648850099.davem@davemloft.net>
 Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Miller <davem@davemloft.net>
-Cc: rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20160307213356.MbOeODvhVFAnF_2K9oWbgm5juQgSP6BW9e8aJRKc02I@z>
+Cc: corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, rob.gardner@oracle.com, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20160307223023.ysDodu3eYaaAvtUh0pVdiIDfma3N_rEIb_xABvzVzVw@z>
 
-On 03/07/2016 12:16 PM, David Miller wrote:
+On 03/07/2016 02:34 PM, David Miller wrote:
 > From: Khalid Aziz <khalid.aziz@oracle.com>
-> Date: Mon, 7 Mar 2016 11:24:54 -0700
+> Date: Mon, 7 Mar 2016 14:27:09 -0700
 >
->> Tags can be cleared by user by setting tag to 0. Tags are
->> automatically cleared by the hardware when the mapping for a virtual
->> address is removed from TSB (which is why swappable pages are a
->> problem), so kernel does not have to do it as part of clean up.
+>> I agree with your point of view. PSTATE.mcde and TTE.mcd are set in
+>> response to request from userspace. If userspace asked for them to be
+>> set, they already know but it was the database guys that asked for
+>> these two functions and they are the primary customers for the ADI
+>> feature. I am not crazy about this idea since this extends the
+>> mprotect API even further but would you consider using the return
+>> value from mprotect to indicate if PSTATE.mcde or TTE.mcd were already
+>> set on the given address?
 >
-> You might be able to crib some bits for the Tag in the swp_entry_t, it's
-> 64-bit and you can therefore steal bits from the offset field.
+> Well, that's the idea.
 >
-> That way you'll have the ADI tag in the page tables, ready to re-install
-> at swapin time.
+> If the mprotect using MAP_ADI or whatever succeeds, then ADI is
+> enabled.
+>
+> Users can thus also pass MAP_ADI as a flag to mmap() to get ADI
+> protection from the very beginning.
 >
 
-That is a possibility but limited in scope. An address range covered by 
-a single TTE can have large number of tags. Version tags are set on 
-cacheline. In extreme case, one could set a tag for each set of 64-bytes 
-in a page. Also tags are set completely in userspace and no transition 
-occurs to kernel space, so kernel has no idea of what tags have been 
-set. I have not found a way to query the MMU on tags.
+MAP_ADI has been sitting in my backlog for some time. Looks like you 
+just raised its priority ;)
 
-I will think some more about it.
-
-Thanks,
+--
 Khalid
