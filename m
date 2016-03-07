@@ -1,76 +1,177 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
- (ADI)
-Date: Mon, 7 Mar 2016 11:24:54 -0700
-Message-ID: <56DDC776.3040003@oracle.com>
-References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
- <20160305.230702.1325379875282120281.davem@davemloft.net>
- <56DD9949.1000106@oracle.com>
- <20160307.115626.807716799249471744.davem@davemloft.net>
- <56DDC2B6.6020009@oracle.com> <56DDC3EB.8060909@oracle.com>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH 3/3] pci: move pci_dma_* helpers to common code
+Date: Mon, 7 Mar 2016 12:28:48 -0600
+Message-ID: <20160307182848.GC13818@localhost>
+References: <1457277475-8913-1-git-send-email-hch@lst.de>
+ <1457277475-8913-4-git-send-email-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <56DDC3EB.8060909@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Rob Gardner <rob.gardner@oracle.com>, David Miller <davem@davemloft.net>
-Cc: corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1457277475-8913-4-git-send-email-hch@lst.de>
+Sender: linux-pci-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/07/2016 11:09 AM, Rob Gardner wrote:
-> On 03/07/2016 10:04 AM, Khalid Aziz wrote:
->> On 03/07/2016 09:56 AM, David Miller wrote:
->>> From: Khalid Aziz <khalid.aziz@oracle.com>
->>> Date: Mon, 7 Mar 2016 08:07:53 -0700
->>>
->>>> PR_GET_SPARC_ADICAPS
->>>
->>> Put this into a new ELF auxiliary vector entry via ARCH_DLINFO.
->>>
->>> So now all that's left is supposedly the TAG stuff, please explain
->>> that to me so I can direct you to the correct existing interface to
->>> provide that as well.
->>>
->>> Really, try to avoid prtctl, it's poorly typed and almost worse than
->>> ioctl().
->>>
->>
->> The two remaining operations I am looking at are:
->>
->> 1. Is PSTATE.mcde bit set for the process? PR_SET_SPARC_ADI provides
->> this in its return value in the patch I sent.
->>
->> 2. Is TTE.mcd set for a given virtual address? PR_GET_SPARC_ADI_STATUS
->> provides this function in the patch I sent.
->>
->> Setting and clearing version tags can be done entirely from userspace:
->>
->>         while (addr < end) {
->>                 asm volatile(
->>                         "stxa %1, [%0]ASI_MCD_PRIMARY\n\t"
->>                         :
->>                         : "r" (addr), "r" (version));
->>                 addr += adicap.blksz;
->>         }
->> so I do not have to add any kernel code for tags.
->>
->
-> What about clearing the tags when the user is done with the memory? You
-> can't count on the user to do that, so doesn't the kernel have to do it
-> someplace?
->
+[+cc Arnd]
 
-Tags can be cleared by user by setting tag to 0. Tags are automatically 
-cleared by the hardware when the mapping for a virtual address is 
-removed from TSB (which is why swappable pages are a problem), so kernel 
-does not have to do it as part of clean up.
+On Sun, Mar 06, 2016 at 04:17:55PM +0100, Christoph Hellwig wrote:
+> For a long time all architectures implement the pci_dma_* functions
+> using the generic DMA API, and they all use the same header to do
+> so.  This patch moves this header, pci-dma-compat.h, to include/linux
+> and includes it from the generic pci.h instead of having each arch
+> duplicate this include.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Thanks,
-Khalid
+I applied this to pci/misc for v4.6, thanks!  It could go via another
+tree, but it does have minor conflicts with my previous patches that
+removed asm-generic/pci-dma-compat.h, so I think it makes sense for me
+to take it so I can resolve the conflicts.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I wonder if we can consolidate a little more pci_dma_*-related stuff
+in pci-dma-compat.h, e.g.,
+
+
+commit fe537670eab767157eecc50538bd28e8d9b0ce9f
+Author: Bjorn Helgaas <bhelgaas@google.com>
+Date:   Mon Mar 7 11:39:16 2016 -0600
+
+    PCI: Consolidate PCI DMA constants and interfaces in linux/pci-dma-compat.h
+    
+    Christoph added a generic include/linux/pci-dma-compat.h, so now there's
+    one place with most of the PCI DMA interfaces.  Move more PCI DMA-related
+    things there:
+    
+      - The PCI_DMA_* direction constants from linux/pci.h
+      - The pci_set_dma_max_seg_size() and pci_set_dma_seg_boundary()
+        CONFIG_PCI implementations from drivers/pci/pci.c
+      - The pci_set_dma_max_seg_size() and pci_set_dma_seg_boundary()
+        !CONFIG_PCI stubs from linux/pci.h
+      - The pci_set_dma_mask() and pci_set_consistent_dma_mask()
+        !CONFIG_PCI stubs from linux/pci.h
+    
+    Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 64c0a12..0a9c8db 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3385,18 +3385,6 @@ bool pci_check_and_unmask_intx(struct pci_dev *dev)
+ }
+ EXPORT_SYMBOL_GPL(pci_check_and_unmask_intx);
+ 
+-int pci_set_dma_max_seg_size(struct pci_dev *dev, unsigned int size)
+-{
+-	return dma_set_max_seg_size(&dev->dev, size);
+-}
+-EXPORT_SYMBOL(pci_set_dma_max_seg_size);
+-
+-int pci_set_dma_seg_boundary(struct pci_dev *dev, unsigned long mask)
+-{
+-	return dma_set_seg_boundary(&dev->dev, mask);
+-}
+-EXPORT_SYMBOL(pci_set_dma_seg_boundary);
+-
+ /**
+  * pci_wait_for_pending_transaction - waits for pending transaction
+  * @dev: the PCI device to operate on
+diff --git a/include/linux/pci-dma-compat.h b/include/linux/pci-dma-compat.h
+index eafce7b..39726ca 100644
+--- a/include/linux/pci-dma-compat.h
++++ b/include/linux/pci-dma-compat.h
+@@ -6,6 +6,12 @@
+ 
+ #include <linux/dma-mapping.h>
+ 
++/* This defines the direction arg to the DMA mapping routines. */
++#define PCI_DMA_BIDIRECTIONAL	0
++#define PCI_DMA_TODEVICE	1
++#define PCI_DMA_FROMDEVICE	2
++#define PCI_DMA_NONE		3
++
+ static inline void *
+ pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
+ 		     dma_addr_t *dma_handle)
+@@ -113,6 +119,29 @@ static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
+ {
+ 	return dma_set_coherent_mask(&dev->dev, mask);
+ }
++
++static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
++					   unsigned int size)
++{
++	return dma_set_max_seg_size(&dev->dev, size);
++}
++
++static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
++					   unsigned long mask)
++{
++	return dma_set_seg_boundary(&dev->dev, mask);
++}
++#else
++static inline int pci_set_dma_mask(struct pci_dev *dev, u64 mask)
++{ return -EIO; }
++static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
++{ return -EIO; }
++static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
++					   unsigned int size)
++{ return -EIO; }
++static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
++					   unsigned long mask)
++{ return -EIO; }
+ #endif
+ 
+ #endif
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 5db6e0c..5049bd6 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -70,12 +70,6 @@ enum pci_mmap_state {
+ 	pci_mmap_mem
+ };
+ 
+-/* This defines the direction arg to the DMA mapping routines. */
+-#define PCI_DMA_BIDIRECTIONAL	0
+-#define PCI_DMA_TODEVICE	1
+-#define PCI_DMA_FROMDEVICE	2
+-#define PCI_DMA_NONE		3
+-
+ /*
+  *  For PCI devices, the region numbers are assigned this way:
+  */
+@@ -1038,8 +1032,6 @@ void pci_intx(struct pci_dev *dev, int enable);
+ bool pci_intx_mask_supported(struct pci_dev *dev);
+ bool pci_check_and_mask_intx(struct pci_dev *dev);
+ bool pci_check_and_unmask_intx(struct pci_dev *dev);
+-int pci_set_dma_max_seg_size(struct pci_dev *dev, unsigned int size);
+-int pci_set_dma_seg_boundary(struct pci_dev *dev, unsigned long mask);
+ int pci_wait_for_pending(struct pci_dev *dev, int pos, u16 mask);
+ int pci_wait_for_pending_transaction(struct pci_dev *dev);
+ int pcix_get_max_mmrbc(struct pci_dev *dev);
+@@ -1255,6 +1247,7 @@ resource_size_t pcibios_iov_resource_alignment(struct pci_dev *dev, int resno);
+ 
+ int pci_set_vga_state(struct pci_dev *pdev, bool decode,
+ 		      unsigned int command_bits, u32 flags);
++
+ /* kmem_cache style wrapper around pci_alloc_consistent() */
+ 
+ #include <linux/pci-dma.h>
+@@ -1466,16 +1459,6 @@ static inline struct pci_dev *pci_get_class(unsigned int class,
+ static inline void pci_set_master(struct pci_dev *dev) { }
+ static inline int pci_enable_device(struct pci_dev *dev) { return -EIO; }
+ static inline void pci_disable_device(struct pci_dev *dev) { }
+-static inline int pci_set_dma_mask(struct pci_dev *dev, u64 mask)
+-{ return -EIO; }
+-static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
+-{ return -EIO; }
+-static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
+-					unsigned int size)
+-{ return -EIO; }
+-static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
+-					unsigned long mask)
+-{ return -EIO; }
+ static inline int pci_assign_resource(struct pci_dev *dev, int i)
+ { return -EBUSY; }
+ static inline int __pci_register_driver(struct pci_driver *drv,
