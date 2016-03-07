@@ -1,57 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:2054 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753411AbcCGWlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Mar 2016 17:41:01 -0500
+Received: from aserp1040.oracle.com ([141.146.126.69]:34862 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933088AbcCGXQe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 18:16:34 -0500
 Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
  (ADI)
-References: <56DDC47C.8010206@linux.intel.com> <56DDCAD3.3090106@oracle.com>
- <CALCETrVNM7ZcN7WnmLRMDqGrcYXn9xYWJfjMVwFLdiQS63-TcA@mail.gmail.com>
- <20160307.142245.846579748692522977.davem@davemloft.net>
- <56DDDA78.2070106@oracle.com>
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <56DE0379.8020907@linux.intel.com>
-Date: Mon, 7 Mar 2016 14:40:57 -0800
+References: <56DDC776.3040003@oracle.com>
+ <20160307.141600.1873883635480850431.davem@davemloft.net>
+ <56DDF3C4.7070701@oracle.com>
+ <20160307.163850.1494834587897617780.davem@davemloft.net>
+From: Rob Gardner <rob.gardner@oracle.com>
+Message-ID: <56DE0B1B.1000000@oracle.com>
+Date: Mon, 7 Mar 2016 15:13:31 -0800
 MIME-Version: 1.0
-In-Reply-To: <56DDDA78.2070106@oracle.com>
-Content-Type: text/plain; charset=windows-1252
+In-Reply-To: <20160307.163850.1494834587897617780.davem@davemloft.net>
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Khalid Aziz <khalid.aziz@oracle.com>, David Miller <davem@davemloft.net>, luto@amacapital.net
-Cc: rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20160307224057.6EYVju_lJJv_zbTVaJYUeaD2bunDgxsWdo16omyCJTU@z>
+To: David Miller <davem@davemloft.net>, khalid.aziz@oracle.com
+Cc: corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20160307231331.xXplsbnL6P9SmvkVSKG6-VQJ3eacr-cIsuq-F5Gs-Qg@z>
 
-On 03/07/2016 11:46 AM, Khalid Aziz wrote:
-> On 03/07/2016 12:22 PM, David Miller wrote:
->> Khalid, maybe you should share notes with the folks working on x86
->> protection keys.
-> 
-> Good idea. Sparc ADI feature is indeed similar to x86 protection keys
-> sounds like.
+On 03/07/2016 01:38 PM, David Miller wrote:
+> From: Khalid Aziz <khalid.aziz@oracle.com>
+> Date: Mon, 7 Mar 2016 14:33:56 -0700
+>
+>> On 03/07/2016 12:16 PM, David Miller wrote:
+>>> From: Khalid Aziz <khalid.aziz@oracle.com>
+>>> Date: Mon, 7 Mar 2016 11:24:54 -0700
+>>>
+>>>> Tags can be cleared by user by setting tag to 0. Tags are
+>>>> automatically cleared by the hardware when the mapping for a virtual
+>>>> address is removed from TSB (which is why swappable pages are a
+>>>> problem), so kernel does not have to do it as part of clean up.
+>>> You might be able to crib some bits for the Tag in the swp_entry_t,
+>>> it's
+>>> 64-bit and you can therefore steal bits from the offset field.
+>>>
+>>> That way you'll have the ADI tag in the page tables, ready to
+>>> re-install
+>>> at swapin time.
+>>>
+>> That is a possibility but limited in scope. An address range covered
+>> by a single TTE can have large number of tags. Version tags are set on
+>> cacheline. In extreme case, one could set a tag for each set of
+>> 64-bytes in a page. Also tags are set completely in userspace and no
+>> transition occurs to kernel space, so kernel has no idea of what tags
+>> have been set. I have not found a way to query the MMU on tags.
+>>
+>> I will think some more about it.
+> That would mean that ADI is impossible to use for swappable memory.
+>
+> ...
+>
+> If that's true I'm extremely disappointed that they devoted so much
+> silicon and engineering to this feature yet didn't take that one
+> critical step to make it generally useful. :(
 
-There are definitely some similarities.  But protection keys doesn't
-have any additional tables in which to keep metadata.  It keeps all of
-its data in the page tables.  It also doesn't have an impact on the
-virtual address layout.
+You can easily read ADI tags with a simple ldxa #ASI_MCD_PRIMARY 
+instruction.
 
-But, it does have metadata to store in the VMA, has a special
-siginfo->si_code, and it uses mprotect() (although a new pkey_mprotect()
-variant that takes an extra argument).
+Rob
 
-Protection Keys are described a bit more here:
 
-> http://git.kernel.org/cgit/linux/kernel/git/daveh/x86-pkeys.git/tree/Documentation/x86/protection-keys.txt?h=pkeys-v025&id=1b5b8a8836de8eb667027178b4820665dea5a038
-
-MPX is another Intel feature separate from protection keys, but *it* has
-some tables that it keep its metadata memory and special special
-instructions to move metadata in and out of it.  It also has a prctl()
-to enable/disable kernel assistance for the feature.  Unlike ADI, the
-tables are exposed (and accessible) to user applications in normal
-application memory.
-
-MPX's documentation is here:
-
-> http://git.kernel.org/cgit/linux/kernel/git/daveh/x86-pkeys.git/tree/Documentation/x86/intel_mpx.txt
-
-Overall, I'm not seeing much overlap at all between the features, honestly.
