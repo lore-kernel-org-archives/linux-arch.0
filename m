@@ -1,46 +1,56 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity (ADI)
-Date: Mon, 7 Mar 2016 09:53:54 -0800
-Message-ID: <CALCETrWPeFsyGsDNyehMpub1QrjZxyWpG_x_2A0yKqROXYfJ5A@mail.gmail.com>
-References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
- <20160305.230702.1325379875282120281.davem@davemloft.net> <56DD9949.1000106@oracle.com>
- <56DD9E94.70201@oracle.com> <CALCETrXey2_xEXhzjgHtZmf-dLp-9pec===d-8chLxrp8wgRXg@mail.gmail.com>
- <56DDA6FD.4040404@oracle.com> <56DDBE68.6080709@linux.intel.com>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH 1/3] frv: remove stray pci_{alloc,free}_consistent
+ declaration
+Date: Mon, 7 Mar 2016 11:57:53 -0600
+Message-ID: <20160307175753.GB13818@localhost>
+References: <1457277475-8913-1-git-send-email-hch@lst.de>
+ <1457277475-8913-2-git-send-email-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f172.google.com ([209.85.214.172]:36818 "EHLO
-	mail-ob0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752418AbcCGRyP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 12:54:15 -0500
-Received: by mail-ob0-f172.google.com with SMTP id rt7so112019863obb.3
-        for <linux-arch@vger.kernel.org>; Mon, 07 Mar 2016 09:54:14 -0800 (PST)
-In-Reply-To: <56DDBE68.6080709@linux.intel.com>
+Received: from mail.kernel.org ([198.145.29.136]:42827 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752418AbcCGR54 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 7 Mar 2016 12:57:56 -0500
+Content-Disposition: inline
+In-Reply-To: <1457277475-8913-2-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, Rob Gardner <rob.gardner@oracle.com>, David Miller <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, chris.hyser@oracle.com, Richard Weinberger <richard@nod.at>, Vlastimil Babka <vbabka@suse.cz>, Konstantin Khlebnikov <koct9i@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Greg Thelen <gthelen@google.com>, Jan Kara <jack@suse.cz>, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andrew Lutomirski <luto@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, bsegall@goo
+To: Christoph Hellwig <hch@lst.de>
+Cc: bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, David Howells <dhowells@redhat.com>
 
-On Mon, Mar 7, 2016 at 9:46 AM, Dave Hansen <dave.hansen@linux.intel.com> wrote:
-> On 03/07/2016 08:06 AM, Khalid Aziz wrote:
->> Top 4-bits of sparc64 virtual address are used for version tag only when
->> a process has its PSTATE.mcde bit set and it is accessing a memory
->> region that has ADI enabled on it (TTE.mcd set) and a version tag was
->> set on the virtual address being accessed. These 4-bits retain their
->> original semantics in all other cases.
->
-> OK, so this effectively reduces the address space of a process using the
-> feature.  Do we need to do anything explicit to keep an app from using
-> that address space?  Do we make sure the kernel doesn't place VMAs
-> there?  Do we respect mmap() hints that try to place memory there?
+[+cc David M, David H]
 
-Also, what happens when someone does this to an aliased page?  This
-could be a MAP_SHARED mapping or a not-yet-COWed MAP_ANONYMOUS
-mapping.
+On Sun, Mar 06, 2016 at 04:17:53PM +0100, Christoph Hellwig wrote:
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
 
-Also, what am I missing?  Tying these tags to the physical page seems
-like a poor design to me.  This seems really awkward to use.
+Applied with acks from David M & David H to pci/misc for v4.6, thanks!
 
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+> ---
+>  arch/frv/include/asm/pci.h | 6 ------
+>  1 file changed, 6 deletions(-)
+> 
+> diff --git a/arch/frv/include/asm/pci.h b/arch/frv/include/asm/pci.h
+> index e43d22c..7e96b57 100644
+> --- a/arch/frv/include/asm/pci.h
+> +++ b/arch/frv/include/asm/pci.h
+> @@ -32,12 +32,6 @@ extern void consistent_sync_page(struct page *page, unsigned long offset,
+>  				 size_t size, int direction);
+>  #endif
+>  
+> -extern void *pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
+> -				  dma_addr_t *dma_handle);
+> -
+> -extern void pci_free_consistent(struct pci_dev *hwdev, size_t size,
+> -				void *vaddr, dma_addr_t dma_handle);
+> -
+>  /* Return the index of the PCI controller for device PDEV. */
+>  #define pci_controller_num(PDEV)	(0)
+>  
+> -- 
+> 2.1.4
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
