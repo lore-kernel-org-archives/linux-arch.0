@@ -1,55 +1,112 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-Subject: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Date: Tue,  8 Mar 2016 03:42:48 +0100
-Message-ID: <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v5 0/9] dmaengine: rcar-dmac: add iommu support for slave transfers
+Date: Tue,  8 Mar 2016 03:42:45 +0100
+Message-ID: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-renesas-soc-owner@vger.kernel.org>
+Sender: linux-renesas-soc-owner@vger.kernel.org
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
 List-Id: linux-arch.vger.kernel.org
 
-TWFwL1VubWFwIGEgZGV2aWNlIHJlc291cmNlIGZyb20gYSBwaHlzaWNhbCBhZGRyZXNzLiBJZiBu
-byBkbWFfbWFwX29wcwptZXRob2QgaXMgYXZhaWxhYmxlIHRoZSBvcGVyYXRpb24gaXMgYSBuby1v
-cC4KClNpZ25lZC1vZmYtYnk6IE5pa2xhcyBTw7ZkZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3Jl
-bmVzYXNAcmFnbmF0ZWNoLnNlPgotLS0KIGluY2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaCB8IDMy
-ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCiAxIGZpbGUgY2hhbmdlZCwgMzIgaW5z
-ZXJ0aW9ucygrKQoKZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaCBiL2lu
-Y2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaAppbmRleCBlM2FiYTRlLi5jYzMwNWQxIDEwMDY0NAot
-LS0gYS9pbmNsdWRlL2xpbnV4L2RtYS1tYXBwaW5nLmgKKysrIGIvaW5jbHVkZS9saW51eC9kbWEt
-bWFwcGluZy5oCkBAIC0yMTYsNiArMjE2LDM4IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBkbWFfdW5t
-YXBfcGFnZShzdHJ1Y3QgZGV2aWNlICpkZXYsIGRtYV9hZGRyX3QgYWRkciwKIAlkZWJ1Z19kbWFf
-dW5tYXBfcGFnZShkZXYsIGFkZHIsIHNpemUsIGRpciwgZmFsc2UpOwogfQogCitzdGF0aWMgaW5s
-aW5lIGRtYV9hZGRyX3QgZG1hX21hcF9yZXNvdXJjZShzdHJ1Y3QgZGV2aWNlICpkZXYsCisJCQkJ
-CSAgcGh5c19hZGRyX3QgcGh5c19hZGRyLAorCQkJCQkgIHNpemVfdCBzaXplLAorCQkJCQkgIGVu
-dW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwKKwkJCQkJICBzdHJ1Y3QgZG1hX2F0dHJzICphdHRy
-cykKK3sKKwlzdHJ1Y3QgZG1hX21hcF9vcHMgKm9wcyA9IGdldF9kbWFfb3BzKGRldik7CisJdW5z
-aWduZWQgbG9uZyBwZm4gPSBfX3BoeXNfdG9fcGZuKHBoeXNfYWRkcik7CisKKwlCVUdfT04oIXZh
-bGlkX2RtYV9kaXJlY3Rpb24oZGlyKSk7CisKKwkvKiBEb24ndCBhbGxvdyBSQU0gdG8gYmUgbWFw
-cGVkICovCisJQlVHX09OKHBmbl92YWxpZChwZm4pKTsKKworCWlmIChvcHMtPm1hcF9yZXNvdXJj
-ZSkKKwkJcmV0dXJuIG9wcy0+bWFwX3Jlc291cmNlKGRldiwgcGh5c19hZGRyLCBzaXplLCBkaXIs
-IGF0dHJzKTsKKworCXJldHVybiBwaHlzX2FkZHI7Cit9CisKK3N0YXRpYyBpbmxpbmUgdm9pZCBk
-bWFfdW5tYXBfcmVzb3VyY2Uoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGFkZHIsCisJ
-CQkJICAgICAgc2l6ZV90IHNpemUsIGVudW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwKKwkJCQkg
-ICAgICBzdHJ1Y3QgZG1hX2F0dHJzICphdHRycykKK3sKKwlzdHJ1Y3QgZG1hX21hcF9vcHMgKm9w
-cyA9IGdldF9kbWFfb3BzKGRldik7CisKKwlCVUdfT04oIXZhbGlkX2RtYV9kaXJlY3Rpb24oZGly
-KSk7CisJaWYgKG9wcy0+dW5tYXBfcmVzb3VyY2UpCisJCW9wcy0+dW5tYXBfcmVzb3VyY2UoZGV2
-LCBhZGRyLCBzaXplLCBkaXIsIGF0dHJzKTsKKworfQorCiBzdGF0aWMgaW5saW5lIHZvaWQgZG1h
-X3N5bmNfc2luZ2xlX2Zvcl9jcHUoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGFkZHIs
-CiAJCQkJCSAgIHNpemVfdCBzaXplLAogCQkJCQkgICBlbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBk
-aXIpCi0tIAoyLjcuMgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX18KaW9tbXUgbWFpbGluZyBsaXN0CmlvbW11QGxpc3RzLmxpbnV4LWZvdW5kYXRpb24ub3Jn
-Cmh0dHBzOi8vbGlzdHMubGludXhmb3VuZGF0aW9uLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2lvbW11
+Hi,
+
+This series add iommu support to rcar-dmac. It's tested on Koelsch with
+CONFIG_IPMMU_VMSA and by enabling the ipmmu_ds node in r8a7791.dtsi. I
+verified operation by interacting with /dev/mmcblk1 and the serial
+console which both are devices behind the iommu.
+
+The series depends patch '[PATCH] dmaengine: use phys_addr_t for slave
+configuration'.
+
+* Changes since v4
+- Move the mapping from phys_addr_t to dma_addr_t from slave_config to =
+the
+  prepare calls. This way we know the direction of the mapping and don'=
+t have
+  to use DMA_BIDIRECTIONAL. Thanks Vinod for suggesting this.
+- To be clear that the data type for slave addresses are changed add a =
+patch
+  that only changes the data type to phys_addr_t.
+- Fixed up commit messages.
+
+* Changes since v3
+- Folded in a fix from Robin to his patch.
+- Added a check to make sure dma_map_resource can not be used to map RA=
+M as
+  pointed out by Robin. I use BUG_ON to enforce this. It might not be t=
+he best
+  method but I saw no other good way since DMA_ERROR_CODE might not be =
+defined
+  on all platforms.
+- Added comment about that DTS changes will disable 2 DMA channels due =
+to a HW
+  (?) but in the DMAC.
+- Dropped the use of dma_attrs, no longer needed.
+- Collected Acked-by and Reviewed-by from Laurent.
+- Various indentation fix ups.
+
+* Changes since v2
+- Drop patch to add dma_{map,unmap}_page_attrs.
+- Add dma_{map,unmap}_resource to handle the mapping without involving =
+a
+  'struct page'. Thanks Laurent and Robin for pointing this out.
+- Use size instead of address to keep track of if a mapping exist or no=
+t
+  since addr =3D=3D 0 is valid. Thanks Laurent.
+- Pick up patch from Robin with Laurents ack (hope it's OK for me to
+  attach the ack?) to add IOMMU_MMIO.
+- Fix bug in rcar_dmac_device_config where the error check where
+  inverted.
+- Use DMA_BIDIRECTIONAL in rcar_dmac_device_config since we at that
+  point can't be sure what direction the mapping is going to be used.
+
+* Changes since v1
+- Add and use a dma_{map,unmap}_page_attrs to be able to map the page
+  using attributes DMA_ATTR_NO_KERNEL_MAPPING and
+  DMA_ATTR_SKIP_CPU_SYNC. Thanks Laurent.
+- Drop check if dmac is part of a iommu group or not, let the DMA
+  mapping api handle it.
+- Move slave configuration data around in rcar-dmac to avoid code
+  duplication.
+- Fix build issue reported by 'kbuild test robot' regarding phys_to_pag=
+e
+  not availability on some configurations.
+- Add DT information for r8a7791.
+
+* Changes since RFC
+- Switch to use the dma-mapping api instead of using the iommu_map()
+  directly. Turns out the dma-mapper is much smarter then me...
+- Dropped the patch to expose domain->ops->pgsize_bitmap from within th=
+e
+  iommu api.
+- Dropped the patch showing how I tested the RFC.
+
+Niklas S=C3=B6derlund (8):
+  dma-mapping: add {map,unmap}_resource to dma_map_ops
+  dma-mapping: add dma_{map,unmap}_resource
+  arm: dma-mapping: add {map,unmap}_resource for iommu ops
+  dmaengine: rcar-dmac: slave address are physical
+  dmaengine: rcar-dmac: group slave configuration
+  dmaengine: rcar-dmac: add iommu support for slave transfers
+  ARM: dts: r8a7790: add iommus to dmac0 and dmac1
+  ARM: dts: r8a7791: add iommus to dmac0 and dmac1
+
+Robin Murphy (1):
+  iommu: Add MMIO mapping type
+
+ arch/arm/boot/dts/r8a7790.dtsi |  30 +++++++++++
+ arch/arm/boot/dts/r8a7791.dtsi |  30 +++++++++++
+ arch/arm/mm/dma-mapping.c      |  63 ++++++++++++++++++++++
+ drivers/dma/sh/rcar-dmac.c     | 116 +++++++++++++++++++++++++++++++++=
+--------
+ drivers/iommu/io-pgtable-arm.c |   9 +++-
+ include/linux/dma-mapping.h    |  38 ++++++++++++++
+ include/linux/iommu.h          |   1 +
+ 7 files changed, 263 insertions(+), 24 deletions(-)
+
+--
+2.7.2
