@@ -1,20 +1,22 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 3/3] pci: move pci_dma_* helpers to common code
-Date: Tue, 8 Mar 2016 08:32:55 +0100
-Message-ID: <20160308073255.GA15647@lst.de>
-References: <1457277475-8913-1-git-send-email-hch@lst.de> <1457277475-8913-4-git-send-email-hch@lst.de> <20160307182848.GC13818@localhost>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Mon, 7 Mar 2016 23:38:47 -0800
+Message-ID: <20160308073847.GA15520@infradead.org>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:46302 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753949AbcCHHiv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 02:38:51 -0500
 Content-Disposition: inline
-In-Reply-To: <20160307182848.GC13818@localhost>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Niklas S??derlund <niklas.soderlund+renesas@ragnatech.se>
+Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
 
-On Mon, Mar 07, 2016 at 12:28:48PM -0600, Bjorn Helgaas wrote:
-> I wonder if we can consolidate a little more pci_dma_*-related stuff
-> in pci-dma-compat.h, e.g.,
-
-Looks fine to me.
+Please add some documentation on where/how this should be used.  It's
+not a very obvious interface.
