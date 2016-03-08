@@ -1,25 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:41882 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753483AbcCHHc6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Mar 2016 02:32:58 -0500
-Date: Tue, 8 Mar 2016 08:32:55 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 3/3] pci: move pci_dma_* helpers to common code
-Message-ID: <20160308073255.GA15647@lst.de>
-References: <1457277475-8913-1-git-send-email-hch@lst.de> <1457277475-8913-4-git-send-email-hch@lst.de> <20160307182848.GC13818@localhost>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:55864 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753703AbcCHIvN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 03:51:13 -0500
+Received: from localhost
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Tue, 8 Mar 2016 08:51:11 -0000
+Subject: Re: [RFC][PATCH] s390, postinit-readonly: implement post-init RO
+References: <20160308002035.GA13606@www.outflux.net>
+ <CAGXu5jLu5NFw=7xoJEYcAq7MFwGY1nuB8w-q+NVp2d2zpwRUyQ@mail.gmail.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <56DE9279.6040805@de.ibm.com>
+Date: Tue, 8 Mar 2016 09:51:05 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160307182848.GC13818@localhost>
+In-Reply-To: <CAGXu5jLu5NFw=7xoJEYcAq7MFwGY1nuB8w-q+NVp2d2zpwRUyQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <helgaas@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20160308073255.m2k5cfh1CJkXBh9eVp4IrzlV02bYo643mAxeoXiJU7c@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
+Message-ID: <20160308085105.kt1eyARP-e4zfn6hOObujlPwr4txzVDHQxIW5rvfU1M@z>
 
-On Mon, Mar 07, 2016 at 12:28:48PM -0600, Bjorn Helgaas wrote:
-> I wonder if we can consolidate a little more pci_dma_*-related stuff
-> in pci-dma-compat.h, e.g.,
+On 03/08/2016 01:41 AM, Kees Cook wrote:
 
-Looks fine to me.
+>> --- a/arch/s390/kernel/vmlinux.lds.S
+>> +++ b/arch/s390/kernel/vmlinux.lds.S
+>> @@ -52,6 +52,12 @@ SECTIONS
+>>
+>>         RW_DATA_SECTION(0x100, PAGE_SIZE, THREAD_SIZE)
+>>
+>> +       . = ALIGN(PAGE_SIZE)
+
+
+missing ";" ?
+
+
+With that  and your fixes, this function claims to mark 0kB and 
+lkdtm can still write. Reason is that _edata is 0xc11008 and start is
+0x0c11000.
+
+making _edata page aligned as well, does now try to mark one page, but then
+we run into the next issue, that 
+
+static void change_page_attr(unsigned long addr, int numpages,
+                             pte_t (*set) (pte_t))
+{
+        pte_t *ptep;
+        int i;
+
+        for (i = 0; i < numpages; i++) {
+                ptep = walk_page_table(addr);
+
+triggers this
+                if (WARN_ON_ONCE(!ptep))
+                        break;
+
+because the kernel decided to map this with a large page. So we need
+to fix this function to then break the large page into a smaller chunk....
+
+Christian
+
