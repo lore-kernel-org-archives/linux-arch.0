@@ -1,112 +1,82 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v5 0/9] dmaengine: rcar-dmac: add iommu support for slave transfers
-Date: Tue,  8 Mar 2016 03:42:45 +0100
-Message-ID: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: [PATCH v5 4/9] arm: dma-mapping: add {map,
+	unmap}_resource for iommu ops
+Date: Tue,  8 Mar 2016 03:42:49 +0100
+Message-ID: <1457404974-1800-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-This series add iommu support to rcar-dmac. It's tested on Koelsch with
-CONFIG_IPMMU_VMSA and by enabling the ipmmu_ds node in r8a7791.dtsi. I
-verified operation by interacting with /dev/mmcblk1 and the serial
-console which both are devices behind the iommu.
-
-The series depends patch '[PATCH] dmaengine: use phys_addr_t for slave
-configuration'.
-
-* Changes since v4
-- Move the mapping from phys_addr_t to dma_addr_t from slave_config to =
-the
-  prepare calls. This way we know the direction of the mapping and don'=
-t have
-  to use DMA_BIDIRECTIONAL. Thanks Vinod for suggesting this.
-- To be clear that the data type for slave addresses are changed add a =
-patch
-  that only changes the data type to phys_addr_t.
-- Fixed up commit messages.
-
-* Changes since v3
-- Folded in a fix from Robin to his patch.
-- Added a check to make sure dma_map_resource can not be used to map RA=
-M as
-  pointed out by Robin. I use BUG_ON to enforce this. It might not be t=
-he best
-  method but I saw no other good way since DMA_ERROR_CODE might not be =
-defined
-  on all platforms.
-- Added comment about that DTS changes will disable 2 DMA channels due =
-to a HW
-  (?) but in the DMAC.
-- Dropped the use of dma_attrs, no longer needed.
-- Collected Acked-by and Reviewed-by from Laurent.
-- Various indentation fix ups.
-
-* Changes since v2
-- Drop patch to add dma_{map,unmap}_page_attrs.
-- Add dma_{map,unmap}_resource to handle the mapping without involving =
-a
-  'struct page'. Thanks Laurent and Robin for pointing this out.
-- Use size instead of address to keep track of if a mapping exist or no=
-t
-  since addr =3D=3D 0 is valid. Thanks Laurent.
-- Pick up patch from Robin with Laurents ack (hope it's OK for me to
-  attach the ack?) to add IOMMU_MMIO.
-- Fix bug in rcar_dmac_device_config where the error check where
-  inverted.
-- Use DMA_BIDIRECTIONAL in rcar_dmac_device_config since we at that
-  point can't be sure what direction the mapping is going to be used.
-
-* Changes since v1
-- Add and use a dma_{map,unmap}_page_attrs to be able to map the page
-  using attributes DMA_ATTR_NO_KERNEL_MAPPING and
-  DMA_ATTR_SKIP_CPU_SYNC. Thanks Laurent.
-- Drop check if dmac is part of a iommu group or not, let the DMA
-  mapping api handle it.
-- Move slave configuration data around in rcar-dmac to avoid code
-  duplication.
-- Fix build issue reported by 'kbuild test robot' regarding phys_to_pag=
-e
-  not availability on some configurations.
-- Add DT information for r8a7791.
-
-* Changes since RFC
-- Switch to use the dma-mapping api instead of using the iommu_map()
-  directly. Turns out the dma-mapper is much smarter then me...
-- Dropped the patch to expose domain->ops->pgsize_bitmap from within th=
-e
-  iommu api.
-- Dropped the patch showing how I tested the RFC.
-
-Niklas S=C3=B6derlund (8):
-  dma-mapping: add {map,unmap}_resource to dma_map_ops
-  dma-mapping: add dma_{map,unmap}_resource
-  arm: dma-mapping: add {map,unmap}_resource for iommu ops
-  dmaengine: rcar-dmac: slave address are physical
-  dmaengine: rcar-dmac: group slave configuration
-  dmaengine: rcar-dmac: add iommu support for slave transfers
-  ARM: dts: r8a7790: add iommus to dmac0 and dmac1
-  ARM: dts: r8a7791: add iommus to dmac0 and dmac1
-
-Robin Murphy (1):
-  iommu: Add MMIO mapping type
-
- arch/arm/boot/dts/r8a7790.dtsi |  30 +++++++++++
- arch/arm/boot/dts/r8a7791.dtsi |  30 +++++++++++
- arch/arm/mm/dma-mapping.c      |  63 ++++++++++++++++++++++
- drivers/dma/sh/rcar-dmac.c     | 116 +++++++++++++++++++++++++++++++++=
---------
- drivers/iommu/io-pgtable-arm.c |   9 +++-
- include/linux/dma-mapping.h    |  38 ++++++++++++++
- include/linux/iommu.h          |   1 +
- 7 files changed, 263 insertions(+), 24 deletions(-)
-
---
-2.7.2
+QWRkIG1ldGhvZHMgdG8gbWFwL3VubWFwIGRldmljZSByZXNvdXJjZXMgYWRkcmVzc2VzIGZvciBk
+bWFfbWFwX29wcyB0aGF0CmFyZSBJT01NVSBhd2FyZS4gVGhpcyBpcyBuZWVkZWQgdG8gbWFwIGEg
+ZGV2aWNlIE1NSU8gcmVnaXN0ZXIgZnJvbSBhCnBoeXNpY2FsIGFkZHJlc3MuCgpTaWduZWQtb2Zm
+LWJ5OiBOaWtsYXMgU8O2ZGVybHVuZCA8bmlrbGFzLnNvZGVybHVuZCtyZW5lc2FzQHJhZ25hdGVj
+aC5zZT4KUmV2aWV3ZWQtYnk6IExhdXJlbnQgUGluY2hhcnQgPGxhdXJlbnQucGluY2hhcnRAaWRl
+YXNvbmJvYXJkLmNvbT4KLS0tCiBhcmNoL2FybS9tbS9kbWEtbWFwcGluZy5jIHwgNjMgKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKIDEgZmlsZSBjaGFuZ2Vk
+LCA2MyBpbnNlcnRpb25zKCspCgpkaWZmIC0tZ2l0IGEvYXJjaC9hcm0vbW0vZG1hLW1hcHBpbmcu
+YyBiL2FyY2gvYXJtL21tL2RtYS1tYXBwaW5nLmMKaW5kZXggMGVjYTM4MS4uYWUyYjE3NSAxMDA2
+NDQKLS0tIGEvYXJjaC9hcm0vbW0vZG1hLW1hcHBpbmcuYworKysgYi9hcmNoL2FybS9tbS9kbWEt
+bWFwcGluZy5jCkBAIC0xODE0LDYgKzE4MTQsNjMgQEAgc3RhdGljIHZvaWQgYXJtX2lvbW11X3Vu
+bWFwX3BhZ2Uoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGhhbmRsZSwKIAlfX2ZyZWVf
+aW92YShtYXBwaW5nLCBpb3ZhLCBsZW4pOwogfQogCisvKioKKyAqIGFybV9pb21tdV9tYXBfcmVz
+b3VyY2UgLSBtYXAgYSBkZXZpY2UgcmVzb3VyY2UgZm9yIERNQQorICogQGRldjogdmFsaWQgc3Ry
+dWN0IGRldmljZSBwb2ludGVyCisgKiBAcGh5c19hZGRyOiBwaHlzaWNhbCBhZGRyZXNzIG9mIHJl
+c291cmNlCisgKiBAc2l6ZTogc2l6ZSBvZiByZXNvdXJjZSB0byBtYXAKKyAqIEBkaXI6IERNQSB0
+cmFuc2ZlciBkaXJlY3Rpb24KKyAqLworc3RhdGljIGRtYV9hZGRyX3QgYXJtX2lvbW11X21hcF9y
+ZXNvdXJjZShzdHJ1Y3QgZGV2aWNlICpkZXYsCisJCXBoeXNfYWRkcl90IHBoeXNfYWRkciwgc2l6
+ZV90IHNpemUsCisJCWVudW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwgc3RydWN0IGRtYV9hdHRy
+cyAqYXR0cnMpCit7CisJc3RydWN0IGRtYV9pb21tdV9tYXBwaW5nICptYXBwaW5nID0gdG9fZG1h
+X2lvbW11X21hcHBpbmcoZGV2KTsKKwlkbWFfYWRkcl90IGRtYV9hZGRyOworCWludCByZXQsIHBy
+b3Q7CisJcGh5c19hZGRyX3QgYWRkciA9IHBoeXNfYWRkciAmIFBBR0VfTUFTSzsKKwlpbnQgb2Zm
+c2V0ID0gcGh5c19hZGRyICYgflBBR0VfTUFTSzsKKwlpbnQgbGVuID0gUEFHRV9BTElHTihzaXpl
+ICsgb2Zmc2V0KTsKKworCWRtYV9hZGRyID0gX19hbGxvY19pb3ZhKG1hcHBpbmcsIHNpemUpOwor
+CWlmIChkbWFfYWRkciA9PSBETUFfRVJST1JfQ09ERSkKKwkJcmV0dXJuIGRtYV9hZGRyOworCisJ
+cHJvdCA9IF9fZG1hX2RpcmVjdGlvbl90b19wcm90KGRpcikgfCBJT01NVV9NTUlPOworCisJcmV0
+ID0gaW9tbXVfbWFwKG1hcHBpbmctPmRvbWFpbiwgZG1hX2FkZHIsIGFkZHIsIGxlbiwgcHJvdCk7
+CisJaWYgKHJldCA8IDApCisJCWdvdG8gZmFpbDsKKworCXJldHVybiBkbWFfYWRkciArIG9mZnNl
+dDsKK2ZhaWw6CisJX19mcmVlX2lvdmEobWFwcGluZywgZG1hX2FkZHIsIHNpemUpOworCXJldHVy
+biBETUFfRVJST1JfQ09ERTsKK30KKworLyoqCisgKiBhcm1faW9tbXVfdW5tYXBfcmVzb3VyY2Ug
+LSB1bm1hcCBhIGRldmljZSBETUEgcmVzb3VyY2UKKyAqIEBkZXY6IHZhbGlkIHN0cnVjdCBkZXZp
+Y2UgcG9pbnRlcgorICogQGRtYV9oYW5kbGU6IERNQSBhZGRyZXNzIHRvIHJlc291cmNlCisgKiBA
+c2l6ZTogc2l6ZSBvZiByZXNvdXJjZSB0byBtYXAKKyAqIEBkaXI6IERNQSB0cmFuc2ZlciBkaXJl
+Y3Rpb24KKyAqLworc3RhdGljIHZvaWQgYXJtX2lvbW11X3VubWFwX3Jlc291cmNlKHN0cnVjdCBk
+ZXZpY2UgKmRldiwgZG1hX2FkZHJfdCBkbWFfaGFuZGxlLAorCQlzaXplX3Qgc2l6ZSwgZW51bSBk
+bWFfZGF0YV9kaXJlY3Rpb24gZGlyLAorCQlzdHJ1Y3QgZG1hX2F0dHJzICphdHRycykKK3sKKwlz
+dHJ1Y3QgZG1hX2lvbW11X21hcHBpbmcgKm1hcHBpbmcgPSB0b19kbWFfaW9tbXVfbWFwcGluZyhk
+ZXYpOworCWRtYV9hZGRyX3QgaW92YSA9IGRtYV9oYW5kbGUgJiBQQUdFX01BU0s7CisJaW50IG9m
+ZnNldCA9IGRtYV9oYW5kbGUgJiB+UEFHRV9NQVNLOworCWludCBsZW4gPSBQQUdFX0FMSUdOKHNp
+emUgKyBvZmZzZXQpOworCisJaWYgKCFpb3ZhKQorCQlyZXR1cm47CisKKwlpb21tdV91bm1hcCht
+YXBwaW5nLT5kb21haW4sIGlvdmEsIGxlbik7CisJX19mcmVlX2lvdmEobWFwcGluZywgaW92YSwg
+bGVuKTsKK30KKwogc3RhdGljIHZvaWQgYXJtX2lvbW11X3N5bmNfc2luZ2xlX2Zvcl9jcHUoc3Ry
+dWN0IGRldmljZSAqZGV2LAogCQlkbWFfYWRkcl90IGhhbmRsZSwgc2l6ZV90IHNpemUsIGVudW0g
+ZG1hX2RhdGFfZGlyZWN0aW9uIGRpcikKIHsKQEAgLTE4NTgsNiArMTkxNSw5IEBAIHN0cnVjdCBk
+bWFfbWFwX29wcyBpb21tdV9vcHMgPSB7CiAJLnN5bmNfc2dfZm9yX2NwdQk9IGFybV9pb21tdV9z
+eW5jX3NnX2Zvcl9jcHUsCiAJLnN5bmNfc2dfZm9yX2RldmljZQk9IGFybV9pb21tdV9zeW5jX3Nn
+X2Zvcl9kZXZpY2UsCiAKKwkubWFwX3Jlc291cmNlCQk9IGFybV9pb21tdV9tYXBfcmVzb3VyY2Us
+CisJLnVubWFwX3Jlc291cmNlCQk9IGFybV9pb21tdV91bm1hcF9yZXNvdXJjZSwKKwogCS5zZXRf
+ZG1hX21hc2sJCT0gYXJtX2RtYV9zZXRfbWFzaywKIH07CiAKQEAgLTE4NzMsNiArMTkzMyw5IEBA
+IHN0cnVjdCBkbWFfbWFwX29wcyBpb21tdV9jb2hlcmVudF9vcHMgPSB7CiAJLm1hcF9zZwkJPSBh
+cm1fY29oZXJlbnRfaW9tbXVfbWFwX3NnLAogCS51bm1hcF9zZwk9IGFybV9jb2hlcmVudF9pb21t
+dV91bm1hcF9zZywKIAorCS5tYXBfcmVzb3VyY2UJPSBhcm1faW9tbXVfbWFwX3Jlc291cmNlLAor
+CS51bm1hcF9yZXNvdXJjZQk9IGFybV9pb21tdV91bm1hcF9yZXNvdXJjZSwKKwogCS5zZXRfZG1h
+X21hc2sJPSBhcm1fZG1hX3NldF9tYXNrLAogfTsKIAotLSAKMi43LjIKCl9fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmlvbW11IG1haWxpbmcgbGlzdAppb21t
+dUBsaXN0cy5saW51eC1mb3VuZGF0aW9uLm9yZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlv
+bi5vcmcvbWFpbG1hbi9saXN0aW5mby9pb21tdQ==
