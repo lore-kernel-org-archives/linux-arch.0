@@ -1,82 +1,82 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-Subject: [PATCH v5 4/9] arm: dma-mapping: add {map,
-	unmap}_resource for iommu ops
-Date: Tue,  8 Mar 2016 03:42:49 +0100
-Message-ID: <1457404974-1800-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v5 9/9] ARM: dts: r8a7791: add iommus to dmac0 and dmac1
+Date: Tue,  8 Mar 2016 03:42:54 +0100
+Message-ID: <1457404974-1800-10-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-4.sys.kth.se ([130.237.48.193]:38755 "EHLO
+	smtp-4.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932369AbcCHCoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 21:44:21 -0500
+In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
 
-QWRkIG1ldGhvZHMgdG8gbWFwL3VubWFwIGRldmljZSByZXNvdXJjZXMgYWRkcmVzc2VzIGZvciBk
-bWFfbWFwX29wcyB0aGF0CmFyZSBJT01NVSBhd2FyZS4gVGhpcyBpcyBuZWVkZWQgdG8gbWFwIGEg
-ZGV2aWNlIE1NSU8gcmVnaXN0ZXIgZnJvbSBhCnBoeXNpY2FsIGFkZHJlc3MuCgpTaWduZWQtb2Zm
-LWJ5OiBOaWtsYXMgU8O2ZGVybHVuZCA8bmlrbGFzLnNvZGVybHVuZCtyZW5lc2FzQHJhZ25hdGVj
-aC5zZT4KUmV2aWV3ZWQtYnk6IExhdXJlbnQgUGluY2hhcnQgPGxhdXJlbnQucGluY2hhcnRAaWRl
-YXNvbmJvYXJkLmNvbT4KLS0tCiBhcmNoL2FybS9tbS9kbWEtbWFwcGluZy5jIHwgNjMgKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKIDEgZmlsZSBjaGFuZ2Vk
-LCA2MyBpbnNlcnRpb25zKCspCgpkaWZmIC0tZ2l0IGEvYXJjaC9hcm0vbW0vZG1hLW1hcHBpbmcu
-YyBiL2FyY2gvYXJtL21tL2RtYS1tYXBwaW5nLmMKaW5kZXggMGVjYTM4MS4uYWUyYjE3NSAxMDA2
-NDQKLS0tIGEvYXJjaC9hcm0vbW0vZG1hLW1hcHBpbmcuYworKysgYi9hcmNoL2FybS9tbS9kbWEt
-bWFwcGluZy5jCkBAIC0xODE0LDYgKzE4MTQsNjMgQEAgc3RhdGljIHZvaWQgYXJtX2lvbW11X3Vu
-bWFwX3BhZ2Uoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGhhbmRsZSwKIAlfX2ZyZWVf
-aW92YShtYXBwaW5nLCBpb3ZhLCBsZW4pOwogfQogCisvKioKKyAqIGFybV9pb21tdV9tYXBfcmVz
-b3VyY2UgLSBtYXAgYSBkZXZpY2UgcmVzb3VyY2UgZm9yIERNQQorICogQGRldjogdmFsaWQgc3Ry
-dWN0IGRldmljZSBwb2ludGVyCisgKiBAcGh5c19hZGRyOiBwaHlzaWNhbCBhZGRyZXNzIG9mIHJl
-c291cmNlCisgKiBAc2l6ZTogc2l6ZSBvZiByZXNvdXJjZSB0byBtYXAKKyAqIEBkaXI6IERNQSB0
-cmFuc2ZlciBkaXJlY3Rpb24KKyAqLworc3RhdGljIGRtYV9hZGRyX3QgYXJtX2lvbW11X21hcF9y
-ZXNvdXJjZShzdHJ1Y3QgZGV2aWNlICpkZXYsCisJCXBoeXNfYWRkcl90IHBoeXNfYWRkciwgc2l6
-ZV90IHNpemUsCisJCWVudW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwgc3RydWN0IGRtYV9hdHRy
-cyAqYXR0cnMpCit7CisJc3RydWN0IGRtYV9pb21tdV9tYXBwaW5nICptYXBwaW5nID0gdG9fZG1h
-X2lvbW11X21hcHBpbmcoZGV2KTsKKwlkbWFfYWRkcl90IGRtYV9hZGRyOworCWludCByZXQsIHBy
-b3Q7CisJcGh5c19hZGRyX3QgYWRkciA9IHBoeXNfYWRkciAmIFBBR0VfTUFTSzsKKwlpbnQgb2Zm
-c2V0ID0gcGh5c19hZGRyICYgflBBR0VfTUFTSzsKKwlpbnQgbGVuID0gUEFHRV9BTElHTihzaXpl
-ICsgb2Zmc2V0KTsKKworCWRtYV9hZGRyID0gX19hbGxvY19pb3ZhKG1hcHBpbmcsIHNpemUpOwor
-CWlmIChkbWFfYWRkciA9PSBETUFfRVJST1JfQ09ERSkKKwkJcmV0dXJuIGRtYV9hZGRyOworCisJ
-cHJvdCA9IF9fZG1hX2RpcmVjdGlvbl90b19wcm90KGRpcikgfCBJT01NVV9NTUlPOworCisJcmV0
-ID0gaW9tbXVfbWFwKG1hcHBpbmctPmRvbWFpbiwgZG1hX2FkZHIsIGFkZHIsIGxlbiwgcHJvdCk7
-CisJaWYgKHJldCA8IDApCisJCWdvdG8gZmFpbDsKKworCXJldHVybiBkbWFfYWRkciArIG9mZnNl
-dDsKK2ZhaWw6CisJX19mcmVlX2lvdmEobWFwcGluZywgZG1hX2FkZHIsIHNpemUpOworCXJldHVy
-biBETUFfRVJST1JfQ09ERTsKK30KKworLyoqCisgKiBhcm1faW9tbXVfdW5tYXBfcmVzb3VyY2Ug
-LSB1bm1hcCBhIGRldmljZSBETUEgcmVzb3VyY2UKKyAqIEBkZXY6IHZhbGlkIHN0cnVjdCBkZXZp
-Y2UgcG9pbnRlcgorICogQGRtYV9oYW5kbGU6IERNQSBhZGRyZXNzIHRvIHJlc291cmNlCisgKiBA
-c2l6ZTogc2l6ZSBvZiByZXNvdXJjZSB0byBtYXAKKyAqIEBkaXI6IERNQSB0cmFuc2ZlciBkaXJl
-Y3Rpb24KKyAqLworc3RhdGljIHZvaWQgYXJtX2lvbW11X3VubWFwX3Jlc291cmNlKHN0cnVjdCBk
-ZXZpY2UgKmRldiwgZG1hX2FkZHJfdCBkbWFfaGFuZGxlLAorCQlzaXplX3Qgc2l6ZSwgZW51bSBk
-bWFfZGF0YV9kaXJlY3Rpb24gZGlyLAorCQlzdHJ1Y3QgZG1hX2F0dHJzICphdHRycykKK3sKKwlz
-dHJ1Y3QgZG1hX2lvbW11X21hcHBpbmcgKm1hcHBpbmcgPSB0b19kbWFfaW9tbXVfbWFwcGluZyhk
-ZXYpOworCWRtYV9hZGRyX3QgaW92YSA9IGRtYV9oYW5kbGUgJiBQQUdFX01BU0s7CisJaW50IG9m
-ZnNldCA9IGRtYV9oYW5kbGUgJiB+UEFHRV9NQVNLOworCWludCBsZW4gPSBQQUdFX0FMSUdOKHNp
-emUgKyBvZmZzZXQpOworCisJaWYgKCFpb3ZhKQorCQlyZXR1cm47CisKKwlpb21tdV91bm1hcCht
-YXBwaW5nLT5kb21haW4sIGlvdmEsIGxlbik7CisJX19mcmVlX2lvdmEobWFwcGluZywgaW92YSwg
-bGVuKTsKK30KKwogc3RhdGljIHZvaWQgYXJtX2lvbW11X3N5bmNfc2luZ2xlX2Zvcl9jcHUoc3Ry
-dWN0IGRldmljZSAqZGV2LAogCQlkbWFfYWRkcl90IGhhbmRsZSwgc2l6ZV90IHNpemUsIGVudW0g
-ZG1hX2RhdGFfZGlyZWN0aW9uIGRpcikKIHsKQEAgLTE4NTgsNiArMTkxNSw5IEBAIHN0cnVjdCBk
-bWFfbWFwX29wcyBpb21tdV9vcHMgPSB7CiAJLnN5bmNfc2dfZm9yX2NwdQk9IGFybV9pb21tdV9z
-eW5jX3NnX2Zvcl9jcHUsCiAJLnN5bmNfc2dfZm9yX2RldmljZQk9IGFybV9pb21tdV9zeW5jX3Nn
-X2Zvcl9kZXZpY2UsCiAKKwkubWFwX3Jlc291cmNlCQk9IGFybV9pb21tdV9tYXBfcmVzb3VyY2Us
-CisJLnVubWFwX3Jlc291cmNlCQk9IGFybV9pb21tdV91bm1hcF9yZXNvdXJjZSwKKwogCS5zZXRf
-ZG1hX21hc2sJCT0gYXJtX2RtYV9zZXRfbWFzaywKIH07CiAKQEAgLTE4NzMsNiArMTkzMyw5IEBA
-IHN0cnVjdCBkbWFfbWFwX29wcyBpb21tdV9jb2hlcmVudF9vcHMgPSB7CiAJLm1hcF9zZwkJPSBh
-cm1fY29oZXJlbnRfaW9tbXVfbWFwX3NnLAogCS51bm1hcF9zZwk9IGFybV9jb2hlcmVudF9pb21t
-dV91bm1hcF9zZywKIAorCS5tYXBfcmVzb3VyY2UJPSBhcm1faW9tbXVfbWFwX3Jlc291cmNlLAor
-CS51bm1hcF9yZXNvdXJjZQk9IGFybV9pb21tdV91bm1hcF9yZXNvdXJjZSwKKwogCS5zZXRfZG1h
-X21hc2sJPSBhcm1fZG1hX3NldF9tYXNrLAogfTsKIAotLSAKMi43LjIKCl9fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCmlvbW11IG1haWxpbmcgbGlzdAppb21t
-dUBsaXN0cy5saW51eC1mb3VuZGF0aW9uLm9yZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlv
-bi5vcmcvbWFpbG1hbi9saXN0aW5mby9pb21tdQ==
+A unconfirmed hardware bug prevents channel 0 and 15 to be used by the
+DMAC together with the IPMMU. The DMAC driver will disable the channels
+reducing the effective number of channels to 14 per DMAC.
+
+Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
+h.se>
+Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+---
+ arch/arm/boot/dts/r8a7791.dtsi | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/arch/arm/boot/dts/r8a7791.dtsi b/arch/arm/boot/dts/r8a7791=
+=2Edtsi
+index c6bee4a..341c460 100644
+--- a/arch/arm/boot/dts/r8a7791.dtsi
++++ b/arch/arm/boot/dts/r8a7791.dtsi
+@@ -283,6 +283,21 @@
+ 		power-domains =3D <&cpg_clocks>;
+ 		#dma-cells =3D <1>;
+ 		dma-channels =3D <15>;
++		iommus =3D <&ipmmu_ds 0>,
++			 <&ipmmu_ds 1>,
++			 <&ipmmu_ds 2>,
++			 <&ipmmu_ds 3>,
++			 <&ipmmu_ds 4>,
++			 <&ipmmu_ds 5>,
++			 <&ipmmu_ds 6>,
++			 <&ipmmu_ds 7>,
++			 <&ipmmu_ds 8>,
++			 <&ipmmu_ds 9>,
++			 <&ipmmu_ds 10>,
++			 <&ipmmu_ds 11>,
++			 <&ipmmu_ds 12>,
++			 <&ipmmu_ds 13>,
++			 <&ipmmu_ds 14>;
+ 	};
+=20
+ 	dmac1: dma-controller@e6720000 {
+@@ -314,6 +329,21 @@
+ 		power-domains =3D <&cpg_clocks>;
+ 		#dma-cells =3D <1>;
+ 		dma-channels =3D <15>;
++		iommus =3D <&ipmmu_ds 15>,
++			 <&ipmmu_ds 16>,
++			 <&ipmmu_ds 17>,
++			 <&ipmmu_ds 18>,
++			 <&ipmmu_ds 19>,
++			 <&ipmmu_ds 20>,
++			 <&ipmmu_ds 21>,
++			 <&ipmmu_ds 22>,
++			 <&ipmmu_ds 23>,
++			 <&ipmmu_ds 24>,
++			 <&ipmmu_ds 25>,
++			 <&ipmmu_ds 26>,
++			 <&ipmmu_ds 27>,
++			 <&ipmmu_ds 28>,
++			 <&ipmmu_ds 29>;
+ 	};
+=20
+ 	audma0: dma-controller@ec700000 {
+--=20
+2.7.2
