@@ -1,55 +1,79 @@
-From: Rob Gardner <rob.gardner@oracle.com>
-Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
- (ADI)
-Date: Mon, 7 Mar 2016 17:31:23 -0800
-Message-ID: <56DE2B6B.3050503@oracle.com>
-References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
- <20160305.230702.1325379875282120281.davem@davemloft.net>
- <56DD9949.1000106@oracle.com> <56DD9E94.70201@oracle.com>
- <CALCETrXey2_xEXhzjgHtZmf-dLp-9pec===d-8chLxrp8wgRXg@mail.gmail.com>
- <56DDA6FD.4040404@oracle.com> <56DDBE68.6080709@linux.intel.com>
- <CALCETrWPeFsyGsDNyehMpub1QrjZxyWpG_x_2A0yKqROXYfJ5A@mail.gmail.com>
- <56DDC47C.8010206@linux.intel.com> <56DDCAD3.3090106@oracle.com>
+From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v5 1/9] iommu: Add MMIO mapping type
+Date: Tue,  8 Mar 2016 03:42:46 +0100
+Message-ID: <1457404974-1800-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <56DDCAD3.3090106@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>
-Cc: David Miller <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, chris.hyser@oracle.com, Richard Weinberger <richard@nod.at>, Vlastimil Babka <vbabka@suse.cz>, Konstantin Khlebnikov <koct9i@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Greg Thelen <gthelen@google.com>, Jan Kara <jack@suse.cz>, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andrew Lutomirski <luto@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, bsegall@google.comG
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-4.sys.kth.se ([130.237.48.193]:38705 "EHLO
+	smtp-4.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932255AbcCHCoO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 21:44:14 -0500
+In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
 
-On 03/07/2016 10:39 AM, Khalid Aziz wrote:
-> On 03/07/2016 11:12 AM, Dave Hansen wrote:
->> On 03/07/2016 09:53 AM, Andy Lutomirski wrote:
->>> Also, what am I missing?  Tying these tags to the physical page seems
->>> like a poor design to me.  This seems really awkward to use.
->>
->> Yeah, can you describe the structures that store these things? Surely
->> the hardware has some kind of lookup tables for them and stores them in
->> memory _somewhere_.
->>
->
-> Version tags are tied to virtual addresses, not physical pages.
->
-> Where exactly are the tags stored is part of processor architecture 
-> and I am not privy to that. MMU stores these lookup tables somewhere 
-> and uses it to authenticate access to virtual addresses. It really is 
-> irrelevant to kernel how MMU implements access controls as long as we 
-> have access to the knowledge of how to use it.
+=46rom: Robin Murphy <robin.murphy@arm.com>
 
-The tags are stored in physical memory, and you can write a tag directly 
-to that memory via stxa with ASI_MCD_REAL and completely bypass the MMU. 
-When you do that, the tag will still be seen by any virtual address that 
-maps to that physical address.
+On some platforms, MMIO regions might need slightly different treatment
+compared to mapping regular memory; add the notion of MMIO mappings to
+the IOMMU API's memory type flags, so that callers can let the IOMMU
+drivers know to do the right thing.
 
-Rob
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
+h.se>
+---
+ drivers/iommu/io-pgtable-arm.c | 9 +++++++--
+ include/linux/iommu.h          | 1 +
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-=
+arm.c
+index 381ca5a..9c19989 100644
+--- a/drivers/iommu/io-pgtable-arm.c
++++ b/drivers/iommu/io-pgtable-arm.c
+@@ -355,7 +355,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct =
+arm_lpae_io_pgtable *data,
+ 		if (!(prot & IOMMU_WRITE) && (prot & IOMMU_READ))
+ 			pte |=3D ARM_LPAE_PTE_AP_RDONLY;
+=20
+-		if (prot & IOMMU_CACHE)
++		if (prot & IOMMU_MMIO)
++			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_DEV
++				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
++		else if (prot & IOMMU_CACHE)
+ 			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_CACHE
+ 				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
+ 	} else {
+@@ -364,7 +367,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct a=
+rm_lpae_io_pgtable *data,
+ 			pte |=3D ARM_LPAE_PTE_HAP_READ;
+ 		if (prot & IOMMU_WRITE)
+ 			pte |=3D ARM_LPAE_PTE_HAP_WRITE;
+-		if (prot & IOMMU_CACHE)
++		if (prot & IOMMU_MMIO)
++			pte |=3D ARM_LPAE_PTE_MEMATTR_DEV;
++		else if (prot & IOMMU_CACHE)
+ 			pte |=3D ARM_LPAE_PTE_MEMATTR_OIWB;
+ 		else
+ 			pte |=3D ARM_LPAE_PTE_MEMATTR_NC;
+diff --git a/include/linux/iommu.h b/include/linux/iommu.h
+index a5c539f..34b6432 100644
+--- a/include/linux/iommu.h
++++ b/include/linux/iommu.h
+@@ -30,6 +30,7 @@
+ #define IOMMU_WRITE	(1 << 1)
+ #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
+ #define IOMMU_NOEXEC	(1 << 3)
++#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
+=20
+ struct iommu_ops;
+ struct iommu_group;
+--=20
+2.7.2
