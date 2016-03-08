@@ -1,31 +1,20 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
- (ADI)
-Date: Mon, 07 Mar 2016 23:24:18 -0500 (EST)
-Message-ID: <20160307.232418.1734056188463866385.davem@davemloft.net>
-References: <56DDC776.3040003@oracle.com>
-	<20160307.141600.1873883635480850431.davem@davemloft.net>
-	<56DE1AF1.40107@oracle.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 3/3] pci: move pci_dma_* helpers to common code
+Date: Tue, 8 Mar 2016 08:32:55 +0100
+Message-ID: <20160308073255.GA15647@lst.de>
+References: <1457277475-8913-1-git-send-email-hch@lst.de> <1457277475-8913-4-git-send-email-hch@lst.de> <20160307182848.GC13818@localhost>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <56DE1AF1.40107@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: khalid.aziz@oracle.com
-Cc: rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160307182848.GC13818@localhost>
+Sender: linux-pci-owner@vger.kernel.org
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>, bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Date: Mon, 7 Mar 2016 17:21:05 -0700
+On Mon, Mar 07, 2016 at 12:28:48PM -0600, Bjorn Helgaas wrote:
+> I wonder if we can consolidate a little more pci_dma_*-related stuff
+> in pci-dma-compat.h, e.g.,
 
-> Can we enable ADI support for swappable pages in a subsequent update
-> after the core functionality is stable on mlock'd pages?
-
-I already said no.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Looks fine to me.
