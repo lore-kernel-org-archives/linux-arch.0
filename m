@@ -1,82 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-4.sys.kth.se ([130.237.48.193]:38784 "EHLO
-	smtp-4.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932366AbcCHCoV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 21:44:21 -0500
-From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v5 8/9] ARM: dts: r8a7790: add iommus to dmac0 and dmac1
-Date: Tue,  8 Mar 2016 03:42:53 +0100
-Message-ID: <1457404974-1800-9-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from shards.monkeyblade.net ([149.20.54.216]:59093 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753893AbcCHEYY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 23:24:24 -0500
+Date: Mon, 07 Mar 2016 23:24:18 -0500 (EST)
+Message-ID: <20160307.232418.1734056188463866385.davem@davemloft.net>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <56DE1AF1.40107@oracle.com>
+References: <56DDC776.3040003@oracle.com>
+	<20160307.141600.1873883635480850431.davem@davemloft.net>
+	<56DE1AF1.40107@oracle.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Message-ID: <20160308024253.oxEsdllX6MQ_6097t5LJjukRrvl1DGqD3M3iKKA7rFc@z>
+To: khalid.aziz@oracle.com
+Cc: rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20160308042418.JlUL-tTI-koT4KU9s8sJAmqUuBX4LzSnbV_91DwFm4g@z>
 
-A unconfirmed hardware bug prevents channel 0 and 15 to be used by the
-DMAC together with the IPMMU. The DMAC driver will disable the channels
-reducing the effective number of channels to 14 per DMAC.
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Date: Mon, 7 Mar 2016 17:21:05 -0700
 
-Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
-Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
----
- arch/arm/boot/dts/r8a7790.dtsi | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
+> Can we enable ADI support for swappable pages in a subsequent update
+> after the core functionality is stable on mlock'd pages?
 
-diff --git a/arch/arm/boot/dts/r8a7790.dtsi b/arch/arm/boot/dts/r8a7790.dtsi
-index 26772f7..c600daa 100644
---- a/arch/arm/boot/dts/r8a7790.dtsi
-+++ b/arch/arm/boot/dts/r8a7790.dtsi
-@@ -294,6 +294,21 @@
- 		power-domains = <&cpg_clocks>;
- 		#dma-cells = <1>;
- 		dma-channels = <15>;
-+		iommus = <&ipmmu_ds 0>,
-+			 <&ipmmu_ds 1>,
-+			 <&ipmmu_ds 2>,
-+			 <&ipmmu_ds 3>,
-+			 <&ipmmu_ds 4>,
-+			 <&ipmmu_ds 5>,
-+			 <&ipmmu_ds 6>,
-+			 <&ipmmu_ds 7>,
-+			 <&ipmmu_ds 8>,
-+			 <&ipmmu_ds 9>,
-+			 <&ipmmu_ds 10>,
-+			 <&ipmmu_ds 11>,
-+			 <&ipmmu_ds 12>,
-+			 <&ipmmu_ds 13>,
-+			 <&ipmmu_ds 14>;
- 	};
- 
- 	dmac1: dma-controller@e6720000 {
-@@ -325,6 +340,21 @@
- 		power-domains = <&cpg_clocks>;
- 		#dma-cells = <1>;
- 		dma-channels = <15>;
-+		iommus = <&ipmmu_ds 15>,
-+			 <&ipmmu_ds 16>,
-+			 <&ipmmu_ds 17>,
-+			 <&ipmmu_ds 18>,
-+			 <&ipmmu_ds 19>,
-+			 <&ipmmu_ds 20>,
-+			 <&ipmmu_ds 21>,
-+			 <&ipmmu_ds 22>,
-+			 <&ipmmu_ds 23>,
-+			 <&ipmmu_ds 24>,
-+			 <&ipmmu_ds 25>,
-+			 <&ipmmu_ds 26>,
-+			 <&ipmmu_ds 27>,
-+			 <&ipmmu_ds 28>,
-+			 <&ipmmu_ds 29>;
- 	};
- 
- 	audma0: dma-controller@ec700000 {
--- 
-2.7.2
-
+I already said no.
