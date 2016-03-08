@@ -1,115 +1,47 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [RFC][PATCH] s390, postinit-readonly: implement post-init RO
-Date: Mon, 7 Mar 2016 16:20:35 -0800
-Message-ID: <20160308002035.GA13606@www.outflux.net>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+Date: Mon, 7 Mar 2016 17:21:05 -0700
+Message-ID: <56DE1AF1.40107@oracle.com>
+References: <56DDC2B6.6020009@oracle.com> <56DDC3EB.8060909@oracle.com>
+ <56DDC776.3040003@oracle.com>
+ <20160307.141600.1873883635480850431.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-2779-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160307.141600.1873883635480850431.davem@davemloft.net>
+Sender: owner-linux-mm@kvack.org
+To: David Miller <davem@davemloft.net>
+Cc: rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since s390 already sets its .rodata section RO from the start, the generic
-.data..ro_after_init section is already RO before init runs. For s390,
-split the post-init read-only section off separately and handle that
-when the call to mark_rodata_ro() is made.
+On 03/07/2016 12:16 PM, David Miller wrote:
+> From: Khalid Aziz <khalid.aziz@oracle.com>
+> Date: Mon, 7 Mar 2016 11:24:54 -0700
+>
+>> Tags can be cleared by user by setting tag to 0. Tags are
+>> automatically cleared by the hardware when the mapping for a virtual
+>> address is removed from TSB (which is why swappable pages are a
+>> problem), so kernel does not have to do it as part of clean up.
+>
+> You might be able to crib some bits for the Tag in the swp_entry_t, it's
+> 64-bit and you can therefore steal bits from the offset field.
+>
+> That way you'll have the ADI tag in the page tables, ready to re-install
+> at swapin time.
+>
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
-This is totally untested...
----
- arch/s390/Kconfig                |  3 +++
- arch/s390/include/asm/cache.h    |  2 ++
- arch/s390/include/asm/sections.h |  2 +-
- arch/s390/kernel/vmlinux.lds.S   |  6 ++++++
- arch/s390/mm/init.c              | 10 ++++++++++
- 5 files changed, 22 insertions(+), 1 deletion(-)
+Hi Dave,
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 3be9c832dec1..3f8b96f2cd2d 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -59,6 +59,9 @@ config PCI_QUIRKS
- config ARCH_SUPPORTS_UPROBES
- 	def_bool y
- 
-+config DEBUG_RODATA
-+	def_bool y
-+
- config S390
- 	def_bool y
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-diff --git a/arch/s390/include/asm/cache.h b/arch/s390/include/asm/cache.h
-index 4d7ccac5fd1d..816c2964bbee 100644
---- a/arch/s390/include/asm/cache.h
-+++ b/arch/s390/include/asm/cache.h
-@@ -15,4 +15,6 @@
- 
- #define __read_mostly __attribute__((__section__(".data..read_mostly")))
- 
-+#define __ro_after_init __attribute__((__section__(".arch_ro_after_init")))
-+
- #endif
-diff --git a/arch/s390/include/asm/sections.h b/arch/s390/include/asm/sections.h
-index fbd9116eb17b..6cc6acf87416 100644
---- a/arch/s390/include/asm/sections.h
-+++ b/arch/s390/include/asm/sections.h
-@@ -3,6 +3,6 @@
- 
- #include <asm-generic/sections.h>
- 
--extern char _eshared[], _ehead[];
-+extern char _eshared[], _ehead[], __ro_after_init[];
- 
- #endif
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index 445657fe658c..39a2c7e4cdd2 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -52,6 +52,12 @@ SECTIONS
- 
- 	RW_DATA_SECTION(0x100, PAGE_SIZE, THREAD_SIZE)
- 
-+	. = ALIGN(PAGE_SIZE)
-+	__ro_after_init = .;
-+	.arch_ro_after_init : {
-+		*(.arch_ro_after_init)	/* Read only after init */
-+	}
-+
- 	_edata = .;		/* End of data section */
- 
- 	/* will be freed after init */
-diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
-index 73e290337092..6033d396b96c 100644
---- a/arch/s390/mm/init.c
-+++ b/arch/s390/mm/init.c
-@@ -136,6 +136,16 @@ void free_initmem(void)
- 	free_initmem_default(POISON_FREE_INITMEM);
- }
- 
-+void mark_rodata_ro(void)
-+{
-+	unsigned long start = (unsigned long) &__ro_after_init;
-+	unsigned long end = (unsigned long) &_edata;
-+
-+	printk(KERN_INFO "Write protecting post-init read-only data: %luk\n",
-+	       (end - start) >> 10);
-+	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
-+}
-+
- #ifdef CONFIG_BLK_DEV_INITRD
- void __init free_initrd_mem(unsigned long start, unsigned long end)
- {
--- 
-2.6.3
+Can we enable ADI support for swappable pages in a subsequent update 
+after the core functionality is stable on mlock'd pages?
 
+Thanks,
+Khalid
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
