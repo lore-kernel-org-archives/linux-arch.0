@@ -1,79 +1,46 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
 	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v5 1/9] iommu: Add MMIO mapping type
-Date: Tue,  8 Mar 2016 03:42:46 +0100
-Message-ID: <1457404974-1800-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v5 2/9] dma-mapping: add {map,unmap}_resource to dma_map_ops
+Date: Tue,  8 Mar 2016 03:42:47 +0100
+Message-ID: <1457404974-1800-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-4.sys.kth.se ([130.237.48.193]:38705 "EHLO
-	smtp-4.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932255AbcCHCoO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2016 21:44:14 -0500
+Return-path: <linux-renesas-soc-owner@vger.kernel.org>
 In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-renesas-soc-owner@vger.kernel.org
 To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+List-Id: linux-arch.vger.kernel.org
 
-=46rom: Robin Murphy <robin.murphy@arm.com>
+Add methods to handle mapping of device resources from a physical
+address. This is needed for example to be able to map MMIO FIFO
+registers to a IOMMU.
 
-On some platforms, MMIO regions might need slightly different treatment
-compared to mapping regular memory; add the notion of MMIO mappings to
-the IOMMU API's memory type flags, so that callers can let the IOMMU
-drivers know to do the right thing.
-
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
 h.se>
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 ---
- drivers/iommu/io-pgtable-arm.c | 9 +++++++--
- include/linux/iommu.h          | 1 +
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ include/linux/dma-mapping.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-=
-arm.c
-index 381ca5a..9c19989 100644
---- a/drivers/iommu/io-pgtable-arm.c
-+++ b/drivers/iommu/io-pgtable-arm.c
-@@ -355,7 +355,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct =
-arm_lpae_io_pgtable *data,
- 		if (!(prot & IOMMU_WRITE) && (prot & IOMMU_READ))
- 			pte |=3D ARM_LPAE_PTE_AP_RDONLY;
-=20
--		if (prot & IOMMU_CACHE)
-+		if (prot & IOMMU_MMIO)
-+			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_DEV
-+				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
-+		else if (prot & IOMMU_CACHE)
- 			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_CACHE
- 				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
- 	} else {
-@@ -364,7 +367,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct a=
-rm_lpae_io_pgtable *data,
- 			pte |=3D ARM_LPAE_PTE_HAP_READ;
- 		if (prot & IOMMU_WRITE)
- 			pte |=3D ARM_LPAE_PTE_HAP_WRITE;
--		if (prot & IOMMU_CACHE)
-+		if (prot & IOMMU_MMIO)
-+			pte |=3D ARM_LPAE_PTE_MEMATTR_DEV;
-+		else if (prot & IOMMU_CACHE)
- 			pte |=3D ARM_LPAE_PTE_MEMATTR_OIWB;
- 		else
- 			pte |=3D ARM_LPAE_PTE_MEMATTR_NC;
-diff --git a/include/linux/iommu.h b/include/linux/iommu.h
-index a5c539f..34b6432 100644
---- a/include/linux/iommu.h
-+++ b/include/linux/iommu.h
-@@ -30,6 +30,7 @@
- #define IOMMU_WRITE	(1 << 1)
- #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
- #define IOMMU_NOEXEC	(1 << 3)
-+#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
-=20
- struct iommu_ops;
- struct iommu_group;
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 75857cd..e3aba4e 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -49,6 +49,12 @@ struct dma_map_ops {
+ 			 struct scatterlist *sg, int nents,
+ 			 enum dma_data_direction dir,
+ 			 struct dma_attrs *attrs);
++	dma_addr_t (*map_resource)(struct device *dev, phys_addr_t phys_addr,
++			       size_t size, enum dma_data_direction dir,
++			       struct dma_attrs *attrs);
++	void (*unmap_resource)(struct device *dev, dma_addr_t dma_handle,
++			   size_t size, enum dma_data_direction dir,
++			   struct dma_attrs *attrs);
+ 	void (*sync_single_for_cpu)(struct device *dev,
+ 				    dma_addr_t dma_handle, size_t size,
+ 				    enum dma_data_direction dir);
 --=20
 2.7.2
