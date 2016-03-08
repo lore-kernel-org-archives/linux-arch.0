@@ -1,115 +1,72 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Tue, 8 Mar 2016 13:16:01 +0100
-Message-ID: <20160308121601.GA6573@gmail.com>
-References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
- <20160304094424.GA16228@gmail.com>
- <1457115514.15454.216.camel@hpe.com>
- <20160305114012.GA7259@gmail.com>
- <1457370228.15454.311.camel@hpe.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFC][PATCH] s390, postinit-readonly: implement post-init RO
+Date: Tue, 8 Mar 2016 13:56:12 +0100
+Message-ID: <20160308125612.GB3869@osiris>
+References: <20160308002035.GA13606@www.outflux.net>
+ <CAGXu5jLu5NFw=7xoJEYcAq7MFwGY1nuB8w-q+NVp2d2zpwRUyQ@mail.gmail.com>
+ <56DE9279.6040805@de.ibm.com>
+ <20160308114315.GA3869@osiris>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:38901 "EHLO
-	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932301AbcCHMQI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 07:16:08 -0500
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-2786-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <1457370228.15454.311.camel@hpe.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
+In-Reply-To: <20160308114315.GA3869@osiris>
+To: Christian Borntraeger <borntraeger@de.ibm.com>, Kees Cook <keescook@chromium.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Tue, Mar 08, 2016 at 12:43:15PM +0100, Heiko Carstens wrote:
+> On Tue, Mar 08, 2016 at 09:51:05AM +0100, Christian Borntraeger wrote:
+> > On 03/08/2016 01:41 AM, Kees Cook wrote:
+> > 
+> > >> --- a/arch/s390/kernel/vmlinux.lds.S
+> > >> +++ b/arch/s390/kernel/vmlinux.lds.S
+> > >> @@ -52,6 +52,12 @@ SECTIONS
+> > >>
+> > >>         RW_DATA_SECTION(0x100, PAGE_SIZE, THREAD_SIZE)
+> > >>
+> > >> +       . = ALIGN(PAGE_SIZE)
+> > 
+> > 
+> > missing ";" ?
+> > 
+> > 
+> > With that  and your fixes, this function claims to mark 0kB and 
+> > lkdtm can still write. Reason is that _edata is 0xc11008 and start is
+> > 0x0c11000.
+> > 
+> > making _edata page aligned as well, does now try to mark one page,
 
-* Toshi Kani <toshi.kani@hpe.com> wrote:
+Yes, we do need that fixed.
 
-> > So where is the problem? The memtype implementation and hence most
-> > ioremap() users are supposed to be safe. set_memory_*() APIs are su=
-pposed
-> > to be safe as well, as they too go via the memtype API.
->=20
-> Let me try to summarize...
->=20
-> The original issue Luis brought up was that drivers written to work w=
-ith
-> MTRR may create a single ioremap range covering multiple cache attrib=
-utes
-> since MTRR can overwrite cache attribute of a certain range. =A0Conve=
-rting
-> such drivers with PAT-based ioremap interfaces, i.e. ioremap_wc() and
-> ioremap_nocache(), requires a separate ioremap map for each cache
-> attribute, which can be challenging as it may result in overlapping i=
-oremap
-> ranges (in his term) with different cache attributes.
->=20
-> So, Luis asked about 'sematics of overlapping ioremap()' calls. =A0He=
-nce, I
-> responded that aliasing mapping itself is supported, but alias with
-> different cache attribute is not. =A0We have checks in place to detec=
-t such
-> condition. =A0Overlapping ioremap calls with a different cache attrib=
-ute
-> either fails or gets redirected to the existing cache attribute on x8=
-6.
+> > but then
+> > we run into the next issue, that 
+> > 
+> > static void change_page_attr(unsigned long addr, int numpages,
+> >                              pte_t (*set) (pte_t))
+> > {
+> >         pte_t *ptep;
+> >         int i;
+> > 
+> >         for (i = 0; i < numpages; i++) {
+> >                 ptep = walk_page_table(addr);
+> > 
+> > triggers this
+> >                 if (WARN_ON_ONCE(!ptep))
+> >                         break;
+> > 
+> > because the kernel decided to map this with a large page. So we need
+> > to fix this function to then break the large page into a smaller chunk....
+> 
+> Yes... however that's a rather large change. I'll try to come up with a
+> patch that has less impact and implement the code that splits the kernel
+> mapping later.
+> Looking at our vmemmap code makes me realize that this code needs also to
+> be improved.
 
-Ok, fair enough!
-
-So to go back to the original suggestion from Luis, I've quoted it, but=
- with a=20
-s/overlapping/aliased substitution:
-
-> I had suggested long ago then that one possible resolution was for us=
- to add an=20
-> API that *enables* aliased ioremap() calls, and only use it on select=
- locations=20
-> in the kernel. This means we only have to convert a few users to that=
- call to=20
-> white list such semantics, and by default we'd disable aliased calls.=
- To kick=20
-> things off -- is this strategy agreeable for all other architectures?
-
-I'd say that since the overwhelming majority of ioremap() calls are not=
- aliased,=20
-ever, thus making it 'harder' to accidentally alias is probably a good =
-idea.
-
-The memtype infrastructure of phyisical memory ranges in that case acts=
- as a=20
-security measure, to avoid unintended (not just physically incompatible=
-) aliasing.=20
-I suspect it would be helpful during driver development as well.
-
-What extra API are you thinking about to enable aliasing in the few cas=
-es where=20
-it's justified?
-
-the other problem listed:
-
-> As another problem case, set_memor_*() will not fail on MMIO even tho=
-ugh=20
-> set_memor_*() is designed only for RAM.
-
-So what does this mean exactly? Having WB caching on MMIO area is not g=
-ood, but=20
-UC, WC and WB sure is still sensible in some cases, right?
-
-> [...] If the above strategy on avoiding aliasing is agreeable, could =
-the next=20
-> step, or an orthogonal step be to error out on set_memory_*() on IO m=
-emory?
-
-Well, do we have drivers that nevertheless change caching attributes on=
- MMIO=20
-areas?
-
-Basically if ioremap_uc() and ioremap_wc() is allowed on MMIO areas, th=
-en I see no=20
-reason in principle why it should be invalid to change the area from UC=
- to WC=20
-after it has been ioremap()ed.
-
-Thanks,
-
-	Ingo
+Hm, that's going to be too ugly. So we'll go for the "real" solution, which
+modifies the kernel mapping instead.
