@@ -1,46 +1,55 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v5 2/9] dma-mapping: add {map,unmap}_resource to dma_map_ops
-Date: Tue,  8 Mar 2016 03:42:47 +0100
-Message-ID: <1457404974-1800-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Tue,  8 Mar 2016 03:42:48 +0100
+Message-ID: <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Add methods to handle mapping of device resources from a physical
-address. This is needed for example to be able to map MMIO FIFO
-registers to a IOMMU.
-
-Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
-h.se>
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
----
- include/linux/dma-mapping.h | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 75857cd..e3aba4e 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -49,6 +49,12 @@ struct dma_map_ops {
- 			 struct scatterlist *sg, int nents,
- 			 enum dma_data_direction dir,
- 			 struct dma_attrs *attrs);
-+	dma_addr_t (*map_resource)(struct device *dev, phys_addr_t phys_addr,
-+			       size_t size, enum dma_data_direction dir,
-+			       struct dma_attrs *attrs);
-+	void (*unmap_resource)(struct device *dev, dma_addr_t dma_handle,
-+			   size_t size, enum dma_data_direction dir,
-+			   struct dma_attrs *attrs);
- 	void (*sync_single_for_cpu)(struct device *dev,
- 				    dma_addr_t dma_handle, size_t size,
- 				    enum dma_data_direction dir);
---=20
-2.7.2
+TWFwL1VubWFwIGEgZGV2aWNlIHJlc291cmNlIGZyb20gYSBwaHlzaWNhbCBhZGRyZXNzLiBJZiBu
+byBkbWFfbWFwX29wcwptZXRob2QgaXMgYXZhaWxhYmxlIHRoZSBvcGVyYXRpb24gaXMgYSBuby1v
+cC4KClNpZ25lZC1vZmYtYnk6IE5pa2xhcyBTw7ZkZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3Jl
+bmVzYXNAcmFnbmF0ZWNoLnNlPgotLS0KIGluY2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaCB8IDMy
+ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCiAxIGZpbGUgY2hhbmdlZCwgMzIgaW5z
+ZXJ0aW9ucygrKQoKZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaCBiL2lu
+Y2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaAppbmRleCBlM2FiYTRlLi5jYzMwNWQxIDEwMDY0NAot
+LS0gYS9pbmNsdWRlL2xpbnV4L2RtYS1tYXBwaW5nLmgKKysrIGIvaW5jbHVkZS9saW51eC9kbWEt
+bWFwcGluZy5oCkBAIC0yMTYsNiArMjE2LDM4IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBkbWFfdW5t
+YXBfcGFnZShzdHJ1Y3QgZGV2aWNlICpkZXYsIGRtYV9hZGRyX3QgYWRkciwKIAlkZWJ1Z19kbWFf
+dW5tYXBfcGFnZShkZXYsIGFkZHIsIHNpemUsIGRpciwgZmFsc2UpOwogfQogCitzdGF0aWMgaW5s
+aW5lIGRtYV9hZGRyX3QgZG1hX21hcF9yZXNvdXJjZShzdHJ1Y3QgZGV2aWNlICpkZXYsCisJCQkJ
+CSAgcGh5c19hZGRyX3QgcGh5c19hZGRyLAorCQkJCQkgIHNpemVfdCBzaXplLAorCQkJCQkgIGVu
+dW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwKKwkJCQkJICBzdHJ1Y3QgZG1hX2F0dHJzICphdHRy
+cykKK3sKKwlzdHJ1Y3QgZG1hX21hcF9vcHMgKm9wcyA9IGdldF9kbWFfb3BzKGRldik7CisJdW5z
+aWduZWQgbG9uZyBwZm4gPSBfX3BoeXNfdG9fcGZuKHBoeXNfYWRkcik7CisKKwlCVUdfT04oIXZh
+bGlkX2RtYV9kaXJlY3Rpb24oZGlyKSk7CisKKwkvKiBEb24ndCBhbGxvdyBSQU0gdG8gYmUgbWFw
+cGVkICovCisJQlVHX09OKHBmbl92YWxpZChwZm4pKTsKKworCWlmIChvcHMtPm1hcF9yZXNvdXJj
+ZSkKKwkJcmV0dXJuIG9wcy0+bWFwX3Jlc291cmNlKGRldiwgcGh5c19hZGRyLCBzaXplLCBkaXIs
+IGF0dHJzKTsKKworCXJldHVybiBwaHlzX2FkZHI7Cit9CisKK3N0YXRpYyBpbmxpbmUgdm9pZCBk
+bWFfdW5tYXBfcmVzb3VyY2Uoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGFkZHIsCisJ
+CQkJICAgICAgc2l6ZV90IHNpemUsIGVudW0gZG1hX2RhdGFfZGlyZWN0aW9uIGRpciwKKwkJCQkg
+ICAgICBzdHJ1Y3QgZG1hX2F0dHJzICphdHRycykKK3sKKwlzdHJ1Y3QgZG1hX21hcF9vcHMgKm9w
+cyA9IGdldF9kbWFfb3BzKGRldik7CisKKwlCVUdfT04oIXZhbGlkX2RtYV9kaXJlY3Rpb24oZGly
+KSk7CisJaWYgKG9wcy0+dW5tYXBfcmVzb3VyY2UpCisJCW9wcy0+dW5tYXBfcmVzb3VyY2UoZGV2
+LCBhZGRyLCBzaXplLCBkaXIsIGF0dHJzKTsKKworfQorCiBzdGF0aWMgaW5saW5lIHZvaWQgZG1h
+X3N5bmNfc2luZ2xlX2Zvcl9jcHUoc3RydWN0IGRldmljZSAqZGV2LCBkbWFfYWRkcl90IGFkZHIs
+CiAJCQkJCSAgIHNpemVfdCBzaXplLAogCQkJCQkgICBlbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBk
+aXIpCi0tIAoyLjcuMgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX18KaW9tbXUgbWFpbGluZyBsaXN0CmlvbW11QGxpc3RzLmxpbnV4LWZvdW5kYXRpb24ub3Jn
+Cmh0dHBzOi8vbGlzdHMubGludXhmb3VuZGF0aW9uLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2lvbW11
