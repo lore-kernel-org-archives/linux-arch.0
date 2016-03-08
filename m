@@ -1,72 +1,169 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [RFC][PATCH] s390, postinit-readonly: implement post-init RO
-Date: Tue, 8 Mar 2016 13:56:12 +0100
-Message-ID: <20160308125612.GB3869@osiris>
-References: <20160308002035.GA13606@www.outflux.net>
- <CAGXu5jLu5NFw=7xoJEYcAq7MFwGY1nuB8w-q+NVp2d2zpwRUyQ@mail.gmail.com>
- <56DE9279.6040805@de.ibm.com>
- <20160308114315.GA3869@osiris>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH 3/3] pci: move pci_dma_* helpers to common code
+Date: Tue, 8 Mar 2016 11:43:46 -0600
+Message-ID: <20160308174346.GB19869@localhost>
+References: <1457277475-8913-1-git-send-email-hch@lst.de>
+ <1457277475-8913-4-git-send-email-hch@lst.de>
+ <20160307182848.GC13818@localhost>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-2786-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:48668 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750765AbcCHRnv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Mar 2016 12:43:51 -0500
 Content-Disposition: inline
-In-Reply-To: <20160308114315.GA3869@osiris>
-To: Christian Borntraeger <borntraeger@de.ibm.com>, Kees Cook <keescook@chromium.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20160307182848.GC13818@localhost>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: bhelgaas@google.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Tue, Mar 08, 2016 at 12:43:15PM +0100, Heiko Carstens wrote:
-> On Tue, Mar 08, 2016 at 09:51:05AM +0100, Christian Borntraeger wrote:
-> > On 03/08/2016 01:41 AM, Kees Cook wrote:
-> > 
-> > >> --- a/arch/s390/kernel/vmlinux.lds.S
-> > >> +++ b/arch/s390/kernel/vmlinux.lds.S
-> > >> @@ -52,6 +52,12 @@ SECTIONS
-> > >>
-> > >>         RW_DATA_SECTION(0x100, PAGE_SIZE, THREAD_SIZE)
-> > >>
-> > >> +       . = ALIGN(PAGE_SIZE)
-> > 
-> > 
-> > missing ";" ?
-> > 
-> > 
-> > With that  and your fixes, this function claims to mark 0kB and 
-> > lkdtm can still write. Reason is that _edata is 0xc11008 and start is
-> > 0x0c11000.
-> > 
-> > making _edata page aligned as well, does now try to mark one page,
-
-Yes, we do need that fixed.
-
-> > but then
-> > we run into the next issue, that 
-> > 
-> > static void change_page_attr(unsigned long addr, int numpages,
-> >                              pte_t (*set) (pte_t))
-> > {
-> >         pte_t *ptep;
-> >         int i;
-> > 
-> >         for (i = 0; i < numpages; i++) {
-> >                 ptep = walk_page_table(addr);
-> > 
-> > triggers this
-> >                 if (WARN_ON_ONCE(!ptep))
-> >                         break;
-> > 
-> > because the kernel decided to map this with a large page. So we need
-> > to fix this function to then break the large page into a smaller chunk....
+On Mon, Mar 07, 2016 at 12:28:48PM -0600, Bjorn Helgaas wrote:
+> commit fe537670eab767157eecc50538bd28e8d9b0ce9f
+> Author: Bjorn Helgaas <bhelgaas@google.com>
+> Date:   Mon Mar 7 11:39:16 2016 -0600
 > 
-> Yes... however that's a rather large change. I'll try to come up with a
-> patch that has less impact and implement the code that splits the kernel
-> mapping later.
-> Looking at our vmemmap code makes me realize that this code needs also to
-> be improved.
+>     PCI: Consolidate PCI DMA constants and interfaces in linux/pci-dma-compat.h
+>     
+>     Christoph added a generic include/linux/pci-dma-compat.h, so now there's
+>     one place with most of the PCI DMA interfaces.  Move more PCI DMA-related
+>     things there:
+>     
+>       - The PCI_DMA_* direction constants from linux/pci.h
+>       - The pci_set_dma_max_seg_size() and pci_set_dma_seg_boundary()
+>         CONFIG_PCI implementations from drivers/pci/pci.c
+>       - The pci_set_dma_max_seg_size() and pci_set_dma_seg_boundary()
+>         !CONFIG_PCI stubs from linux/pci.h
+>       - The pci_set_dma_mask() and pci_set_consistent_dma_mask()
+>         !CONFIG_PCI stubs from linux/pci.h
+>     
+>     Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 
-Hm, that's going to be too ugly. So we'll go for the "real" solution, which
-modifies the kernel mapping instead.
+I applied the patch below to pci/misc for v4.6.
+
+> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+> index 64c0a12..0a9c8db 100644
+> --- a/drivers/pci/pci.c
+> +++ b/drivers/pci/pci.c
+> @@ -3385,18 +3385,6 @@ bool pci_check_and_unmask_intx(struct pci_dev *dev)
+>  }
+>  EXPORT_SYMBOL_GPL(pci_check_and_unmask_intx);
+>  
+> -int pci_set_dma_max_seg_size(struct pci_dev *dev, unsigned int size)
+> -{
+> -	return dma_set_max_seg_size(&dev->dev, size);
+> -}
+> -EXPORT_SYMBOL(pci_set_dma_max_seg_size);
+> -
+> -int pci_set_dma_seg_boundary(struct pci_dev *dev, unsigned long mask)
+> -{
+> -	return dma_set_seg_boundary(&dev->dev, mask);
+> -}
+> -EXPORT_SYMBOL(pci_set_dma_seg_boundary);
+> -
+>  /**
+>   * pci_wait_for_pending_transaction - waits for pending transaction
+>   * @dev: the PCI device to operate on
+> diff --git a/include/linux/pci-dma-compat.h b/include/linux/pci-dma-compat.h
+> index eafce7b..39726ca 100644
+> --- a/include/linux/pci-dma-compat.h
+> +++ b/include/linux/pci-dma-compat.h
+> @@ -6,6 +6,12 @@
+>  
+>  #include <linux/dma-mapping.h>
+>  
+> +/* This defines the direction arg to the DMA mapping routines. */
+> +#define PCI_DMA_BIDIRECTIONAL	0
+> +#define PCI_DMA_TODEVICE	1
+> +#define PCI_DMA_FROMDEVICE	2
+> +#define PCI_DMA_NONE		3
+> +
+>  static inline void *
+>  pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
+>  		     dma_addr_t *dma_handle)
+> @@ -113,6 +119,29 @@ static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
+>  {
+>  	return dma_set_coherent_mask(&dev->dev, mask);
+>  }
+> +
+> +static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
+> +					   unsigned int size)
+> +{
+> +	return dma_set_max_seg_size(&dev->dev, size);
+> +}
+> +
+> +static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
+> +					   unsigned long mask)
+> +{
+> +	return dma_set_seg_boundary(&dev->dev, mask);
+> +}
+> +#else
+> +static inline int pci_set_dma_mask(struct pci_dev *dev, u64 mask)
+> +{ return -EIO; }
+> +static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
+> +{ return -EIO; }
+> +static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
+> +					   unsigned int size)
+> +{ return -EIO; }
+> +static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
+> +					   unsigned long mask)
+> +{ return -EIO; }
+>  #endif
+>  
+>  #endif
+> diff --git a/include/linux/pci.h b/include/linux/pci.h
+> index 5db6e0c..5049bd6 100644
+> --- a/include/linux/pci.h
+> +++ b/include/linux/pci.h
+> @@ -70,12 +70,6 @@ enum pci_mmap_state {
+>  	pci_mmap_mem
+>  };
+>  
+> -/* This defines the direction arg to the DMA mapping routines. */
+> -#define PCI_DMA_BIDIRECTIONAL	0
+> -#define PCI_DMA_TODEVICE	1
+> -#define PCI_DMA_FROMDEVICE	2
+> -#define PCI_DMA_NONE		3
+> -
+>  /*
+>   *  For PCI devices, the region numbers are assigned this way:
+>   */
+> @@ -1038,8 +1032,6 @@ void pci_intx(struct pci_dev *dev, int enable);
+>  bool pci_intx_mask_supported(struct pci_dev *dev);
+>  bool pci_check_and_mask_intx(struct pci_dev *dev);
+>  bool pci_check_and_unmask_intx(struct pci_dev *dev);
+> -int pci_set_dma_max_seg_size(struct pci_dev *dev, unsigned int size);
+> -int pci_set_dma_seg_boundary(struct pci_dev *dev, unsigned long mask);
+>  int pci_wait_for_pending(struct pci_dev *dev, int pos, u16 mask);
+>  int pci_wait_for_pending_transaction(struct pci_dev *dev);
+>  int pcix_get_max_mmrbc(struct pci_dev *dev);
+> @@ -1255,6 +1247,7 @@ resource_size_t pcibios_iov_resource_alignment(struct pci_dev *dev, int resno);
+>  
+>  int pci_set_vga_state(struct pci_dev *pdev, bool decode,
+>  		      unsigned int command_bits, u32 flags);
+> +
+>  /* kmem_cache style wrapper around pci_alloc_consistent() */
+>  
+>  #include <linux/pci-dma.h>
+> @@ -1466,16 +1459,6 @@ static inline struct pci_dev *pci_get_class(unsigned int class,
+>  static inline void pci_set_master(struct pci_dev *dev) { }
+>  static inline int pci_enable_device(struct pci_dev *dev) { return -EIO; }
+>  static inline void pci_disable_device(struct pci_dev *dev) { }
+> -static inline int pci_set_dma_mask(struct pci_dev *dev, u64 mask)
+> -{ return -EIO; }
+> -static inline int pci_set_consistent_dma_mask(struct pci_dev *dev, u64 mask)
+> -{ return -EIO; }
+> -static inline int pci_set_dma_max_seg_size(struct pci_dev *dev,
+> -					unsigned int size)
+> -{ return -EIO; }
+> -static inline int pci_set_dma_seg_boundary(struct pci_dev *dev,
+> -					unsigned long mask)
+> -{ return -EIO; }
+>  static inline int pci_assign_resource(struct pci_dev *dev, int i)
+>  { return -EBUSY; }
+>  static inline int __pci_register_driver(struct pci_driver *drv,
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
