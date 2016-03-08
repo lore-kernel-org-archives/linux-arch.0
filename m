@@ -1,79 +1,47 @@
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [PATCH 09/18] ipc, shm: make shmem attach/detach wait for
- mmap_sem killable
-Date: Tue, 8 Mar 2016 11:15:50 -0800
-Message-ID: <20160308191550.GA4404@linux-uzut.site>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-10-git-send-email-mhocko@kernel.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+Date: Tue, 08 Mar 2016 14:57:48 -0500 (EST)
+Message-ID: <20160308.145748.1648298790157991002.davem@davemloft.net>
+References: <56DDA6FD.4040404@oracle.com>
+	<56DDBE68.6080709@linux.intel.com>
+	<56DDED63.8010302@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:43781 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750846AbcCHTQP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Mar 2016 14:16:15 -0500
-Content-Disposition: inline
-In-Reply-To: <1456752417-9626-10-git-send-email-mhocko@kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:44114 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751007AbcCHT5x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 14:57:53 -0500
+In-Reply-To: <56DDED63.8010302@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian K?nig <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrce>
+To: khalid.aziz@oracle.com
+Cc: dave.hansen@linux.intel.com, luto@amacapital.net, rob.gardner@oracle.com, corbet@lwn.net, akpm@linux-foundation.org, dingel@linux.vnet.ibm.com, zhenzhang.zhang@huawei.com, bob.picco@oracle.com, kirill.shutemov@linux.intel.com, aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, arnd@arndb.de, sparclinux@vger.kernel.org, mhocko@suse.cz, chris.hyser@oracle.com, richard@nod.at, vbabka@suse.cz, koct9i@gmail.com, oleg@redhat.com, gthelen@google.com, jack@suse.cz, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, luto@kernel.org, ebiederm@xmission.com, bsegall@google.com, geert@linux-m68k.org, dave@stgolabs.net, adobriyan@gmail.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-On Mon, 29 Feb 2016, Michal Hocko wrote:
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Date: Mon, 7 Mar 2016 14:06:43 -0700
 
->From: Michal Hocko <mhocko@suse.com>
->
->shmat and shmdt rely on mmap_sem for write. If the waiting task
->gets killed by the oom killer it would block oom_reaper from
->asynchronous address space reclaim and reduce the chances of timely
->OOM resolving. Wait for the lock in the killable mode and return with
->EINTR if the task got killed while waiting.
->
->Cc: Davidlohr Bueso <dave@stgolabs.net>
->Cc: Hugh Dickins <hughd@google.com>
->Signed-off-by: Michal Hocko <mhocko@suse.com>
+> Good questions. Isn't set of valid VAs already constrained by VA_BITS
+> (set to 44 in arch/sparc/include/asm/processor_64.h)? As I see it we
+> are already not using the top 4 bits. Please correct me if I am wrong.
 
-I have no objection to this perse, just one comment below.
+Another limiting constraint is the number of address bits coverable by
+the 4-level page tables we use.  And this is sign extended so we have
+a top-half and a bottom-half with a "hole" in the center of the VA
+space.
 
-Acked-by: Davidlohr Bueso <dave@stgolabs.net>
+I want some clarification on the top bits during ADI accesses.
 
->---
-> ipc/shm.c | 9 +++++++--
-> 1 file changed, 7 insertions(+), 2 deletions(-)
->
->diff --git a/ipc/shm.c b/ipc/shm.c
->index 331fc1b0b3c7..b8cfa05940d2 100644
->--- a/ipc/shm.c
->+++ b/ipc/shm.c
->@@ -1200,7 +1200,11 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg, ulong *raddr,
-> 	if (err)
-> 		goto out_fput;
->
->-	down_write(&current->mm->mmap_sem);
->+	if (down_write_killable(&current->mm->mmap_sem)) {
->+		err = -EINVAL;
->+		goto out_fput;
->+	}
+If ADI is enabled, then the top bits of the virtual address are
+intepreted as tag bits.  Once "verified" with the ADI settings, what
+happense to these tag bits?  Are they dropped from the virtual address
+before being passed down the TLB et al. for translations?
 
-This should be EINTR, no?
+If not, then this means you have to map ADI memory to the correct
+location so that the tags match up.
 
-Thanks,
-Davidlohr
-
->+
-> 	if (addr && !(shmflg & SHM_REMAP)) {
-> 		err = -EINVAL;
-> 		if (addr + size < addr)
->@@ -1271,7 +1275,8 @@ SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
-> 	if (addr & ~PAGE_MASK)
-> 		return retval;
->
->-	down_write(&mm->mmap_sem);
->+	if (down_write_killable(&mm->mmap_sem))
->+		return -EINTR;
->
-> 	/*
-> 	 * This function tries to be smart and unmap shm segments that
->-- 
->2.7.0
->
+And if that's the case, if you really wanted to mix tags within a
+single page, you'd have to map that page several times, once for each
+and every cacheline granular tag you'd like to use within that page.
