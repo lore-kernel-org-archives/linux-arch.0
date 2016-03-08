@@ -1,136 +1,55 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC][PATCH] s390, postinit-readonly: implement post-init RO
-Date: Mon, 7 Mar 2016 16:41:39 -0800
-Message-ID: <CAGXu5jLu5NFw=7xoJEYcAq7MFwGY1nuB8w-q+NVp2d2zpwRUyQ@mail.gmail.com>
-References: <20160308002035.GA13606@www.outflux.net>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Rob Gardner <rob.gardner@oracle.com>
+Subject: Re: [PATCH v2] sparc64: Add support for Application Data Integrity
+ (ADI)
+Date: Mon, 7 Mar 2016 17:31:23 -0800
+Message-ID: <56DE2B6B.3050503@oracle.com>
+References: <1456951177-23579-1-git-send-email-khalid.aziz@oracle.com>
+ <20160305.230702.1325379875282120281.davem@davemloft.net>
+ <56DD9949.1000106@oracle.com> <56DD9E94.70201@oracle.com>
+ <CALCETrXey2_xEXhzjgHtZmf-dLp-9pec===d-8chLxrp8wgRXg@mail.gmail.com>
+ <56DDA6FD.4040404@oracle.com> <56DDBE68.6080709@linux.intel.com>
+ <CALCETrWPeFsyGsDNyehMpub1QrjZxyWpG_x_2A0yKqROXYfJ5A@mail.gmail.com>
+ <56DDC47C.8010206@linux.intel.com> <56DDCAD3.3090106@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-2782-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: keescook@google.com
-In-Reply-To: <20160308002035.GA13606@www.outflux.net>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <56DDCAD3.3090106@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: Khalid Aziz <khalid.aziz@oracle.com>, Dave Hansen <dave.hansen@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: David Miller <davem@davemloft.net>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton <akpm@linux-foundation.org>, dingel@linux.vnet.ibm.com, bob.picco@oracle.com, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, Michal Hocko <mhocko@suse.cz>, chris.hyser@oracle.com, Richard Weinberger <richard@nod.at>, Vlastimil Babka <vbabka@suse.cz>, Konstantin Khlebnikov <koct9i@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Greg Thelen <gthelen@google.com>, Jan Kara <jack@suse.cz>, xiexiuqi@huawei.com, Vineet.Gupta1@synopsys.com, Andrew Lutomirski <luto@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>, bsegall@google.comG
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Mar 7, 2016 at 4:20 PM, Kees Cook <keescook@chromium.org> wrote:
-> Since s390 already sets its .rodata section RO from the start, the generic
-> .data..ro_after_init section is already RO before init runs. For s390,
-> split the post-init read-only section off separately and handle that
-> when the call to mark_rodata_ro() is made.
+On 03/07/2016 10:39 AM, Khalid Aziz wrote:
+> On 03/07/2016 11:12 AM, Dave Hansen wrote:
+>> On 03/07/2016 09:53 AM, Andy Lutomirski wrote:
+>>> Also, what am I missing?  Tying these tags to the physical page seems
+>>> like a poor design to me.  This seems really awkward to use.
+>>
+>> Yeah, can you describe the structures that store these things? Surely
+>> the hardware has some kind of lookup tables for them and stores them in
+>> memory _somewhere_.
+>>
 >
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
-> This is totally untested...
-> ---
->  arch/s390/Kconfig                |  3 +++
->  arch/s390/include/asm/cache.h    |  2 ++
->  arch/s390/include/asm/sections.h |  2 +-
->  arch/s390/kernel/vmlinux.lds.S   |  6 ++++++
->  arch/s390/mm/init.c              | 10 ++++++++++
->  5 files changed, 22 insertions(+), 1 deletion(-)
+> Version tags are tied to virtual addresses, not physical pages.
 >
-> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-> index 3be9c832dec1..3f8b96f2cd2d 100644
-> --- a/arch/s390/Kconfig
-> +++ b/arch/s390/Kconfig
-> @@ -59,6 +59,9 @@ config PCI_QUIRKS
->  config ARCH_SUPPORTS_UPROBES
->         def_bool y
->
-> +config DEBUG_RODATA
-> +       def_bool y
-> +
->  config S390
->         def_bool y
->         select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-> diff --git a/arch/s390/include/asm/cache.h b/arch/s390/include/asm/cache.h
-> index 4d7ccac5fd1d..816c2964bbee 100644
-> --- a/arch/s390/include/asm/cache.h
-> +++ b/arch/s390/include/asm/cache.h
-> @@ -15,4 +15,6 @@
->
->  #define __read_mostly __attribute__((__section__(".data..read_mostly")))
->
-> +#define __ro_after_init __attribute__((__section__(".arch_ro_after_init")))
-> +
->  #endif
-> diff --git a/arch/s390/include/asm/sections.h b/arch/s390/include/asm/sections.h
-> index fbd9116eb17b..6cc6acf87416 100644
-> --- a/arch/s390/include/asm/sections.h
-> +++ b/arch/s390/include/asm/sections.h
-> @@ -3,6 +3,6 @@
->
->  #include <asm-generic/sections.h>
->
-> -extern char _eshared[], _ehead[];
-> +extern char _eshared[], _ehead[], __ro_after_init[];
+> Where exactly are the tags stored is part of processor architecture 
+> and I am not privy to that. MMU stores these lookup tables somewhere 
+> and uses it to authenticate access to virtual addresses. It really is 
+> irrelevant to kernel how MMU implements access controls as long as we 
+> have access to the knowledge of how to use it.
 
-0day points out this should be _ro_after_init
+The tags are stored in physical memory, and you can write a tag directly 
+to that memory via stxa with ASI_MCD_REAL and completely bypass the MMU. 
+When you do that, the tag will still be seen by any virtual address that 
+maps to that physical address.
 
->
->  #endif
-> diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-> index 445657fe658c..39a2c7e4cdd2 100644
-> --- a/arch/s390/kernel/vmlinux.lds.S
-> +++ b/arch/s390/kernel/vmlinux.lds.S
-> @@ -52,6 +52,12 @@ SECTIONS
->
->         RW_DATA_SECTION(0x100, PAGE_SIZE, THREAD_SIZE)
->
-> +       . = ALIGN(PAGE_SIZE)
-> +       __ro_after_init = .;
-
-and here
-
-> +       .arch_ro_after_init : {
-> +               *(.arch_ro_after_init)  /* Read only after init */
-> +       }
-> +
->         _edata = .;             /* End of data section */
->
->         /* will be freed after init */
-> diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
-> index 73e290337092..6033d396b96c 100644
-> --- a/arch/s390/mm/init.c
-> +++ b/arch/s390/mm/init.c
-> @@ -136,6 +136,16 @@ void free_initmem(void)
->         free_initmem_default(POISON_FREE_INITMEM);
->  }
->
-> +void mark_rodata_ro(void)
-> +{
-> +       unsigned long start = (unsigned long) &__ro_after_init;
-
-and here. :)
-
-> +       unsigned long end = (unsigned long) &_edata;
-> +
-> +       printk(KERN_INFO "Write protecting post-init read-only data: %luk\n",
-> +              (end - start) >> 10);
-> +       set_memory_ro(start, (end - start) >> PAGE_SHIFT);
-> +}
-> +
->  #ifdef CONFIG_BLK_DEV_INITRD
->  void __init free_initrd_mem(unsigned long start, unsigned long end)
->  {
-> --
-> 2.6.3
->
->
-> --
-> Kees Cook
-> Chrome OS & Brillo Security
-
-I will go try Andy's virtme next... ;)
-
--Kees
+Rob
 
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
