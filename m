@@ -1,56 +1,42 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 09/18] ipc, shm: make shmem attach/detach wait for
- mmap_sem killable
-Date: Wed, 9 Mar 2016 11:16:52 +0100
-Message-ID: <20160309101651.GE27018@dhcp22.suse.cz>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-10-git-send-email-mhocko@kernel.org>
- <20160308191550.GA4404@linux-uzut.site>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+Date: Wed, 9 Mar 2016 11:31:43 +0100
+Message-ID: <20160309103143.GF25010@twins.programming.kicks-ass.net>
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+ <56DFC604.6070407@synopsys.com>
+ <20160309101349.GJ6344@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:35125 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751300AbcCIKQy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Mar 2016 05:16:54 -0500
+Return-path: <stable-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160308191550.GA4404@linux-uzut.site>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Davidlohr Bueso <dave@stgolabs.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian K?nig <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrce>
+In-Reply-To: <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+Sender: stable-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Christoph Lameter <cl@linux.com>, linux-mm@kvack.org, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Noam Camus <noamc@ezchip.com>, stable@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue 08-03-16 11:15:50, Davidlohr Bueso wrote:
-> On Mon, 29 Feb 2016, Michal Hocko wrote:
+On Wed, Mar 09, 2016 at 11:13:49AM +0100, Peter Zijlstra wrote:
+> ---
+> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
 > 
-> >From: Michal Hocko <mhocko@suse.com>
-> >
-> >shmat and shmdt rely on mmap_sem for write. If the waiting task
-> >gets killed by the oom killer it would block oom_reaper from
-> >asynchronous address space reclaim and reduce the chances of timely
-> >OOM resolving. Wait for the lock in the killable mode and return with
-> >EINTR if the task got killed while waiting.
-> >
-> >Cc: Davidlohr Bueso <dave@stgolabs.net>
-> >Cc: Hugh Dickins <hughd@google.com>
-> >Signed-off-by: Michal Hocko <mhocko@suse.com>
+> __clear_bit_unlock() is a special little snowflake. While it carries the
+> non-atomic '__' prefix, it is specifically documented to pair with
+> test_and_set_bit() and therefore should be 'somewhat' atomic.
 > 
-> I have no objection to this perse, just one comment below.
+> Therefore the generic implementation of __clear_bit_unlock() cannot use
+> the fully non-atomic __clear_bit() as a default.
 > 
-> Acked-by: Davidlohr Bueso <dave@stgolabs.net>
+> If an arch is able to do better; is must provide an implementation of
+> __clear_bit_unlock() itself.
+> 
 
-Thanks!
+FWIW, we could probably undo this if we unified all the spinlock based
+atomic ops implementations (there's a whole bunch doing essentially the
+same), and special cased __clear_bit_unlock() for that.
 
-[...]
-> >-	down_write(&current->mm->mmap_sem);
-> >+	if (down_write_killable(&current->mm->mmap_sem)) {
-> >+		err = -EINVAL;
-> >+		goto out_fput;
-> >+	}
-> 
-> This should be EINTR, no?
-
-Of course. Thanks for catching that.
--- 
-Michal Hocko
-SUSE Labs
+Collapsing them is probably a good idea anyway, just a fair bit of
+non-trivial work to figure out all the differences and if they matter
+etc..
