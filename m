@@ -1,51 +1,87 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
-Date: Wed, 9 Mar 2016 18:52:45 +0530
-Message-ID: <56E023A5.2000105@synopsys.com>
-References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
- <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
- <56DEF3D3.6080008@synopsys.com>
- <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
- <56DFC604.6070407@synopsys.com>
- <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
+Date: Wed, 9 Mar 2016 14:28:55 +0100
+Message-ID: <20160309132855.GI27018@dhcp22.suse.cz>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+ <20160309121850.GA14915@gmail.com>
+ <20160309125641.GH27018@dhcp22.suse.cz>
+ <20160309131710.GB7978@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160309101349.GJ6344@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Andrew Morton <akpm@linux-foundation.org>, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, linux-snps-arc@lists.infradead.org, Joonsoo Kim <iamjoonsoo.kim@lge.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f173.google.com ([209.85.192.173]:35086 "EHLO
+	mail-pf0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752525AbcCIN27 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Mar 2016 08:28:59 -0500
+Content-Disposition: inline
+In-Reply-To: <20160309131710.GB7978@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-On Wednesday 09 March 2016 03:43 PM, Peter Zijlstra wrote:
->> There is clearly a problem in slub code that it is pairing a test_and_set_bit()
->> with a __clear_bit(). Latter can obviously clobber former if they are not a single
->> instruction each unlike x86 or they use llock/scond kind of instructions where the
->> interim store from other core is detected and causes a retry of whole llock/scond
->> sequence.
+On Wed 09-03-16 14:17:10, Ingo Molnar wrote:
 > 
-> Yes, test_and_set_bit() + __clear_bit() is broken.
+> * Michal Hocko <mhocko@kernel.org> wrote:
+> 
+> > >  [...] this is a follow up work for oom_reaper [1]. As the async OOM killing 
+> > >  depends on oom_sem for read we would really appreciate if a holder for write 
+> > >  stood in the way. This patchset is changing many of down_write calls to be 
+> > >  killable to help those cases when the writer is blocked and waiting for 
+> > >  readers to release the lock and so help __oom_reap_task to process the oom 
+> > >  victim.
+> > > 
+> > > there seems to be a misunderstanding: if a writer is blocked waiting for 
+> > > readers then no new readers are allowed - the writer will get its turn the 
+> > > moment all existing readers drop the lock.
+> > 
+> > Readers might be blocked e.g. on the memory allocation which cannot proceed due 
+> > to OOM. Such a reader might be operating on a remote mm.
+> 
+> Doing complex allocations with the mm locked looks fragile no matter what: we 
+> should add debugging code that warns if allocations are done with a remote mm 
+> locked. (it should be trivial)
 
-But in SLUB: bit_spin_lock() + __bit_spin_unlock() is acceptable ? How so
-(ignoring the performance thing for discussion sake, which is a side effect of
-this implementation).
+No matter how fragile is that it is not something non-existent. Just
+have a look at use_mm for example. We definitely do not want to warn
+about those, right?
 
-So despite the comment below in bit_spinlock.h I don't quite comprehend how this
-is allowable. And if say, by deduction, this is fine for LLSC or lock prefixed
-cases, then isn't this true in general for lot more cases in kernel, i.e. pairing
-atomic lock with non-atomic unlock ? I'm missing something !
+> In fact people were thining about turning the mm semaphore into a rwlock - with 
+> that no blocking call should be possible with the lock held.
+> 
+> So I maintain:
+> 
+> > > So there's no livelock scenario - it's "only" about latencies.
+> 
+> With a qualification: s/only/mostly ;-)
+> 
+> > Latency is certainly one aspect of it as well because the sooner the mmap_sem 
+> > gets released for other readers to sooner the oom_reaper can tear down the 
+> > victims address space and release the memory and free up some memory so that we 
+> > do not have to wait for the victim to exit.
+> > 
+> > > And once we realize that it's about latencies (assuming I'm right!), not about 
+> > > correctness per se, I'm wondering whether it would be a good idea to introduce 
+> > > down_write_interruptible(), instead of down_write_killable().
+> > 
+> > I am not against interruptible variant as well but I suspect that some paths are 
+> > not expected to return EINTR. I haven't checked them for this but killable is 
+> > sufficient for the problem I am trying to solve. That problem is real while 
+> > latencies do not seem to be that eminent.
+> 
+> If they don't expect EINTR then they sure don't expect SIGKILL either!
 
-| /*
-|  *  bit-based spin_unlock()
-|  *  non-atomic version, which can be used eg. if the bit lock itself is
-|  *  protecting the rest of the flags in the word.
-|  */
-| static inline void __bit_spin_unlock(int bitnum, unsigned long *addr)
+Why? Each syscall already is killable as the task might be killed by the
+OOM killer.
 
+> There's a (very) low number of system calls that are not interruptible, but the 
+> vast majority is.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+That might be true. I just fail to see how this is related to the
+particular problem I am trying to solve. As I've said those callsites
+which cause problems with latencies can be later converted to
+interruptible waiting trivially.
+
+-- 
+Michal Hocko
+SUSE Labs
