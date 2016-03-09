@@ -1,129 +1,67 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
-Date: Wed, 9 Mar 2016 17:23:26 +0530
-Message-ID: <56E00EB6.4000201@synopsys.com>
-References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
- <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
- <56DEF3D3.6080008@synopsys.com>
- <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
- <56DFC604.6070407@synopsys.com>
- <20160309101349.GJ6344@twins.programming.kicks-ass.net>
- <56E0024F.4070401@synopsys.com>
- <20160309114054.GJ6356@twins.programming.kicks-ass.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
+Date: Wed, 9 Mar 2016 13:18:50 +0100
+Message-ID: <20160309121850.GA14915@gmail.com>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:48017 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752678AbcCILxv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Mar 2016 06:53:51 -0500
-In-Reply-To: <20160309114054.GJ6356@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 09 March 2016 05:10 PM, Peter Zijlstra wrote:
-> On Wed, Mar 09, 2016 at 04:30:31PM +0530, Vineet Gupta wrote:
->> FWIW, could we add some background to commit log, specifically what prompted this.
->> Something like below...
-> 
-> Sure.. find below.
-> 
->>> +++ b/include/asm-generic/bitops/lock.h
->>> @@ -29,16 +29,16 @@ do {					\
->>>   * @nr: the bit to set
->>>   * @addr: the address to start counting from
->>>   *
->>> + * A weaker form of clear_bit_unlock() as used by __bit_lock_unlock(). If all
->>> + * the bits in the word are protected by this lock some archs can use weaker
->>> + * ops to safely unlock.
->>> + *
->>> + * See for example x86's implementation.
->>>   */
->>
->> To be able to override/use-generic don't we need #ifndef ....
-> 
-> I did not follow through the maze, I think the few archs implementing
-> this simply do not include this file at all.
-> 
-> I'll let the first person that cares about this worry about that :-)
 
-Ok - that's be me :-) although I really don't see much gains in case of ARC LLSC.
+* Michal Hocko <mhocko@kernel.org> wrote:
 
-For us, LD + BCLR + ST is very similar to LLOCK + BCLR + SCOND atleast in terms of
-cache coherency transactions !
+> Hi,
+>
+> the following patchset implements a killable variant of write lock for 
+> rw_semaphore. My usecase is to turn as many mmap_sem write users to use a 
+> killable variant which will be helpful for the oom_reaper [1] to asynchronously 
+> tear down the oom victim address space which requires mmap_sem for read. This 
+> will reduce a likelihood of OOM livelocks caused by oom victim being stuck on a 
+> lock or other resource which prevents it to reach its exit path and release the 
+> memory. [...]
 
-> 
-> ---
-> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
-> 
-> __clear_bit_unlock() is a special little snowflake. While it carries the
-> non-atomic '__' prefix, it is specifically documented to pair with
-> test_and_set_bit() and therefore should be 'somewhat' atomic.
-> 
-> Therefore the generic implementation of __clear_bit_unlock() cannot use
-> the fully non-atomic __clear_bit() as a default.
-> 
-> If an arch is able to do better; is must provide an implementation of
-> __clear_bit_unlock() itself.
-> 
-> Specifically, this came up as a result of hackbench livelock'ing in
-> slab_lock() on ARC with SMP + SLUB + !LLSC.
-> 
-> The issue was incorrect pairing of atomic ops.
-> 
-> slab_lock() -> bit_spin_lock() -> test_and_set_bit()
-> slab_unlock() -> __bit_spin_unlock() -> __clear_bit()
-> 
-> The non serializing __clear_bit() was getting "lost"
-> 
-> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
-> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
-> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
-> 
-> Fixes ARC STAR 9000817404 (and probably more).
-> 
-> Cc: stable@vger.kernel.org
-> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Tested-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+So I'm a tiny bit concerned about this arguments.
 
-LGTM. Thx a bunch Peter !
+AFAICS killability here just makes existing system calls more interruptible - 
+right? In that sense that's not really a livelock scenario: it just takes shorter 
+time for resources to be released.
 
--Vineet
+If a livelock is possible (where resources are never released) then I'd like to 
+see a specific example of such a livelock.
 
-> ---
->  include/asm-generic/bitops/lock.h | 14 +++++++-------
->  1 file changed, 7 insertions(+), 7 deletions(-)
-> 
-> diff --git a/include/asm-generic/bitops/lock.h b/include/asm-generic/bitops/lock.h
-> index c30266e94806..8ef0ccbf8167 100644
-> --- a/include/asm-generic/bitops/lock.h
-> +++ b/include/asm-generic/bitops/lock.h
-> @@ -29,16 +29,16 @@ do {					\
->   * @nr: the bit to set
->   * @addr: the address to start counting from
->   *
-> - * This operation is like clear_bit_unlock, however it is not atomic.
-> - * It does provide release barrier semantics so it can be used to unlock
-> - * a bit lock, however it would only be used if no other CPU can modify
-> - * any bits in the memory until the lock is released (a good example is
-> - * if the bit lock itself protects access to the other bits in the word).
-> + * A weaker form of clear_bit_unlock() as used by __bit_lock_unlock(). If all
-> + * the bits in the word are protected by this lock some archs can use weaker
-> + * ops to safely unlock.
-> + *
-> + * See for example x86's implementation.
->   */
->  #define __clear_bit_unlock(nr, addr)	\
->  do {					\
-> -	smp_mb();			\
-> -	__clear_bit(nr, addr);		\
-> +	smp_mb__before_atomic();	\
-> +	clear_bit(nr, addr);		\
->  } while (0)
->  
->  #endif /* _ASM_GENERIC_BITOPS_LOCK_H_ */
-> 
+You have the other patch-set:
+
+   [PATCH 0/18] change mmap_sem taken for write killable
+
+that makes use of down_write_killable(), and there you argue:
+
+ [...] this is a follow up work for oom_reaper [1]. As the async OOM killing 
+ depends on oom_sem for read we would really appreciate if a holder for write 
+ stood in the way. This patchset is changing many of down_write calls to be 
+ killable to help those cases when the writer is blocked and waiting for readers 
+ to release the lock and so help __oom_reap_task to process the oom victim.
+
+there seems to be a misunderstanding: if a writer is blocked waiting for readers 
+then no new readers are allowed - the writer will get its turn the moment all 
+existing readers drop the lock.
+
+So there's no livelock scenario - it's "only" about latencies.
+
+And once we realize that it's about latencies (assuming I'm right!), not about 
+correctness per se, I'm wondering whether it would be a good idea to introduce 
+down_write_interruptible(), instead of down_write_killable().
+
+I'd love various processes to quit faster on Ctrl-C as well, not just on kill -9!
+
+This would also test the new code paths a lot better: kill -9 is a lot rarer than 
+regular interruption.
+
+Thanks,
+
+	Ingo
