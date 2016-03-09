@@ -1,151 +1,82 @@
-From: Toshi Kani <toshi.kani@hpe.com>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Tue, 08 Mar 2016 17:29:45 -0700
-Message-ID: <1457483385.15454.519.camel@hpe.com>
-References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
-	 <20160304094424.GA16228@gmail.com> <1457115514.15454.216.camel@hpe.com>
-	 <20160305114012.GA7259@gmail.com> <1457370228.15454.311.camel@hpe.com>
-	 <20160308121601.GA6573@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+Date: Wed, 9 Mar 2016 12:13:16 +0530
+Message-ID: <56DFC604.6070407@synopsys.com>
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:35118 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750888AbcCHXhO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 18:37:14 -0500
-In-Reply-To: <20160308121601.GA6573@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+Sender: owner-linux-mm@kvack.org
+To: Christoph Lameter <cl@linux.com>
+Cc: linux-mm@kvack.org, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Noam Camus <noamc@ezchip.com>, stable@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel, Peter
+ Zijlstra <peterz@infradead.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2016-03-08 at 13:16 +0100, Ingo Molnar wrote:
-> * Toshi Kani <toshi.kani@hpe.com> wrote:
->=20
-> > > So where is the problem? The memtype implementation and hence mos=
-t
-> > > ioremap() users are supposed to be safe. set_memory_*() APIs are
-> > > supposed
-> > > to be safe as well, as they too go via the memtype API.
-> >=20
-> > Let me try to summarize...
-> >=20
-> > The original issue Luis brought up was that drivers written to work
-> > with MTRR may create a single ioremap range covering multiple cache
-> > attributes since MTRR can overwrite cache attribute of a certain ra=
-nge.
-> > =C2=A0Converting such drivers with PAT-based ioremap interfaces, i.=
-e.
-> > ioremap_wc() and ioremap_nocache(), requires a separate ioremap map=
- for
-> > each cache attribute, which can be challenging as it may result in
-> > overlapping ioremap ranges (in his term) with different cache
-> > attributes.
-> >=20
-> > So, Luis asked about 'sematics of overlapping ioremap()' calls. =C2=
-=A0Hence,
-> > I responded that aliasing mapping itself is supported, but alias wi=
-th
-> > different cache attribute is not. =C2=A0We have checks in place to =
-detect
-> > such condition. =C2=A0Overlapping ioremap calls with a different ca=
-che
-> > attribute either fails or gets redirected to the existing cache
-> > attribute on x86.
->=20
-> Ok, fair enough!
->=20
-> So to go back to the original suggestion from Luis, I've quoted it, b=
-ut
-> with a s/overlapping/aliased substitution:
->=20
-> > I had suggested long ago then that one possible resolution was for =
-us
-> > to add an API that *enables* aliased ioremap() calls, and only use =
-it
-> > on select locations in the kernel. This means we only have to conve=
-rt a
-> > few users to that call to white list such semantics, and by default
-> > we'd disable aliased calls. To kick things off -- is this strategy
-> > agreeable for all other architectures?
->=20
-> I'd say that since the overwhelming majority of ioremap() calls are n=
-ot
-> aliased, ever, thus making it 'harder' to accidentally alias is proba=
-bly
-> a good idea.
++CC linux-arch, parisc folks, PeterZ
 
-Did you mean 'aliased' or 'aliased with different cache attribute'? =C2=
-=A0The
-former check might be too strict.
+On Wednesday 09 March 2016 02:10 AM, Christoph Lameter wrote:
+> On Tue, 8 Mar 2016, Vineet Gupta wrote:
+> 
+>> # set the bit
+>> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
+>> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
+>> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
+> 
+> Duh. Guess you  need to take the spinlock also in the arch specific
+> implementation of __bit_spin_unlock(). This is certainly not the only case
+> in which we use the __ op to unlock.
 
-> The memtype infrastructure of phyisical memory ranges in that case ac=
-ts
-> as a security measure, to avoid unintended (not just physically
-> incompatible) aliasing. I suspect it would be helpful during driver
-> development as well.
+__bit_spin_lock() by definition is *not* required to be atomic, bit_spin_lock() is
+- so I don't think we need a spinlock there.
 
-The memtype infrastructure does not track caller interfaces. =C2=A0So, =
-it will
-check against to any map, i.e. kernel & user map. =C2=A0I assume a kern=
-el map is
-created before user map, though.
+There is clearly a problem in slub code that it is pairing a test_and_set_bit()
+with a __clear_bit(). Latter can obviously clobber former if they are not a single
+instruction each unlike x86 or they use llock/scond kind of instructions where the
+interim store from other core is detected and causes a retry of whole llock/scond
+sequence.
 
-> What extra API are you thinking about to enable aliasing in the few c=
-ases
-> where it's justified?
+BTW ARC is not the only arch which suffers from this - other arches potentially
+also are. AFAIK PARISC also doesn't have atomic r-m-w and also uses a set of
+external hashed spinlocks to protect the r-m-w sequences.
 
-I'll defer this for Luis...
+https://lkml.org/lkml/2014/6/1/178
 
-> the other problem listed:
->=20
-> > As another problem case, set_memor_*() will not fail on MMIO even
-> > though set_memor_*() is designed only for RAM.
->=20
-> So what does this mean exactly? Having WB caching on MMIO area is not
-> good, but UC, WC and WB sure is still sensible in some cases, right?
+So there also we have the same race because the outer spin lock is not taken for
+slab_unlock() -> __bit_spin_lock() -> __clear_bit.
 
-I responded to Luis in other email that:
-| Drivers use ioremap family with a right cache type when mapping MMIO
-| ranges, ex. ioremap_wc().=C2=A0=C2=A0They do not need to change the t=
-ype to MMIO.
-| RAM is different since it's already mapped with WB at boot-time.
-| set_memory_*() allows us to change the type from WB, and put it back =
-to
-| WB.
+Arguably I can fix the ARC !LLSC variant of test_and_set_bit() to not set the bit
+unconditionally but only if it was clear (PARISC does the same). That would be a
+slight micro-optimization as we won't need another snoop transaction to make line
+writable and that would also elide this problem, but I think there is a
+fundamental problem here in slub which is pairing atomic and non atomic ops - for
+performance reasons. It doesn't work on all arches and/or configurations.
 
-> > [...] If the above strategy on avoiding aliasing is agreeable, coul=
-d
-> > the next step, or an orthogonal step be to error out on set_memory_=
-*()
-> > on IO memory?
->=20
-> Well, do we have drivers that nevertheless change caching attributes =
-on
-> MMIO areas?
+> You need a true atomic op or you need to take the "spinlock" in all
+> cases where you modify the bit.
 
-Not sure. =C2=A0We will need to check all callers of set_memory_xx() if=
- we
-change it to fail on MMIO.
+No we don't in __bit_spin_lock and we already do in bit_spin_lock.
 
-> Basically if ioremap_uc() and ioremap_wc() is allowed on MMIO areas, =
-then
-> I see no reason in principle why it should be invalid to change the a=
-rea
-> from UC to WC after it has been ioremap()ed.
+> If you take the lock in __bit_spin_unlock
+> then the race cannot happen.
 
-The current implementation does not support MMIO.
-=C2=A0- It does not track cache attribute correctly for MMIO since it u=
-ses
-__pa().
-=C2=A0- It only supports attribute transition of {WB -> NewType -> WB} =
-for RAM.
-=C2=A0RAM is tracked differently that WB is treated as "no map". =C2=A0=
-So, this
-transition does not cause a conflict on RAM. =C2=A0This will causes a c=
-onflict
-on MMIO when it is tracked correctly. =C2=A0=C2=A0
+Of course it won't but that means we penalize all non atomic callers of the API
+with a superfluous spinlock which is not require din first place given the
+definition of API.
 
-Thanks,
--Toshi
+
+>> Are you convinced now !
+> 
+> Yes, please fix your arch specific code.
+
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
