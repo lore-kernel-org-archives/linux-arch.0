@@ -1,226 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35280 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750747AbcCHV1S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Mar 2016 16:27:18 -0500
-Subject: [PATCH] PCI: Include pci/hotplug Kconfig directly from pci/Kconfig
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Tue, 08 Mar 2016 15:27:15 -0600
-Message-ID: <20160308212714.752.96106.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:43086 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751063AbcCIGnk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Mar 2016 01:43:40 -0500
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <56DFC604.6070407@synopsys.com>
+Date: Wed, 9 Mar 2016 12:13:16 +0530
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Bogicevic Sasa <brutallesale@gmail.com>, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160308212715.Qyrn7cNX9U_nSLkyJZhiEzbeO8aUFm3WzM1SYY33ZuA@z>
+To: Christoph Lameter <cl@linux.com>
+Cc: linux-mm@kvack.org, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Noam Camus <noamc@ezchip.com>, stable@vger.kernel.org, linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-parisc@vger.kernel, Peter Zijlstra <peterz@infradead.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20160309064316.rePmuTTHGXGjE71cqJYXy7j9ocdkvkk_7Ou5kH7n9-s@z>
 
-Include pci/hotplug/Kconfig directly from pci/Kconfig, so arches don't
-have to source both pci/Kconfig and pci/hotplug/Kconfig.
++CC linux-arch, parisc folks, PeterZ
 
-Note that this effectively adds pci/hotplug/Kconfig to the following
-arches, because they already sourced drivers/pci/Kconfig but they
-previously did not source drivers/pci/hotplug/Kconfig:
+On Wednesday 09 March 2016 02:10 AM, Christoph Lameter wrote:
+> On Tue, 8 Mar 2016, Vineet Gupta wrote:
+> 
+>> # set the bit
+>> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
+>> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
+>> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
+> 
+> Duh. Guess you  need to take the spinlock also in the arch specific
+> implementation of __bit_spin_unlock(). This is certainly not the only case
+> in which we use the __ op to unlock.
 
-  alpha
-  arm
-  avr32
-  frv
-  m68k
-  microblaze
-  mn10300
-  sparc
-  unicore32
+__bit_spin_lock() by definition is *not* required to be atomic, bit_spin_lock() is
+- so I don't think we need a spinlock there.
 
-Inspired-by-patch-from: Bogicevic Sasa <brutallesale@gmail.com>
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
----
- arch/arm64/Kconfig     |    1 -
- arch/blackfin/Kconfig  |    2 --
- arch/ia64/Kconfig      |    2 --
- arch/m32r/Kconfig      |    2 --
- arch/mips/Kconfig      |    2 --
- arch/powerpc/Kconfig   |    2 --
- arch/s390/Kconfig      |    1 -
- arch/sh/Kconfig        |    2 --
- arch/tile/Kconfig      |    3 ---
- arch/x86/Kconfig       |    2 --
- arch/xtensa/Kconfig    |    2 --
- drivers/parisc/Kconfig |    2 --
- drivers/pci/Kconfig    |    1 +
- 13 files changed, 1 insertion(+), 23 deletions(-)
+There is clearly a problem in slub code that it is pairing a test_and_set_bit()
+with a __clear_bit(). Latter can obviously clobber former if they are not a single
+instruction each unlike x86 or they use llock/scond kind of instructions where the
+interim store from other core is detected and causes a retry of whole llock/scond
+sequence.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 128ec3c..fc8089d 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -235,7 +235,6 @@ config PCI_SYSCALL
- 	def_bool PCI
- 
- source "drivers/pci/Kconfig"
--source "drivers/pci/hotplug/Kconfig"
- 
- endmenu
- 
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index af76634..a63c122 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -1233,8 +1233,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 1bc4b5a..b534eba 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -576,8 +576,6 @@ config PCI_SYSCALL
- 
- source "drivers/pci/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- source "drivers/pcmcia/Kconfig"
- 
- endmenu
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index 836ac5a..e1b1236 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -386,8 +386,6 @@ config ISA
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index d21eec7..d16204d 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -2935,8 +2935,6 @@ config ZONE_DMA32
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config RAPIDIO
- 	tristate "RapidIO support"
- 	depends on PCI
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 247a09f..e28f86e 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -832,8 +832,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config HAS_RAPIDIO
- 	bool
- 	default n
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 9918433..e70d498 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -605,7 +605,6 @@ config PCI_NR_MSI
- 	  PCI devices.
- 
- source "drivers/pci/Kconfig"
--source "drivers/pci/hotplug/Kconfig"
- 
- endif	# PCI
- 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index ce52af9..17a4f15 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -851,8 +851,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 0c95266..8171930 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -455,7 +455,6 @@ config TILE_PCI_IO
- 
- source "drivers/pci/Kconfig"
- 
--
- config TILE_USB
- 	tristate "Tilera USB host adapter support"
- 	default y
-@@ -466,8 +465,6 @@ config TILE_USB
- 	  Provides USB host adapter support for the built-in EHCI and OHCI
- 	  interfaces on TILE-Gx chips.
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index ff7fe2d..1912637 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -2586,8 +2586,6 @@ config AMD_NB
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config RAPIDIO
- 	tristate "RapidIO support"
- 	depends on PCI
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index e9df156..7e9464b 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -413,8 +413,6 @@ config FORCE_MAX_ZONEORDER
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config PLATFORM_WANT_DEFAULT_MEM
- 	def_bool n
- 
-diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
-index 592de56..3a102a8 100644
---- a/drivers/parisc/Kconfig
-+++ b/drivers/parisc/Kconfig
-@@ -110,8 +110,6 @@ config IOMMU_HELPER
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "PA-RISC specific drivers"
-diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
-index 04e0092..616165d 100644
---- a/drivers/pci/Kconfig
-+++ b/drivers/pci/Kconfig
-@@ -121,4 +121,5 @@ config PCI_LABEL
- 	def_bool y if (DMI || ACPI)
- 	select NLS
- 
-+source "drivers/pci/hotplug/Kconfig"
- source "drivers/pci/host/Kconfig"
+BTW ARC is not the only arch which suffers from this - other arches potentially
+also are. AFAIK PARISC also doesn't have atomic r-m-w and also uses a set of
+external hashed spinlocks to protect the r-m-w sequences.
+
+https://lkml.org/lkml/2014/6/1/178
+
+So there also we have the same race because the outer spin lock is not taken for
+slab_unlock() -> __bit_spin_lock() -> __clear_bit.
+
+Arguably I can fix the ARC !LLSC variant of test_and_set_bit() to not set the bit
+unconditionally but only if it was clear (PARISC does the same). That would be a
+slight micro-optimization as we won't need another snoop transaction to make line
+writable and that would also elide this problem, but I think there is a
+fundamental problem here in slub which is pairing atomic and non atomic ops - for
+performance reasons. It doesn't work on all arches and/or configurations.
+
+> You need a true atomic op or you need to take the "spinlock" in all
+> cases where you modify the bit.
+
+No we don't in __bit_spin_lock and we already do in bit_spin_lock.
+
+> If you take the lock in __bit_spin_unlock
+> then the race cannot happen.
+
+Of course it won't but that means we penalize all non atomic callers of the API
+with a superfluous spinlock which is not require din first place given the
+definition of API.
+
+
+>> Are you convinced now !
+> 
+> Yes, please fix your arch specific code.
+
+
 
