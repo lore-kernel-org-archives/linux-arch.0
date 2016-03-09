@@ -1,220 +1,151 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH] PCI: Include pci/hotplug Kconfig directly from pci/Kconfig
-Date: Tue, 08 Mar 2016 15:27:15 -0600
-Message-ID: <20160308212714.752.96106.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+From: Toshi Kani <toshi.kani@hpe.com>
+Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
+Date: Tue, 08 Mar 2016 17:29:45 -0700
+Message-ID: <1457483385.15454.519.camel@hpe.com>
+References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
+	 <20160304094424.GA16228@gmail.com> <1457115514.15454.216.camel@hpe.com>
+	 <20160305114012.GA7259@gmail.com> <1457370228.15454.311.camel@hpe.com>
+	 <20160308121601.GA6573@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Bogicevic Sasa <brutallesale@gmail.com>, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g9t5009.houston.hp.com ([15.240.92.67]:35118 "EHLO
+	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750888AbcCHXhO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2016 18:37:14 -0500
+In-Reply-To: <20160308121601.GA6573@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
 
-Include pci/hotplug/Kconfig directly from pci/Kconfig, so arches don't
-have to source both pci/Kconfig and pci/hotplug/Kconfig.
+On Tue, 2016-03-08 at 13:16 +0100, Ingo Molnar wrote:
+> * Toshi Kani <toshi.kani@hpe.com> wrote:
+>=20
+> > > So where is the problem? The memtype implementation and hence mos=
+t
+> > > ioremap() users are supposed to be safe. set_memory_*() APIs are
+> > > supposed
+> > > to be safe as well, as they too go via the memtype API.
+> >=20
+> > Let me try to summarize...
+> >=20
+> > The original issue Luis brought up was that drivers written to work
+> > with MTRR may create a single ioremap range covering multiple cache
+> > attributes since MTRR can overwrite cache attribute of a certain ra=
+nge.
+> > =C2=A0Converting such drivers with PAT-based ioremap interfaces, i.=
+e.
+> > ioremap_wc() and ioremap_nocache(), requires a separate ioremap map=
+ for
+> > each cache attribute, which can be challenging as it may result in
+> > overlapping ioremap ranges (in his term) with different cache
+> > attributes.
+> >=20
+> > So, Luis asked about 'sematics of overlapping ioremap()' calls. =C2=
+=A0Hence,
+> > I responded that aliasing mapping itself is supported, but alias wi=
+th
+> > different cache attribute is not. =C2=A0We have checks in place to =
+detect
+> > such condition. =C2=A0Overlapping ioremap calls with a different ca=
+che
+> > attribute either fails or gets redirected to the existing cache
+> > attribute on x86.
+>=20
+> Ok, fair enough!
+>=20
+> So to go back to the original suggestion from Luis, I've quoted it, b=
+ut
+> with a s/overlapping/aliased substitution:
+>=20
+> > I had suggested long ago then that one possible resolution was for =
+us
+> > to add an API that *enables* aliased ioremap() calls, and only use =
+it
+> > on select locations in the kernel. This means we only have to conve=
+rt a
+> > few users to that call to white list such semantics, and by default
+> > we'd disable aliased calls. To kick things off -- is this strategy
+> > agreeable for all other architectures?
+>=20
+> I'd say that since the overwhelming majority of ioremap() calls are n=
+ot
+> aliased, ever, thus making it 'harder' to accidentally alias is proba=
+bly
+> a good idea.
 
-Note that this effectively adds pci/hotplug/Kconfig to the following
-arches, because they already sourced drivers/pci/Kconfig but they
-previously did not source drivers/pci/hotplug/Kconfig:
+Did you mean 'aliased' or 'aliased with different cache attribute'? =C2=
+=A0The
+former check might be too strict.
 
-  alpha
-  arm
-  avr32
-  frv
-  m68k
-  microblaze
-  mn10300
-  sparc
-  unicore32
+> The memtype infrastructure of phyisical memory ranges in that case ac=
+ts
+> as a security measure, to avoid unintended (not just physically
+> incompatible) aliasing. I suspect it would be helpful during driver
+> development as well.
 
-Inspired-by-patch-from: Bogicevic Sasa <brutallesale@gmail.com>
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
----
- arch/arm64/Kconfig     |    1 -
- arch/blackfin/Kconfig  |    2 --
- arch/ia64/Kconfig      |    2 --
- arch/m32r/Kconfig      |    2 --
- arch/mips/Kconfig      |    2 --
- arch/powerpc/Kconfig   |    2 --
- arch/s390/Kconfig      |    1 -
- arch/sh/Kconfig        |    2 --
- arch/tile/Kconfig      |    3 ---
- arch/x86/Kconfig       |    2 --
- arch/xtensa/Kconfig    |    2 --
- drivers/parisc/Kconfig |    2 --
- drivers/pci/Kconfig    |    1 +
- 13 files changed, 1 insertion(+), 23 deletions(-)
+The memtype infrastructure does not track caller interfaces. =C2=A0So, =
+it will
+check against to any map, i.e. kernel & user map. =C2=A0I assume a kern=
+el map is
+created before user map, though.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 128ec3c..fc8089d 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -235,7 +235,6 @@ config PCI_SYSCALL
- 	def_bool PCI
- 
- source "drivers/pci/Kconfig"
--source "drivers/pci/hotplug/Kconfig"
- 
- endmenu
- 
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index af76634..a63c122 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -1233,8 +1233,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 1bc4b5a..b534eba 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -576,8 +576,6 @@ config PCI_SYSCALL
- 
- source "drivers/pci/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- source "drivers/pcmcia/Kconfig"
- 
- endmenu
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index 836ac5a..e1b1236 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -386,8 +386,6 @@ config ISA
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index d21eec7..d16204d 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -2935,8 +2935,6 @@ config ZONE_DMA32
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config RAPIDIO
- 	tristate "RapidIO support"
- 	depends on PCI
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 247a09f..e28f86e 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -832,8 +832,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config HAS_RAPIDIO
- 	bool
- 	default n
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 9918433..e70d498 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -605,7 +605,6 @@ config PCI_NR_MSI
- 	  PCI devices.
- 
- source "drivers/pci/Kconfig"
--source "drivers/pci/hotplug/Kconfig"
- 
- endif	# PCI
- 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index ce52af9..17a4f15 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -851,8 +851,6 @@ source "drivers/pci/Kconfig"
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 0c95266..8171930 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -455,7 +455,6 @@ config TILE_PCI_IO
- 
- source "drivers/pci/Kconfig"
- 
--
- config TILE_USB
- 	tristate "Tilera USB host adapter support"
- 	default y
-@@ -466,8 +465,6 @@ config TILE_USB
- 	  Provides USB host adapter support for the built-in EHCI and OHCI
- 	  interfaces on TILE-Gx chips.
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "Executable file formats"
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index ff7fe2d..1912637 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -2586,8 +2586,6 @@ config AMD_NB
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config RAPIDIO
- 	tristate "RapidIO support"
- 	depends on PCI
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index e9df156..7e9464b 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -413,8 +413,6 @@ config FORCE_MAX_ZONEORDER
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- config PLATFORM_WANT_DEFAULT_MEM
- 	def_bool n
- 
-diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
-index 592de56..3a102a8 100644
---- a/drivers/parisc/Kconfig
-+++ b/drivers/parisc/Kconfig
-@@ -110,8 +110,6 @@ config IOMMU_HELPER
- 
- source "drivers/pcmcia/Kconfig"
- 
--source "drivers/pci/hotplug/Kconfig"
--
- endmenu
- 
- menu "PA-RISC specific drivers"
-diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
-index 04e0092..616165d 100644
---- a/drivers/pci/Kconfig
-+++ b/drivers/pci/Kconfig
-@@ -121,4 +121,5 @@ config PCI_LABEL
- 	def_bool y if (DMI || ACPI)
- 	select NLS
- 
-+source "drivers/pci/hotplug/Kconfig"
- source "drivers/pci/host/Kconfig"
+> What extra API are you thinking about to enable aliasing in the few c=
+ases
+> where it's justified?
+
+I'll defer this for Luis...
+
+> the other problem listed:
+>=20
+> > As another problem case, set_memor_*() will not fail on MMIO even
+> > though set_memor_*() is designed only for RAM.
+>=20
+> So what does this mean exactly? Having WB caching on MMIO area is not
+> good, but UC, WC and WB sure is still sensible in some cases, right?
+
+I responded to Luis in other email that:
+| Drivers use ioremap family with a right cache type when mapping MMIO
+| ranges, ex. ioremap_wc().=C2=A0=C2=A0They do not need to change the t=
+ype to MMIO.
+| RAM is different since it's already mapped with WB at boot-time.
+| set_memory_*() allows us to change the type from WB, and put it back =
+to
+| WB.
+
+> > [...] If the above strategy on avoiding aliasing is agreeable, coul=
+d
+> > the next step, or an orthogonal step be to error out on set_memory_=
+*()
+> > on IO memory?
+>=20
+> Well, do we have drivers that nevertheless change caching attributes =
+on
+> MMIO areas?
+
+Not sure. =C2=A0We will need to check all callers of set_memory_xx() if=
+ we
+change it to fail on MMIO.
+
+> Basically if ioremap_uc() and ioremap_wc() is allowed on MMIO areas, =
+then
+> I see no reason in principle why it should be invalid to change the a=
+rea
+> from UC to WC after it has been ioremap()ed.
+
+The current implementation does not support MMIO.
+=C2=A0- It does not track cache attribute correctly for MMIO since it u=
+ses
+__pa().
+=C2=A0- It only supports attribute transition of {WB -> NewType -> WB} =
+for RAM.
+=C2=A0RAM is tracked differently that WB is treated as "no map". =C2=A0=
+So, this
+transition does not cause a conflict on RAM. =C2=A0This will causes a c=
+onflict
+on MMIO when it is tracked correctly. =C2=A0=C2=A0
+
+Thanks,
+-Toshi
