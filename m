@@ -1,67 +1,43 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
-Date: Wed, 9 Mar 2016 13:18:50 +0100
-Message-ID: <20160309121850.GA14915@gmail.com>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+Date: Wed, 9 Mar 2016 13:22:17 +0100
+Message-ID: <20160309122217.GK6356@twins.programming.kicks-ass.net>
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+ <56DFC604.6070407@synopsys.com>
+ <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+ <56E0024F.4070401@synopsys.com>
+ <20160309114054.GJ6356@twins.programming.kicks-ass.net>
+ <56E00EB6.4000201@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <56E00EB6.4000201@synopsys.com>
+Sender: owner-linux-mm@kvack.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, Mar 09, 2016 at 05:23:26PM +0530, Vineet Gupta wrote:
+> > I did not follow through the maze, I think the few archs implementing
+> > this simply do not include this file at all.
+> > 
+> > I'll let the first person that cares about this worry about that :-)
+> 
+> Ok - that's be me :-) although I really don't see much gains in case of ARC LLSC.
+> 
+> For us, LD + BCLR + ST is very similar to LLOCK + BCLR + SCOND atleast in terms of
+> cache coherency transactions !
 
-* Michal Hocko <mhocko@kernel.org> wrote:
+The win would be in not having to ever retry the SCOND. Although in this
+case, the contending CPU would be doing reads -- which I assume will not
+cause a SCOND to fail, so it might indeed not make any difference.
 
-> Hi,
->
-> the following patchset implements a killable variant of write lock for 
-> rw_semaphore. My usecase is to turn as many mmap_sem write users to use a 
-> killable variant which will be helpful for the oom_reaper [1] to asynchronously 
-> tear down the oom victim address space which requires mmap_sem for read. This 
-> will reduce a likelihood of OOM livelocks caused by oom victim being stuck on a 
-> lock or other resource which prevents it to reach its exit path and release the 
-> memory. [...]
-
-So I'm a tiny bit concerned about this arguments.
-
-AFAICS killability here just makes existing system calls more interruptible - 
-right? In that sense that's not really a livelock scenario: it just takes shorter 
-time for resources to be released.
-
-If a livelock is possible (where resources are never released) then I'd like to 
-see a specific example of such a livelock.
-
-You have the other patch-set:
-
-   [PATCH 0/18] change mmap_sem taken for write killable
-
-that makes use of down_write_killable(), and there you argue:
-
- [...] this is a follow up work for oom_reaper [1]. As the async OOM killing 
- depends on oom_sem for read we would really appreciate if a holder for write 
- stood in the way. This patchset is changing many of down_write calls to be 
- killable to help those cases when the writer is blocked and waiting for readers 
- to release the lock and so help __oom_reap_task to process the oom victim.
-
-there seems to be a misunderstanding: if a writer is blocked waiting for readers 
-then no new readers are allowed - the writer will get its turn the moment all 
-existing readers drop the lock.
-
-So there's no livelock scenario - it's "only" about latencies.
-
-And once we realize that it's about latencies (assuming I'm right!), not about 
-correctness per se, I'm wondering whether it would be a good idea to introduce 
-down_write_interruptible(), instead of down_write_killable().
-
-I'd love various processes to quit faster on Ctrl-C as well, not just on kill -9!
-
-This would also test the new code paths a lot better: kill -9 is a lot rarer than 
-regular interruption.
-
-Thanks,
-
-	Ingo
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
