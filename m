@@ -1,164 +1,103 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
-Date: Wed, 9 Mar 2016 15:41:41 +0100
-Message-ID: <20160309144140.GJ27018@dhcp22.suse.cz>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
- <20160309121850.GA14915@gmail.com>
- <20160309125641.GH27018@dhcp22.suse.cz>
- <20160309131710.GB7978@gmail.com>
- <20160309132855.GI27018@dhcp22.suse.cz>
- <20160309134339.GA20911@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+Date: Wed, 9 Mar 2016 15:51:19 +0100
+Message-ID: <20160309145119.GN6356@twins.programming.kicks-ass.net>
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+ <56DFC604.6070407@synopsys.com>
+ <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+ <56E023A5.2000105@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:36948 "EHLO
-	mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932547AbcCIOlp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Mar 2016 09:41:45 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160309134339.GA20911@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <56E023A5.2000105@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Andrew Morton <akpm@linux-foundation.org>, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Christoph Lameter <cl@linux.com>, linux-snps-arc@lists.infradead.org, Joonsoo Kim <iamjoonsoo.kim@lge.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed 09-03-16 14:43:39, Ingo Molnar wrote:
-> 
-> * Michal Hocko <mhocko@kernel.org> wrote:
-> 
-> > On Wed 09-03-16 14:17:10, Ingo Molnar wrote:
-> > > 
-> > > * Michal Hocko <mhocko@kernel.org> wrote:
-> > > 
-> > > > >  [...] this is a follow up work for oom_reaper [1]. As the async OOM killing 
-> > > > >  depends on oom_sem for read we would really appreciate if a holder for write 
-> > > > >  stood in the way. This patchset is changing many of down_write calls to be 
-> > > > >  killable to help those cases when the writer is blocked and waiting for 
-> > > > >  readers to release the lock and so help __oom_reap_task to process the oom 
-> > > > >  victim.
-> > > > > 
-> > > > > there seems to be a misunderstanding: if a writer is blocked waiting for 
-> > > > > readers then no new readers are allowed - the writer will get its turn the 
-> > > > > moment all existing readers drop the lock.
-> > > > 
-> > > > Readers might be blocked e.g. on the memory allocation which cannot proceed due 
-> > > > to OOM. Such a reader might be operating on a remote mm.
-> > > 
-> > > Doing complex allocations with the mm locked looks fragile no matter what: we 
-> > > should add debugging code that warns if allocations are done with a remote mm 
-> > > locked. (it should be trivial)
+On Wed, Mar 09, 2016 at 06:52:45PM +0530, Vineet Gupta wrote:
+> On Wednesday 09 March 2016 03:43 PM, Peter Zijlstra wrote:
+> >> There is clearly a problem in slub code that it is pairing a test_and_set_bit()
+> >> with a __clear_bit(). Latter can obviously clobber former if they are not a single
+> >> instruction each unlike x86 or they use llock/scond kind of instructions where the
+> >> interim store from other core is detected and causes a retry of whole llock/scond
+> >> sequence.
 > > 
-> > No matter how fragile is that it is not something non-existent. Just
-> > have a look at use_mm for example. We definitely do not want to warn
-> > about those, right?
+> > Yes, test_and_set_bit() + __clear_bit() is broken.
 > 
-> Sure we care about eliminating fragility, and usage does not seem to be widespread 
-> at all:
+> But in SLUB: bit_spin_lock() + __bit_spin_unlock() is acceptable ? How so
+> (ignoring the performance thing for discussion sake, which is a side effect of
+> this implementation).
 
-This was just an example. We have others. khugepaged which tries to
-create THP in the background or proc per pid files handlers might hold
-the lock while allocating and who knows what else.
- 
->  triton:~/tip> git grep -w use_mm
-> 
->  drivers/staging/rdma/hfi1/user_sdma.c:          use_mm(req->pq->user_mm);
->  drivers/usb/gadget/function/f_fs.c:             use_mm(io_data->mm);
->  drivers/usb/gadget/legacy/inode.c:      use_mm(mm);
->  drivers/vhost/vhost.c:  use_mm(dev->mm);
-> 
-> I think we also want to keep our general flexibility wrt. eventually turning the 
-> mmap_sem into a spinlock ...
+The sort answer is: Per definition. They are defined to work together,
+which is what makes __clear_bit_unlock() such a special function.
 
-Many places which are holding mmap_sem are sleepable right (e.g. doing
-GFP_KERNEL allocation) now and I am not really sure we can change all of
-them to not be.
- 
-> > > > I am not against interruptible variant as well but I suspect that some paths 
-> > > > are not expected to return EINTR. I haven't checked them for this but 
-> > > > killable is sufficient for the problem I am trying to solve. That problem is 
-> > > > real while latencies do not seem to be that eminent.
-> > > 
-> > > If they don't expect EINTR then they sure don't expect SIGKILL either!
-> > 
-> > Why? Each syscall already is killable as the task might be killed by the OOM 
-> > killer.
-> 
-> Not all syscalls are interruptible - for example sys_sync() isn't:
+> So despite the comment below in bit_spinlock.h I don't quite comprehend how this
+> is allowable. And if say, by deduction, this is fine for LLSC or lock prefixed
+> cases, then isn't this true in general for lot more cases in kernel, i.e. pairing
+> atomic lock with non-atomic unlock ? I'm missing something !
 
-I guess we are talking past each other. What I meant was that while
-all syscalls are allowed to not return to the userspace because the
-task might get killed but not all of them accept to get interrupted by
-a signal and return with EINTR. None of the man page of mmap, mremap,
-mlock, mprotect list EINTR as a possibility so I would be really afraid
-of returning an unexpected error code.
+x86 (and others) do in fact use non-atomic instructions for
+spin_unlock(). But as this is all arch specific, we can make these
+assumptions. Its just that generic code cannot rely on it.
 
-> SYSCALL_DEFINE0(sync)
-> {
->         int nowait = 0, wait = 1;
-> 
->         wakeup_flusher_threads(0, WB_REASON_SYNC);
->         iterate_supers(sync_inodes_one_sb, NULL);
->         iterate_supers(sync_fs_one_sb, &nowait);
->         iterate_supers(sync_fs_one_sb, &wait);
->         iterate_bdevs(fdatawrite_one_bdev, NULL);
->         iterate_bdevs(fdatawait_one_bdev, NULL);
->         if (unlikely(laptop_mode))
->                 laptop_sync_completion();
->         return 0;
-> }
-> 
-> > > There's a (very) low number of system calls that are not interruptible, but 
-> > > the vast majority is.
-> > 
-> > That might be true. I just fail to see how this is related to the
-> > particular problem I am trying to solve. As I've said those callsites
-> > which cause problems with latencies can be later converted to
-> > interruptible waiting trivially.
-> 
-> So my problem as I see it is the following: you are adding a rare API to an 
-> already complex locking interface,
+So let me try and explain.
 
-I have mimicked an API which we already have for mutex. Sure it is not
-used much yet but I guess other callsites might benefit from using it
-as well. I haven't explored that because I am trying to focus on the
-OOM problem currently. I have tried hard to not complicate the core
-locking code just because of the new API. If you have any concerns there
-I am willing to look at it.
 
-> further complicating already complicated MM code paths in various
-> ways. Only to help a case that is a third type of rare:  OOM-kill.
+The problem as identified is:
 
-Seeing OOM livelocks resp. deadlocks is not something unseen. We
-have seen some reports in the past. The matter of fact is that it
-is easy for an unprivileged user to lock up the system completely
-currently (OOM killer tries to kill a task which is blocked on a
-lock - e.g. i_mutex - which is held by another process which loops
-inside the memory allocator). This issue has been discussed a lot
-recently (e.g. LWN coverage of the discussion at LSFMM last year
-https://lwn.net/Articles/627419/). That is the reason why I am trying to
-make the OOM handling more reliable (by introducing a reliable async oom
-reclaim aka oom_reaper_) and that sounds like a sufficient justification
-to me.
+CPU0						CPU1
 
-Does this make more sense now?
+bit_spin_lock()					__bit_spin_unlock()
+1:
+	/* fetch_or, r1 holds the old value */
+	spin_lock
+	load	r1, addr
+						load	r1, addr
+						bclr	r2, r1, 1
+						store	r2, addr
+	or	r2, r1, 1
+	store	r2, addr	/* lost the store from CPU1 */
+	spin_unlock
 
-> 
-> That's a surefire whack-a-mole nest of bugs, if I've ever seen one.
-> 
-> What I am suggesting instead is a slight modification of the
-> concept: to re-phrase the problem set and think in broader terms
-> of interruptability: make certain MM operations, especially ones
-> which tend to hinder OOM-kill latencies, more interruptible - which
-> implicitly also makes them more OOM-killable.
+	and	r1, 1
+	bnz	2	/* it was set, go wait */
+	ret
 
-Yeah, I have understood your suggestion and I see it as a more generic
-approach as well but my counter argument was that some syscalls might be
-unexpected to return EINTR. My quick check of memory management syscalls
-shown that EINTR is not described as a potential error code. Or am I
-missing something here and you are suggesting ERESTARTNOINTR return path
-from down_write_interruptible?
+2:
+	load	r1, addr
+	and	r1, 1
+	bnz	2	/* wait until its not set */
 
-Thanks
--- 
-Michal Hocko
-SUSE Labs
+	b	1	/* try again */
+
+
+
+For LL/SC we replace:
+
+	spin_lock
+	load	r1, addr
+
+	...
+
+	store	r2, addr
+	spin_unlock
+
+With the (obvious):
+
+1:
+	load-locked	r1, addr
+
+	...
+
+	store-cond	r2, addr
+	bnz		1 /* or whatever branch instruction is required to retry */
+
+
+In this case the failure cannot happen, because the store from CPU1
+would have invalidated the lock from CPU0 and caused the
+store-cond to fail and retry the loop, observing the new value.
