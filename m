@@ -1,49 +1,55 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
-Date: Thu, 10 Mar 2016 11:24:13 +0100
-Message-ID: <20160310102412.GA21593@gmail.com>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
- <20160309121850.GA14915@gmail.com>
- <20160309125641.GH27018@dhcp22.suse.cz>
- <20160309131710.GB7978@gmail.com>
- <20160309132855.GI27018@dhcp22.suse.cz>
- <20160309134339.GA20911@gmail.com>
- <20160309144140.GJ27018@dhcp22.suse.cz>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH 01/18] mm: Make mmap_sem for write waits killable for mm
+ syscalls
+Date: Thu, 10 Mar 2016 16:47:16 +0100
+Message-ID: <56E19704.6030708@suse.cz>
+References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-2-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160309144140.GJ27018@dhcp22.suse.cz>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:54002 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750907AbcCJPrW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Mar 2016 10:47:22 -0500
+In-Reply-To: <1456752417-9626-2-git-send-email-mhocko@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>Pe
 
+On 02/29/2016 02:26 PM, Michal Hocko wrote:
+> From: Michal Hocko <mhocko@suse.com>
+>
+> This is the first step in making mmap_sem write holders killable. It
 
-* Michal Hocko <mhocko@kernel.org> wrote:
+s/holders/waiters/?
 
-> > > Why? Each syscall already is killable as the task might be killed by the OOM 
-> > > killer.
-> > 
-> > Not all syscalls are interruptible - for example sys_sync() isn't:
-> 
-> I guess we are talking past each other. [...]
+> focuses on the trivial ones which are taking the lock early after
+> entering the syscall and they are not changing state before.
+>
+> Therefore it is very easy to change them to use down_write_killable
+> and immediately return with -EINTR. This will allow the waiter to
+> pass away without blocking the mmap_sem which might be required to
+> make a forward progress. E.g. the oom reaper will need the lock for
+> reading to dismantle the OOM victim address space.
+>
+> The only tricky function in this patch is vm_mmap_pgoff which has many
+> call sites via vm_mmap. To reduce the risk keep vm_mmap with the
+> original non-killable semantic for now.
+>
+> vm_munmap callers do not bother checking the return value so open code
+> it into the munmap syscall path for now for simplicity.
+>
+> Cc: Mel Gorman <mgorman@suse.de>
+> Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> Cc: Konstantin Khlebnikov <koct9i@gmail.com>
+> Cc: Hugh Dickins <hughd@google.com>
+> Cc: Andrea Arcangeli <aarcange@redhat.com>
+> Cc: David Rientjes <rientjes@google.com>
+> Cc: Dave Hansen <dave.hansen@linux.intel.com>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
 
-Heh, you are being polite, I think what happened is that I was being dense and 
-didn't understand your point:
-
-> [...] What I meant was that while all syscalls are allowed to not return to the 
-> userspace because the task might get killed but not all of them accept to get 
-> interrupted by a signal and return with EINTR. None of the man page of mmap, 
-> mremap, mlock, mprotect list EINTR as a possibility so I would be really afraid 
-> of returning an unexpected error code.
-
-Indeed.
-
-> Does this make more sense now?
-
-It does!
-
-Thanks,
-
-	Ingo
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
