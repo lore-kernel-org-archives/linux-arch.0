@@ -1,38 +1,49 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] arc: use little endian accesses
-Date: Thu, 10 Mar 2016 09:55:49 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
-References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
- <1457595846.2868.10.camel@synopsys.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC 0/12] introduce down_write_killable for rw_semaphore
+Date: Thu, 10 Mar 2016 11:24:13 +0100
+Message-ID: <20160310102412.GA21593@gmail.com>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+ <20160309121850.GA14915@gmail.com>
+ <20160309125641.GH27018@dhcp22.suse.cz>
+ <20160309131710.GB7978@gmail.com>
+ <20160309132855.GI27018@dhcp22.suse.cz>
+ <20160309134339.GA20911@gmail.com>
+ <20160309144140.GJ27018@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:42450 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932691AbcCJJzw convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2016 04:55:52 -0500
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "noamc@ezchip.com" <noamc@ezchip.com>, Lada Trimasova <Lada.Trimasova@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160309144140.GJ27018@dhcp22.suse.cz>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 10 March 2016 01:14 PM, Alexey Brodkin wrote:
->>> For example, serial port driver doesn't work when kernel is build for
->>> arc big endian architecture.
->> Last I tested Big Endian on SDP with 8250 part + 8250 driver it was working fine.
->> I presume this is the systemC model for device and standard 8250 driver and very
->> likely the model is not fixed endian or something.
-> Model is indeed little-endian. We build it only once and than changing
-> only "nsim_isa_big_endian" property (which changes only CPU core endianess) may use
-> it equally well with little- and big-endian builds of Linux kernel.
 
-Can you or Lada provide more details as to exactly what is not working - what
-driver to be precise 8250 or dw-8250.
-And where exactly the failure shows up. I want to understand this more
-Noam told me off list that he has no issues with both big endian ARC + 8250 in
-systemc model or silicon.
+* Michal Hocko <mhocko@kernel.org> wrote:
 
--Vineet
+> > > Why? Each syscall already is killable as the task might be killed by the OOM 
+> > > killer.
+> > 
+> > Not all syscalls are interruptible - for example sys_sync() isn't:
+> 
+> I guess we are talking past each other. [...]
+
+Heh, you are being polite, I think what happened is that I was being dense and 
+didn't understand your point:
+
+> [...] What I meant was that while all syscalls are allowed to not return to the 
+> userspace because the task might get killed but not all of them accept to get 
+> interrupted by a signal and return with EINTR. None of the man page of mmap, 
+> mremap, mlock, mprotect list EINTR as a possibility so I would be really afraid 
+> of returning an unexpected error code.
+
+Indeed.
+
+> Does this make more sense now?
+
+It does!
+
+Thanks,
+
+	Ingo
