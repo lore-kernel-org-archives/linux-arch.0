@@ -1,81 +1,51 @@
-From: "Niklas S??derlund" <niklas.soderlund@ragnatech.se>
-Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Date: Thu, 10 Mar 2016 17:05:23 +0100
-Message-ID: <20160310160522.GB1111@bigcity.dyn.berto.se>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160308073847.GA15520@infradead.org>
+From: Lada Trimasova <Lada.Trimasova@synopsys.com>
+Subject: Re: [PATCH] arc: use little endian accesses
+Date: Thu, 10 Mar 2016 18:57:48 +0000
+Message-ID: <1457636268.457.34.camel@synopsys.com>
+References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
+	 <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
+	 <1457595846.2868.10.camel@synopsys.com>
+	 <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
+Reply-To: Lada Trimasova <Lada.Trimasova@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160308073847.GA15520@infradead.org>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
+Content-Language: en-US
+Content-ID: <16A1B0FC5D995546B381FA5659684CC9@internal.synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "noamc@ezchip.com" <noamc@ezchip.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christoph,
-
-On 2016-03-07 23:38:47 -0800, Christoph Hellwig wrote:
-> Please add some documentation on where/how this should be used.  It's
-> not a very obvious interface.
-
-Good idea, I have added the following to Documentation/DMA-API.txt and=20
-folded it in to this patch. Do you feel it's adequate and do you know=20
-anywhere else I should add documentation?
-
-diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
-index 45ef3f2..248556a 100644
---- a/Documentation/DMA-API.txt
-+++ b/Documentation/DMA-API.txt
-@@ -277,14 +277,29 @@ and <size> parameters are provided to do partial =
-page mapping, it is
- recommended that you never use these unless you really know what the
- cache width is.
-=20
-+dma_addr_t
-+dma_map_resource(struct device *dev, phys_addr_t phys_addr, size_t siz=
-e,
-+                enum dma_data_direction dir, struct dma_attrs *attrs)
-+
-+Maps a MMIO region so it can be accessed by the device and returns the
-+DMA address of the memory. API should only be used to map device MMIO,
-+mapping of RAM is not permitted.
-+
-+void
-+dma_unmap_resource(struct device *dev, dma_addr_t addr, size_t size,
-+                  enum dma_data_direction dir, struct dma_attrs *attrs=
-)
-+
-+Unmaps the IOMMU region previously mapped. All the parameters passed i=
-n
-+must be identical to those passed in (and returned) by the mapping API=
-=2E
-+
- int
- dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-=20
--In some circumstances dma_map_single() and dma_map_page() will fail to=
- create
--a mapping. A driver can check for these errors by testing the returned
--DMA address with dma_mapping_error(). A non-zero return value means th=
-e mapping
--could not be created and the driver should take appropriate action (e.=
-g.
--reduce current DMA mapping usage or delay and try again later).
-+In some circumstances dma_map_single(), dma_map_page() and dma_map_res=
-ource()
-+will fail to create a mapping. A driver can check for these errors by =
-testing
-+the returned DMA address with dma_mapping_error(). A non-zero return v=
-alue
-+means the mapping could not be created and the driver should take appr=
-opriate
-+action (e.g.  reduce current DMA mapping usage or delay and try again =
-later).
-
---=20
-Regards,
-Niklas S=F6derlund
+SGkgVmluZWV0LCBBbGV4ZXksIEFybmQsDQpPbiBUaHUsIDIwMTYtMDMtMTAgYXQgMDk6NTUgKzAw
+MDAsIFZpbmVldCBHdXB0YSB3cm90ZToNCg0KQ2FuIHlvdSBvciBMYWRhIHByb3ZpZGUgbW9yZSBk
+ZXRhaWxzIGFzIHRvIGV4YWN0bHkgd2hhdCBpcyBub3Qgd29ya2luZyAtIHdoYXQNCmRyaXZlciB0
+byBiZSBwcmVjaXNlIDgyNTAgb3IgZHctODI1MC4NCkFuZCB3aGVyZSBleGFjdGx5IHRoZSBmYWls
+dXJlIHNob3dzIHVwLiBJIHdhbnQgdG8gdW5kZXJzdGFuZCB0aGlzIG1vcmUNCk5vYW0gdG9sZCBt
+ZSBvZmYgbGlzdCB0aGF0IGhlIGhhcyBubyBpc3N1ZXMgd2l0aCBib3RoIGJpZyBlbmRpYW4gQVJD
+ICsgODI1MCBpbg0Kc3lzdGVtYyBtb2RlbCBvciBzaWxpY29uLg0KDQotVmluZWV0DQoNCg0KDQpE
+cml2ZXIgaXMgODI1MCwga2VybmVsIGlzIGJ1aWx0IGZvciBCRSBhcmMsIG5zaW0gb3B0aW9uIGlu
+IG1vZGVsICJuc2ltX2lzYV9iaWdfZW5kaWFuID0gMSIuDQoNCldpdGggY3VycmVudCAicmVhZGwi
+IGFuZCAid3JpdGVsIiBpbXBsZW1lbnRhdGlvbiBmb3IgQVJDIHdlIHJlYWQgd29yZCBmcm9tIG1l
+bW9yeSB3aXRob3V0IGFueSBlbmRpYW5lc3MgbWFuaXB1bGF0aW9uLiBTbyBpbiBjYXNlIG9mIGxp
+dHRsZSBlbmRpYW4gYXJjaGl0ZWN0dXJlIHdlIGdldCB3aGF0IHdlIHdhbnQ6IHRoZSBmaXJzdCBt
+ZW1vcnkgYnl0ZSBpcyB0aGUgbG93IGJ5dGUgaW4gdGhlIHdvcmQuIEJ1dCBpbiBjYXNlIG9mIGJp
+ZyBlbmRpYW4gYXJjaGl0ZWN0dXJlIHRoZSB3b3JkIGVuZGlhbmVzcyBpcyBzd2FwcGVkOiB0aGUg
+Zmlyc3QgbWVtb3J5IGJ5dGUgaXMgdGhlIGhpZ2ggd29yZCBieXRlLg0KDQpBbmQgZm9yIGV4YW1w
+bGUsIGxldCdzIHNlZSB3aGF0IGhhcHBlbnMgd2hlbiB3ZSB1c2UgInJlYWRsIiBpbiAgZnVuY3Rp
+b24gInNlcmlhbDgyNTBfZWFybHlfaW4iIGluIGRyaXZlci90dHkvc2VyaWFsLzgyNTAuDQoNClRh
+a2UgYSBsb29rIHRvIG9uZSBsaW5lIGZyb20gbWVtb3J5IGR1bXA6DQoweGYwMDAwMDEwOiAweDBi
+ICAgIDB4MDAgICAgMHgwMCAgICAweDAwICAgIDB4NjAgICAgMHgwMCAgICAweDAwICAgIDB4MDAN
+Cg0KV2hlbiBrZXJuZWwgaXMgYnVpbHQgZm9yIGxpdHRsZSBlbmRpYW4gYXJjaGl0ZWN0dXJlLCB3
+ZSByZWFkIHRoaXMgZGF0YSBpbiBzdGF0dXMgcmVnaXN0ZXIgaW4gZnVuY3Rpb24gInNlcmlhbF9w
+dXRjIiB1c2luZyAicmVhZGwiIGZ1bmN0aW9uIGluIGRyaXZlci90dHkvc2VyaWFsLzgyNTAgYXM6
+DQpyMDogMHgwMDAwMDA2DQpUaGUgbG93IGJ5dGUgaXMgMHgwYiwgc28gdGhlIGNvbmRpdGlvbiAi
+aWYgKChzdGF0dXMgJiBCT1RIX0VNUFRZKSA9PSBCT1RIX0VNUFRZKSIgIGlzIHRydWUsIGFzIEJP
+VEhfRU1QVFkgaXMgc29tZSBtYXNrIHdpdGggbG93IGJ5dGVzIHNldC4NCg0KV2hlbiBrZXJuZWwg
+aXMgYnVpbHQgd2l0aCAiQ1BVX0JJR19FTkRJQU4iIGFuZCBtb2RlbCBuc2ltIG9wdGlvbiBpcyAi
+bnNpbV9pc2FfYmlnX2VuZGlhbj0xIiwgd2UgcmVhZCB0aGlzIGRhdGEgYXM6DQpyMDogMHg2MDAw
+MDAwDQpTbyBhcyB5b3UgY2FuIHNlZSB0aGUgbG93IGJ5dGUgaXMgMHgwMCBhbmQgYWJvdmUgbWVu
+dGlvbmVkIGNvbmRpdGlvbiBuZXZlciBiZWNvbWVzIHRydWUsIHdlIGNhbid0IGNvbnRpbnVlIGlu
+aXRpYWxpemF0aW9uLg0KDQoNClJlZ2FyZHMsDQpMYWRhDQo=
