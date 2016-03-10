@@ -1,46 +1,236 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] arc: use little endian accesses
-Date: Thu, 10 Mar 2016 20:23:59 +0100
-Message-ID: <201603102023.59425.arnd@arndb.de>
-References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com> <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com> <1457636268.457.34.camel@synopsys.com>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH] PCI: Include pci/hotplug Kconfig directly from
+ pci/Kconfig
+Date: Thu, 10 Mar 2016 14:56:33 -0600
+Message-ID: <20160310205633.GF14873@localhost>
+References: <20160308212714.752.96106.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:56323 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752217AbcCJTYe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2016 14:24:34 -0500
-In-Reply-To: <1457636268.457.34.camel@synopsys.com>
+Received: from mail.kernel.org ([198.145.29.136]:47560 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932088AbcCJU4j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Mar 2016 15:56:39 -0500
+Content-Disposition: inline
+In-Reply-To: <20160308212714.752.96106.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lada Trimasova <Lada.Trimasova@synopsys.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "noamc@ezchip.com" <noamc@ezchip.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Bogicevic Sasa <brutallesale@gmail.com>, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 
-On Thursday 10 March 2016, Lada Trimasova wrote:
-> Driver is 8250, kernel is built for BE arc, nsim option in model "nsim_isa_big_endian = 1".
+On Tue, Mar 08, 2016 at 03:27:15PM -0600, Bjorn Helgaas wrote:
+> Include pci/hotplug/Kconfig directly from pci/Kconfig, so arches don't
+> have to source both pci/Kconfig and pci/hotplug/Kconfig.
 > 
-> With current "readl" and "writel" implementation for ARC we read word from memory without any endianess manipulation. So in case of little endian architecture we get what we want: the first memory byte is the low byte in the word. But in case of big endian architecture the word endianess is swapped: the first memory byte is the high word byte.
+> Note that this effectively adds pci/hotplug/Kconfig to the following
+> arches, because they already sourced drivers/pci/Kconfig but they
+> previously did not source drivers/pci/hotplug/Kconfig:
 > 
-> And for example, let's see what happens when we use "readl" in  function "serial8250_early_in" in driver/tty/serial/8250.
+>   alpha
+>   arm
+>   avr32
+>   frv
+>   m68k
+>   microblaze
+>   mn10300
+>   sparc
+>   unicore32
 > 
-> Take a look to one line from memory dump:
-> 0xf0000010: 0x0b    0x00    0x00    0x00    0x60    0x00    0x00    0x00
-> 
-> When kernel is built for little endian architecture, we read this data in status register in function "serial_putc" using "readl" function in driver/tty/serial/8250 as:
-> r0: 0x0000006
-> The low byte is 0x0b, so the condition "if ((status & BOTH_EMPTY) == BOTH_EMPTY)"  is true, as BOTH_EMPTY is some mask with low bytes set.
-> 
-> When kernel is built with "CPU_BIG_ENDIAN" and model nsim option is "nsim_isa_big_endian=1", we read this data as:
-> r0: 0x6000000
-> So as you can see the low byte is 0x00 and above mentioned condition never becomes true, we can't continue initialization.
-> 
+> Inspired-by-patch-from: Bogicevic Sasa <brutallesale@gmail.com>
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 
-Ok, this sounds like a completely normal architecture implementation then,
-and your patch looks correct.
+I applied this to pci/kconfig for v4.6.
 
-If some other driver breaks because of this change, you should investigate
-what went wrong there, and treat it as a driver specific problem.
-
-	Arnd
+> ---
+>  arch/arm64/Kconfig     |    1 -
+>  arch/blackfin/Kconfig  |    2 --
+>  arch/ia64/Kconfig      |    2 --
+>  arch/m32r/Kconfig      |    2 --
+>  arch/mips/Kconfig      |    2 --
+>  arch/powerpc/Kconfig   |    2 --
+>  arch/s390/Kconfig      |    1 -
+>  arch/sh/Kconfig        |    2 --
+>  arch/tile/Kconfig      |    3 ---
+>  arch/x86/Kconfig       |    2 --
+>  arch/xtensa/Kconfig    |    2 --
+>  drivers/parisc/Kconfig |    2 --
+>  drivers/pci/Kconfig    |    1 +
+>  13 files changed, 1 insertion(+), 23 deletions(-)
+> 
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 128ec3c..fc8089d 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -235,7 +235,6 @@ config PCI_SYSCALL
+>  	def_bool PCI
+>  
+>  source "drivers/pci/Kconfig"
+> -source "drivers/pci/hotplug/Kconfig"
+>  
+>  endmenu
+>  
+> diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+> index af76634..a63c122 100644
+> --- a/arch/blackfin/Kconfig
+> +++ b/arch/blackfin/Kconfig
+> @@ -1233,8 +1233,6 @@ source "drivers/pci/Kconfig"
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  endmenu
+>  
+>  menu "Executable file formats"
+> diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+> index 1bc4b5a..b534eba 100644
+> --- a/arch/ia64/Kconfig
+> +++ b/arch/ia64/Kconfig
+> @@ -576,8 +576,6 @@ config PCI_SYSCALL
+>  
+>  source "drivers/pci/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  source "drivers/pcmcia/Kconfig"
+>  
+>  endmenu
+> diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+> index 836ac5a..e1b1236 100644
+> --- a/arch/m32r/Kconfig
+> +++ b/arch/m32r/Kconfig
+> @@ -386,8 +386,6 @@ config ISA
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  endmenu
+>  
+>  
+> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> index d21eec7..d16204d 100644
+> --- a/arch/mips/Kconfig
+> +++ b/arch/mips/Kconfig
+> @@ -2935,8 +2935,6 @@ config ZONE_DMA32
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  config RAPIDIO
+>  	tristate "RapidIO support"
+>  	depends on PCI
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 247a09f..e28f86e 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -832,8 +832,6 @@ source "drivers/pci/Kconfig"
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  config HAS_RAPIDIO
+>  	bool
+>  	default n
+> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> index 9918433..e70d498 100644
+> --- a/arch/s390/Kconfig
+> +++ b/arch/s390/Kconfig
+> @@ -605,7 +605,6 @@ config PCI_NR_MSI
+>  	  PCI devices.
+>  
+>  source "drivers/pci/Kconfig"
+> -source "drivers/pci/hotplug/Kconfig"
+>  
+>  endif	# PCI
+>  
+> diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+> index ce52af9..17a4f15 100644
+> --- a/arch/sh/Kconfig
+> +++ b/arch/sh/Kconfig
+> @@ -851,8 +851,6 @@ source "drivers/pci/Kconfig"
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  endmenu
+>  
+>  menu "Executable file formats"
+> diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+> index 0c95266..8171930 100644
+> --- a/arch/tile/Kconfig
+> +++ b/arch/tile/Kconfig
+> @@ -455,7 +455,6 @@ config TILE_PCI_IO
+>  
+>  source "drivers/pci/Kconfig"
+>  
+> -
+>  config TILE_USB
+>  	tristate "Tilera USB host adapter support"
+>  	default y
+> @@ -466,8 +465,6 @@ config TILE_USB
+>  	  Provides USB host adapter support for the built-in EHCI and OHCI
+>  	  interfaces on TILE-Gx chips.
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  endmenu
+>  
+>  menu "Executable file formats"
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index ff7fe2d..1912637 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -2586,8 +2586,6 @@ config AMD_NB
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  config RAPIDIO
+>  	tristate "RapidIO support"
+>  	depends on PCI
+> diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+> index e9df156..7e9464b 100644
+> --- a/arch/xtensa/Kconfig
+> +++ b/arch/xtensa/Kconfig
+> @@ -413,8 +413,6 @@ config FORCE_MAX_ZONEORDER
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  config PLATFORM_WANT_DEFAULT_MEM
+>  	def_bool n
+>  
+> diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
+> index 592de56..3a102a8 100644
+> --- a/drivers/parisc/Kconfig
+> +++ b/drivers/parisc/Kconfig
+> @@ -110,8 +110,6 @@ config IOMMU_HELPER
+>  
+>  source "drivers/pcmcia/Kconfig"
+>  
+> -source "drivers/pci/hotplug/Kconfig"
+> -
+>  endmenu
+>  
+>  menu "PA-RISC specific drivers"
+> diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
+> index 04e0092..616165d 100644
+> --- a/drivers/pci/Kconfig
+> +++ b/drivers/pci/Kconfig
+> @@ -121,4 +121,5 @@ config PCI_LABEL
+>  	def_bool y if (DMI || ACPI)
+>  	select NLS
+>  
+> +source "drivers/pci/hotplug/Kconfig"
+>  source "drivers/pci/host/Kconfig"
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
