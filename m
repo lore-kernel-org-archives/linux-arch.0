@@ -1,42 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:38049 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750950AbcCJFTj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2016 00:19:39 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from mout.kundenserver.de ([212.227.17.24]:65207 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932742AbcCJHqT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2016 02:46:19 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] arc: use little endian accesses
-Date: Thu, 10 Mar 2016 05:19:37 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4E8EE1D@us01wembx1.internal.synopsys.com>
-References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Date: Thu, 10 Mar 2016 08:45:30 +0100
+References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com> <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
 MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201603100845.30602.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lada Trimasova <Lada.Trimasova@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Noam Camus <noamc@ezchip.com>
-Message-ID: <20160310051937.l5vcpZHeu-61Ywn4AvIC5YmUu9PVpr67CzKIYyOQdok@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Lada Trimasova <Lada.Trimasova@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Noam Camus <noamc@ezchip.com>
+Message-ID: <20160310074530.k0q3Vq-jwJ3fz76rgpjyg0IyYEPcoqw0ufsSRYDeMQQ@z>
 
-On Thursday 10 March 2016 10:35 AM, Vineet Gupta wrote:
-> +CC Noam
->
+On Thursday 10 March 2016, Vineet Gupta wrote:
 > On Wednesday 09 March 2016 10:51 PM, Lada Trimasova wrote:
->> > Memory access primitives should use cpu_to_le16, cpu_to_le32, le16_to_cpu
->> > and le32_to_cpu because it is not really guaranteed that drivers handles
->> > any ordering themselves.
+> > Memory access primitives should use cpu_to_le16, cpu_to_le32, le16_to_cpu
+> > and le32_to_cpu because it is not really guaranteed that drivers handles
+> > any ordering themselves.
+> 
 > That is the driver issue. readxx as API simply returns data in native endianness.
 > We've had EZChip running big endian and so far and they didn't need this change.
->
->> > For example, serial port driver doesn't work when kernel is build for
->> > arc big endian architecture.
-> Last I tested Big Endian on SDP with 8250 part + 8250 driver it was working fine.
-> I presume this is the systemC model for device and standard 8250 driver and very
-> likely the model is not fixed endian or something.
->
-> Alexey knows about this stuff - this was discussed on lkml back in 2013 when he
-> was fighting the Xilinx systemAce driver endian issues
->
 
-Do you need "native-endian" DT entry in nsimosci DT bindings for uart ?
+Most drivers using readl() or readl_relaxed() expect those to perform byte
+swaps on big-endian architectures, as the registers tend to be fixed endian,
+so the change seems reasonable.
+
+It depends a little bit on how endian mode is implemented in the CPU: do you
+follow the normal model of swapping byte order in the load/store instructions
+of the CPU when running big-endian, or is the CPU always running little-endian
+but the bus addresses get mangled on byte accesses to give the illusion
+of a big-endian system?
+
+	Arnd
