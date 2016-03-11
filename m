@@ -1,18 +1,18 @@
 From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH 04/18] mm, aout: handle vm_brk failures
-Date: Fri, 11 Mar 2016 11:32:42 +0100
-Message-ID: <56E29ECA.5050809@suse.cz>
+Subject: Re: [PATCH 05/18] mm, elf: handle vm_brk error
+Date: Fri, 11 Mar 2016 11:35:33 +0100
+Message-ID: <56E29F75.4010004@suse.cz>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-5-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-6-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-2; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:35917 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:36254 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751238AbcCKKcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Mar 2016 05:32:47 -0500
-In-Reply-To: <1456752417-9626-5-git-send-email-mhocko@kernel.org>
+	id S1751374AbcCKKfh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Mar 2016 05:35:37 -0500
+In-Reply-To: <1456752417-9626-6-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
@@ -21,42 +21,13 @@ Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher 
 On 02/29/2016 02:26 PM, Michal Hocko wrote:
 > From: Michal Hocko <mhocko@suse.com>
 >
-> vm_brk is allowed to fail but load_aout_binary simply ignores the error
-> and happily continues. I haven't noticed any problem from that in real
-> life but later patches will make the failure more likely because
-> vm_brk will become killable (resp. mmap_sem for write waiting will become
-> killable) so we should be more careful now.
+> load_elf_library doesn't handle vm_brk failure although nothing really
+> indicates it cannot do that because the function is allowed to fail
+> due to vm_mmap failures already. This might be not a problem now
+> but later patch will make vm_brk killable (resp. mmap_sem for write
+> waiting will become killable) and so the failure will be more probable.
 >
-> The error handling should be quite straightforward because there are
-> calls to vm_mmap which check the error properly already. The only
-> notable exception is set_brk which is called after beyond_if label.
-> But nothing indicates that we cannot move it above set_binfmt as the two
-> do not depend on each other and fail before we do set_binfmt and alter
-> reference counting.
->
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
 > Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 > Signed-off-by: Michal Hocko <mhocko@suse.com>
 
-Acked--by: Vlastimil Babka <vbabka@suse.cz>
-
-[...]
-
-> @@ -378,7 +381,9 @@ static int load_aout_library(struct file *file)
->   			       "N_TXTOFF is not page aligned. Please convert library: %pD\n",
->   			       file);
->   		}
-> -		vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
-> +		retval = vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
-> +		if (IS_ERR_VALUE(retval))
-> +			goto out;
->   		
-
-You could have removed the extra whitespace on the line above, which my vim so 
-prominently highlights :)
-
->   		read_code(file, start_addr, N_TXTOFF(ex),
->   			  ex.a_text + ex.a_data);
->
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
