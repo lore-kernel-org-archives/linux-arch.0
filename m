@@ -1,73 +1,51 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 04/18] mm, aout: handle vm_brk failures
-Date: Fri, 11 Mar 2016 13:42:01 +0100
-Message-ID: <20160311124201.GK27701@dhcp22.suse.cz>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH 02/18] mm: make vm_mmap killable
+Date: Fri, 11 Mar 2016 13:43:41 +0100
+Message-ID: <56E2BD7D.10701@suse.cz>
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-5-git-send-email-mhocko@kernel.org>
- <56E29ECA.5050809@suse.cz>
+ <1456752417-9626-3-git-send-email-mhocko@kernel.org>
+ <56E29702.5030100@suse.cz> <20160311121235.GI27701@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:33369 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752261AbcCKMmE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 07:42:04 -0500
-Content-Disposition: inline
-In-Reply-To: <56E29ECA.5050809@suse.cz>
+Received: from mx2.suse.de ([195.135.220.15]:42287 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752168AbcCKMnr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Mar 2016 07:43:47 -0500
+In-Reply-To: <20160311121235.GI27701@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vlastimil Babka <vbabka@suse.cz>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, Christian =?iso-8859-1?Q?K=F6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>Pe
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>Pete
 
-On Fri 11-03-16 11:32:42, Vlastimil Babka wrote:
-> On 02/29/2016 02:26 PM, Michal Hocko wrote:
-> >From: Michal Hocko <mhocko@suse.com>
-> >
-> >vm_brk is allowed to fail but load_aout_binary simply ignores the error
-> >and happily continues. I haven't noticed any problem from that in real
-> >life but later patches will make the failure more likely because
-> >vm_brk will become killable (resp. mmap_sem for write waiting will become
-> >killable) so we should be more careful now.
-> >
-> >The error handling should be quite straightforward because there are
-> >calls to vm_mmap which check the error properly already. The only
-> >notable exception is set_brk which is called after beyond_if label.
-> >But nothing indicates that we cannot move it above set_binfmt as the two
-> >do not depend on each other and fail before we do set_binfmt and alter
-> >reference counting.
-> >
-> >Cc: Thomas Gleixner <tglx@linutronix.de>
-> >Cc: Ingo Molnar <mingo@redhat.com>
-> >Cc: "H. Peter Anvin" <hpa@zytor.com>
-> >Cc: Alexander Viro <viro@zeniv.linux.org.uk>
-> >Signed-off-by: Michal Hocko <mhocko@suse.com>
-> 
-> Acked--by: Vlastimil Babka <vbabka@suse.cz>
+On 03/11/2016 01:12 PM, Michal Hocko wrote:
+> On Fri 11-03-16 10:59:30, Vlastimil Babka wrote:
+>> On 02/29/2016 02:26 PM, Michal Hocko wrote:
+>> >From: Michal Hocko <mhocko@suse.com>
+>> >
+>> >All the callers of vm_mmap seem to check for the failure already
+>> >and bail out in one way or another on the error which means that
+>>
+>> Hmm I'm not that sure about this one:
+>>   17   1071  fs/binfmt_elf.c <<load_elf_binary>>
+>>
+>> Assigns result of vm_mmap() to "error" variable which is never checked.
+>
+> Yes it is not checked but not used either. If the current got killed
+> then it wouldn't return to the userspace so my understanding is that not
+> checking this value is not a problem. At least that is my understanding.
 
-thanks!
-> 
-> [...]
-> 
-> >@@ -378,7 +381,9 @@ static int load_aout_library(struct file *file)
-> >  			       "N_TXTOFF is not page aligned. Please convert library: %pD\n",
-> >  			       file);
-> >  		}
-> >-		vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
-> >+		retval = vm_brk(start_addr, ex.a_text + ex.a_data + ex.a_bss);
-> >+		if (IS_ERR_VALUE(retval))
-> >+			goto out;
-> >  		
-> 
-> You could have removed the extra whitespace on the line above, which my vim
-> so prominently highlights :)
+Hmm, that's true. So,
 
-Fixed
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
 
-> 
-> >  		read_code(file, start_addr, N_TXTOFF(ex),
-> >  			  ex.a_text + ex.a_data);
-> >
+>> Shouldn't __must_check trigger here?
+>
+> well, __must_check is a misleading name. It doesn't actually enforce the
+> value is checked. It just has to be used and an assignment is
+> sufficient. I was discussing this without our gcc guy and he promissed
+> to look and try to come up with a different attribute which would
+> actually work like __must_check.
 
--- 
-Michal Hocko
-SUSE Labs
+OK!
