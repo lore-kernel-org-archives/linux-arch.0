@@ -1,44 +1,51 @@
-From: Noam Camus <noamca@mellanox.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Subject: Re: [PATCH] arc: use little endian accesses
-Date: Fri, 11 Mar 2016 05:07:09 +0000
-Message-ID: <HE1PR05MB1625869B55C8FB5657477812AAB50@HE1PR05MB1625.eurprd05.prod.outlook.com>
+Date: Fri, 11 Mar 2016 05:18:32 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4E8F5FE@us01wembx1.internal.synopsys.com>
 References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
  <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
- <1457595846.2868.10.camel@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>,
- <1457636268.457.34.camel@synopsys.com>
+ <201603100845.30602.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1457636268.457.34.camel@synopsys.com>
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:34434 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750727AbcCKFSf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 00:18:35 -0500
 Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Lada Trimasova <Lada.Trimasova@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Lada Trimasova <Lada.Trimasova@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Noam Camus <noamc@ezchip.com>
 
-> From: Lada Trimasova <Lada.Trimasova@synopsys.com>
-> Sent: Thursday, March 10, 2016 8:57 PM
+On Thursday 10 March 2016 01:15 PM, Arnd Bergmann wrote:
+> On Thursday 10 March 2016, Vineet Gupta wrote:
+>> On Wednesday 09 March 2016 10:51 PM, Lada Trimasova wrote:
+>>> Memory access primitives should use cpu_to_le16, cpu_to_le32, le16_to_cpu
+>>> and le32_to_cpu because it is not really guaranteed that drivers handles
+>>> any ordering themselves.
+>> That is the driver issue. readxx as API simply returns data in native endianness.
+>> We've had EZChip running big endian and so far and they didn't need this change.
+> Most drivers using readl() or readl_relaxed() expect those to perform byte
+> swaps on big-endian architectures, as the registers tend to be fixed endian,
+> so the change seems reasonable.
+>
+> It depends a little bit on how endian mode is implemented in the CPU: do you
+> follow the normal model of swapping byte order in the load/store instructions
+> of the CPU when running big-endian, or is the CPU always running little-endian
+> but the bus addresses get mangled on byte accesses to give the illusion
+> of a big-endian system?
 
-> And for example, let's see what happens when we use "readl" in  function "serial8250_early_in" in driver/tty/serial/8250.
+OK I got the response from hardware guys that we follow the normal mode of
+swapping byte order for big-endian mode. Arnd can u please explain how that might
+impact the io accessors, it at all.
 
-Is your DTS entry includes for serial node following entries:
-reg-io-width = <4>
-native-endian;
+And what exactly are semantics of readX() and ioreadX() - even if arch specific
+and I'd be glad to change that for ARC.
 
-if answer is yes you should expect (in case of big endian compilation) that:
-port->iotype would be equal to UPIO_MEM32BE, hence no readl() use for this case.
+I can also help with documenting them properly some where as went digging into
+mailing list first thing Lada posted this patch :-)
 
-This is how it works for me here, it sounds like your case is similar.
-
-Regards,
-Noam
+Thx,
+-Vineet
