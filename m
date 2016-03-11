@@ -1,40 +1,39 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Date: Fri, 11 Mar 2016 03:15:22 -0800
-Message-ID: <20160311111522.GA3450@infradead.org>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160308073847.GA15520@infradead.org>
- <20160310160522.GB1111@bigcity.dyn.berto.se>
- <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for
+ mmap_sem for write killable
+Date: Fri, 11 Mar 2016 12:28:14 +0100
+Message-ID: <56E2ABCE.5070205@suse.cz>
+References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-11-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-2; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:52768 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751648AbcCKLPX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 06:15:23 -0500
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
+Received: from mx2.suse.de ([195.135.220.15]:58143 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751534AbcCKL2T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Mar 2016 06:28:19 -0500
+In-Reply-To: <1456752417-9626-11-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>Pe
 
-On Thu, Mar 10, 2016 at 10:47:10PM -0800, Dan Williams wrote:
-> I think it is confusing to use the dma_ prefix for this peer-to-peer
-> mmio functionality.  dma_addr_t is a device's view of host memory.
-> Something like bus_addr_t bus_map_resource().  Doesn't this routine
-> also need the source device in addition to the target device?  The
-> resource address is from the perspective of the host cpu, it may be a
-> different address space in the view of two devices relative to each
-> other.
+On 02/29/2016 02:26 PM, Michal Hocko wrote:
+> From: Michal Hocko <mhocko@suse.com>
+>
+> most architectures are relying on mmap_sem for write in their
+> arch_setup_additional_pages. If the waiting task gets killed by the oom
+> killer it would block oom_reaper from asynchronous address space reclaim
+> and reduce the chances of timely OOM resolving. Wait for the lock in
+> the killable mode and return with EINTR if the task got killed while
+> waiting.
+>
+> Cc: linux-arch@vger.kernel.org
+> Cc: Andy Lutomirski <luto@amacapital.net>
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
 
-Is it supposed to be per-mmio?  It's in dma-mapping ops, and has dma
-in the name, so I suspected it's for some form of peer dma.  But given
-that our dma APIs reuqire a struct page backing I have no idea how this
-even supposed to work, and this little documentation blurb still doesn't
-clear that up.
 
-So for now I'd like to NAK this patch until the use case can be
-explained clearly, and actually works.
+I don't have much arch-specific insight, but looks OK.
+
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
