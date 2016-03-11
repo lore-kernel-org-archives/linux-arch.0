@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36254 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:37825 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751374AbcCKKfh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Mar 2016 05:35:37 -0500
-Subject: Re: [PATCH 05/18] mm, elf: handle vm_brk error
+	id S1751511AbcCKKo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Mar 2016 05:44:26 -0500
+Subject: Re: [PATCH 06/18] mm: make vm_brk killable
 References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-6-git-send-email-mhocko@kernel.org>
+ <1456752417-9626-7-git-send-email-mhocko@kernel.org>
 From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <56E29F75.4010004@suse.cz>
-Date: Fri, 11 Mar 2016 11:35:33 +0100
+Message-ID: <56E2A186.5000404@suse.cz>
+Date: Fri, 11 Mar 2016 11:44:22 +0100
 MIME-Version: 1.0
-In-Reply-To: <1456752417-9626-6-git-send-email-mhocko@kernel.org>
+In-Reply-To: <1456752417-9626-7-git-send-email-mhocko@kernel.org>
 Content-Type: text/plain; charset=iso-8859-2; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160311103533.DLgVthj9LCWUnUkNFrBFx-YWrVjTUg8FRb3cTXL2un4@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160311104422.0c6rwmLJISY5l1wTjaZDHffMClvkrgBPpt5Ua98_s9A@z>
 
 On 02/29/2016 02:26 PM, Michal Hocko wrote:
 > From: Michal Hocko <mhocko@suse.com>
 >
-> load_elf_library doesn't handle vm_brk failure although nothing really
-> indicates it cannot do that because the function is allowed to fail
-> due to vm_mmap failures already. This might be not a problem now
-> but later patch will make vm_brk killable (resp. mmap_sem for write
-> waiting will become killable) and so the failure will be more probable.
+> Now that all the callers handle vm_brk failure we can change it
+> wait for mmap_sem killable to help oom_reaper to not get blocked
+> just because vm_brk gets blocked behind mmap_sem readers.
 >
-> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+> Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Cc: Andrea Arcangeli <aarcange@redhat.com>
 > Signed-off-by: Michal Hocko <mhocko@suse.com>
 
 Acked-by: Vlastimil Babka <vbabka@suse.cz>
