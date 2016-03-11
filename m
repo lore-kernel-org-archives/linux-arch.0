@@ -1,72 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f178.google.com ([209.85.217.178]:34952 "EHLO
-	mail-lb0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752551AbcCKM6u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 07:58:50 -0500
-Received: by mail-lb0-f178.google.com with SMTP id bc4so154300766lbc.2
-        for <linux-arch@vger.kernel.org>; Fri, 11 Mar 2016 04:58:49 -0800 (PST)
-Date: Fri, 11 Mar 2016 13:58:46 +0100
-From: Niklas =?iso-8859-1?Q?S=F6derlund?=
-	<niklas.soderlund@ragnatech.se>
+Received: from foss.arm.com ([217.140.101.70]:50431 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753200AbcCKNqr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Mar 2016 08:46:47 -0500
 Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Message-ID: <20160311125846.GF1111@bigcity.dyn.berto.se>
 References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
  <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
  <20160308073847.GA15520@infradead.org>
  <20160310160522.GB1111@bigcity.dyn.berto.se>
  <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
- <20160311111522.GA3450@infradead.org>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <56E2CC42.5070406@arm.com>
+Date: Fri, 11 Mar 2016 13:46:42 +0000
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20160311111522.GA3450@infradead.org>
+In-Reply-To: <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20160311125846.cJrSZwjf-Jq8T864wDmJqYpSyBvRgVU7-wL-NvPRaE4@z>
+To: Dan Williams <dan.j.williams@intel.com>, Christoph Hellwig <hch@infradead.org>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160311134642.aVoRqN-4aXrimeSSurt8HNQATxijz3MyB61viEC7bAo@z>
 
-Hi all,
+Hi Dan,
 
-Thanks for your comments.
+On 11/03/16 06:47, Dan Williams wrote:
+> On Thu, Mar 10, 2016 at 8:05 AM, Niklas S??derlund
+> <niklas.soderlund@ragnatech.se> wrote:
+>> Hi Christoph,
+>>
+>> On 2016-03-07 23:38:47 -0800, Christoph Hellwig wrote:
+>>> Please add some documentation on where/how this should be used.  It's
+>>> not a very obvious interface.
+>>
+>> Good idea, I have added the following to Documentation/DMA-API.txt and
+>> folded it in to this patch. Do you feel it's adequate and do you know
+>> anywhere else I should add documentation?
+>>
+>> diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
+>> index 45ef3f2..248556a 100644
+>> --- a/Documentation/DMA-API.txt
+>> +++ b/Documentation/DMA-API.txt
+>> @@ -277,14 +277,29 @@ and <size> parameters are provided to do partial page mapping, it is
+>>   recommended that you never use these unless you really know what the
+>>   cache width is.
+>>
+>> +dma_addr_t
+>> +dma_map_resource(struct device *dev, phys_addr_t phys_addr, size_t size,
+>> +                enum dma_data_direction dir, struct dma_attrs *attrs)
+>> +
+>> +Maps a MMIO region so it can be accessed by the device and returns the
+>> +DMA address of the memory. API should only be used to map device MMIO,
+>> +mapping of RAM is not permitted.
+>> +
+>
+> I think it is confusing to use the dma_ prefix for this peer-to-peer
+> mmio functionality.  dma_addr_t is a device's view of host memory.
+> Something like bus_addr_t bus_map_resource().  Doesn't this routine
+> also need the source device in addition to the target device?  The
+> resource address is from the perspective of the host cpu, it may be a
+> different address space in the view of two devices relative to each
+> other.
 
-On 2016-03-11 03:15:22 -0800, Christoph Hellwig wrote:
-> On Thu, Mar 10, 2016 at 10:47:10PM -0800, Dan Williams wrote:
-> > I think it is confusing to use the dma_ prefix for this peer-to-peer
-> > mmio functionality.  dma_addr_t is a device's view of host memory.
-> > Something like bus_addr_t bus_map_resource().  Doesn't this routine
-> > also need the source device in addition to the target device?  The
-> > resource address is from the perspective of the host cpu, it may be a
-> > different address space in the view of two devices relative to each
-> > other.
-> 
-> Is it supposed to be per-mmio?  It's in dma-mapping ops, and has dma
-> in the name, so I suspected it's for some form of peer dma.  But given
-> that our dma APIs reuqire a struct page backing I have no idea how this
-> even supposed to work, and this little documentation blurb still doesn't
-> clear that up.
-> 
-> So for now I'd like to NAK this patch until the use case can be
-> explained clearly, and actually works.
+Hmm, the trouble with that is that when the DMA master is behind an 
+IOMMU, the address space as seen by the device is dynamic and whatever 
+we decide it to be, so there is no distinction between a "DMA" address 
+and a "bus" address.
 
-I can explain the use case and maybe we can figure out if this approach 
-is the correct one to solve it.
+In practice the dmaengine API has clearly worked for however long with 
+slave MMIO addresses being a dma_addr_t, and it doesn't look like anyone 
+objected to the change to phys_addr_t in -next either. If nothing is 
+using bus_addr_t anyway, what's the right thing to do? Looking up 
+through higher abstraction layers, we have the likes of struct 
+snd_dmaengine_dai_dma_data also expecting the slave address to be a 
+dma_addr_t, leading to things like the direct casting in 
+bcm2835_i2s_probe() for the non-IOMMU dma != phys != bus case that could 
+also be cleaned up with this proposed interface.
 
-The problem is that I have devices behind an IOMMU which I would like to 
-use with DMA. Vinod recently moved forward with his and Linus Walleij
-patch '[PATCH] dmaengine: use phys_addr_t for slave configuration' which 
-clarifies that the DMA slave address provided by a client is the 
-physical address. This puts the task of mapping the DMA slave address 
-from a phys_addr_t to a dma_addr_t on the DMA engine.
-
-Without an IOMMU this is easy since the phys_addr_t and dma_addr_t are 
-the same and no special care is needed. However if you have a IOMMU you 
-need to map the DMA slave phys_addr_t to a dma_addr_t using something 
-like this. Is it not very similar to dma_map_single() where one maps 
-processor virtual memory (instead if MMIO) so that it can be used with 
-DMA slaves?
-
--- 
-Regards,
-Niklas Söderlund
+Robin.
