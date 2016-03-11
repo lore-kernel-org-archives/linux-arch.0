@@ -1,60 +1,98 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH 18/18] drm/amdgpu: make amdgpu_mn_get wait for mmap_sem
- killable
-Date: Fri, 11 Mar 2016 16:29:23 +0100
-Message-ID: <56E2E453.1090305@suse.cz>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-19-git-send-email-mhocko@kernel.org>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Fri, 11 Mar 2016 09:51:49 -0800
+Message-ID: <CAPcyv4irvir8kmVwfgLMP0WJaycYycxT1sa3Ttv0VeGkyijezQ@mail.gmail.com>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<20160308073847.GA15520@infradead.org>
+	<20160310160522.GB1111@bigcity.dyn.berto.se>
+	<CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
+	<56E2CC42.5070406@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1456752417-9626-19-git-send-email-mhocko@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f43.google.com ([209.85.218.43]:34893 "EHLO
+	mail-oi0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750747AbcCKRvu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 12:51:50 -0500
+Received: by mail-oi0-f43.google.com with SMTP id c203so91249447oia.2
+        for <linux-arch@vger.kernel.org>; Fri, 11 Mar 2016 09:51:50 -0800 (PST)
+In-Reply-To: <56E2CC42.5070406@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On 02/29/2016 02:26 PM, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
+On Fri, Mar 11, 2016 at 5:46 AM, Robin Murphy <robin.murphy@arm.com> wrote:
+> Hi Dan,
 >
-> amdgpu_mn_get which is called during ioct path relies on mmap_sem for
-> write. If the waiting task gets killed by the oom killer it would block
-> oom_reaper from asynchronous address space reclaim and reduce the
-> chances of timely OOM resolving. Wait for the lock in the killable mode
-> and return with EINTR if the task got killed while waiting.
 >
-> Cc: David Airlie <airlied@linux.ie>
-> Cc: Alex Deucher <alexander.deucher@amd.com>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
+> On 11/03/16 06:47, Dan Williams wrote:
+>>
+>> On Thu, Mar 10, 2016 at 8:05 AM, Niklas S??derlund
+>> <niklas.soderlund@ragnatech.se> wrote:
+>>>
+>>> Hi Christoph,
+>>>
+>>> On 2016-03-07 23:38:47 -0800, Christoph Hellwig wrote:
+>>>>
+>>>> Please add some documentation on where/how this should be used.  It's
+>>>> not a very obvious interface.
+>>>
+>>>
+>>> Good idea, I have added the following to Documentation/DMA-API.txt and
+>>> folded it in to this patch. Do you feel it's adequate and do you know
+>>> anywhere else I should add documentation?
+>>>
+>>> diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
+>>> index 45ef3f2..248556a 100644
+>>> --- a/Documentation/DMA-API.txt
+>>> +++ b/Documentation/DMA-API.txt
+>>> @@ -277,14 +277,29 @@ and <size> parameters are provided to do partial
+>>> page mapping, it is
+>>>   recommended that you never use these unless you really know what the
+>>>   cache width is.
+>>>
+>>> +dma_addr_t
+>>> +dma_map_resource(struct device *dev, phys_addr_t phys_addr, size_t size,
+>>> +                enum dma_data_direction dir, struct dma_attrs *attrs)
+>>> +
+>>> +Maps a MMIO region so it can be accessed by the device and returns the
+>>> +DMA address of the memory. API should only be used to map device MMIO,
+>>> +mapping of RAM is not permitted.
+>>> +
+>>
+>>
+>> I think it is confusing to use the dma_ prefix for this peer-to-peer
+>> mmio functionality.  dma_addr_t is a device's view of host memory.
+>> Something like bus_addr_t bus_map_resource().  Doesn't this routine
+>> also need the source device in addition to the target device?  The
+>> resource address is from the perspective of the host cpu, it may be a
+>> different address space in the view of two devices relative to each
+>> other.
+>
+>
+> Hmm, the trouble with that is that when the DMA master is behind an IOMMU,
+> the address space as seen by the device is dynamic and whatever we decide it
+> to be, so there is no distinction between a "DMA" address and a "bus"
+> address.
+>
+> In practice the dmaengine API has clearly worked for however long with slave
+> MMIO addresses being a dma_addr_t, and it doesn't look like anyone objected
+> to the change to phys_addr_t in -next either. If nothing is using bus_addr_t
+> anyway, what's the right thing to do? Looking up through higher abstraction
+> layers, we have the likes of struct snd_dmaengine_dai_dma_data also
+> expecting the slave address to be a dma_addr_t, leading to things like the
+> direct casting in bcm2835_i2s_probe() for the non-IOMMU dma != phys != bus
+> case that could also be cleaned up with this proposed interface.
+>
 
+So the "bus_addr_t" reaction was prompted by the recent activity of
+RDMA developers looking to re-use the devm_memremap_pages() api.  That
+enabling is looking at how to setup peer-to-peer PCI-E cycles for an
+RDMA device to deliver data to another local device without taking a
+round trip through host memory.
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
-
-> ---
->   drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c | 5 ++++-
->   1 file changed, 4 insertions(+), 1 deletion(-)
->
-> diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> index d7ec9bd6755f..6f44f1c23be3 100644
-> --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> @@ -181,7 +181,10 @@ static struct amdgpu_mn *amdgpu_mn_get(struct amdgpu_device *adev)
->   	int r;
->
->   	mutex_lock(&adev->mn_lock);
-> -	down_write(&mm->mmap_sem);
-> +	if (down_write_killable(&mm->mmap_sem)) {
-> +		mutex_unlock(&adev->mn_lock);
-> +		return -EINTR;
-> +	}
->
->   	hash_for_each_possible(adev->mn_hash, rmn, node, (unsigned long)mm)
->   		if (rmn->mm == mm)
->
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I understand the history of the dmaengine-slave implementation, but it
+seems we're getting to point where we need a less overloaded
+identifier than "dma" for the case of devices talking to each other.
