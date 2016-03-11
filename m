@@ -1,33 +1,40 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH 06/18] mm: make vm_brk killable
-Date: Fri, 11 Mar 2016 11:44:22 +0100
-Message-ID: <56E2A186.5000404@suse.cz>
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-7-git-send-email-mhocko@kernel.org>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Fri, 11 Mar 2016 03:15:22 -0800
+Message-ID: <20160311111522.GA3450@infradead.org>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160308073847.GA15520@infradead.org>
+ <20160310160522.GB1111@bigcity.dyn.berto.se>
+ <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:37825 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751511AbcCKKo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Mar 2016 05:44:26 -0500
-In-Reply-To: <1456752417-9626-7-git-send-email-mhocko@kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:52768 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751648AbcCKLPX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 06:15:23 -0500
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>Pe
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On 02/29/2016 02:26 PM, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
->
-> Now that all the callers handle vm_brk failure we can change it
-> wait for mmap_sem killable to help oom_reaper to not get blocked
-> just because vm_brk gets blocked behind mmap_sem readers.
->
-> Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: Andrea Arcangeli <aarcange@redhat.com>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
+On Thu, Mar 10, 2016 at 10:47:10PM -0800, Dan Williams wrote:
+> I think it is confusing to use the dma_ prefix for this peer-to-peer
+> mmio functionality.  dma_addr_t is a device's view of host memory.
+> Something like bus_addr_t bus_map_resource().  Doesn't this routine
+> also need the source device in addition to the target device?  The
+> resource address is from the perspective of the host cpu, it may be a
+> different address space in the view of two devices relative to each
+> other.
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Is it supposed to be per-mmio?  It's in dma-mapping ops, and has dma
+in the name, so I suspected it's for some form of peer dma.  But given
+that our dma APIs reuqire a struct page backing I have no idea how this
+even supposed to work, and this little documentation blurb still doesn't
+clear that up.
+
+So for now I'd like to NAK this patch until the use case can be
+explained clearly, and actually works.
