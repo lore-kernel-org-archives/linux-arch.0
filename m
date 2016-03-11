@@ -1,56 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:51894 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752340AbcCJS5y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2016 13:57:54 -0500
-From: Lada Trimasova <Lada.Trimasova@synopsys.com>
+Received: from mail-db5eur01on0054.outbound.protection.outlook.com ([104.47.2.54]:15569
+	"EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750727AbcCKFWL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 00:22:11 -0500
+From: Noam Camus <noamca@mellanox.com>
 Subject: Re: [PATCH] arc: use little endian accesses
-Date: Thu, 10 Mar 2016 18:57:48 +0000
-Message-ID: <1457636268.457.34.camel@synopsys.com>
+Date: Fri, 11 Mar 2016 05:07:09 +0000
+Message-ID: <HE1PR05MB1625869B55C8FB5657477812AAB50@HE1PR05MB1625.eurprd05.prod.outlook.com>
 References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
 	 <C2D7FE5348E1B147BCA15975FBA23075F4E8EDF9@us01wembx1.internal.synopsys.com>
 	 <1457595846.2868.10.camel@synopsys.com>
-	 <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
-Reply-To: Lada Trimasova <Lada.Trimasova@synopsys.com>
+	 <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>,<1457636268.457.34.camel@synopsys.com>
+In-Reply-To: <1457636268.457.34.camel@synopsys.com>
 Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <16A1B0FC5D995546B381FA5659684CC9@internal.synopsys.com>
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "noamc@ezchip.com" <noamc@ezchip.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20160310185748.5f4btGTGMi0YAvH2xc7mHRpVUuCK7cpK8FBbvl1_FEk@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Lada Trimasova <Lada.Trimasova@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20160311050709.Lq0mAOAVoV015SlXV-Wc5ZkGcz5AUSdDpuvtyWJCLXc@z>
 
-SGkgVmluZWV0LCBBbGV4ZXksIEFybmQsDQpPbiBUaHUsIDIwMTYtMDMtMTAgYXQgMDk6NTUgKzAw
-MDAsIFZpbmVldCBHdXB0YSB3cm90ZToNCg0KQ2FuIHlvdSBvciBMYWRhIHByb3ZpZGUgbW9yZSBk
-ZXRhaWxzIGFzIHRvIGV4YWN0bHkgd2hhdCBpcyBub3Qgd29ya2luZyAtIHdoYXQNCmRyaXZlciB0
-byBiZSBwcmVjaXNlIDgyNTAgb3IgZHctODI1MC4NCkFuZCB3aGVyZSBleGFjdGx5IHRoZSBmYWls
-dXJlIHNob3dzIHVwLiBJIHdhbnQgdG8gdW5kZXJzdGFuZCB0aGlzIG1vcmUNCk5vYW0gdG9sZCBt
-ZSBvZmYgbGlzdCB0aGF0IGhlIGhhcyBubyBpc3N1ZXMgd2l0aCBib3RoIGJpZyBlbmRpYW4gQVJD
-ICsgODI1MCBpbg0Kc3lzdGVtYyBtb2RlbCBvciBzaWxpY29uLg0KDQotVmluZWV0DQoNCg0KDQpE
-cml2ZXIgaXMgODI1MCwga2VybmVsIGlzIGJ1aWx0IGZvciBCRSBhcmMsIG5zaW0gb3B0aW9uIGlu
-IG1vZGVsICJuc2ltX2lzYV9iaWdfZW5kaWFuID0gMSIuDQoNCldpdGggY3VycmVudCAicmVhZGwi
-IGFuZCAid3JpdGVsIiBpbXBsZW1lbnRhdGlvbiBmb3IgQVJDIHdlIHJlYWQgd29yZCBmcm9tIG1l
-bW9yeSB3aXRob3V0IGFueSBlbmRpYW5lc3MgbWFuaXB1bGF0aW9uLiBTbyBpbiBjYXNlIG9mIGxp
-dHRsZSBlbmRpYW4gYXJjaGl0ZWN0dXJlIHdlIGdldCB3aGF0IHdlIHdhbnQ6IHRoZSBmaXJzdCBt
-ZW1vcnkgYnl0ZSBpcyB0aGUgbG93IGJ5dGUgaW4gdGhlIHdvcmQuIEJ1dCBpbiBjYXNlIG9mIGJp
-ZyBlbmRpYW4gYXJjaGl0ZWN0dXJlIHRoZSB3b3JkIGVuZGlhbmVzcyBpcyBzd2FwcGVkOiB0aGUg
-Zmlyc3QgbWVtb3J5IGJ5dGUgaXMgdGhlIGhpZ2ggd29yZCBieXRlLg0KDQpBbmQgZm9yIGV4YW1w
-bGUsIGxldCdzIHNlZSB3aGF0IGhhcHBlbnMgd2hlbiB3ZSB1c2UgInJlYWRsIiBpbiAgZnVuY3Rp
-b24gInNlcmlhbDgyNTBfZWFybHlfaW4iIGluIGRyaXZlci90dHkvc2VyaWFsLzgyNTAuDQoNClRh
-a2UgYSBsb29rIHRvIG9uZSBsaW5lIGZyb20gbWVtb3J5IGR1bXA6DQoweGYwMDAwMDEwOiAweDBi
-ICAgIDB4MDAgICAgMHgwMCAgICAweDAwICAgIDB4NjAgICAgMHgwMCAgICAweDAwICAgIDB4MDAN
-Cg0KV2hlbiBrZXJuZWwgaXMgYnVpbHQgZm9yIGxpdHRsZSBlbmRpYW4gYXJjaGl0ZWN0dXJlLCB3
-ZSByZWFkIHRoaXMgZGF0YSBpbiBzdGF0dXMgcmVnaXN0ZXIgaW4gZnVuY3Rpb24gInNlcmlhbF9w
-dXRjIiB1c2luZyAicmVhZGwiIGZ1bmN0aW9uIGluIGRyaXZlci90dHkvc2VyaWFsLzgyNTAgYXM6
-DQpyMDogMHgwMDAwMDA2DQpUaGUgbG93IGJ5dGUgaXMgMHgwYiwgc28gdGhlIGNvbmRpdGlvbiAi
-aWYgKChzdGF0dXMgJiBCT1RIX0VNUFRZKSA9PSBCT1RIX0VNUFRZKSIgIGlzIHRydWUsIGFzIEJP
-VEhfRU1QVFkgaXMgc29tZSBtYXNrIHdpdGggbG93IGJ5dGVzIHNldC4NCg0KV2hlbiBrZXJuZWwg
-aXMgYnVpbHQgd2l0aCAiQ1BVX0JJR19FTkRJQU4iIGFuZCBtb2RlbCBuc2ltIG9wdGlvbiBpcyAi
-bnNpbV9pc2FfYmlnX2VuZGlhbj0xIiwgd2UgcmVhZCB0aGlzIGRhdGEgYXM6DQpyMDogMHg2MDAw
-MDAwDQpTbyBhcyB5b3UgY2FuIHNlZSB0aGUgbG93IGJ5dGUgaXMgMHgwMCBhbmQgYWJvdmUgbWVu
-dGlvbmVkIGNvbmRpdGlvbiBuZXZlciBiZWNvbWVzIHRydWUsIHdlIGNhbid0IGNvbnRpbnVlIGlu
-aXRpYWxpemF0aW9uLg0KDQoNClJlZ2FyZHMsDQpMYWRhDQo=
+> From: Lada Trimasova <Lada.Trimasova@synopsys.com>
+> Sent: Thursday, March 10, 2016 8:57 PM
+
+> And for example, let's see what happens when we use "readl" in  function "serial8250_early_in" in driver/tty/serial/8250.
+
+Is your DTS entry includes for serial node following entries:
+reg-io-width = <4>
+native-endian;
+
+if answer is yes you should expect (in case of big endian compilation) that:
+port->iotype would be equal to UPIO_MEM32BE, hence no readl() use for this case.
+
+This is how it works for me here, it sounds like your case is similar.
+
+Regards,
+Noam
