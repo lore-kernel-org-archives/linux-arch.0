@@ -1,60 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:35911 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932570AbcCKP31 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Mar 2016 10:29:27 -0500
-Subject: Re: [PATCH 18/18] drm/amdgpu: make amdgpu_mn_get wait for mmap_sem
- killable
-References: <1456752417-9626-1-git-send-email-mhocko@kernel.org>
- <1456752417-9626-19-git-send-email-mhocko@kernel.org>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <56E2E453.1090305@suse.cz>
-Date: Fri, 11 Mar 2016 16:29:23 +0100
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:54149 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753220AbcCLEUS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 23:20:18 -0500
+Subject: Re: [PATCH] arc: use little endian accesses
+References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
+ <1457636268.457.34.camel@synopsys.com> <201603102023.59425.arnd@arndb.de>
+ <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <56E398F1.7090500@synopsys.com>
+Date: Sat, 12 Mar 2016 09:50:01 +0530
 MIME-Version: 1.0
-In-Reply-To: <1456752417-9626-19-git-send-email-mhocko@kernel.org>
-Content-Type: text/plain; charset=iso-8859-2; format=flowed
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Alex Deucher <alexander.deucher@amd.com>, Alex Thorlton <athorlton@sgi.com>, Andrea Arcangeli <aarcange@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Benjamin LaHaise <bcrl@kvack.org>, =?UTF-8?Q?Christian_K=c3=b6nig?= <christian.koenig@amd.com>, Daniel Vetter <daniel.vetter@intel.com>, Dave Hansen <dave.hansen@linux.intel.com>, David Airlie <airlied@linux.ie>, Davidlohr Bueso <dave@stgolabs.net>, David Rientjes <rientjes@google.com>, "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>, Ingo Molnar <mingo@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Mel Gorman <mgorman@suse.de>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Petr Cermak <petrcermak@chromium.org>, Thomas Gleixner <tglx@linutronix.de>, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160311152923.dU9cWvoaoQHLpCuwnwrb_EyLW0L0CMhmlioGmX4kUno@z>
+To: Arnd Bergmann <arnd@arndb.de>, Lada Trimasova <Lada.Trimasova@synopsys.com>, "noamc@ezchip.com" <noamc@ezchip.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Message-ID: <20160312042001.vCaemdIQ61mphPZoCg8v8nCNm6IzprXEiAiovKByQ60@z>
 
-On 02/29/2016 02:26 PM, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
->
-> amdgpu_mn_get which is called during ioct path relies on mmap_sem for
-> write. If the waiting task gets killed by the oom killer it would block
-> oom_reaper from asynchronous address space reclaim and reduce the
-> chances of timely OOM resolving. Wait for the lock in the killable mode
-> and return with EINTR if the task got killed while waiting.
->
-> Cc: David Airlie <airlied@linux.ie>
-> Cc: Alex Deucher <alexander.deucher@amd.com>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
+On Friday 11 March 2016 06:14 PM, Vineet Gupta wrote:
+> @Lada I will fix up the changelog to add some of the background behind this
+> change, and mark this for stable backport as well.
 
+This is what I'm planning to add.
+Noam please give this a spin - you might have to revert those native-endian DT
+bindings from UART DT.
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
-
-> ---
->   drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c | 5 ++++-
->   1 file changed, 4 insertions(+), 1 deletion(-)
->
-> diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> index d7ec9bd6755f..6f44f1c23be3 100644
-> --- a/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> +++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_mn.c
-> @@ -181,7 +181,10 @@ static struct amdgpu_mn *amdgpu_mn_get(struct amdgpu_device *adev)
->   	int r;
->
->   	mutex_lock(&adev->mn_lock);
-> -	down_write(&mm->mmap_sem);
-> +	if (down_write_killable(&mm->mmap_sem)) {
-> +		mutex_unlock(&adev->mn_lock);
-> +		return -EINTR;
-> +	}
->
->   	hash_for_each_possible(adev->mn_hash, rmn, node, (unsigned long)mm)
->   		if (rmn->mm == mm)
->
-
+----->
