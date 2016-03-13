@@ -1,98 +1,55 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] arc: use little endian accesses
-Date: Sat, 12 Mar 2016 09:50:01 +0530
-Message-ID: <56E398F1.7090500@synopsys.com>
-References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
- <1457636268.457.34.camel@synopsys.com> <201603102023.59425.arnd@arndb.de>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
+Date: Sat, 12 Mar 2016 17:02:33 -0800
+Message-ID: <CALCETrWNwt2-1JHTktAL-ppRbLgJ-aY9GDPkrf+46-qbh8aemw@mail.gmail.com>
+References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
+ <20160304094424.GA16228@gmail.com> <1457115514.15454.216.camel@hpe.com>
+ <20160305114012.GA7259@gmail.com> <1457370228.15454.311.camel@hpe.com>
+ <CALCETrUQsf7S-b+zDrof0g61NnSB3XuqdAxjsHyJfjT3D39D3Q@mail.gmail.com> <1457735807.6393.206.camel@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:54149 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753220AbcCLEUS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 23:20:18 -0500
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+Received: from mail-ob0-f175.google.com ([209.85.214.175]:34480 "EHLO
+	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753691AbcCMBCx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 Mar 2016 20:02:53 -0500
+Received: by mail-ob0-f175.google.com with SMTP id ts10so146398536obc.1
+        for <linux-arch@vger.kernel.org>; Sat, 12 Mar 2016 17:02:53 -0800 (PST)
+In-Reply-To: <1457735807.6393.206.camel@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Lada Trimasova <Lada.Trimasova@synopsys.com>, "noamc@ezchip.com" <noamc@ezchip.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: Ingo Molnar <mingo@kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
 
-On Friday 11 March 2016 06:14 PM, Vineet Gupta wrote:
-> @Lada I will fix up the changelog to add some of the background behind this
-> change, and mark this for stable backport as well.
+On Fri, Mar 11, 2016 at 2:36 PM, Toshi Kani <toshi.kani@hpe.com> wrote:
+> On Thu, 2016-03-10 at 22:47 -0800, Andy Lutomirski wrote:
+>> On Mon, Mar 7, 2016 at 9:03 AM, Toshi Kani <toshi.kani@hpe.com> wrote:
+>> > Let me try to summarize...
+>> >
+>> > The original issue Luis brought up was that drivers written to work
+>> > with MTRR may create a single ioremap range covering multiple cache
+>> > attributes since MTRR can overwrite cache attribute of a certain
+>> > range.  Converting such drivers with PAT-based ioremap interfaces, i.e.
+>> > ioremap_wc() and ioremap_nocache(), requires a separate ioremap map for
+>> > each cache attribute, which can be challenging as it may result in
+>> > overlapping ioremap ranges (in his term) with different cache
+>> > attributes.
+>> >
+>> > So, Luis asked about 'sematics of overlapping ioremap()' calls.  Hence,
+>> > I responded that aliasing mapping itself is supported, but alias with
+>> > different cache attribute is not.  We have checks in place to detect
+>> > such condition.  Overlapping ioremap calls with a different cache
+>> > attribute either fails or gets redirected to the existing cache
+>> > attribute on x86.
+>>
+>> A little off-topic, but someone reminded me recently: most recent CPUs
+>> have self-snoop.  It's poorly documented, but on self-snooping CPUs, I
+>> think that a lot of the aliasing issues go away.  We may be able to
+>> optimize the code quite a bit on these CPUs.
+>
+> Interesting.  I wonder how much we can rely on this feature.  Yes, by
+> looking at Intel SDM, it is indeed poorly documented. :-(
 
-This is what I'm planning to add.
-Noam please give this a spin - you might have to revert those native-endian DT
-bindings from UART DT.
+Any Intel people want to give us a hint?
 
------>
-From f778cc65717687a3d3f26dd21bef62cd059f1b8b Mon Sep 17 00:00:00 2001
-From: Lada Trimasova <ltrimas@synopsys.com>
-Date: Wed, 9 Mar 2016 20:21:04 +0300
-Subject: [PATCH] ARC: [BE] readl()/writel() to work in Big Endian CPU
- configuration
-
-read{l,w}() write{l,w}() primitives should use le{16,32}_to_cpu() and
-cpu_to_le{16,32}() respectively to ensure device registers are read
-correctly in Big Endian CPU configuration.
-
-Per Arnd Bergmann
-| Most drivers using readl() or readl_relaxed() expect those to perform byte
-| swaps on big-endian architectures, as the registers tend to be fixed endian
-
-This was needed for getting UART to work correctly on a Big Endian ARC.
-
-The ARC accessors originally were fine, and the bug got introduced
-inadventently by commit b8a033023994 ("ARCv2: barriers")
-
-Fixes: b8a033023994 ("ARCv2: barriers")
-Link: http://lkml.kernel.org/r/201603100845.30602.arnd@arndb.de
-Cc: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: stable@vger.kernel.org  [4.2+]
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Lada Trimasova <ltrimas@synopsys.com>
-[vgupta: beefed up changelog, added Fixes/stable tags]
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/io.h | 18 +++++++++++++-----
- 1 file changed, 13 insertions(+), 5 deletions(-)
-
-diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
-index 694ece8a0243..27b17adea50d 100644
---- a/arch/arc/include/asm/io.h
-+++ b/arch/arc/include/asm/io.h
-@@ -129,15 +129,23 @@ static inline void __raw_writel(u32 w, volatile void __iomem
-*addr)
- #define writel(v,c)		({ __iowmb(); writel_relaxed(v,c); })
-
- /*
-- * Relaxed API for drivers which can handle any ordering themselves
-+ * Relaxed API for drivers which can handle barrier ordering themselves
-+ *
-+ * Also these are defined to perform little endian accesses.
-+ * To provide the typical device register semantics of fixed endian,
-+ * swap the byte order for Big Endian
-+ *
-+ * http://lkml.kernel.org/r/201603100845.30602.arnd@arndb.de
-  */
- #define readb_relaxed(c)	__raw_readb(c)
--#define readw_relaxed(c)	__raw_readw(c)
--#define readl_relaxed(c)	__raw_readl(c)
-+#define readw_relaxed(c) ({ u16 __r = le16_to_cpu((__force __le16) \
-+					__raw_readw(c)); __r; })
-+#define readl_relaxed(c) ({ u32 __r = le32_to_cpu((__force __le32) \
-+					__raw_readl(c)); __r; })
-
- #define writeb_relaxed(v,c)	__raw_writeb(v,c)
--#define writew_relaxed(v,c)	__raw_writew(v,c)
--#define writel_relaxed(v,c)	__raw_writel(v,c)
-+#define writew_relaxed(v,c)	__raw_writew((__force u16) cpu_to_le16(v),c)
-+#define writel_relaxed(v,c)	__raw_writel((__force u32) cpu_to_le32(v),c)
-
- #include <asm-generic/io.h>
-
--- 
-2.5.0
+--Andy
