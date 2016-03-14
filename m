@@ -1,32 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:54149 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.60.111]:55884 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753220AbcCLEUS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Mar 2016 23:20:18 -0500
-Subject: Re: [PATCH] arc: use little endian accesses
-References: <1457544064-16167-1-git-send-email-ltrimas@synopsys.com>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8F1A0@us01wembx1.internal.synopsys.com>
- <1457636268.457.34.camel@synopsys.com> <201603102023.59425.arnd@arndb.de>
- <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+	with ESMTP id S933865AbcCNIFq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2016 04:05:46 -0400
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+ <56DFC604.6070407@synopsys.com>
+ <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+ <56E0024F.4070401@synopsys.com>
+ <20160309114054.GJ6356@twins.programming.kicks-ass.net>
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <56E398F1.7090500@synopsys.com>
-Date: Sat, 12 Mar 2016 09:50:01 +0530
+Message-ID: <56E670C0.7080901@synopsys.com>
+Date: Mon, 14 Mar 2016 13:35:20 +0530
 MIME-Version: 1.0
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4E8F790@us01wembx1.internal.synopsys.com>
+In-Reply-To: <20160309114054.GJ6356@twins.programming.kicks-ass.net>
 Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Lada Trimasova <Lada.Trimasova@synopsys.com>, "noamc@ezchip.com" <noamc@ezchip.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Message-ID: <20160312042001.vCaemdIQ61mphPZoCg8v8nCNm6IzprXEiAiovKByQ60@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
+Message-ID: <20160314080520.L4UVj8nHRxd2tpxpdbnDz_1yqcDfqNnmXWpRr8S6UlM@z>
 
-On Friday 11 March 2016 06:14 PM, Vineet Gupta wrote:
-> @Lada I will fix up the changelog to add some of the background behind this
-> change, and mark this for stable backport as well.
+On Wednesday 09 March 2016 05:10 PM, Peter Zijlstra wrote:
 
-This is what I'm planning to add.
-Noam please give this a spin - you might have to revert those native-endian DT
-bindings from UART DT.
+> ---
+> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
+> 
+> __clear_bit_unlock() is a special little snowflake. While it carries the
+> non-atomic '__' prefix, it is specifically documented to pair with
+> test_and_set_bit() and therefore should be 'somewhat' atomic.
+> 
+> Therefore the generic implementation of __clear_bit_unlock() cannot use
+> the fully non-atomic __clear_bit() as a default.
+> 
+> If an arch is able to do better; is must provide an implementation of
+> __clear_bit_unlock() itself.
+> 
+> Specifically, this came up as a result of hackbench livelock'ing in
+> slab_lock() on ARC with SMP + SLUB + !LLSC.
+> 
+> The issue was incorrect pairing of atomic ops.
+> 
+> slab_lock() -> bit_spin_lock() -> test_and_set_bit()
+> slab_unlock() -> __bit_spin_unlock() -> __clear_bit()
+> 
+> The non serializing __clear_bit() was getting "lost"
+> 
+> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
+> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
+> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
+> 
+> Fixes ARC STAR 9000817404 (and probably more).
+> 
+> Cc: stable@vger.kernel.org
+> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+> Tested-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
------>
+Peter, I don't see this in linux-next yet. I'm hoping you will send it Linus' way
+for 4.6-rc1.
+
+Thx,
+-Vineet
+
+
