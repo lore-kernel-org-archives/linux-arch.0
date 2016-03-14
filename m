@@ -1,55 +1,71 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Sat, 12 Mar 2016 17:02:33 -0800
-Message-ID: <CALCETrWNwt2-1JHTktAL-ppRbLgJ-aY9GDPkrf+46-qbh8aemw@mail.gmail.com>
-References: <CAB=NE6VAaqshsO29nxvg-dmAiaf-tEpKwhPQHdNWkL5u8_cU7w@mail.gmail.com>
- <20160304094424.GA16228@gmail.com> <1457115514.15454.216.camel@hpe.com>
- <20160305114012.GA7259@gmail.com> <1457370228.15454.311.camel@hpe.com>
- <CALCETrUQsf7S-b+zDrof0g61NnSB3XuqdAxjsHyJfjT3D39D3Q@mail.gmail.com> <1457735807.6393.206.camel@hpe.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
+Date: Mon, 14 Mar 2016 13:35:20 +0530
+Message-ID: <56E670C0.7080901@synopsys.com>
+References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
+ <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
+ <56DEF3D3.6080008@synopsys.com>
+ <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
+ <56DFC604.6070407@synopsys.com>
+ <20160309101349.GJ6344@twins.programming.kicks-ass.net>
+ <56E0024F.4070401@synopsys.com>
+ <20160309114054.GJ6356@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:34480 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753691AbcCMBCx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 Mar 2016 20:02:53 -0500
-Received: by mail-ob0-f175.google.com with SMTP id ts10so146398536obc.1
-        for <linux-arch@vger.kernel.org>; Sat, 12 Mar 2016 17:02:53 -0800 (PST)
-In-Reply-To: <1457735807.6393.206.camel@hpe.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: Ingo Molnar <mingo@kernel.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160309114054.GJ6356@twins.programming.kicks-ass.net>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J.
+ Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 11, 2016 at 2:36 PM, Toshi Kani <toshi.kani@hpe.com> wrote:
-> On Thu, 2016-03-10 at 22:47 -0800, Andy Lutomirski wrote:
->> On Mon, Mar 7, 2016 at 9:03 AM, Toshi Kani <toshi.kani@hpe.com> wrote:
->> > Let me try to summarize...
->> >
->> > The original issue Luis brought up was that drivers written to work
->> > with MTRR may create a single ioremap range covering multiple cache
->> > attributes since MTRR can overwrite cache attribute of a certain
->> > range.  Converting such drivers with PAT-based ioremap interfaces, i.e.
->> > ioremap_wc() and ioremap_nocache(), requires a separate ioremap map for
->> > each cache attribute, which can be challenging as it may result in
->> > overlapping ioremap ranges (in his term) with different cache
->> > attributes.
->> >
->> > So, Luis asked about 'sematics of overlapping ioremap()' calls.  Hence,
->> > I responded that aliasing mapping itself is supported, but alias with
->> > different cache attribute is not.  We have checks in place to detect
->> > such condition.  Overlapping ioremap calls with a different cache
->> > attribute either fails or gets redirected to the existing cache
->> > attribute on x86.
->>
->> A little off-topic, but someone reminded me recently: most recent CPUs
->> have self-snoop.  It's poorly documented, but on self-snooping CPUs, I
->> think that a lot of the aliasing issues go away.  We may be able to
->> optimize the code quite a bit on these CPUs.
->
-> Interesting.  I wonder how much we can rely on this feature.  Yes, by
-> looking at Intel SDM, it is indeed poorly documented. :-(
+On Wednesday 09 March 2016 05:10 PM, Peter Zijlstra wrote:
 
-Any Intel people want to give us a hint?
+> ---
+> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
+> 
+> __clear_bit_unlock() is a special little snowflake. While it carries the
+> non-atomic '__' prefix, it is specifically documented to pair with
+> test_and_set_bit() and therefore should be 'somewhat' atomic.
+> 
+> Therefore the generic implementation of __clear_bit_unlock() cannot use
+> the fully non-atomic __clear_bit() as a default.
+> 
+> If an arch is able to do better; is must provide an implementation of
+> __clear_bit_unlock() itself.
+> 
+> Specifically, this came up as a result of hackbench livelock'ing in
+> slab_lock() on ARC with SMP + SLUB + !LLSC.
+> 
+> The issue was incorrect pairing of atomic ops.
+> 
+> slab_lock() -> bit_spin_lock() -> test_and_set_bit()
+> slab_unlock() -> __bit_spin_unlock() -> __clear_bit()
+> 
+> The non serializing __clear_bit() was getting "lost"
+> 
+> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
+> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
+> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
+> 
+> Fixes ARC STAR 9000817404 (and probably more).
+> 
+> Cc: stable@vger.kernel.org
+> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+> Tested-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
---Andy
+Peter, I don't see this in linux-next yet. I'm hoping you will send it Linus' way
+for 4.6-rc1.
+
+Thx,
+-Vineet
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
