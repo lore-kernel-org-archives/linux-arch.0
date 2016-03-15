@@ -1,70 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:55884 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933865AbcCNIFq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2016 04:05:46 -0400
-Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
-References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
- <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
- <56DEF3D3.6080008@synopsys.com>
- <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
- <56DFC604.6070407@synopsys.com>
- <20160309101349.GJ6344@twins.programming.kicks-ass.net>
- <56E0024F.4070401@synopsys.com>
- <20160309114054.GJ6356@twins.programming.kicks-ass.net>
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <56E670C0.7080901@synopsys.com>
-Date: Mon, 14 Mar 2016 13:35:20 +0530
+Received: from mx2.suse.de ([195.135.220.15]:58380 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932368AbcCOWVd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Mar 2016 18:21:33 -0400
+Date: Tue, 15 Mar 2016 23:21:25 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
+ / non-PAT systems"
+Message-ID: <20160315222125.GG1990@wotan.suse.de>
+References: <20160304210900.GT3577@linux.vnet.ibm.com>
+ <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+ <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
 MIME-Version: 1.0
-In-Reply-To: <20160309114054.GJ6356@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
-Message-ID: <20160314080520.L4UVj8nHRxd2tpxpdbnDz_1yqcDfqNnmXWpRr8S6UlM@z>
+To: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "bp@alien8.de" <bp@alien8.de>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "hpa@zytor.com" <hpa@zytor.com>, "toshi.kani@hp.com" <toshi.kani@hp.com>, "airlied@redhat.com" <airlied@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "mst@redhat.com" <mst@redhat.com>, "vinod.koul@intel.com" <vinod.koul@intel.com>, "jgross@suse.com" <jgross@suse.com>, "daniel.vetter@ffwll.ch" <daniel.vetter@ffwll.ch>, "luto@amacapital.net" <luto@amacapital.net>, "davem@davemloft.net" <davem@davemloft.net>, "ben@decadent.org.uk" <ben@decadent.org.uk>, "benjamin.poirier@gmail.com" <benjamin.poirier@gmail.com>, "linux-fbdev@vger.kernel.org" <linux-fbdev@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "corbet@lwn.net" <corbet@lwn.net>
+Message-ID: <20160315222125.wgTed-UKV_plaldXBFM4ebogGK_CLFnp_QmLsT0j7Fs@z>
 
-On Wednesday 09 March 2016 05:10 PM, Peter Zijlstra wrote:
+On Sat, Mar 05, 2016 at 04:39:58AM +0000, Elliott, Robert (Persistent Memory) wrote:
+> > -----Original Message-----
+> > From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
+> > owner@vger.kernel.org] On Behalf Of Luis R. Rodriguez
+> > Sent: Friday, March 04, 2016 4:45 PM
+> > Subject: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on
+> > PAT / non-PAT systems"
+> ...
+> > +MMIO and another PCI BAR for write-combing, if needed.
+> 
+> typo: combining
 
-> ---
-> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
-> 
-> __clear_bit_unlock() is a special little snowflake. While it carries the
-> non-atomic '__' prefix, it is specifically documented to pair with
-> test_and_set_bit() and therefore should be 'somewhat' atomic.
-> 
-> Therefore the generic implementation of __clear_bit_unlock() cannot use
-> the fully non-atomic __clear_bit() as a default.
-> 
-> If an arch is able to do better; is must provide an implementation of
-> __clear_bit_unlock() itself.
-> 
-> Specifically, this came up as a result of hackbench livelock'ing in
-> slab_lock() on ARC with SMP + SLUB + !LLSC.
-> 
-> The issue was incorrect pairing of atomic ops.
-> 
-> slab_lock() -> bit_spin_lock() -> test_and_set_bit()
-> slab_unlock() -> __bit_spin_unlock() -> __clear_bit()
-> 
-> The non serializing __clear_bit() was getting "lost"
-> 
-> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
-> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
-> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
-> 
-> Fixes ARC STAR 9000817404 (and probably more).
-> 
-> Cc: stable@vger.kernel.org
-> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Tested-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Amended, thanks.
 
-Peter, I don't see this in linux-next yet. I'm hoping you will send it Linus' way
-for 4.6-rc1.
-
-Thx,
--Vineet
-
-
+  Luis
