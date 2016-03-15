@@ -1,33 +1,41 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
  / non-PAT systems"
-Date: Tue, 15 Mar 2016 23:21:25 +0100
-Message-ID: <20160315222125.GG1990@wotan.suse.de>
+Date: Tue, 15 Mar 2016 23:24:22 +0100
+Message-ID: <20160315222422.GH1990@wotan.suse.de>
 References: <20160304210900.GT3577@linux.vnet.ibm.com>
  <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
- <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
+ <20160305115255.GA11846@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:58745 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932180AbcCOWYY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Mar 2016 18:24:24 -0400
 Content-Disposition: inline
-In-Reply-To: <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "bp@alien8.de" <bp@alien8.de>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "hpa@zytor.com" <hpa@zytor.com>, "toshi.kani@hp.com" <toshi.kani@hp.com>, "airlied@redhat.com" <airlied@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "mst@redhat.com" <mst@redhat.com>, "vinod.koul@intel.com" <vinod.koul@intel.com>, "jgross@suse.com" <jgross@suse.com>, "daniel.vetter@ffwll.ch" <daniel.vetter@ffwll.ch>, "luto@amacapital.net" <luto@amacapital.net>, "davem@davemloft.net" <davem@davemloft.net>, "ben@decadent.org.uk" <ben@decadent.org.uk>, "benjamin.poirier@gmail.com" <benjamin.poirier@gmail.com>, "linux-fbdev@vger.kernel.org" <linux-fbdev@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-k
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20160305115255.GA11846@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, paulmck@linux.vnet.ibm.com, bp@alien8.de, tglx@linutronix.de, hpa@zytor.com, toshi.kani@hp.com, airlied@redhat.com, benh@kernel.crashing.org, mst@redhat.com, vinod.koul@intel.com, jgross@suse.com, daniel.vetter@ffwll.ch, luto@amacapital.net, davem@davemloft.net, ben@decadent.org.uk, benjamin.poirier@gmail.com, linux-fbdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, corbet@lwn.net
 
-On Sat, Mar 05, 2016 at 04:39:58AM +0000, Elliott, Robert (Persistent Memory) wrote:
-> > -----Original Message-----
-> > From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
-> > owner@vger.kernel.org] On Behalf Of Luis R. Rodriguez
-> > Sent: Friday, March 04, 2016 4:45 PM
-> > Subject: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on
-> > PAT / non-PAT systems"
-> ...
-> > +MMIO and another PCI BAR for write-combing, if needed.
+On Sat, Mar 05, 2016 at 12:52:55PM +0100, Ingo Molnar wrote:
 > 
-> typo: combining
+> * Luis R. Rodriguez <mcgrof@kernel.org> wrote:
+> 
+> > The current documentation refers to using set_memory_wc() as a
+> > possible hole strategy when you have overlapping ioremap() regions,
+> 
+> The whole explanation should talk about virtual aliases over the same physical 
+> address, not some 'overlapping regions'.
+> 
+> I see where this talk about 'overlap' comes: the memtype rbtree in 
+> arch/x86/mm/pat_rbtree.c indeed has memtype ranges that may overlap on the 
+> physical side. But it is highly confusing to call this 'overlapping' on the driver 
+> API documentation level without making it really clear what it's about.
 
-Amended, thanks.
+Alright thanks, I think I'll just stick to aliasing. I'll go over the
+threads and pick out only what is relevant.
 
   Luis
