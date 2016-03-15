@@ -1,71 +1,37 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] mm: slub: Ensure that slab_unlock() is atomic
-Date: Mon, 14 Mar 2016 13:35:20 +0530
-Message-ID: <56E670C0.7080901@synopsys.com>
-References: <1457447457-25878-1-git-send-email-vgupta@synopsys.com>
- <alpine.DEB.2.20.1603080857360.4047@east.gentwo.org>
- <56DEF3D3.6080008@synopsys.com>
- <alpine.DEB.2.20.1603081438020.4268@east.gentwo.org>
- <56DFC604.6070407@synopsys.com>
- <20160309101349.GJ6344@twins.programming.kicks-ass.net>
- <56E0024F.4070401@synopsys.com>
- <20160309114054.GJ6356@twins.programming.kicks-ass.net>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Tue, 15 Mar 2016 01:22:54 -0700
+Message-ID: <20160315082254.GE9136@infradead.org>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160308073847.GA15520@infradead.org>
+ <20160310160522.GB1111@bigcity.dyn.berto.se>
+ <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
+ <20160311111522.GA3450@infradead.org>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160309114054.GJ6356@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-parisc@vger.kernel, Helge Deller <deller@gmx.de>, linux-kernel@vger.kernel.org, stable@vger.kernel.org, "James E.J.
- Bottomley" <jejb@parisc-linux.org>, Pekka Enberg <penberg@kernel.org>, linux-mm@kvack.org, Noam Camus <noamc@ezchip.com>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, linux-snps-arc@lists.infradead.org, Christoph Lameter <cl@linux.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [198.137.202.9] ([198.137.202.9]:33439 "EHLO
+	bombadil.infradead.org" rhost-flags-FAIL-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S933849AbcCOIXn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Mar 2016 04:23:43 -0400
+Content-Disposition: inline
+In-Reply-To: <20160311125846.GF1111@bigcity.dyn.berto.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On Wednesday 09 March 2016 05:10 PM, Peter Zijlstra wrote:
+On Fri, Mar 11, 2016 at 01:58:46PM +0100, Niklas S?derlund wrote:
+> Without an IOMMU this is easy since the phys_addr_t and dma_addr_t are 
+> the same and no special care is needed. However if you have a IOMMU you 
+> need to map the DMA slave phys_addr_t to a dma_addr_t using something 
+> like this. Is it not very similar to dma_map_single() where one maps 
+> processor virtual memory (instead if MMIO) so that it can be used with 
+> DMA slaves?
 
-> ---
-> Subject: bitops: Do not default to __clear_bit() for __clear_bit_unlock()
-> 
-> __clear_bit_unlock() is a special little snowflake. While it carries the
-> non-atomic '__' prefix, it is specifically documented to pair with
-> test_and_set_bit() and therefore should be 'somewhat' atomic.
-> 
-> Therefore the generic implementation of __clear_bit_unlock() cannot use
-> the fully non-atomic __clear_bit() as a default.
-> 
-> If an arch is able to do better; is must provide an implementation of
-> __clear_bit_unlock() itself.
-> 
-> Specifically, this came up as a result of hackbench livelock'ing in
-> slab_lock() on ARC with SMP + SLUB + !LLSC.
-> 
-> The issue was incorrect pairing of atomic ops.
-> 
-> slab_lock() -> bit_spin_lock() -> test_and_set_bit()
-> slab_unlock() -> __bit_spin_unlock() -> __clear_bit()
-> 
-> The non serializing __clear_bit() was getting "lost"
-> 
-> 80543b8e:	ld_s       r2,[r13,0] <--- (A) Finds PG_locked is set
-> 80543b90:	or         r3,r2,1    <--- (B) other core unlocks right here
-> 80543b94:	st_s       r3,[r13,0] <--- (C) sets PG_locked (overwrites unlock)
-> 
-> Fixes ARC STAR 9000817404 (and probably more).
-> 
-> Cc: stable@vger.kernel.org
-> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Tested-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-
-Peter, I don't see this in linux-next yet. I'm hoping you will send it Linus' way
-for 4.6-rc1.
-
-Thx,
--Vineet
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+It's similar, but I don't think this actually works as a general case
+as there are quite a few places that expect to be able to have a
+struct page for a physical address.  We'd at least need a very careful
+audit for that case.
