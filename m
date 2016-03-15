@@ -1,37 +1,33 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Date: Tue, 15 Mar 2016 01:22:54 -0700
-Message-ID: <20160315082254.GE9136@infradead.org>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1457404974-1800-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160308073847.GA15520@infradead.org>
- <20160310160522.GB1111@bigcity.dyn.berto.se>
- <CAPcyv4gO4EZnBuVKXT8+gsMhbHJzuK7sfr0uRcjVdJP-nUUz4A@mail.gmail.com>
- <20160311111522.GA3450@infradead.org>
- <20160311125846.GF1111@bigcity.dyn.berto.se>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on PAT
+ / non-PAT systems"
+Date: Tue, 15 Mar 2016 23:21:25 +0100
+Message-ID: <20160315222125.GG1990@wotan.suse.de>
+References: <20160304210900.GT3577@linux.vnet.ibm.com>
+ <1457131501-14855-1-git-send-email-mcgrof@kernel.org>
+ <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [198.137.202.9] ([198.137.202.9]:33439 "EHLO
-	bombadil.infradead.org" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S933849AbcCOIXn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Mar 2016 04:23:43 -0400
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160311125846.GF1111@bigcity.dyn.berto.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+In-Reply-To: <94D0CD8314A33A4D9D801C0FE68B40295C350C7C@G9W0745.americas.hpqcorp.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "bp@alien8.de" <bp@alien8.de>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "hpa@zytor.com" <hpa@zytor.com>, "toshi.kani@hp.com" <toshi.kani@hp.com>, "airlied@redhat.com" <airlied@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "mst@redhat.com" <mst@redhat.com>, "vinod.koul@intel.com" <vinod.koul@intel.com>, "jgross@suse.com" <jgross@suse.com>, "daniel.vetter@ffwll.ch" <daniel.vetter@ffwll.ch>, "luto@amacapital.net" <luto@amacapital.net>, "davem@davemloft.net" <davem@davemloft.net>, "ben@decadent.org.uk" <ben@decadent.org.uk>, "benjamin.poirier@gmail.com" <benjamin.poirier@gmail.com>, "linux-fbdev@vger.kernel.org" <linux-fbdev@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-k
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 11, 2016 at 01:58:46PM +0100, Niklas S?derlund wrote:
-> Without an IOMMU this is easy since the phys_addr_t and dma_addr_t are 
-> the same and no special care is needed. However if you have a IOMMU you 
-> need to map the DMA slave phys_addr_t to a dma_addr_t using something 
-> like this. Is it not very similar to dma_map_single() where one maps 
-> processor virtual memory (instead if MMIO) so that it can be used with 
-> DMA slaves?
+On Sat, Mar 05, 2016 at 04:39:58AM +0000, Elliott, Robert (Persistent Memory) wrote:
+> > -----Original Message-----
+> > From: linux-kernel-owner@vger.kernel.org [mailto:linux-kernel-
+> > owner@vger.kernel.org] On Behalf Of Luis R. Rodriguez
+> > Sent: Friday, March 04, 2016 4:45 PM
+> > Subject: [PATCH v2] x86: PAT: Documentation: rewrite "MTRR effects on
+> > PAT / non-PAT systems"
+> ...
+> > +MMIO and another PCI BAR for write-combing, if needed.
+> 
+> typo: combining
 
-It's similar, but I don't think this actually works as a general case
-as there are quite a few places that expect to be able to have a
-struct page for a physical address.  We'd at least need a very careful
-audit for that case.
+Amended, thanks.
+
+  Luis
