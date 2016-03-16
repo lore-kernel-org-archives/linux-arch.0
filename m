@@ -1,672 +1,239 @@
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Subject: [PATCH v2 4/4] nmi_backtrace: generate one-line reports for idle cpus
-Date: Wed, 16 Mar 2016 13:02:13 -0400
-Message-ID: <1458147733-29338-5-git-send-email-cmetcalf@mellanox.com>
-References: <1458147733-29338-1-git-send-email-cmetcalf@mellanox.com>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH v2 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Thu, 17 Mar 2016 02:46:39 +0800
+Message-ID: <201603170242.mBPNtopO%fengguang.wu@intel.com>
+References: <1458147733-29338-5-git-send-email-cmetcalf@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1458147733-29338-1-git-send-email-cmetcalf@mellanox.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed; boundary="fUYQa+Pmc3FrFX/N"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga09.intel.com ([134.134.136.24]:7797 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932139AbcCPSsQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Mar 2016 14:48:16 -0400
+Content-Disposition: inline
+In-Reply-To: <1458147733-29338-5-git-send-email-cmetcalf@mellanox.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: kbuild-all@01.org, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chris Metcalf <cmetcalf@mellanox.com>
 
-When doing an nmi backtrace of many cores, most of which are idle,
-the output is a little overwhelming and very uninformative.  Suppress
-messages for cpus that are idling when they are interrupted and just
-emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
 
-We do this by grouping all the cpuidle code together into a new
-.cpuidle.text section, and then checking the address of the
-interrupted PC to see if it lies within that section.
+--fUYQa+Pmc3FrFX/N
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Signed-off-by: Chris Metcalf <cmetcalf@mellanox.com>
+Hi Chris,
+
+[auto build test ERROR on tile/master]
+[also build test ERROR on v4.5]
+[cannot apply to next-20160316]
+[if your patch is applied to the wrong git tree, please drop us a note to help improving the system]
+
+url:    https://github.com/0day-ci/linux/commits/Chris-Metcalf/improvements-to-the-nmi_backtrace-code/20160317-010929
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git master
+config: xtensa-common_defconfig (attached as .config)
+reproduce:
+        wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        make.cross ARCH=xtensa 
+
+All errors (new ones prefixed by >>):
+
+   kernel/built-in.o: In function `SyS_setgroups':
+>> (.text+0x16688): undefined reference to `__cpuidle_text_start'
+   kernel/built-in.o: In function `SyS_setgroups':
+>> (.text+0x1668c): undefined reference to `__cpuidle_text_end'
+
 ---
- arch/alpha/kernel/vmlinux.lds.S      |  1 +
- arch/arc/kernel/vmlinux.lds.S        |  1 +
- arch/arm/kernel/vmlinux.lds.S        |  1 +
- arch/arm64/kernel/vmlinux.lds.S      |  1 +
- arch/arm64/mm/proc.S                 |  2 ++
- arch/avr32/kernel/vmlinux.lds.S      |  1 +
- arch/blackfin/kernel/vmlinux.lds.S   |  1 +
- arch/c6x/kernel/vmlinux.lds.S        |  1 +
- arch/cris/kernel/vmlinux.lds.S       |  1 +
- arch/frv/kernel/vmlinux.lds.S        |  1 +
- arch/h8300/kernel/vmlinux.lds.S      |  1 +
- arch/hexagon/kernel/vmlinux.lds.S    |  1 +
- arch/ia64/kernel/vmlinux.lds.S       |  1 +
- arch/m32r/kernel/vmlinux.lds.S       |  1 +
- arch/m68k/kernel/vmlinux-nommu.lds   |  1 +
- arch/m68k/kernel/vmlinux-std.lds     |  1 +
- arch/m68k/kernel/vmlinux-sun3.lds    |  1 +
- arch/metag/kernel/vmlinux.lds.S      |  1 +
- arch/microblaze/kernel/vmlinux.lds.S |  1 +
- arch/mips/kernel/vmlinux.lds.S       |  1 +
- arch/mn10300/kernel/vmlinux.lds.S    |  1 +
- arch/nios2/kernel/vmlinux.lds.S      |  1 +
- arch/openrisc/kernel/vmlinux.lds.S   |  1 +
- arch/parisc/kernel/vmlinux.lds.S     |  1 +
- arch/powerpc/kernel/vmlinux.lds.S    |  1 +
- arch/s390/kernel/vmlinux.lds.S       |  1 +
- arch/score/kernel/vmlinux.lds.S      |  1 +
- arch/sh/kernel/vmlinux.lds.S         |  1 +
- arch/sparc/kernel/vmlinux.lds.S      |  1 +
- arch/tile/kernel/entry.S             |  2 +-
- arch/tile/kernel/vmlinux.lds.S       |  1 +
- arch/um/kernel/dyn.lds.S             |  1 +
- arch/um/kernel/uml.lds.S             |  1 +
- arch/unicore32/kernel/vmlinux.lds.S  |  1 +
- arch/x86/kernel/process.c            |  4 ++--
- arch/x86/kernel/vmlinux.lds.S        |  1 +
- include/asm-generic/vmlinux.lds.h    |  6 ++++++
- include/linux/cpu.h                  |  5 +++++
- kernel/sched/idle.c                  | 13 +++++++++++--
- lib/nmi_backtrace.c                  | 16 +++++++++++-----
- scripts/mod/modpost.c                |  4 ++--
- scripts/recordmcount.c               |  1 +
- scripts/recordmcount.pl              |  1 +
- 43 files changed, 75 insertions(+), 12 deletions(-)
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
-index 647b84c15382..cebecfb76fbf 100644
---- a/arch/alpha/kernel/vmlinux.lds.S
-+++ b/arch/alpha/kernel/vmlinux.lds.S
-@@ -22,6 +22,7 @@ SECTIONS
- 		HEAD_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		*(.fixup)
- 		*(.gnu.warning)
-diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
-index 894e696bddaa..65652160cfda 100644
---- a/arch/arc/kernel/vmlinux.lds.S
-+++ b/arch/arc/kernel/vmlinux.lds.S
-@@ -97,6 +97,7 @@ SECTIONS
- 		_text = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		*(.fixup)
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index 8b60fde5ce48..6c13d570e9c9 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -107,6 +107,7 @@ SECTIONS
- 			IRQENTRY_TEXT
- 			TEXT_TEXT
- 			SCHED_TEXT
-+			CPUIDLE_TEXT
- 			LOCK_TEXT
- 			KPROBES_TEXT
- 			*(.gnu.warning)
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-index e3928f578891..a5cbecf8a74c 100644
---- a/arch/arm64/kernel/vmlinux.lds.S
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -104,6 +104,7 @@ SECTIONS
- 			IRQENTRY_TEXT
- 			TEXT_TEXT
- 			SCHED_TEXT
-+			CPUIDLE_TEXT
- 			LOCK_TEXT
- 			HYPERVISOR_TEXT
- 			IDMAP_TEXT
-diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-index c164d2cb35c0..b1b60fc438f6 100644
---- a/arch/arm64/mm/proc.S
-+++ b/arch/arm64/mm/proc.S
-@@ -48,11 +48,13 @@
-  *
-  *	Idle the processor (wait for interrupt).
-  */
-+	.pushsection ".cpuidle.text","ax"
- ENTRY(cpu_do_idle)
- 	dsb	sy				// WFI may enter a low-power mode
- 	wfi
- 	ret
- ENDPROC(cpu_do_idle)
-+	.popsection
- 
- #ifdef CONFIG_CPU_PM
- /**
-diff --git a/arch/avr32/kernel/vmlinux.lds.S b/arch/avr32/kernel/vmlinux.lds.S
-index a4589176bed5..17f2730eb497 100644
---- a/arch/avr32/kernel/vmlinux.lds.S
-+++ b/arch/avr32/kernel/vmlinux.lds.S
-@@ -52,6 +52,7 @@ SECTIONS
- 		KPROBES_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		*(.fixup)
- 		*(.gnu.warning)
-diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
-index c9eec84aa258..63a02c342830 100644
---- a/arch/blackfin/kernel/vmlinux.lds.S
-+++ b/arch/blackfin/kernel/vmlinux.lds.S
-@@ -33,6 +33,7 @@ SECTIONS
- #ifndef CONFIG_SCHEDULE_L1
- 		SCHED_TEXT
- #endif
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		IRQENTRY_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
-index 5a6e141d1641..9cabd962ab36 100644
---- a/arch/c6x/kernel/vmlinux.lds.S
-+++ b/arch/c6x/kernel/vmlinux.lds.S
-@@ -70,6 +70,7 @@ SECTIONS
- 		_stext = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		IRQENTRY_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/cris/kernel/vmlinux.lds.S b/arch/cris/kernel/vmlinux.lds.S
-index 7552c2557506..979586261520 100644
---- a/arch/cris/kernel/vmlinux.lds.S
-+++ b/arch/cris/kernel/vmlinux.lds.S
-@@ -43,6 +43,7 @@ SECTIONS
- 		HEAD_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		*(.fixup)
- 		*(.text.__*)
-diff --git a/arch/frv/kernel/vmlinux.lds.S b/arch/frv/kernel/vmlinux.lds.S
-index 7e958d829ec9..aa6e573d57da 100644
---- a/arch/frv/kernel/vmlinux.lds.S
-+++ b/arch/frv/kernel/vmlinux.lds.S
-@@ -63,6 +63,7 @@ SECTIONS
- 	*(.text..tlbmiss)
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- #ifdef CONFIG_DEBUG_INFO
- 	INIT_TEXT
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-index cb5dfb02c88d..7f11da1b895e 100644
---- a/arch/h8300/kernel/vmlinux.lds.S
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -29,6 +29,7 @@ SECTIONS
- 	_stext = . ;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- #if defined(CONFIG_ROMKERNEL)
- 		*(.int_redirect)
-diff --git a/arch/hexagon/kernel/vmlinux.lds.S b/arch/hexagon/kernel/vmlinux.lds.S
-index 5f268c1071b3..ec87e67feb19 100644
---- a/arch/hexagon/kernel/vmlinux.lds.S
-+++ b/arch/hexagon/kernel/vmlinux.lds.S
-@@ -50,6 +50,7 @@ SECTIONS
- 		_text = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		*(.fixup)
-diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
-index dc506b05ffbd..f89d20c97412 100644
---- a/arch/ia64/kernel/vmlinux.lds.S
-+++ b/arch/ia64/kernel/vmlinux.lds.S
-@@ -46,6 +46,7 @@ SECTIONS {
- 		__end_ivt_text = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		*(.gnu.linkonce.t*)
-diff --git a/arch/m32r/kernel/vmlinux.lds.S b/arch/m32r/kernel/vmlinux.lds.S
-index 018e4a711d79..ad1fe56455aa 100644
---- a/arch/m32r/kernel/vmlinux.lds.S
-+++ b/arch/m32r/kernel/vmlinux.lds.S
-@@ -31,6 +31,7 @@ SECTIONS
- 	HEAD_TEXT
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
- 	*(.gnu.warning)
-diff --git a/arch/m68k/kernel/vmlinux-nommu.lds b/arch/m68k/kernel/vmlinux-nommu.lds
-index 06a763f49fd3..d2c8abf1c8c4 100644
---- a/arch/m68k/kernel/vmlinux-nommu.lds
-+++ b/arch/m68k/kernel/vmlinux-nommu.lds
-@@ -45,6 +45,7 @@ SECTIONS {
- 		HEAD_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		*(.fixup)
- 		. = ALIGN(16);
-diff --git a/arch/m68k/kernel/vmlinux-std.lds b/arch/m68k/kernel/vmlinux-std.lds
-index d0993594f558..5b5ce1e4d1ed 100644
---- a/arch/m68k/kernel/vmlinux-std.lds
-+++ b/arch/m68k/kernel/vmlinux-std.lds
-@@ -16,6 +16,7 @@ SECTIONS
- 	HEAD_TEXT
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
- 	*(.gnu.warning)
-diff --git a/arch/m68k/kernel/vmlinux-sun3.lds b/arch/m68k/kernel/vmlinux-sun3.lds
-index 8080469ee6c1..fe5ea1974b16 100644
---- a/arch/m68k/kernel/vmlinux-sun3.lds
-+++ b/arch/m68k/kernel/vmlinux-sun3.lds
-@@ -16,6 +16,7 @@ SECTIONS
- 	HEAD_TEXT
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- 	*(.fixup)
- 	*(.gnu.warning)
-diff --git a/arch/metag/kernel/vmlinux.lds.S b/arch/metag/kernel/vmlinux.lds.S
-index e12055e88bfe..9fc48354d519 100644
---- a/arch/metag/kernel/vmlinux.lds.S
-+++ b/arch/metag/kernel/vmlinux.lds.S
-@@ -21,6 +21,7 @@ SECTIONS
-   .text : {
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
- 	IRQENTRY_TEXT
-diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
-index be9488d69734..5913c7863067 100644
---- a/arch/microblaze/kernel/vmlinux.lds.S
-+++ b/arch/microblaze/kernel/vmlinux.lds.S
-@@ -33,6 +33,7 @@ SECTIONS {
- 		EXIT_TEXT
- 		EXIT_CALL
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
-index 0a93e83cd014..e0fc08cb0c89 100644
---- a/arch/mips/kernel/vmlinux.lds.S
-+++ b/arch/mips/kernel/vmlinux.lds.S
-@@ -55,6 +55,7 @@ SECTIONS
- 	.text : {
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/mn10300/kernel/vmlinux.lds.S b/arch/mn10300/kernel/vmlinux.lds.S
-index 13c4814c29f8..2d5f1c3f1afb 100644
---- a/arch/mn10300/kernel/vmlinux.lds.S
-+++ b/arch/mn10300/kernel/vmlinux.lds.S
-@@ -30,6 +30,7 @@ SECTIONS
- 	HEAD_TEXT
- 	TEXT_TEXT
- 	SCHED_TEXT
-+	CPUIDLE_TEXT
- 	LOCK_TEXT
- 	KPROBES_TEXT
- 	*(.fixup)
-diff --git a/arch/nios2/kernel/vmlinux.lds.S b/arch/nios2/kernel/vmlinux.lds.S
-index 326fab40a9de..340c7ab1d8b0 100644
---- a/arch/nios2/kernel/vmlinux.lds.S
-+++ b/arch/nios2/kernel/vmlinux.lds.S
-@@ -37,6 +37,7 @@ SECTIONS
- 	.text : {
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		IRQENTRY_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/openrisc/kernel/vmlinux.lds.S b/arch/openrisc/kernel/vmlinux.lds.S
-index 2d69a853b742..6c3cf834b5d8 100644
---- a/arch/openrisc/kernel/vmlinux.lds.S
-+++ b/arch/openrisc/kernel/vmlinux.lds.S
-@@ -47,6 +47,7 @@ SECTIONS
-           _stext = .;
- 	  TEXT_TEXT
- 	  SCHED_TEXT
-+	  CPUIDLE_TEXT
- 	  LOCK_TEXT
- 	  KPROBES_TEXT
- 	  IRQENTRY_TEXT
-diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
-index 308f29081d46..7e53bf44fdd2 100644
---- a/arch/parisc/kernel/vmlinux.lds.S
-+++ b/arch/parisc/kernel/vmlinux.lds.S
-@@ -69,6 +69,7 @@ SECTIONS
- 	.text ALIGN(PAGE_SIZE) : {
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index d41fd0af8980..bf423392b20a 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -52,6 +52,7 @@ SECTIONS
- 		/* careful! __ftr_alt_* sections need to be close to .text */
- 		*(.text .fixup __ftr_alt_* .ref.text)
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index 445657fe658c..cbc74fd4a6db 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -25,6 +25,7 @@ SECTIONS
- 		HEAD_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/score/kernel/vmlinux.lds.S b/arch/score/kernel/vmlinux.lds.S
-index 7274b5c4287e..4117890b1db1 100644
---- a/arch/score/kernel/vmlinux.lds.S
-+++ b/arch/score/kernel/vmlinux.lds.S
-@@ -40,6 +40,7 @@ SECTIONS
- 		_text = .;	/* Text and read-only data */
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		*(.text.*)
-diff --git a/arch/sh/kernel/vmlinux.lds.S b/arch/sh/kernel/vmlinux.lds.S
-index db88cbf9eafd..989500c17358 100644
---- a/arch/sh/kernel/vmlinux.lds.S
-+++ b/arch/sh/kernel/vmlinux.lds.S
-@@ -36,6 +36,7 @@ SECTIONS
- 		TEXT_TEXT
- 		EXTRA_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/sparc/kernel/vmlinux.lds.S b/arch/sparc/kernel/vmlinux.lds.S
-index f1a2f688b28a..93029a4b5299 100644
---- a/arch/sparc/kernel/vmlinux.lds.S
-+++ b/arch/sparc/kernel/vmlinux.lds.S
-@@ -45,6 +45,7 @@ SECTIONS
- 		HEAD_TEXT
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		IRQENTRY_TEXT
-diff --git a/arch/tile/kernel/entry.S b/arch/tile/kernel/entry.S
-index 670a3569450f..101de132e363 100644
---- a/arch/tile/kernel/entry.S
-+++ b/arch/tile/kernel/entry.S
-@@ -50,7 +50,7 @@ STD_ENTRY(smp_nap)
-  * When interrupted at _cpu_idle_nap, we bump the PC forward 8, and
-  * as a result return to the function that called _cpu_idle().
-  */
--STD_ENTRY(_cpu_idle)
-+STD_ENTRY_SECTION(_cpu_idle, .cpuidle.text)
- 	movei r1, 1
- 	IRQ_ENABLE_LOAD(r2, r3)
- 	mtspr INTERRUPT_CRITICAL_SECTION, r1
-diff --git a/arch/tile/kernel/vmlinux.lds.S b/arch/tile/kernel/vmlinux.lds.S
-index 0e059a0101ea..a92931e8c4f9 100644
---- a/arch/tile/kernel/vmlinux.lds.S
-+++ b/arch/tile/kernel/vmlinux.lds.S
-@@ -42,6 +42,7 @@ SECTIONS
-   .text : AT (ADDR(.text) - LOAD_OFFSET) {
-     HEAD_TEXT
-     SCHED_TEXT
-+    CPUIDLE_TEXT
-     LOCK_TEXT
-     KPROBES_TEXT
-     IRQENTRY_TEXT
-diff --git a/arch/um/kernel/dyn.lds.S b/arch/um/kernel/dyn.lds.S
-index adde088aeeff..4fdbcf958cd5 100644
---- a/arch/um/kernel/dyn.lds.S
-+++ b/arch/um/kernel/dyn.lds.S
-@@ -68,6 +68,7 @@ SECTIONS
-     _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-+    CPUIDLE_TEXT
-     LOCK_TEXT
-     *(.fixup)
-     *(.stub .text.* .gnu.linkonce.t.*)
-diff --git a/arch/um/kernel/uml.lds.S b/arch/um/kernel/uml.lds.S
-index 6899195602b7..1840f55ed042 100644
---- a/arch/um/kernel/uml.lds.S
-+++ b/arch/um/kernel/uml.lds.S
-@@ -28,6 +28,7 @@ SECTIONS
-     _stext = .;
-     TEXT_TEXT
-     SCHED_TEXT
-+    CPUIDLE_TEXT
-     LOCK_TEXT
-     *(.fixup)
-     /* .gnu.warning sections are handled specially by elf32.em.  */
-diff --git a/arch/unicore32/kernel/vmlinux.lds.S b/arch/unicore32/kernel/vmlinux.lds.S
-index 77e407e49a63..56e788e8ee83 100644
---- a/arch/unicore32/kernel/vmlinux.lds.S
-+++ b/arch/unicore32/kernel/vmlinux.lds.S
-@@ -37,6 +37,7 @@ SECTIONS
- 	.text : {		/* Real text segment */
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 
- 		*(.fixup)
-diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-index 9f7c21c22477..d569ae7fde37 100644
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -298,7 +298,7 @@ void arch_cpu_idle(void)
- /*
-  * We use this if we don't have any better idle routine..
-  */
--void default_idle(void)
-+void __cpuidle default_idle(void)
- {
- 	trace_cpu_idle_rcuidle(1, smp_processor_id());
- 	safe_halt();
-@@ -413,7 +413,7 @@ static int prefer_mwait_c1_over_halt(const struct cpuinfo_x86 *c)
-  * with interrupts enabled and no flags, which is backwards compatible with the
-  * original MWAIT implementation.
-  */
--static void mwait_idle(void)
-+static __cpuidle void mwait_idle(void)
- {
- 	if (!current_set_polling_and_test()) {
- 		trace_cpu_idle_rcuidle(1, smp_processor_id());
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 74e4bf11f562..95f80be7632f 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -98,6 +98,7 @@ SECTIONS
- 		_stext = .;
- 		TEXT_TEXT
- 		SCHED_TEXT
-+		CPUIDLE_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
- 		ENTRY_TEXT
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2c173c..18af5199f97c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -444,6 +444,12 @@
- 		*(.spinlock.text)					\
- 		VMLINUX_SYMBOL(__lock_text_end) = .;
- 
-+#define CPUIDLE_TEXT							\
-+		ALIGN_FUNCTION();					\
-+		VMLINUX_SYMBOL(__cpuidle_text_start) = .;		\
-+		*(.cpuidle.text)					\
-+		VMLINUX_SYMBOL(__cpuidle_text_end) = .;
-+
- #define KPROBES_TEXT							\
- 		ALIGN_FUNCTION();					\
- 		VMLINUX_SYMBOL(__kprobes_text_start) = .;		\
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index d2ca8c38f9c4..0cbe214e8f4b 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -274,6 +274,11 @@ void cpu_startup_entry(enum cpuhp_state state);
- 
- void cpu_idle_poll_ctrl(bool enable);
- 
-+/* Attach to any functions which should be considered cpuidle. */
-+#define __cpuidle	__attribute__((__section__(".cpuidle.text")))
-+
-+bool cpu_in_idle(unsigned long pc);
-+
- void arch_cpu_idle(void);
- void arch_cpu_idle_prepare(void);
- void arch_cpu_idle_enter(void);
-diff --git a/kernel/sched/idle.c b/kernel/sched/idle.c
-index 544a7133cbd1..ffca482beab5 100644
---- a/kernel/sched/idle.c
-+++ b/kernel/sched/idle.c
-@@ -15,6 +15,9 @@
- 
- #include "sched.h"
- 
-+/* Linker adds these: start and end of __cpuidle functions */
-+extern char __cpuidle_text_start[], __cpuidle_text_end[];
-+
- /**
-  * sched_idle_set_state - Record idle state for the current CPU.
-  * @idle_state: State to record.
-@@ -52,7 +55,7 @@ static int __init cpu_idle_nopoll_setup(char *__unused)
- __setup("hlt", cpu_idle_nopoll_setup);
- #endif
- 
--static inline int cpu_idle_poll(void)
-+static int noinline __cpuidle cpu_idle_poll(void)
- {
- 	rcu_idle_enter();
- 	trace_cpu_idle_rcuidle(0, smp_processor_id());
-@@ -83,7 +86,7 @@ void __weak arch_cpu_idle(void)
-  *
-  * To use when the cpuidle framework cannot be used.
-  */
--void default_idle_call(void)
-+void __cpuidle default_idle_call(void)
- {
- 	if (current_clr_polling_and_test()) {
- 		local_irq_enable();
-@@ -273,6 +276,12 @@ static void cpu_idle_loop(void)
- 	}
- }
- 
-+bool cpu_in_idle(unsigned long pc)
-+{
-+	return pc >= (unsigned long)__cpuidle_text_start &&
-+		pc < (unsigned long)__cpuidle_text_end;
-+}
-+
- void cpu_startup_entry(enum cpuhp_state state)
- {
- 	/*
-diff --git a/lib/nmi_backtrace.c b/lib/nmi_backtrace.c
-index 9375c0279b73..ac41f3c84e8d 100644
---- a/lib/nmi_backtrace.c
-+++ b/lib/nmi_backtrace.c
-@@ -17,6 +17,7 @@
- #include <linux/kprobes.h>
- #include <linux/nmi.h>
- #include <linux/seq_buf.h>
-+#include <linux/cpu.h>
- 
- #ifdef arch_trigger_cpumask_backtrace
- /* For reliability, we're prepared to waste bits here. */
-@@ -160,11 +161,16 @@ bool nmi_cpu_backtrace(struct pt_regs *regs)
- 
- 		/* Replace printk to write into the NMI seq */
- 		this_cpu_write(printk_func, nmi_vprintk);
--		pr_warn("NMI backtrace for cpu %d\n", cpu);
--		if (regs)
--			show_regs(regs);
--		else
--			dump_stack();
-+		if (regs != NULL && cpu_in_idle(instruction_pointer(regs))) {
-+			pr_warn("NMI backtrace for cpu %d skipped: idling at pc %#lx\n",
-+				cpu, instruction_pointer(regs));
-+		} else {
-+			pr_warn("NMI backtrace for cpu %d\n", cpu);
-+			if (regs)
-+				show_regs(regs);
-+			else
-+				dump_stack();
-+		}
- 		this_cpu_write(printk_func, printk_func_save);
- 
- 		cpumask_clear_cpu(cpu, to_cpumask(backtrace_mask));
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 48958d3cec9e..37afd721ec99 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -887,8 +887,8 @@ static void check_section(const char *modname, struct elf_info *elf,
- #define ALL_EXIT_SECTIONS EXIT_SECTIONS, ALL_XXXEXIT_SECTIONS
- 
- #define DATA_SECTIONS ".data", ".data.rel"
--#define TEXT_SECTIONS ".text", ".text.unlikely", ".sched.text", \
--		".kprobes.text"
-+#define TEXT_SECTIONS ".text", ".text.unlikely", \
-+		".kprobes.text", ".cpuidle.text"
- #define OTHER_TEXT_SECTIONS ".ref.text", ".head.text", ".spinlock.text", \
- 		".fixup", ".entry.text", ".exception.text", ".text.*", \
- 		".coldtext"
-diff --git a/scripts/recordmcount.c b/scripts/recordmcount.c
-index e167592793a7..9a6ec6ce00b5 100644
---- a/scripts/recordmcount.c
-+++ b/scripts/recordmcount.c
-@@ -357,6 +357,7 @@ is_mcounted_section_name(char const *const txtname)
- 		strcmp(".spinlock.text", txtname) == 0 ||
- 		strcmp(".irqentry.text", txtname) == 0 ||
- 		strcmp(".kprobes.text", txtname) == 0 ||
-+		strcmp(".cpuidle.text", txtname) == 0 ||
- 		strcmp(".text.unlikely", txtname) == 0;
- }
- 
-diff --git a/scripts/recordmcount.pl b/scripts/recordmcount.pl
-index 96e2486a6fc4..29cecf9b504f 100755
---- a/scripts/recordmcount.pl
-+++ b/scripts/recordmcount.pl
-@@ -135,6 +135,7 @@ my %text_sections = (
-      ".spinlock.text" => 1,
-      ".irqentry.text" => 1,
-      ".kprobes.text" => 1,
-+     ".cpuidle.text" => 1,
-      ".text.unlikely" => 1,
- );
- 
--- 
-2.7.2
+--fUYQa+Pmc3FrFX/N
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--fUYQa+Pmc3FrFX/N--
