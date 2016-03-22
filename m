@@ -1,63 +1,84 @@
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v3 4/4] nmi_backtrace: generate one-line reports for idle cpus
-Date: Tue, 22 Mar 2016 23:31:11 +0100
-Message-ID: <54039485.X1biSGXPBa@vostro.rjw.lan>
-References: <1458667179-19630-1-git-send-email-cmetcalf@mellanox.com> <1458667179-19630-5-git-send-email-cmetcalf@mellanox.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Tue, 22 Mar 2016 23:45:57 +0100
+Message-ID: <20160322224557.GG6356@twins.programming.kicks-ass.net>
+References: <1458667179-19630-1-git-send-email-cmetcalf@mellanox.com>
+ <1458667179-19630-5-git-send-email-cmetcalf@mellanox.com>
+ <54039485.X1biSGXPBa@vostro.rjw.lan>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from v094114.home.net.pl ([79.96.170.134]:61129 "HELO
-	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752156AbcCVW3B (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2016 18:29:01 -0400
-In-Reply-To: <1458667179-19630-5-git-send-email-cmetcalf@mellanox.com>
+Received: from casper.infradead.org ([85.118.1.10]:38187 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752550AbcCVWqG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2016 18:46:06 -0400
+Content-Disposition: inline
+In-Reply-To: <54039485.X1biSGXPBa@vostro.rjw.lan>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday, March 22, 2016 01:19:39 PM Chris Metcalf wrote:
-> When doing an nmi backtrace of many cores, most of which are idle,
-> the output is a little overwhelming and very uninformative.  Suppress
-> messages for cpus that are idling when they are interrupted and just
-> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+On Tue, Mar 22, 2016 at 11:31:11PM +0100, Rafael J. Wysocki wrote:
+
+> > diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
+> > index cd4510a63375..924554f920fb 100644
+> > --- a/drivers/idle/intel_idle.c
+> > +++ b/drivers/idle/intel_idle.c
+> > @@ -725,8 +725,8 @@ static struct cpuidle_state avn_cstates[] = {
+> >   *
+> >   * Must be called under local_irq_disable().
+> >   */
+> > -static int intel_idle(struct cpuidle_device *dev,
+> > -		struct cpuidle_driver *drv, int index)
+> > +static __cpuidle int intel_idle(struct cpuidle_device *dev,
+> > +				struct cpuidle_driver *drv, int index)
+> >  {
+> >  	unsigned long ecx = 1; /* break on interrupt flag */
+> >  	struct cpuidle_state *state = &drv->states[index];
 > 
-> We do this by grouping all the cpuidle code together into a new
-> .cpuidle.text section, and then checking the address of the
-> interrupted PC to see if it lies within that section.
+> Well, what about intel_idle_freeze()?  Or do we not care?
+
+I argued against it; when you're suspended the NMI watchdog is stopped
+too. Then again, you've more experience debugging that thing, so if
+you think its useful its not much effort adding it.
+
+> And analogous stuff in processor_idle.c for that matter?
 > 
-> This commit suitably tags x86, arm64, and tile idle routines,
-> and only adds in the minimal framework for other architectures.
-> 
-> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Tested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Chris Metcalf <cmetcalf@mellanox.com>
-> ---
+> acpi_idle_enter()/acpi_idle_enter_freeze() plus stuff called by those?
 
-[cut]
+Ah, I only tagged acpi_processor_ffh_cstate_enter() because I went from
+mwait_idle_with_hints(), I suppose acpi_safe_halt() and
+acpi_idle_do_entry() itself for the INB method should cover it?
 
-> diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
-> index cd4510a63375..924554f920fb 100644
-> --- a/drivers/idle/intel_idle.c
-> +++ b/drivers/idle/intel_idle.c
-> @@ -725,8 +725,8 @@ static struct cpuidle_state avn_cstates[] = {
->   *
->   * Must be called under local_irq_disable().
->   */
-> -static int intel_idle(struct cpuidle_device *dev,
-> -		struct cpuidle_driver *drv, int index)
-> +static __cpuidle int intel_idle(struct cpuidle_device *dev,
-> +				struct cpuidle_driver *drv, int index)
->  {
->  	unsigned long ecx = 1; /* break on interrupt flag */
->  	struct cpuidle_state *state = &drv->states[index];
+(This being one of the reasons I asked Chris to Cc you; you know this
+stuff far better than I do)
 
-Well, what about intel_idle_freeze()?  Or do we not care?
 
-And analogous stuff in processor_idle.c for that matter?
+---
+ drivers/acpi/processor_idle.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-acpi_idle_enter()/acpi_idle_enter_freeze() plus stuff called by those?
-
-Thanks,
-Rafael
+diff --git a/drivers/acpi/processor_idle.c b/drivers/acpi/processor_idle.c
+index 175c86bee3a9..d5b11fff9e88 100644
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -111,7 +111,7 @@ static const struct dmi_system_id processor_power_dmi_table[] = {
+  * Callers should disable interrupts before the call and enable
+  * interrupts after return.
+  */
+-static void acpi_safe_halt(void)
++__cpuidle static void acpi_safe_halt(void)
+ {
+ 	if (!tif_need_resched()) {
+ 		safe_halt();
+@@ -680,7 +680,7 @@ static int acpi_idle_bm_check(void)
+  *
+  * Caller disables interrupt before call and enables interrupt after return.
+  */
+-static void acpi_idle_do_entry(struct acpi_processor_cx *cx)
++__cpuidle static void acpi_idle_do_entry(struct acpi_processor_cx *cx)
+ {
+ 	if (cx->entry_method == ACPI_CSTATE_FFH) {
+ 		/* Call into architectural FFH based C-state */
