@@ -1,146 +1,52 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH] x86/locking/rwsem: Cleanup ____down_write()
-Date: Wed, 27 Apr 2016 14:02:17 +0200
-Message-ID: <20160427120217.GE21011@pd.tnic>
-References: <20160413091625.GF14351@dhcp22.suse.cz>
- <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
- <20160413124943.GH14351@dhcp22.suse.cz>
- <20160420134019.GX3448@twins.programming.kicks-ass.net>
- <91A11395-ACAA-4043-B770-2DF6CBAED54C@zytor.com>
- <20160420204501.GA6815@pd.tnic>
- <5717EF59.1030709@zytor.com>
- <20160420213637.GA4978@pd.tnic>
- <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Date: Tue, 22 Mar 2016 14:00:58 +0100
+Message-ID: <20160322130058.GA16528@xo-6d-61-c0.localdomain>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kvm-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michal Hocko <mhocko@kernel.org>, Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+Sender: kvm-owner@vger.kernel.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 20, 2016 at 03:29:30PM -0700, H. Peter Anvin wrote:
-> Since it is a fixed register we could just mark edx clobbered, but
-> with more flexible register constraints it can permit gcc to allocate
-> a temp resister for us.
+Hi!
 
-How about the following?
+> This RFC patch series provides support for AMD's new Secure Memory
+> Encryption (SME) feature.
+> 
+> SME can be used to mark individual pages of memory as encrypted through the
+> page tables. A page of memory that is marked encrypted will be automatically
+> decrypted when read from DRAM and will be automatically encrypted when
+> written to DRAM. Details on SME can found in the links below.
 
-It boots fine in kvm and the asm changes are only trivial gcc comments
-differences:
+Well, actually brief summary should go to changelog and probably to the documentation,
+too...
 
----
-From: Borislav Petkov <bp@suse.de>
-Date: Wed, 27 Apr 2016 13:47:32 +0200
-Subject: [PATCH] x86/locking/rwsem: Cleanup ____down_write()
+Why would I want SME on my system? My system seems to work without it.
 
-Move the RWSEM_ACTIVE_WRITE_BIAS out of the inline asm to reduce the
-number of arguments. Also, make it an input argument only (why it was an
-output operand, I still don't know...).
+Does it protect against cold boot attacks? Rowhammer (I guess not?)
 
-For better readability, use symbolic names for the arguments and move
-the linebreak backspace to 80 cols.
+Does it cost some performance?
 
-Resulting asm differs only in the temporary gcc variable names and
-locations:
+Does it break debugging over JTAG?
 
-  --- before      2016-04-27 13:39:05.320778458 +0200
-  +++ after       2016-04-27 13:52:37.336778994 +0200
-  @@ -11,8 +11,8 @@ down_write_killable:
-   .LBB84:
-   .LBB85:
-   .LBB86:
-  -        .loc 2 128 0
-  -        movabsq $-4294967295, %rdx      #, tmp
-  +        .loc 2 130 0
-  +        movabsq $-4294967295, %rdx      #, tmp94
-           movq    %rdi, %rax      # sem, sem
-   .LBE86:
-   .LBE85:
-  @@ -23,17 +23,17 @@ down_write_killable:
-   .LBB89:
-   .LBB88:
-   .LBB87:
-  -        .loc 2 128 0
-  +        .loc 2 130 0
-   #APP
-  -# 128 "./arch/x86/include/asm/rwsem.h" 1
-  +# 130 "./arch/x86/include/asm/rwsem.h" 1
-           # beginning down_write
-           .pushsection .smp_locks,"a"
-   .balign 4
-   .long 671f - .
-   .popsection
-   671:
-  -        lock;   xadd      %rdx,(%rax)   # tmp, sem
-  -          test  %edx , %edx     # tmp
-  +        lock;   xadd      %rdx,(%rax)   # tmp94, sem
-  +          test  %edx , %edx     # tmp94
-             jz        1f
-     call call_rwsem_down_write_failed_killable
-   1:
+> The approach that this patch series takes is to encrypt everything possible
+> starting early in the boot where the kernel is encrypted. Using the page
+> table macros the encryption mask can be incorporated into all page table
+> entries and page allocations. By updating the protection map, userspace
+> allocations are also marked encrypted. Certain data must be accounted for
+> as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+> and accessed accordingly.
 
-Signed-off-by: Borislav Petkov <bp@suse.de>
----
- arch/x86/include/asm/rwsem.h | 36 +++++++++++++++++++-----------------
- 1 file changed, 19 insertions(+), 17 deletions(-)
+Do you also need to do something special for device DMA?
 
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index 453744c1d347..d2f8d10a6d97 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -99,23 +99,25 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- /*
-  * lock for writing
-  */
--#define ____down_write(sem, slow_path)			\
--({							\
--	long tmp;					\
--	struct rw_semaphore* ret;			\
--	asm volatile("# beginning down_write\n\t"	\
--		     LOCK_PREFIX "  xadd      %1,(%3)\n\t"	\
--		     /* adds 0xffff0001, returns the old value */ \
--		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
--		     /* was the active mask 0 before? */\
--		     "  jz        1f\n"			\
--		     "  call " slow_path "\n"		\
--		     "1:\n"				\
--		     "# ending down_write"		\
--		     : "+m" (sem->count), "=d" (tmp), "=a" (ret)	\
--		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
--		     : "memory", "cc");			\
--	ret;						\
-+#define ____down_write(sem, slow_path)						\
-+({										\
-+	long tmp = RWSEM_ACTIVE_WRITE_BIAS;					\
-+	struct rw_semaphore* ret;						\
-+										\
-+	asm volatile("# beginning down_write\n\t"				\
-+		     LOCK_PREFIX "  xadd      %[tmp],(%[sem])\n\t"		\
-+		     /* adds 0xffff0001, returns the old value */		\
-+		     "  test " __ASM_SEL(%w[tmp],%k[tmp]) ","			\
-+			       __ASM_SEL(%w[tmp],%k[tmp]) "\n\t"		\
-+		     /* was the active mask 0 before? */			\
-+		     "  jz        1f\n"						\
-+		     "  call " slow_path "\n"					\
-+		     "1:\n"							\
-+		     "# ending down_write"					\
-+		     : "+m" (sem->count), "=a" (ret)				\
-+		     : [sem] "a" (sem), [tmp] "r" (tmp)				\
-+		     : "memory", "cc");						\
-+	ret;									\
- })
- 
- static inline void __down_write(struct rw_semaphore *sem)
+Thanks,
+
+									Pavel
 -- 
-2.7.3
-
-
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
