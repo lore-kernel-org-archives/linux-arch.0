@@ -1,151 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:53763 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753511AbcD0MCZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Apr 2016 08:02:25 -0400
-Date: Wed, 27 Apr 2016 14:02:17 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH] x86/locking/rwsem: Cleanup ____down_write()
-Message-ID: <20160427120217.GE21011@pd.tnic>
-References: <20160413091625.GF14351@dhcp22.suse.cz>
- <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
- <20160413124943.GH14351@dhcp22.suse.cz>
- <20160420134019.GX3448@twins.programming.kicks-ass.net>
- <91A11395-ACAA-4043-B770-2DF6CBAED54C@zytor.com>
- <20160420204501.GA6815@pd.tnic>
- <5717EF59.1030709@zytor.com>
- <20160420213637.GA4978@pd.tnic>
- <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:41267 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752478AbcD0MmM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 08:42:12 -0400
+Date: Tue, 22 Mar 2016 14:01:50 +0100
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
+ enablement
+Message-ID: <20160322130150.GB16528@xo-6d-61-c0.localdomain>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
+In-Reply-To: <20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michal Hocko <mhocko@kernel.org>, Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20160427120217.iDvhBx_2rXZXfN9i6UVDU0JWdgAG-MP0olHpQVCiqiU@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160322130150.ofRylyPDBgwFZ_DVAVXLGqw9Lso2-hlZQBibXNAwrTk@z>
 
-On Wed, Apr 20, 2016 at 03:29:30PM -0700, H. Peter Anvin wrote:
-> Since it is a fixed register we could just mark edx clobbered, but
-> with more flexible register constraints it can permit gcc to allocate
-> a temp resister for us.
+On Tue 2016-04-26 17:56:14, Tom Lendacky wrote:
+> Provide the Kconfig support to build the SME support in the kernel.
 
-How about the following?
 
-It boots fine in kvm and the asm changes are only trivial gcc comments
-differences:
+Probably should go last in the series?
 
----
-From: Borislav Petkov <bp@suse.de>
-Date: Wed, 27 Apr 2016 13:47:32 +0200
-Subject: [PATCH] x86/locking/rwsem: Cleanup ____down_write()
-
-Move the RWSEM_ACTIVE_WRITE_BIAS out of the inline asm to reduce the
-number of arguments. Also, make it an input argument only (why it was an
-output operand, I still don't know...).
-
-For better readability, use symbolic names for the arguments and move
-the linebreak backspace to 80 cols.
-
-Resulting asm differs only in the temporary gcc variable names and
-locations:
-
-  --- before      2016-04-27 13:39:05.320778458 +0200
-  +++ after       2016-04-27 13:52:37.336778994 +0200
-  @@ -11,8 +11,8 @@ down_write_killable:
-   .LBB84:
-   .LBB85:
-   .LBB86:
-  -        .loc 2 128 0
-  -        movabsq $-4294967295, %rdx      #, tmp
-  +        .loc 2 130 0
-  +        movabsq $-4294967295, %rdx      #, tmp94
-           movq    %rdi, %rax      # sem, sem
-   .LBE86:
-   .LBE85:
-  @@ -23,17 +23,17 @@ down_write_killable:
-   .LBB89:
-   .LBB88:
-   .LBB87:
-  -        .loc 2 128 0
-  +        .loc 2 130 0
-   #APP
-  -# 128 "./arch/x86/include/asm/rwsem.h" 1
-  +# 130 "./arch/x86/include/asm/rwsem.h" 1
-           # beginning down_write
-           .pushsection .smp_locks,"a"
-   .balign 4
-   .long 671f - .
-   .popsection
-   671:
-  -        lock;   xadd      %rdx,(%rax)   # tmp, sem
-  -          test  %edx , %edx     # tmp
-  +        lock;   xadd      %rdx,(%rax)   # tmp94, sem
-  +          test  %edx , %edx     # tmp94
-             jz        1f
-     call call_rwsem_down_write_failed_killable
-   1:
-
-Signed-off-by: Borislav Petkov <bp@suse.de>
----
- arch/x86/include/asm/rwsem.h | 36 +++++++++++++++++++-----------------
- 1 file changed, 19 insertions(+), 17 deletions(-)
-
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index 453744c1d347..d2f8d10a6d97 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -99,23 +99,25 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- /*
-  * lock for writing
-  */
--#define ____down_write(sem, slow_path)			\
--({							\
--	long tmp;					\
--	struct rw_semaphore* ret;			\
--	asm volatile("# beginning down_write\n\t"	\
--		     LOCK_PREFIX "  xadd      %1,(%3)\n\t"	\
--		     /* adds 0xffff0001, returns the old value */ \
--		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
--		     /* was the active mask 0 before? */\
--		     "  jz        1f\n"			\
--		     "  call " slow_path "\n"		\
--		     "1:\n"				\
--		     "# ending down_write"		\
--		     : "+m" (sem->count), "=d" (tmp), "=a" (ret)	\
--		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
--		     : "memory", "cc");			\
--	ret;						\
-+#define ____down_write(sem, slow_path)						\
-+({										\
-+	long tmp = RWSEM_ACTIVE_WRITE_BIAS;					\
-+	struct rw_semaphore* ret;						\
-+										\
-+	asm volatile("# beginning down_write\n\t"				\
-+		     LOCK_PREFIX "  xadd      %[tmp],(%[sem])\n\t"		\
-+		     /* adds 0xffff0001, returns the old value */		\
-+		     "  test " __ASM_SEL(%w[tmp],%k[tmp]) ","			\
-+			       __ASM_SEL(%w[tmp],%k[tmp]) "\n\t"		\
-+		     /* was the active mask 0 before? */			\
-+		     "  jz        1f\n"						\
-+		     "  call " slow_path "\n"					\
-+		     "1:\n"							\
-+		     "# ending down_write"					\
-+		     : "+m" (sem->count), "=a" (ret)				\
-+		     : [sem] "a" (sem), [tmp] "r" (tmp)				\
-+		     : "memory", "cc");						\
-+	ret;									\
- })
- 
- static inline void __down_write(struct rw_semaphore *sem)
--- 
-2.7.3
-
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/Kconfig |    9 +++++++++
+>  1 file changed, 9 insertions(+)
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 7bb1574..13249b5 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -1356,6 +1356,15 @@ config X86_DIRECT_GBPAGES
+>  	  supports them), so don't confuse the user by printing
+>  	  that we have them enabled.
+>  
+> +config AMD_MEM_ENCRYPT
+> +	bool "Secure Memory Encryption support for AMD"
+> +	depends on X86_64 && CPU_SUP_AMD
+> +	---help---
+> +	  Say yes to enable the encryption of system memory. This requires
+> +	  an AMD processor that supports Secure Memory Encryption (SME).
+> +	  The encryption of system memory is disabled by default but can be
+> +	  enabled with the mem_encrypt=on command line option.
+> +
+>  # Common NUMA Features
+>  config NUMA
+>  	bool "Numa Memory Allocation and Scheduler Support"
 
 -- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
