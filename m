@@ -1,193 +1,161 @@
-From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as
- in_compat_syscall()
-Date: Wed, 23 Mar 2016 11:42:48 -0700
-Message-ID: <20160323184248.GA25479@dtor-ws>
-References: <cover.1453759363.git.luto@kernel.org>
- <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
- <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
- <CALCETrUUNM1Qoqna1e7qmEqNUwo99PJe9fSuXG4fzPdSBLfPuA@mail.gmail.com>
- <20160127210610.GB28687@dtor-ws>
- <20160322135152.78d21ee6d56b702f06c5e01f@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+Subject: [PATCH 01/31] bitops: add parity functions
+Date: Thu, 24 Mar 2016 11:03:32 +0800
+Message-ID: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f175.google.com ([209.85.192.175]:33862 "EHLO
-	mail-pf0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751088AbcCWSmx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2016 14:42:53 -0400
-Content-Disposition: inline
-In-Reply-To: <20160322135152.78d21ee6d56b702f06c5e01f@linux-foundation.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:36594 "EHLO
+	mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753295AbcCXDE7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2016 23:04:59 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, Sasha Levin <sasha.levin@oracle.com>, Denys Vlasenko <dvlasenk@redhat.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
 
-On Tue, Mar 22, 2016 at 01:51:52PM -0700, Andrew Morton wrote:
-> On Wed, 27 Jan 2016 13:06:10 -0800 Dmitry Torokhov <dmitry.torokhov@gmail.com> wrote:
-> 
-> > On Wed, Jan 27, 2016 at 12:29:14PM -0800, Andy Lutomirski wrote:
-> > > On Wed, Jan 27, 2016 at 11:17 AM, Dmitry Torokhov
-> > > <dmitry.torokhov@gmail.com> wrote:
-> > > > Hi Andy,
-> > > >
-> > > > On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> > > >> The input compat code should work like all other compat code: for
-> > > >> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
-> > > >> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
-> > > >> use it.
-> > > >>
-> > > >> Signed-off-by: Andy Lutomirski <luto@kernel.org>
-> > > >> ---
-> > > >>  drivers/input/input-compat.h | 12 +-----------
-> > > >>  1 file changed, 1 insertion(+), 11 deletions(-)
-> > > >>
-> > > >> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
-> > > >> index 148f66fe3205..0f25878d5fa2 100644
-> > > >> --- a/drivers/input/input-compat.h
-> > > >> +++ b/drivers/input/input-compat.h
-> > > >> @@ -17,17 +17,7 @@
-> > > >>
-> > > >>  #ifdef CONFIG_COMPAT
-> > > >>
-> > > >> -/* Note to the author of this code: did it ever occur to
-> > > >> -   you why the ifdefs are needed? Think about it again. -AK */
-> > > >> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
-> > > >> -#  define INPUT_COMPAT_TEST is_compat_task()
-> > > >> -#elif defined(CONFIG_S390)
-> > > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
-> > > >> -#elif defined(CONFIG_MIPS)
-> > > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
-> > > >> -#else
-> > > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
-> > > >> -#endif
-> > > >> +#define INPUT_COMPAT_TEST in_compat_syscall()
-> > > >>
-> > > >
-> > > >
-> > > > If we now have function that works on all arches I'd prefer if we used
-> > > > it directly instead of continuing using INPUT_COMPAT_TEST.
-> > > 
-> > > I'll write a followup patch for that if you don't beat me to it.
-> > 
-> > I promise I wont ;)
-> 
-> Well someone needs beating!
-> 
-> I'm prepping this patch for Linus now.  I shall queue up the below for
-> later.
+From: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
 
-Thank you Andrew.
+When I do "grep parity -r linux", I found many parity calculations distributed in many drivers.
+These patches provide generic and architecture-specific parity calculations.
 
-> 
-> From: Andrew Morton <akpm@linux-foundation.org>
-> Subject: drivers/input: eliminate INPUT_COMPAT_TEST macro
-> 
-> INPUT_COMPAT_TEST became much simpler after "input: redefine
-> INPUT_COMPAT_TEST as in_compat_syscall()" so we can cleanly eliminate it
-> altogether.
-> 
-> Cc: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-> Cc: Andy Lutomirski <luto@amacapital.net>
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
+---
+ include/asm-generic/bitops.h              |  1 +
+ include/asm-generic/bitops/arch_parity.h  | 39 +++++++++++++++++++++++++++++++
+ include/asm-generic/bitops/const_parity.h | 36 ++++++++++++++++++++++++++++
+ include/asm-generic/bitops/parity.h       |  7 ++++++
+ include/linux/bitops.h                    |  5 ++++
+ 5 files changed, 88 insertions(+)
+ create mode 100644 include/asm-generic/bitops/arch_parity.h
+ create mode 100644 include/asm-generic/bitops/const_parity.h
+ create mode 100644 include/asm-generic/bitops/parity.h
 
-Acked-by: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-
-> ---
-> 
->  drivers/input/input-compat.c |    6 +++---
->  drivers/input/input-compat.h |    4 +---
->  drivers/input/input.c        |    2 +-
->  drivers/input/misc/uinput.c  |    4 ++--
->  4 files changed, 7 insertions(+), 9 deletions(-)
-> 
-> diff -puN drivers/input/input-compat.h~a drivers/input/input-compat.h
-> --- a/drivers/input/input-compat.h~a
-> +++ a/drivers/input/input-compat.h
-> @@ -17,8 +17,6 @@
->  
->  #ifdef CONFIG_COMPAT
->  
-> -#define INPUT_COMPAT_TEST in_compat_syscall()
-> -
->  struct input_event_compat {
->  	struct compat_timeval time;
->  	__u16 type;
-> @@ -57,7 +55,7 @@ struct ff_effect_compat {
->  
->  static inline size_t input_event_size(void)
->  {
-> -	return (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) ?
-> +	return (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) ?
->  		sizeof(struct input_event_compat) : sizeof(struct input_event);
->  }
->  
-> diff -puN drivers/input/misc/uinput.c~a drivers/input/misc/uinput.c
-> --- a/drivers/input/misc/uinput.c~a
-> +++ a/drivers/input/misc/uinput.c
-> @@ -664,7 +664,7 @@ struct uinput_ff_upload_compat {
->  static int uinput_ff_upload_to_user(char __user *buffer,
->  				    const struct uinput_ff_upload *ff_up)
->  {
-> -	if (INPUT_COMPAT_TEST) {
-> +	if (in_compat_syscall()) {
->  		struct uinput_ff_upload_compat ff_up_compat;
->  
->  		ff_up_compat.request_id = ff_up->request_id;
-> @@ -695,7 +695,7 @@ static int uinput_ff_upload_to_user(char
->  static int uinput_ff_upload_from_user(const char __user *buffer,
->  				      struct uinput_ff_upload *ff_up)
->  {
-> -	if (INPUT_COMPAT_TEST) {
-> +	if (in_compat_syscall()) {
->  		struct uinput_ff_upload_compat ff_up_compat;
->  
->  		if (copy_from_user(&ff_up_compat, buffer,
-> diff -puN drivers/input/input-compat.c~a drivers/input/input-compat.c
-> --- a/drivers/input/input-compat.c~a
-> +++ a/drivers/input/input-compat.c
-> @@ -17,7 +17,7 @@
->  int input_event_from_user(const char __user *buffer,
->  			  struct input_event *event)
->  {
-> -	if (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) {
-> +	if (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) {
->  		struct input_event_compat compat_event;
->  
->  		if (copy_from_user(&compat_event, buffer,
-> @@ -41,7 +41,7 @@ int input_event_from_user(const char __u
->  int input_event_to_user(char __user *buffer,
->  			const struct input_event *event)
->  {
-> -	if (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) {
-> +	if (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) {
->  		struct input_event_compat compat_event;
->  
->  		compat_event.time.tv_sec = event->time.tv_sec;
-> @@ -65,7 +65,7 @@ int input_event_to_user(char __user *buf
->  int input_ff_effect_from_user(const char __user *buffer, size_t size,
->  			      struct ff_effect *effect)
->  {
-> -	if (INPUT_COMPAT_TEST) {
-> +	if (in_compat_syscall()) {
->  		struct ff_effect_compat *compat_effect;
->  
->  		if (size != sizeof(struct ff_effect_compat))
-> diff -puN drivers/input/input.c~a drivers/input/input.c
-> --- a/drivers/input/input.c~a
-> +++ a/drivers/input/input.c
-> @@ -1015,7 +1015,7 @@ static int input_bits_to_string(char *bu
->  {
->  	int len = 0;
->  
-> -	if (INPUT_COMPAT_TEST) {
-> +	if (in_compat_syscall()) {
->  		u32 dword = bits >> 32;
->  		if (dword || !skip_empty)
->  			len += snprintf(buf, buf_size, "%x ", dword);
-> _
-> 
-
+diff --git a/include/asm-generic/bitops.h b/include/asm-generic/bitops.h
+index dcdcacf..d85722f 100644
+--- a/include/asm-generic/bitops.h
++++ b/include/asm-generic/bitops.h
+@@ -27,6 +27,7 @@
+ #include <asm-generic/bitops/sched.h>
+ #include <asm-generic/bitops/ffs.h>
+ #include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/parity.h>
+ #include <asm-generic/bitops/lock.h>
+ 
+ #include <asm-generic/bitops/atomic.h>
+diff --git a/include/asm-generic/bitops/arch_parity.h b/include/asm-generic/bitops/arch_parity.h
+new file mode 100644
+index 0000000..8d51eb3
+--- /dev/null
++++ b/include/asm-generic/bitops/arch_parity.h
+@@ -0,0 +1,39 @@
++#ifndef _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
++#define _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
++
++#include <asm/types.h>
++
++/*
++ * Refrence to 'https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel'.
++ */
++
++static inline unsigned int __arch_parity4(unsigned int w)
++{
++	w &= 0xf;
++	return (0x6996 >> w) & 1;
++}
++
++static inline unsigned int __arch_parity8(unsigned int w)
++{
++	w ^= w >> 4;
++	return __arch_parity4(w);
++}
++
++static inline unsigned int __arch_parity16(unsigned int w)
++{
++	w ^= w >> 8;
++	return __arch_parity8(w);
++}
++
++static inline unsigned int __arch_parity32(unsigned int w)
++{
++	w ^= w >> 16;
++	return __arch_parity16(w);
++}
++
++static inline unsigned int __arch_parity64(__u64 w)
++{
++	return __arch_parity32((unsigned int)(w >> 32) ^ (unsigned int)w);
++}
++
++#endif /* _ASM_GENERIC_BITOPS_ARCH_PARITY_H_ */
+diff --git a/include/asm-generic/bitops/const_parity.h b/include/asm-generic/bitops/const_parity.h
+new file mode 100644
+index 0000000..9590315
+--- /dev/null
++++ b/include/asm-generic/bitops/const_parity.h
+@@ -0,0 +1,36 @@
++#ifndef _ASM_GENERIC_BITOPS_CONST_PARITY_H_
++#define _ASM_GENERIC_BITOPS_CONST_PARITY_H_
++
++/*
++ * Compile time versions of __arch_parityN()
++ */
++#define __const_parity4(w)   ((0x6996 >> ((w) & 0xf)) & 1)
++#define __const_parity8(w)   (__const_parity4(w ^ (w >> 4)))
++#define __const_parity16(w)  (__const_parity8(w ^ (w >> 8)))
++#define __const_parity32(w)  (__const_parity16(w ^ (w >> 16)))
++#define __const_parity64(w)  (__const_parity32(w ^ (w >> 32)))
++
++/*
++ * Generic interface.
++ */
++#define parity4(w)   (__builtin_constant_p(w) ? __const_parity4(w)  : __arch_parity4(w))
++#define parity8(w)   (__builtin_constant_p(w) ? __const_parity8(w)  : __arch_parity8(w))
++#define parity16(w)  (__builtin_constant_p(w) ? __const_parity16(w) : __arch_parity16(w))
++#define parity32(w)  (__builtin_constant_p(w) ? __const_parity32(w) : __arch_parity32(w))
++#define parity64(w)  (__builtin_constant_p(w) ? __const_parity64(w) : __arch_parity64(w))
++
++/*
++ * Interface for known constant arguments
++ */
++#define PARITY4(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity4(w))
++#define PARITY8(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity8(w))
++#define PARITY16(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity16(w))
++#define PARITY32(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity32(w))
++#define PARITY64(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity64(w))
++
++/*
++ * Type invariant interface to the compile time constant parity functions.
++ */
++#define PARITY(w)    PARITY64((u64)w)
++
++#endif /* _ASM_GENERIC_BITOPS_CONST_PARITY_H_ */
+diff --git a/include/asm-generic/bitops/parity.h b/include/asm-generic/bitops/parity.h
+new file mode 100644
+index 0000000..a91dce7
+--- /dev/null
++++ b/include/asm-generic/bitops/parity.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_GENERIC_BITOPS_PARITY_H_
++#define _ASM_GENERIC_BITOPS_PARITY_H_
++
++#include <asm-generic/bitops/arch_parity.h>
++#include <asm-generic/bitops/const_parity.h>
++
++#endif /* _ASM_GENERIC_BITOPS_PARITY_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index defeaac..f91cb44 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -80,6 +80,11 @@ static __always_inline unsigned long hweight_long(unsigned long w)
+ 	return sizeof(w) == 4 ? hweight32(w) : hweight64(w);
+ }
+ 
++static __always_inline unsigned int parity_long(unsigned long w)
++{
++	return sizeof(w) == 4 ? parity32(w) : parity64(w);
++}
++
+ /**
+  * rol64 - rotate a 64-bit value left
+  * @word: value to rotate
 -- 
-Dmitry
+2.5.0
