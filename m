@@ -1,183 +1,250 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:59283 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751449AbcCVUvy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2016 16:51:54 -0400
-Date: Tue, 22 Mar 2016 13:51:52 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as
- in_compat_syscall()
-Message-ID: <20160322135152.78d21ee6d56b702f06c5e01f@linux-foundation.org>
-In-Reply-To: <20160127210610.GB28687@dtor-ws>
-References: <cover.1453759363.git.luto@kernel.org>
-	<64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
-	<CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
-	<CALCETrUUNM1Qoqna1e7qmEqNUwo99PJe9fSuXG4fzPdSBLfPuA@mail.gmail.com>
-	<20160127210610.GB28687@dtor-ws>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:56883 "EHLO
+	shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751831AbcCYNww (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Mar 2016 09:52:52 -0400
+Date: Fri, 25 Mar 2016 13:52:47 +0000
+From: Ben Hutchings <ben@decadent.org.uk>
+Message-ID: <20160325135247.GH21187@decadent.org.uk>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="5Mfx4RzfBqgnTE/w"
+Content-Disposition: inline
+Subject: [PATCH] UAPI: Rename all '__unused' struct fields to '__unused1'
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
-Message-ID: <20160322205152.8_zlSaZANMakOm-KT-QWMolHylaempNdUUBm-EdiDHQ@z>
+To: linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: 522773@bugs.debian.org, Thorsten Glaser <tg@mirbsd.de>
+Message-ID: <20160325135247.RFuDxkVIn-LhEy_jBTiwq-cqhgUoJ1h4ZHPir4NE4W0@z>
 
-On Wed, 27 Jan 2016 13:06:10 -0800 Dmitry Torokhov <dmitry.torokhov@gmail.com> wrote:
 
-> On Wed, Jan 27, 2016 at 12:29:14PM -0800, Andy Lutomirski wrote:
-> > On Wed, Jan 27, 2016 at 11:17 AM, Dmitry Torokhov
-> > <dmitry.torokhov@gmail.com> wrote:
-> > > Hi Andy,
-> > >
-> > > On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> > >> The input compat code should work like all other compat code: for
-> > >> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
-> > >> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
-> > >> use it.
-> > >>
-> > >> Signed-off-by: Andy Lutomirski <luto@kernel.org>
-> > >> ---
-> > >>  drivers/input/input-compat.h | 12 +-----------
-> > >>  1 file changed, 1 insertion(+), 11 deletions(-)
-> > >>
-> > >> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
-> > >> index 148f66fe3205..0f25878d5fa2 100644
-> > >> --- a/drivers/input/input-compat.h
-> > >> +++ b/drivers/input/input-compat.h
-> > >> @@ -17,17 +17,7 @@
-> > >>
-> > >>  #ifdef CONFIG_COMPAT
-> > >>
-> > >> -/* Note to the author of this code: did it ever occur to
-> > >> -   you why the ifdefs are needed? Think about it again. -AK */
-> > >> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
-> > >> -#  define INPUT_COMPAT_TEST is_compat_task()
-> > >> -#elif defined(CONFIG_S390)
-> > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
-> > >> -#elif defined(CONFIG_MIPS)
-> > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
-> > >> -#else
-> > >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
-> > >> -#endif
-> > >> +#define INPUT_COMPAT_TEST in_compat_syscall()
-> > >>
-> > >
-> > >
-> > > If we now have function that works on all arches I'd prefer if we used
-> > > it directly instead of continuing using INPUT_COMPAT_TEST.
-> > 
-> > I'll write a followup patch for that if you don't beat me to it.
-> 
-> I promise I wont ;)
+--5Mfx4RzfBqgnTE/w
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Well someone needs beating!
+'__unused' is defined as a macro by some BSD-derived userland software.
+We should avoid using it in the UAPI.
 
-I'm prepping this patch for Linus now.  I shall queue up the below for
-later.
-
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: drivers/input: eliminate INPUT_COMPAT_TEST macro
-
-INPUT_COMPAT_TEST became much simpler after "input: redefine
-INPUT_COMPAT_TEST as in_compat_syscall()" so we can cleanly eliminate it
-altogether.
-
-Cc: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+References: https://bugs.debian.org/522773
+Reported-by: Thorsten Glaser <tg@mirbsd.de>
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
 ---
+Build-tested on x86 only.  I also grepped for uses of the supposedly
+ __unused fields on other architectures and found nothing.
 
- drivers/input/input-compat.c |    6 +++---
- drivers/input/input-compat.h |    4 +---
- drivers/input/input.c        |    2 +-
- drivers/input/misc/uinput.c  |    4 ++--
- 4 files changed, 7 insertions(+), 9 deletions(-)
+Ben.
 
-diff -puN drivers/input/input-compat.h~a drivers/input/input-compat.h
---- a/drivers/input/input-compat.h~a
-+++ a/drivers/input/input-compat.h
-@@ -17,8 +17,6 @@
- 
- #ifdef CONFIG_COMPAT
- 
--#define INPUT_COMPAT_TEST in_compat_syscall()
--
- struct input_event_compat {
- 	struct compat_timeval time;
- 	__u16 type;
-@@ -57,7 +55,7 @@ struct ff_effect_compat {
- 
- static inline size_t input_event_size(void)
- {
--	return (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) ?
-+	return (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) ?
- 		sizeof(struct input_event_compat) : sizeof(struct input_event);
- }
- 
-diff -puN drivers/input/misc/uinput.c~a drivers/input/misc/uinput.c
---- a/drivers/input/misc/uinput.c~a
-+++ a/drivers/input/misc/uinput.c
-@@ -664,7 +664,7 @@ struct uinput_ff_upload_compat {
- static int uinput_ff_upload_to_user(char __user *buffer,
- 				    const struct uinput_ff_upload *ff_up)
- {
--	if (INPUT_COMPAT_TEST) {
-+	if (in_compat_syscall()) {
- 		struct uinput_ff_upload_compat ff_up_compat;
- 
- 		ff_up_compat.request_id = ff_up->request_id;
-@@ -695,7 +695,7 @@ static int uinput_ff_upload_to_user(char
- static int uinput_ff_upload_from_user(const char __user *buffer,
- 				      struct uinput_ff_upload *ff_up)
- {
--	if (INPUT_COMPAT_TEST) {
-+	if (in_compat_syscall()) {
- 		struct uinput_ff_upload_compat ff_up_compat;
- 
- 		if (copy_from_user(&ff_up_compat, buffer,
-diff -puN drivers/input/input-compat.c~a drivers/input/input-compat.c
---- a/drivers/input/input-compat.c~a
-+++ a/drivers/input/input-compat.c
-@@ -17,7 +17,7 @@
- int input_event_from_user(const char __user *buffer,
- 			  struct input_event *event)
- {
--	if (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) {
-+	if (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) {
- 		struct input_event_compat compat_event;
- 
- 		if (copy_from_user(&compat_event, buffer,
-@@ -41,7 +41,7 @@ int input_event_from_user(const char __u
- int input_event_to_user(char __user *buffer,
- 			const struct input_event *event)
- {
--	if (INPUT_COMPAT_TEST && !COMPAT_USE_64BIT_TIME) {
-+	if (in_compat_syscall() && !COMPAT_USE_64BIT_TIME) {
- 		struct input_event_compat compat_event;
- 
- 		compat_event.time.tv_sec = event->time.tv_sec;
-@@ -65,7 +65,7 @@ int input_event_to_user(char __user *buf
- int input_ff_effect_from_user(const char __user *buffer, size_t size,
- 			      struct ff_effect *effect)
- {
--	if (INPUT_COMPAT_TEST) {
-+	if (in_compat_syscall()) {
- 		struct ff_effect_compat *compat_effect;
- 
- 		if (size != sizeof(struct ff_effect_compat))
-diff -puN drivers/input/input.c~a drivers/input/input.c
---- a/drivers/input/input.c~a
-+++ a/drivers/input/input.c
-@@ -1015,7 +1015,7 @@ static int input_bits_to_string(char *bu
- {
- 	int len = 0;
- 
--	if (INPUT_COMPAT_TEST) {
-+	if (in_compat_syscall()) {
- 		u32 dword = bits >> 32;
- 		if (dword || !skip_empty)
- 			len += snprintf(buf, buf_size, "%x ", dword);
-_
+ arch/alpha/include/uapi/asm/stat.h       | 2 +-
+ arch/arm64/include/uapi/asm/ucontext.h   | 2 +-
+ arch/ia64/include/uapi/asm/stat.h        | 2 +-
+ arch/powerpc/include/uapi/asm/ucontext.h | 2 +-
+ arch/s390/include/uapi/asm/stat.h        | 2 +-
+ arch/s390/include/uapi/asm/ucontext.h    | 4 ++--
+ arch/sparc/include/uapi/asm/fcntl.h      | 4 ++--
+ arch/sparc/include/uapi/asm/stat.h       | 2 +-
+ arch/x86/include/uapi/asm/stat.h         | 8 ++++----
+ include/uapi/linux/icmp.h                | 2 +-
+ include/uapi/linux/sysctl.h              | 2 +-
+ 11 files changed, 16 insertions(+), 16 deletions(-)
 
+diff --git a/arch/alpha/include/uapi/asm/stat.h b/arch/alpha/include/uapi/a=
+sm/stat.h
+index 07ad3e6b3f3e..f13899ad8d85 100644
+--- a/arch/alpha/include/uapi/asm/stat.h
++++ b/arch/alpha/include/uapi/asm/stat.h
+@@ -42,7 +42,7 @@ struct stat64 {
+ 	unsigned long	st_mtime_nsec;
+ 	unsigned long	st_ctime;
+ 	unsigned long   st_ctime_nsec;
+-  	long		__unused[3];
++	long		__unused1[3];
+ };
+=20
+ #endif
+diff --git a/arch/arm64/include/uapi/asm/ucontext.h b/arch/arm64/include/ua=
+pi/asm/ucontext.h
+index 791de8e89e35..37b343d2492e 100644
+--- a/arch/arm64/include/uapi/asm/ucontext.h
++++ b/arch/arm64/include/uapi/asm/ucontext.h
+@@ -24,7 +24,7 @@ struct ucontext {
+ 	stack_t		  uc_stack;
+ 	sigset_t	  uc_sigmask;
+ 	/* glibc uses a 1024-bit sigset_t */
+-	__u8		  __unused[1024 / 8 - sizeof(sigset_t)];
++	__u8		  __unused1[1024 / 8 - sizeof(sigset_t)];
+ 	/* last for future expansion */
+ 	struct sigcontext uc_mcontext;
+ };
+diff --git a/arch/ia64/include/uapi/asm/stat.h b/arch/ia64/include/uapi/asm=
+/stat.h
+index 367bb90cdffa..aa1e4f942942 100644
+--- a/arch/ia64/include/uapi/asm/stat.h
++++ b/arch/ia64/include/uapi/asm/stat.h
+@@ -24,7 +24,7 @@ struct stat {
+ 	unsigned long	st_ctime_nsec;
+ 	unsigned long	st_blksize;
+ 	long		st_blocks;
+-	unsigned long	__unused[3];
++	unsigned long	__unused1[3];
+ };
+=20
+ #define STAT_HAVE_NSEC 1
+diff --git a/arch/powerpc/include/uapi/asm/ucontext.h b/arch/powerpc/includ=
+e/uapi/asm/ucontext.h
+index d9a4ddf0cc86..cb08c035e427 100644
+--- a/arch/powerpc/include/uapi/asm/ucontext.h
++++ b/arch/powerpc/include/uapi/asm/ucontext.h
+@@ -28,7 +28,7 @@ struct ucontext {
+ 	sigset_t	uc_sigmask;
+ 	/* glibc has 1024-bit signal masks, ours are 64-bit */
+ #ifdef __powerpc64__
+-	sigset_t	__unused[15];	/* Allow for uc_sigmask growth */
++	sigset_t	__unused1[15];	/* Allow for uc_sigmask growth */
+ 	struct sigcontext uc_mcontext;	/* last for extensibility */
+ #else
+ 	int		uc_maskext[30];
+diff --git a/arch/s390/include/uapi/asm/stat.h b/arch/s390/include/uapi/asm=
+/stat.h
+index b4ca97d91466..5e493c1aa1f6 100644
+--- a/arch/s390/include/uapi/asm/stat.h
++++ b/arch/s390/include/uapi/asm/stat.h
+@@ -93,7 +93,7 @@ struct stat {
+ 	unsigned long  st_ctime_nsec;
+         unsigned long  st_blksize;
+         long           st_blocks;
+-        unsigned long  __unused[3];
++        unsigned long  __unused1[3];
+ };
+=20
+ #endif /* __s390x__ */
+diff --git a/arch/s390/include/uapi/asm/ucontext.h b/arch/s390/include/uapi=
+/asm/ucontext.h
+index 64a69aa5dde0..59d915f9ac27 100644
+--- a/arch/s390/include/uapi/asm/ucontext.h
++++ b/arch/s390/include/uapi/asm/ucontext.h
+@@ -23,7 +23,7 @@ struct ucontext_extended {
+ 	_sigregs	  uc_mcontext;
+ 	sigset_t	  uc_sigmask;
+ 	/* Allow for uc_sigmask growth.  Glibc uses a 1024-bit sigset_t.  */
+-	unsigned char	  __unused[128 - sizeof(sigset_t)];
++	unsigned char	  __unused1[128 - sizeof(sigset_t)];
+ 	_sigregs_ext	  uc_mcontext_ext;
+ };
+=20
+@@ -34,7 +34,7 @@ struct ucontext {
+ 	_sigregs          uc_mcontext;
+ 	sigset_t	  uc_sigmask;
+ 	/* Allow for uc_sigmask growth.  Glibc uses a 1024-bit sigset_t.  */
+-	unsigned char	  __unused[128 - sizeof(sigset_t)];
++	unsigned char	  __unused1[128 - sizeof(sigset_t)];
+ };
+=20
+ #endif /* !_ASM_S390_UCONTEXT_H */
+diff --git a/arch/sparc/include/uapi/asm/fcntl.h b/arch/sparc/include/uapi/=
+asm/fcntl.h
+index 7e8ace5bf760..9f5d4383170a 100644
+--- a/arch/sparc/include/uapi/asm/fcntl.h
++++ b/arch/sparc/include/uapi/asm/fcntl.h
+@@ -48,8 +48,8 @@
+ #define F_WRLCK		2
+ #define F_UNLCK		3
+=20
+-#define __ARCH_FLOCK_PAD	short __unused;
+-#define __ARCH_FLOCK64_PAD	short __unused;
++#define __ARCH_FLOCK_PAD	short __unused1;
++#define __ARCH_FLOCK64_PAD	short __unused1;
+=20
+ #include <asm-generic/fcntl.h>
+=20
+diff --git a/arch/sparc/include/uapi/asm/stat.h b/arch/sparc/include/uapi/a=
+sm/stat.h
+index a232e9e1f4e5..0b4b4ae9a05d 100644
+--- a/arch/sparc/include/uapi/asm/stat.h
++++ b/arch/sparc/include/uapi/asm/stat.h
+@@ -43,7 +43,7 @@ struct stat64 {
+ 	unsigned long	st_mtime_nsec;
+ 	unsigned long	st_ctime;
+ 	unsigned long	st_ctime_nsec;
+-	long		__unused[3];
++	long		__unused1[3];
+ };
+=20
+ #else
+diff --git a/arch/x86/include/uapi/asm/stat.h b/arch/x86/include/uapi/asm/s=
+tat.h
+index bc03eb5d6360..64ba4e324f57 100644
+--- a/arch/x86/include/uapi/asm/stat.h
++++ b/arch/x86/include/uapi/asm/stat.h
+@@ -99,15 +99,15 @@ struct stat {
+ 	__kernel_ulong_t	st_mtime_nsec;
+ 	__kernel_ulong_t	st_ctime;
+ 	__kernel_ulong_t	st_ctime_nsec;
+-	__kernel_long_t		__unused[3];
++	__kernel_long_t		__unused1[3];
+ };
+=20
+ /* We don't need to memset the whole thing just to initialize the padding =
+*/
+ #define INIT_STRUCT_STAT_PADDING(st) do {	\
+ 	st.__pad0 =3D 0;				\
+-	st.__unused[0] =3D 0;			\
+-	st.__unused[1] =3D 0;			\
+-	st.__unused[2] =3D 0;			\
++	st.__unused1[0] =3D 0;			\
++	st.__unused1[1] =3D 0;			\
++	st.__unused1[2] =3D 0;			\
+ } while (0)
+=20
+ #endif
+diff --git a/include/uapi/linux/icmp.h b/include/uapi/linux/icmp.h
+index 16fff055f734..78d71b13f9e5 100644
+--- a/include/uapi/linux/icmp.h
++++ b/include/uapi/linux/icmp.h
+@@ -76,7 +76,7 @@ struct icmphdr {
+ 	} echo;
+ 	__be32	gateway;
+ 	struct {
+-		__be16	__unused;
++		__be16	__unused1;
+ 		__be16	mtu;
+ 	} frag;
+   } un;
+diff --git a/include/uapi/linux/sysctl.h b/include/uapi/linux/sysctl.h
+index 0956373b56db..177aa35a8ce8 100644
+--- a/include/uapi/linux/sysctl.h
++++ b/include/uapi/linux/sysctl.h
+@@ -40,7 +40,7 @@ struct __sysctl_args {
+ 	size_t __user *oldlenp;
+ 	void __user *newval;
+ 	size_t newlen;
+-	unsigned long __unused[4];
++	unsigned long __unused1[4];
+ };
+=20
+ /* Define sysctl names first */
+
+--5Mfx4RzfBqgnTE/w
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIVAwUBVvVCrue/yOyVhhEJAQprMg//eiXLtnCPc0gya655DL/VSuuilPm+fj01
+vC0pPai/07p1UTsFoMtBQYWa6iBR6lWKbOk3lTfyGGK7MfCHGCRA6gUB1sxIPS2U
+TtrPtAoRPseSwp3mD4X5J8tHavAQMX2NSKo3q94GB0li4zZVWuE+Hzm2+oTJ4DIr
+iQ2zlIaQiQzOghuChOaJ0jBF27e+GYc3ptlhbVJ4tuK/XUMDfwxMysZMtF6crf6m
+oyp9rYXaNFSGuz9SAon2mqbKt//rLM8cSp48UBCILUKAdjuG9wlswgIMV3qG2h8T
+UPTSvEIt7tcds9ZBFefYDgA/jpXYRuMYq3Koo/UpelSXgfv64HHefil/tIdPji+4
+UEWcBg293Ip+cOI7BzmLftk5XNq2sBuWLWBW57Fqs+h1jVUTCIIyD31jieMJy7Pb
+Ic/FAsVe8qtV01/J55KLHUrUSmPBDBOatx9mVIAzYPPxDN6mq3/ZP/9kIkAO1mTk
+YmcjWUTu3wV+ab4BLKcJXQ0m2i1bUUFpb0rQmHcC+yiLTbwR088sI556Gj8OMn3n
+C6k+W/aP1lkRSH9WYXO0eO5xGPiQ+wMmii1LI0R5RGKptrGaOpQfRyhaaxlyaMOb
+pPAXjMBD9PszX2OZUY0xQboQQ/2SHOYDsudeDs5fi5cpZvItU2axYJNJmspLIB3r
+MjOZDRlr5Mk=
+=osTZ
+-----END PGP SIGNATURE-----
+
+--5Mfx4RzfBqgnTE/w--
