@@ -1,31 +1,40 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 01/31] bitops: add parity functions
-Date: Thu, 24 Mar 2016 15:28:15 -0700
-Message-ID: <20160324152815.3489c6d54270f278e5dc7db4@linux-foundation.org>
-References: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com>
-	<56F3A77D.6060802@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: asm-generic changes for 4.6
+Date: Thu, 24 Mar 2016 23:29:31 -0700
+Message-ID: <CA+55aFxd28NSi=Tka=JyYB57mu96DNzikydS3C_O98arPDDMvw@mail.gmail.com>
+References: <11845534.Q9psV3m4LA@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:42170 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750794AbcCXW2Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Mar 2016 18:28:16 -0400
-In-Reply-To: <56F3A77D.6060802@redhat.com>
+Received: from mail-ig0-f180.google.com ([209.85.213.180]:38124 "EHLO
+	mail-ig0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751809AbcCYG3c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Mar 2016 02:29:32 -0400
+In-Reply-To: <11845534.Q9psV3m4LA@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Martin Kepplinger <martink@posteo.de>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Thu, 24 Mar 2016 09:38:21 +0100 Denys Vlasenko <dvlasenk@redhat.com> wrote:
+On Thu, Mar 24, 2016 at 2:12 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> asm-generic changes for 4.6
 
-> On 03/24/2016 04:03 AM, Zhaoxiu Zeng wrote:
-> > +/*
-> > + * Type invariant interface to the compile time constant parity functions.
-> > + */
-> > +#define PARITY(w)    PARITY64((u64)w)
-> 
-> Can result in incorrect expansion of w. Should be PARITY64((u64)(w))
+Btw, can you add "[GIT PULL]" to the subject line for your pulls? Or a
+"Please pull" in the body or similar.
 
-And we seem to be missing the other 30 patches.
+When I do pulls, my email filter looks for (surprise surprise) the
+terms "git" and "pull".
+
+And this didn't trigger either of those.
+
+The normal git request-pull script has that "git" part, and some
+people just add the "Please pull" to the email, and my filter will
+pick that up too. But the easiest and preferred way for me to see pull
+requests ends up being that "[GIT PULL]" in the subject line. For the
+same reason I prefer "[PATCH x/y]" in the subject line for patches.
+
+Not getting caught by my filter sometimes means that a pull gets
+delayed. Very seldom it might be overlooked entirely, but usually I do
+catch it later on after the other pulls (like happened now).
+
+                Linus
