@@ -1,49 +1,45 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: asm-generic changes for 4.6
-Date: Fri, 25 Mar 2016 16:17:01 +0100
-Message-ID: <4835715.nQCP8sPCa9@wuerfel>
-References: <11845534.Q9psV3m4LA@wuerfel> <CA+55aFxd28NSi=Tka=JyYB57mu96DNzikydS3C_O98arPDDMvw@mail.gmail.com>
+From: Martin Kepplinger <martink@posteo.de>
+Subject: Re: [PATCH 01/31] bitops: add parity functions
+Date: Sat, 26 Mar 2016 23:08:20 +0100
+Message-ID: <5C852AF0-E161-4219-B8C8-7CE3140B73C3@posteo.de>
+References: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com> <56F3A77D.6060802@redhat.com> <20160324152815.3489c6d54270f278e5dc7db4@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:62945 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751884AbcCYPRI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Mar 2016 11:17:08 -0400
-In-Reply-To: <CA+55aFxd28NSi=Tka=JyYB57mu96DNzikydS3C_O98arPDDMvw@mail.gmail.com>
+Received: from mout01.posteo.de ([185.67.36.65]:42104 "EHLO mout01.posteo.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754294AbcCZWIa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Mar 2016 18:08:30 -0400
+Received: from dovecot03.posteo.de (dovecot03.posteo.de [172.16.0.13])
+	by mout01.posteo.de (Postfix) with ESMTPS id C7DE620989
+	for <linux-arch@vger.kernel.org>; Sat, 26 Mar 2016 23:08:24 +0100 (CET)
+In-Reply-To: <20160324152815.3489c6d54270f278e5dc7db4@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Denys Vlasenko <dvlasenk@redhat.com>
+Cc: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thursday 24 March 2016 23:29:31 Linus Torvalds wrote:
-> On Thu, Mar 24, 2016 at 2:12 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > asm-generic changes for 4.6
-> 
-> Btw, can you add "[GIT PULL]" to the subject line for your pulls? Or a
-> "Please pull" in the body or similar.
-> 
-> When I do pulls, my email filter looks for (surprise surprise) the
-> terms "git" and "pull".
-> 
-> And this didn't trigger either of those.
-> 
-> The normal git request-pull script has that "git" part, and some
-> people just add the "Please pull" to the email, and my filter will
-> pick that up too. But the easiest and preferred way for me to see pull
-> requests ends up being that "[GIT PULL]" in the subject line. For the
-> same reason I prefer "[PATCH x/y]" in the subject line for patches.
-> 
-> Not getting caught by my filter sometimes means that a pull gets
-> delayed. Very seldom it might be overlooked entirely, but usually I do
-> catch it later on after the other pulls (like happened now).
-> 
+We do.
 
-Right. I realized my mistake the minute after sending the mail out,
-but decided against sending it again immediately, assuming that you'd
-either find it or I could resend the next day.
+Am 24. M=C3=A4rz 2016 23:28:15 MEZ, schrieb Andrew Morton <akpm@linux-f=
+oundation.org>:
+>On Thu, 24 Mar 2016 09:38:21 +0100 Denys Vlasenko <dvlasenk@redhat.com=
+>
+>wrote:
+>
+>> On 03/24/2016 04:03 AM, Zhaoxiu Zeng wrote:
+>> > +/*
+>> > + * Type invariant interface to the compile time constant parity
+>functions.
+>> > + */
+>> > +#define PARITY(w)    PARITY64((u64)w)
+>>=20
+>> Can result in incorrect expansion of w. Should be PARITY64((u64)(w))
+>
+>And we seem to be missing the other 30 patches.
 
-Thanks for pulling it in!
-
-	Arnd
+--=20
+Martin Kepplinger
+http://martinkepplinger.com
+sent from mobile
