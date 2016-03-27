@@ -1,20 +1,33 @@
-From: info@loan.com
-Subject: Darlehen Angebot
-Date: Sun, 27 Mar 2016 18:13:00 +0530
-Message-ID: <201603271243.u2RCFKDn011515@lifc-proxy.univ-fcomte.fr>
-Reply-To: legacyassetgrougp@hotmail.com
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 01/31] bitops: add parity functions
+Date: Sun, 27 Mar 2016 19:56:15 +0200
+Message-ID: <20160327175615.GA8864@ravnborg.org>
+References: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com>
+ <56F3A77D.6060802@redhat.com>
+ <56F75490.9010608@gmail.com>
+ <20160327124401.GA7407@ravnborg.org>
+ <56F7E24F.3040306@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lifc.univ-fcomte.fr ([194.57.88.66]:52997 "EHLO
-	lifc-proxy.univ-fcomte.fr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751716AbcC0OLl convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Mar 2016 10:11:41 -0400
-Content-Description: Mail message body
+Received: from asavdk4.altibox.net ([109.247.116.15]:34964 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752647AbcC0R4W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Mar 2016 13:56:22 -0400
+Content-Disposition: inline
+In-Reply-To: <56F7E24F.3040306@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <info@loan.com>
+To: "zhaoxiu.zeng" <zhaoxiu.zeng@gmail.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Sie ben=F6tigen ein Darlehen niedrige Rate? Altanlage gibt aus Darlehen=
- in g=FCnstigen Preis gilt jetzt: legacyassetgrougp@hotmail.com
+> > Any particular reason that you select one approach over the other
+> > in the different cases?
+> 
+> No particular reason, just like the architecture's __arch_hweightN.
+
+The general recommendatiosn these days are to use static inline
+for code to get better type check.
+And it would also be nice to be consistent across architectures.
+
+	Sam
