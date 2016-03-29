@@ -1,64 +1,77 @@
 From: Matt Redfearn <matt.redfearn@imgtec.com>
-Subject: [PATCH v2 0/6] MIPS seccomp_bpf self test and fixups
-Date: Tue, 29 Mar 2016 09:35:28 +0100
-Message-ID: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
+Subject: [PATCH v2 4/6] seccomp: Get compat syscalls from asm-generic header
+Date: Tue, 29 Mar 2016 09:35:32 +0100
+Message-ID: <1459240534-8658-5-git-send-email-matt.redfearn@imgtec.com>
+References: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: IMG-MIPSLinuxKerneldevelopers@imgtec.com
-Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Shuah Khan <shuahkh@osg.samsung.com>, Eric B Munson <emunson@akamai.com>, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, Markos Chandras <markos.chandras@imgtec.com>, Amanieu d'Antras <amanieu@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Alex Smith <alex.smith@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, Will Drewry <wad@chromium.org>
+Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-These patches imporve seccomp support on MIPS.
+Move retrieval of compat syscall numbers into inline function defined in
+asm-generic header so that arches may override it.
 
-Firstly support is added for building the seccomp_bpf self test for
-MIPS. The
-initial results of these tests were:
+Suggested-by: Paul Burton <paul.burton@imgtec.com>
+Signed-off-by: Matt Redfearn <matt.redfearn@imgtec.com>
+---
 
-32bit kernel O32 userspace before: 48 / 48 pass
-64bit kernel O32 userspace before: 47 / 48 pass
- Failures: TRAP.Handler
-64bit kernel N32 userspace before: 44 / 48 pass
- Failures: global.mode_strict_support, TRAP.handler,
-TRACE_syscall.syscall_redirected, TRACE_syscall.syscall_dropped
-64bit kernel N64 userspace before: 46 / 48 pass
- Failures: TRACE_syscall.syscall_redirected,
-TRACE_syscall.syscall_dropped
+Changes in v2: None
 
-The subsequent patches fix issues that were causing the above tests to
-fail. With
-these fixes, the results are:
-32bit kernel O32 userspace after: 48 / 48
-64bit kernel O32 userspace after: 48 / 48
-64bit kernel N32 userspace after: 48 / 48
-64bit kernel N64 userspace after: 48 / 48
+ include/asm-generic/seccomp.h | 14 ++++++++++++++
+ kernel/seccomp.c              |  9 +--------
+ 2 files changed, 15 insertions(+), 8 deletions(-)
 
-Thanks,
-Matt
-
-Changes in v2:
-- Tested on additional platforms
-- Replace __NR_syscall which isn't defined for N32 / N64 ABIs
-
-Matt Redfearn (6):
-  selftests/seccomp: add MIPS self-test support
-  MIPS: Support sending SIG_SYS to 32bit userspace from 64bit kernel
-  MIPS: scall: Handle seccomp filters which redirect syscalls
-  seccomp: Get compat syscalls from asm-generic header
-  MIPS: seccomp: Support compat with both O32 and N32
-  secomp: Constify mode1 syscall whitelist
-
- arch/mips/include/asm/seccomp.h               | 47 +++++++++++++++------------
- arch/mips/kernel/scall32-o32.S                | 11 +++----
- arch/mips/kernel/scall64-64.S                 |  3 +-
- arch/mips/kernel/scall64-n32.S                | 14 +++++---
- arch/mips/kernel/scall64-o32.S                | 14 +++++---
- arch/mips/kernel/signal32.c                   |  6 ++++
- include/asm-generic/seccomp.h                 | 14 ++++++++
- kernel/seccomp.c                              | 13 ++------
- tools/testing/selftests/seccomp/seccomp_bpf.c | 30 +++++++++++++++--
- 9 files changed, 101 insertions(+), 51 deletions(-)
-
+diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
+index c9ccafa0d99a..e74072d23e69 100644
+--- a/include/asm-generic/seccomp.h
++++ b/include/asm-generic/seccomp.h
+@@ -29,4 +29,18 @@
+ #define __NR_seccomp_sigreturn		__NR_rt_sigreturn
+ #endif
+ 
++#ifdef CONFIG_COMPAT
++#ifndef get_compat_mode1_syscalls
++static inline const int *get_compat_mode1_syscalls(void)
++{
++	static const int mode1_syscalls_32[] = {
++		__NR_seccomp_read_32, __NR_seccomp_write_32,
++		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
++		0, /* null terminated */
++	};
++	return mode1_syscalls_32;
++}
++#endif
++#endif /* CONFIG_COMPAT */
++
+ #endif /* _ASM_GENERIC_SECCOMP_H */
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 15a1795bbba1..b0082c14764f 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -518,19 +518,12 @@ static int mode1_syscalls[] = {
+ 	0, /* null terminated */
+ };
+ 
+-#ifdef CONFIG_COMPAT
+-static int mode1_syscalls_32[] = {
+-	__NR_seccomp_read_32, __NR_seccomp_write_32, __NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
+-	0, /* null terminated */
+-};
+-#endif
+-
+ static void __secure_computing_strict(int this_syscall)
+ {
+ 	int *syscall_whitelist = mode1_syscalls;
+ #ifdef CONFIG_COMPAT
+ 	if (is_compat_task())
+-		syscall_whitelist = mode1_syscalls_32;
++		syscall_whitelist = get_compat_mode1_syscalls();
+ #endif
+ 	do {
+ 		if (*syscall_whitelist == this_syscall)
 -- 
 2.5.0
