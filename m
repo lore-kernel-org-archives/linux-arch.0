@@ -1,77 +1,49 @@
-From: Matt Redfearn <matt.redfearn@imgtec.com>
-Subject: [PATCH v2 4/6] seccomp: Get compat syscalls from asm-generic header
-Date: Tue, 29 Mar 2016 09:35:32 +0100
-Message-ID: <1459240534-8658-5-git-send-email-matt.redfearn@imgtec.com>
-References: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
-Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: IMG-MIPSLinuxKerneldevelopers@imgtec.com
-Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+From: Rob Herring <robh@kernel.org>
+Subject: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for !HAS_IOMEM
+Date: Tue, 29 Mar 2016 13:23:00 -0500
+Message-ID: <1459275781-3863-1-git-send-email-robh@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f173.google.com ([209.85.220.173]:33352 "EHLO
+	mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752834AbcC2SX3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2016 14:23:29 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Lee Jones <lee.jones@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Move retrieval of compat syscall numbers into inline function defined in
-asm-generic header so that arches may override it.
+Drivers shouldn't have to care about HAS_IOMEM to compile and having to
+causes a Kconfig mess:
 
-Suggested-by: Paul Burton <paul.burton@imgtec.com>
-Signed-off-by: Matt Redfearn <matt.redfearn@imgtec.com>
+warning: (MEDIA_SUBDRV_AUTOSELECT && VIDEO_CX231XX && INV_MPU6050_I2C) selects I2C_MUX which has unmet direct dependencies (I2C && HAS_IOMEM)
+warning: (ST_IRQCHIP && STMMAC_PLATFORM && DWMAC_IPQ806X && DWMAC_LPC18XX && DWMAC_ROCKCHIP && DWMAC_SOCFPGA && DWMAC_STI && TI_CPSW && PINCTRL_ROCKCHIP && PINCTRL_DOVE && POWER_RESET_KEYSTONE && S3C2410_WATCHDOG && VIDEO_OMAP3 && VIDEO_S5P_FIMC && USB_XHCI_MTK && RTC_DRV_AT91SAM9 && LPC18XX_DMAMUX && VIDEO_OMAP4 && HWSPINLOCK_QCOM && ATMEL_ST && QCOM_GSBI && PHY_HI6220_USB) selects MFD_SYSCON which has unmet direct dependencies (HAS_IOMEM)
+
+Reuse the !MMU variants for !HAS_IOMEM as they are sufficient for our
+needs. This fixes build errors for UM allyesconfig:
+
+drivers/mfd/syscon.c:89:2: error: implicit declaration of function 'iounmap' [-Werror=implicit-function-declaration]
+     iounmap(base);
+
+Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Rob Herring <robh@kernel.org>
 ---
+ include/asm-generic/io.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Changes in v2: None
-
- include/asm-generic/seccomp.h | 14 ++++++++++++++
- kernel/seccomp.c              |  9 +--------
- 2 files changed, 15 insertions(+), 8 deletions(-)
-
-diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
-index c9ccafa0d99a..e74072d23e69 100644
---- a/include/asm-generic/seccomp.h
-+++ b/include/asm-generic/seccomp.h
-@@ -29,4 +29,18 @@
- #define __NR_seccomp_sigreturn		__NR_rt_sigreturn
- #endif
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index eed3bbe..03160b0 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -753,7 +753,7 @@ static inline void *phys_to_virt(unsigned long address)
+  * ioremap_*() variant as defined to itself to avoid the default NULL return.
+  */
  
-+#ifdef CONFIG_COMPAT
-+#ifndef get_compat_mode1_syscalls
-+static inline const int *get_compat_mode1_syscalls(void)
-+{
-+	static const int mode1_syscalls_32[] = {
-+		__NR_seccomp_read_32, __NR_seccomp_write_32,
-+		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
-+		0, /* null terminated */
-+	};
-+	return mode1_syscalls_32;
-+}
-+#endif
-+#endif /* CONFIG_COMPAT */
-+
- #endif /* _ASM_GENERIC_SECCOMP_H */
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 15a1795bbba1..b0082c14764f 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -518,19 +518,12 @@ static int mode1_syscalls[] = {
- 	0, /* null terminated */
- };
+-#ifdef CONFIG_MMU
++#if defined(CONFIG_MMU) && defined(CONFIG_HAS_IOMEM)
  
--#ifdef CONFIG_COMPAT
--static int mode1_syscalls_32[] = {
--	__NR_seccomp_read_32, __NR_seccomp_write_32, __NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
--	0, /* null terminated */
--};
--#endif
--
- static void __secure_computing_strict(int this_syscall)
- {
- 	int *syscall_whitelist = mode1_syscalls;
- #ifdef CONFIG_COMPAT
- 	if (is_compat_task())
--		syscall_whitelist = mode1_syscalls_32;
-+		syscall_whitelist = get_compat_mode1_syscalls();
- #endif
- 	do {
- 		if (*syscall_whitelist == this_syscall)
+ #ifndef ioremap_uc
+ #define ioremap_uc ioremap_uc
 -- 
 2.5.0
