@@ -1,42 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0008.hostedemail.com ([216.40.44.8]:60250 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751230AbcC2DBf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Mar 2016 23:01:35 -0400
-Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
-	by smtpgrave07.hostedemail.com (Postfix) with ESMTP id B840411AB08
-	for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2016 02:56:11 +0000 (UTC)
-Message-ID: <1459220164.25110.41.camel@perches.com>
-Subject: Re: [PATCH 01/31] bitops: add parity functions
-From: Joe Perches <joe@perches.com>
-Date: Mon, 28 Mar 2016 19:56:04 -0700
-In-Reply-To: <56F9E818.1050508@gmail.com>
-References: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com>
-	 <56F3A77D.6060802@redhat.com> <56F75490.9010608@gmail.com>
-	 <20160328065106.GA12154@ravnborg.org> <56F9E818.1050508@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mailapp01.imgtec.com ([195.59.15.196]:29882 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755090AbcC2Ifu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2016 04:35:50 -0400
+From: Matt Redfearn <matt.redfearn@imgtec.com>
+Subject: [PATCH v2 0/6] MIPS seccomp_bpf self test and fixups
+Date: Tue, 29 Mar 2016 09:35:28 +0100
+Message-ID: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>, Sam Ravnborg <sam@ravnborg.org>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160329025604.np4UIgWc4F8Ey9hrpeuotQK-Ej7pisIqrpUCDvAahAQ@z>
+To: IMG-MIPSLinuxKerneldevelopers@imgtec.com
+Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Shuah Khan <shuahkh@osg.samsung.com>, Eric B Munson <emunson@akamai.com>, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, Markos Chandras <markos.chandras@imgtec.com>, Amanieu d'Antras <amanieu@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Alex Smith <alex.smith@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, Will Drewry <wad@chromium.org>
+Message-ID: <20160329083528.S3uyEWs-lBc_islK04ArTDvENkX4YWh8WnXtKDg8fo0@z>
 
-On Tue, 2016-03-29 at 10:27 +0800, Zeng Zhaoxiu wrote:
-> 在 2016年03月28日 14:51, Sam Ravnborg 写道:
-[]
-> > Defining these as static inlines in asm-generic prevent an
-> > architecture
-> > from selecting between a more optimal asm version or the generic version
-> > at run-time.
-> > sparc would benefit from this as only some sparc chips supports popc.
-> > See how this is done for hweight*
-> > 
-> > 	Sam
-> Thanks. I will try.
+These patches imporve seccomp support on MIPS.
 
-You might also try to describe in any commit message
-and perhaps the internal documentation why using gcc's
-__builtin_parity isn't appropriate.
+Firstly support is added for building the seccomp_bpf self test for
+MIPS. The
+initial results of these tests were:
+
+32bit kernel O32 userspace before: 48 / 48 pass
+64bit kernel O32 userspace before: 47 / 48 pass
+ Failures: TRAP.Handler
+64bit kernel N32 userspace before: 44 / 48 pass
+ Failures: global.mode_strict_support, TRAP.handler,
+TRACE_syscall.syscall_redirected, TRACE_syscall.syscall_dropped
+64bit kernel N64 userspace before: 46 / 48 pass
+ Failures: TRACE_syscall.syscall_redirected,
+TRACE_syscall.syscall_dropped
+
+The subsequent patches fix issues that were causing the above tests to
+fail. With
+these fixes, the results are:
+32bit kernel O32 userspace after: 48 / 48
+64bit kernel O32 userspace after: 48 / 48
+64bit kernel N32 userspace after: 48 / 48
+64bit kernel N64 userspace after: 48 / 48
+
+Thanks,
+Matt
+
+Changes in v2:
+- Tested on additional platforms
+- Replace __NR_syscall which isn't defined for N32 / N64 ABIs
+
+Matt Redfearn (6):
+  selftests/seccomp: add MIPS self-test support
+  MIPS: Support sending SIG_SYS to 32bit userspace from 64bit kernel
+  MIPS: scall: Handle seccomp filters which redirect syscalls
+  seccomp: Get compat syscalls from asm-generic header
+  MIPS: seccomp: Support compat with both O32 and N32
+  secomp: Constify mode1 syscall whitelist
+
+ arch/mips/include/asm/seccomp.h               | 47 +++++++++++++++------------
+ arch/mips/kernel/scall32-o32.S                | 11 +++----
+ arch/mips/kernel/scall64-64.S                 |  3 +-
+ arch/mips/kernel/scall64-n32.S                | 14 +++++---
+ arch/mips/kernel/scall64-o32.S                | 14 +++++---
+ arch/mips/kernel/signal32.c                   |  6 ++++
+ include/asm-generic/seccomp.h                 | 14 ++++++++
+ kernel/seccomp.c                              | 13 ++------
+ tools/testing/selftests/seccomp/seccomp_bpf.c | 30 +++++++++++++++--
+ 9 files changed, 101 insertions(+), 51 deletions(-)
+
+-- 
+2.5.0
+
