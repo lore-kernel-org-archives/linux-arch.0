@@ -1,36 +1,64 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH 01/31] bitops: add parity functions
-Date: Mon, 28 Mar 2016 19:56:04 -0700
-Message-ID: <1459220164.25110.41.camel@perches.com>
-References: <1458788612-4367-1-git-send-email-zhaoxiu.zeng@gmail.com>
-	 <56F3A77D.6060802@redhat.com> <56F75490.9010608@gmail.com>
-	 <20160328065106.GA12154@ravnborg.org> <56F9E818.1050508@gmail.com>
+From: Matt Redfearn <matt.redfearn@imgtec.com>
+Subject: [PATCH v2 0/6] MIPS seccomp_bpf self test and fixups
+Date: Tue, 29 Mar 2016 09:35:28 +0100
+Message-ID: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <56F9E818.1050508@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>, Sam Ravnborg <sam@ravnborg.org>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
+To: IMG-MIPSLinuxKerneldevelopers@imgtec.com
+Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-mips@linux-mips.org, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Shuah Khan <shuahkh@osg.samsung.com>, Eric B Munson <emunson@akamai.com>, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kselftest@vger.kernel.org, linux-arch@vger.kernel.org, Markos Chandras <markos.chandras@imgtec.com>, Amanieu d'Antras <amanieu@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Alex Smith <alex.smith@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, Will Drewry <wad@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2016-03-29 at 10:27 +0800, Zeng Zhaoxiu wrote:
-> =E5=9C=A8 2016=E5=B9=B403=E6=9C=8828=E6=97=A5 14:51, Sam Ravnborg =E5=
-=86=99=E9=81=93:
-[]
-> > Defining these as static inlines in asm-generic prevent an
-> > architecture
-> > from selecting between a more optimal asm version or the generic ve=
-rsion
-> > at run-time.
-> > sparc would benefit from this as only some sparc chips supports pop=
-c.
-> > See how this is done for hweight*
-> >=20
-> > 	Sam
-> Thanks. I will try.
+These patches imporve seccomp support on MIPS.
 
-You might also try to describe in any commit message
-and perhaps the internal documentation why using gcc's
-__builtin_parity isn't appropriate.
+Firstly support is added for building the seccomp_bpf self test for
+MIPS. The
+initial results of these tests were:
+
+32bit kernel O32 userspace before: 48 / 48 pass
+64bit kernel O32 userspace before: 47 / 48 pass
+ Failures: TRAP.Handler
+64bit kernel N32 userspace before: 44 / 48 pass
+ Failures: global.mode_strict_support, TRAP.handler,
+TRACE_syscall.syscall_redirected, TRACE_syscall.syscall_dropped
+64bit kernel N64 userspace before: 46 / 48 pass
+ Failures: TRACE_syscall.syscall_redirected,
+TRACE_syscall.syscall_dropped
+
+The subsequent patches fix issues that were causing the above tests to
+fail. With
+these fixes, the results are:
+32bit kernel O32 userspace after: 48 / 48
+64bit kernel O32 userspace after: 48 / 48
+64bit kernel N32 userspace after: 48 / 48
+64bit kernel N64 userspace after: 48 / 48
+
+Thanks,
+Matt
+
+Changes in v2:
+- Tested on additional platforms
+- Replace __NR_syscall which isn't defined for N32 / N64 ABIs
+
+Matt Redfearn (6):
+  selftests/seccomp: add MIPS self-test support
+  MIPS: Support sending SIG_SYS to 32bit userspace from 64bit kernel
+  MIPS: scall: Handle seccomp filters which redirect syscalls
+  seccomp: Get compat syscalls from asm-generic header
+  MIPS: seccomp: Support compat with both O32 and N32
+  secomp: Constify mode1 syscall whitelist
+
+ arch/mips/include/asm/seccomp.h               | 47 +++++++++++++++------------
+ arch/mips/kernel/scall32-o32.S                | 11 +++----
+ arch/mips/kernel/scall64-64.S                 |  3 +-
+ arch/mips/kernel/scall64-n32.S                | 14 +++++---
+ arch/mips/kernel/scall64-o32.S                | 14 +++++---
+ arch/mips/kernel/signal32.c                   |  6 ++++
+ include/asm-generic/seccomp.h                 | 14 ++++++++
+ kernel/seccomp.c                              | 13 ++------
+ tools/testing/selftests/seccomp/seccomp_bpf.c | 30 +++++++++++++++--
+ 9 files changed, 101 insertions(+), 51 deletions(-)
+
+-- 
+2.5.0
