@@ -1,46 +1,25 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for !HAS_IOMEM
-Date: Wed, 30 Mar 2016 08:29:45 -0500
-Message-ID: <CAL_Jsq+RHwzxfoEFsD_-uAZ7Y_CEdXvv8qamdXtcToeG-ENy7w@mail.gmail.com>
-References: <1459275781-3863-1-git-send-email-robh@kernel.org>
- <6746826.YZLTqKTgkv@wuerfel> <56FB8AC1.4070209@nod.at> <6282729.XLLXSxbzQJ@wuerfel>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
+Date: Wed, 30 Mar 2016 15:32:17 +0200
+Message-ID: <20160330133217.GV3408@twins.programming.kicks-ass.net>
+References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6282729.XLLXSxbzQJ@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Richard Weinberger <richard@nod.at>, Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 30, 2016 at 5:03 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wednesday 30 March 2016 10:13:53 Richard Weinberger wrote:
->>
->> I fully understand your point of view. COMPILE_TEST is a monster that
->> can do the heavy lifting for you, but monsters also have claws and fangs.
->>
->> Having COMPILE_TEST having depend on !UML works for me. But don't
->> we have other archs without io mem? At least a few years ago while
->> porting nandsim to UML I found s390 that lacks of io mem too.
->
-> s390 gained IOMEM support when they started having PCI attachments.
+On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
+> I have tested on x86 with OOM situations with high mmap_sem contention
+> (basically many parallel page faults racing with many parallel mmap/munmap
+> tight loops) so the waiters for the write locks are routinely interrupted
+> by SIGKILL.
 
-I'm confused how s390 defines HAS_IOMEM and includes it from lib/Kconfig though.
+Aside from the one niggle (as per the other email) they look good to me
+and I would take them through the tip/locking tree.
 
-> arch/score selects NO_IOMEM, though they do in fact use MMIO, and
-> I'm sure their architecture has lots of other problems with build
-> testing that nobody cares about.
->
-> arch/tile can select NO_IOMEM when PCI is disabled, they might
-> care about this, though I think they also have other build-time
-> issues.
->
->> Maybe we depend COMPILE_TEST on HAS_IOMEM?
->
-> That sounds fine with me as well.
-
-That or !UML is fine, but I still think we should rid drivers from
-depending on HAS_IOMEM. We probably still have cases where the only
-dependency besides the driver's subsystem is HAS_IOMEM.
-
-Rob
+Thanks!
