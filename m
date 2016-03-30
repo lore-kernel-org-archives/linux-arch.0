@@ -1,83 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:20336 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755959AbcC2Ifz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2016 04:35:55 -0400
-From: Matt Redfearn <matt.redfearn@imgtec.com>
-Subject: [PATCH v2 4/6] seccomp: Get compat syscalls from asm-generic header
-Date: Tue, 29 Mar 2016 09:35:32 +0100
-Message-ID: <1459240534-8658-5-git-send-email-matt.redfearn@imgtec.com>
-In-Reply-To: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
-References: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
+Received: from a.ns.miles-group.at ([95.130.255.143]:11949 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932548AbcC3IN5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Mar 2016 04:13:57 -0400
+Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for
+ !HAS_IOMEM
+References: <1459275781-3863-1-git-send-email-robh@kernel.org>
+ <CAL_JsqKsXirYNa-mUTKqeP4ra8w+MW55we8pFmN=S0a7osLy4w@mail.gmail.com>
+ <56FB853E.2050309@nod.at> <6746826.YZLTqKTgkv@wuerfel>
+From: Richard Weinberger <richard@nod.at>
+Message-ID: <56FB8AC1.4070209@nod.at>
+Date: Wed, 30 Mar 2016 10:13:53 +0200
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <6746826.YZLTqKTgkv@wuerfel>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: IMG-MIPSLinuxKerneldevelopers@imgtec.com
-Cc: Matt Redfearn <matt.redfearn@imgtec.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Will Drewry <wad@chromium.org>
-Message-ID: <20160329083532.qX6r2_ahF8P9OBzlXQKoTI04-d0HZprgnAQyPGbpMio@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Rob Herring <robh@kernel.org>, Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20160330081353.mcADRxwQvpfJ4y0s_hOu1j6BURnl719R9tUHqTF8UF4@z>
 
-Move retrieval of compat syscall numbers into inline function defined in
-asm-generic header so that arches may override it.
+Am 30.03.2016 um 10:04 schrieb Arnd Bergmann:
+> On Wednesday 30 March 2016 09:50:22 Richard Weinberger wrote:
+>> Am 29.03.2016 um 22:13 schrieb Rob Herring:
+>>>>> Reuse the !MMU variants for !HAS_IOMEM as they are sufficient for our
+>>>>> needs. This fixes build errors for UM allyesconfig:
+>>>>>
+>>>>> drivers/mfd/syscon.c:89:2: error: implicit declaration of function 'iounmap' [-Werror=implicit-function-declaration]
+>>>>>      iounmap(base);
+>>>>>
+>>>>> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+>>>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>>>> Cc: linux-arch@vger.kernel.org
+>>>>> Signed-off-by: Rob Herring <robh@kernel.org>
+>>>>
+>>>> (adding Richard and the UML list to cc)
+>>>>
+>>>> I actually prototyped a patch that did the opposite: remove the readl/writel/...
+>>>> definitions when HAS_IOMEM is unset. I didn't get far enough to submit it,
+>>>> but see below for what I did.
+>>>
+>>> Ewww. Why do the opposite of what we do for every other Kconfig symbol
+>>> which is provide empty functions? It really only functions as a
+>>> disable on UML flag which runs counter to enabling drivers to build
+>>> for all arches.
+>>>
+>>> I actually started a patch to remove the HAS_IOMEM dependency
+>>> everywhere (or just the per driver cases). It didn't break as bad as I
+>>> expected, but became more than I wanted to fix. Mainly, all the devm_
+>>> variants also need empty versions or to be always enabled.
+>>
+>> The root cause of the problem is COMPILE_TEST. People who use it need to
+>> get forced to think about the consequences.
+>> COMPILE_TEST means that the driver will also be build on not so fancy archs
+>> like UML, s390 and m68k where you don't have IOMEM or also DMA in every
+>> possible configuration.
+>> So a quick build test on x86 is not sufficient.
+>>
+>> This is why I'm absolutely not a fan of having stubs for iounmap() an friends
+>> for UML. It only tries to bypass the root cause.
+>> What is next? Stubs for DMA? PCI? For everything else that does not build?
+>>
+>> With COMPILE_TEST we have created a monster and now we have to deal with it in terms of
+>> having correct dependencies when COMPILE_TEST is being used.
+>>
+> 
+> One way out of this would be accept that UML is just too different
+> from the other architectures, and make COMPILE_TEST itself depend
+> on !UML.
+> 
+> COMPILE_TEST is highly valuable for me, because it means that all the
+> ARM specific drivers can now be build-tested on x86 and they show up
+> for anyone doing allmodconfig builds. If we introduce a regression
+> in any of the drivers, it gets caught much quicker because many
+> subsystem maintainers run an x86 allmodconfig build after pulling
+> downstream maintainer trees. There is also stuff like Coverity that
+> only ever runs on x86.
+> 
+> It does make sense to have COMPILE_TEST imply that we are able
+> to build things on all architectures, not just x86 in addition to
+> the platform a driver is meant for, but the value of compile-testing
+> a random driver with UML in particular approaches zero, and instead
+> causes lots of work.
 
-Suggested-by: Paul Burton <paul.burton@imgtec.com>
-Signed-off-by: Matt Redfearn <matt.redfearn@imgtec.com>
----
+I fully understand your point of view. COMPILE_TEST is a monster that
+can do the heavy lifting for you, but monsters also have claws and fangs. ;-)
 
-Changes in v2: None
+Having COMPILE_TEST having depend on !UML works for me. But don't
+we have other archs without io mem? At least a few years ago while
+porting nandsim to UML I found s390 that lacks of io mem too.
 
- include/asm-generic/seccomp.h | 14 ++++++++++++++
- kernel/seccomp.c              |  9 +--------
- 2 files changed, 15 insertions(+), 8 deletions(-)
+Maybe we depend COMPILE_TEST on HAS_IOMEM?
 
-diff --git a/include/asm-generic/seccomp.h b/include/asm-generic/seccomp.h
-index c9ccafa0d99a..e74072d23e69 100644
---- a/include/asm-generic/seccomp.h
-+++ b/include/asm-generic/seccomp.h
-@@ -29,4 +29,18 @@
- #define __NR_seccomp_sigreturn		__NR_rt_sigreturn
- #endif
- 
-+#ifdef CONFIG_COMPAT
-+#ifndef get_compat_mode1_syscalls
-+static inline const int *get_compat_mode1_syscalls(void)
-+{
-+	static const int mode1_syscalls_32[] = {
-+		__NR_seccomp_read_32, __NR_seccomp_write_32,
-+		__NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
-+		0, /* null terminated */
-+	};
-+	return mode1_syscalls_32;
-+}
-+#endif
-+#endif /* CONFIG_COMPAT */
-+
- #endif /* _ASM_GENERIC_SECCOMP_H */
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 15a1795bbba1..b0082c14764f 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -518,19 +518,12 @@ static int mode1_syscalls[] = {
- 	0, /* null terminated */
- };
- 
--#ifdef CONFIG_COMPAT
--static int mode1_syscalls_32[] = {
--	__NR_seccomp_read_32, __NR_seccomp_write_32, __NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
--	0, /* null terminated */
--};
--#endif
--
- static void __secure_computing_strict(int this_syscall)
- {
- 	int *syscall_whitelist = mode1_syscalls;
- #ifdef CONFIG_COMPAT
- 	if (is_compat_task())
--		syscall_whitelist = mode1_syscalls_32;
-+		syscall_whitelist = get_compat_mode1_syscalls();
- #endif
- 	do {
- 		if (*syscall_whitelist == this_syscall)
--- 
-2.5.0
-
+Thanks,
+//richard
