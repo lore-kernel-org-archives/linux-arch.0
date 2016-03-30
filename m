@@ -1,25 +1,41 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
-Date: Wed, 30 Mar 2016 15:32:17 +0200
-Message-ID: <20160330133217.GV3408@twins.programming.kicks-ass.net>
-References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for !HAS_IOMEM
+Date: Wed, 30 Mar 2016 15:51:19 +0200
+Message-ID: <5372571.zc5TeOVXyF@wuerfel>
+References: <1459275781-3863-1-git-send-email-robh@kernel.org> <6282729.XLLXSxbzQJ@wuerfel> <CAL_Jsq+RHwzxfoEFsD_-uAZ7Y_CEdXvv8qamdXtcToeG-ENy7w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.73]:51906 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752921AbcC3Nvj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2016 09:51:39 -0400
+In-Reply-To: <CAL_Jsq+RHwzxfoEFsD_-uAZ7Y_CEdXvv8qamdXtcToeG-ENy7w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rob Herring <robh@kernel.org>
+Cc: Richard Weinberger <richard@nod.at>, Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
 
-On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
-> I have tested on x86 with OOM situations with high mmap_sem contention
-> (basically many parallel page faults racing with many parallel mmap/munmap
-> tight loops) so the waiters for the write locks are routinely interrupted
-> by SIGKILL.
+On Wednesday 30 March 2016 08:29:45 Rob Herring wrote:
+> On Wed, Mar 30, 2016 at 5:03 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Wednesday 30 March 2016 10:13:53 Richard Weinberger wrote:
+> >>
+> >> I fully understand your point of view. COMPILE_TEST is a monster that
+> >> can do the heavy lifting for you, but monsters also have claws and fangs.
+> >>
+> >> Having COMPILE_TEST having depend on !UML works for me. But don't
+> >> we have other archs without io mem? At least a few years ago while
+> >> porting nandsim to UML I found s390 that lacks of io mem too.
+> >
+> > s390 gained IOMEM support when they started having PCI attachments.
+> 
+> I'm confused how s390 defines HAS_IOMEM and includes it from lib/Kconfig though.
 
-Aside from the one niggle (as per the other email) they look good to me
-and I would take them through the tip/locking tree.
+Kconfig can define the same symbol multiple times, which is really
+confusing. I only checked for NO_IOMEM, which s390 no longer defines,
+but I have not checked what actually happens in case of two conflicting
+definitions, where the one lib/Kconfig defaults to 'y' and the one in
+arch/s390 defaults to CONFIG_PCI.
 
-Thanks!
+	Arnd
