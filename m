@@ -1,97 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:11949 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932548AbcC3IN5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2016 04:13:57 -0400
-Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for
- !HAS_IOMEM
-References: <1459275781-3863-1-git-send-email-robh@kernel.org>
- <CAL_JsqKsXirYNa-mUTKqeP4ra8w+MW55we8pFmN=S0a7osLy4w@mail.gmail.com>
- <56FB853E.2050309@nod.at> <6746826.YZLTqKTgkv@wuerfel>
-From: Richard Weinberger <richard@nod.at>
-Message-ID: <56FB8AC1.4070209@nod.at>
-Date: Wed, 30 Mar 2016 10:13:53 +0200
+Received: from casper.infradead.org ([85.118.1.10]:47512 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753391AbcC3N0F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2016 09:26:05 -0400
+Date: Wed, 30 Mar 2016 15:25:49 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 03/11] locking, rwsem: introduce basis for
+ down_write_killable
+Message-ID: <20160330132549.GU3408@twins.programming.kicks-ass.net>
+References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+ <1456750705-7141-4-git-send-email-mhocko@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <6746826.YZLTqKTgkv@wuerfel>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1456750705-7141-4-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Rob Herring <robh@kernel.org>, Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20160330081353.mcADRxwQvpfJ4y0s_hOu1j6BURnl719R9tUHqTF8UF4@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160330132549.bo-Sz0AOq2WX-Zly-eFaRLLmphHvzrzXDT7U0Mzg1UM@z>
 
-Am 30.03.2016 um 10:04 schrieb Arnd Bergmann:
-> On Wednesday 30 March 2016 09:50:22 Richard Weinberger wrote:
->> Am 29.03.2016 um 22:13 schrieb Rob Herring:
->>>>> Reuse the !MMU variants for !HAS_IOMEM as they are sufficient for our
->>>>> needs. This fixes build errors for UM allyesconfig:
->>>>>
->>>>> drivers/mfd/syscon.c:89:2: error: implicit declaration of function 'iounmap' [-Werror=implicit-function-declaration]
->>>>>      iounmap(base);
->>>>>
->>>>> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
->>>>> Cc: Arnd Bergmann <arnd@arndb.de>
->>>>> Cc: linux-arch@vger.kernel.org
->>>>> Signed-off-by: Rob Herring <robh@kernel.org>
->>>>
->>>> (adding Richard and the UML list to cc)
->>>>
->>>> I actually prototyped a patch that did the opposite: remove the readl/writel/...
->>>> definitions when HAS_IOMEM is unset. I didn't get far enough to submit it,
->>>> but see below for what I did.
->>>
->>> Ewww. Why do the opposite of what we do for every other Kconfig symbol
->>> which is provide empty functions? It really only functions as a
->>> disable on UML flag which runs counter to enabling drivers to build
->>> for all arches.
->>>
->>> I actually started a patch to remove the HAS_IOMEM dependency
->>> everywhere (or just the per driver cases). It didn't break as bad as I
->>> expected, but became more than I wanted to fix. Mainly, all the devm_
->>> variants also need empty versions or to be always enabled.
->>
->> The root cause of the problem is COMPILE_TEST. People who use it need to
->> get forced to think about the consequences.
->> COMPILE_TEST means that the driver will also be build on not so fancy archs
->> like UML, s390 and m68k where you don't have IOMEM or also DMA in every
->> possible configuration.
->> So a quick build test on x86 is not sufficient.
->>
->> This is why I'm absolutely not a fan of having stubs for iounmap() an friends
->> for UML. It only tries to bypass the root cause.
->> What is next? Stubs for DMA? PCI? For everything else that does not build?
->>
->> With COMPILE_TEST we have created a monster and now we have to deal with it in terms of
->> having correct dependencies when COMPILE_TEST is being used.
->>
-> 
-> One way out of this would be accept that UML is just too different
-> from the other architectures, and make COMPILE_TEST itself depend
-> on !UML.
-> 
-> COMPILE_TEST is highly valuable for me, because it means that all the
-> ARM specific drivers can now be build-tested on x86 and they show up
-> for anyone doing allmodconfig builds. If we introduce a regression
-> in any of the drivers, it gets caught much quicker because many
-> subsystem maintainers run an x86 allmodconfig build after pulling
-> downstream maintainer trees. There is also stuff like Coverity that
-> only ever runs on x86.
-> 
-> It does make sense to have COMPILE_TEST imply that we are able
-> to build things on all architectures, not just x86 in addition to
-> the platform a driver is meant for, but the value of compile-testing
-> a random driver with UML in particular approaches zero, and instead
-> causes lots of work.
+On Mon, Feb 29, 2016 at 01:58:17PM +0100, Michal Hocko wrote:
+> @@ -215,16 +216,34 @@ void __sched __down_write(struct rw_semaphore *sem)
+>  		 */
+>  		if (sem->count == 0)
+>  			break;
+> -		set_task_state(tsk, TASK_UNINTERRUPTIBLE);
+> +		set_task_state(tsk, state);
+>  		raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
+>  		schedule();
+> +		if (signal_pending_state(state, current)) {
+> +			ret = -EINTR;
+> +			raw_spin_lock_irqsave(&sem->wait_lock, flags);
+> +			goto out;
+> +		}
+>  		raw_spin_lock_irqsave(&sem->wait_lock, flags);
+>  	}
+>  	/* got the lock */
+>  	sem->count = -1;
 
-I fully understand your point of view. COMPILE_TEST is a monster that
-can do the heavy lifting for you, but monsters also have claws and fangs. ;-)
+> @@ -487,20 +488,38 @@ struct rw_semaphore __sched *rwsem_down_write_failed(struct rw_semaphore *sem)
+>  		/* Block until there are no active lockers. */
+>  		do {
+>  			schedule();
+> -			set_current_state(TASK_UNINTERRUPTIBLE);
+> +			if (signal_pending_state(state, current)) {
+> +				raw_spin_lock_irq(&sem->wait_lock);
+> +				ret = ERR_PTR(-EINTR);
+> +				goto out;
+> +			}
+> +			set_current_state(state);
+>  		} while ((count = sem->count) & RWSEM_ACTIVE_MASK);
+>  
+>  		raw_spin_lock_irq(&sem->wait_lock);
+>  	}
+>  	__set_current_state(TASK_RUNNING);
 
-Having COMPILE_TEST having depend on !UML works for me. But don't
-we have other archs without io mem? At least a few years ago while
-porting nandsim to UML I found s390 that lacks of io mem too.
+Why is the signal_pending_state() test _after_ the call to schedule()
+and before the 'trylock'.
 
-Maybe we depend COMPILE_TEST on HAS_IOMEM?
+__mutex_lock_common() has it before the call to schedule and after the
+'trylock'.
 
-Thanks,
-//richard
+The difference is that rwsem will now respond to the KILL and return
+-EINTR even if the lock is available, whereas mutex will acquire it and
+ignore the signal (for a little while longer).
+
+Neither is wrong per se, but I feel all the locking primitives should
+behave in a consistent manner in this regard.
+
