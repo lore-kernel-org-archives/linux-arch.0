@@ -1,83 +1,66 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 0/6] MIPS seccomp_bpf self test and fixups
-Date: Tue, 29 Mar 2016 22:06:37 -0700
-Message-ID: <CAGXu5jLJEHzB3ST63g0fApVP4-OWwCT5UcqguAMNoGy-aQXgew@mail.gmail.com>
-References: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for
+ !HAS_IOMEM
+Date: Wed, 30 Mar 2016 09:50:22 +0200
+Message-ID: <56FB853E.2050309@nod.at>
+References: <1459275781-3863-1-git-send-email-robh@kernel.org>
+ <3074778.3TElYrXjM1@wuerfel>
+ <CAL_JsqKsXirYNa-mUTKqeP4ra8w+MW55we8pFmN=S0a7osLy4w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f170.google.com ([209.85.213.170]:35833 "EHLO
-	mail-ig0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751028AbcC3FGi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2016 01:06:38 -0400
-Received: by mail-ig0-f170.google.com with SMTP id cl4so92806163igb.0
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2016 22:06:38 -0700 (PDT)
-In-Reply-To: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
+Received: from a.ns.miles-group.at ([95.130.255.143]:11949 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758606AbcC3Hu0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Mar 2016 03:50:26 -0400
+In-Reply-To: <CAL_JsqKsXirYNa-mUTKqeP4ra8w+MW55we8pFmN=S0a7osLy4w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Redfearn <matt.redfearn@imgtec.com>
-Cc: IMG-MIPSLinuxKerneldevelopers@imgtec.com, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, LKML <linux-kernel@vger.kernel.org>, Shuah Khan <shuahkh@osg.samsung.com>, Eric B Munson <emunson@akamai.com>, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kselftest@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Markos Chandras <markos.chandras@imgtec.com>, Amanieu d'Antras <amanieu@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Alex Smith <alex.smith@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, Will Drewry <wad@chromium.org>
+To: Rob Herring <robh@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
 
-On Tue, Mar 29, 2016 at 1:35 AM, Matt Redfearn <matt.redfearn@imgtec.com> wrote:
-> These patches imporve seccomp support on MIPS.
->
-> Firstly support is added for building the seccomp_bpf self test for
-> MIPS. The
-> initial results of these tests were:
->
-> 32bit kernel O32 userspace before: 48 / 48 pass
-> 64bit kernel O32 userspace before: 47 / 48 pass
->  Failures: TRAP.Handler
-> 64bit kernel N32 userspace before: 44 / 48 pass
->  Failures: global.mode_strict_support, TRAP.handler,
-> TRACE_syscall.syscall_redirected, TRACE_syscall.syscall_dropped
-> 64bit kernel N64 userspace before: 46 / 48 pass
->  Failures: TRACE_syscall.syscall_redirected,
-> TRACE_syscall.syscall_dropped
->
-> The subsequent patches fix issues that were causing the above tests to
-> fail. With
-> these fixes, the results are:
-> 32bit kernel O32 userspace after: 48 / 48
-> 64bit kernel O32 userspace after: 48 / 48
-> 64bit kernel N32 userspace after: 48 / 48
-> 64bit kernel N64 userspace after: 48 / 48
->
-> Thanks,
-> Matt
->
-> Changes in v2:
-> - Tested on additional platforms
-> - Replace __NR_syscall which isn't defined for N32 / N64 ABIs
->
-> Matt Redfearn (6):
->   selftests/seccomp: add MIPS self-test support
->   MIPS: Support sending SIG_SYS to 32bit userspace from 64bit kernel
->   MIPS: scall: Handle seccomp filters which redirect syscalls
->   seccomp: Get compat syscalls from asm-generic header
->   MIPS: seccomp: Support compat with both O32 and N32
->   secomp: Constify mode1 syscall whitelist
->
->  arch/mips/include/asm/seccomp.h               | 47 +++++++++++++++------------
->  arch/mips/kernel/scall32-o32.S                | 11 +++----
->  arch/mips/kernel/scall64-64.S                 |  3 +-
->  arch/mips/kernel/scall64-n32.S                | 14 +++++---
->  arch/mips/kernel/scall64-o32.S                | 14 +++++---
->  arch/mips/kernel/signal32.c                   |  6 ++++
->  include/asm-generic/seccomp.h                 | 14 ++++++++
->  kernel/seccomp.c                              | 13 ++------
->  tools/testing/selftests/seccomp/seccomp_bpf.c | 30 +++++++++++++++--
->  9 files changed, 101 insertions(+), 51 deletions(-)
+Am 29.03.2016 um 22:13 schrieb Rob Herring:
+>>> Reuse the !MMU variants for !HAS_IOMEM as they are sufficient for our
+>>> needs. This fixes build errors for UM allyesconfig:
+>>>
+>>> drivers/mfd/syscon.c:89:2: error: implicit declaration of function 'iounmap' [-Werror=implicit-function-declaration]
+>>>      iounmap(base);
+>>>
+>>> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Cc: linux-arch@vger.kernel.org
+>>> Signed-off-by: Rob Herring <robh@kernel.org>
+>>
+>> (adding Richard and the UML list to cc)
+>>
+>> I actually prototyped a patch that did the opposite: remove the readl/writel/...
+>> definitions when HAS_IOMEM is unset. I didn't get far enough to submit it,
+>> but see below for what I did.
+> 
+> Ewww. Why do the opposite of what we do for every other Kconfig symbol
+> which is provide empty functions? It really only functions as a
+> disable on UML flag which runs counter to enabling drivers to build
+> for all arches.
+> 
+> I actually started a patch to remove the HAS_IOMEM dependency
+> everywhere (or just the per driver cases). It didn't break as bad as I
+> expected, but became more than I wanted to fix. Mainly, all the devm_
+> variants also need empty versions or to be always enabled.
 
-Thanks for digging into this! Consider all the seccomp pieces:
+The root cause of the problem is COMPILE_TEST. People who use it need to
+get forced to think about the consequences.
+COMPILE_TEST means that the driver will also be build on not so fancy archs
+like UML, s390 and m68k where you don't have IOMEM or also DMA in every
+possible configuration.
+So a quick build test on x86 is not sufficient.
 
-Acked-by: Kees Cook <keescook@chromium.org>
+This is why I'm absolutely not a fan of having stubs for iounmap() an friends
+for UML. It only tries to bypass the root cause.
+What is next? Stubs for DMA? PCI? For everything else that does not build?
 
-Probably best to carry it all in the MIPS tree, but if you want to me
-take pieces of it into my seccomp tree, I can do that. Up to you. :)
+With COMPILE_TEST we have created a monster and now we have to deal with it in terms of
+having correct dependencies when COMPILE_TEST is being used.
 
--Kees
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+Thanks,
+//richard
