@@ -1,85 +1,37 @@
-From: Matt Redfearn <matt.redfearn@imgtec.com>
-Subject: Re: [PATCH v2 0/6] MIPS seccomp_bpf self test and fixups
-Date: Thu, 31 Mar 2016 09:57:33 +0100
-Message-ID: <56FCE67D.70800@imgtec.com>
-References: <1459240534-8658-1-git-send-email-matt.redfearn@imgtec.com>
- <CAGXu5jLJEHzB3ST63g0fApVP4-OWwCT5UcqguAMNoGy-aQXgew@mail.gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
+Date: Thu, 31 Mar 2016 10:59:26 +0200
+Message-ID: <20160331085926.GB27831@dhcp22.suse.cz>
+References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+ <20160330133217.GV3408@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:6564 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752720AbcCaI5g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 04:57:36 -0400
-In-Reply-To: <CAGXu5jLJEHzB3ST63g0fApVP4-OWwCT5UcqguAMNoGy-aQXgew@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Linux MIPS Mailing List <linux-mips@linux-mips.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, LKML <linux-kernel@vger.kernel.org>, Shuah Khan <shuahkh@osg.samsung.com>, Eric B Munson <emunson@akamai.com>, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kselftest@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Markos Chandras <markos.chandras@imgtec.com>, Amanieu d'Antras <amanieu@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Alex Smith <alex.smith@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160330133217.GV3408@twins.programming.kicks-ass.net>
+Sender: linux-sh-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+On Wed 30-03-16 15:32:17, Peter Zijlstra wrote:
+> On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
+> > I have tested on x86 with OOM situations with high mmap_sem contention
+> > (basically many parallel page faults racing with many parallel mmap/munmap
+> > tight loops) so the waiters for the write locks are routinely interrupted
+> > by SIGKILL.
+> 
+> Aside from the one niggle (as per the other email) they look good to me
+> and I would take them through the tip/locking tree.
 
+Thanks for the review! I understand that tip/locking would be the most
+appropriate place but I am wondering whether this causes some issues
+with the follow up patches which use this new API and which I expect to
+go via Andrew's tree.
 
-On 30/03/16 06:06, Kees Cook wrote:
-> On Tue, Mar 29, 2016 at 1:35 AM, Matt Redfearn <matt.redfearn@imgtec.com> wrote:
->> These patches imporve seccomp support on MIPS.
->>
->> Firstly support is added for building the seccomp_bpf self test for
->> MIPS. The
->> initial results of these tests were:
->>
->> 32bit kernel O32 userspace before: 48 / 48 pass
->> 64bit kernel O32 userspace before: 47 / 48 pass
->>   Failures: TRAP.Handler
->> 64bit kernel N32 userspace before: 44 / 48 pass
->>   Failures: global.mode_strict_support, TRAP.handler,
->> TRACE_syscall.syscall_redirected, TRACE_syscall.syscall_dropped
->> 64bit kernel N64 userspace before: 46 / 48 pass
->>   Failures: TRACE_syscall.syscall_redirected,
->> TRACE_syscall.syscall_dropped
->>
->> The subsequent patches fix issues that were causing the above tests to
->> fail. With
->> these fixes, the results are:
->> 32bit kernel O32 userspace after: 48 / 48
->> 64bit kernel O32 userspace after: 48 / 48
->> 64bit kernel N32 userspace after: 48 / 48
->> 64bit kernel N64 userspace after: 48 / 48
->>
->> Thanks,
->> Matt
->>
->> Changes in v2:
->> - Tested on additional platforms
->> - Replace __NR_syscall which isn't defined for N32 / N64 ABIs
->>
->> Matt Redfearn (6):
->>    selftests/seccomp: add MIPS self-test support
->>    MIPS: Support sending SIG_SYS to 32bit userspace from 64bit kernel
->>    MIPS: scall: Handle seccomp filters which redirect syscalls
->>    seccomp: Get compat syscalls from asm-generic header
->>    MIPS: seccomp: Support compat with both O32 and N32
->>    secomp: Constify mode1 syscall whitelist
->>
->>   arch/mips/include/asm/seccomp.h               | 47 +++++++++++++++------------
->>   arch/mips/kernel/scall32-o32.S                | 11 +++----
->>   arch/mips/kernel/scall64-64.S                 |  3 +-
->>   arch/mips/kernel/scall64-n32.S                | 14 +++++---
->>   arch/mips/kernel/scall64-o32.S                | 14 +++++---
->>   arch/mips/kernel/signal32.c                   |  6 ++++
->>   include/asm-generic/seccomp.h                 | 14 ++++++++
->>   kernel/seccomp.c                              | 13 ++------
->>   tools/testing/selftests/seccomp/seccomp_bpf.c | 30 +++++++++++++++--
->>   9 files changed, 101 insertions(+), 51 deletions(-)
-> Thanks for digging into this! Consider all the seccomp pieces:
->
-> Acked-by: Kees Cook <keescook@chromium.org>
->
-> Probably best to carry it all in the MIPS tree, but if you want to me
-> take pieces of it into my seccomp tree, I can do that. Up to you. :)
->
-> -Kees
->
-Thanks Kees. Ralf is going to take it via the MIPS tree.
+That being said I do not care much but then we have a potential
+dependency between mmotm and tip/locking.
 
-Matt
+-- 
+Michal Hocko
+SUSE Labs
