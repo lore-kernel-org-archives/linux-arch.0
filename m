@@ -1,82 +1,97 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH 1/2] asm-generic/io.h: provide default ioremap/iounmap for !HAS_IOMEM
-Date: Wed, 30 Mar 2016 16:20:15 -0500
-Message-ID: <CAL_JsqL+fdh2_UZx=vPuOXMMiLJZEd7AvqZpAucEkwOfPZWgog@mail.gmail.com>
-References: <1459275781-3863-1-git-send-email-robh@kernel.org>
- <3074778.3TElYrXjM1@wuerfel> <CAL_JsqKsXirYNa-mUTKqeP4ra8w+MW55we8pFmN=S0a7osLy4w@mail.gmail.com>
- <CAMuHMdWc_97Yk7XJ6e4n6tibs99pPHSnJU2qqC7CGcoo4kWuNA@mail.gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 03/11] locking, rwsem: introduce basis for
+ down_write_killable
+Date: Thu, 31 Mar 2016 10:33:36 +0200
+Message-ID: <20160331083336.GA27831@dhcp22.suse.cz>
+References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+ <1456750705-7141-4-git-send-email-mhocko@kernel.org>
+ <20160330132549.GU3408@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:57539 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751210AbcC3VUj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2016 17:20:39 -0400
-In-Reply-To: <CAMuHMdWc_97Yk7XJ6e4n6tibs99pPHSnJU2qqC7CGcoo4kWuNA@mail.gmail.com>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36044 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754030AbcCaIdk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 04:33:40 -0400
+Content-Disposition: inline
+In-Reply-To: <20160330132549.GU3408@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Lee Jones <lee.jones@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
 
-On Wed, Mar 30, 2016 at 3:08 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Hi Rob,
->
-> On Tue, Mar 29, 2016 at 10:13 PM, Rob Herring <robh@kernel.org> wrote:
->> On Tue, Mar 29, 2016 at 2:37 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> On Tuesday 29 March 2016 13:23:00 Rob Herring wrote:
->>>> Drivers shouldn't have to care about HAS_IOMEM to compile and having to
->>>> causes a Kconfig mess:
->>>>
->>>> warning: (MEDIA_SUBDRV_AUTOSELECT && VIDEO_CX231XX && INV_MPU6050_I2C) selects I2C_MUX which has unmet direct dependencies (I2C && HAS_IOMEM)
->>>> warning: (ST_IRQCHIP && STMMAC_PLATFORM && DWMAC_IPQ806X && DWMAC_LPC18XX && DWMAC_ROCKCHIP && DWMAC_SOCFPGA && DWMAC_STI && TI_CPSW && PINCTRL_ROCKCHIP && PINCTRL_DOVE && POWER_RESET_KEYSTONE && S3C2410_WATCHDOG && VIDEO_OMAP3 && VIDEO_S5P_FIMC && USB_XHCI_MTK && RTC_DRV_AT91SAM9 && LPC18XX_DMAMUX && VIDEO_OMAP4 && HWSPINLOCK_QCOM && ATMEL_ST && QCOM_GSBI && PHY_HI6220_USB) selects MFD_SYSCON which has unmet direct dependencies (HAS_IOMEM)
->>>>
->>>> Reuse the !MMU variants for !HAS_IOMEM as they are sufficient for our
->>>> needs. This fixes build errors for UM allyesconfig:
->>>>
->>>> drivers/mfd/syscon.c:89:2: error: implicit declaration of function 'iounmap' [-Werror=implicit-function-declaration]
->>>>      iounmap(base);
->>>>
->>>> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
->>>> Cc: Arnd Bergmann <arnd@arndb.de>
->>>> Cc: linux-arch@vger.kernel.org
->>>> Signed-off-by: Rob Herring <robh@kernel.org>
->>>
->>> (adding Richard and the UML list to cc)
->>>
->>> I actually prototyped a patch that did the opposite: remove the readl/writel/...
->>> definitions when HAS_IOMEM is unset. I didn't get far enough to submit it,
->>> but see below for what I did.
->>
->> Ewww. Why do the opposite of what we do for every other Kconfig symbol
->> which is provide empty functions? It really only functions as a
->> disable on UML flag which runs counter to enabling drivers to build
->> for all arches.
->
-> Usually the empty function fall into one of two classes:
->   1. They return an error, so drivers will abort their initialization,
->   2. They are a plain no-op, for functions with harmless side-effects.
->
-> The !MMU versions are not dummies, but assume a transparent translation.
-> This may lead to drivers continuing their initialization and crashing the
-> system.
+On Wed 30-03-16 15:25:49, Peter Zijlstra wrote:
+[...]
+> Why is the signal_pending_state() test _after_ the call to schedule()
+> and before the 'trylock'.
 
-I thought about this, but how could you even get to the point of
-having some physical address passed to the driver? Perhaps some old
-ISA driver, but I'm not sure memory ranges were ever fixed (only i/o).
-We're really only talking about UML here.
+No special reason. I guess I was just too focused on the wake_by_signal
+path and didn't realize the trylock as well.
 
-It can be done though, it's just more ifdef'ery.
+> __mutex_lock_common() has it before the call to schedule and after the
+> 'trylock'.
+> 
+> The difference is that rwsem will now respond to the KILL and return
+> -EINTR even if the lock is available, whereas mutex will acquire it and
+> ignore the signal (for a little while longer).
+> 
+> Neither is wrong per se, but I feel all the locking primitives should
+> behave in a consistent manner in this regard.
 
->> I actually started a patch to remove the HAS_IOMEM dependency
->> everywhere (or just the per driver cases). It didn't break as bad as I
->> expected, but became more than I wanted to fix. Mainly, all the devm_
->> variants also need empty versions or to be always enabled.
->
-> Should these dependencies on HAS_IOMEM be changed to "HAS_IOMEM ||
-> COMPILE_TEST"?
+Agreed! What about the following on top? I will repost the full patch
+if it looks OK.
 
-Why? Most are either HAS_IOMEM or HAS_IOMEM && COMPILE_TEST.
+Thanks!
+---
+diff --git a/kernel/locking/rwsem-spinlock.c b/kernel/locking/rwsem-spinlock.c
+index d1d04ca10d0e..fb2db7b408f0 100644
+--- a/kernel/locking/rwsem-spinlock.c
++++ b/kernel/locking/rwsem-spinlock.c
+@@ -216,14 +216,13 @@ int __sched __down_write_state(struct rw_semaphore *sem, int state)
+ 		 */
+ 		if (sem->count == 0)
+ 			break;
+-		set_task_state(tsk, state);
+-		raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
+-		schedule();
+ 		if (signal_pending_state(state, current)) {
+ 			ret = -EINTR;
+-			raw_spin_lock_irqsave(&sem->wait_lock, flags);
+ 			goto out;
+ 		}
++		set_task_state(tsk, state);
++		raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
++		schedule();
+ 		raw_spin_lock_irqsave(&sem->wait_lock, flags);
+ 	}
+ 	/* got the lock */
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index 5cec34f1ad6f..781b2628e41b 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -487,19 +487,19 @@ __rwsem_down_write_failed_state(struct rw_semaphore *sem, int state)
+ 
+ 		/* Block until there are no active lockers. */
+ 		do {
+-			schedule();
+ 			if (signal_pending_state(state, current)) {
+ 				raw_spin_lock_irq(&sem->wait_lock);
+ 				ret = ERR_PTR(-EINTR);
+ 				goto out;
+ 			}
++			schedule();
+ 			set_current_state(state);
+ 		} while ((count = sem->count) & RWSEM_ACTIVE_MASK);
+ 
+ 		raw_spin_lock_irq(&sem->wait_lock);
+ 	}
+-	__set_current_state(TASK_RUNNING);
+ out:
++	__set_current_state(TASK_RUNNING);
+ 	list_del(&waiter.list);
+ 	raw_spin_unlock_irq(&sem->wait_lock);
+ 
 
-Rob
+-- 
+Michal Hocko
+SUSE Labs
