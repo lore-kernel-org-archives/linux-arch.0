@@ -1,42 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:36250 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755087AbcCaI7a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 04:59:30 -0400
-Date: Thu, 31 Mar 2016 10:59:26 +0200
-From: Michal Hocko <mhocko@kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36605 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756172AbcCaJUN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 05:20:13 -0400
+Date: Thu, 31 Mar 2016 11:20:05 +0200
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
-Message-ID: <20160331085926.GB27831@dhcp22.suse.cz>
+Message-ID: <20160331092005.GA18640@gmail.com>
 References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
  <20160330133217.GV3408@twins.programming.kicks-ass.net>
+ <20160331085926.GB27831@dhcp22.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160330133217.GV3408@twins.programming.kicks-ass.net>
+In-Reply-To: <20160331085926.GB27831@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20160331085926.48ZZ42E-xj9tJ_km_uKe5LRLt5KPdnHtd2O_PEZiRII@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20160331092005.OMtKYfl3wX8UYwQUpz_ikgh5VZkhW8bJLioLnAiwUxI@z>
 
-On Wed 30-03-16 15:32:17, Peter Zijlstra wrote:
-> On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
-> > I have tested on x86 with OOM situations with high mmap_sem contention
-> > (basically many parallel page faults racing with many parallel mmap/munmap
-> > tight loops) so the waiters for the write locks are routinely interrupted
-> > by SIGKILL.
+
+* Michal Hocko <mhocko@kernel.org> wrote:
+
+> On Wed 30-03-16 15:32:17, Peter Zijlstra wrote:
+> > On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
+> > > I have tested on x86 with OOM situations with high mmap_sem contention
+> > > (basically many parallel page faults racing with many parallel mmap/munmap
+> > > tight loops) so the waiters for the write locks are routinely interrupted
+> > > by SIGKILL.
+> > 
+> > Aside from the one niggle (as per the other email) they look good to me
+> > and I would take them through the tip/locking tree.
 > 
-> Aside from the one niggle (as per the other email) they look good to me
-> and I would take them through the tip/locking tree.
+> Thanks for the review! I understand that tip/locking would be the most 
+> appropriate place [...]
 
-Thanks for the review! I understand that tip/locking would be the most
-appropriate place but I am wondering whether this causes some issues
-with the follow up patches which use this new API and which I expect to
-go via Andrew's tree.
+Yes.
 
-That being said I do not care much but then we have a potential
-dependency between mmotm and tip/locking.
+> [...] but I am wondering whether this causes some issues with the follow up 
+> patches which use this new API and which I expect to go via Andrew's tree.
 
--- 
-Michal Hocko
-SUSE Labs
+So AFAIK Andrew's tree is based on top of linux-next, so once it goes into 
+tip:locking/core, -mm can pick it up as well 1-2 days later.
+
+Please send the changes in isolation, for merge into the locking tree.
+
+Thanks,
+
+	Ingo
