@@ -1,18 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0081.outbound.protection.outlook.com ([157.55.234.81]:45024
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752794AbcC3Rtp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2016 13:49:45 -0400
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Subject: [PATCH v4 0/4] improvements to the nmi_backtrace code
-Date: Wed, 30 Mar 2016 13:16:06 -0400
-Message-ID: <1459358170-27745-1-git-send-email-cmetcalf@mellanox.com>
-In-Reply-To: <8028886.DUEJzF47F1@vostro.rjw.lan>
+Received: from bombadil.infradead.org ([198.137.202.9]:34026 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750971AbcCaIo2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 04:44:28 -0400
+Date: Thu, 31 Mar 2016 10:44:12 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 03/11] locking, rwsem: introduce basis for
+ down_write_killable
+Message-ID: <20160331084412.GF3430@twins.programming.kicks-ass.net>
+References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
+ <1456750705-7141-4-git-send-email-mhocko@kernel.org>
+ <20160330132549.GU3408@twins.programming.kicks-ass.net>
+ <20160331083336.GA27831@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160331083336.GA27831@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <20160330171606.rFXyL0_U56zZqclSMADaFBYCs-fwRC2N3gNB75YIBfk@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20160331084412.0F_er8SeXQMKnof8fTEBiE8tj9GyRA0d2nSlpHauam8@z>
+
+On Thu, Mar 31, 2016 at 10:33:36AM +0200, Michal Hocko wrote:
+> > __mutex_lock_common() has it before the call to schedule and after the
+> > 'trylock'.
+> > 
+> > The difference is that rwsem will now respond to the KILL and return
+> > -EINTR even if the lock is available, whereas mutex will acquire it and
+> > ignore the signal (for a little while longer).
+> > 
+> > Neither is wrong per se, but I feel all the locking primitives should
+> > behave in a consistent manner in this regard.
+> 
+> Agreed! What about the following on top? I will repost the full patch
+> if it looks OK.
+
+Yep, that seems to have the right shape to it.
+
+Thanks!
