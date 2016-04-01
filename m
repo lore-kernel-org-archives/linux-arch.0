@@ -1,59 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:34871 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753272AbcCaK64 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 06:58:56 -0400
-Date: Thu, 31 Mar 2016 12:58:53 +0200
-From: Michal Hocko <mhocko@kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:34203 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753428AbcDAGdy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2016 02:33:54 -0400
+Date: Fri, 1 Apr 2016 08:33:48 +0200
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
-Message-ID: <20160331105853.GE27831@dhcp22.suse.cz>
+Message-ID: <20160401063348.GA6815@gmail.com>
 References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
  <20160330133217.GV3408@twins.programming.kicks-ass.net>
  <20160331085926.GB27831@dhcp22.suse.cz>
  <20160331092005.GA18640@gmail.com>
+ <20160331100331.73eb381a45a1e03473f700a9@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160331092005.GA18640@gmail.com>
+In-Reply-To: <20160331100331.73eb381a45a1e03473f700a9@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20160331105853.zgLyMLTcIq6_CNpnzczHE-99lgj7Z2_DaJJRwEbNJKk@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@kernel.org>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20160401063348.y0HQ75fXoxjhVLFjNeHg_GM057oriyG0omPUCcj97OI@z>
 
-On Thu 31-03-16 11:20:05, Ingo Molnar wrote:
-> 
-> * Michal Hocko <mhocko@kernel.org> wrote:
-> 
-> > On Wed 30-03-16 15:32:17, Peter Zijlstra wrote:
-> > > On Mon, Feb 29, 2016 at 01:58:14PM +0100, Michal Hocko wrote:
-> > > > I have tested on x86 with OOM situations with high mmap_sem contention
-> > > > (basically many parallel page faults racing with many parallel mmap/munmap
-> > > > tight loops) so the waiters for the write locks are routinely interrupted
-> > > > by SIGKILL.
-> > > 
-> > > Aside from the one niggle (as per the other email) they look good to me
-> > > and I would take them through the tip/locking tree.
-> > 
-> > Thanks for the review! I understand that tip/locking would be the most 
-> > appropriate place [...]
-> 
-> Yes.
-> 
-> > [...] but I am wondering whether this causes some issues with the follow up 
-> > patches which use this new API and which I expect to go via Andrew's tree.
-> 
-> So AFAIK Andrew's tree is based on top of linux-next, so once it goes into 
-> tip:locking/core, -mm can pick it up as well 1-2 days later.
 
-OK. Andrew, just make sure you send the follow up changes to Linus after
-tip/locking is merged.
+* Andrew Morton <akpm@linux-foundation.org> wrote:
 
-> Please send the changes in isolation, for merge into the locking tree.
+> On Thu, 31 Mar 2016 11:20:05 +0200 Ingo Molnar <mingo@kernel.org> wrote:
+> 
+> > So AFAIK Andrew's tree is based on top of linux-next
+> 
+> Not really true any more - I only base -mm patches on linux-next
+> patches when they must be based that way due to some known dependency.
+> 
+> I can certainly handle MM patches which are based on linux-next.  Such
+> an arrangement is going to make life awkward for Michal's
+> auto-maintained git tree of the -mm MM patches
+> (git://git.kernel.org/pub/scm/linux/kernel/git/mhocko/mm.git).
+> 
+> Maybe I could merge down_write_killable into -mm's main MM section then
+> knock it out of my copy of linux-next, so everything is seamless for
+> mm.git.  I've done that before.
+> 
+> But it's all a bit of a pain - it would be simpler to keep
+> down_write_killable in the same tree as the patches which depend on it.
 
-Yes, that's what I plan to do in few days.
+I can help on the Git level: I can do tip:locking/rwsem tree with only these 
+changes, with stable sha1's, on which the remaining work can be based. The
+locking tree typically goes in early during the merge window, so there's no
+real dependencies.
 
-Thanks!
--- 
-Michal Hocko
-SUSE Labs
+On the source code level this series is changing the existing locking code too,
+it doesn't just add a new orthogonal method or so, so I'd really like to have
+it in the locking tree.
+
+Thanks,
+
+	Ingo
