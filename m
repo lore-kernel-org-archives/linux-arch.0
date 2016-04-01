@@ -1,75 +1,53 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore
-Date: Thu, 31 Mar 2016 10:03:31 -0700
-Message-ID: <20160331100331.73eb381a45a1e03473f700a9@linux-foundation.org>
+Date: Fri, 1 Apr 2016 08:33:48 +0200
+Message-ID: <20160401063348.GA6815@gmail.com>
 References: <1456750705-7141-1-git-send-email-mhocko@kernel.org>
-	<20160330133217.GV3408@twins.programming.kicks-ass.net>
-	<20160331085926.GB27831@dhcp22.suse.cz>
-	<20160331092005.GA18640@gmail.com>
+ <20160330133217.GV3408@twins.programming.kicks-ass.net>
+ <20160331085926.GB27831@dhcp22.suse.cz>
+ <20160331092005.GA18640@gmail.com>
+ <20160331100331.73eb381a45a1e03473f700a9@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52656 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752346AbcCaRDd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Mar 2016 13:03:33 -0400
-In-Reply-To: <20160331092005.GA18640@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160331100331.73eb381a45a1e03473f700a9@linux-foundation.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Michal Hocko <mhocko@kernel.org>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-
-On Thu, 31 Mar 2016 11:20:05 +0200 Ingo Molnar <mingo@kernel.org> wrote:
-
-> So AFAIK Andrew's tree is based on top of linux-next
-
-Not really true any more - I only base -mm patches on linux-next
-patches when they must be based that way due to some known dependency.
-
-I can certainly handle MM patches which are based on linux-next.  Such
-an arrangement is going to make life awkward for Michal's
-auto-maintained git tree of the -mm MM patches
-(git://git.kernel.org/pub/scm/linux/kernel/git/mhocko/mm.git).
-
-Maybe I could merge down_write_killable into -mm's main MM section then
-knock it out of my copy of linux-next, so everything is seamless for
-mm.git.  I've done that before.
-
-But it's all a bit of a pain - it would be simpler to keep
-down_write_killable in the same tree as the patches which depend on it.
+List-Id: linux-arch.vger.kernel.org
 
 
-Michal, how about this?
+* Andrew Morton <akpm@linux-foundation.org> wrote:
 
-mm.git currently takes the patches between
+> On Thu, 31 Mar 2016 11:20:05 +0200 Ingo Molnar <mingo@kernel.org> wrote:
+> 
+> > So AFAIK Andrew's tree is based on top of linux-next
+> 
+> Not really true any more - I only base -mm patches on linux-next
+> patches when they must be based that way due to some known dependency.
+> 
+> I can certainly handle MM patches which are based on linux-next.  Such
+> an arrangement is going to make life awkward for Michal's
+> auto-maintained git tree of the -mm MM patches
+> (git://git.kernel.org/pub/scm/linux/kernel/git/mhocko/mm.git).
+> 
+> Maybe I could merge down_write_killable into -mm's main MM section then
+> knock it out of my copy of linux-next, so everything is seamless for
+> mm.git.  I've done that before.
+> 
+> But it's all a bit of a pain - it would be simpler to keep
+> down_write_killable in the same tree as the patches which depend on it.
 
-#NEXT_PATCHES_START mm
-...
-#NEXT_PATCHES_END
+I can help on the Git level: I can do tip:locking/rwsem tree with only these 
+changes, with stable sha1's, on which the remaining work can be based. The
+locking tree typically goes in early during the merge window, so there's no
+real dependencies.
 
+On the source code level this series is changing the existing locking code too,
+it doesn't just add a new orthogonal method or so, so I'd really like to have
+it in the locking tree.
 
-Can you change it to also take the patches between
+Thanks,
 
-#NEXT_PATCHES_START mm-post-next
-...
-#NEXT_PATCHES_END
-
-?
-
-That way I can do
-
-
-#NEXT_PATCHES_START mm
-...
-#NEXT_PATCHES_END
-...
-linux-next.patch
-revert-down_write_killable.patch
-...
-#NEXT_PATCHES_START mm-post-next
-down_write_killlable.patch
-...
-#NEXT_PATCHES_END
-
-then everything you have should apply and run OK.
+	Ingo
