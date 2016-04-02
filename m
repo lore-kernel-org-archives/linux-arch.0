@@ -1,126 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f194.google.com ([209.85.217.194]:35222 "EHLO
-	mail-lb0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752378AbcDBTSi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Apr 2016 15:18:38 -0400
+Received: from mail-lb0-f193.google.com ([209.85.217.193]:34343 "EHLO
+	mail-lb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751070AbcDBTSR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Apr 2016 15:18:17 -0400
 From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Subject: [PATCH 3/3] man/mremap.2: don't unmap the overlapping VMA(s)
-Date: Sat,  2 Apr 2016 21:17:34 +0200
-Message-ID: <1459624654-7955-4-git-send-email-kwapulinski.piotr@gmail.com>
+Subject: [PATCH 1/3] man/mmap.2: don't unmap the overlapping VMA(s)
+Date: Sat,  2 Apr 2016 21:17:32 +0200
+Message-ID: <1459624654-7955-2-git-send-email-kwapulinski.piotr@gmail.com>
 In-Reply-To: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
 References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: mhocko@suse.com, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, vbabka@suse.cz, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Message-ID: <20160402191734.ZM8H6KFRY0g3f0Xo-abiJBQ57Ft0QaKvVko7NTxLkb0@z>
+Message-ID: <20160402191732.vVyC0H2DlypgW3pjnt6QIafaPbOwwTuSGmVBkHQ0XzQ@z>
 
-mremap.2 man page update for MREAP_DONTUNMAP flag of mremap.
+mmap.2 man page update for MAP_DONTUNMAP flag of mmap.
 
 Signed-off-by: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
 ---
 It should be considered to be merged only in case the patch
-"[PATCH 2/3] mm/mremap.c: don't unmap the overlapping VMA(s)"
+"[PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)"
 is merged.
 ---
- man2/mremap.2 | 50 +++++++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 45 insertions(+), 5 deletions(-)
+ man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
+ 1 file changed, 30 insertions(+), 2 deletions(-)
 
-diff --git a/man2/mremap.2 b/man2/mremap.2
-index e4998a4..978d509 100644
---- a/man2/mremap.2
-+++ b/man2/mremap.2
-@@ -27,7 +27,7 @@
- .\"            Update for Linux 1.3.87 and later
- .\" 2005-10-11 mtk: Added NOTES for MREMAP_FIXED; revised EINVAL text.
+diff --git a/man2/mmap.2 b/man2/mmap.2
+index 0f2f277..0fc5879 100644
+--- a/man2/mmap.2
++++ b/man2/mmap.2
+@@ -37,7 +37,7 @@
+ .\" 2007-07-10, mtk, Added an example program.
+ .\" 2008-11-18, mtk, document MAP_STACK
  .\"
--.TH MREMAP 2 2015-12-05 "Linux" "Linux Programmer's Manual"
-+.TH MREMAP 2 2016-04-02 "Linux" "Linux Programmer's Manual"
+-.TH MMAP 2 2016-03-15 "Linux" "Linux Programmer's Manual"
++.TH MMAP 2 2016-04-02 "Linux" "Linux Programmer's Manual"
  .SH NAME
- mremap \- remap a virtual memory address
+ mmap, munmap \- map or unmap files or devices into memory
  .SH SYNOPSIS
-@@ -104,7 +104,9 @@ accepts a fifth argument,
- .IR "void\ *new_address" ,
- which specifies a page-aligned address to which the mapping must
- be moved.
--Any previous mapping at the address range specified by
-+If
-+.B MREMAP_DONTUNMAP
-+is not set then any previous mapping at the address range specified by
- .I new_address
+@@ -213,7 +213,9 @@ If the memory region specified by
+ .I addr
  and
- .I new_size
-@@ -114,6 +116,30 @@ If
- is specified, then
- .B MREMAP_MAYMOVE
- must also be specified.
-+.TP
-+.BR MREMAP_DONTUNMAP " (since Linux 4.6)"
-+This flag is similar to
+ .I len
+-overlaps pages of any existing mapping(s), then the overlapped
++overlaps pages of any existing mapping(s) and
 +.B MAP_DONTUNMAP
-+flag of
-+.BR mmap (2).
++is not set, then the overlapped
+ part of the existing mapping(s) will be discarded.
+ If the specified address cannot be used,
+ .BR mmap ()
+@@ -221,6 +223,23 @@ will fail.
+ Because requiring a fixed address for a mapping is less portable,
+ the use of this option is discouraged.
+ .TP
++.BR MAP_DONTUNMAP " (since Linux 4.6)"
 +If this flag and
-+.B MREMAP_FIXED
++.B MAP_FIXED
 +are set and the memory region specified by
-+.I new_address
++.I addr
 +and
-+.I new_size
++.I length
 +overlaps pages of any existing mapping(s), then the
-+.BR mremap ()
++.BR mmap ()
 +will fail with
 +.BR ENOMEM .
-+No existing mapping(s) will be discarded. If
-+.B MREMAP_DONTUNMAP
-+is specified, then
-+.B MREMAP_FIXED
-+must also be specified.
++No existing mapping(s) will be
++discarded.
 +
 +Note: currently, this flag is not implemented in the glibc wrapper.
-+Use the numerical value 4, if you want to use it.
- .PP
- If the memory segment specified by
- .I old_address
-@@ -156,8 +182,9 @@ page aligned; a value other than
- .B MREMAP_MAYMOVE
- or
- .B MREMAP_FIXED
--was specified in
--.IR flags ;
-+or
-+.B MREMAP_DONTUNMAP
-+was specified in \fIflags\fP;
- .I new_size
- was zero;
- .I new_size
-@@ -175,13 +202,26 @@ and
- or
- .B MREMAP_FIXED
- was specified without also specifying
--.BR MREMAP_MAYMOVE .
-+.BR MREMAP_MAYMOVE ;
-+or
-+.B MREMAP_DONTUNMAP
-+was specified without also specifying
-+.BR MREMAP_FIXED .
++Use the numerical hex value 40, if you want to use it.
++.TP
+ .B MAP_GROWSDOWN
+ Used for stacks.
+ Indicates to the kernel virtual memory system that the mapping
+@@ -477,6 +496,15 @@ No memory is available.
  .TP
  .B ENOMEM
- The memory area cannot be expanded at the current virtual address, and the
- .B MREMAP_MAYMOVE
- flag is not set in \fIflags\fP.
- Or, there is not enough (virtual) memory available.
+ The process's maximum number of mappings would have been exceeded.
 +Or, both the
-+.B MREMAP_FIXED
++.B MAP_FIXED
 +and
-+.B MREMAP_DONTUNMAP
++.B MAP_DONTUNMAP
 +flags are set and the memory region specified by
-+.I new_address
++.I addr
 +and
-+.I new_size
++.I length
 +overlaps pages of any existing mapping(s).
- .SH CONFORMING TO
- This call is Linux-specific, and should not be used in programs
- intended to be portable.
+ This error can also occur for
+ .BR munmap (2),
+ when unmapping a region in the middle of an existing mapping,
 -- 
 2.7.4
 
