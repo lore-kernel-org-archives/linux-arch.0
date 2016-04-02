@@ -1,125 +1,108 @@
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [PATCH 03/11] locking, rwsem: introduce basis for
- down_write_killable
-Date: Fri, 1 Apr 2016 21:41:25 -0700
-Message-ID: <20160402044125.GC5329@linux-uzut.site>
-References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
- <1459508695-14915-4-git-send-email-mhocko@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+Subject: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
+Date: Sat,  2 Apr 2016 21:17:31 +0200
+Message-ID: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:48017 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750767AbcDBElk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Apr 2016 00:41:40 -0400
-Content-Disposition: inline
-In-Reply-To: <1459508695-14915-4-git-send-email-mhocko@kernel.org>
+Received: from mail-lf0-f67.google.com ([209.85.215.67]:35101 "EHLO
+	mail-lf0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751660AbcDBTSH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Apr 2016 15:18:07 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
+To: akpm@linux-foundation.org
+Cc: mhocko@suse.com, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, vbabka@suse.cz, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
 
-On Fri, 01 Apr 2016, Michal Hocko wrote:
+Currently the mmap(MAP_FIXED) discards the overlapping part of the
+existing VMA(s).
+Introduce the new MAP_DONTUNMAP flag which forces the mmap to fail
+with ENOMEM whenever the overlapping occurs and MAP_FIXED is set.
+No existing mapping(s) is discarded.
+The implementation tests the MAP_DONTUNMAP flag right before unmapping
+the VMA. The tile arch is the dependency of mmap_flags.
 
->From: Michal Hocko <mhocko@suse.com>
->
->Introduce a generic implementation necessary for down_write_killable.
->This is a trivial extension of the already existing down_write call
->which can be interrupted by SIGKILL.  This patch doesn't provide
->down_write_killable yet because arches have to provide the necessary
->pieces before.
->
->rwsem_down_write_failed which is a generic slow path for the
->write lock is extended to allow a task state and renamed to
->__rwsem_down_write_failed_state. The return value is either a valid
->semaphore pointer or ERR_PTR(-EINTR).
->
->rwsem_down_write_failed_killable is exported as a new way to wait for
->the lock and be killable.
->
->For rwsem-spinlock implementation the current __down_write it updated
->in a similar way as __rwsem_down_write_failed_state except it doesn't
->need new exports just visible __down_write_killable.
->
->Architectures which are not using the generic rwsem implementation are
->supposed to provide their __down_write_killable implementation and
->use rwsem_down_write_failed_killable for the slow path.
+I did the isolated tests and also tested it with Gentoo full
+installation.
 
-So in a nutshell, this is supposed to be the (writer) rwsem counterpart of
-mutex_lock_killable() and down_killable(), right?
+Signed-off-by: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+---
+ arch/tile/mm/elf.c                     |  1 +
+ include/linux/mm.h                     |  3 ++-
+ include/uapi/asm-generic/mman-common.h |  1 +
+ mm/mmap.c                              | 10 +++++++---
+ 4 files changed, 11 insertions(+), 4 deletions(-)
 
-[...]
-
->--- a/kernel/locking/rwsem-xadd.c
->+++ b/kernel/locking/rwsem-xadd.c
->@@ -433,12 +433,13 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
-> /*
->  * Wait until we successfully acquire the write lock
->  */
->-__visible
->-struct rw_semaphore __sched *rwsem_down_write_failed(struct rw_semaphore *sem)
->+static inline struct rw_semaphore *
->+__rwsem_down_write_failed_state(struct rw_semaphore *sem, int state)
-
-fwiw I'm not a fan of the _state naming. While I understand why you chose it, I feel
-it does not really describe the purpose of the call itself. The state logic alone is
-really quite small and therefore should not govern the function name. Why not just apply
-kiss and label things _common, ie like mutexes do? This would also standardize names a
-bit.
-
-> {
-> 	long count;
-> 	bool waiting = true; /* any queued threads before us */
-> 	struct rwsem_waiter waiter;
->+	struct rw_semaphore *ret = sem;
->
-> 	/* undo write bias from down_write operation, stop active locking */
-> 	count = rwsem_atomic_update(-RWSEM_ACTIVE_WRITE_BIAS, sem);
->@@ -478,7 +479,7 @@ struct rw_semaphore __sched *rwsem_down_write_failed(struct rw_semaphore *sem)
-> 		count = rwsem_atomic_update(RWSEM_WAITING_BIAS, sem);
->
-> 	/* wait until we successfully acquire the lock */
->-	set_current_state(TASK_UNINTERRUPTIBLE);
->+	set_current_state(state);
-> 	while (true) {
-> 		if (rwsem_try_write_lock(count, sem))
-> 			break;
->@@ -486,21 +487,39 @@ struct rw_semaphore __sched *rwsem_down_write_failed(struct rw_semaphore *sem)
->
-> 		/* Block until there are no active lockers. */
-> 		do {
->+			if (signal_pending_state(state, current)) {
-
-                           ^^ unlikely()?
-
->+				raw_spin_lock_irq(&sem->wait_lock);
-
-If the lock is highly contended + a bad workload for spin-on-owner, this could take a while :)
-Of course, this is a side effect of the wait until no active lockers optimization which avoids
-the wait_lock in the first place, so fortunately it somewhat mitigates the situation.
-
->+				ret = ERR_PTR(-EINTR);
->+				goto out;
->+			}
-> 			schedule();
->-			set_current_state(TASK_UNINTERRUPTIBLE);
->+			set_current_state(state);
-> 		} while ((count = sem->count) & RWSEM_ACTIVE_MASK);
->
-> 		raw_spin_lock_irq(&sem->wait_lock);
-> 	}
->+out:
-> 	__set_current_state(TASK_RUNNING);
->-
-
-You certainly don't want this iff exiting due to TASK_KILLABLE situation.
-
-> 	list_del(&waiter.list);
-> 	raw_spin_unlock_irq(&sem->wait_lock);
->
->-	return sem;
->+	return ret;
->+}
-
-Thanks,
-Davidlohr
+diff --git a/arch/tile/mm/elf.c b/arch/tile/mm/elf.c
+index 6225cc9..dae4b33 100644
+--- a/arch/tile/mm/elf.c
++++ b/arch/tile/mm/elf.c
+@@ -142,6 +142,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	if (!retval) {
+ 		unsigned long addr = MEM_USER_INTRPT;
+ 		addr = mmap_region(NULL, addr, INTRPT_SIZE,
++				   MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE,
+ 				   VM_READ|VM_EXEC|
+ 				   VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC, 0);
+ 		if (addr > (unsigned long) -PAGE_SIZE)
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index ed6407d..31dcdfb 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2048,7 +2048,8 @@ extern int install_special_mapping(struct mm_struct *mm,
+ extern unsigned long get_unmapped_area(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
+ 
+ extern unsigned long mmap_region(struct file *file, unsigned long addr,
+-	unsigned long len, vm_flags_t vm_flags, unsigned long pgoff);
++	unsigned long len, unsigned long mmap_flags,
++	vm_flags_t vm_flags, unsigned long pgoff);
+ extern unsigned long do_mmap(struct file *file, unsigned long addr,
+ 	unsigned long len, unsigned long prot, unsigned long flags,
+ 	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate);
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 5827438..3655be3 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -19,6 +19,7 @@
+ #define MAP_TYPE	0x0f		/* Mask for type of mapping */
+ #define MAP_FIXED	0x10		/* Interpret addr exactly */
+ #define MAP_ANONYMOUS	0x20		/* don't use a file */
++#define MAP_DONTUNMAP	0x40		/* don't unmap overlapping VMA */
+ #ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+ # define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
+ #else
+diff --git a/mm/mmap.c b/mm/mmap.c
+index bd2e1a53..ab429c3 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1286,7 +1286,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
+ 			vm_flags |= VM_NORESERVE;
+ 	}
+ 
+-	addr = mmap_region(file, addr, len, vm_flags, pgoff);
++	addr = mmap_region(file, addr, len, flags, vm_flags, pgoff);
+ 	if (!IS_ERR_VALUE(addr) &&
+ 	    ((vm_flags & VM_LOCKED) ||
+ 	     (flags & (MAP_POPULATE | MAP_NONBLOCK)) == MAP_POPULATE))
+@@ -1422,7 +1422,8 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
+ }
+ 
+ unsigned long mmap_region(struct file *file, unsigned long addr,
+-		unsigned long len, vm_flags_t vm_flags, unsigned long pgoff)
++		unsigned long len, unsigned long mmap_flags,
++		vm_flags_t vm_flags, unsigned long pgoff)
+ {
+ 	struct mm_struct *mm = current->mm;
+ 	struct vm_area_struct *vma, *prev;
+@@ -1448,7 +1449,10 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
+ 	/* Clear old maps */
+ 	while (find_vma_links(mm, addr, addr + len, &prev, &rb_link,
+ 			      &rb_parent)) {
+-		if (do_munmap(mm, addr, len))
++		const bool dont_unmap =
++				(mmap_flags & (MAP_DONTUNMAP | MAP_FIXED))
++				== (MAP_DONTUNMAP | MAP_FIXED);
++		if (dont_unmap || do_munmap(mm, addr, len))
+ 			return -ENOMEM;
+ 	}
+ 
+-- 
+2.7.4
