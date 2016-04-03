@@ -1,95 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f193.google.com ([209.85.217.193]:34343 "EHLO
-	mail-lb0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751070AbcDBTSR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Apr 2016 15:18:17 -0400
-From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Subject: [PATCH 1/3] man/mmap.2: don't unmap the overlapping VMA(s)
-Date: Sat,  2 Apr 2016 21:17:32 +0200
-Message-ID: <1459624654-7955-2-git-send-email-kwapulinski.piotr@gmail.com>
-In-Reply-To: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
-References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
+Received: from mail-lf0-f46.google.com ([209.85.215.46]:34441 "EHLO
+	mail-lf0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751455AbcDCFqU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Apr 2016 01:46:20 -0400
+Subject: [PATCH] mm/mmap: kill hook arch_rebalance_pgtables
+From: Konstantin Khlebnikov <koct9i@gmail.com>
+Date: Sun, 03 Apr 2016 08:46:15 +0300
+Message-ID: <145966237520.3981.8917077611530564532.stgit@zurg>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: mhocko@suse.com, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, vbabka@suse.cz, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Message-ID: <20160402191732.vVyC0H2DlypgW3pjnt6QIafaPbOwwTuSGmVBkHQ0XzQ@z>
+To: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org
+Message-ID: <20160403054615.5lEMMc0ZTgDmCu6ObpR6W1VBirEMWnokxWSJ9NalZNY@z>
 
-mmap.2 man page update for MAP_DONTUNMAP flag of mmap.
+Nobody use it.
 
-Signed-off-by: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+Signed-off-by: Konstantin Khlebnikov <koct9i@gmail.com>
 ---
-It should be considered to be merged only in case the patch
-"[PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)"
-is merged.
----
- man2/mmap.2 | 32 ++++++++++++++++++++++++++++++--
- 1 file changed, 30 insertions(+), 2 deletions(-)
+ mm/mmap.c |    5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/man2/mmap.2 b/man2/mmap.2
-index 0f2f277..0fc5879 100644
---- a/man2/mmap.2
-+++ b/man2/mmap.2
-@@ -37,7 +37,7 @@
- .\" 2007-07-10, mtk, Added an example program.
- .\" 2008-11-18, mtk, document MAP_STACK
- .\"
--.TH MMAP 2 2016-03-15 "Linux" "Linux Programmer's Manual"
-+.TH MMAP 2 2016-04-02 "Linux" "Linux Programmer's Manual"
- .SH NAME
- mmap, munmap \- map or unmap files or devices into memory
- .SH SYNOPSIS
-@@ -213,7 +213,9 @@ If the memory region specified by
- .I addr
- and
- .I len
--overlaps pages of any existing mapping(s), then the overlapped
-+overlaps pages of any existing mapping(s) and
-+.B MAP_DONTUNMAP
-+is not set, then the overlapped
- part of the existing mapping(s) will be discarded.
- If the specified address cannot be used,
- .BR mmap ()
-@@ -221,6 +223,23 @@ will fail.
- Because requiring a fixed address for a mapping is less portable,
- the use of this option is discouraged.
- .TP
-+.BR MAP_DONTUNMAP " (since Linux 4.6)"
-+If this flag and
-+.B MAP_FIXED
-+are set and the memory region specified by
-+.I addr
-+and
-+.I length
-+overlaps pages of any existing mapping(s), then the
-+.BR mmap ()
-+will fail with
-+.BR ENOMEM .
-+No existing mapping(s) will be
-+discarded.
-+
-+Note: currently, this flag is not implemented in the glibc wrapper.
-+Use the numerical hex value 40, if you want to use it.
-+.TP
- .B MAP_GROWSDOWN
- Used for stacks.
- Indicates to the kernel virtual memory system that the mapping
-@@ -477,6 +496,15 @@ No memory is available.
- .TP
- .B ENOMEM
- The process's maximum number of mappings would have been exceeded.
-+Or, both the
-+.B MAP_FIXED
-+and
-+.B MAP_DONTUNMAP
-+flags are set and the memory region specified by
-+.I addr
-+and
-+.I length
-+overlaps pages of any existing mapping(s).
- This error can also occur for
- .BR munmap (2),
- when unmapping a region in the middle of an existing mapping,
--- 
-2.7.4
+diff --git a/mm/mmap.c b/mm/mmap.c
+index bd2e1a533bc1..fba246b8f1a5 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -55,10 +55,6 @@
+ #define arch_mmap_check(addr, len, flags)	(0)
+ #endif
+ 
+-#ifndef arch_rebalance_pgtables
+-#define arch_rebalance_pgtables(addr, len)		(addr)
+-#endif
+-
+ #ifdef CONFIG_HAVE_ARCH_MMAP_RND_BITS
+ const int mmap_rnd_bits_min = CONFIG_ARCH_MMAP_RND_BITS_MIN;
+ const int mmap_rnd_bits_max = CONFIG_ARCH_MMAP_RND_BITS_MAX;
+@@ -1911,7 +1907,6 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
+ 	if (offset_in_page(addr))
+ 		return -EINVAL;
+ 
+-	addr = arch_rebalance_pgtables(addr, len);
+ 	error = security_mmap_addr(addr);
+ 	return error ? error : addr;
+ }
 
