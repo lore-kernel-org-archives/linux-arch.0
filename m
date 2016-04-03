@@ -1,34 +1,49 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
-Date: Sun, 3 Apr 2016 00:54:30 +0300
-Message-ID: <20160402215430.GA100607@black.fi.intel.com>
-References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
+From: Konstantin Khlebnikov <koct9i@gmail.com>
+Subject: [PATCH] mm/mmap: kill hook arch_rebalance_pgtables
+Date: Sun, 03 Apr 2016 08:46:15 +0300
+Message-ID: <145966237520.3981.8917077611530564532.stgit@zurg>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:27618 "EHLO mga04.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750766AbcDBVyr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Apr 2016 17:54:47 -0400
-Content-Disposition: inline
-In-Reply-To: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Cc: akpm@linux-foundation.org, mhocko@suse.com, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, vbabka@suse.cz, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 02, 2016 at 09:17:31PM +0200, Piotr Kwapulinski wrote:
-> @@ -19,6 +19,7 @@
->  #define MAP_TYPE	0x0f		/* Mask for type of mapping */
->  #define MAP_FIXED	0x10		/* Interpret addr exactly */
->  #define MAP_ANONYMOUS	0x20		/* don't use a file */
-> +#define MAP_DONTUNMAP	0x40		/* don't unmap overlapping VMA */
+Nobody use it.
 
-NAK.
+Signed-off-by: Konstantin Khlebnikov <koct9i@gmail.com>
+---
+ mm/mmap.c |    5 -----
+ 1 file changed, 5 deletions(-)
 
-arch/powerpc/include/uapi/asm/mman.h:#define MAP_NORESERVE   0x40            /* don't reserve swap pages */
-arch/sparc/include/uapi/asm/mman.h:#define MAP_NORESERVE   0x40            /* don't reserve swap pages */
-arch/x86/include/uapi/asm/mman.h:#define MAP_32BIT      0x40            /* only give out 32bit addresses */
+diff --git a/mm/mmap.c b/mm/mmap.c
+index bd2e1a533bc1..fba246b8f1a5 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -55,10 +55,6 @@
+ #define arch_mmap_check(addr, len, flags)	(0)
+ #endif
+ 
+-#ifndef arch_rebalance_pgtables
+-#define arch_rebalance_pgtables(addr, len)		(addr)
+-#endif
+-
+ #ifdef CONFIG_HAVE_ARCH_MMAP_RND_BITS
+ const int mmap_rnd_bits_min = CONFIG_ARCH_MMAP_RND_BITS_MIN;
+ const int mmap_rnd_bits_max = CONFIG_ARCH_MMAP_RND_BITS_MAX;
+@@ -1911,7 +1907,6 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
+ 	if (offset_in_page(addr))
+ 		return -EINVAL;
+ 
+-	addr = arch_rebalance_pgtables(addr, len);
+ 	error = security_mmap_addr(addr);
+ 	return error ? error : addr;
+ }
 
--- 
- Kirill A. Shutemov
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
