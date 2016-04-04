@@ -1,35 +1,33 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 1/2] xtensa, rwsem: drop superfluous arch specific implementation
-Date: Mon, 4 Apr 2016 13:23:56 +0300
-Message-ID: <CAMo8BfLCqaJ36qPQm4ttAREw22YDwTwT-JeRfr_mu_d0pAcGsg@mail.gmail.com>
-References: <20160404090335.GB10272@dhcp22.suse.cz>
-	<1459760800-13477-1-git-send-email-mhocko@kernel.org>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
+Date: Mon, 4 Apr 2016 17:26:43 +0200
+Message-ID: <570287B3.6050903@suse.cz>
+References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
+ <20160404073100.GA10272@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1459760800-13477-1-git-send-email-mhocko@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, "maintainer:X86 ARCHITECTURE..." <x86@kernel.org>, "open list:ALPHA PORT" <linux-alpha@vger.kernel.org>, "open list:IA64 (Itanium) PL..." <linux-ia64@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "open list:SUPERH" <linux-sh@vger.kernel.org>, "open list:SPARC + UltraSPAR..." <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:58745 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751137AbcDDP0t (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Apr 2016 11:26:49 -0400
+In-Reply-To: <20160404073100.GA10272@dhcp22.suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>, Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+Cc: akpm@linux-foundation.org, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Mon, Apr 4, 2016 at 12:06 PM, Michal Hocko <mhocko@kernel.org> wrote:
-> From: Michal Hocko <mhocko@suse.com>
+On 04/04/2016 09:31 AM, Michal Hocko wrote:
+> On Sat 02-04-16 21:17:31, Piotr Kwapulinski wrote:
+>> Currently the mmap(MAP_FIXED) discards the overlapping part of the
+>> existing VMA(s).
+>> Introduce the new MAP_DONTUNMAP flag which forces the mmap to fail
+>> with ENOMEM whenever the overlapping occurs and MAP_FIXED is set.
+>> No existing mapping(s) is discarded.
 >
-> since "locking, rwsem: drop explicit memory barriers" the arch specific
-> code is basically same as the the generic one so we can drop the
-> superfluous code.
->
-> Suggested-by: Davidlohr Bueso <dave@stgolabs.net>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
->  arch/xtensa/include/asm/Kbuild  |   1 +
->  arch/xtensa/include/asm/rwsem.h | 134 ----------------------------------------
->  2 files changed, 1 insertion(+), 134 deletions(-)
->  delete mode 100644 arch/xtensa/include/asm/rwsem.h
+> You forgot to tell us what is the use case for this new flag.
 
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-
--- 
-Thanks.
--- Max
+Exactly. Also, returning ENOMEM is strange, EINVAL might be a better 
+match, otherwise how would you distinguish a "geunine" ENOMEM from 
+passing a wrong address?
