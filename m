@@ -1,19 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f67.google.com ([209.85.215.67]:36442 "EHLO
-	mail-lf0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754703AbcDDJGx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2016 05:06:53 -0400
+Received: from mail-lf0-f66.google.com ([209.85.215.66]:32944 "EHLO
+	mail-lf0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754822AbcDDJG5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2016 05:06:57 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 1/2] xtensa, rwsem: drop superfluous arch specific implementation
-Date: Mon,  4 Apr 2016 11:06:39 +0200
-Message-ID: <1459760800-13477-1-git-send-email-mhocko@kernel.org>
-In-Reply-To: <20160404090335.GB10272@dhcp22.suse.cz>
+Subject: [PATCH 2/2] sh, rwsem: drop superfluous arch specific implementation
+Date: Mon,  4 Apr 2016 11:06:40 +0200
+Message-ID: <1459760800-13477-2-git-send-email-mhocko@kernel.org>
+In-Reply-To: <1459760800-13477-1-git-send-email-mhocko@kernel.org>
 References: <20160404090335.GB10272@dhcp22.suse.cz>
+ <1459760800-13477-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160404090639.K4veRFBJNCvhbf3DNJOE7vwXqxw5ucE1IA7FGm5eLdc@z>
+Message-ID: <20160404090640.9ubd6iX9rLxI3nk_dG9y4NK8f5G7RGmXw8LOl1q_vpA@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
@@ -24,47 +25,42 @@ superfluous code.
 Suggested-by: Davidlohr Bueso <dave@stgolabs.net>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/xtensa/include/asm/Kbuild  |   1 +
- arch/xtensa/include/asm/rwsem.h | 134 ----------------------------------------
- 2 files changed, 1 insertion(+), 134 deletions(-)
- delete mode 100644 arch/xtensa/include/asm/rwsem.h
+ arch/sh/include/asm/Kbuild  |   1 +
+ arch/sh/include/asm/rwsem.h | 130 --------------------------------------------
+ 2 files changed, 1 insertion(+), 130 deletions(-)
+ delete mode 100644 arch/sh/include/asm/rwsem.h
 
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index b56855a1382a..28cf4c5d65ef 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -22,6 +22,7 @@ generic-y += mm-arch-hooks.h
- generic-y += percpu.h
+diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
+index aac452b26aa8..6d866c7a9b74 100644
+--- a/arch/sh/include/asm/Kbuild
++++ b/arch/sh/include/asm/Kbuild
+@@ -25,6 +25,7 @@ generic-y += percpu.h
+ generic-y += poll.h
  generic-y += preempt.h
  generic-y += resource.h
 +generic-y += rwsem.h
- generic-y += sections.h
- generic-y += siginfo.h
- generic-y += statfs.h
-diff --git a/arch/xtensa/include/asm/rwsem.h b/arch/xtensa/include/asm/rwsem.h
+ generic-y += sembuf.h
+ generic-y += serial.h
+ generic-y += shmbuf.h
+diff --git a/arch/sh/include/asm/rwsem.h b/arch/sh/include/asm/rwsem.h
 deleted file mode 100644
-index 6283823b8040..000000000000
---- a/arch/xtensa/include/asm/rwsem.h
+index 8a457b83d2a5..000000000000
+--- a/arch/sh/include/asm/rwsem.h
 +++ /dev/null
-@@ -1,134 +0,0 @@
+@@ -1,130 +0,0 @@
 -/*
-- * include/asm-xtensa/rwsem.h
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- *
-- * Largely copied from include/asm-ppc/rwsem.h
-- *
-- * Copyright (C) 2001 - 2005 Tensilica Inc.
+- * include/asm-sh/rwsem.h: R/W semaphores for SH using the stuff
+- * in lib/rwsem.c.
 - */
 -
--#ifndef _XTENSA_RWSEM_H
--#define _XTENSA_RWSEM_H
+-#ifndef _ASM_SH_RWSEM_H
+-#define _ASM_SH_RWSEM_H
 -
 -#ifndef _LINUX_RWSEM_H
--#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
+-#error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
 -#endif
+-
+-#ifdef __KERNEL__
 -
 -#define RWSEM_UNLOCKED_VALUE		0x00000000
 -#define RWSEM_ACTIVE_BIAS		0x00000001
@@ -78,7 +74,7 @@ index 6283823b8040..000000000000
 - */
 -static inline void __down_read(struct rw_semaphore *sem)
 -{
--	if (atomic_add_return(1,(atomic_t *)(&sem->count)) <= 0)
+-	if (atomic_inc_return((atomic_t *)(&sem->count)) <= 0)
 -		rwsem_down_read_failed(sem);
 -}
 -
@@ -137,7 +133,7 @@ index 6283823b8040..000000000000
 -{
 -	int tmp;
 -
--	tmp = atomic_sub_return(1,(atomic_t *)(&sem->count));
+-	tmp = atomic_dec_return((atomic_t *)(&sem->count));
 -	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
 -		rwsem_wake(sem);
 -}
@@ -180,7 +176,8 @@ index 6283823b8040..000000000000
 -	return atomic_add_return(delta, (atomic_t *)(&sem->count));
 -}
 -
--#endif	/* _XTENSA_RWSEM_H */
+-#endif /* __KERNEL__ */
+-#endif /* _ASM_SH_RWSEM_H */
 -- 
 2.8.0.rc3
 
