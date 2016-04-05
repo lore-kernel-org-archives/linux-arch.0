@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0082.outbound.protection.outlook.com ([65.55.169.82]:53602
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0089.outbound.protection.outlook.com ([157.56.110.89]:15668
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S933870AbcDEW2Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Apr 2016 18:28:16 -0400
+	id S933828AbcDEW2f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Apr 2016 18:28:35 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 14/25] thread: move thread bits accessors to separated file
-Date: Wed, 6 Apr 2016 01:08:36 +0300
-Message-ID: <1459894127-17698-15-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 24/25] arm64:ilp32: add vdso-ilp32 and use for signal return
+Date: Wed, 6 Apr 2016 01:08:46 +0300
+Message-ID: <1459894127-17698-25-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,146 +15,446 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
-Message-ID: <20160405220836.pn8MRo_WaZurCV9pW65g-5pnJfaPy49tVWpb6qi23Kg@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Message-ID: <20160405220846.Y1L9qk9BfrrUlKTv5P0yiw_9kUNJCHWRbKMZMwOTJiA@z>
 
-They may be accessed from low-level code, so isolating is a measure to
-avoid circular dependencies in header files.
+From: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
 
-The exact reason for circular dependency is WARN_ON() macro added by Al
-Viro in patch "set_restore_sigmask() is never called without SIGPENDING
-(and never should be)" [edd63a27]
+ILP32 VDSO exports next symbols:
+ __kernel_rt_sigreturn;
+ __kernel_gettimeofday;
+ __kernel_clock_gettime;
+ __kernel_clock_getres;
 
+What shared object to use, kernel selects depending on result of
+is_ilp32_compat_task() in arch/arm64/kernel/vdso.c, so it substitutes
+correct pages and spec.
+
+Adjusted to move the move data page before code pages in sync with
+commit 601255ae3c98fdeeee3a8bb4696425e4f868b4f1
+
+Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- include/linux/thread_bits.h | 55 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/thread_info.h | 44 +-----------------------------------
- 2 files changed, 56 insertions(+), 43 deletions(-)
- create mode 100644 include/linux/thread_bits.h
+ arch/arm64/include/asm/vdso.h                 |  6 ++
+ arch/arm64/kernel/Makefile                    |  5 ++
+ arch/arm64/kernel/signal.c                    |  2 +
+ arch/arm64/kernel/vdso-ilp32/.gitignore       |  2 +
+ arch/arm64/kernel/vdso-ilp32/Makefile         | 72 ++++++++++++++++++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S     | 33 ++++++++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S | 95 +++++++++++++++++++++++++++
+ arch/arm64/kernel/vdso.c                      | 61 ++++++++++++++---
+ 8 files changed, 266 insertions(+), 10 deletions(-)
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
 
-diff --git a/include/linux/thread_bits.h b/include/linux/thread_bits.h
+diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
+index 839ce00..649a9a4 100644
+--- a/arch/arm64/include/asm/vdso.h
++++ b/arch/arm64/include/asm/vdso.h
+@@ -29,6 +29,12 @@
+ 
+ #include <generated/vdso-offsets.h>
+ 
++#ifdef CONFIG_ARM64_ILP32
++#include <generated/vdso-ilp32-offsets.h>
++#else
++#define vdso_offset_sigtramp_ilp32
++#endif
++
+ #define VDSO_SYMBOL(base, name)						   \
+ ({									   \
+ 	(void *)(vdso_offset_##name - VDSO_LBASE + (unsigned long)(base)); \
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 09e4373..b43ff12 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -50,6 +50,7 @@ arm64-obj-$(CONFIG_PARAVIRT)		+= paravirt.o
+ arm64-obj-$(CONFIG_RANDOMIZE_BASE)	+= kaslr.o
+ 
+ obj-y					+= $(arm64-obj-y) vdso/
++obj-$(CONFIG_ARM64_ILP32)		+= vdso-ilp32/
+ obj-m					+= $(arm64-obj-m)
+ head-y					:= head.o
+ extra-y					+= $(head-y) vmlinux.lds
+@@ -57,3 +58,7 @@ extra-y					+= $(head-y) vmlinux.lds
+ # vDSO - this must be built first to generate the symbol offsets
+ $(call objectify,$(arm64-obj-y)): $(obj)/vdso/vdso-offsets.h
+ $(obj)/vdso/vdso-offsets.h: $(obj)/vdso
++
++# vDSO - this must be built first to generate the symbol offsets
++$(call objectify,$(arm64-obj-y)): $(obj)/vdso-ilp32/vdso-ilp32-offsets.h
++$(obj)/vdso-ilp32/vdso-ilp32-offsets.h: $(obj)/vdso-ilp32
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 45bcd96..933cdcf 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -264,6 +264,8 @@ void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+ 		sigtramp = ka->sa.sa_restorer;
++	else if (is_ilp32_compat_task())
++		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp_ilp32);
+ 	else
+ 		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
+ 
+diff --git a/arch/arm64/kernel/vdso-ilp32/.gitignore b/arch/arm64/kernel/vdso-ilp32/.gitignore
 new file mode 100644
-index 0000000..0d05d16
+index 0000000..61806c3
 --- /dev/null
-+++ b/include/linux/thread_bits.h
-@@ -0,0 +1,55 @@
++++ b/arch/arm64/kernel/vdso-ilp32/.gitignore
+@@ -0,0 +1,2 @@
++vdso-ilp32.lds
++vdso-ilp32-offsets.h
+diff --git a/arch/arm64/kernel/vdso-ilp32/Makefile b/arch/arm64/kernel/vdso-ilp32/Makefile
+new file mode 100644
+index 0000000..c8f5472
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/Makefile
+@@ -0,0 +1,72 @@
++#
++# Building a vDSO image for AArch64.
++#
++# Author: Will Deacon <will.deacon@arm.com>
++# Heavily based on the vDSO Makefiles for other archs.
++#
 +
-+/* thread_bits.h: common low-level thread bits accessors */
++obj-ilp32-vdso := gettimeofday-ilp32.o note-ilp32.o sigreturn-ilp32.o
 +
-+#ifndef _LINUX_THREAD_BITS_H
-+#define _LINUX_THREAD_BITS_H
++# Build rules
++targets := $(obj-ilp32-vdso) vdso-ilp32.so vdso-ilp32.so.dbg
++obj-ilp32-vdso := $(addprefix $(obj)/, $(obj-ilp32-vdso))
 +
-+#ifndef __ASSEMBLY__
++ccflags-y := -shared -fno-common -fno-builtin
++ccflags-y += -nostdlib -Wl,-soname=linux-ilp32-vdso.so.1 \
++		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
 +
-+#include <linux/bitops.h>
-+#include <asm/thread_info.h>
++obj-y += vdso-ilp32.o
++extra-y += vdso-ilp32.lds vdso-ilp32-offsets.h
++CPPFLAGS_vdso-ilp32.lds += -P -C -U$(ARCH) -mabi=ilp32
 +
++# Force dependency (incbin is bad)
++$(obj)/vdso-ilp32.o : $(obj)/vdso-ilp32.so
++
++# Link rule for the .so file, .lds has to be first
++$(obj)/vdso-ilp32.so.dbg: $(src)/vdso-ilp32.lds $(obj-ilp32-vdso)
++	$(call if_changed,vdso-ilp32ld)
++
++# Strip rule for the .so file
++$(obj)/%.so: OBJCOPYFLAGS := -S
++$(obj)/%.so: $(obj)/%.so.dbg FORCE
++	$(call if_changed,objcopy)
++
++# Generate VDSO offsets using helper script
++gen-vdsosym := $(srctree)/$(src)/../vdso/gen_vdso_offsets.sh
++quiet_cmd_vdsosym = VDSOSYM $@
++define cmd_vdsosym
++	$(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@ && \
++	cp $@ include/generated/
++endef
++
++$(obj)/vdso-ilp32-offsets.h: $(obj)/vdso-ilp32.so.dbg FORCE
++	$(call if_changed,vdsosym)
++
++# Assembly rules for the .S files
++#$(obj-ilp32-vdso): %.o: $(src)/../vdso/$(subst -ilp32,,%.S)
++#	$(call if_changed_dep,vdso-ilp32as)
++
++$(obj)/gettimeofday-ilp32.o: $(src)/../vdso/gettimeofday.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++$(obj)/note-ilp32.o: $(src)/../vdso/note.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++$(obj)/sigreturn-ilp32.o: $(src)/../vdso/sigreturn.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++# Actual build commands
++quiet_cmd_vdso-ilp32ld = VDSOILP32L $@
++      cmd_vdso-ilp32ld = $(CC) $(c_flags) -mabi=ilp32  -Wl,-n -Wl,-T $^ -o $@
++quiet_cmd_vdso-ilp32as = VDSOILP32A $@
++      cmd_vdso-ilp32as = $(CC) $(a_flags) -mabi=ilp32 -c -o $@ $<
++
++# Install commands for the unstripped file
++quiet_cmd_vdso_install = INSTALL $@
++      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso-ilp32.so: $(obj)/vdso-ilp32.so.dbg
++	@mkdir -p $(MODLIB)/vdso
++	$(call cmd,vdso_install)
++
++vdso_install: vdso-ilp32.so
+diff --git a/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+new file mode 100644
+index 0000000..46ac072
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+@@ -0,0 +1,33 @@
 +/*
-+ * flag set/clear/test wrappers
-+ * - pass TIF_xxxx constants to these functions
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
 + */
 +
-+static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <linux/const.h>
++#include <asm/page.h>
++
++	__PAGE_ALIGNED_DATA
++
++	.globl vdso_ilp32_start, vdso_ilp32_end
++	.balign PAGE_SIZE
++vdso_ilp32_start:
++	.incbin "arch/arm64/kernel/vdso-ilp32/vdso-ilp32.so"
++	.balign PAGE_SIZE
++vdso_ilp32_end:
++
++	.previous
+diff --git a/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+new file mode 100644
+index 0000000..ddc63fd
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+@@ -0,0 +1,95 @@
++/*
++ * GNU linker script for the VDSO library.
++ *
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ * Heavily based on the vDSO linker scripts for other archs.
++ */
++
++#include <linux/const.h>
++#include <asm/page.h>
++#include <asm/vdso.h>
++
++SECTIONS
 +{
-+	set_bit(flag, (unsigned long *)&ti->flags);
++	PROVIDE(_vdso_data = . - PAGE_SIZE);
++	. = VDSO_LBASE + SIZEOF_HEADERS;
++
++	.hash		: { *(.hash) }			:text
++	.gnu.hash	: { *(.gnu.hash) }
++	.dynsym		: { *(.dynsym) }
++	.dynstr		: { *(.dynstr) }
++	.gnu.version	: { *(.gnu.version) }
++	.gnu.version_d	: { *(.gnu.version_d) }
++	.gnu.version_r	: { *(.gnu.version_r) }
++
++	.note		: { *(.note.*) }		:text	:note
++
++	. = ALIGN(16);
++
++	.text		: { *(.text*) }			:text	=0xd503201f
++	PROVIDE (__etext = .);
++	PROVIDE (_etext = .);
++	PROVIDE (etext = .);
++
++	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
++	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
++
++	.dynamic	: { *(.dynamic) }		:text	:dynamic
++
++	.rodata		: { *(.rodata*) }		:text
++
++	_end = .;
++	PROVIDE(end = .);
++
++	/DISCARD/	: {
++		*(.note.GNU-stack)
++		*(.data .data.* .gnu.linkonce.d.* .sdata*)
++		*(.bss .sbss .dynbss .dynsbss)
++	}
 +}
 +
-+static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
++/*
++ * We must supply the ELF program headers explicitly to get just one
++ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
++ */
++PHDRS
 +{
-+	clear_bit(flag, (unsigned long *)&ti->flags);
++	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
++	note		PT_NOTE		FLAGS(4);		/* PF_R */
++	eh_frame_hdr	PT_GNU_EH_FRAME;
 +}
 +
-+static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
++/*
++ * This controls what symbols we export from the DSO.
++ */
++VERSION
 +{
-+	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
++	LINUX_2.6 {
++	global:
++		__kernel_rt_sigreturn;
++		__kernel_gettimeofday;
++		__kernel_clock_gettime;
++		__kernel_clock_getres;
++	local: *;
++	};
 +}
 +
-+static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
++/*
++ * Make the sigreturn code visible to the kernel.
++ */
++VDSO_sigtramp_ilp32		= __kernel_rt_sigreturn;
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 26352a6..521a8e4 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -40,6 +40,12 @@ extern char vdso_start, vdso_end;
+ static unsigned long vdso_pages;
+ static struct page **vdso_pagelist;
+ 
++#ifdef CONFIG_ARM64_ILP32
++extern char vdso_ilp32_start, vdso_ilp32_end;
++static unsigned long vdso_ilp32_pages;
++static struct page **vdso_ilp32_pagelist;
++#endif
++
+ /*
+  * The vDSO data page.
+  */
+@@ -109,24 +115,29 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
+ }
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
+-static struct vm_special_mapping vdso_spec[2];
+-
+-static int __init vdso_init(void)
++static int __init vdso_init_common(char *vdso_start, char *vdso_end,
++					  unsigned long *vdso_pagesp,
++					  struct page ***vdso_pagelistp,
++					  struct vm_special_mapping* vdso_spec)
+ {
+ 	int i;
++	unsigned long vdso_pages;
++	struct page **vdso_pagelist;
+ 
+-	if (memcmp(&vdso_start, "\177ELF", 4)) {
++	if (memcmp(vdso_start, "\177ELF", 4)) {
+ 		pr_err("vDSO is not a valid ELF object!\n");
+ 		return -EINVAL;
+ 	}
+ 
+-	vdso_pages = (&vdso_end - &vdso_start) >> PAGE_SHIFT;
++	vdso_pages = (vdso_end - vdso_start) >> PAGE_SHIFT;
++	*vdso_pagesp = vdso_pages;
+ 	pr_info("vdso: %ld pages (%ld code @ %p, %ld data @ %p)\n",
+-		vdso_pages + 1, vdso_pages, &vdso_start, 1L, vdso_data);
++		vdso_pages + 1, vdso_pages, vdso_start, 1L, vdso_data);
+ 
+ 	/* Allocate the vDSO pagelist, plus a page for the data. */
+ 	vdso_pagelist = kcalloc(vdso_pages + 1, sizeof(struct page *),
+ 				GFP_KERNEL);
++	*vdso_pagelistp = vdso_pagelist;
+ 	if (vdso_pagelist == NULL)
+ 		return -ENOMEM;
+ 
+@@ -135,7 +146,7 @@ static int __init vdso_init(void)
+ 
+ 	/* Grab the vDSO code pages. */
+ 	for (i = 0; i < vdso_pages; i++)
+-		vdso_pagelist[i + 1] = virt_to_page(&vdso_start + i * PAGE_SIZE);
++		vdso_pagelist[i + 1] = virt_to_page(vdso_start + i * PAGE_SIZE);
+ 
+ 	/* Populate the special mapping structures */
+ 	vdso_spec[0] = (struct vm_special_mapping) {
+@@ -150,16 +161,46 @@ static int __init vdso_init(void)
+ 
+ 	return 0;
+ }
++
++static struct vm_special_mapping vdso_spec[2];
++
++static int __init vdso_init(void)
 +{
-+	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
++	return vdso_init_common(&vdso_start, &vdso_end,
++				&vdso_pages, &vdso_pagelist,
++				vdso_spec);
 +}
+ arch_initcall(vdso_init);
+ 
++#ifdef CONFIG_ARM64_ILP32
++static struct vm_special_mapping vdso_ilp32_spec[2];
 +
-+static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
++static int __init vdso_ilp32_init(void)
 +{
-+	return test_bit(flag, (unsigned long *)&ti->flags);
++	return vdso_init_common(&vdso_ilp32_start, &vdso_ilp32_end,
++				&vdso_ilp32_pages, &vdso_ilp32_pagelist,
++				vdso_ilp32_spec);
 +}
++arch_initcall(vdso_ilp32_init);
++#endif
 +
-+#define set_thread_flag(flag) \
-+	set_ti_thread_flag(current_thread_info(), flag)
-+#define clear_thread_flag(flag) \
-+	clear_ti_thread_flag(current_thread_info(), flag)
-+#define test_and_set_thread_flag(flag) \
-+	test_and_set_ti_thread_flag(current_thread_info(), flag)
-+#define test_and_clear_thread_flag(flag) \
-+	test_and_clear_ti_thread_flag(current_thread_info(), flag)
-+#define test_thread_flag(flag) \
-+	test_ti_thread_flag(current_thread_info(), flag)
+ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 				int uses_interp)
+ {
+ 	struct mm_struct *mm = current->mm;
+ 	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
+ 	void *ret;
++	unsigned long pages = vdso_pages;
++	struct vm_special_mapping *spec = vdso_spec;
 +
-+#endif /* !__ASSEMBLY__ */
-+#endif /* _LINUX_THREAD_BITS_H */
-+
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index b4c2a48..b094aed 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -50,8 +50,7 @@ struct restart_block {
++#ifdef CONFIG_ARM64_ILP32
++	if (is_ilp32_compat_task()) {
++	        pages = vdso_ilp32_pages;
++	        spec = vdso_ilp32_spec;
++	}
++#endif
  
- extern long do_no_restart_syscall(struct restart_block *parm);
+-	vdso_text_len = vdso_pages << PAGE_SHIFT;
++	vdso_text_len = pages << PAGE_SHIFT;
+ 	/* Be sure to map the data page */
+ 	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
  
--#include <linux/bitops.h>
--#include <asm/thread_info.h>
-+#include <linux/thread_bits.h>
+@@ -171,7 +212,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	}
+ 	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
+ 				       VM_READ|VM_MAYREAD,
+-				       &vdso_spec[0]);
++				       &spec[0]);
+ 	if (IS_ERR(ret))
+ 		goto up_fail;
  
- #ifdef __KERNEL__
+@@ -180,7 +221,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
+ 				       VM_READ|VM_EXEC|
+ 				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+-				       &vdso_spec[1]);
++				       &spec[1]);
+ 	if (IS_ERR(ret))
+ 		goto up_fail;
  
-@@ -62,47 +61,6 @@ extern long do_no_restart_syscall(struct restart_block *parm);
- # define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK)
- #endif
- 
--/*
-- * flag set/clear/test wrappers
-- * - pass TIF_xxxx constants to these functions
-- */
--
--static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	set_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	clear_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_bit(flag, (unsigned long *)&ti->flags);
--}
--
--#define set_thread_flag(flag) \
--	set_ti_thread_flag(current_thread_info(), flag)
--#define clear_thread_flag(flag) \
--	clear_ti_thread_flag(current_thread_info(), flag)
--#define test_and_set_thread_flag(flag) \
--	test_and_set_ti_thread_flag(current_thread_info(), flag)
--#define test_and_clear_thread_flag(flag) \
--	test_and_clear_ti_thread_flag(current_thread_info(), flag)
--#define test_thread_flag(flag) \
--	test_ti_thread_flag(current_thread_info(), flag)
--
- #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
- 
- #if defined TIF_RESTORE_SIGMASK && !defined HAVE_SET_RESTORE_SIGMASK
 -- 
 2.5.0
 
