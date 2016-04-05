@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0061.outbound.protection.outlook.com ([157.56.110.61]:36491
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0069.outbound.protection.outlook.com ([207.46.100.69]:14801
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S933860AbcDEW1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Apr 2016 18:27:35 -0400
+	id S933860AbcDEW1j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Apr 2016 18:27:39 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 13/25] arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
-Date: Wed, 6 Apr 2016 01:08:35 +0300
-Message-ID: <1459894127-17698-14-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 25/25] arm64:ilp32: add ARM64_ILP32 to Kconfig
+Date: Wed, 6 Apr 2016 01:08:47 +0300
+Message-ID: <1459894127-17698-26-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,44 +15,50 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-Message-ID: <20160405220835.EzE9N8WXcYQy1DNfKMI2icAaVzXzcriE2w2IehfcsdU@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Message-ID: <20160405220847.rEAgEBYClyHMuDUDXjD8P7zRIvkEz3SapTTT1f7Okqk@z>
 
 From: Andrew Pinski <apinski@cavium.com>
 
-Define __BITS_PER_LONG depending on the ABI used (i.e. check whether
-__ILP32__ or __LP64__ is defined).  This is necessary for glibc to
-determine the appropriate type definitions for the system call interface.
+This patch adds the config option for ILP32.
 
-Signed-off-by: Andrew Pinski <apinski@cavium.com>
+Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
 Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
 Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/include/uapi/asm/bitsperlong.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ arch/arm64/Kconfig | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/uapi/asm/bitsperlong.h b/arch/arm64/include/uapi/asm/bitsperlong.h
-index fce9c29..4265243 100644
---- a/arch/arm64/include/uapi/asm/bitsperlong.h
-+++ b/arch/arm64/include/uapi/asm/bitsperlong.h
-@@ -16,7 +16,14 @@
- #ifndef __ASM_BITSPERLONG_H
- #define __ASM_BITSPERLONG_H
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 46fc295..19d8e31 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -926,7 +926,7 @@ source "fs/Kconfig.binfmt"
  
--#define __BITS_PER_LONG 64
-+#if defined(__LP64__)
-+/* Assuming __LP64__ will be defined for native ELF64's and not for ILP32. */
-+#  define __BITS_PER_LONG 64
-+#elif defined(__ILP32__)
-+#  define __BITS_PER_LONG 32
-+#else
-+#  error "Neither LP64 nor ILP32: unsupported ABI in asm/bitsperlong.h"
-+#endif
+ config COMPAT
+ 	def_bool y
+-	depends on AARCH32_EL0
++	depends on AARCH32_EL0 || ARM64_ILP32
  
- #include <asm-generic/bitsperlong.h>
+ config AARCH32_EL0
+ 	bool "Kernel support for 32-bit EL0"
+@@ -946,6 +946,14 @@ config AARCH32_EL0
  
+ 	  If you want to execute 32-bit userspace applications, say Y.
+ 
++config ARM64_ILP32
++	bool "Kernel support for ILP32"
++	select COMPAT_WRAPPER
++	help
++	  This option enables support for AArch64 ILP32 user space.  ILP32
++	  is an ABI where long and pointers are 32bits but it uses the AARCH64
++	  instruction set.
++
+ config SYSVIPC_COMPAT
+ 	def_bool y
+ 	depends on COMPAT && SYSVIPC
 -- 
 2.5.0
 
