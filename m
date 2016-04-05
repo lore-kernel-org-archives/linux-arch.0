@@ -1,169 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:52181 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754569AbcDECVW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Apr 2016 22:21:22 -0400
-From: Chen Yu <yu.c.chen@intel.com>
-Subject: [PATCH][RFC v2] cpufreq: governor: Fix overflow when calculating idle time
-Date: Tue,  5 Apr 2016 10:26:36 +0800
-Message-ID: <1459823196-23244-1-git-send-email-yu.c.chen@intel.com>
+Received: from mail-db3on0080.outbound.protection.outlook.com ([157.55.234.80]:36961
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1759722AbcDERmn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Apr 2016 13:42:43 -0400
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: [PATCH v5 0/4] improvements to the nmi_backtrace code
+Date: Tue, 5 Apr 2016 13:26:44 -0400
+Message-ID: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
+In-Reply-To: <201604031905.WLWlnyKg%fengguang.wu@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pm@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: "Rafael J. Wysocki" <rafael@kernel.org>, Viresh Kumar <viresh.kumar@linaro.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Nicholas Mc Guire <hofrat@osadl.org>, Ingo Molnar <mingo@kernel.org>, Denys Vlasenko <dvlasenk@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Baolin Wang <baolin.wang@linaro.org>, linux-kernel@vger.kernel.org, Chen Yu <yu.c.chen@intel.com>
-Message-ID: <20160405022636.cuSFCvmrWSZwk9sxZzm4HkoEd3GXbV-0S3blRtxIxbM@z>
+To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <20160405172644.JQqmzRn1tshblmZccuIPAPjv1ulCAcfICG6ByEIQ2rA@z>
 
-It was reported that after Commit 0df35026c6a5 ("cpufreq: governor:
-Fix negative idle_time when configured with CONFIG_HZ_PERIODIC"),
-cpufreq ondemand governor started to act oddly. Without any load,
-with freshly booted system, it pumped cpu frequency up to maximum
-at some point of time and stayed there. The problem is caused by
-jiffies oveflow in get_cpu_idle_time:
+This is just a one-line change to the v4 series, to catch the new arm
+vmlinux-xip.lds.S file, which I missed when I rebased to 4.6 for v4
+(my arm config for testing did not include CONFIG_XIP_KERNEL).
+Thanks to Fengguang Wu and the 0-day test robot for that.
 
-Since:
-1. jiffies is not counted from zero but from -300HZ, and
-2. get_cpu_idle_time_jiffy is using cputime_to_usecs to convert
-   jiffies64 to usec, however cputime_to_usecs returns a 32bit value if
-   CONFIG_VIRT_CPU_ACCOUNTING is not set.
-
-After booting up 5 minutes, the jiffies will round up to zero.
-As a result, the following condition in cpu governor will always be true:
-if (cur_idle_time < j_cdbs->prev_cpu_idle)
-        cur_idle_time = j_cdbs->prev_cpu_idle;
-which caused problems.
-
-For example, once cur_idle_time has rounded up to zero, meanwhile
-prev_cpu_idle still remains negative(because of initial value of
--300HZ, which is very big after converted to unsigned), thus above
-condition is met and the cur_idle_time will be modified to the same
-as prev_cpu_idle, thus we get a zero of idle running time during
-this sample:
-(idle_time = cur_idle_time - prev_cpu_idle), which causes a high
-busy time, thus governor always requests for the highest freq.
-So the patch mentioned above has triggered this overflow issue
-more easily.
-
-This patch fixes this problem by doing two modifications in the
-get_cpu_idle_time_jiffy:
-
-1. Count the wall time from INITIAL_JIFFIES rather than 0.
-2. Use 64bit rather than 32bit to convert jiffies64 to usec.
-
-In this way, either the wall time or the idle time will be
-monotonically increased, thus avoid the jiffies overflow problem.
-(If CONFIG_HZ_1000=y, it would be at least 500000000 years for
-64bit to overflow, which would not possibly happen.)
-
-Link: https://bugzilla.kernel.org/show_bug.cgi?id=115261
-Reported-by: Timo Valtoaho <timo.valtoaho@gmail.com>
-Signed-off-by: Chen Yu <yu.c.chen@intel.com>
----
-v2:
- - Send this patch to a wider scope, including timing-system maintainers,
-   as well as some modifications in the commit message to make it more clear.
----
- drivers/cpufreq/cpufreq.c             |  6 +++---
- include/asm-generic/cputime_jiffies.h |  2 ++
- include/linux/cputime.h               |  5 +++++
- include/linux/jiffies.h               |  1 +
- kernel/time/time.c                    | 20 ++++++++++++++++++++
- 5 files changed, 31 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/cpufreq/cpufreq.c b/drivers/cpufreq/cpufreq.c
-index b87596b..2dc327a 100644
---- a/drivers/cpufreq/cpufreq.c
-+++ b/drivers/cpufreq/cpufreq.c
-@@ -138,7 +138,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 	u64 cur_wall_time;
- 	u64 busy_time;
- 
--	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-+	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64() - INITIAL_JIFFIES);
- 
- 	busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
- 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-@@ -149,9 +149,9 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 
- 	idle_time = cur_wall_time - busy_time;
- 	if (wall)
--		*wall = cputime_to_usecs(cur_wall_time);
-+		*wall = cputime64_to_usecs(cur_wall_time);
- 
--	return cputime_to_usecs(idle_time);
-+	return cputime64_to_usecs(idle_time);
- }
- 
- u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..ff1cf39 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -36,6 +36,8 @@ typedef u64 __nocast cputime64_t;
- 	jiffies_to_cputime(usecs_to_jiffies(__usec))
- #define usecs_to_cputime64(__usec)	\
- 	jiffies64_to_cputime64(nsecs_to_jiffies64((__usec) * 1000))
-+#define cputime64_to_usecs(__ct)		\
-+	jiffies64_to_usecs(cputime64_to_jiffies64(__ct))
- 
- /*
-  * Convert cputime to seconds and back.
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..ffa8665 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,9 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+#ifndef cputime64_to_usecs
-+#define cputime64_to_usecs(__ct)		\
-+	cputime_to_usecs(__ct)
-+#endif
-+
- #endif /* __LINUX_CPUTIME_H */
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index 5fdc553..f26ceb4 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -283,6 +283,7 @@ extern unsigned long preset_lpj;
-  */
- extern unsigned int jiffies_to_msecs(const unsigned long j);
- extern unsigned int jiffies_to_usecs(const unsigned long j);
-+extern u64 jiffies64_to_usecs(const u64 j);
- 
- static inline u64 jiffies_to_nsecs(const unsigned long j)
- {
-diff --git a/kernel/time/time.c b/kernel/time/time.c
-index be115b0..5167c4b 100644
---- a/kernel/time/time.c
-+++ b/kernel/time/time.c
-@@ -286,6 +286,26 @@ unsigned int jiffies_to_usecs(const unsigned long j)
- }
- EXPORT_SYMBOL(jiffies_to_usecs);
- 
-+u64 jiffies64_to_usecs(const u64 j)
-+{
-+	/*
-+	 * Hz usually doesn't go much further MSEC_PER_SEC.
-+	 * jiffies_to_usecs() and usecs_to_jiffies() depend on that.
-+	 */
-+	BUILD_BUG_ON(HZ > USEC_PER_SEC);
-+
-+#if !(USEC_PER_SEC % HZ)
-+	return (USEC_PER_SEC / HZ) * j;
-+#else
-+# if BITS_PER_LONG == 32
-+	return (HZ_TO_USEC_MUL32 * j) >> HZ_TO_USEC_SHR32;
-+# else
-+	return (j * HZ_TO_USEC_NUM) / HZ_TO_USEC_DEN;
-+# endif
-+#endif
-+}
-+EXPORT_SYMBOL(jiffies64_to_usecs);
-+
- /**
-  * timespec_trunc - Truncate timespec to a granularity
-  * @t: Timespec
--- 
-1.8.4.2
-
+Whose tree would this go through?  I have an ack for Peter Z for
+patch 4/4 and no other feedback for patches 1/4 or 2/4; I can
+certainly push 3/4 through the tile tree myself if that helps, though
+my guess is keeping it with the rest of the series makes more sense
+for tile since it doesn't lose any functionality that way.
