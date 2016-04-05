@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0089.outbound.protection.outlook.com ([207.46.100.89]:51904
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0074.outbound.protection.outlook.com ([65.55.169.74]:20352
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S933603AbcDEW0P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Apr 2016 18:26:15 -0400
+	id S933603AbcDEW0T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Apr 2016 18:26:19 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 12/25] arm64: compat: change config dependences to aarch32
-Date: Wed, 6 Apr 2016 01:08:34 +0300
-Message-ID: <1459894127-17698-13-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 06/25] compat ABI: use non-compat openat and open_by_handle_at variants
+Date: Wed, 6 Apr 2016 01:08:28 +0300
+Message-ID: <1459894127-17698-7-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,43 +15,35 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-Message-ID: <20160405220834._6icPBICn1SKGkjNke-8EIMGBEFGXtn_x7uhtCtU1WQ@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
+Message-ID: <20160405220828._hqEOT6dkIXkieFRqxfWeosX-Js_gLE8SZeXG304-LE@z>
 
-From: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
+The only difference is that non-compat version forces O_LARGEFILE,
+and it should be the default behaviour for all architectures, as
+we don't support 32-bit off_t. The only exception is tile32, that
+continues with compat version of syscalls.
 
-With the patches of ILP32, COMPAT is not equivalent to AARCH32 in EL0.
-This patch fix this by updating the dependency from COMPAT to
-AARCH32_EL0 for ARMV8_DEPRECATED and ARM64_ERRATUM_845719.
-
-Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
 ---
- arch/arm64/Kconfig | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/tile/kernel/compat.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index f923687..ebaf38a 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -370,7 +370,7 @@ config ARM64_ERRATUM_834220
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 4912084..489ae19 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+ #define compat_sys_readahead sys32_readahead
+ #define sys_llseek compat_sys_llseek
  
- config ARM64_ERRATUM_845719
- 	bool "Cortex-A53: 845719: a load might read incorrect data"
--	depends on COMPAT
-+	depends on AARCH32_EL0
- 	default y
- 	help
- 	  This option adds an alternative code sequence to work around ARM
-@@ -655,7 +655,7 @@ config FORCE_MAX_ZONEORDER
- 
- menuconfig ARMV8_DEPRECATED
- 	bool "Emulate deprecated/obsolete ARMv8 instructions"
--	depends on COMPAT
-+	depends on AARCH32_EL0
- 	help
- 	  Legacy software support may require certain instructions
- 	  that have been deprecated or obsoleted in the architecture.
++#define sys_openat		compat_sys_openat
++#define sys_open_by_handle_at	compat_sys_open_by_handle_at
++
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
 -- 
 2.5.0
 
