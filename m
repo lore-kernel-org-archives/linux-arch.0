@@ -1,206 +1,187 @@
 From: Hugh Dickins <hughd@google.com>
-Subject: [PATCH 10/10] arch: fix has_transparent_hugepage()
-Date: Tue, 5 Apr 2016 14:02:49 -0700 (PDT)
-Message-ID: <alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
-References: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
+Subject: [PATCH 12/31] huge tmpfs: extend get_user_pages_fast to shmem pmd
+Date: Tue, 5 Apr 2016 14:33:14 -0700 (PDT)
+Message-ID: <alpine.LSU.2.11.1604051429160.5965@eggly.anvils>
+References: <alpine.LSU.2.11.1604051403210.5965@eggly.anvils>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
+In-Reply-To: <alpine.LSU.2.11.1604051403210.5965@eggly.anvils>
 Sender: owner-linux-mm@kvack.org
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Arnd Bergman <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, David Miller <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-I've just discovered that the useful-sounding has_transparent_hugepage()
-is actually an architecture-dependent minefield: on some arches it only
-builds if CONFIG_TRANSPARENT_HUGEPAGE=y, on others it's also there when
-not, but on some of those (arm and arm64) it then gives the wrong answer;
-and on mips alone it's marked __init, which would crash if called later
-(but so far it has not been called later).
+The arch-specific get_user_pages_fast() has a gup_huge_pmd() designed to
+optimize the refcounting on anonymous THP and hugetlbfs pages, with one
+atomic addition to compound head's common refcount.  That optimization
+must be avoided on huge tmpfs team pages, which use normal separate page
+refcounting.  We could combine the PageTeam and PageCompound cases into
+a single simple loop, but would lose the compound optimization that way.
 
-Straighten this out: make it available to all configs, with a sensible
-default in asm-generic/pgtable.h, removing its definitions from those
-arches (arc, arm, arm64, sparc, tile) which are served by the default,
-adding #define has_transparent_hugepage has_transparent_hugepage to those
-(mips, powerpc, s390, x86) which need to override the default at runtime,
-and removing the __init from mips (but maybe that kind of code should be
-avoided after init: set a static variable the first time it's called).
+One cannot go through these functions without wondering why some arches
+(x86, mips) like to SetPageReferenced, while the rest do not: an x86
+optimization that missed being propagated to the other architectures?
+No, see commit 8ee53820edfd ("thp: mmu_notifier_test_young"): it's a
+KVM GRU EPT thing, maybe not useful beyond x86.  I've just followed
+the established practice in each architecture.
 
 Signed-off-by: Hugh Dickins <hughd@google.com>
 ---
- arch/arc/include/asm/hugepage.h              |    2 -
- arch/arm/include/asm/pgtable-3level.h        |    5 ----
- arch/arm64/include/asm/pgtable.h             |    5 ----
- arch/mips/include/asm/pgtable.h              |    1 
- arch/mips/mm/tlb-r4k.c                       |   21 ++++++++---------
- arch/powerpc/include/asm/book3s/64/pgtable.h |    1 
- arch/powerpc/include/asm/pgtable.h           |    1 
- arch/s390/include/asm/pgtable.h              |    1 
- arch/sparc/include/asm/pgtable_64.h          |    2 -
- arch/tile/include/asm/pgtable.h              |    1 
- arch/x86/include/asm/pgtable.h               |    1 
- include/asm-generic/pgtable.h                |    8 ++++++
- 12 files changed, 23 insertions(+), 26 deletions(-)
+Cc'ed to arch maintainers as an FYI: this patch is not expected to
+go into the tree in the next few weeks, and depends upon a PageTeam
+definition not yet available outside this huge tmpfs patchset.
+Please refer to linux-mm or linux-kernel for more context.
 
---- a/arch/arc/include/asm/hugepage.h
-+++ b/arch/arc/include/asm/hugepage.h
-@@ -61,8 +61,6 @@ static inline void set_pmd_at(struct mm_
- extern void update_mmu_cache_pmd(struct vm_area_struct *vma, unsigned long addr,
- 				 pmd_t *pmd);
+ arch/mips/mm/gup.c  |   15 ++++++++++++++-
+ arch/s390/mm/gup.c  |   19 ++++++++++++++++++-
+ arch/sparc/mm/gup.c |   19 ++++++++++++++++++-
+ arch/x86/mm/gup.c   |   15 ++++++++++++++-
+ mm/gup.c            |   19 ++++++++++++++++++-
+ 5 files changed, 82 insertions(+), 5 deletions(-)
+
+--- a/arch/mips/mm/gup.c
++++ b/arch/mips/mm/gup.c
+@@ -81,9 +81,22 @@ static int gup_huge_pmd(pmd_t pmd, unsig
+ 	VM_BUG_ON(pte_special(pte));
+ 	VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
  
--#define has_transparent_hugepage() 1
--
- /* Generic variants assume pgtable_t is struct page *, hence need for these */
- #define __HAVE_ARCH_PGTABLE_DEPOSIT
- extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -281,11 +281,6 @@ static inline void set_pmd_at(struct mm_
- 	flush_pmd_entry(pmdp);
- }
- 
--static inline int has_transparent_hugepage(void)
--{
--	return 1;
--}
--
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _ASM_PGTABLE_3LEVEL_H */
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -304,11 +304,6 @@ static inline pgprot_t mk_sect_prot(pgpr
- 
- #define set_pmd_at(mm, addr, pmdp, pmd)	set_pte_at(mm, addr, (pte_t *)pmdp, pmd_pte(pmd))
- 
--static inline int has_transparent_hugepage(void)
--{
--	return 1;
--}
--
- #define __pgprot_modify(prot,mask,bits) \
- 	__pgprot((pgprot_val(prot) & ~(mask)) | (bits))
- 
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -468,6 +468,7 @@ static inline int io_remap_pfn_range(str
- 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
-+#define has_transparent_hugepage has_transparent_hugepage
- extern int has_transparent_hugepage(void);
- 
- static inline int pmd_trans_huge(pmd_t pmd)
---- a/arch/mips/mm/tlb-r4k.c
-+++ b/arch/mips/mm/tlb-r4k.c
-@@ -399,19 +399,20 @@ void add_wired_entry(unsigned long entry
- 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
--int __init has_transparent_hugepage(void)
-+int has_transparent_hugepage(void)
- {
--	unsigned int mask;
--	unsigned long flags;
-+	static unsigned int mask = -1;
- 
--	local_irq_save(flags);
--	write_c0_pagemask(PM_HUGE_MASK);
--	back_to_back_c0_hazard();
--	mask = read_c0_pagemask();
--	write_c0_pagemask(PM_DEFAULT_MASK);
--
--	local_irq_restore(flags);
-+	if (mask == -1) {	/* first call comes during __init */
-+		unsigned long flags;
- 
-+		local_irq_save(flags);
-+		write_c0_pagemask(PM_HUGE_MASK);
-+		back_to_back_c0_hazard();
-+		mask = read_c0_pagemask();
-+		write_c0_pagemask(PM_DEFAULT_MASK);
-+		local_irq_restore(flags);
-+	}
- 	return mask == PM_HUGE_MASK;
- }
- 
---- a/arch/powerpc/include/asm/book3s/64/pgtable.h
-+++ b/arch/powerpc/include/asm/book3s/64/pgtable.h
-@@ -219,6 +219,7 @@ extern void set_pmd_at(struct mm_struct
- 		       pmd_t *pmdp, pmd_t pmd);
- extern void update_mmu_cache_pmd(struct vm_area_struct *vma, unsigned long addr,
- 				 pmd_t *pmd);
-+#define has_transparent_hugepage has_transparent_hugepage
- extern int has_transparent_hugepage(void);
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 
---- a/arch/powerpc/include/asm/pgtable.h
-+++ b/arch/powerpc/include/asm/pgtable.h
-@@ -65,7 +65,6 @@ extern int gup_hugepte(pte_t *ptep, unsi
- 		       struct page **pages, int *nr);
- #ifndef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_large(pmd)		0
--#define has_transparent_hugepage() 0
- #endif
- pte_t *__find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea,
- 				   bool *is_thp, unsigned *shift);
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -1223,6 +1223,7 @@ static inline int pmd_trans_huge(pmd_t p
- 	return pmd_val(pmd) & _SEGMENT_ENTRY_LARGE;
- }
- 
-+#define has_transparent_hugepage has_transparent_hugepage
- static inline int has_transparent_hugepage(void)
- {
- 	return MACHINE_HAS_HPAGE ? 1 : 0;
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -681,8 +681,6 @@ static inline unsigned long pmd_trans_hu
- 	return pte_val(pte) & _PAGE_PMD_HUGE;
- }
- 
--#define has_transparent_hugepage() 1
--
- static inline pmd_t pmd_mkold(pmd_t pmd)
- {
- 	pte_t pte = __pte(pmd_val(pmd));
---- a/arch/tile/include/asm/pgtable.h
-+++ b/arch/tile/include/asm/pgtable.h
-@@ -487,7 +487,6 @@ static inline pmd_t pmd_modify(pmd_t pmd
- }
- 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
--#define has_transparent_hugepage() 1
- #define pmd_trans_huge pmd_huge_page
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -181,6 +181,7 @@ static inline int pmd_trans_huge(pmd_t p
- 	return (pmd_val(pmd) & (_PAGE_PSE|_PAGE_DEVMAP)) == _PAGE_PSE;
- }
- 
-+#define has_transparent_hugepage has_transparent_hugepage
- static inline int has_transparent_hugepage(void)
- {
- 	return cpu_has_pse;
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -806,4 +806,12 @@ static inline int pmd_clear_huge(pmd_t *
- #define io_remap_pfn_range remap_pfn_range
- #endif
- 
-+#ifndef has_transparent_hugepage
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define has_transparent_hugepage() 1
-+#else
-+#define has_transparent_hugepage() 0
-+#endif
-+#endif
+-	refs = 0;
+ 	head = pte_page(pte);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
 +
- #endif /* _ASM_GENERIC_PGTABLE_H */
++	if (PageTeam(head)) {
++		/* Handle a huge tmpfs team with normal refcounting. */
++		do {
++			get_page(page);
++			SetPageReferenced(page);
++			pages[*nr] = page;
++			(*nr)++;
++			page++;
++		} while (addr += PAGE_SIZE, addr != end);
++		return 1;
++	}
++
++	refs = 0;
+ 	do {
+ 		VM_BUG_ON(compound_head(page) != head);
+ 		pages[*nr] = page;
+--- a/arch/s390/mm/gup.c
++++ b/arch/s390/mm/gup.c
+@@ -66,9 +66,26 @@ static inline int gup_huge_pmd(pmd_t *pm
+ 		return 0;
+ 	VM_BUG_ON(!pfn_valid(pmd_val(pmd) >> PAGE_SHIFT));
+ 
+-	refs = 0;
+ 	head = pmd_page(pmd);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++
++	if (PageTeam(head)) {
++		/* Handle a huge tmpfs team with normal refcounting. */
++		do {
++			if (!page_cache_get_speculative(page))
++				return 0;
++			if (unlikely(pmd_val(pmd) != pmd_val(*pmdp))) {
++				put_page(page);
++				return 0;
++			}
++			pages[*nr] = page;
++			(*nr)++;
++			page++;
++		} while (addr += PAGE_SIZE, addr != end);
++		return 1;
++	}
++
++	refs = 0;
+ 	do {
+ 		VM_BUG_ON(compound_head(page) != head);
+ 		pages[*nr] = page;
+--- a/arch/sparc/mm/gup.c
++++ b/arch/sparc/mm/gup.c
+@@ -77,9 +77,26 @@ static int gup_huge_pmd(pmd_t *pmdp, pmd
+ 	if (write && !pmd_write(pmd))
+ 		return 0;
+ 
+-	refs = 0;
+ 	head = pmd_page(pmd);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++
++	if (PageTeam(head)) {
++		/* Handle a huge tmpfs team with normal refcounting. */
++		do {
++			if (!page_cache_get_speculative(page))
++				return 0;
++			if (unlikely(pmd_val(pmd) != pmd_val(*pmdp))) {
++				put_page(page);
++				return 0;
++			}
++			pages[*nr] = page;
++			(*nr)++;
++			page++;
++		} while (addr += PAGE_SIZE, addr != end);
++		return 1;
++	}
++
++	refs = 0;
+ 	do {
+ 		VM_BUG_ON(compound_head(page) != head);
+ 		pages[*nr] = page;
+--- a/arch/x86/mm/gup.c
++++ b/arch/x86/mm/gup.c
+@@ -196,9 +196,22 @@ static noinline int gup_huge_pmd(pmd_t p
+ 	/* hugepages are never "special" */
+ 	VM_BUG_ON(pmd_flags(pmd) & _PAGE_SPECIAL);
+ 
+-	refs = 0;
+ 	head = pmd_page(pmd);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++
++	if (PageTeam(head)) {
++		/* Handle a huge tmpfs team with normal refcounting. */
++		do {
++			get_page(page);
++			SetPageReferenced(page);
++			pages[*nr] = page;
++			(*nr)++;
++			page++;
++		} while (addr += PAGE_SIZE, addr != end);
++		return 1;
++	}
++
++	refs = 0;
+ 	do {
+ 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1247,9 +1247,26 @@ static int gup_huge_pmd(pmd_t orig, pmd_
+ 	if (write && !pmd_write(orig))
+ 		return 0;
+ 
+-	refs = 0;
+ 	head = pmd_page(orig);
+ 	page = head + ((addr & ~PMD_MASK) >> PAGE_SHIFT);
++
++	if (PageTeam(head)) {
++		/* Handle a huge tmpfs team with normal refcounting. */
++		do {
++			if (!page_cache_get_speculative(page))
++				return 0;
++			if (unlikely(pmd_val(orig) != pmd_val(*pmdp))) {
++				put_page(page);
++				return 0;
++			}
++			pages[*nr] = page;
++			(*nr)++;
++			page++;
++		} while (addr += PAGE_SIZE, addr != end);
++		return 1;
++	}
++
++	refs = 0;
+ 	do {
+ 		VM_BUG_ON_PAGE(compound_head(page) != head, page);
+ 		pages[*nr] = page;
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
