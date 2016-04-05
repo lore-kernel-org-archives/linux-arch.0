@@ -1,148 +1,398 @@
-From: Chen Yu <yu.c.chen@intel.com>
-Subject: [PATCH][RFC] cpufreq: governor: Fix overflow when calculating idle time
-Date: Tue,  5 Apr 2016 00:32:33 +0800
-Message-ID: <1459787553-20092-1-git-send-email-yu.c.chen@intel.com>
+From: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
+Subject: [PATCH V2 01/30] bitops: add parity functions
+Date: Tue, 5 Apr 2016 10:06:21 +0800
+Message-ID: <57031D9D.801@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Rafael J. Wysocki" <rjw@rjwysocki.net>, Viresh Kumar <viresh.kumar@linaro.org>
-Cc: linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chen Yu <yu.c.chen@intel.com>
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Ingo Molnar <mingo@kernel.org>, Yury Norov <yury.norov@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Denys Vlasenko <dvlasenk@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-It was reported that after Commit 0df35026c6a5 ("cpufreq: governor: Fix
-negative idle_time when configured with CONFIG_HZ_PERIODIC"),
-cpufreq ondemand governor started to act oddly. Without any load,
-with freshly booted system, it pumped cpu frequency up to maximum
-at some point of time and stayed there. The problem is caused by
-jiffies oveflow in get_cpu_idle_time:
+From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
 
-Since jiffies is not counted from zero but from -300HZ, after booting
-up 5 minutes, the jiffies will round up to zero. As a result,
-the following condition will always be true:
-if (cur_idle_time < j_cdbs->prev_cpu_idle)
-        cur_idle_time = j_cdbs->prev_cpu_idle;
-Say, once cur_idle_time rounds up to zero, while prev_cpu_idle remains
-negative(because of -300HZ), the cur_idle_time will be modified to the
-same as prev_cpu_idle(negative), thus we get a zero of idle running time
-during this sample(cur_idle_time - prev_cpu_idle), which causes a high
-busy time, thus governor always requests for the highest freq.
-So the patch mentioned above has triggered this overflow issue more easily.
+These patches provide generic and architecture-specific odd parity 
+calculations.
 
-This patch fixes this problem by doing two modifications in the
-get_cpu_idle_time_jiffy:
+I did not use GCC's __builtin_parity* functions, based on the following 
+reasons:
+   1. I don't know where to identify which version of GCC from the beginning
+      supported __builtin_parity for the architecture.
+   2. For the architectures that doesn't have popcount instruction, GCC 
+instead use
+      "call __paritysi2" (__paritydi2 for 64-bits). So if use 
+__builtin_parity, we must
+      provide __paritysi2 and __paritydi2 functions for these architectures.
+      Additionally, parity4,8,16 might be "__builtin_parity(x & mask)", 
+but the "& mask"
+      operation is totally unnecessary.
+   3. For the architectures that have popcount instruction, we do the 
+same things.
+   4. For powerpc, sparc, and x86, we do runtime patching to use 
+popcount instruction
+      if the CPU support.
 
-1. Count the wall time from INITIAL_JIFFIES rather than 0.
-2. Use 64bit rather than 32bit to convert jiffies64 to usec.
+I have compiled successfully with x86_64_defconfig, i386_defconfig, 
+pseries_defconfig
+and sparc64_defconfig. And I used the following codes to test:
 
-In this way, either the wall time or the idle time will be
-monotonically increased, thus avoid the jiffies overflow problem.
-(If CONFIG_HZ_1000=y, it would be at least 500000000 years for
-64bit to overflow, which would not possibly happen.)
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <stdint.h>
 
-Link: https://bugzilla.kernel.org/show_bug.cgi?id=115261
-Reported-by: Timo Valtoaho <timo.valtoaho@gmail.com>
-Signed-off-by: Chen Yu <yu.c.chen@intel.com>
+     #ifdef __x86_64__
+     /* popcnt %edi, %eax -- redundant REX prefix for alignment */
+     #define POPCNT32 ".byte 0xf3,0x40,0x0f,0xb8,0xc7"
+     /* popcnt %rdi, %rax */
+     #define POPCNT64 ".byte 0xf3,0x48,0x0f,0xb8,0xc7"
+     #define REG_IN "D"
+     #define REG_OUT "a"
+     #else
+     /* popcnt %eax, %eax */
+     #define POPCNT32 ".byte 0xf3,0x0f,0xb8,0xc0"
+     #define REG_IN "a"
+     #define REG_OUT "a"
+     #endif
+
+     static inline int c_parity4(unsigned int w)
+     {
+         w &= 0xf;
+         return (0x6996 >> w) & 1;
+     }
+
+     static inline int c_parity8(unsigned int w)
+     {
+         w ^= w >> 4;
+         return c_parity4(w);
+     }
+
+     static inline int c_parity16(unsigned int w)
+     {
+         w ^= w >> 8;
+         return c_parity8(w);
+     }
+
+     static inline int c_parity32(unsigned int w)
+     {
+         w ^= w >> 16;
+         return c_parity16(w);
+     }
+
+     static inline int c_parity64(uint64_t w)
+     {
+         return c_parity32((unsigned int)w ^ (unsigned int)(w >> 32));
+     }
+
+     static inline int asm_parity4(unsigned int w)
+     {
+         unsigned int res = 0;
+
+         asm("test    $0xf, %1        \n"
+             "setpo    %b0                \n"
+             : "+q" (res)
+             : "r" (w)
+             : "cc");
+
+         return res;
+     }
+
+     static inline int asm_parity8(unsigned int w)
+     {
+         unsigned int res = 0;
+
+         asm("test    %1, %1            \n"
+             "setpo    %b0            \n"
+             : "+q" (res)
+             : "r" (w)
+             : "cc");
+
+         return res;
+     }
+
+     static inline int asm_parity16(unsigned int w)
+     {
+         unsigned int res = 0;
+
+         asm("xor    %h1, %b1        \n"
+             "setpo    %b0            \n"
+             : "+q" (res), "+q" (w)
+             : : "cc");
+
+         return res;
+     }
+
+     static inline int asm_parity32_1(unsigned int w)
+     {
+         unsigned int res;
+
+         w ^= w >> 16;
+         asm("xor    %%ah, %%al        \n"
+             "mov    $0, %%eax        \n"
+             "setpo    %%al            \n"
+             : "=a" (res)
+             : "a" (w)
+             : "cc");
+
+         return res;
+     }
+
+     static inline int asm_parity32_2(unsigned int w)
+     {
+         unsigned int res;
+
+         asm(POPCNT32 "                \n"
+             "andl    $1, %0            \n"
+             : "="REG_OUT (res)
+             : REG_IN (w)
+             : "cc");
+
+         return res;
+     }
+
+     #ifdef __x86_64__
+     static inline int asm_parity64_1(uint64_t w)
+     {
+         unsigned int res = (unsigned int)w ^ (unsigned int)(w >> 32);
+
+         res ^= res >> 16;
+         asm("xor    %%ah, %%al        \n"
+             "mov    $0, %%eax        \n"
+             "setpo    %%al            \n"
+             : "=a" (res)
+             : "a" (res)
+             : "cc");
+
+         return res;
+     }
+
+     static inline int asm_parity64_2(uint64_t w)
+     {
+         unsigned int res;
+
+         asm(POPCNT64 "                \n"
+             "andl    $1, %0            \n"
+             : "="REG_OUT (res)
+             : REG_IN (w)
+             : "cc");
+
+         return res;
+     }
+     #else
+     static inline int asm_parity64_1(uint64_t w)
+     {
+         return asm_parity32_1((unsigned int)(w >> 32) ^ (unsigned int)w);
+     }
+
+     static inline int asm_parity64_2(uint64_t w)
+     {
+         return asm_parity32_2((unsigned int)(w >> 32) ^ (unsigned int)w);
+     }
+     #endif
+
+     int main(int argc, char **argv)
+     {
+         int ok = 1;
+         int count = 1000, i;
+
+         if (argc >= 2)
+             count = atoi(argv[1]);
+
+         srand((unsigned)time(NULL));
+
+         for (i = 0; i < count; i++) {
+             uint64_t w = rand() | (uint64_t)rand() << 32;
+             int p4_1 = c_parity4(w);
+             int p4_2 = asm_parity4(w);
+             int p8_1 = c_parity8(w);
+             int p8_2 = asm_parity8(w);
+             int p16_1 = c_parity16(w);
+             int p16_2 = asm_parity16(w);
+             int p32_1 = c_parity32(w);
+             int p32_2 = asm_parity32_1(w);
+             int p32_3 = asm_parity32_2(w);
+             int p64_1 = c_parity64(w);
+             int p64_2 = asm_parity64_1(w);
+             int p64_3 = asm_parity64_2(w);
+             if (p4_1 != p4_2 ||
+                 p8_1 != p8_2 ||
+                 p16_1 != p16_2 ||
+                 p32_1 != p32_2 || p32_1 != p32_3 ||
+                 p64_1 != p64_2 || p64_1 != p64_3) {
+                 fprintf(stderr, "Err: %llx\n"
+                             "\tc_parity4 = %d, asm_parity4 = %d,\n"
+                             "\tc_parity8 = %d, asm_parity8 = %d,\n"
+                             "\tc_parity16 = %d, asm_parity16 = %d,\n"
+                             "\tc_parity32 = %d, asm_parity32_1 = %d, 
+asm_parity32_2 = %d\n"
+                             "\tc_parity64 = %d, asm_parity64_1 = %d, 
+asm_parity64_2 = %d\n",
+                             w, p4_1, p4_2, p8_1, p8_2, p16_1, p16_2, 
+p32_1, p32_2, p32_3, p64_1, p64_2, p64_3);
+                 ok = 0;
+             }
+         }
+
+         fprintf(stderr, "%s\n", ok ? "OK" : "FAIL");
+         return 0;
+     }
+
 ---
- drivers/cpufreq/cpufreq.c             |  6 +++---
- include/asm-generic/cputime_jiffies.h |  2 ++
- include/linux/cputime.h               |  5 +++++
- include/linux/jiffies.h               |  1 +
- kernel/time/time.c                    | 20 ++++++++++++++++++++
- 5 files changed, 31 insertions(+), 3 deletions(-)
+  include/asm-generic/bitops.h              |  1 +
+  include/asm-generic/bitops/arch_parity.h  | 39 
++++++++++++++++++++++++++++++++
+  include/asm-generic/bitops/const_parity.h | 36 
+++++++++++++++++++++++++++++
+  include/asm-generic/bitops/parity.h       |  7 ++++++
+  include/linux/bitops.h                    |  5 ++++
+  5 files changed, 88 insertions(+)
+  create mode 100644 include/asm-generic/bitops/arch_parity.h
+  create mode 100644 include/asm-generic/bitops/const_parity.h
+  create mode 100644 include/asm-generic/bitops/parity.h
 
-diff --git a/drivers/cpufreq/cpufreq.c b/drivers/cpufreq/cpufreq.c
-index b87596b..2dc327a 100644
---- a/drivers/cpufreq/cpufreq.c
-+++ b/drivers/cpufreq/cpufreq.c
-@@ -138,7 +138,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 	u64 cur_wall_time;
- 	u64 busy_time;
- 
--	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-+	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64() - INITIAL_JIFFIES);
- 
- 	busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
- 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-@@ -149,9 +149,9 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 
- 	idle_time = cur_wall_time - busy_time;
- 	if (wall)
--		*wall = cputime_to_usecs(cur_wall_time);
-+		*wall = cputime64_to_usecs(cur_wall_time);
- 
--	return cputime_to_usecs(idle_time);
-+	return cputime64_to_usecs(idle_time);
- }
- 
- u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..ff1cf39 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -36,6 +36,8 @@ typedef u64 __nocast cputime64_t;
- 	jiffies_to_cputime(usecs_to_jiffies(__usec))
- #define usecs_to_cputime64(__usec)	\
- 	jiffies64_to_cputime64(nsecs_to_jiffies64((__usec) * 1000))
-+#define cputime64_to_usecs(__ct)		\
-+	jiffies64_to_usecs(cputime64_to_jiffies64(__ct))
- 
- /*
-  * Convert cputime to seconds and back.
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..ffa8665 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,9 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+#ifndef cputime64_to_usecs
-+#define cputime64_to_usecs(__ct)		\
-+	cputime_to_usecs(__ct)
-+#endif
+diff --git a/include/asm-generic/bitops.h b/include/asm-generic/bitops.h
+index dcdcacf..d85722f 100644
+--- a/include/asm-generic/bitops.h
++++ b/include/asm-generic/bitops.h
+@@ -27,6 +27,7 @@
+  #include <asm-generic/bitops/sched.h>
+  #include <asm-generic/bitops/ffs.h>
+  #include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/parity.h>
+  #include <asm-generic/bitops/lock.h>
+
+  #include <asm-generic/bitops/atomic.h>
+diff --git a/include/asm-generic/bitops/arch_parity.h 
+b/include/asm-generic/bitops/arch_parity.h
+new file mode 100644
+index 0000000..cddc555
+--- /dev/null
++++ b/include/asm-generic/bitops/arch_parity.h
+@@ -0,0 +1,39 @@
++#ifndef _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
++#define _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
 +
- #endif /* __LINUX_CPUTIME_H */
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index 5fdc553..f26ceb4 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -283,6 +283,7 @@ extern unsigned long preset_lpj;
-  */
- extern unsigned int jiffies_to_msecs(const unsigned long j);
- extern unsigned int jiffies_to_usecs(const unsigned long j);
-+extern u64 jiffies64_to_usecs(const u64 j);
- 
- static inline u64 jiffies_to_nsecs(const unsigned long j)
- {
-diff --git a/kernel/time/time.c b/kernel/time/time.c
-index be115b0..5167c4b 100644
---- a/kernel/time/time.c
-+++ b/kernel/time/time.c
-@@ -286,6 +286,26 @@ unsigned int jiffies_to_usecs(const unsigned long j)
- }
- EXPORT_SYMBOL(jiffies_to_usecs);
- 
-+u64 jiffies64_to_usecs(const u64 j)
++#include <asm/types.h>
++
++/*
++ * Refrence to 
+'https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel'.
++ */
++
++static inline unsigned int __arch_parity4(unsigned int w)
 +{
-+	/*
-+	 * Hz usually doesn't go much further MSEC_PER_SEC.
-+	 * jiffies_to_usecs() and usecs_to_jiffies() depend on that.
-+	 */
-+	BUILD_BUG_ON(HZ > USEC_PER_SEC);
-+
-+#if !(USEC_PER_SEC % HZ)
-+	return (USEC_PER_SEC / HZ) * j;
-+#else
-+# if BITS_PER_LONG == 32
-+	return (HZ_TO_USEC_MUL32 * j) >> HZ_TO_USEC_SHR32;
-+# else
-+	return (j * HZ_TO_USEC_NUM) / HZ_TO_USEC_DEN;
-+# endif
-+#endif
++    w &= 0xf;
++    return (0x6996 >> w) & 1;
 +}
-+EXPORT_SYMBOL(jiffies64_to_usecs);
 +
- /**
-  * timespec_trunc - Truncate timespec to a granularity
-  * @t: Timespec
++static inline unsigned int __arch_parity8(unsigned int w)
++{
++    w ^= w >> 4;
++    return __arch_parity4(w);
++}
++
++static inline unsigned int __arch_parity16(unsigned int w)
++{
++    w ^= w >> 8;
++    return __arch_parity8(w);
++}
++
++static inline unsigned int __arch_parity32(unsigned int w)
++{
++    w ^= w >> 16;
++    return __arch_parity16(w);
++}
++
++static inline unsigned int __arch_parity64(__u64 w)
++{
++    return __arch_parity32((unsigned int)(w >> 32) ^ (unsigned int)w);
++}
++
++#endif /* _ASM_GENERIC_BITOPS_ARCH_PARITY_H_ */
+diff --git a/include/asm-generic/bitops/const_parity.h 
+b/include/asm-generic/bitops/const_parity.h
+new file mode 100644
+index 0000000..6af7987
+--- /dev/null
++++ b/include/asm-generic/bitops/const_parity.h
+@@ -0,0 +1,36 @@
++#ifndef _ASM_GENERIC_BITOPS_CONST_PARITY_H_
++#define _ASM_GENERIC_BITOPS_CONST_PARITY_H_
++
++/*
++ * Compile time versions of __arch_parityN()
++ */
++#define __const_parity4(w)   ((0x6996 >> ((w) & 0xf)) & 1)
++#define __const_parity8(w)   (__const_parity4((w) ^ ((w) >> 4)))
++#define __const_parity16(w)  (__const_parity8((w) ^ ((w) >> 8)))
++#define __const_parity32(w)  (__const_parity16((w) ^ ((w) >> 16)))
++#define __const_parity64(w)  (__const_parity32((w) ^ ((w) >> 32)))
++
++/*
++ * Generic interface.
++ */
++#define parity4(w)   (__builtin_constant_p(w) ? __const_parity4(w) : 
+__arch_parity4(w))
++#define parity8(w)   (__builtin_constant_p(w) ? __const_parity8(w) : 
+__arch_parity8(w))
++#define parity16(w)  (__builtin_constant_p(w) ? __const_parity16(w) : 
+__arch_parity16(w))
++#define parity32(w)  (__builtin_constant_p(w) ? __const_parity32(w) : 
+__arch_parity32(w))
++#define parity64(w)  (__builtin_constant_p(w) ? __const_parity64(w) : 
+__arch_parity64(w))
++
++/*
++ * Interface for known constant arguments
++ */
++#define PARITY4(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + 
+__const_parity4(w))
++#define PARITY8(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + 
+__const_parity8(w))
++#define PARITY16(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + 
+__const_parity16(w))
++#define PARITY32(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + 
+__const_parity32(w))
++#define PARITY64(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + 
+__const_parity64(w))
++
++/*
++ * Type invariant interface to the compile time constant parity functions.
++ */
++#define PARITY(w)    PARITY64((u64)(w))
++
++#endif /* _ASM_GENERIC_BITOPS_CONST_PARITY_H_ */
+diff --git a/include/asm-generic/bitops/parity.h 
+b/include/asm-generic/bitops/parity.h
+new file mode 100644
+index 0000000..a91dce7
+--- /dev/null
++++ b/include/asm-generic/bitops/parity.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_GENERIC_BITOPS_PARITY_H_
++#define _ASM_GENERIC_BITOPS_PARITY_H_
++
++#include <asm-generic/bitops/arch_parity.h>
++#include <asm-generic/bitops/const_parity.h>
++
++#endif /* _ASM_GENERIC_BITOPS_PARITY_H_ */
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index defeaac..8952f88 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -80,6 +80,11 @@ static __always_inline unsigned long 
+hweight_long(unsigned long w)
+      return sizeof(w) == 4 ? hweight32(w) : hweight64(w);
+  }
+
++static __always_inline unsigned int parity_long(unsigned long w)
++{
++    return sizeof(w) == 4 ? parity32(w) : parity64(w);
++}
++
+  /**
+   * rol64 - rotate a 64-bit value left
+   * @word: value to rotate
 -- 
-1.8.4.2
+2.5.0
