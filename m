@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0068.outbound.protection.outlook.com ([157.56.110.68]:61664
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0097.outbound.protection.outlook.com ([65.55.169.97]:55774
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S933603AbcDEWZb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Apr 2016 18:25:31 -0400
+	id S933603AbcDEWZg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Apr 2016 18:25:36 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 01/25] all: syscall wrappers: add documentation
-Date: Wed, 6 Apr 2016 01:08:23 +0300
-Message-ID: <1459894127-17698-2-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 08/25] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+Date: Wed, 6 Apr 2016 01:08:30 +0300
+Message-ID: <1459894127-17698-9-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,57 +16,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
-Message-ID: <20160405220823.gWgolSTrvCaYgN7S5SPFXiF3LhtSnTMqk0bRkJkGlAE@z>
+Message-ID: <20160405220830.gB03rfATLqNN_90CPG4wLtqN-wnbI-tG_R6_UMuS3G4@z>
+
+Based on Andrew Pinski's patch-series.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- Documentation/adding-syscalls.txt | 32 ++++++++++++++++++++++++++++++++
- 1 file changed, 32 insertions(+)
+ Documentation/arm64/ilp32.txt | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+ create mode 100644 Documentation/arm64/ilp32.txt
 
-diff --git a/Documentation/adding-syscalls.txt b/Documentation/adding-syscalls.txt
-index cc2d4ac..d02a6bd 100644
---- a/Documentation/adding-syscalls.txt
-+++ b/Documentation/adding-syscalls.txt
-@@ -341,6 +341,38 @@ To summarize, you need:
-  - instance of __SC_COMP not __SYSCALL in include/uapi/asm-generic/unistd.h
- 
- 
-+Compatibility System Calls Wrappers
-+--------------------------------
+diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+new file mode 100644
+index 0000000..15b5c83
+--- /dev/null
++++ b/Documentation/arm64/ilp32.txt
+@@ -0,0 +1,13 @@
++ILP32 AARCH64 SYSCALL ABI
++=========================
 +
-+Some architectures prevent 32-bit userspace from access to top halves of 64-bit
-+registers, but some not. It's not a problem if specific argument is the same
-+size in kernel and userspace. It also is not a problem if system call is already
-+handled by compatible routine. Otherwise we'd take care of it. Usually, glibc
-+and compiler handles register's top halve, but from kernel side, we cannot rely
-+on it, as malicious code may cause incorrect behaviour and/or security
-+vulnerabilities.
++This document describes the ILP32 syscall ABI and where it differs
++from the generic compat linux syscall interface.
 +
-+For now, only s390 and arm64/ilp32 are affected.
++Syscalls which normally would pass 64bit values as two arguments;
++now pass the 64bit value as one argument.
 +
-+To clear that top halves, automatic wrappers are introduced. They clear all
-+required registers before passing control to regular syscall handler.
++struct rt_sigframe is redefined and contains struct compat_siginfo,
++as compat syscalls expects, and struct ilp32_sigframe, to handle
++AARCH64 register set and 32-bit userspace register representation.
 +
-+If your architecture allows userspace code to access top halves of register,
-+you need to:
-+ - enable COMPAT_WRAPPER in configuration file;
-+ - declare: "#define __SC_WRAP(nr, sym) [nr] = compat_##sym,", just before
-+   compatible syscall table declaration, if you use generic unistd; or
-+ - declare compat wrappers manually, if you use non-generic syscall table.
-+   The list of unsafe syscalls is in kernel/compat_wrapper.
-+
-+If you write new syscall, make sure, its arguments are the same size in both
-+64- and 32-bits modes. If no, and if there's no explicit compat version for
-+syscall handler, you need to:
-+ - declare compat version prototype in 'include/linux/compat.h';
-+ - in 'include/uapi/asm-generic/unistd.h' declare syscall with macro '__SC_WRAP'
-+   instead of '__SYSCALL';
-+ - add corresponding line to 'kernel/compat_wrapper.c' to let it generate wrapper.
-+
- Compatibility System Calls (x86)
- --------------------------------
- 
 -- 
 2.5.0
 
