@@ -1,164 +1,137 @@
-From: Chen Yu <yu.c.chen@intel.com>
-Subject: [PATCH][RFC v2] cpufreq: governor: Fix overflow when calculating idle time
-Date: Tue,  5 Apr 2016 10:26:36 +0800
-Message-ID: <1459823196-23244-1-git-send-email-yu.c.chen@intel.com>
-Return-path: <linux-pm-owner@vger.kernel.org>
-Sender: linux-pm-owner@vger.kernel.org
-To: linux-pm@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: "Rafael J. Wysocki" <rafael@kernel.org>, Viresh Kumar <viresh.kumar@linaro.org>, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Nicholas Mc Guire <hofrat@osadl.org>, Ingo Molnar <mingo@kernel.org>, Denys Vlasenko <dvlasenk@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Baolin Wang <baolin.wang@linaro.org>, linux-kernel@vger.kernel.org, Chen Yu <yu.c.chen@intel.com>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: [PATCH v5 0/4] improvements to the nmi_backtrace code
+Date: Tue, 5 Apr 2016 13:26:44 -0400
+Message-ID: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
+References: <201604031905.WLWlnyKg%fengguang.wu@intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201604031905.WLWlnyKg%fengguang.wu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
 List-Id: linux-arch.vger.kernel.org
 
-It was reported that after Commit 0df35026c6a5 ("cpufreq: governor:
-Fix negative idle_time when configured with CONFIG_HZ_PERIODIC"),
-cpufreq ondemand governor started to act oddly. Without any load,
-with freshly booted system, it pumped cpu frequency up to maximum
-at some point of time and stayed there. The problem is caused by
-jiffies oveflow in get_cpu_idle_time:
+This is just a one-line change to the v4 series, to catch the new arm
+vmlinux-xip.lds.S file, which I missed when I rebased to 4.6 for v4
+(my arm config for testing did not include CONFIG_XIP_KERNEL).
+Thanks to Fengguang Wu and the 0-day test robot for that.
 
-Since:
-1. jiffies is not counted from zero but from -300HZ, and
-2. get_cpu_idle_time_jiffy is using cputime_to_usecs to convert
-   jiffies64 to usec, however cputime_to_usecs returns a 32bit value if
-   CONFIG_VIRT_CPU_ACCOUNTING is not set.
+Whose tree would this go through?  I have an ack for Peter Z for
+patch 4/4 and no other feedback for patches 1/4 or 2/4; I can
+certainly push 3/4 through the tile tree myself if that helps, though
+my guess is keeping it with the rest of the series makes more sense
+for tile since it doesn't lose any functionality that way.
 
-After booting up 5 minutes, the jiffies will round up to zero.
-As a result, the following condition in cpu governor will always be true:
-if (cur_idle_time < j_cdbs->prev_cpu_idle)
-        cur_idle_time = j_cdbs->prev_cpu_idle;
-which caused problems.
+From the version 1 cover letter:
 
-For example, once cur_idle_time has rounded up to zero, meanwhile
-prev_cpu_idle still remains negative(because of initial value of
--300HZ, which is very big after converted to unsigned), thus above
-condition is met and the cur_idle_time will be modified to the same
-as prev_cpu_idle, thus we get a zero of idle running time during
-this sample:
-(idle_time = cur_idle_time - prev_cpu_idle), which causes a high
-busy time, thus governor always requests for the highest freq.
-So the patch mentioned above has triggered this overflow issue
-more easily.
+  This patch series modifies the trigger_xxx_backtrace() NMI-based
+  remote backtracing code to make it more flexible, and makes a few
+  small improvements along the way.
 
-This patch fixes this problem by doing two modifications in the
-get_cpu_idle_time_jiffy:
+  The motivation comes from the task isolation code, where there are
+  scenarios where we want to be able to diagnose a case where some cpu
+  is about to interrupt a task-isolated cpu.  It can be helpful to
+  see both where the interrupting cpu is, and also an approximation
+  of where the cpu that is being interrupted is.  The nmi_backtrace
+  framework allows us to discover the stack of the interrupted cpu.
 
-1. Count the wall time from INITIAL_JIFFIES rather than 0.
-2. Use 64bit rather than 32bit to convert jiffies64 to usec.
+I've tested that the change works as desired on tile, and build-tested
+x86, arm64, and arm.  For x86 and arm64 I confirmed that the generic
+cpuidle stuff as well as the architecture-specific routines are in the
+new cpuidle section.  For arm I just build-tested it and made sure the
+generic cpuidle routines were in the new cpuidle section, but I didn't
+attempt to tease apart the tangle of platform-specific idle routines
+that arm has and tag them with __cpuidle.  That might be more usefully
+done by someone with arm platform experience in a follow-up patch.
 
-In this way, either the wall time or the idle time will be
-monotonically increased, thus avoid the jiffies overflow problem.
-(If CONFIG_HZ_1000=y, it would be at least 500000000 years for
-64bit to overflow, which would not possibly happen.)
+I have also pushed it up to kernel.org to pull if that's easier:
 
-Link: https://bugzilla.kernel.org/show_bug.cgi?id=115261
-Reported-by: Timo Valtoaho <timo.valtoaho@gmail.com>
-Signed-off-by: Chen Yu <yu.c.chen@intel.com>
----
-v2:
- - Send this patch to a wider scope, including timing-system maintainers,
-   as well as some modifications in the commit message to make it more clear.
----
- drivers/cpufreq/cpufreq.c             |  6 +++---
- include/asm-generic/cputime_jiffies.h |  2 ++
- include/linux/cputime.h               |  5 +++++
- include/linux/jiffies.h               |  1 +
- kernel/time/time.c                    | 20 ++++++++++++++++++++
- 5 files changed, 31 insertions(+), 3 deletions(-)
+git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git nmi-backtrace
 
-diff --git a/drivers/cpufreq/cpufreq.c b/drivers/cpufreq/cpufreq.c
-index b87596b..2dc327a 100644
---- a/drivers/cpufreq/cpufreq.c
-+++ b/drivers/cpufreq/cpufreq.c
-@@ -138,7 +138,7 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 	u64 cur_wall_time;
- 	u64 busy_time;
- 
--	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-+	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64() - INITIAL_JIFFIES);
- 
- 	busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
- 	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-@@ -149,9 +149,9 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
- 
- 	idle_time = cur_wall_time - busy_time;
- 	if (wall)
--		*wall = cputime_to_usecs(cur_wall_time);
-+		*wall = cputime64_to_usecs(cur_wall_time);
- 
--	return cputime_to_usecs(idle_time);
-+	return cputime64_to_usecs(idle_time);
- }
- 
- u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..ff1cf39 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -36,6 +36,8 @@ typedef u64 __nocast cputime64_t;
- 	jiffies_to_cputime(usecs_to_jiffies(__usec))
- #define usecs_to_cputime64(__usec)	\
- 	jiffies64_to_cputime64(nsecs_to_jiffies64((__usec) * 1000))
-+#define cputime64_to_usecs(__ct)		\
-+	jiffies64_to_usecs(cputime64_to_jiffies64(__ct))
- 
- /*
-  * Convert cputime to seconds and back.
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..ffa8665 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,9 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+#ifndef cputime64_to_usecs
-+#define cputime64_to_usecs(__ct)		\
-+	cputime_to_usecs(__ct)
-+#endif
-+
- #endif /* __LINUX_CPUTIME_H */
-diff --git a/include/linux/jiffies.h b/include/linux/jiffies.h
-index 5fdc553..f26ceb4 100644
---- a/include/linux/jiffies.h
-+++ b/include/linux/jiffies.h
-@@ -283,6 +283,7 @@ extern unsigned long preset_lpj;
-  */
- extern unsigned int jiffies_to_msecs(const unsigned long j);
- extern unsigned int jiffies_to_usecs(const unsigned long j);
-+extern u64 jiffies64_to_usecs(const u64 j);
- 
- static inline u64 jiffies_to_nsecs(const unsigned long j)
- {
-diff --git a/kernel/time/time.c b/kernel/time/time.c
-index be115b0..5167c4b 100644
---- a/kernel/time/time.c
-+++ b/kernel/time/time.c
-@@ -286,6 +286,26 @@ unsigned int jiffies_to_usecs(const unsigned long j)
- }
- EXPORT_SYMBOL(jiffies_to_usecs);
- 
-+u64 jiffies64_to_usecs(const u64 j)
-+{
-+	/*
-+	 * Hz usually doesn't go much further MSEC_PER_SEC.
-+	 * jiffies_to_usecs() and usecs_to_jiffies() depend on that.
-+	 */
-+	BUILD_BUG_ON(HZ > USEC_PER_SEC);
-+
-+#if !(USEC_PER_SEC % HZ)
-+	return (USEC_PER_SEC / HZ) * j;
-+#else
-+# if BITS_PER_LONG == 32
-+	return (HZ_TO_USEC_MUL32 * j) >> HZ_TO_USEC_SHR32;
-+# else
-+	return (j * HZ_TO_USEC_NUM) / HZ_TO_USEC_DEN;
-+# endif
-+#endif
-+}
-+EXPORT_SYMBOL(jiffies64_to_usecs);
-+
- /**
-  * timespec_trunc - Truncate timespec to a granularity
-  * @t: Timespec
+The change conflicts with Petr Mladek's NMI printk cleanup patches:
+
+https://lkml.kernel.org/r/1459353210-20260-1-git-send-email-pmladek@suse.com
+
+He has kindly offered to resolve the conflicts.
+
+v5: Add CPUIDLE_TEXT to the new arch/arm/kernel/vmlinux-xip.lds.S
+
+v4: Added some more __cpuidle functions (PeterZ, Rafael Wysocki)
+    Rebased to kernel v4.6-rc1
+
+v3: Various improvements to the set of __cpuidle functions;
+    Add back in a missing section accidentally removed in modpost.c (PeterZ)
+    https://lkml.kernel.org/r/1458667179-19630-1-git-send-email-cmetcalf@mellanox.com
+
+v2: Switch to using __cpuidle tagging, switch S-O-B to Mellanox
+    https://lkml.kernel.org/r/1458147733-29338-1-git-send-email-cmetcalf@mellanox.com
+
+Chris Metcalf (4):
+  nmi_backtrace: add more trigger_*_cpu_backtrace() methods
+  nmi_backtrace: do a local dump_stack() instead of a self-NMI
+  arch/tile: adopt the new nmi_backtrace framework
+  nmi_backtrace: generate one-line reports for idle cpus
+
+ arch/alpha/kernel/vmlinux.lds.S      |  1 +
+ arch/arc/kernel/vmlinux.lds.S        |  1 +
+ arch/arm/include/asm/irq.h           |  4 +-
+ arch/arm/kernel/smp.c                | 13 +------
+ arch/arm/kernel/vmlinux-xip.lds.S    |  1 +
+ arch/arm/kernel/vmlinux.lds.S        |  1 +
+ arch/arm64/kernel/vmlinux.lds.S      |  1 +
+ arch/arm64/mm/proc.S                 |  2 +
+ arch/avr32/kernel/vmlinux.lds.S      |  1 +
+ arch/blackfin/kernel/vmlinux.lds.S   |  1 +
+ arch/c6x/kernel/vmlinux.lds.S        |  1 +
+ arch/cris/kernel/vmlinux.lds.S       |  1 +
+ arch/frv/kernel/vmlinux.lds.S        |  1 +
+ arch/h8300/kernel/vmlinux.lds.S      |  1 +
+ arch/hexagon/kernel/vmlinux.lds.S    |  1 +
+ arch/ia64/kernel/vmlinux.lds.S       |  1 +
+ arch/m32r/kernel/vmlinux.lds.S       |  1 +
+ arch/m68k/kernel/vmlinux-nommu.lds   |  1 +
+ arch/m68k/kernel/vmlinux-std.lds     |  1 +
+ arch/m68k/kernel/vmlinux-sun3.lds    |  1 +
+ arch/metag/kernel/vmlinux.lds.S      |  1 +
+ arch/microblaze/kernel/vmlinux.lds.S |  1 +
+ arch/mips/kernel/vmlinux.lds.S       |  1 +
+ arch/mn10300/kernel/vmlinux.lds.S    |  1 +
+ arch/nios2/kernel/vmlinux.lds.S      |  1 +
+ arch/openrisc/kernel/vmlinux.lds.S   |  1 +
+ arch/parisc/kernel/vmlinux.lds.S     |  1 +
+ arch/powerpc/kernel/vmlinux.lds.S    |  1 +
+ arch/s390/kernel/vmlinux.lds.S       |  1 +
+ arch/score/kernel/vmlinux.lds.S      |  1 +
+ arch/sh/kernel/vmlinux.lds.S         |  1 +
+ arch/sparc/kernel/vmlinux.lds.S      |  1 +
+ arch/tile/include/asm/irq.h          |  4 +-
+ arch/tile/kernel/entry.S             |  2 +-
+ arch/tile/kernel/pmc.c               |  3 --
+ arch/tile/kernel/process.c           | 72 ++++++++----------------------------
+ arch/tile/kernel/traps.c             |  7 +++-
+ arch/tile/kernel/vmlinux.lds.S       |  1 +
+ arch/um/kernel/dyn.lds.S             |  1 +
+ arch/um/kernel/uml.lds.S             |  1 +
+ arch/unicore32/kernel/vmlinux.lds.S  |  1 +
+ arch/x86/include/asm/irq.h           |  4 +-
+ arch/x86/kernel/acpi/cstate.c        |  2 +-
+ arch/x86/kernel/apic/hw_nmi.c        |  6 +--
+ arch/x86/kernel/process.c            |  4 +-
+ arch/x86/kernel/vmlinux.lds.S        |  1 +
+ arch/xtensa/kernel/vmlinux.lds.S     |  3 ++
+ drivers/acpi/processor_idle.c        |  5 ++-
+ drivers/cpuidle/driver.c             |  5 ++-
+ drivers/idle/intel_idle.c            |  4 +-
+ include/asm-generic/vmlinux.lds.h    |  6 +++
+ include/linux/cpu.h                  |  5 +++
+ include/linux/nmi.h                  | 63 ++++++++++++++++++++++++-------
+ kernel/sched/idle.c                  | 13 ++++++-
+ lib/nmi_backtrace.c                  | 40 +++++++++++++-------
+ scripts/mod/modpost.c                |  2 +-
+ scripts/recordmcount.c               |  1 +
+ scripts/recordmcount.pl              |  1 +
+ 58 files changed, 184 insertions(+), 121 deletions(-)
+
 -- 
-1.8.4.2
-
+2.7.2
