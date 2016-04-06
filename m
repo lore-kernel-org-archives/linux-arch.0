@@ -1,28 +1,59 @@
-From: yolandaa@my-yd-web.net
-Subject: how are you doing
-Date: Wed, 06 Apr 2016 17:26:30 +0000
-Message-ID: <664862.67471.qm__5746.20170887119$1459964039$gmane$org@smtp104.biz.mail.gq1.yahoo.com>
-Reply-To: susanyolanda@hotmail.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
+Date: Wed, 6 Apr 2016 20:31:01 +0200
+Message-ID: <20160406183101.GW3448@twins.programming.kicks-ass.net>
+References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
+ <1459508695-14915-11-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp104.biz.mail.gq1.yahoo.com ([98.137.12.179]:39418 "EHLO
-	smtp104.biz.mail.gq1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752216AbcDFRdY convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Apr 2016 13:33:24 -0400
-Content-Description: Mail message body
+Received: from casper.infradead.org ([85.118.1.10]:42434 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751873AbcDFSbK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 14:31:10 -0400
+Content-Disposition: inline
+In-Reply-To: <1459508695-14915-11-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <yolandaa@my-yd-web.net>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
 
-Hello
+On Fri, Apr 01, 2016 at 01:04:54PM +0200, Michal Hocko wrote:
+> diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
+> index 40027db99140..d1a1397e1fb3 100644
+> --- a/arch/x86/lib/rwsem.S
+> +++ b/arch/x86/lib/rwsem.S
+> @@ -101,6 +101,14 @@ ENTRY(call_rwsem_down_write_failed)
+>  	ret
+>  ENDPROC(call_rwsem_down_write_failed)
+>  
+> +ENTRY(call_rwsem_down_write_failed_killable)
+> +	save_common_regs
+> +	movq %rax,%rdi
+> +	call rwsem_down_write_failed_killable
+> +	restore_common_regs
+> +	ret
+> +ENDPROC(call_rwsem_down_write_failed_killable)
+> +
 
-how are you doing i hope you are fine i will like to know more about you
+I had a conflict here and made that:
 
-writ me back so we can know each other very well
-
-am waiting for ur mail  susanyolanda@hotmail.com
-
-thank you 
+--- a/arch/x86/lib/rwsem.S
++++ b/arch/x86/lib/rwsem.S
+@@ -106,6 +106,16 @@ ENTRY(call_rwsem_down_write_failed)
+ 	ret
+ ENDPROC(call_rwsem_down_write_failed)
+ 
++ENTRY(call_rwsem_down_write_failed_killable)
++	FRAME_BEGIN
++	save_common_regs
++	movq %rax,%rdi
++	call rwsem_down_write_failed_killable
++	restore_common_regs
++	FRAME_END
++	ret
++ENDPROC(call_rwsem_down_write_failed_killable)
++
+ ENTRY(call_rwsem_wake)
+ 	FRAME_BEGIN
+ 	/* do nothing if still outstanding active readers */
