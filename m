@@ -1,59 +1,51 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Date: Wed, 6 Apr 2016 20:31:01 +0200
-Message-ID: <20160406183101.GW3448@twins.programming.kicks-ass.net>
-References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
- <1459508695-14915-11-git-send-email-mhocko@kernel.org>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 10/10] arch: fix has_transparent_hugepage()
+Date: Wed, 6 Apr 2016 23:58:19 +0200
+Message-ID: <20160406215819.GA25650@gmail.com>
+References: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
+ <alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
+ <20160406065806.GC3078@gmail.com>
+ <57050111.3070507@mellanox.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42434 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751873AbcDFSbK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 14:31:10 -0400
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:34839 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753363AbcDFV6Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 17:58:24 -0400
 Content-Disposition: inline
-In-Reply-To: <1459508695-14915-11-git-send-email-mhocko@kernel.org>
+In-Reply-To: <57050111.3070507@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Arnd Bergman <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Fri, Apr 01, 2016 at 01:04:54PM +0200, Michal Hocko wrote:
-> diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
-> index 40027db99140..d1a1397e1fb3 100644
-> --- a/arch/x86/lib/rwsem.S
-> +++ b/arch/x86/lib/rwsem.S
-> @@ -101,6 +101,14 @@ ENTRY(call_rwsem_down_write_failed)
->  	ret
->  ENDPROC(call_rwsem_down_write_failed)
->  
-> +ENTRY(call_rwsem_down_write_failed_killable)
-> +	save_common_regs
-> +	movq %rax,%rdi
-> +	call rwsem_down_write_failed_killable
-> +	restore_common_regs
-> +	ret
-> +ENDPROC(call_rwsem_down_write_failed_killable)
-> +
 
-I had a conflict here and made that:
+* Chris Metcalf <cmetcalf@mellanox.com> wrote:
 
---- a/arch/x86/lib/rwsem.S
-+++ b/arch/x86/lib/rwsem.S
-@@ -106,6 +106,16 @@ ENTRY(call_rwsem_down_write_failed)
- 	ret
- ENDPROC(call_rwsem_down_write_failed)
- 
-+ENTRY(call_rwsem_down_write_failed_killable)
-+	FRAME_BEGIN
-+	save_common_regs
-+	movq %rax,%rdi
-+	call rwsem_down_write_failed_killable
-+	restore_common_regs
-+	FRAME_END
-+	ret
-+ENDPROC(call_rwsem_down_write_failed_killable)
-+
- ENTRY(call_rwsem_wake)
- 	FRAME_BEGIN
- 	/* do nothing if still outstanding active readers */
+> On 4/6/2016 2:58 AM, Ingo Molnar wrote:
+> >* Hugh Dickins <hughd@google.com> wrote:
+> >
+> >>--- a/arch/x86/include/asm/pgtable.h
+> >>+++ b/arch/x86/include/asm/pgtable.h
+> >>@@ -181,6 +181,7 @@ static inline int pmd_trans_huge(pmd_t p
+> >>  	return (pmd_val(pmd) & (_PAGE_PSE|_PAGE_DEVMAP)) == _PAGE_PSE;
+> >>  }
+> >>+#define has_transparent_hugepage has_transparent_hugepage
+> >>  static inline int has_transparent_hugepage(void)
+> >>  {
+> >>  	return cpu_has_pse;
+> >Small nit, just writing:
+> >
+> >   #define has_transparent_hugepage
+> >
+> >ought to be enough, right?
+> 
+> No, since then in hugepage_init() the has_transparent_hugepage() call site
+> would be left with just a stray pair of parentheses instead of a call.
+
+Yes, indeed ...
+
+Thanks,
+
+	Ingo
