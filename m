@@ -1,56 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:46830 "EHLO
-	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754772AbcDFIbH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 04:31:07 -0400
-Date: Wed, 6 Apr 2016 10:24:58 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH V2 01/30] bitops: add parity functions
-Message-ID: <20160406082458.GA1202@ravnborg.org>
-References: <57031D9D.801@gmail.com>
- <20160405190432.GA28532@ravnborg.org>
- <57049FAF.4040804@gmail.com>
+Received: from mail-wm0-f50.google.com ([74.125.82.50]:33203 "EHLO
+	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754854AbcDFJGq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 05:06:46 -0400
+Date: Wed, 6 Apr 2016 11:06:38 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: [PATCH] sparc, rwsem: drop superfluous arch specific implementation
+Message-ID: <20160406090638.GB24272@dhcp22.suse.cz>
+References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
+ <1459508695-14915-3-git-send-email-mhocko@kernel.org>
+ <20160402011753.GB5329@linux-uzut.site>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <57049FAF.4040804@gmail.com>
+In-Reply-To: <20160402011753.GB5329@linux-uzut.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160406082458.ElzdaxVE5ayrP06gU5OJxwjqE9s9bFlwJLgg6OtKr5k@z>
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Davidlohr Bueso <dave@stgolabs.net>, LKML <linux-kernel@vger.kernel.org>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160406090638.0rpyi1EyhlnjDGvEEZ_9yp4VGocHyqxwvGDmpZmJGqI@z>
 
-On Wed, Apr 06, 2016 at 01:33:35PM +0800, Zeng Zhaoxiu wrote:
-> 在 2016年04月06日 03:04, Sam Ravnborg 写道:
-> >On Tue, Apr 05, 2016 at 10:06:21AM +0800, Zeng Zhaoxiu wrote:
-> >>From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
-> >>
-> >>These patches provide generic and architecture-specific odd parity
-> >>calculations.
-> >Hi Zeng.
-> >
-> >Can you please fix your mail script.
-> >I see only 1/30 (sent to linux-arch) - and patch looks mangeled (broken lines)
-> >No mail was sent to sparclinux - but sparc was mentioned.
-> >
-> >git send-mail usually do the trick.
-> >
-> >	Sam
+[Redicing CC list]
+
+On Fri 01-04-16 18:17:53, Davidlohr Bueso wrote:
+> On Fri, 01 Apr 2016, Michal Hocko wrote:
+[...]
+> >arch/sh/include/asm/rwsem.h     | 14 ++------------
+> >arch/xtensa/include/asm/rwsem.h | 14 ++------------
+> >2 files changed, 4 insertions(+), 24 deletions(-)
 > 
-> When I do "git send-email", I got:
-> ...
-> 5.7.14 JTibJDWdGxPcfa-E9KgtF-grMQl9w> Please log in via your web browser and
-> 5.7.14 then try again.
-> 5.7.14  Learn more at
-> 5.7.14  https://support.google.com/mail/answer/78754 zp5sm464879pac.9 - gsmtp
-> ...
-> 
-> So I use thunderbird to send email, but the text wrap error.
-Please try to search for "How to configure git send-email to use Gmail"
-and follow the instructions given in some of the links.
-Test with your own mail address before you send to a list.
+> I think we can actually get rid of these files altogether.
 
-Also linux-arch only saw 1/30 - make sure to address this too.
+And after double checking sparc is using the generic implementation
+without any arch specific tweaks as well. So it can be dropped.
 
-	Sam
+David, does the following look good to you or am I missing something?
+I will drop "[PATCH 08/11] sparc, rwsem: provide __down_write_killable"
+then.
+---
