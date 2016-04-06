@@ -1,374 +1,193 @@
-From: zengzhaoxiu@163.com
-Subject: [PATCH v2 01/30] bitops: add parity functions
-Date: Wed,  6 Apr 2016 16:22:36 +0800
-Message-ID: <1459930956-6142-1-git-send-email-zengzhaoxiu@163.com>
-References: <20160405190432.GA28532@ravnborg.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from m50-138.163.com ([123.125.50.138]:33609 "EHLO m50-138.163.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932842AbcDFIkt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Apr 2016 04:40:49 -0400
-In-Reply-To: <20160405190432.GA28532@ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: joe@perches.com, sam@ravnborg.org, arnd@arndb.de, akpm@linux-foundation.org, martink@posteo.de, linux@rasmusvillemoes.dk, mingo@kernel.org, yury.norov@gmail.com, sasha.levin@oracle.com, dvlasenk@redhat.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: [PATCH] sparc, rwsem: drop superfluous arch specific implementation
+Date: Wed, 6 Apr 2016 11:06:38 +0200
+Message-ID: <20160406090638.GB24272@dhcp22.suse.cz>
+References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
+ <1459508695-14915-3-git-send-email-mhocko@kernel.org>
+ <20160402011753.GB5329@linux-uzut.site>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160402011753.GB5329@linux-uzut.site>
+Sender: sparclinux-owner@vger.kernel.org
+To: "David S. Miller" <davem@davemloft.net>
+Cc: Davidlohr Bueso <dave@stgolabs.net>, LKML <linux-kernel@vger.kernel.org>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+[Redicing CC list]
 
-These patches provide generic and architecture-specific odd parity calculations.
+On Fri 01-04-16 18:17:53, Davidlohr Bueso wrote:
+> On Fri, 01 Apr 2016, Michal Hocko wrote:
+[...]
+> >arch/sh/include/asm/rwsem.h     | 14 ++------------
+> >arch/xtensa/include/asm/rwsem.h | 14 ++------------
+> >2 files changed, 4 insertions(+), 24 deletions(-)
+> 
+> I think we can actually get rid of these files altogether.
 
-I did not use GCC's __builtin_parity* functions, based on the following reasons:
-  1. I don't know where to identify which version of GCC from the beginning
-     supported __builtin_parity for the architecture.
-  2. For the architecture that doesn't has popcount instruction, GCC instead use
-     "call __paritysi2" (__paritydi2 for 64-bits). So if use __builtin_parity, we must
-     provide __paritysi2 and __paritydi2 functions for these architectures.
-     Additionally, parity4,8,16 might be "__builtin_parity(x & mask)", but the "& mask"
-     operation is totally unnecessary.
-  3. For the architecture that has popcount instruction, we do the same things.
-  4. For powerpc64, sparc64, and x86, we do runtime patching to use popcount instruction
-     if the CPU support.
+And after double checking sparc is using the generic implementation
+without any arch specific tweaks as well. So it can be dropped.
 
-I have compiled successfully with x86_64_defconfig, i386_defconfig, pseries_defconfig
-and sparc64_defconfig. And I used the following codes to test:
-
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <stdint.h>
-
-	#ifdef __x86_64__
-	/* popcnt %edi, %eax -- redundant REX prefix for alignment */
-	#define POPCNT32 ".byte 0xf3,0x40,0x0f,0xb8,0xc7"
-	/* popcnt %rdi, %rax */
-	#define POPCNT64 ".byte 0xf3,0x48,0x0f,0xb8,0xc7"
-	#define REG_IN "D"
-	#define REG_OUT "a"
-	#else
-	/* popcnt %eax, %eax */
-	#define POPCNT32 ".byte 0xf3,0x0f,0xb8,0xc0"
-	#define REG_IN "a"
-	#define REG_OUT "a"
-	#endif
-
-	static inline int c_parity4(unsigned int w)
-	{
-		w &= 0xf;
-		return (0x6996 >> w) & 1;
-	}
-
-	static inline int c_parity8(unsigned int w)
-	{
-		w ^= w >> 4;
-		return c_parity4(w);
-	}
-
-	static inline int c_parity16(unsigned int w)
-	{
-		w ^= w >> 8;
-		return c_parity8(w);
-	}
-
-	static inline int c_parity32(unsigned int w)
-	{
-		w ^= w >> 16;
-		return c_parity16(w);
-	}
-
-	static inline int c_parity64(uint64_t w)
-	{
-		return c_parity32((unsigned int)w ^ (unsigned int)(w >> 32));
-	}
-
-	static inline int asm_parity4(unsigned int w)
-	{
-		unsigned int res = 0;
-
-		asm("test	$0xf, %1		\n"
-			"setpo	%b0				\n"
-			: "+q" (res)
-			: "r" (w)
-			: "cc");
-
-		return res;
-	}
-
-	static inline int asm_parity8(unsigned int w)
-	{
-		unsigned int res = 0;
-
-		asm("test	%1, %1			\n"
-			"setpo	%b0			\n"
-			: "+q" (res)
-			: "r" (w)
-			: "cc");
-
-		return res;
-	}
-
-	static inline int asm_parity16(unsigned int w)
-	{
-		unsigned int res = 0;
-
-		asm("xor	%h1, %b1		\n"
-			"setpo	%b0			\n"
-			: "+q" (res), "+q" (w)
-			: : "cc");
-
-		return res;
-	}
-
-	static inline int asm_parity32_1(unsigned int w)
-	{
-		unsigned int res;
-
-		w ^= w >> 16;
-		asm("xor	%%ah, %%al		\n"
-			"mov	$0, %%eax		\n"
-			"setpo	%%al			\n"
-			: "=a" (res)
-			: "a" (w)
-			: "cc");
-
-		return res;
-	}
-
-	static inline int asm_parity32_2(unsigned int w)
-	{
-		unsigned int res;
-
-		asm(POPCNT32 "				\n"
-			"andl	$1, %0			\n"
-			: "="REG_OUT (res)
-			: REG_IN (w)
-			: "cc");
-
-		return res;
-	}
-
-	#ifdef __x86_64__
-	static inline int asm_parity64_1(uint64_t w)
-	{
-		unsigned int res = (unsigned int)w ^ (unsigned int)(w >> 32);
-
-		res ^= res >> 16;
-		asm("xor	%%ah, %%al		\n"
-			"mov	$0, %%eax		\n"
-			"setpo	%%al			\n"
-			: "=a" (res)
-			: "a" (res)
-			: "cc");
-
-		return res;
-	}
-
-	static inline int asm_parity64_2(uint64_t w)
-	{
-		unsigned int res;
-
-		asm(POPCNT64 "				\n"
-			"andl	$1, %0			\n"
-			: "="REG_OUT (res)
-			: REG_IN (w)
-			: "cc");
-
-		return res;
-	}
-	#else
-	static inline int asm_parity64_1(uint64_t w)
-	{
-		return asm_parity32_1((unsigned int)(w >> 32) ^ (unsigned int)w);
-	}
-
-	static inline int asm_parity64_2(uint64_t w)
-	{
-		return asm_parity32_2((unsigned int)(w >> 32) ^ (unsigned int)w);
-	}
-	#endif
-
-	int main(int argc, char **argv)
-	{
-		int ok = 1;
-		int count = 1000, i;
-
-		if (argc >= 2)
-			count = atoi(argv[1]);
-
-		srand((unsigned)time(NULL));
-
-		for (i = 0; i < count; i++) {
-			uint64_t w = rand() | (uint64_t)rand() << 32;
-			int p4_1 = c_parity4(w);
-			int p4_2 = asm_parity4(w);
-			int p8_1 = c_parity8(w);
-			int p8_2 = asm_parity8(w);
-			int p16_1 = c_parity16(w);
-			int p16_2 = asm_parity16(w);
-			int p32_1 = c_parity32(w);
-			int p32_2 = asm_parity32_1(w);
-			int p32_3 = asm_parity32_2(w);
-			int p64_1 = c_parity64(w);
-			int p64_2 = asm_parity64_1(w);
-			int p64_3 = asm_parity64_2(w);
-			if (p4_1 != p4_2 ||
-				p8_1 != p8_2 ||
-				p16_1 != p16_2 ||
-				p32_1 != p32_2 || p32_1 != p32_3 ||
-				p64_1 != p64_2 || p64_1 != p64_3) {
-				fprintf(stderr, "Err: %llx\n"
-							"\tc_parity4 = %d, asm_parity4 = %d,\n"
-							"\tc_parity8 = %d, asm_parity8 = %d,\n"
-							"\tc_parity16 = %d, asm_parity16 = %d,\n"
-							"\tc_parity32 = %d, asm_parity32_1 = %d, asm_parity32_2 = %d\n"
-							"\tc_parity64 = %d, asm_parity64_1 = %d, asm_parity64_2 = %d\n",
-							w, p4_1, p4_2, p8_1, p8_2, p16_1, p16_2, p32_1, p32_2, p32_3, p64_1, p64_2, p64_3);
-				ok = 0;
-			}
-		}
-
-		fprintf(stderr, "%s\n", ok ? "OK" : "FAIL");
-		return 0;
-	}
-
-Signed-off-by: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+David, does the following look good to you or am I missing something?
+I will drop "[PATCH 08/11] sparc, rwsem: provide __down_write_killable"
+then.
 ---
- include/asm-generic/bitops.h              |  1 +
- include/asm-generic/bitops/arch_parity.h  | 39 +++++++++++++++++++++++++++++++
- include/asm-generic/bitops/const_parity.h | 36 ++++++++++++++++++++++++++++
- include/asm-generic/bitops/parity.h       |  7 ++++++
- include/linux/bitops.h                    |  5 ++++
- 5 files changed, 88 insertions(+)
- create mode 100644 include/asm-generic/bitops/arch_parity.h
- create mode 100644 include/asm-generic/bitops/const_parity.h
- create mode 100644 include/asm-generic/bitops/parity.h
+From 8a71514d2973f9e5c0330a23e0409d195e796b4c Mon Sep 17 00:00:00 2001
+From: Michal Hocko <mhocko@suse.com>
+Date: Wed, 6 Apr 2016 10:33:37 +0200
+Subject: [PATCH] sparc, rwsem: drop superfluous arch specific implementation
 
-diff --git a/include/asm-generic/bitops.h b/include/asm-generic/bitops.h
-index dcdcacf..d85722f 100644
---- a/include/asm-generic/bitops.h
-+++ b/include/asm-generic/bitops.h
-@@ -27,6 +27,7 @@
- #include <asm-generic/bitops/sched.h>
- #include <asm-generic/bitops/ffs.h>
- #include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/parity.h>
- #include <asm-generic/bitops/lock.h>
- 
- #include <asm-generic/bitops/atomic.h>
-diff --git a/include/asm-generic/bitops/arch_parity.h b/include/asm-generic/bitops/arch_parity.h
-new file mode 100644
-index 0000000..cddc555
---- /dev/null
-+++ b/include/asm-generic/bitops/arch_parity.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+
-+#include <asm/types.h>
-+
-+/*
-+ * Refrence to 'https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel'.
-+ */
-+
-+static inline unsigned int __arch_parity4(unsigned int w)
-+{
-+	w &= 0xf;
-+	return (0x6996 >> w) & 1;
-+}
-+
-+static inline unsigned int __arch_parity8(unsigned int w)
-+{
-+	w ^= w >> 4;
-+	return __arch_parity4(w);
-+}
-+
-+static inline unsigned int __arch_parity16(unsigned int w)
-+{
-+	w ^= w >> 8;
-+	return __arch_parity8(w);
-+}
-+
-+static inline unsigned int __arch_parity32(unsigned int w)
-+{
-+	w ^= w >> 16;
-+	return __arch_parity16(w);
-+}
-+
-+static inline unsigned int __arch_parity64(__u64 w)
-+{
-+	return __arch_parity32((unsigned int)(w >> 32) ^ (unsigned int)w);
-+}
-+
-+#endif /* _ASM_GENERIC_BITOPS_ARCH_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/const_parity.h b/include/asm-generic/bitops/const_parity.h
-new file mode 100644
-index 0000000..6af7987
---- /dev/null
-+++ b/include/asm-generic/bitops/const_parity.h
-@@ -0,0 +1,36 @@
-+#ifndef _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+
-+/*
-+ * Compile time versions of __arch_parityN()
-+ */
-+#define __const_parity4(w)   ((0x6996 >> ((w) & 0xf)) & 1)
-+#define __const_parity8(w)   (__const_parity4((w) ^ ((w) >> 4)))
-+#define __const_parity16(w)  (__const_parity8((w) ^ ((w) >> 8)))
-+#define __const_parity32(w)  (__const_parity16((w) ^ ((w) >> 16)))
-+#define __const_parity64(w)  (__const_parity32((w) ^ ((w) >> 32)))
-+
-+/*
-+ * Generic interface.
-+ */
-+#define parity4(w)   (__builtin_constant_p(w) ? __const_parity4(w)  : __arch_parity4(w))
-+#define parity8(w)   (__builtin_constant_p(w) ? __const_parity8(w)  : __arch_parity8(w))
-+#define parity16(w)  (__builtin_constant_p(w) ? __const_parity16(w) : __arch_parity16(w))
-+#define parity32(w)  (__builtin_constant_p(w) ? __const_parity32(w) : __arch_parity32(w))
-+#define parity64(w)  (__builtin_constant_p(w) ? __const_parity64(w) : __arch_parity64(w))
-+
-+/*
-+ * Interface for known constant arguments
-+ */
-+#define PARITY4(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity4(w))
-+#define PARITY8(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity8(w))
-+#define PARITY16(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity16(w))
-+#define PARITY32(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity32(w))
-+#define PARITY64(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity64(w))
-+
-+/*
-+ * Type invariant interface to the compile time constant parity functions.
-+ */
-+#define PARITY(w)    PARITY64((u64)(w))
-+
-+#endif /* _ASM_GENERIC_BITOPS_CONST_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/parity.h b/include/asm-generic/bitops/parity.h
-new file mode 100644
-index 0000000..a91dce7
---- /dev/null
-+++ b/include/asm-generic/bitops/parity.h
-@@ -0,0 +1,7 @@
-+#ifndef _ASM_GENERIC_BITOPS_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_PARITY_H_
-+
-+#include <asm-generic/bitops/arch_parity.h>
-+#include <asm-generic/bitops/const_parity.h>
-+
-+#endif /* _ASM_GENERIC_BITOPS_PARITY_H_ */
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index defeaac..8952f88 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -80,6 +80,11 @@ static __always_inline unsigned long hweight_long(unsigned long w)
- 	return sizeof(w) == 4 ? hweight32(w) : hweight64(w);
- }
- 
-+static __always_inline unsigned int parity_long(unsigned long w)
-+{
-+	return sizeof(w) == 4 ? parity32(w) : parity64(w);
-+}
-+
- /**
-  * rol64 - rotate a 64-bit value left
-  * @word: value to rotate
+sparc basically reuses generic implementation of rwsem so we can
+reuse the code rather than duplicate it.
+
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/sparc/include/asm/Kbuild  |   1 +
+ arch/sparc/include/asm/rwsem.h | 119 -----------------------------------------
+ 2 files changed, 1 insertion(+), 119 deletions(-)
+ delete mode 100644 arch/sparc/include/asm/rwsem.h
+
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index e928618838bc..6024c26c0585 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -16,6 +16,7 @@ generic-y += mm-arch-hooks.h
+ generic-y += module.h
+ generic-y += mutex.h
+ generic-y += preempt.h
++generic-y += rwsem.h
+ generic-y += serial.h
+ generic-y += trace_clock.h
+ generic-y += types.h
+diff --git a/arch/sparc/include/asm/rwsem.h b/arch/sparc/include/asm/rwsem.h
+deleted file mode 100644
+index e5a0d575bc7f..000000000000
+--- a/arch/sparc/include/asm/rwsem.h
++++ /dev/null
+@@ -1,119 +0,0 @@
+-/*
+- * rwsem.h: R/W semaphores implemented using CAS
+- *
+- * Written by David S. Miller (davem@redhat.com), 2001.
+- * Derived from asm-i386/rwsem.h
+- */
+-#ifndef _SPARC64_RWSEM_H
+-#define _SPARC64_RWSEM_H
+-
+-#ifndef _LINUX_RWSEM_H
+-#error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
+-#endif
+-
+-#ifdef __KERNEL__
+-
+-#define RWSEM_UNLOCKED_VALUE		0x00000000L
+-#define RWSEM_ACTIVE_BIAS		0x00000001L
+-#define RWSEM_ACTIVE_MASK		0xffffffffL
+-#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
+-#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
+-
+-/*
+- * lock for reading
+- */
+-static inline void __down_read(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic64_inc_return((atomic64_t *)(&sem->count)) <= 0L))
+-		rwsem_down_read_failed(sem);
+-}
+-
+-static inline int __down_read_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	while ((tmp = sem->count) >= 0L) {
+-		if (tmp == cmpxchg(&sem->count, tmp,
+-				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+-			return 1;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * lock for writing
+- */
+-static inline void __down_write(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_add_return(RWSEM_ACTIVE_WRITE_BIAS,
+-				  (atomic64_t *)(&sem->count));
+-	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
+-		rwsem_down_write_failed(sem);
+-}
+-
+-static inline int __down_write_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
+-		      RWSEM_ACTIVE_WRITE_BIAS);
+-	return tmp == RWSEM_UNLOCKED_VALUE;
+-}
+-
+-/*
+- * unlock after reading
+- */
+-static inline void __up_read(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_dec_return((atomic64_t *)(&sem->count));
+-	if (unlikely(tmp < -1L && (tmp & RWSEM_ACTIVE_MASK) == 0L))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * unlock after writing
+- */
+-static inline void __up_write(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic64_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
+-					 (atomic64_t *)(&sem->count)) < 0L))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * implement atomic add functionality
+- */
+-static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
+-{
+-	atomic64_add(delta, (atomic64_t *)(&sem->count));
+-}
+-
+-/*
+- * downgrade write lock to read lock
+- */
+-static inline void __downgrade_write(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_add_return(-RWSEM_WAITING_BIAS, (atomic64_t *)(&sem->count));
+-	if (tmp < 0L)
+-		rwsem_downgrade_wake(sem);
+-}
+-
+-/*
+- * implement exchange and add functionality
+- */
+-static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
+-{
+-	return atomic64_add_return(delta, (atomic64_t *)(&sem->count));
+-}
+-
+-#endif /* __KERNEL__ */
+-
+-#endif /* _SPARC64_RWSEM_H */
 -- 
-2.5.0
+2.8.0.rc3
+
+-- 
+Michal Hocko
+SUSE Labs
