@@ -1,53 +1,49 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 10/10] arch: fix has_transparent_hugepage()
-Date: Wed, 6 Apr 2016 03:22:38 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4E9C327@us01wembx1.internal.synopsys.com>
-References: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
- <alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
+From: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
+Subject: Re: [PATCH V2 01/30] bitops: add parity functions
+Date: Wed, 6 Apr 2016 13:33:35 +0800
+Message-ID: <57049FAF.4040804@gmail.com>
+References: <57031D9D.801@gmail.com> <20160405190432.GA28532@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Arnd Bergman <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Miller <davem@davemloft.net>, Chris
- Metcalf <cmetcalf@tilera.com>, Ingo Molnar <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:34309 "EHLO
+	mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751222AbcDFFdk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 01:33:40 -0400
+In-Reply-To: <20160405190432.GA28532@ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wednesday 06 April 2016 02:32 AM, Hugh Dickins wrote:=0A=
-> I've just discovered that the useful-sounding has_transparent_hugepage()=
-=0A=
-> is actually an architecture-dependent minefield: on some arches it only=
-=0A=
-> builds if CONFIG_TRANSPARENT_HUGEPAGE=3Dy, on others it's also there when=
-=0A=
-> not, but on some of those (arm and arm64) it then gives the wrong answer;=
-=0A=
-> and on mips alone it's marked __init, which would crash if called later=
-=0A=
-> (but so far it has not been called later).=0A=
->=0A=
-> Straighten this out: make it available to all configs, with a sensible=0A=
-> default in asm-generic/pgtable.h, removing its definitions from those=0A=
-> arches (arc, arm, arm64, sparc, tile) which are served by the default,=0A=
-> adding #define has_transparent_hugepage has_transparent_hugepage to those=
-=0A=
-> (mips, powerpc, s390, x86) which need to override the default at runtime,=
-=0A=
-> and removing the __init from mips (but maybe that kind of code should be=
-=0A=
-> avoided after init: set a static variable the first time it's called).=0A=
->=0A=
-> Signed-off-by: Hugh Dickins <hughd@google.com>=0A=
-=0A=
-Acked-by: Vineet Gupta <vgupta@synopsys.com> # for arch/arc bits=0A=
-=0A=
-Thx,=0A=
--Vineet=0A=
+=E5=9C=A8 2016=E5=B9=B404=E6=9C=8806=E6=97=A5 03:04, Sam Ravnborg =E5=86=
+=99=E9=81=93:
+> On Tue, Apr 05, 2016 at 10:06:21AM +0800, Zeng Zhaoxiu wrote:
+>> From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+>>
+>> These patches provide generic and architecture-specific odd parity
+>> calculations.
+> Hi Zeng.
+>
+> Can you please fix your mail script.
+> I see only 1/30 (sent to linux-arch) - and patch looks mangeled (brok=
+en lines)
+> No mail was sent to sparclinux - but sparc was mentioned.
+>
+> git send-mail usually do the trick.
+>
+> 	Sam
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+When I do "git send-email", I got:
+=2E..
+5.7.14 JTibJDWdGxPcfa-E9KgtF-grMQl9w> Please log in via your web browse=
+r and
+5.7.14 then try again.
+5.7.14  Learn more at
+5.7.14  https://support.google.com/mail/answer/78754 zp5sm464879pac.9 -=
+ gsmtp
+=2E..
+
+So I use thunderbird to send email, but the text wrap error.
