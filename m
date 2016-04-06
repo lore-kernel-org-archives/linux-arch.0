@@ -1,37 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:59552 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754455AbcDFK1Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 06:27:16 -0400
-Date: Wed, 6 Apr 2016 12:27:03 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 2/2] sh, rwsem: drop superfluous arch specific
- implementation
-Message-ID: <20160406102703.GR3448@twins.programming.kicks-ass.net>
-References: <20160404090335.GB10272@dhcp22.suse.cz>
- <1459760800-13477-1-git-send-email-mhocko@kernel.org>
- <1459760800-13477-2-git-send-email-mhocko@kernel.org>
- <20160406092655.GP3448@twins.programming.kicks-ass.net>
- <CAMuHMdUVmNn7eo6K5R37B6_tfuq7CrOBgS_uio93JOBWzvoW1w@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUVmNn7eo6K5R37B6_tfuq7CrOBgS_uio93JOBWzvoW1w@mail.gmail.com>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:47991 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754746AbcDFL5K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 07:57:10 -0400
+Received: from localhost
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <gerald.schaefer@de.ibm.com>;
+	Wed, 6 Apr 2016 12:57:08 +0100
+Date: Wed, 6 Apr 2016 13:56:59 +0200
+From: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Subject: Re: [PATCH 10/10] arch: fix has_transparent_hugepage()
+Message-ID: <20160406135659.29846d02@thinkpad>
+In-Reply-To: <alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
+References: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
+	<alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, the arch/x86 maintainers <x86@kernel.org>, alpha <linux-alpha@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux <sparclinux@vger.kernel.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux-Arch <linux-arch@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>
-Message-ID: <20160406102703.iiEykg-L8eOYS7LnDUdOBvTjzZvsX_yT4IY4Lz3R49A@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Arnd Bergman <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20160406115659.ixn-KPAv5MhMX9DR9k1ahSJkVbhZ0MzzAegS2a-Yskw@z>
 
-On Wed, Apr 06, 2016 at 11:50:00AM +0200, Geert Uytterhoeven wrote:
-> Dag Peter,
+On Tue, 5 Apr 2016 14:02:49 -0700 (PDT)
+Hugh Dickins <hughd@google.com> wrote:
+
+> I've just discovered that the useful-sounding has_transparent_hugepage()
+> is actually an architecture-dependent minefield: on some arches it only
+> builds if CONFIG_TRANSPARENT_HUGEPAGE=y, on others it's also there when
+> not, but on some of those (arm and arm64) it then gives the wrong answer;
+> and on mips alone it's marked __init, which would crash if called later
+> (but so far it has not been called later).
 > 
-> On Wed, Apr 6, 2016 at 11:26 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > +Cc maintainers, linux-sh list is very high signal-to-noise as its been
-> > appropriated for renesas arm parts.
+> Straighten this out: make it available to all configs, with a sensible
+> default in asm-generic/pgtable.h, removing its definitions from those
+> arches (arc, arm, arm64, sparc, tile) which are served by the default,
+> adding #define has_transparent_hugepage has_transparent_hugepage to those
+> (mips, powerpc, s390, x86) which need to override the default at runtime,
+> and removing the __init from mips (but maybe that kind of code should be
+> avoided after init: set a static variable the first time it's called).
 > 
-> FTR, Renesas ARM parts have moved to linux-renesas-soc.
+> Signed-off-by: Hugh Dickins <hughd@google.com>
+> ---
 
-Ah, good to know that situation has been sorted.
+Acked-by: Gerald Schaefer <gerald.schaefer@de.ibm.com> # for arch/s390 bits
 
-Thanks!
