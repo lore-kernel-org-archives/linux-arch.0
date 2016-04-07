@@ -1,19 +1,23 @@
 From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
 Subject: Re: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
-Date: Thu, 7 Apr 2016 18:11:29 +0200
-Message-ID: <20160407161128.GA2713@home.local>
+Date: Thu, 7 Apr 2016 18:20:47 +0200
+Message-ID: <20160407162046.GA3602@home.local>
 References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
  <20160404073100.GA10272@dhcp22.suse.cz>
  <570287B3.6050903@suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f195.google.com ([209.85.217.195]:35471 "EHLO
+	mail-lb0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752555AbcDGQUw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 12:20:52 -0400
 Content-Disposition: inline
 In-Reply-To: <570287B3.6050903@suse.cz>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Vlastimil Babka <vbabka@suse.cz>
 Cc: Michal Hocko <mhocko@kernel.org>, akpm@linux-foundation.org, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 On Mon, Apr 04, 2016 at 05:26:43PM +0200, Vlastimil Babka wrote:
 > On 04/04/2016 09:31 AM, Michal Hocko wrote:
@@ -98,13 +102,7 @@ void main(void)
                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED | MAP_HUGETLB,
                -1, 0);         // mmap fails but unmaps the area
 
-  printf("%s\n", start);       // segfault
+  printf("%s\n", addr);       // segfault
 }
 
 Piotr
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
