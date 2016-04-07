@@ -1,52 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tartarus.angband.pl ([89.206.35.136]:54409 "EHLO
-	tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755794AbcDGNG1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 09:06:27 -0400
-Date: Thu, 7 Apr 2016 14:18:38 +0200
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
-Message-ID: <20160407121838.GA22098@angband.pl>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
+Received: from mail-lf0-f68.google.com ([209.85.215.68]:36163 "EHLO
+	mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756507AbcDGPMt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 11:12:49 -0400
+From: Michal Hocko <mhocko@kernel.org>
+Subject: [PATCH 05/11] sparc, rwsem: drop superfluous arch specific implementation
+Date: Thu,  7 Apr 2016 17:12:25 +0200
+Message-ID: <1460041951-22347-6-git-send-email-mhocko@kernel.org>
+In-Reply-To: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Pinski <pinskia@gmail.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Nathan Lynch <Nathan_Lynch@mentor.com>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Yury Norov <ynorov@caviumnetworks.com>
-Message-ID: <20160407121838.DrMw3MZSS4AtJoW2ircvDohxMUSkVkactqKD-7go4pI@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160407151225.9zoVJt3hgsgXHen1irVHa-VdjmTQnxTtHDZ7pJTZFuU@z>
 
-On Wed, 6 Apr 2016, Geert Uytterhoeven wrote:
-> On Wed, Apr 6, 2016 at 12:08 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
->>  v6:
->>  - time_t, __kenel_off_t and other types turned to be 32-bit
->>    for compatibility reasons (after v5 discussion);
+From: Michal Hocko <mhocko@suse.com>
 
-Introducing a new arch today with y2038 problems is not a good idea.
-Linus said so with appropriately pointy words in 2011.
+sparc basically reuses generic implementation of rwsem so we can
+reuse the code rather than duplicate it.
 
-> What makes you think these "applications that can’t readily be migrated to LP64
-> because they were written assuming an ILP32 data model, and that will never
-> become suitable for a LP64 data model and will remain locked into ILP32
-> operating environments" are more likely to be fixed for y2038 later, than for
-> LP64 now?
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/sparc/include/asm/Kbuild  |   1 +
+ arch/sparc/include/asm/rwsem.h | 119 -----------------------------------------
+ 2 files changed, 1 insertion(+), 119 deletions(-)
+ delete mode 100644 arch/sparc/include/asm/rwsem.h
 
-Such broken applications already have plenty of bogus architecture detection
-code so you need porting anyway...
-
-> We're already closer to the (future) y2038 than to the (past) introduction of
-> LP64...
->
-> These unfixable legacy applications have been spreading through x32 to
-> the shiny new arm64 server architecture (does ppc64el also have an ILP32 mode,
-> or is it planned)? Lots of resources are spent on maintaining the status quo,
-> instead of on fixing the real problems.
-          
-As an x32 (userland) porter, I can tell you that time_t!=long _did_ cause
-non-trivial amounts of work.  But that work is already done (at least in
-Debian), so you might as well benefit from it.
-
-
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index e928618838bc..6024c26c0585 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -16,6 +16,7 @@ generic-y += mm-arch-hooks.h
+ generic-y += module.h
+ generic-y += mutex.h
+ generic-y += preempt.h
++generic-y += rwsem.h
+ generic-y += serial.h
+ generic-y += trace_clock.h
+ generic-y += types.h
+diff --git a/arch/sparc/include/asm/rwsem.h b/arch/sparc/include/asm/rwsem.h
+deleted file mode 100644
+index e5a0d575bc7f..000000000000
+--- a/arch/sparc/include/asm/rwsem.h
++++ /dev/null
+@@ -1,119 +0,0 @@
+-/*
+- * rwsem.h: R/W semaphores implemented using CAS
+- *
+- * Written by David S. Miller (davem@redhat.com), 2001.
+- * Derived from asm-i386/rwsem.h
+- */
+-#ifndef _SPARC64_RWSEM_H
+-#define _SPARC64_RWSEM_H
+-
+-#ifndef _LINUX_RWSEM_H
+-#error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
+-#endif
+-
+-#ifdef __KERNEL__
+-
+-#define RWSEM_UNLOCKED_VALUE		0x00000000L
+-#define RWSEM_ACTIVE_BIAS		0x00000001L
+-#define RWSEM_ACTIVE_MASK		0xffffffffL
+-#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
+-#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
+-
+-/*
+- * lock for reading
+- */
+-static inline void __down_read(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic64_inc_return((atomic64_t *)(&sem->count)) <= 0L))
+-		rwsem_down_read_failed(sem);
+-}
+-
+-static inline int __down_read_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	while ((tmp = sem->count) >= 0L) {
+-		if (tmp == cmpxchg(&sem->count, tmp,
+-				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+-			return 1;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * lock for writing
+- */
+-static inline void __down_write(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_add_return(RWSEM_ACTIVE_WRITE_BIAS,
+-				  (atomic64_t *)(&sem->count));
+-	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
+-		rwsem_down_write_failed(sem);
+-}
+-
+-static inline int __down_write_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
+-		      RWSEM_ACTIVE_WRITE_BIAS);
+-	return tmp == RWSEM_UNLOCKED_VALUE;
+-}
+-
+-/*
+- * unlock after reading
+- */
+-static inline void __up_read(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_dec_return((atomic64_t *)(&sem->count));
+-	if (unlikely(tmp < -1L && (tmp & RWSEM_ACTIVE_MASK) == 0L))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * unlock after writing
+- */
+-static inline void __up_write(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic64_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
+-					 (atomic64_t *)(&sem->count)) < 0L))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * implement atomic add functionality
+- */
+-static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
+-{
+-	atomic64_add(delta, (atomic64_t *)(&sem->count));
+-}
+-
+-/*
+- * downgrade write lock to read lock
+- */
+-static inline void __downgrade_write(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic64_add_return(-RWSEM_WAITING_BIAS, (atomic64_t *)(&sem->count));
+-	if (tmp < 0L)
+-		rwsem_downgrade_wake(sem);
+-}
+-
+-/*
+- * implement exchange and add functionality
+- */
+-static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
+-{
+-	return atomic64_add_return(delta, (atomic64_t *)(&sem->count));
+-}
+-
+-#endif /* __KERNEL__ */
+-
+-#endif /* _SPARC64_RWSEM_H */
 -- 
-A tit a day keeps the vet away.
+2.8.0.rc3
+
