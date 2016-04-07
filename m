@@ -1,51 +1,81 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 10/10] arch: fix has_transparent_hugepage()
-Date: Wed, 6 Apr 2016 23:58:19 +0200
-Message-ID: <20160406215819.GA25650@gmail.com>
-References: <alpine.LSU.2.11.1604051329480.5965@eggly.anvils>
- <alpine.LSU.2.11.1604051355280.5965@eggly.anvils>
- <20160406065806.GC3078@gmail.com>
- <57050111.3070507@mellanox.com>
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: [PATCH 12/31] huge tmpfs: extend get_user_pages_fast to shmem
+ pmd
+Date: Wed, 6 Apr 2016 19:53:57 -0700 (PDT)
+Message-ID: <alpine.LSU.2.11.1604061917530.3092@eggly.anvils>
+References: <alpine.LSU.2.11.1604051403210.5965@eggly.anvils> <alpine.LSU.2.11.1604051429160.5965@eggly.anvils> <20160406070044.GD3078@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:34839 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753363AbcDFV6Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2016 17:58:24 -0400
-Content-Disposition: inline
-In-Reply-To: <57050111.3070507@mellanox.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Arnd Bergman <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160406070044.GD3078@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-
-* Chris Metcalf <cmetcalf@mellanox.com> wrote:
-
-> On 4/6/2016 2:58 AM, Ingo Molnar wrote:
-> >* Hugh Dickins <hughd@google.com> wrote:
-> >
-> >>--- a/arch/x86/include/asm/pgtable.h
-> >>+++ b/arch/x86/include/asm/pgtable.h
-> >>@@ -181,6 +181,7 @@ static inline int pmd_trans_huge(pmd_t p
-> >>  	return (pmd_val(pmd) & (_PAGE_PSE|_PAGE_DEVMAP)) == _PAGE_PSE;
-> >>  }
-> >>+#define has_transparent_hugepage has_transparent_hugepage
-> >>  static inline int has_transparent_hugepage(void)
-> >>  {
-> >>  	return cpu_has_pse;
-> >Small nit, just writing:
-> >
-> >   #define has_transparent_hugepage
-> >
-> >ought to be enough, right?
+On Wed, 6 Apr 2016, Ingo Molnar wrote:
+> * Hugh Dickins <hughd@google.com> wrote:
 > 
-> No, since then in hugepage_init() the has_transparent_hugepage() call site
-> would be left with just a stray pair of parentheses instead of a call.
+> > ---
+> > Cc'ed to arch maintainers as an FYI: this patch is not expected to
+> > go into the tree in the next few weeks, and depends upon a PageTeam
+> > definition not yet available outside this huge tmpfs patchset.
+> > Please refer to linux-mm or linux-kernel for more context.
 
-Yes, indeed ...
+Actually, Andrew took it and the rest into mmotm yesterday, to give them
+better exposure through linux-next, so they should appear there soon.
 
-Thanks,
+> > 
+> >  arch/mips/mm/gup.c  |   15 ++++++++++++++-
+> >  arch/s390/mm/gup.c  |   19 ++++++++++++++++++-
+> >  arch/sparc/mm/gup.c |   19 ++++++++++++++++++-
+> >  arch/x86/mm/gup.c   |   15 ++++++++++++++-
+> >  mm/gup.c            |   19 ++++++++++++++++++-
+> >  5 files changed, 82 insertions(+), 5 deletions(-)
+...
+> 
+> Ouch!
 
-	Ingo
+Oh sorry, I didn't mean to hurt you ;)
+
+> 
+> Looks like there are two main variants - so these kinds of repetitive patterns 
+> very much call for some sort of factoring out of common code, right?
+
+Hmm.  I'm still struggling between the two extremes, of
+
+(a) agreeing completely with you, and saying, yeah, I'll take on the job
+    of refactoring every architecture's get_user_pages_as_fast_as_you_can(),
+    without much likelihood of testing more than one,
+
+and
+
+(b) running a mile, and pointing out that we have a tradition of using
+    arch/x86/mm/gup.c as a template for the others, and here I've just
+    added a few more lines to that template (which never gets built more
+    than once into any kernel).
+
+Both are appealing in their different ways, but I think you can tell
+which I'm leaning towards...
+
+Honestly, I am still struggling between those two; but I think the patch
+as it stands is one thing, and cleanup for commonality should be another
+however weaselly that sounds ("I'll come back to it" - yeah, right).
+
+Hugh
+
+> 
+> Then the fix could be applied to the common portion(s) only, which will cut down 
+> this gigantic diffstat:
+> 
+>   >  5 files changed, 82 insertions(+), 5 deletions(-)
+> 
+> Thanks,
+> 
+> 	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
