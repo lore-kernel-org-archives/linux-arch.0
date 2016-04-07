@@ -1,169 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f66.google.com ([209.85.215.66]:35335 "EHLO
-	mail-lf0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756470AbcDGPMs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 11:12:48 -0400
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:34233 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755373AbcDGPZU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 11:25:20 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 04/11] sh, rwsem: drop superfluous arch specific implementation
-Date: Thu,  7 Apr 2016 17:12:24 +0200
-Message-ID: <1460041951-22347-5-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 11/11] locking, rwsem: provide down_write_killable
+Date: Thu,  7 Apr 2016 17:12:31 +0200
+Message-ID: <1460041951-22347-12-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
 References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160407151224.Yiz7uAHE84o6tvLvlKetI1G6mnzStXNeLLM8ywkz9oI@z>
+Message-ID: <20160407151231.jk6hdTWrbKGeK1ULsErmKKtLuM0NjH9MXnh_4zDNTzU@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
-since "locking, rwsem: drop explicit memory barriers" the arch specific
-code is basically same as the the generic one so we can drop the
-superfluous code.
+Now that all the architectures implement the necessary glue code
+we can introduce down_write_killable. The only difference wrt. regular
+down_write is that the slow path waits in TASK_KILLABLE state and the
+interruption by the fatal signal is reported as -EINTR to the caller.
 
-Suggested-by: Davidlohr Bueso <dave@stgolabs.net>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/sh/include/asm/Kbuild  |   1 +
- arch/sh/include/asm/rwsem.h | 117 --------------------------------------------
- 2 files changed, 1 insertion(+), 117 deletions(-)
- delete mode 100644 arch/sh/include/asm/rwsem.h
+ include/linux/lockdep.h | 15 +++++++++++++++
+ include/linux/rwsem.h   |  1 +
+ kernel/locking/rwsem.c  | 19 +++++++++++++++++++
+ 3 files changed, 35 insertions(+)
 
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index aac452b26aa8..6d866c7a9b74 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -25,6 +25,7 @@ generic-y += percpu.h
- generic-y += poll.h
- generic-y += preempt.h
- generic-y += resource.h
-+generic-y += rwsem.h
- generic-y += sembuf.h
- generic-y += serial.h
- generic-y += shmbuf.h
-diff --git a/arch/sh/include/asm/rwsem.h b/arch/sh/include/asm/rwsem.h
-deleted file mode 100644
-index f6c951c7a875..000000000000
---- a/arch/sh/include/asm/rwsem.h
-+++ /dev/null
-@@ -1,117 +0,0 @@
--/*
-- * include/asm-sh/rwsem.h: R/W semaphores for SH using the stuff
-- * in lib/rwsem.c.
-- */
--
--#ifndef _ASM_SH_RWSEM_H
--#define _ASM_SH_RWSEM_H
--
--#ifndef _LINUX_RWSEM_H
--#error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
--#endif
--
--#ifdef __KERNEL__
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000
--#define RWSEM_ACTIVE_BIAS		0x00000001
--#define RWSEM_ACTIVE_MASK		0x0000ffff
--#define RWSEM_WAITING_BIAS		(-0x00010000)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
--
--/*
-- * lock for reading
-- */
--static inline void __down_read(struct rw_semaphore *sem)
--{
--	if (atomic_inc_return((atomic_t *)(&sem->count)) <= 0)
--		rwsem_down_read_failed(sem);
--}
--
--static inline int __down_read_trylock(struct rw_semaphore *sem)
--{
--	int tmp;
--
--	while ((tmp = sem->count) >= 0) {
--		if (tmp == cmpxchg(&sem->count, tmp,
--				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			return 1;
--		}
--	}
--	return 0;
--}
--
--/*
-- * lock for writing
-- */
--static inline void __down_write(struct rw_semaphore *sem)
--{
--	int tmp;
--
--	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
--				(atomic_t *)(&sem->count));
--	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
--		rwsem_down_write_failed(sem);
--}
--
--static inline int __down_write_trylock(struct rw_semaphore *sem)
--{
--	int tmp;
--
--	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
--		      RWSEM_ACTIVE_WRITE_BIAS);
--	return tmp == RWSEM_UNLOCKED_VALUE;
--}
--
--/*
-- * unlock after reading
-- */
--static inline void __up_read(struct rw_semaphore *sem)
--{
--	int tmp;
--
--	tmp = atomic_dec_return((atomic_t *)(&sem->count));
--	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
--		rwsem_wake(sem);
--}
--
--/*
-- * unlock after writing
-- */
--static inline void __up_write(struct rw_semaphore *sem)
--{
--	if (atomic_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
--			      (atomic_t *)(&sem->count)) < 0)
--		rwsem_wake(sem);
--}
--
--/*
-- * implement atomic add functionality
-- */
--static inline void rwsem_atomic_add(int delta, struct rw_semaphore *sem)
--{
--	atomic_add(delta, (atomic_t *)(&sem->count));
--}
--
--/*
-- * downgrade write lock to read lock
-- */
--static inline void __downgrade_write(struct rw_semaphore *sem)
--{
--	int tmp;
--
--	tmp = atomic_add_return(-RWSEM_WAITING_BIAS, (atomic_t *)(&sem->count));
--	if (tmp < 0)
--		rwsem_downgrade_wake(sem);
--}
--
--/*
-- * implement exchange and add functionality
-- */
--static inline int rwsem_atomic_update(int delta, struct rw_semaphore *sem)
--{
--	return atomic_add_return(delta, (atomic_t *)(&sem->count));
--}
--
--#endif /* __KERNEL__ */
--#endif /* _ASM_SH_RWSEM_H */
+diff --git a/include/linux/lockdep.h b/include/linux/lockdep.h
+index 4dca42fd32f5..13a80779b6da 100644
+--- a/include/linux/lockdep.h
++++ b/include/linux/lockdep.h
+@@ -446,6 +446,18 @@ do {								\
+ 	lock_acquired(&(_lock)->dep_map, _RET_IP_);			\
+ } while (0)
+ 
++#define LOCK_CONTENDED_RETURN(_lock, try, lock)			\
++({								\
++	int ____err = 0;					\
++	if (!try(_lock)) {					\
++		lock_contended(&(_lock)->dep_map, _RET_IP_);	\
++		____err = lock(_lock);				\
++	}							\
++	if (!____err)						\
++		lock_acquired(&(_lock)->dep_map, _RET_IP_);	\
++	____err;						\
++})
++
+ #else /* CONFIG_LOCK_STAT */
+ 
+ #define lock_contended(lockdep_map, ip) do {} while (0)
+@@ -454,6 +466,9 @@ do {								\
+ #define LOCK_CONTENDED(_lock, try, lock) \
+ 	lock(_lock)
+ 
++#define LOCK_CONTENDED_RETURN(_lock, try, lock) \
++	lock(_lock)
++
+ #endif /* CONFIG_LOCK_STAT */
+ 
+ #ifdef CONFIG_LOCKDEP
+diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
+index 7d7ae029dac5..d1c12d160ace 100644
+--- a/include/linux/rwsem.h
++++ b/include/linux/rwsem.h
+@@ -118,6 +118,7 @@ extern int down_read_trylock(struct rw_semaphore *sem);
+  * lock for writing
+  */
+ extern void down_write(struct rw_semaphore *sem);
++extern int __must_check down_write_killable(struct rw_semaphore *sem);
+ 
+ /*
+  * trylock for writing -- returns 1 if successful, 0 if contention
+diff --git a/kernel/locking/rwsem.c b/kernel/locking/rwsem.c
+index 205be0ce34de..c817216c1615 100644
+--- a/kernel/locking/rwsem.c
++++ b/kernel/locking/rwsem.c
+@@ -55,6 +55,25 @@ void __sched down_write(struct rw_semaphore *sem)
+ EXPORT_SYMBOL(down_write);
+ 
+ /*
++ * lock for writing
++ */
++int __sched down_write_killable(struct rw_semaphore *sem)
++{
++	might_sleep();
++	rwsem_acquire(&sem->dep_map, 0, 0, _RET_IP_);
++
++	if (LOCK_CONTENDED_RETURN(sem, __down_write_trylock, __down_write_killable)) {
++		rwsem_release(&sem->dep_map, 1, _RET_IP_);
++		return -EINTR;
++	}
++
++	rwsem_set_owner(sem);
++	return 0;
++}
++
++EXPORT_SYMBOL(down_write_killable);
++
++/*
+  * trylock for writing -- returns 1 if successful, 0 if contention
+  */
+ int down_write_trylock(struct rw_semaphore *sem)
 -- 
 2.8.0.rc3
 
