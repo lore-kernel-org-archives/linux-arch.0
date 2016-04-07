@@ -1,108 +1,88 @@
-From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
 Subject: Re: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
-Date: Thu, 7 Apr 2016 18:20:47 +0200
-Message-ID: <20160407162046.GA3602@home.local>
+Date: Thu, 7 Apr 2016 18:31:09 +0200
+Message-ID: <20160407163108.GF32755@dhcp22.suse.cz>
 References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
  <20160404073100.GA10272@dhcp22.suse.cz>
  <570287B3.6050903@suse.cz>
+ <20160407161128.GA2713@home.local>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f195.google.com ([209.85.217.195]:35471 "EHLO
-	mail-lb0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752555AbcDGQUw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 12:20:52 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <570287B3.6050903@suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vlastimil Babka <vbabka@suse.cz>
-Cc: Michal Hocko <mhocko@kernel.org>, akpm@linux-foundation.org, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+In-Reply-To: <20160407161128.GA2713@home.local>
+Sender: owner-linux-mm@kvack.org
+To: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>, akpm@linux-foundation.org, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 04, 2016 at 05:26:43PM +0200, Vlastimil Babka wrote:
-> On 04/04/2016 09:31 AM, Michal Hocko wrote:
-> >On Sat 02-04-16 21:17:31, Piotr Kwapulinski wrote:
-> >>Currently the mmap(MAP_FIXED) discards the overlapping part of the
-> >>existing VMA(s).
-> >>Introduce the new MAP_DONTUNMAP flag which forces the mmap to fail
-> >>with ENOMEM whenever the overlapping occurs and MAP_FIXED is set.
-> >>No existing mapping(s) is discarded.
-> >
-> >You forgot to tell us what is the use case for this new flag.
+On Thu 07-04-16 18:11:29, Piotr Kwapulinski wrote:
+> On Mon, Apr 04, 2016 at 05:26:43PM +0200, Vlastimil Babka wrote:
+> > On 04/04/2016 09:31 AM, Michal Hocko wrote:
+> > >On Sat 02-04-16 21:17:31, Piotr Kwapulinski wrote:
+> > >>Currently the mmap(MAP_FIXED) discards the overlapping part of the
+> > >>existing VMA(s).
+> > >>Introduce the new MAP_DONTUNMAP flag which forces the mmap to fail
+> > >>with ENOMEM whenever the overlapping occurs and MAP_FIXED is set.
+> > >>No existing mapping(s) is discarded.
+> > >
+> > >You forgot to tell us what is the use case for this new flag.
+> > 
+> > Exactly. Also, returning ENOMEM is strange, EINVAL might be a better match,
+> > otherwise how would you distinguish a "geunine" ENOMEM from passing a wrong
+> > address?
+> > 
+> > 
 > 
-> Exactly. Also, returning ENOMEM is strange, EINVAL might be a better match,
-> otherwise how would you distinguish a "geunine" ENOMEM from passing a wrong
-> address?
+> Thanks to all for suggestions. I'll fix them.
 > 
+> The example use case:
+> #include <stdio.h>
+> #include <string.h>
+> #include <sys/mman.h>
 > 
+> void main(void)
+> {
+>   void* addr = (void*)0x1000000;
+>   size_t size = 0x600000;
+>   void* start = 0;
+>   start = mmap(addr,
+>                size,
+>                PROT_WRITE,
+>                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+>                -1, 0);
+> 
+>   strcpy(start, "PPPP");
+>   printf("%s\n", start);        // == PPPP
+> 
+>   addr = (void*)0x1000000;
+>   size = 0x9000;
+>   start = mmap(addr,
+>                size,
+>                PROT_READ | PROT_WRITE,
+>                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
+>                -1, 0);
+>   
+>   printf("%s\n", start);        // != PPPP
+> }
+> 
+> Another use case, this time with huge pages in action.
+> The limit configured in proc's nr_hugepages is exceeded.
+> mmap unmaps the area and fails. No new mapping is created.
+> The program segfaults.
 
-Thanks to all for suggestions. I'll fix them.
+Yes and this is the standard behavior for ages. So _why_ somebody wants
+non-default behavior. When I've asked for the use case I meant a real
+life code (not just an example snippet) which cannot cope with the
+standard semantic. In other words why this cannot be handled in the
+userspace and we have to add a new API which we have to maintain for
+ever?
+-- 
+Michal Hocko
+SUSE Labs
 
-The example use case:
-#include <stdio.h>
-#include <string.h>
-#include <sys/mman.h>
-
-void main(void)
-{
-  void* addr = (void*)0x1000000;
-  size_t size = 0x600000;
-  void* start = 0;
-  start = mmap(addr,
-               size,
-               PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-               -1, 0);
-
-  strcpy(start, "PPPP");
-  printf("%s\n", start);        // == PPPP
-
-  addr = (void*)0x1000000;
-  size = 0x9000;
-  start = mmap(addr,
-               size,
-               PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-               -1, 0);
-  
-  printf("%s\n", start);        // != PPPP
-}
-
-Another use case, this time with huge pages in action.
-The limit configured in proc's nr_hugepages is exceeded.
-mmap unmaps the area and fails. No new mapping is created.
-The program segfaults.
-
-echo 0 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
-
-#include <stdio.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <unistd.h>
-
-void main(void)
-{
-  void* addr = (void*)0x1000000;
-  size_t size = 0x600000;
-  void* start = 0;
-  start = mmap(addr,
-               size,
-               PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-               -1, 0);
-
-  strcpy(start, "PPPP");
-  printf("%s\n", start);        // == PPPP
-
-  addr = (void*)0x1000000;
-  size = 0x400000;
-  start = mmap(addr,
-               size,
-               PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED | MAP_HUGETLB,
-               -1, 0);         // mmap fails but unmaps the area
-
-  printf("%s\n", addr);       // segfault
-}
-
-Piotr
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
