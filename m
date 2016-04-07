@@ -1,46 +1,35 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 03/11] locking, rwsem: introduce basis for
- down_write_killable
-Date: Thu, 7 Apr 2016 09:38:40 +0200
-Message-ID: <20160407073840.GA32755@dhcp22.suse.cz>
-References: <1459508695-14915-1-git-send-email-mhocko@kernel.org>
- <1459508695-14915-4-git-send-email-mhocko@kernel.org>
- <20160402044125.GC5329@linux-uzut.site>
- <20160404091659.GA13463@dhcp22.suse.cz>
- <20160407065807.GA29020@linux-uzut.site>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
+Date: Thu, 7 Apr 2016 14:28:43 +0200
+Message-ID: <CAMuHMdVTw=UjRZqJZCj=OS4SzrFt22SVaC39ePYC_1THZzX1Fw@mail.gmail.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+	<CAMuHMdUUkaYVZ3-Jh6o1b++R=yFBg7siQt+A+TqqXRSa953CAw@mail.gmail.com>
+	<20160406122924.GA21527@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:35777 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751260AbcDGHio (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2016 03:38:44 -0400
-Content-Disposition: inline
-In-Reply-To: <20160407065807.GA29020@linux-uzut.site>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Davidlohr Bueso <dave@stgolabs.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20160406122924.GA21527@yury-N73SV>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Pinski <pinskia@gmail.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Nathan Lynch <Nathan_Lynch@mentor.com>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed 06-04-16 23:58:07, Davidlohr Bueso wrote:
-> On Mon, 04 Apr 2016, Michal Hocko wrote:
-> 
-> >Not sure I got your point here.
-> 
-> You set current to TASK_KILLABLE in the sleep loop, why do you want to change
-> it here to TASK_RUNNING if its about to be killed?
+On Wed, Apr 6, 2016 at 2:29 PM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+>> We're already closer to the (future) y2038 than to the (past) introduction of
+>> LP64...
+>
+> This is not about Y2038 at all. In fact, current version doesn't fix
+> Y2038 problem, as we decided finally.
 
-Wouldn't it be unexpected to return from a lock with something else than
-TASK_RUNNING?
+Indeed. So these legacy applications have to be fixed later anyway.
 
-> At least in the case of
-> UNINTERRUPTABLE we do it merely as a redundancy after the breaking out of the
-> loop. Of course we also acquired the lock in the first place by that time and
-> we _better_ be running.
+Gr{oetje,eeting}s,
 
-I guess the reason was that rwsem_try_write_lock might suceed and we do
-not want to return with TASK_UNINTERRUPTIBLE in that case.
+                        Geert
 
--- 
-Michal Hocko
-SUSE Labs
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
