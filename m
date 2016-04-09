@@ -1,89 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f195.google.com ([209.85.217.195]:34517 "EHLO
-	mail-lb0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758645AbcDHPck (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Apr 2016 11:32:40 -0400
-Date: Fri, 8 Apr 2016 17:32:29 +0200
-From: Piotr Kwapulinski <kwapulinski.piotr@gmail.com>
-Subject: Re: [PATCH 0/3] mm/mmap.c: don't unmap the overlapping VMA(s)
-Message-ID: <20160408153228.GA1397@home.local>
-References: <1459624654-7955-1-git-send-email-kwapulinski.piotr@gmail.com>
- <20160404073100.GA10272@dhcp22.suse.cz>
- <570287B3.6050903@suse.cz>
- <20160407161128.GA2713@home.local>
- <20160407163108.GF32755@dhcp22.suse.cz>
+Received: from mout.kundenserver.de ([217.72.192.74]:64399 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752601AbcDICoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Apr 2016 22:44:21 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
+Date: Sat, 9 Apr 2016 04:42:54 +0200
+References: <20160407121838.GA22098@angband.pl> <CA+=Sn1kx1UumTYHa8AE-XAUNiSXTd5zoDxae1LL5YczC_VXe_w@mail.gmail.com>
+In-Reply-To: <CA+=Sn1kx1UumTYHa8AE-XAUNiSXTd5zoDxae1LL5YczC_VXe_w@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160407163108.GF32755@dhcp22.suse.cz>
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201604090442.54328.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, akpm@linux-foundation.org, mtk.manpages@gmail.com, cmetcalf@mellanox.com, arnd@arndb.de, viro@zeniv.linux.org.uk, mszeredi@suse.cz, dave@stgolabs.net, kirill.shutemov@linux.intel.com, mingo@kernel.org, dan.j.williams@intel.com, dave.hansen@linux.intel.com, koct9i@gmail.com, hannes@cmpxchg.org, jack@suse.cz, xiexiuqi@huawei.com, iamjoonsoo.kim@lge.com, oleg@redhat.com, gang.chen.5i5j@gmail.com, aarcange@redhat.com, aryabinin@virtuozzo.com, rientjes@google.com, denc716@gmail.com, toshi.kani@hpe.com, ldufour@linux.vnet.ibm.com, kuleshovmail@gmail.com, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20160408153229.aUqo4ta2cU5t5zfEd9wro-iim7chWJPl-jfjY3f8-b8@z>
+To: Andrew Pinski <pinskia@gmail.com>
+Cc: Adam Borowski <kilobyte@angband.pl>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Nathan Lynch <Nathan_Lynch@mentor.com>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Yury Norov <ynorov@caviumnetworks.com>
+Message-ID: <20160409024254.vTa1OAd-JQw3J47XgcyvXWzFGoW7yq6Z6P3QjCXZ7m8@z>
 
-On Thu, Apr 07, 2016 at 06:31:09PM +0200, Michal Hocko wrote:
-> On Thu 07-04-16 18:11:29, Piotr Kwapulinski wrote:
-> > On Mon, Apr 04, 2016 at 05:26:43PM +0200, Vlastimil Babka wrote:
-> > > On 04/04/2016 09:31 AM, Michal Hocko wrote:
-> > > >On Sat 02-04-16 21:17:31, Piotr Kwapulinski wrote:
-> > > >>Currently the mmap(MAP_FIXED) discards the overlapping part of the
-> > > >>existing VMA(s).
-> > > >>Introduce the new MAP_DONTUNMAP flag which forces the mmap to fail
-> > > >>with ENOMEM whenever the overlapping occurs and MAP_FIXED is set.
-> > > >>No existing mapping(s) is discarded.
-> > > >
-> > > >You forgot to tell us what is the use case for this new flag.
-> > > 
-> > > Exactly. Also, returning ENOMEM is strange, EINVAL might be a better match,
-> > > otherwise how would you distinguish a "geunine" ENOMEM from passing a wrong
-> > > address?
-> > > 
-> > > 
-> > 
-> > Thanks to all for suggestions. I'll fix them.
-> > 
-> > The example use case:
-> > #include <stdio.h>
-> > #include <string.h>
-> > #include <sys/mman.h>
-> > 
-> > void main(void)
-> > {
-> >   void* addr = (void*)0x1000000;
-> >   size_t size = 0x600000;
-> >   void* start = 0;
-> >   start = mmap(addr,
-> >                size,
-> >                PROT_WRITE,
-> >                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-> >                -1, 0);
-> > 
-> >   strcpy(start, "PPPP");
-> >   printf("%s\n", start);        // == PPPP
-> > 
-> >   addr = (void*)0x1000000;
-> >   size = 0x9000;
-> >   start = mmap(addr,
-> >                size,
-> >                PROT_READ | PROT_WRITE,
-> >                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED,
-> >                -1, 0);
-> >   
-> >   printf("%s\n", start);        // != PPPP
-> > }
-> > 
-> > Another use case, this time with huge pages in action.
-> > The limit configured in proc's nr_hugepages is exceeded.
-> > mmap unmaps the area and fails. No new mapping is created.
-> > The program segfaults.
+On Friday 08 April 2016, Andrew Pinski wrote:
+> On Thu, Apr 7, 2016 at 5:18 AM, Adam Borowski <kilobyte@angband.pl> wrote:
+> > On Wed, 6 Apr 2016, Geert Uytterhoeven wrote:
+> >> On Wed, Apr 6, 2016 at 12:08 AM, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> >>>  v6:
+> >>>  - time_t, __kenel_off_t and other types turned to be 32-bit
+> >>>    for compatibility reasons (after v5 discussion);
+> >
+> > Introducing a new arch today with y2038 problems is not a good idea.
+> > Linus said so with appropriately pointy words in 2011.
+
+This was before we made the decision to fix the y2038 problem for all
+architectures.
+
+> This is the third time we had this discussion on time_t for ILP32.  I
+> had originally it as 32bit, then Catalin suggested I change it to
+> 64bit and then Arnd (with his work for 2038 issue on 32bit arch) said
+> ILP32 should match all other 32bit targets and the other 64bit time_t
+> be fixed by the current work he was working on.  Now you are
+> suggesting we change it again.
+> Arnd can you please comment more on why we want 32bit time_t instead
+> of the 64bit one?  I Know there was some POSIX (or was it C90)
+> violation but I suspect there is an easy way to workaround this inside
+> the kernel but the discussion to move over to 32bit time_t was already
+> made by the time I started to look into that.
+
+x32 still runs into new problems today, and will continue to have problems
+with newly added drivers that pass time_t (or other __kernel_long_t) arguments
+through ioctl.
+
+To avoid having to audit every new driver for interfaces that behave
+differently based on the __kernel_long_t definition, arm64 is not following
+the same route as x86 here and instead uses the normal 32-bit ABI like
+any other architecture. This means we use 32-bit time_t, aio_context_t,
+size_t and clock_t and share the system call implementation with the
+compat handling for arm (aarch32) mode.
+
+Once we have the interfaces for 64-bit time_t in place in the kernel,
+we will be able to rebuild glibc on all 32-bit architectures including
+arm and arm64/ilp32 that way.
+
+The POSIX and C99 incompatibility you mention is about struct timespec,
+which uses 'long' as the type for the tv_nsec member. This is vaguely
+related to the issue of 64-bit time_t, but is not the reason for
+starting out with 32-bit time_t for the new ABI here.
+
+[side note:
+How to precisely handle tv_nsec on 32-bit architectures is still an open
+issue that will have to be solved when we nail down the new system call
+interfaces:
+The issue specifically is what happens when the upper half of the
+second 64-bit word in struct timespec argument passed into a system
+call is nonzero: the normal 64-bit syscalls must return an error,
+while the 32-bit user space expects the kernel to ignore the upper bits.
+This means something between the application and the native system call
+has to clear the bits, and this can either be done by copying the
+data inside of glibc (as done on x32) or by adding an extra system
+call entry point in the kernel.]
+
+> >> We're already closer to the (future) y2038 than to the (past) introduction of
+> >> LP64...
+> >>
+> >> These unfixable legacy applications have been spreading through x32 to
+> >> the shiny new arm64 server architecture (does ppc64el also have an ILP32 mode,
+> >> or is it planned)? Lots of resources are spent on maintaining the status quo,
+> >> instead of on fixing the real problems.
+> >
+> > As an x32 (userland) porter, I can tell you that time_t!=long _did_ cause
+> > non-trivial amounts of work.  But that work is already done (at least in
+> > Debian), so you might as well benefit from it.
 > 
-> Yes and this is the standard behavior for ages. So _why_ somebody wants
-> non-default behavior. When I've asked for the use case I meant a real
-> life code (not just an example snippet) which cannot cope with the
-> standard semantic. In other words why this cannot be handled in the
-> userspace and we have to add a new API which we have to maintain for
-> ever?
+> There is actually private code out there which uses timespec and
+> timeval to pass time over the wire; yes I know bad coding style and
+> all but they did it that way.  This is code which was working for x86
+> and we are porting it to ARM64; a data center code by the way; not
+> some networking code even.  This means they have not ported the code
+> to fully 64bit yet and they might never.
 
-Ok, I got it. Thanks for feedback.
+This code will run into the same problem on arm64/ilp32 when built against
+a future libc implementation that defines time_t as 64-bit, but at least
+the glibc maintainers so far plan to leave this as a per-application
+option for the forseeable future: even on a system that uses 64-bit time_t
+in user space and kernel by default, you should be able to build an
+application using a 32-bit time_t.
 
+	Arnd
