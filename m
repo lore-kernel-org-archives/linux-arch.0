@@ -1,40 +1,62 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 06/19] arc: get rid of superfluous __GFP_REPEAT
-Date: Mon, 11 Apr 2016 14:23:42 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4E9D497@us01wembx1.internal.synopsys.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 05/19] arm64: get rid of superfluous __GFP_REPEAT
+Date: Mon, 11 Apr 2016 16:49:47 +0100
+Message-ID: <20160411154947.GC19749@arm.com>
 References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
- <1460372892-8157-7-git-send-email-mhocko@kernel.org>
+ <1460372892-8157-6-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:49300 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753542AbcDKOXp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2016 10:23:45 -0400
-Content-Language: en-US
+Received: from foss.arm.com ([217.140.101.70]:50774 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932071AbcDKPtv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Apr 2016 11:49:51 -0400
+Content-Disposition: inline
+In-Reply-To: <1460372892-8157-6-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org
 
-On Monday 11 April 2016 04:38 PM, Michal Hocko wrote:
+On Mon, Apr 11, 2016 at 01:07:58PM +0200, Michal Hocko wrote:
 > From: Michal Hocko <mhocko@suse.com>
->
+> 
 > __GFP_REPEAT has a rather weak semantic but since it has been introduced
 > around 2.6.12 it has been ignored for low order allocations.
->
-> pte_alloc_one_kernel uses __get_order_pte but this is obviously
-> always zero because BITS_FOR_PTE is not larger than 9 yet the page
-> size is always larger than 4K.  This means that this flag has never
-> been actually useful here because it has always been used only for
-> PAGE_ALLOC_COSTLY requests.
->
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
+> 
+> {pte,pmd,pud}_alloc_one{_kernel}, late_pgtable_alloc use PGALLOC_GFP for
+> __get_free_page (aka order-0).
+> 
+> pgd_alloc is slightly more complex because it allocates from pgd_cache
+> if PGD_SIZE != PAGE_SIZE and PGD_SIZE depends on the configuration
+> (CONFIG_ARM64_VA_BITS, PAGE_SHIFT and CONFIG_PGTABLE_LEVELS).
+> 
+> As per
+> config PGTABLE_LEVELS
+> 	int
+> 	default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
+> 	default 2 if ARM64_64K_PAGES && ARM64_VA_BITS_42
+> 	default 3 if ARM64_64K_PAGES && ARM64_VA_BITS_48
+> 	default 3 if ARM64_4K_PAGES && ARM64_VA_BITS_39
+> 	default 3 if ARM64_16K_PAGES && ARM64_VA_BITS_47
+> 	default 4 if !ARM64_64K_PAGES && ARM64_VA_BITS_48
+> 
+> we should have the following options
+> 
+> CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:4 PAGE_SIZE:4k size:4096 pages:1
+> CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:4 PAGE_SIZE:16k size:16 pages:1
+> CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:64k size:512 pages:1
+> CONFIG_ARM64_VA_BITS:47 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:16k size:16384 pages:1
+> CONFIG_ARM64_VA_BITS:42 CONFIG_PGTABLE_LEVELS:2 PAGE_SIZE:64k size:65536 pages:1
+> CONFIG_ARM64_VA_BITS:39 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:4k size:4096 pages:1
+> CONFIG_ARM64_VA_BITS:36 CONFIG_PGTABLE_LEVELS:2 PAGE_SIZE:16k size:16384 pages:1
+> 
+> All of them fit into a single page (aka order-0). This means that this
+> flag has never been actually useful here because it has always been used
+> only for PAGE_ALLOC_COSTLY requests.
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
+This all looks fine to me:
 
-Thx,
--Vineet
+Acked-by: Will Deacon <will.deacon@arm.com>
+
+Will
