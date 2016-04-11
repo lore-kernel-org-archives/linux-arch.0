@@ -1,13 +1,13 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/19] score: get rid of superfluous __GFP_REPEAT
-Date: Mon, 11 Apr 2016 13:08:03 +0200
-Message-ID: <1460372892-8157-11-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 12/19] sparc: get rid of superfluous __GFP_REPEAT
+Date: Mon, 11 Apr 2016 13:08:05 +0200
+Message-ID: <1460372892-8157-13-git-send-email-mhocko@kernel.org>
 References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
@@ -15,41 +15,42 @@ From: Michal Hocko <mhocko@suse.com>
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pte_alloc_one{_kernel} allocate PTE_ORDER which is 0. This means that
+{pud,pmd}_alloc_one is using __GFP_REPEAT but it always allocates from
+pgtable_cache which is initialzed to PAGE_SIZE objects. This means that
 this flag has never been actually useful here because it has always been
 used only for PAGE_ALLOC_COSTLY requests.
 
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/score/include/asm/pgalloc.h | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/sparc/include/asm/pgalloc_64.h | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/arch/score/include/asm/pgalloc.h b/arch/score/include/asm/pgalloc.h
-index 2e067657db98..49b012d78c1a 100644
---- a/arch/score/include/asm/pgalloc.h
-+++ b/arch/score/include/asm/pgalloc.h
-@@ -42,8 +42,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
+index 5e3187185b4a..3529f1378cd8 100644
+--- a/arch/sparc/include/asm/pgalloc_64.h
++++ b/arch/sparc/include/asm/pgalloc_64.h
+@@ -41,8 +41,7 @@ static inline void __pud_populate(pud_t *pud, pmd_t *pmd)
+ 
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
  {
- 	pte_t *pte;
- 
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
--					PTE_ORDER);
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
- 
- 	return pte;
+-	return kmem_cache_alloc(pgtable_cache,
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
  }
-@@ -53,7 +52,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- {
- 	struct page *pte;
  
--	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
-+	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
- 	if (!pte)
- 		return NULL;
- 	clear_highpage(pte);
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -52,8 +51,7 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(pgtable_cache,
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 -- 
 2.8.0.rc3
 
