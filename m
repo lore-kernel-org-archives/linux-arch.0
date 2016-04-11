@@ -1,13 +1,13 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 04/19] arm: get rid of superfluous __GFP_REPEAT
-Date: Mon, 11 Apr 2016 13:07:57 +0200
-Message-ID: <1460372892-8157-5-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 06/19] arc: get rid of superfluous __GFP_REPEAT
+Date: Mon, 11 Apr 2016 13:07:59 +0200
+Message-ID: <1460372892-8157-7-git-send-email-mhocko@kernel.org>
 References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
@@ -15,45 +15,41 @@ From: Michal Hocko <mhocko@suse.com>
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-this flag is for more than order-2. This means that this flag has never
+pte_alloc_one_kernel uses __get_order_pte but this is obviously
+always zero because BITS_FOR_PTE is not larger than 9 yet the page
+size is always larger than 4K.  This means that this flag has never
 been actually useful here because it has always been used only for
 PAGE_ALLOC_COSTLY requests.
 
-Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Vineet Gupta <vgupta@synopsys.com>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/arm/include/asm/pgalloc.h | 2 +-
- arch/arm/mm/pgd.c              | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/arc/include/asm/pgalloc.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
-index 20febb368844..b2902a5cd780 100644
---- a/arch/arm/include/asm/pgalloc.h
-+++ b/arch/arm/include/asm/pgalloc.h
-@@ -57,7 +57,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
- extern pgd_t *pgd_alloc(struct mm_struct *mm);
- extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
- 
--#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
-+#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
- 
- static inline void clean_pte_table(pte_t *pte)
+diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+index 86ed671286df..3749234b7419 100644
+--- a/arch/arc/include/asm/pgalloc.h
++++ b/arch/arc/include/asm/pgalloc.h
+@@ -95,7 +95,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
  {
-diff --git a/arch/arm/mm/pgd.c b/arch/arm/mm/pgd.c
-index b8d477321730..c1c1a5c67da1 100644
---- a/arch/arm/mm/pgd.c
-+++ b/arch/arm/mm/pgd.c
-@@ -23,7 +23,7 @@
- #define __pgd_alloc()	kmalloc(PTRS_PER_PGD * sizeof(pgd_t), GFP_KERNEL)
- #define __pgd_free(pgd)	kfree(pgd)
- #else
--#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, 2)
-+#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL, 2)
- #define __pgd_free(pgd)	free_pages((unsigned long)pgd, 2)
- #endif
+ 	pte_t *pte;
  
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_ZERO,
+ 					 __get_order_pte());
+ 
+ 	return pte;
+@@ -107,7 +107,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ 	pgtable_t pte_pg;
+ 	struct page *page;
+ 
+-	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
++	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL, __get_order_pte());
+ 	if (!pte_pg)
+ 		return 0;
+ 	memzero((void *)pte_pg, PTRS_PER_PTE * sizeof(pte_t));
 -- 
 2.8.0.rc3
 
