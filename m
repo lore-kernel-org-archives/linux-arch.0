@@ -1,13 +1,13 @@
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 06/19] arc: get rid of superfluous __GFP_REPEAT
-Date: Mon, 11 Apr 2016 13:07:59 +0200
-Message-ID: <1460372892-8157-7-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 03/19] x86/efi: get rid of superfluous __GFP_REPEAT
+Date: Mon, 11 Apr 2016 13:07:56 +0200
+Message-ID: <1460372892-8157-4-git-send-email-mhocko@kernel.org>
 References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Matt Fleming <matt@codeblueprint.co.uk>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Michal Hocko <mhocko@suse.com>
@@ -15,41 +15,30 @@ From: Michal Hocko <mhocko@suse.com>
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pte_alloc_one_kernel uses __get_order_pte but this is obviously
-always zero because BITS_FOR_PTE is not larger than 9 yet the page
-size is always larger than 4K.  This means that this flag has never
-been actually useful here because it has always been used only for
-PAGE_ALLOC_COSTLY requests.
+efi_alloc_page_tables uses __GFP_REPEAT but it allocates an order-0
+page. This means that this flag has never been actually useful here
+because it has always been used only for PAGE_ALLOC_COSTLY requests.
 
-Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/arc/include/asm/pgalloc.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/platform/efi/efi_64.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
-index 86ed671286df..3749234b7419 100644
---- a/arch/arc/include/asm/pgalloc.h
-+++ b/arch/arc/include/asm/pgalloc.h
-@@ -95,7 +95,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- {
- 	pte_t *pte;
- 
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_ZERO,
- 					 __get_order_pte());
- 
- 	return pte;
-@@ -107,7 +107,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	pgtable_t pte_pg;
- 	struct page *page;
- 
--	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
-+	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL, __get_order_pte());
- 	if (!pte_pg)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 49e4dd4a1f58..a7ee3f08074f 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -141,7 +141,7 @@ int __init efi_alloc_page_tables(void)
+ 	if (efi_enabled(EFI_OLD_MEMMAP))
  		return 0;
- 	memzero((void *)pte_pg, PTRS_PER_PTE * sizeof(pte_t));
+ 
+-	gfp_mask = GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO;
++	gfp_mask = GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO;
+ 	efi_pgd = (pgd_t *)__get_free_page(gfp_mask);
+ 	if (!efi_pgd)
+ 		return -ENOMEM;
 -- 
 2.8.0.rc3
 
