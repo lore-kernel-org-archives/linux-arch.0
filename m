@@ -1,51 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:33995 "EHLO
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:33530 "EHLO
 	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753735AbcDKLIm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2016 07:08:42 -0400
+	with ESMTP id S1753082AbcDKLI2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2016 07:08:28 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 14/19] sh: get rid of superfluous __GFP_REPEAT
-Date: Mon, 11 Apr 2016 13:08:07 +0200
-Message-ID: <1460372892-8157-15-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 02/19] x86: get rid of superfluous __GFP_REPEAT
+Date: Mon, 11 Apr 2016 13:07:55 +0200
+Message-ID: <1460372892-8157-3-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, linux-arch@vger.kernel.org
-Message-ID: <20160411110807.bg52yRLYV9leAVEvi6NM2c9xJYPy9zzUgDiJ6Clqh-g@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160411110755.xyZ4hJ-bIdC9qiOzvlaCW_NTXcJfAiZ2A7AU_KYdIUc@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-PGALLOC_GFP uses __GFP_REPEAT but {pgd,pmd}_alloc allocate from
-{pgd,pmd}_cache but both caches are allocating up to PAGE_SIZE
-objects. This means that this flag has never been actually useful here
-because it has always been used only for PAGE_ALLOC_COSTLY requests.
+PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses this
+flag is for more than order-0. This means that this flag has never
+been actually useful here because it has always been used only for
+PAGE_ALLOC_COSTLY requests.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Rich Felker <dalias@libc.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andy Lutomirski <luto@kernel.org>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/sh/mm/pgtable.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/kernel/espfix_64.c | 2 +-
+ arch/x86/mm/pgtable.c       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sh/mm/pgtable.c b/arch/sh/mm/pgtable.c
-index 26e03a1f7ca4..a62bd8696779 100644
---- a/arch/sh/mm/pgtable.c
-+++ b/arch/sh/mm/pgtable.c
-@@ -1,7 +1,7 @@
- #include <linux/mm.h>
- #include <linux/slab.h>
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 4d38416e2a7f..04f89caef9c4 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -57,7 +57,7 @@
+ # error "Need more than one PGD for the ESPFIX hack"
+ #endif
  
--#define PGALLOC_GFP GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO
-+#define PGALLOC_GFP GFP_KERNEL | __GFP_ZERO
+-#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
  
- static struct kmem_cache *pgd_cachep;
- #if PAGETABLE_LEVELS > 2
+ /* This contains the *bottom* address of the espfix stack */
+ DEFINE_PER_CPU_READ_MOSTLY(unsigned long, espfix_stack);
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 4eb287e25043..aa0ff4b02a96 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -6,7 +6,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/mtrr.h>
+ 
+-#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO
++#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO
+ 
+ #ifdef CONFIG_HIGHPTE
+ #define PGALLOC_USER_GFP __GFP_HIGHMEM
 -- 
 2.8.0.rc3
 
