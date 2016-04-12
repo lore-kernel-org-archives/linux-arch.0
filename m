@@ -1,27 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:51411 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965503AbcDLPkW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2016 11:40:22 -0400
-Date: Tue, 12 Apr 2016 17:40:04 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore v3
-Message-ID: <20160412154004.GI1087@worktop>
-References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
- <20160412093708.GB10771@dhcp22.suse.cz>
+Received: from mail-wm0-f42.google.com ([74.125.82.42]:38853 "EHLO
+	mail-wm0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965911AbcDLPxw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2016 11:53:52 -0400
+Received: by mail-wm0-f42.google.com with SMTP id u206so34109891wme.1
+        for <linux-arch@vger.kernel.org>; Tue, 12 Apr 2016 08:53:51 -0700 (PDT)
+Date: Tue, 12 Apr 2016 16:53:47 +0100
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [PATCH 03/19] x86/efi: get rid of superfluous __GFP_REPEAT
+Message-ID: <20160412155347.GF2829@codeblueprint.co.uk>
+References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
+ <1460372892-8157-4-git-send-email-mhocko@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160412093708.GB10771@dhcp22.suse.cz>
+In-Reply-To: <1460372892-8157-4-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20160412154004.4B9SPcx6XW_AHjcNq2k3ziPqwmn-6GkNqr_ZxZVcOJU@z>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
+Message-ID: <20160412155347.PaC66aJ1JUHq5T6qoJWgnVrAU5N394Q5hx5CQRYIf54@z>
 
-On Tue, Apr 12, 2016 at 11:37:08AM +0200, Michal Hocko wrote:
-> Hi Ingo, Peter,
-> do you plan to pull this into tip/locking or are you waiting for some
-> more feedback or things to resolve?
+On Mon, 11 Apr, at 01:07:56PM, Michal Hocko wrote:
+> From: Michal Hocko <mhocko@suse.com>
+> 
+> __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> around 2.6.12 it has been ignored for low order allocations.
+> 
+> efi_alloc_page_tables uses __GFP_REPEAT but it allocates an order-0
+> page. This means that this flag has never been actually useful here
+> because it has always been used only for PAGE_ALLOC_COSTLY requests.
+> 
+> Cc: Matt Fleming <matt@codeblueprint.co.uk>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
+> ---
+>  arch/x86/platform/efi/efi_64.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 
-I am planning to take it; but I'm traveling this week.
+Looks fine. I suspect I copied it from other pgtable creation code,
+
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
