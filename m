@@ -1,93 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:52849 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755450AbcDKPy2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Apr 2016 11:54:28 -0400
-Subject: [PATCH 0/8] System Calls for Memory Protection Keys
-From: Dave Hansen <dave@sr71.net>
-Date: Mon, 11 Apr 2016 08:54:22 -0700
-Message-ID: <20160411155422.A2B8FD0C@viggo.jf.intel.com>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:32833 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755696AbcDLJhR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2016 05:37:17 -0400
+Date: Tue, 12 Apr 2016 11:37:08 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 0/11] introduce down_write_killable for rw_semaphore v3
+Message-ID: <20160412093708.GB10771@dhcp22.suse.cz>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Dave Hansen <dave@sr71.net>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org
-Message-ID: <20160411155422.bmIuBxBIqXp2w6KvRIUbal-sZFXt0qx9wFmR7goQ48U@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20160412093708.Y9I-6H-S6jz1zEfQ2ESM1kiAPSge3PisDsrzAlkAhFk@z>
 
-Memory Protection Keys for User pages (pkeys) is a CPU feature
-which will first appear on Skylake Servers, but will also be
-supported on future non-server parts.  It provides a mechanism
-for enforcing page-based protections, but without requiring
-modification of the page tables when an application changes
-wishes to change permissions.
+Hi Ingo, Peter,
+do you plan to pull this into tip/locking or are you waiting for some
+more feedback or things to resolve?
 
-Patches to implement execute-only mapping support using pkeys was
-merged in to 4.6.  But, to do anything else useful with pkeys, an
-application needs to be able to set the pkey field in the PTE
-(obviously has to be done in-kernel) and make changes to the
-"rights" register (using unprivileged instructions).
-
-An application also needs to have an an allocator for the keys
-themselves.  If two different parts of an application both want
-to protect their data with pkeys, they first need to know which
-key to use for their individual purposes.
-
-This set introduces 5 system calls, in 3 logical groups:
-
-1. PTE pkey setting (sys_pkey_mprotect(), patches #1-3)
-2. Key allocation (sys_pkey_alloc() / sys_pkey_free(), patch #4)
-3. Rights register manipulation (sys_pkey_set/get(), patch #5)
-
-These patches build on top of "core" pkeys support already in
-4.6.  This set is specifically built on f87e0434a, which is
-tip/x86/urgent since it contained a documentation fix.
-
-I have manpages written for some of these syscalls, and have
-submitted them for review to the manpages list.
-
-This set is also available here:
-
-	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v031
-
-I've written a set of unit tests for these interfaces, which is
-available as the last patch in the series and integrated in to
-kselftests.
-
-=== diffstat ===
-
-Dave Hansen (8):
-      x86, pkeys: add fault handling for PF_PK page fault bit
-      mm: implement new pkey_mprotect() system call
-      x86, pkeys: make mprotect_key() mask off additional vm_flags
-      x86: wire up mprotect_key() system call
-      x86, pkeys: allocation/free syscalls
-      x86, pkeys: add pkey set/get syscalls
-      pkeys: add details of system call use to Documentation/
-      x86, pkeys: add self-tests
-
- Documentation/x86/protection-keys.txt         |   63 +
- arch/alpha/include/uapi/asm/mman.h            |    5 +
- arch/mips/include/uapi/asm/mman.h             |    5 +
- arch/parisc/include/uapi/asm/mman.h           |    5 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    5 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    5 +
- arch/x86/include/asm/mmu.h                    |    8 +
- arch/x86/include/asm/mmu_context.h            |   25 +-
- arch/x86/include/asm/pkeys.h                  |   83 +-
- arch/x86/kernel/fpu/xstate.c                  |   73 +-
- arch/x86/mm/fault.c                           |    9 +
- arch/x86/mm/pkeys.c                           |   38 +-
- arch/xtensa/include/uapi/asm/mman.h           |    5 +
- include/linux/pkeys.h                         |   39 +-
- include/uapi/asm-generic/mman-common.h        |    5 +
- mm/mprotect.c                                 |  134 +-
- tools/testing/selftests/x86/Makefile          |    2 +-
- tools/testing/selftests/x86/pkey-helpers.h    |  186 +++
- tools/testing/selftests/x86/protection_keys.c | 1199 +++++++++++++++++
- 19 files changed, 1863 insertions(+), 31 deletions(-)
-
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: x86@kernel.org
-Cc: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org
+Thanks!
+-- 
+Michal Hocko
+SUSE Labs
