@@ -1,70 +1,114 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 12/31] huge tmpfs: extend get_user_pages_fast to shmem pmd
-Date: Wed, 13 Apr 2016 10:58:49 +0200
-Message-ID: <20160413085849.GA29175@gmail.com>
-References: <alpine.LSU.2.11.1604051403210.5965@eggly.anvils>
- <alpine.LSU.2.11.1604051429160.5965@eggly.anvils>
- <20160406070044.GD3078@gmail.com>
- <alpine.LSU.2.11.1604061917530.3092@eggly.anvils>
+Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
+Date: Wed, 13 Apr 2016 11:08:30 +0200
+Message-ID: <20160413090829.GB29579@gmail.com>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+ <1460041951-22347-11-git-send-email-mhocko@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:34093 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759548AbcDMJIf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Apr 2016 05:08:35 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LSU.2.11.1604061917530.3092@eggly.anvils>
-Sender: owner-linux-mm@kvack.org
-To: Hugh Dickins <hughd@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrea Arcangeli <aarcange@redhat.com>, Andres Lagar-Cavilla <andreslc@google.com>, Yang Shi <yang.shi@linaro.org>, Ning Qu <quning@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1460041951-22347-11-git-send-email-mhocko@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Josh Poimboeuf <jpoimboe@redhat.com>
 
 
-* Hugh Dickins <hughd@google.com> wrote:
+* Michal Hocko <mhocko@kernel.org> wrote:
 
-> > >  arch/mips/mm/gup.c  |   15 ++++++++++++++-
-> > >  arch/s390/mm/gup.c  |   19 ++++++++++++++++++-
-> > >  arch/sparc/mm/gup.c |   19 ++++++++++++++++++-
-> > >  arch/x86/mm/gup.c   |   15 ++++++++++++++-
-> > >  mm/gup.c            |   19 ++++++++++++++++++-
-> > >  5 files changed, 82 insertions(+), 5 deletions(-)
-> ...
-
-> > Looks like there are two main variants - so these kinds of repetitive patterns 
-> > very much call for some sort of factoring out of common code, right?
+> From: Michal Hocko <mhocko@suse.com>
 > 
-> Hmm.  I'm still struggling between the two extremes, of
+> which uses the same fast path as __down_write except it falls back to
+> call_rwsem_down_write_failed_killable slow path and return -EINTR if
+> killed. To prevent from code duplication extract the skeleton of
+> __down_write into a helper macro which just takes the semaphore
+> and the slow path function to be called.
 > 
-> (a) agreeing completely with you, and saying, yeah, I'll take on the job
->     of refactoring every architecture's get_user_pages_as_fast_as_you_can(),
->     without much likelihood of testing more than one,
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
+> ---
+>  arch/x86/include/asm/rwsem.h | 41 ++++++++++++++++++++++++++++-------------
+>  arch/x86/lib/rwsem.S         |  8 ++++++++
+>  2 files changed, 36 insertions(+), 13 deletions(-)
 > 
-> and
-> 
-> (b) running a mile, and pointing out that we have a tradition of using
->     arch/x86/mm/gup.c as a template for the others, and here I've just
->     added a few more lines to that template (which never gets built more
->     than once into any kernel).
-> 
-> Both are appealing in their different ways, but I think you can tell
-> which I'm leaning towards...
-> 
-> Honestly, I am still struggling between those two; but I think the patch
-> as it stands is one thing, and cleanup for commonality should be another
-> however weaselly that sounds ("I'll come back to it" - yeah, right).
+> diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
+> index d79a218675bc..4c3d90dbe89a 100644
+> --- a/arch/x86/include/asm/rwsem.h
+> +++ b/arch/x86/include/asm/rwsem.h
+> @@ -99,21 +99,36 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
+>  /*
+>   * lock for writing
+>   */
+> +#define ____down_write(sem, slow_path)			\
+> +({							\
+> +	long tmp;					\
+> +	struct rw_semaphore* ret = sem;			\
+> +	asm volatile("# beginning down_write\n\t"	\
+> +		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
+> +		     /* adds 0xffff0001, returns the old value */ \
+> +		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
+> +		     /* was the active mask 0 before? */\
+> +		     "  jz        1f\n"			\
+> +		     "  call " slow_path "\n"		\
+> +		     "1:\n"				\
+> +		     "# ending down_write"		\
+> +		     : "+m" (sem->count), "=d" (tmp), "+a" (ret)	\
+> +		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
+> +		     : "memory", "cc");			\
+> +	ret;						\
+> +})
+> +
+>  static inline void __down_write(struct rw_semaphore *sem)
+>  {
+> -	long tmp;
+> -	asm volatile("# beginning down_write\n\t"
+> -		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"
+> -		     /* adds 0xffff0001, returns the old value */
+> -		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t"
+> -		     /* was the active mask 0 before? */
+> -		     "  jz        1f\n"
+> -		     "  call call_rwsem_down_write_failed\n"
+> -		     "1:\n"
+> -		     "# ending down_write"
+> -		     : "+m" (sem->count), "=d" (tmp)
+> -		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS)
+> -		     : "memory", "cc");
+> +	____down_write(sem, "call_rwsem_down_write_failed");
+> +}
+> +
+> +static inline int __down_write_killable(struct rw_semaphore *sem)
+> +{
+> +	if (IS_ERR(____down_write(sem, "call_rwsem_down_write_failed_killable")))
+> +		return -EINTR;
+> +
+> +	return 0;
+>  }
+>  
+>  /*
+> diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
+> index 40027db99140..d1a1397e1fb3 100644
+> --- a/arch/x86/lib/rwsem.S
+> +++ b/arch/x86/lib/rwsem.S
+> @@ -101,6 +101,14 @@ ENTRY(call_rwsem_down_write_failed)
+>  	ret
+>  ENDPROC(call_rwsem_down_write_failed)
+>  
+> +ENTRY(call_rwsem_down_write_failed_killable)
+> +	save_common_regs
+> +	movq %rax,%rdi
+> +	call rwsem_down_write_failed_killable
+> +	restore_common_regs
+> +	ret
+> +ENDPROC(call_rwsem_down_write_failed_killable)
 
-Yeah, so my worry is this: your patch for example roughly doubles the algorithmic 
-complexity of mm/gup.c and arch/*/mm/gup.c's ::gup_huge_pmd().
+Got this objtool warning on x86-64 allyesconfig:
 
-And you want this to add a new feature!
-
-So it really looks like to me this is the last sane chance to unify cheaply, then 
-add the feature you want. Everyone else in the future will be able to refer to 
-your example to chicken out! ;-)
+  arch/x86/lib/rwsem.o: warning: objtool: call_rwsem_down_write_failed_killable()+0xe: call without frame pointer save/setup
 
 Thanks,
 
 	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
