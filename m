@@ -1,42 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:33652 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760367AbcDMMtx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Apr 2016 08:49:53 -0400
-Date: Wed, 13 Apr 2016 14:49:43 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Message-ID: <20160413124943.GH14351@dhcp22.suse.cz>
-References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
- <1460041951-22347-11-git-send-email-mhocko@kernel.org>
- <20160413090829.GB29579@gmail.com>
- <20160413091625.GF14351@dhcp22.suse.cz>
- <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
+Received: from mail-lf0-f44.google.com ([209.85.215.44]:35592 "EHLO
+	mail-lf0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933881AbcDMN3U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Apr 2016 09:29:20 -0400
+Received: by mail-lf0-f44.google.com with SMTP id c126so69670446lfb.2
+        for <linux-arch@vger.kernel.org>; Wed, 13 Apr 2016 06:29:19 -0700 (PDT)
+Date: Wed, 13 Apr 2016 15:29:17 +0200
+From: Niklas =?iso-8859-1?Q?S=F6derlund?=
+	<niklas.soderlund@ragnatech.se>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Message-ID: <20160413132916.GC19650@bigcity.dyn.berto.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
+ <20160315082254.GE9136@infradead.org>
+ <3286525.zPAGiD4Xk2@avalon>
+ <20160321152601.GA11674@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <20160413102731.GA29896@gmail.com>
+In-Reply-To: <20160321152601.GA11674@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20160413124943.F6UXIO76wyxM3hb9H6BOFWK0eN11F-gTZfYKFDEHkUg@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160413132917.PiK2qCAMd4vsveSGKioKVKtqvzX6GJSiaUWjJs3Fh-A@z>
 
-On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
-> 
-> * Ingo Molnar <mingo@kernel.org> wrote:
-> 
-> > I'm testing your patches today, if they are otherwise OK [...]
-> 
-> got this build failure:
-> 
->   ./arch/x86/include/asm/rwsem.h:106:2: error: ‘asm’ operand has impossible constraints
+Hi Christoph,
 
-Hmm, I have no idea why 64b didn't have problem with the asm but 32b
-complains. Anyway, the following makes both happy. I have checked the
-generated code for 64b and it hasn't changed after the patch. 32b also
-seems to be generating a proper code. My gcc asm()-foo is rather weak so
-I would feel better if somebody double checked after me.
----
+On 2016-03-21 08:26:01 -0700, Christoph Hellwig wrote:
+> On Thu, Mar 17, 2016 at 01:33:51PM +0200, Laurent Pinchart wrote:
+> > The good news is that, given that no code uses this new API at the moment, 
+> > there isn't much to audit. The patch series implements the resource mapping 
+> > for arch/arm only, and makes use of it in the rcar-dmac driver only. Would you 
+> > like anything audited else than the arch/arm dma mapping implementation, the 
+> > rcar-dmac driver and the code that then deals with the dma addresses (I'm 
+> > thinking about the IOMMU subsystem and the ipmmu-vmsa driver in particular) ?
+> 
+> Yes, it would be good to do an audit of all the ARM dma_ops as well
+> as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
+> include/linux/dma-*.h
+
+I have now done an audit to the best of my abilities, thanks to Laurent 
+for pointing me in the right direction. And from what I can tell we are 
+good.
+
+* drivers/dma/sh/rcar-dmac.c
+  Once the phys_addr_t is mapped to a dma_addr_t using 
+  dma_map_resource() it is only used to check that the transfere do not 
+  cross 4GB boundaries and then only directly written to HW registers.
+
+* drivers/iommu/iommu.c
+  - iommu_map()
+    Check that it's align to min page size or return -EINVAL then calls
+    domain->ops->map()
+
+* drivers/iommu/ipmmu-vmsa.c
+  - ipmmu_map()
+    No logic only calls domain->ops->map()
+
+* drivers/iommu/io-pgtable-arm.c
+  - arm_lpae_map()
+    No logic only calls __arm_lpae_map()
+  - __arm_lpae_map()
+    No logic only calls arm_lpae_init_pte()
+  - arm_lpae_init_pte()
+    Used to get a pte:
+      pte |= pfn_to_iopte(paddr >> data->pg_shift, data);
+
+* drivers/iommu/io-pgtable-arm-v7s.c
+  - arm_v7s_map()
+    No logic only calls __arm_v7s_map()
+  - __arm_v7s_map()
+    No logic only calls arm_v7s_init_pte()
+  - arm_v7s_init_pte
+    Used to get a pte:
+      pte |= paddr & ARM_V7S_LVL_MASK(lvl);
+
+* ARM dma-mapping
+  - dma_unmap_*
+    Only valid unmap is dma_unmap_resource() all others are an invalid 
+    use case.
+  - dma_sync_single_*
+    Invalid use case, memmory that is mapped is device memmory
+  - dma_common_mmap() and dma_mmap_attrs()
+    Invalid use case
+  - dma_common_get_sgtable() and dma_get_sgtable_attrs()
+    Invalid use case, only for dma_alloc_* allocated memory,
+  - dma_mapping_error()
+    OK
+
+-- 
+Regards,
+Niklas S�derlund
