@@ -1,106 +1,112 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Date: Wed, 13 Apr 2016 14:49:43 +0200
-Message-ID: <20160413124943.GH14351@dhcp22.suse.cz>
-References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
- <1460041951-22347-11-git-send-email-mhocko@kernel.org>
- <20160413090829.GB29579@gmail.com>
- <20160413091625.GF14351@dhcp22.suse.cz>
- <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
+From: Niklas =?iso-8859-1?Q?S=F6derlund?= <niklas.soderlund-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Wed, 13 Apr 2016 15:29:17 +0200
+Message-ID: <20160413132916.GC19650@bigcity.dyn.berto.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<20160311125846.GF1111@bigcity.dyn.berto.se>
+	<20160315082254.GE9136@infradead.org> <3286525.zPAGiD4Xk2@avalon>
+	<20160321152601.GA11674@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20160413102731.GA29896@gmail.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+In-Reply-To: <20160321152601.GA11674-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, Vinod Koul <vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>, "dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
->=20
-> * Ingo Molnar <mingo@kernel.org> wrote:
->=20
-> > I'm testing your patches today, if they are otherwise OK [...]
->=20
-> got this build failure:
->=20
->   ./arch/x86/include/asm/rwsem.h:106:2: error: =E2=80=98asm=E2=80=99 =
-operand has impossible constraints
+Hi Christoph,
 
-Hmm, I have no idea why 64b didn't have problem with the asm but 32b
-complains. Anyway, the following makes both happy. I have checked the
-generated code for 64b and it hasn't changed after the patch. 32b also
-seems to be generating a proper code. My gcc asm()-foo is rather weak s=
-o
-I would feel better if somebody double checked after me.
----
-=46rom d23f4e6994670bf2c5d864f2190f21022b4499b2 Mon Sep 17 00:00:00 200=
-1
-=46rom: Michal Hocko <mhocko@suse.com>
-Date: Wed, 13 Apr 2016 14:21:25 +0200
-Subject: [PATCH] x86: __down_read_trylock fix 32b build failure
-MIME-Version: 1.0
-Content-Type: text/plain; charset=3DUTF-8
-Content-Transfer-Encoding: 8bit
+On 2016-03-21 08:26:01 -0700, Christoph Hellwig wrote:
+> On Thu, Mar 17, 2016 at 01:33:51PM +0200, Laurent Pinchart wrote:
+> > The good news is that, given that no code uses this new API at the mome=
+nt, =
 
-Ingo has noticed the following compilation error with CONFIG_X86_32=3Dy
-=2E/arch/x86/include/asm/rwsem.h:106:2: error: =E2=80=98asm=E2=80=99 op=
-erand has impossible constraints
+> > there isn't much to audit. The patch series implements the resource map=
+ping =
 
-The reason seems to be that 32b doesn't like ret being input and output
-argument sharing the same register with sem which is only the input. Fi=
-x
-this by making ret output only and use %3 (aka sem) for xadd.
+> > for arch/arm only, and makes use of it in the rcar-dmac driver only. Wo=
+uld you =
 
-ret initialization is not needed now because this is done implicitly
-by the asm even for the fast path as both sem and ret share the same
-register.
+> > like anything audited else than the arch/arm dma mapping implementation=
+, the =
 
-Reported-by: Ingo Molnar <mingo@kernel.org>
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/x86/include/asm/rwsem.h | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+> > rcar-dmac driver and the code that then deals with the dma addresses (I=
+'m =
 
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.=
-h
-index d759c5f70f49..453744c1d347 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -102,9 +102,9 @@ static inline int __down_read_trylock(struct rw_sem=
-aphore *sem)
- #define ____down_write(sem, slow_path)			\
- ({							\
- 	long tmp;					\
--	struct rw_semaphore* ret =3D sem;			\
-+	struct rw_semaphore* ret;			\
- 	asm volatile("# beginning down_write\n\t"	\
--		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
-+		     LOCK_PREFIX "  xadd      %1,(%3)\n\t"	\
- 		     /* adds 0xffff0001, returns the old value */ \
- 		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
- 		     /* was the active mask 0 before? */\
-@@ -112,7 +112,7 @@ static inline int __down_read_trylock(struct rw_sem=
-aphore *sem)
- 		     "  call " slow_path "\n"		\
- 		     "1:\n"				\
- 		     "# ending down_write"		\
--		     : "+m" (sem->count), "=3Dd" (tmp), "+a" (ret)	\
-+		     : "+m" (sem->count), "=3Dd" (tmp), "=3Da" (ret)	\
- 		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
- 		     : "memory", "cc");			\
- 	ret;						\
---=20
-2.8.0.rc3
+> > thinking about the IOMMU subsystem and the ipmmu-vmsa driver in particu=
+lar) ?
+> =
 
---=20
-Michal Hocko
-SUSE Labs
---
-To unsubscribe from this list: send the line "unsubscribe linux-alpha" =
-in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Yes, it would be good to do an audit of all the ARM dma_ops as well
+> as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
+> include/linux/dma-*.h
+
+I have now done an audit to the best of my abilities, thanks to Laurent =
+
+for pointing me in the right direction. And from what I can tell we are =
+
+good.
+
+* drivers/dma/sh/rcar-dmac.c
+  Once the phys_addr_t is mapped to a dma_addr_t using =
+
+  dma_map_resource() it is only used to check that the transfere do not =
+
+  cross 4GB boundaries and then only directly written to HW registers.
+
+* drivers/iommu/iommu.c
+  - iommu_map()
+    Check that it's align to min page size or return -EINVAL then calls
+    domain->ops->map()
+
+* drivers/iommu/ipmmu-vmsa.c
+  - ipmmu_map()
+    No logic only calls domain->ops->map()
+
+* drivers/iommu/io-pgtable-arm.c
+  - arm_lpae_map()
+    No logic only calls __arm_lpae_map()
+  - __arm_lpae_map()
+    No logic only calls arm_lpae_init_pte()
+  - arm_lpae_init_pte()
+    Used to get a pte:
+      pte |=3D pfn_to_iopte(paddr >> data->pg_shift, data);
+
+* drivers/iommu/io-pgtable-arm-v7s.c
+  - arm_v7s_map()
+    No logic only calls __arm_v7s_map()
+  - __arm_v7s_map()
+    No logic only calls arm_v7s_init_pte()
+  - arm_v7s_init_pte
+    Used to get a pte:
+      pte |=3D paddr & ARM_V7S_LVL_MASK(lvl);
+
+* ARM dma-mapping
+  - dma_unmap_*
+    Only valid unmap is dma_unmap_resource() all others are an invalid =
+
+    use case.
+  - dma_sync_single_*
+    Invalid use case, memmory that is mapped is device memmory
+  - dma_common_mmap() and dma_mmap_attrs()
+    Invalid use case
+  - dma_common_get_sgtable() and dma_get_sgtable_attrs()
+    Invalid use case, only for dma_alloc_* allocated memory,
+  - dma_mapping_error()
+    OK
+
+-- =
+
+Regards,
+Niklas S=F6derlund
