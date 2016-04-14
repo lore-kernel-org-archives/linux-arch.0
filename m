@@ -1,216 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from m50-138.163.com ([123.125.50.138]:56490 "EHLO m50-138.163.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751286AbcDNCom (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Apr 2016 22:44:42 -0400
-From: zengzhaoxiu@163.com
-Subject: [PATCH V3 01/29] bitops: add parity functions
-Date: Thu, 14 Apr 2016 10:41:24 +0800
-Message-ID: <1460601694-4056-1-git-send-email-zengzhaoxiu@163.com>
+Received: from szxga05-in.huawei.com ([58.251.152.179]:42374 "EHLO
+	szxga05-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751389AbcDNDbr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Apr 2016 23:31:47 -0400
+Subject: Re: [PATCH 10/25] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-11-git-send-email-ynorov@caviumnetworks.com>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <570F0C7D.8000004@huawei.com>
+Date: Thu, 14 Apr 2016 11:20:29 +0800
+MIME-Version: 1.0
+In-Reply-To: <1459894127-17698-11-git-send-email-ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Yury Norov <yury.norov@gmail.com>, Ingo Molnar <mingo@kernel.org>, Sasha Levin <sasha.levin@oracle.com>, Denys Vlasenko <dvlasenk@redhat.com>, linux-arch@vger.kernel.org
-Message-ID: <20160414024124.iR5TmCQwLNCLjACFv4gZmL_4bVxFXV3Y-OAdS0TRhUI@z>
+To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <20160414032029.xleZH2MXmokrIPIbuOv3Las0ME1QQTdDzwu6muL1zio@z>
 
-From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+Hi, yury
 
-Add generic odd parity functions, adapted from
-"https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel"
+I suggest we enable AARCH32_EL0 by default explicitly. I am not sure
+if it should be a dedicated commit. I am ok if you merge my commit, add
 
-Signed-off-by: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
----
- include/asm-generic/bitops.h              |  1 +
- include/asm-generic/bitops/arch_parity.h  | 39 +++++++++++++++++++++++++++++++
- include/asm-generic/bitops/const_parity.h | 36 ++++++++++++++++++++++++++++
- include/asm-generic/bitops/parity.h       |  7 ++++++
- include/asm-generic/bitops/popc-parity.h  | 32 +++++++++++++++++++++++++
- include/linux/bitops.h                    | 10 ++++++++
- 6 files changed, 125 insertions(+)
- create mode 100644 include/asm-generic/bitops/arch_parity.h
- create mode 100644 include/asm-generic/bitops/const_parity.h
- create mode 100644 include/asm-generic/bitops/parity.h
- create mode 100644 include/asm-generic/bitops/popc-parity.h
+Reviewed-by: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
 
-diff --git a/include/asm-generic/bitops.h b/include/asm-generic/bitops.h
-index dcdcacf..d85722f 100644
---- a/include/asm-generic/bitops.h
-+++ b/include/asm-generic/bitops.h
-@@ -27,6 +27,7 @@
- #include <asm-generic/bitops/sched.h>
- #include <asm-generic/bitops/ffs.h>
- #include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/parity.h>
- #include <asm-generic/bitops/lock.h>
- 
- #include <asm-generic/bitops/atomic.h>
-diff --git a/include/asm-generic/bitops/arch_parity.h b/include/asm-generic/bitops/arch_parity.h
-new file mode 100644
-index 0000000..813e152
---- /dev/null
-+++ b/include/asm-generic/bitops/arch_parity.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+
-+#include <asm/types.h>
-+
-+/*
-+ * Refrence to 'https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel'.
-+ */
-+
-+static inline unsigned int __arch_parity4(unsigned int w)
-+{
-+	w &= 0xf;
-+	return ((PARITY_MAGIC) >> w) & 1;
-+}
-+
-+static inline unsigned int __arch_parity8(unsigned int w)
-+{
-+	w ^= w >> 4;
-+	return __arch_parity4(w);
-+}
-+
-+static inline unsigned int __arch_parity16(unsigned int w)
-+{
-+	w ^= w >> 8;
-+	return __arch_parity8(w);
-+}
-+
-+static inline unsigned int __arch_parity32(unsigned int w)
-+{
-+	w ^= w >> 16;
-+	return __arch_parity16(w);
-+}
-+
-+static inline unsigned int __arch_parity64(__u64 w)
-+{
-+	return __arch_parity32((unsigned int)(w >> 32) ^ (unsigned int)w);
-+}
-+
-+#endif /* _ASM_GENERIC_BITOPS_ARCH_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/const_parity.h b/include/asm-generic/bitops/const_parity.h
-new file mode 100644
-index 0000000..3970546
---- /dev/null
-+++ b/include/asm-generic/bitops/const_parity.h
-@@ -0,0 +1,36 @@
-+#ifndef _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+
-+/*
-+ * Compile time versions of __arch_parityN()
-+ */
-+#define __const_parity4(w)   (((PARITY_MAGIC) >> ((w) & 0xf)) & 1)
-+#define __const_parity8(w)   (__const_parity4((w) ^ ((w) >> 4)))
-+#define __const_parity16(w)  (__const_parity8((w) ^ ((w) >> 8)))
-+#define __const_parity32(w)  (__const_parity16((w) ^ ((w) >> 16)))
-+#define __const_parity64(w)  (__const_parity32((w) ^ ((w) >> 32)))
-+
-+/*
-+ * Generic interface.
-+ */
-+#define parity4(w)   (__builtin_constant_p(w) ? __const_parity4(w)  : __arch_parity4(w))
-+#define parity8(w)   (__builtin_constant_p(w) ? __const_parity8(w)  : __arch_parity8(w))
-+#define parity16(w)  (__builtin_constant_p(w) ? __const_parity16(w) : __arch_parity16(w))
-+#define parity32(w)  (__builtin_constant_p(w) ? __const_parity32(w) : __arch_parity32(w))
-+#define parity64(w)  (__builtin_constant_p(w) ? __const_parity64(w) : __arch_parity64(w))
-+
-+/*
-+ * Interface for known constant arguments
-+ */
-+#define PARITY4(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity4(w))
-+#define PARITY8(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity8(w))
-+#define PARITY16(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity16(w))
-+#define PARITY32(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity32(w))
-+#define PARITY64(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity64(w))
-+
-+/*
-+ * Type invariant interface to the compile time constant parity functions.
-+ */
-+#define PARITY(w)    PARITY64((u64)(w))
-+
-+#endif /* _ASM_GENERIC_BITOPS_CONST_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/parity.h b/include/asm-generic/bitops/parity.h
-new file mode 100644
-index 0000000..a91dce7
---- /dev/null
-+++ b/include/asm-generic/bitops/parity.h
-@@ -0,0 +1,7 @@
-+#ifndef _ASM_GENERIC_BITOPS_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_PARITY_H_
-+
-+#include <asm-generic/bitops/arch_parity.h>
-+#include <asm-generic/bitops/const_parity.h>
-+
-+#endif /* _ASM_GENERIC_BITOPS_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/popc-parity.h b/include/asm-generic/bitops/popc-parity.h
-new file mode 100644
-index 0000000..bf05999
---- /dev/null
-+++ b/include/asm-generic/bitops/popc-parity.h
-@@ -0,0 +1,32 @@
-+#ifndef _ASM_GENERIC_BITOPS_POPC_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_POPC_PARITY_H_
-+
-+#include <asm/types.h>
-+
-+static inline unsigned int __arch_parity32(unsigned int w)
-+{
-+	return __builtin_popcount(w) & 1;
-+}
-+
-+static inline unsigned int __arch_parity16(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xffff);
-+}
-+
-+static inline unsigned int __arch_parity8(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xff);
-+}
-+
-+static inline unsigned int __arch_parity4(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xf);
-+}
-+
-+static inline unsigned int __arch_parity64(__u64 w)
-+{
-+	return (unsigned int)__builtin_popcountll(w) & 1;
-+}
-+
-+#endif
-+
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index defeaac..c3ea19e 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -30,6 +30,11 @@ extern unsigned int __sw_hweight32(unsigned int w);
- extern unsigned long __sw_hweight64(__u64 w);
- 
- /*
-+ * a miniature 16-bit parity-table of 4-bit numbers
-+ */
-+#define	PARITY_MAGIC	0x6996
-+
-+/*
-  * Include this here because some architectures need generic_ffs/fls in
-  * scope
-  */
-@@ -80,6 +85,11 @@ static __always_inline unsigned long hweight_long(unsigned long w)
- 	return sizeof(w) == 4 ? hweight32(w) : hweight64(w);
- }
- 
-+static __always_inline unsigned int parity_long(unsigned long w)
-+{
-+	return sizeof(w) == 4 ? parity32(w) : parity64(w);
-+}
-+
- /**
-  * rol64 - rotate a 64-bit value left
-  * @word: value to rotate
--- 
-2.5.0
+commit 926ad48847c9fbc665285c49ff823666e145a083
+Author: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+Date:   Wed Apr 6 17:59:03 2016 +0800
 
+     arm64: enable aarch32 application by default
+
+     After introduce the AARCH32_EL0. The aarch32 application is disabled
+     by default which was enabled by default. And the aarch32 application
+     could not run on these kernels consequently.
+
+     This commit enable it in Kconfig explicitly.
+
+     Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 19d8e31..3b543c7 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -934,6 +934,7 @@ config AARCH32_EL0
+         select HAVE_UID16
+         select OLD_SIGSUSPEND3
+         select COMPAT_OLD_SIGACTION
++       default y
+         help
+           This option enables support for a 32-bit EL0 running under a 64-bit
+           kernel at EL1. AArch32-specific components such as system calls,
+
+
+On 2016/4/6 6:08, Yury Norov wrote:
+> From: Andrew Pinski <apinski@cavium.com>
+>
+> In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
+> which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
+>
+>  From now, AARCH32_EL0 (former COMPAT) config option means the support of
+> AARCH32 userspace, ARM64_ILP32 - support of ILP32 ABI (see next patches),
+> and COMPAT indicates that one of them, or both, is enabled.
+>
+> Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+> Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+> Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> Reviewed-by: David Daney <ddaney@caviumnetworks.com>
+> ---
+>   arch/arm64/Kconfig | 4 ++++
+>   1 file changed, 4 insertions(+)
+>
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 4f43622..f923687 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -925,6 +925,10 @@ menu "Userspace binary formats"
+>   source "fs/Kconfig.binfmt"
+>
+>   config COMPAT
+> +	def_bool y
+> +	depends on AARCH32_EL0
+> +
+> +config AARCH32_EL0
+>   	bool "Kernel support for 32-bit EL0"
+>   	depends on ARM64_4K_PAGES || EXPERT
+>   	select COMPAT_BINFMT_ELF
+>
 
