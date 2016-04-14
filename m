@@ -1,171 +1,134 @@
-From: zengzhaoxiu@163.com
-Subject: [PATCH V3 00/29] bitops: add parity functions
-Date: Thu, 14 Apr 2016 12:18:40 +0800
-Message-ID: <1460607523-6560-1-git-send-email-zengzhaoxiu@163.com>
-References: <1460601525-3822-1-git-send-email-zengzhaoxiu@163.com>
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1460601525-3822-1-git-send-email-zengzhaoxiu@163.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: linux-kernel@vger.kernel.org
-Cc: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Hartmut Knaack <knaack.h@gmx.de>, Lars-Peter Clausen <lars@metafoo.de>, Peter Meerwald <pmeerw@pmeerw.net>, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux@lists.openrisc.net, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, qat-linux@i
+From: Romain Perier <romain.perier@free-electrons.com>
+Subject: [PATCH] asm-generic/futex: Properly re-enable preemption in futex_atomic_cmpxchg_inatomic()
+Date: Thu, 14 Apr 2016 15:36:03 +0200
+Message-ID: <1460640963-690-1-git-send-email-romain.perier@free-electrons.com>
+Return-path: <stable-owner@vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, stable@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+The futex subsystem relies on futex_atomic_cmpxchg_inatomic() to
+perform an atomic cmpxchg. Most architectures provide their own
+implementation. For those who do not, <asm-generic/futex.h> provides a
+generic software implementations that works on !SMP platforms.
 
-When I do "grep parity -r linux", I found many parity calculations
-distributed in many drivers.
+To provide an atomicity guarantee on !SMP plaforms, the generic
+implementation simply disables preemption.
+However it is not properly re-enabled from conditional branches.
 
-This patch series does:
-  1. provide generic and architecture-specific parity calculations
-  2. remove drivers' local parity calculations, use bitops' parity
-     functions instead
-  3. replace "hweightN(x) & 1" with "parityN(x)" to improve readability,
-     and improve performance on some CPUs that without popcount support
+The observed consequence of this bug is that the preemption counter is
+not well balanced. It can be seen at boot time :
 
-I did not use GCC's __builtin_parity* functions, based on the following reasons:
-  1. I don't know where to identify which version of GCC from the beginning
-     supported __builtin_parity for the architecture.
-  2. For the architecture that doesn't has popcount instruction, GCC instead use
-     "call __paritysi2" (__paritydi2 for 64-bits). So if use __builtin_parity, we must
-     provide __paritysi2 and __paritydi2 functions for these architectures.
-     Additionally, parity4,8,16 might be "__builtin_parity(x & mask)", but the "& mask"
-     operation is totally unnecessary.
-  3. For the architecture that has popcount instruction, we do the same things.
-  4. For powerpc, sparc, and x86, we do runtime patching to use popcount instruction
-     if the CPU support.
+[    8.148000] futex hash table entries: 256 (order: -1, 3072 bytes)
+[    8.156000] ------------[ cut here ]------------
+[    8.164000] WARNING: CPU: 0 PID: 1 at init/main.c:806 do_one_initcall+0x1ac/0x1d0()
+[    8.172000] initcall futex_init+0x0/0xd8 returned with preemption imbalance
+[    8.180000] Modules linked in:
+[    8.184000] CPU: 0 PID: 1 Comm: swapper Not tainted 4.5.0 #72
+[    8.192000] Stack from d1c1deb8:
+[    8.196000]
+[    8.196000]         d1c1debc
+[    8.204000]  d1c1defc 00000009
+[    8.204000]  d04d8b90 00000326
+[    8.208000]  d0000380 d0136484
+[    8.212000]  d00093b4
 
-I have compiled successfully with x86_64_defconfig, i386_defconfig, pseries_defconfig
-and sparc64_defconfig.
+[    8.216000]  00000326 d0000380
+[    8.220000]  d1c1c000 00000000
+[    8.224000]  d026c64c 00000000
+[    8.228000]  d0515004 d0009410
+[    8.232000]
+[    8.232000]         d1c1defc
+[    8.236000]  d04d8d8c d1c1df08
+[    8.240000]  d0000380 d026c64c
+[    8.244000]  d1c1df10 65657270
+[    8.248000]  6974706d
 
-Changes to v2:
-- Add constant PARITY_MAGIC (proposals by Sam Ravnborg)
-- Add include/asm-generic/bitops/popc-parity.h (proposals by Chris Metcalf)
-- Tile uses popc-parity.h directly
-- Mips uses popc-parity.h if has usable __builtin_popcount
-- Add few comments in powerpc's and sparc's parity.S
-- X86, remove custom calling convention
+[    8.252000]  69206e6f 6c61626d
+[    8.256000]  65636e61 d0780020
+[    8.260000]  d05108a0 00000001
+[    8.264000]  d00225c8 00000000
+[    8.268000]
+[    8.268000]         d05103c8
+[    8.272000]  0000003f 00060006
+[    8.276000]  d05108a0 00000006
+[    8.280000]  0000003f 00000007
+[    8.284000]  0000003f
 
-Changes to v1:
-- Add runtime patching for powerpc, sparc, and x86
-- Avr32 use grenric parity too
-- Fix error in ssfdc's patch, and add commit message
-- Don't change the original code composition of drivers/iio/gyro/adxrs450.c
-- Directly assignement to phy_cap.parity in drivers/scsi/isci/phy.c
+[    8.288000]  d052501c d0525024
+[    8.288000]  d027d480 d0266c78
+[    8.292000]  00000006 00000006
+[    8.296000]  00000000 d026627c
+[    8.300000]
+[    8.300000] Call Trace:
 
-Regards,
+[    8.308000]  [<d025fc58>] [<d025fc68>]
+[    8.312000]  [<d025fc58>] [<d000130c>]
+[    8.316000]
+[    8.316000]
 
-=== diffstat ===
+---[ end trace 2d3fe47ac46f91f6 ]---
 
-Zhaoxiu Zeng (29):
-  bitops: add parity functions
-  Include generic parity.h in some architectures' bitops.h
-  Add alpha-specific parity functions
-  Add blackfin-specific parity functions
-  Add ia64-specific parity functions
-  Tile and MIPS (if has usable __builtin_popcount) use popcount parity
-    functions
-  Add powerpc-specific parity functions
-  Add sparc-specific parity functions
-  Add x86-specific parity functions
-  sunrpc: use parity8
-  mips: use parity functions in cerr-sb1.c
-  bch: use parity32
-  media: use parity8 in vivid-vbi-gen.c
-  media: use parity functions in saa7115
-  input: use parity32 in grip_mp
-  input: use parity64 in sidewinder
-  input: use parity16 in ams_delta_serio
-  scsi: use parity32 in isci's phy
-  mtd: use parity16 in ssfdc
-  mtd: use parity functions in inftlcore
-  crypto: use parity functions in qat_hal
-  mtd: use parity16 in sm_ftl
-  ethernet: use parity8 in sun/niu.c
-  input: use parity8 in pcips2
-  input: use parity8 in sa1111ps2
-  iio: use parity32 in adxrs450
-  serial: use parity32 in max3100
-  input: use parity8 in elantech
-  ethernet: use parity8 in broadcom/tg3.c
+Before commit 8222dbe21e79
+("sched/preempt, mm/fault: Decouple preemption from the page fault logic")
+, the preemption was disabled/re-enabled by the
+pagefault_disable()/pagefault_enable() functions. It is no longer the
+case.
 
- arch/alpha/include/asm/bitops.h              |  27 +++++
- arch/arc/include/asm/bitops.h                |   1 +
- arch/arm/include/asm/bitops.h                |   1 +
- arch/arm64/include/asm/bitops.h              |   1 +
- arch/avr32/include/asm/bitops.h              |   1 +
- arch/blackfin/include/asm/bitops.h           |  31 ++++++
- arch/c6x/include/asm/bitops.h                |   1 +
- arch/cris/include/asm/bitops.h               |   1 +
- arch/frv/include/asm/bitops.h                |   1 +
- arch/h8300/include/asm/bitops.h              |   1 +
- arch/hexagon/include/asm/bitops.h            |   1 +
- arch/ia64/include/asm/bitops.h               |  31 ++++++
- arch/m32r/include/asm/bitops.h               |   1 +
- arch/m68k/include/asm/bitops.h               |   1 +
- arch/metag/include/asm/bitops.h              |   1 +
- arch/mips/include/asm/bitops.h               |   7 ++
- arch/mips/mm/cerr-sb1.c                      |  67 ++++---------
- arch/mn10300/include/asm/bitops.h            |   1 +
- arch/openrisc/include/asm/bitops.h           |   1 +
- arch/parisc/include/asm/bitops.h             |   1 +
- arch/powerpc/include/asm/bitops.h            |  11 +++
- arch/powerpc/lib/Makefile                    |   2 +-
- arch/powerpc/lib/parity_64.S                 | 142 +++++++++++++++++++++++++++
- arch/powerpc/lib/ppc_ksyms.c                 |   5 +
- arch/s390/include/asm/bitops.h               |   1 +
- arch/sh/include/asm/bitops.h                 |   1 +
- arch/sparc/include/asm/bitops_32.h           |   1 +
- arch/sparc/include/asm/bitops_64.h           |  18 ++++
- arch/sparc/kernel/sparc_ksyms_64.c           |   6 ++
- arch/sparc/lib/Makefile                      |   2 +-
- arch/sparc/lib/parity.S                      | 128 ++++++++++++++++++++++++
- arch/tile/include/asm/bitops.h               |   2 +
- arch/x86/include/asm/arch_hweight.h          |   5 +
- arch/x86/include/asm/arch_parity.h           | 117 ++++++++++++++++++++++
- arch/x86/include/asm/bitops.h                |   4 +-
- arch/xtensa/include/asm/bitops.h             |   1 +
- drivers/crypto/qat/qat_common/qat_hal.c      |  32 ++----
- drivers/iio/gyro/adxrs450.c                  |   4 +-
- drivers/input/joystick/grip_mp.c             |  16 +--
- drivers/input/joystick/sidewinder.c          |  24 +----
- drivers/input/mouse/elantech.c               |  10 +-
- drivers/input/mouse/elantech.h               |   1 -
- drivers/input/serio/ams_delta_serio.c        |   8 +-
- drivers/input/serio/pcips2.c                 |   2 +-
- drivers/input/serio/sa1111ps2.c              |   2 +-
- drivers/media/i2c/saa7115.c                  |  17 +---
- drivers/media/platform/vivid/vivid-vbi-gen.c |   9 +-
- drivers/mtd/inftlcore.c                      |  17 +---
- drivers/mtd/sm_ftl.c                         |   5 +-
- drivers/mtd/ssfdc.c                          |  31 ++----
- drivers/net/ethernet/broadcom/tg3.c          |   6 +-
- drivers/net/ethernet/sun/niu.c               |  10 +-
- drivers/scsi/isci/phy.c                      |  15 +--
- drivers/tty/serial/max3100.c                 |   2 +-
- include/asm-generic/bitops.h                 |   1 +
- include/asm-generic/bitops/arch_parity.h     |  39 ++++++++
- include/asm-generic/bitops/const_parity.h    |  36 +++++++
- include/asm-generic/bitops/parity.h          |   7 ++
- include/asm-generic/bitops/popc-parity.h     |  32 ++++++
- include/linux/bitops.h                       |  10 ++
- lib/bch.c                                    |  14 +--
- net/sunrpc/auth_gss/gss_krb5_keys.c          |   6 +-
- 62 files changed, 745 insertions(+), 235 deletions(-)
- create mode 100644 arch/powerpc/lib/parity_64.S
- create mode 100644 arch/sparc/lib/parity.S
- create mode 100644 arch/x86/include/asm/arch_parity.h
- create mode 100644 include/asm-generic/bitops/arch_parity.h
- create mode 100644 include/asm-generic/bitops/const_parity.h
- create mode 100644 include/asm-generic/bitops/parity.h
- create mode 100644 include/asm-generic/bitops/popc-parity.h
+Which means that cmpxchg_futex_value_locked(), in kernel/futex.c, no
+longer disables preemption before calling futex_atomic_cmpxchg_inatomic.
+Disabling preemption in the generic implementation was added by commit
+d9b9ff8c1889 ("sched/preempt, futex: Disable preemption in UP futex_atomic_cmpxchg_inatomic() explicitly").
+However, this change is bogus: preemption is not re-enabled in the two failure cases.
 
+Indeed, At boot time futex_detect_cmpxchg(), in kernel/futex.c, checks if
+futex_atomic_cmpxchg_inatomic() operation is provided by the current
+architecture. To do so, it calls futex_atomic_cmpxchg_inatomic() with a
+NULL pointer as the futex, and expects -EFAULT as a return value. The
+reasoning if that if -EFAULT is returned, then there is a valid
+futex_atomic_cmpxchg_inatomic() implementation, while if -ENOSYS is
+returned, then it means that there is no implementation of this function
+for the current architecture.
+
+By doing this test based on a NULL pointer, we fall into the case where
+the get_user() in the asm-generic version of
+futex_atomic_cmpxchg_inatomic() fails, and returns -EFAULT without
+re-enabling the preemption, causing the preemption unbalance in the
+futex_init() initcall.
+
+This bug was not found, because most of the architectures in the kernel
+use their own implementation. This is not the case for the nios2 platform.
+By using a nios2 board without SMP support, this bug can be easily
+reproduced.
+
+Fixes: d9b9ff8c1889 ("sched/preempt, futex: Disable preemption in UP futex_atomic_cmpxchg_inatomic() explicitly")
+Signed-off-by: Romain Perier <romain.perier@free-electrons.com>
+---
+ include/asm-generic/futex.h | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
+index e56272c..bf2d34c 100644
+--- a/include/asm-generic/futex.h
++++ b/include/asm-generic/futex.h
+@@ -108,11 +108,15 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+ 	u32 val;
+ 
+ 	preempt_disable();
+-	if (unlikely(get_user(val, uaddr) != 0))
++	if (unlikely(get_user(val, uaddr) != 0)) {
++		preempt_enable();
+ 		return -EFAULT;
++	}
+ 
+-	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
++	if (val == oldval && unlikely(put_user(newval, uaddr) != 0)) {
++		preempt_enable();
+ 		return -EFAULT;
++	}
+ 
+ 	*uval = val;
+ 	preempt_enable();
 -- 
-2.5.0
+2.8.0
