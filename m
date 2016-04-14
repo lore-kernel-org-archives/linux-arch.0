@@ -1,45 +1,104 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH 01/19] tree wide: get rid of __GFP_REPEAT for order-0
- allocations part I
-Date: Thu, 14 Apr 2016 12:56:28 -0700 (PDT)
-Message-ID: <alpine.DEB.2.10.1604141255020.6593@chino.kir.corp.google.com>
-References: <1460372892-8157-1-git-send-email-mhocko@kernel.org> <1460372892-8157-2-git-send-email-mhocko@kernel.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH] documentation: Add disclaimer
+Date: Thu, 14 Apr 2016 14:40:15 -0700
+Message-ID: <20160414214015.GA31866@linux.vnet.ibm.com>
+References: <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com>
+	<20160114204827.GE3818@linux.vnet.ibm.com>
+	<56981212.7050301@imgtec.com>
+	<20160114222046.GH3818@linux.vnet.ibm.com>
+	<20160126102402.GE6357@twins.programming.kicks-ass.net>
+	<20160126103200.GI6375@twins.programming.kicks-ass.net>
+	<20160126110053.GA21553@arm.com>
+	<20160126201143.GV4503@linux.vnet.ibm.com>
+	<20160127083546.GJ6357@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f173.google.com ([209.85.192.173]:34037 "EHLO
-	mail-pf0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750724AbcDNT4b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Apr 2016 15:56:31 -0400
-Received: by mail-pf0-f173.google.com with SMTP id c20so49006934pfc.1
-        for <linux-arch@vger.kernel.org>; Thu, 14 Apr 2016 12:56:30 -0700 (PDT)
-In-Reply-To: <1460372892-8157-2-git-send-email-mhocko@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160127083546.GJ6357@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Will Deacon <will.deacon@arm.com>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 11 Apr 2016, Michal Hocko wrote:
+On Wed, Jan 27, 2016 at 09:35:46AM +0100, Peter Zijlstra wrote:
+> On Tue, Jan 26, 2016 at 12:11:43PM -0800, Paul E. McKenney wrote:
+> > So Peter, would you like to update your patch to include yourself
+> > and Will as authors?
+> 
+> Sure, here goes.
+> 
+> ---
+> Subject: documentation: Add disclaimer
+> 
+> It appears people are reading this document as a requirements list for
+> building hardware. This is not the intent of this document. Nor is it
+> particularly suited for this purpose.
+> 
+> The primary purpose of this document is our collective attempt to define
+> a set of primitives that (hopefully) allow us to write correct code on
+> the myriad of SMP platforms Linux supports.
+> 
+> Its a definite work in progress as our understanding of these platforms,
+> and memory ordering in general, progresses.
+> 
+> Nor does being mentioned in this document mean we think its a
+> particularly good idea; the data dependency barrier required by Alpha
+> being a prime example. Yes we have it, no you're insane to require it
+> when building new hardware.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-> From: Michal Hocko <mhocko@suse.com>
-> 
-> __GFP_REPEAT has a rather weak semantic but since it has been introduced
-> around 2.6.12 it has been ignored for low order allocations. Yet we have
-> the full kernel tree with its usage for apparently order-0 allocations.
-> This is really confusing because __GFP_REPEAT is explicitly documented
-> to allow allocation failures which is a weaker semantic than the current
-> order-0 has (basically nofail).
-> 
-> Let's simply drop __GFP_REPEAT from those places. This would allow
-> to identify place which really need allocator to retry harder and
-> formulate a more specific semantic for what the flag is supposed to do
-> actually.
-> 
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
+Rather belatedly queued and pushed to -rcu, apologies for the delay.
+One minor edit noted below.
 
-I did exactly this before, and Andrew objected saying that __GFP_REPEAT 
-may not be needed for the current page allocator's implementation but 
-could with others and that setting __GFP_REPEAT for an allocation 
-provided useful information with regards to intent.  At the time, I 
-attempted to eliminate __GFP_REPEAT entirely.
+							Thanx, Paul
+
+> ---
+>  Documentation/memory-barriers.txt | 18 +++++++++++++++++-
+>  1 file changed, 17 insertions(+), 1 deletion(-)
+> 
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index a61be39c7b51..98626125f484 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -4,8 +4,24 @@
+> 
+>  By: David Howells <dhowells@redhat.com>
+>      Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> +    Will Deacon <will.deacon@arm.com>
+> +    Peter Zijlstra <peterz@infradead.org>
+> 
+> -Contents:
+> +==========
+> +DISCLAIMER
+> +==========
+> +
+> +This document is not a specification; it is intentionally (for the sake of
+> +brevity) and unintentionally (due to being human) incomplete. This document is
+> +meant as a guide to using the various memory barriers provided by Linux, but
+> +in case of any doubt (and there are many) please ask.
+> +
+> +I repeat, this document is not a specification of what Linux expects from
+
+s/I/To/ because there is more than one author.
+
+> +hardware.
+> +
+> +========
+> +CONTENTS
+> +========
+> 
+>   (*) Abstract memory access model.
+> 
+> 
