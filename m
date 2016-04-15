@@ -1,82 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e19.ny.us.ibm.com ([129.33.205.209]:33470 "EHLO
-	e19.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752108AbcDNVkh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Apr 2016 17:40:37 -0400
-Received: from localhost
-	by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 14 Apr 2016 17:40:36 -0400
-Date: Thu, 14 Apr 2016 14:40:54 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH] documentation: Add disclaimer
-Message-ID: <20160414214054.GB31866@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20160114120445.GB15828@arm.com>
- <56980145.5030901@imgtec.com>
- <20160114204827.GE3818@linux.vnet.ibm.com>
- <56981212.7050301@imgtec.com>
- <20160114222046.GH3818@linux.vnet.ibm.com>
- <20160126102402.GE6357@twins.programming.kicks-ass.net>
- <20160126103200.GI6375@twins.programming.kicks-ass.net>
- <20160126110053.GA21553@arm.com>
- <20160126201143.GV4503@linux.vnet.ibm.com>
- <15882.1453906627@warthog.procyon.org.uk>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36466 "EHLO
+	mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751517AbcDOHoZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Apr 2016 03:44:25 -0400
+Date: Fri, 15 Apr 2016 09:44:21 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 01/19] tree wide: get rid of __GFP_REPEAT for order-0
+ allocations part I
+Message-ID: <20160415074421.GB32377@dhcp22.suse.cz>
+References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
+ <1460372892-8157-2-git-send-email-mhocko@kernel.org>
+ <alpine.DEB.2.10.1604141255020.6593@chino.kir.corp.google.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <15882.1453906627@warthog.procyon.org.uk>
+In-Reply-To: <alpine.DEB.2.10.1604141255020.6593@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20160414214054.mHooqw0_700fyrcjkrj-XQhIeJuExhYhI0YA7d6e_B0@z>
+To: David Rientjes <rientjes@google.com>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160415074421.AcMcixUtjeRZY_tGJvwPl_ZSFYkL7cUWv6Mq2XUYHUo@z>
 
-On Wed, Jan 27, 2016 at 02:57:07PM +0000, David Howells wrote:
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On Thu 14-04-16 12:56:28, David Rientjes wrote:
+> On Mon, 11 Apr 2016, Michal Hocko wrote:
 > 
-> > +==========
-> > +DISCLAIMER
-> > +==========
-> > +
-> > +This document is not a specification; it is intentionally (for the sake of
-> > +brevity) and unintentionally (due to being human) incomplete. This document is
-> > +meant as a guide to using the various memory barriers provided by Linux, but
-> > +in case of any doubt (and there are many) please ask.
-> > +
-> > +I repeat, this document is not a specification of what Linux expects from
-> > +hardware.
+> > From: Michal Hocko <mhocko@suse.com>
+> > 
+> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > around 2.6.12 it has been ignored for low order allocations. Yet we have
+> > the full kernel tree with its usage for apparently order-0 allocations.
+> > This is really confusing because __GFP_REPEAT is explicitly documented
+> > to allow allocation failures which is a weaker semantic than the current
+> > order-0 has (basically nofail).
+> > 
+> > Let's simply drop __GFP_REPEAT from those places. This would allow
+> > to identify place which really need allocator to retry harder and
+> > formulate a more specific semantic for what the flag is supposed to do
+> > actually.
+> > 
+> > Cc: linux-arch@vger.kernel.org
+> > Signed-off-by: Michal Hocko <mhocko@suse.com>
 > 
-> The purpose of this document is twofold:
-> 
->  (1) to specify the minimum functionality that one can rely on for any
->      particular barrier, and
-> 
->  (2) to provide a guide as to how to use the barriers that are available.
-> 
-> Note that an architecture can provide more than the minimum requirement for
-> any particular barrier, but if the barrier provides less than that, it is
-> incorrect.
-> 
-> Note also that it is possible that a barrier may be a no-op for an
-> architecture because the way that arch works renders an explicit barrier
-> unnecessary in that case.
-> 
-> > +
-> 
-> Can you bung an extra blank line in here if you have to redo this at all?
-
-Done as part of your patch.  Again, apologies for the delay.
-
-							Thanx, Paul
-
-> > +========
-> > +CONTENTS
-> > +========
-> >  
-> >   (*) Abstract memory access model.
-> >  
-> 
-> David
-> 
-
+> I did exactly this before, and Andrew objected saying that __GFP_REPEAT 
+> may not be needed for the current page allocator's implementation but 
+> could with others and that setting __GFP_REPEAT for an allocation 
+> provided useful information with regards to intent.
