@@ -1,72 +1,64 @@
-From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH] documentation: Add disclaimer
-Date: Thu, 14 Apr 2016 14:40:54 -0700
-Message-ID: <20160414214054.GB31866@linux.vnet.ibm.com>
-References: <20160114120445.GB15828@arm.com>
- <56980145.5030901@imgtec.com>
- <20160114204827.GE3818@linux.vnet.ibm.com>
- <56981212.7050301@imgtec.com>
- <20160114222046.GH3818@linux.vnet.ibm.com>
- <20160126102402.GE6357@twins.programming.kicks-ass.net>
- <20160126103200.GI6375@twins.programming.kicks-ass.net>
- <20160126110053.GA21553@arm.com>
- <20160126201143.GV4503@linux.vnet.ibm.com>
- <15882.1453906627@warthog.procyon.org.uk>
-Reply-To: paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 01/19] tree wide: get rid of __GFP_REPEAT for order-0
+ allocations part I
+Date: Fri, 15 Apr 2016 09:44:21 +0200
+Message-ID: <20160415074421.GB32377@dhcp22.suse.cz>
+References: <1460372892-8157-1-git-send-email-mhocko@kernel.org>
+ <1460372892-8157-2-git-send-email-mhocko@kernel.org>
+ <alpine.DEB.2.10.1604141255020.6593@chino.kir.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <15882.1453906627-S6HVgzuS8uM4Awkfq6JHfwNdhmdF6hFW@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Leonid Yegoshin <Leonid.Yegoshin-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+In-Reply-To: <alpine.DEB.2.10.1604141255020.6593@chino.kir.corp.google.com>
+Sender: owner-linux-mm@kvack.org
+To: David Rientjes <rientjes@google.com>
+Cc: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 27, 2016 at 02:57:07PM +0000, David Howells wrote:
-> Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+On Thu 14-04-16 12:56:28, David Rientjes wrote:
+> On Mon, 11 Apr 2016, Michal Hocko wrote:
 > 
-> > +==========
-> > +DISCLAIMER
-> > +==========
-> > +
-> > +This document is not a specification; it is intentionally (for the sake of
-> > +brevity) and unintentionally (due to being human) incomplete. This document is
-> > +meant as a guide to using the various memory barriers provided by Linux, but
-> > +in case of any doubt (and there are many) please ask.
-> > +
-> > +I repeat, this document is not a specification of what Linux expects from
-> > +hardware.
+> > From: Michal Hocko <mhocko@suse.com>
+> > 
+> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > around 2.6.12 it has been ignored for low order allocations. Yet we have
+> > the full kernel tree with its usage for apparently order-0 allocations.
+> > This is really confusing because __GFP_REPEAT is explicitly documented
+> > to allow allocation failures which is a weaker semantic than the current
+> > order-0 has (basically nofail).
+> > 
+> > Let's simply drop __GFP_REPEAT from those places. This would allow
+> > to identify place which really need allocator to retry harder and
+> > formulate a more specific semantic for what the flag is supposed to do
+> > actually.
+> > 
+> > Cc: linux-arch@vger.kernel.org
+> > Signed-off-by: Michal Hocko <mhocko@suse.com>
 > 
-> The purpose of this document is twofold:
-> 
->  (1) to specify the minimum functionality that one can rely on for any
->      particular barrier, and
-> 
->  (2) to provide a guide as to how to use the barriers that are available.
-> 
-> Note that an architecture can provide more than the minimum requirement for
-> any particular barrier, but if the barrier provides less than that, it is
-> incorrect.
-> 
-> Note also that it is possible that a barrier may be a no-op for an
-> architecture because the way that arch works renders an explicit barrier
-> unnecessary in that case.
-> 
-> > +
-> 
-> Can you bung an extra blank line in here if you have to redo this at all?
+> I did exactly this before, and Andrew objected saying that __GFP_REPEAT 
+> may not be needed for the current page allocator's implementation but 
+> could with others and that setting __GFP_REPEAT for an allocation 
+> provided useful information with regards to intent.
 
-Done as part of your patch.  Again, apologies for the delay.
+From what I've seen it was more a copy&paste of the arch code which
+spread out this flag and there was also a misleading usage.
 
-							Thanx, Paul
+> At the time, I attempted to eliminate __GFP_REPEAT entirely.
 
-> > +========
-> > +CONTENTS
-> > +========
-> >  
-> >   (*) Abstract memory access model.
-> >  
-> 
-> David
-> 
+This is not my plan. I actually want to provide a useful semantic for
+something like this flag - aka try really hard but eventually fail
+for all orders and stop being special only for those that are costly. I
+will call it __GFP_BEST_EFFORT. But I have to clean up the current usage
+first. Costly orders will keep __GFP_REPEAT because the intent is clear
+there. All others will lose the flag and then we can start adding
+__GFP_BEST_EFFORT where it matters also for lower orders.
+-- 
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
