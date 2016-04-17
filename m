@@ -1,45 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:33015 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751152AbcDPJUX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Apr 2016 05:20:23 -0400
-Date: Sat, 16 Apr 2016 11:20:18 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Message-ID: <20160416092018.GA8453@gmail.com>
-References: <20160305114012.GA7259@gmail.com>
- <1457370228.15454.311.camel@hpe.com>
- <20160308121601.GA6573@gmail.com>
- <1457483385.15454.519.camel@hpe.com>
- <20160309091525.GA11866@gmail.com>
- <1457734432.6393.199.camel@hpe.com>
- <20160316014548.GK1990@wotan.suse.de>
- <1458254693.6393.506.camel@hpe.com>
- <20160413211638.GF1990@wotan.suse.de>
- <1460731649.24985.86.camel@hpe.com>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:36256 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751091AbcDQQ70 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Apr 2016 12:59:26 -0400
+Date: Sun, 17 Apr 2016 12:59:21 -0400
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
+Message-ID: <20160417165920.GA9051@dhcp22.suse.cz>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+ <1460041951-22347-11-git-send-email-mhocko@kernel.org>
+ <20160413090829.GB29579@gmail.com>
+ <20160413091625.GF14351@dhcp22.suse.cz>
+ <20160413091943.GA17858@gmail.com>
+ <20160413102731.GA29896@gmail.com>
+ <20160413124943.GH14351@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <1460731649.24985.86.camel@hpe.com>
+In-Reply-To: <20160413124943.GH14351@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Julia Lawall <julia.lawall@lip6.fr>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
-Message-ID: <20160416092018.Dt230BCYnB6DS94zx-aJu92rZM0V1fq3q78pvAF5eM0@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20160417165921.lUH6RCvlmEK57mpNVUjrv1_U6k6Iu52i2wSDvo6DcGg@z>
 
+On Wed 13-04-16 14:49:43, Michal Hocko wrote:
+> On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
+> > 
+> > * Ingo Molnar <mingo@kernel.org> wrote:
+> > 
+> > > I'm testing your patches today, if they are otherwise OK [...]
+> > 
+> > got this build failure:
+> > 
+> >   ./arch/x86/include/asm/rwsem.h:106:2: error: ‘asm’ operand has impossible constraints
+> 
+> Hmm, I have no idea why 64b didn't have problem with the asm but 32b
+> complains. Anyway, the following makes both happy. I have checked the
+> generated code for 64b and it hasn't changed after the patch. 32b also
+> seems to be generating a proper code. My gcc asm()-foo is rather weak so
+> I would feel better if somebody double checked after me.
 
-* Toshi Kani <toshi.kani@hpe.com> wrote:
+Peter, Ingo, does the patch makes sense to you?
+Thanks!
 
-> On x86, ioremap() and remap_pfn_range() already fail on a conflicting cache
-> type if it is not allowed by the rule defined in is_new_memtype_allowed().
-> �This exception handling is necessary for remap_pfn_range() called by
-> /dev/mem, but I do not think it's necessary for ioremap(). �I think we can
-> start from adding a warning message to ioremap().
+> ---
+> From d23f4e6994670bf2c5d864f2190f21022b4499b2 Mon Sep 17 00:00:00 2001
+> From: Michal Hocko <mhocko@suse.com>
+> Date: Wed, 13 Apr 2016 14:21:25 +0200
+> Subject: [PATCH] x86: __down_read_trylock fix 32b build failure
+> MIME-Version: 1.0
+> Content-Type: text/plain; charset=UTF-8
+> Content-Transfer-Encoding: 8bit
+> 
+> Ingo has noticed the following compilation error with CONFIG_X86_32=y
+> ./arch/x86/include/asm/rwsem.h:106:2: error: ‘asm’ operand has impossible constraints
+> 
+> The reason seems to be that 32b doesn't like ret being input and output
+> argument sharing the same register with sem which is only the input. Fix
+> this by making ret output only and use %3 (aka sem) for xadd.
+> 
+> ret initialization is not needed now because this is done implicitly
+> by the asm even for the fast path as both sem and ret share the same
+> register.
+> 
+> Reported-by: Ingo Molnar <mingo@kernel.org>
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
+> ---
+>  arch/x86/include/asm/rwsem.h | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
+> index d759c5f70f49..453744c1d347 100644
+> --- a/arch/x86/include/asm/rwsem.h
+> +++ b/arch/x86/include/asm/rwsem.h
+> @@ -102,9 +102,9 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
+>  #define ____down_write(sem, slow_path)			\
+>  ({							\
+>  	long tmp;					\
+> -	struct rw_semaphore* ret = sem;			\
+> +	struct rw_semaphore* ret;			\
+>  	asm volatile("# beginning down_write\n\t"	\
+> -		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
+> +		     LOCK_PREFIX "  xadd      %1,(%3)\n\t"	\
+>  		     /* adds 0xffff0001, returns the old value */ \
+>  		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
+>  		     /* was the active mask 0 before? */\
+> @@ -112,7 +112,7 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
+>  		     "  call " slow_path "\n"		\
+>  		     "1:\n"				\
+>  		     "# ending down_write"		\
+> -		     : "+m" (sem->count), "=d" (tmp), "+a" (ret)	\
+> +		     : "+m" (sem->count), "=d" (tmp), "=a" (ret)	\
+>  		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
+>  		     : "memory", "cc");			\
+>  	ret;						\
+> -- 
+> 2.8.0.rc3
+> 
+> -- 
+> Michal Hocko
+> SUSE Labs
 
-Agreed, we should warn and map the situation before doing any behavioral change 
-that isn't a fix.
-
-Thanks,
-
-	Ingo
+-- 
+Michal Hocko
+SUSE Labs
