@@ -1,45 +1,40 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Overlapping ioremap() calls, set_memory_*() semantics
-Date: Sat, 16 Apr 2016 11:20:18 +0200
-Message-ID: <20160416092018.GA8453@gmail.com>
-References: <20160305114012.GA7259@gmail.com>
- <1457370228.15454.311.camel@hpe.com>
- <20160308121601.GA6573@gmail.com>
- <1457483385.15454.519.camel@hpe.com>
- <20160309091525.GA11866@gmail.com>
- <1457734432.6393.199.camel@hpe.com>
- <20160316014548.GK1990@wotan.suse.de>
- <1458254693.6393.506.camel@hpe.com>
- <20160413211638.GF1990@wotan.suse.de>
- <1460731649.24985.86.camel@hpe.com>
+From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Subject: Re: [PATCH V3 00/29] bitops: add parity functions
+Date: Sun, 17 Apr 2016 05:38:57 -0700
+Message-ID: <20160417123857.GD33215@dtor-ws>
+References: <1460601525-3822-1-git-send-email-zengzhaoxiu@163.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-In-Reply-To: <1460731649.24985.86.camel@hpe.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, "Maciej W. Rozycki" <macro@linux-mips.org>, Julia Lawall <julia.lawall@lip6.fr>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Dave Airlie <airlied@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, X86 ML <x86@kernel.org>, Daniel Vetter <daniel.vetter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Brian Gerst <brgerst@gmail.com>
+In-Reply-To: <1460601525-3822-1-git-send-email-zengzhaoxiu@163.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: zengzhaoxiu@163.com
+Cc: linux-kernel@vger.kernel.org, Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, adi-buildroot-devel@lists.sourceforge.net, Andrew Morton <akpm@linux-foundation.org>, Anton Blanchard <anton@samba.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Tissoires <benjamin.tissoires@redhat.com>, Borislav Petkov <bp@suse.de>, Bruce Allan <bruce.w.allan@intel.com>, Christophe Leroy <christophe.leroy@c-s.fr>, David Herrmann <dh.herrmann@gmail.com>, "David S. Miller" <davem@davemloft.net>, Denys Vlasenko <dvlasenk@redhat.com>, Duson Lin <dusonlin@emc.com.tw>, Guenter Roeck <linux@roeck-us.net>, Hans de Goede <hdegoede@redhat.com>, Hans Verkuil <hans.verkuil@cisco.com>, Hartmut Knaack <knaack.h@gmx.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, Hendrik
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, Apr 14, 2016 at 10:36:41AM +0800, zengzhaoxiu@163.com wrote:
+>  drivers/input/joystick/grip_mp.c             |  16 +--
+>  drivers/input/joystick/sidewinder.c          |  24 +----
+>  drivers/input/mouse/elantech.c               |  10 +-
+>  drivers/input/mouse/elantech.h               |   1 -
+>  drivers/input/serio/ams_delta_serio.c        |   8 +-
+>  drivers/input/serio/pcips2.c                 |   2 +-
+>  drivers/input/serio/sa1111ps2.c              |   2 +-
 
-* Toshi Kani <toshi.kani@hpe.com> wrote:
+For input bits:
 
-> On x86, ioremap() and remap_pfn_range() already fail on a conflicting=
- cache
-> type if it is not allowed by the rule defined in is_new_memtype_allow=
-ed().
-> =A0This exception handling is necessary for remap_pfn_range() called =
-by
-> /dev/mem, but I do not think it's necessary for ioremap(). =A0I think=
- we can
-> start from adding a warning message to ioremap().
+Acked-by: Dmitry Torokhov <dmitry.torokhov@gmail.com>
 
-Agreed, we should warn and map the situation before doing any behaviora=
-l change=20
-that isn't a fix.
+Thanks.
 
-Thanks,
-
-	Ingo
+-- 
+Dmitry
