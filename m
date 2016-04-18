@@ -1,36 +1,27 @@
-From: <verifelaw@gmx.com>
-Subject: IMPORTANT MAIL TO YOU
-Date: Mon, 18 Apr 2016 13:09:41 +0200
-Message-ID: <613fad89-f8e9-4340-bd2b-935a5631973f__38999.4950303391$1460977893$gmane$org@GSCADMINS22.gsc.org.uk>
-Reply-To: <lawrencetyman@gmx.com>
+From: andreas11@elisaandreas.biz
+Subject: Greetings!!!
+Date: Mon, 18 Apr 2016 18:43:22 +0100
+Message-ID: <148752.90403.qm__31268.885281361$1461001483$gmane$org@smtp106.biz.mail.gq1.yahoo.com>
+Reply-To: J_ericdaniels111@outlook.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3hn0248.outbound.protection.outlook.com ([157.55.234.248]:41114
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752661AbcDRLKX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Apr 2016 07:10:23 -0400
+Received: from smtp106.biz.mail.gq1.yahoo.com ([98.137.12.181]:29472 "EHLO
+	smtp106.biz.mail.gq1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753235AbcDRRny convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Apr 2016 13:43:54 -0400
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: "Mr. Eric" <andreas11@elisaandreas.biz>
 
-I am Capt. Lawrence Tyman, an officer in US Army,and also a West Point
-Graduate, serving in the Military with the 82nd Air Borne Division
-Peace keeping force deployed from Afganistan to Syria.  
-We were moved to Syria from Iraq as the last batch just left,and i
-really need your help in assisting me with the safe keeping of 1 military
-trunk box contain funds amount of $10.2M which i secured on a raiding we carried out in 
-January in one of the chief Syrian IsIs base which i headed the squard as the 
-Captain.  With every possible arrangement to lift this box out, is intended to arrive 
-Belgium from there a diplomat will deliver it to your designated location
-I hope you can be trusted? You will be rewarded handsomely if you could help
-me secure the funds until I conclude my service here in 3 month to meet you while we can 
-plan head to head on a good and profitable business or company i can invest my funds in your country.
-If you can be trusted and willing to support me in securing this safely kindly indicate 
-by Letting me know this (1) Your name (2) Your address (3) Age (4) Occupation and 
-i will explain further when i get a response from you
-kindly contact me in this my private email address below: lawrencetyman@gmx.com
-
-Regards,
-Capt. Lawrence Tyman
+Hi, how are you? My name is J Eric Denials, External Financial Auditor =
+at Lloyds Banking Group plc., London. It is a pleasure to contact you a=
+t this time through this medium. I have a cool and legitimate deal to d=
+o with you as you're a foreigner, it will be mutually beneficial to bot=
+h. If you=E2=80=99re interested, urgently, get back to me for more expl=
+anation about the deal.
+Regards
+Eric
