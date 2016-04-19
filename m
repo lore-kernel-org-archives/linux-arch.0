@@ -1,108 +1,259 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:36256 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751091AbcDQQ70 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Apr 2016 12:59:26 -0400
-Date: Sun, 17 Apr 2016 12:59:21 -0400
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Message-ID: <20160417165920.GA9051@dhcp22.suse.cz>
-References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
- <1460041951-22347-11-git-send-email-mhocko@kernel.org>
- <20160413090829.GB29579@gmail.com>
- <20160413091625.GF14351@dhcp22.suse.cz>
- <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
- <20160413124943.GH14351@dhcp22.suse.cz>
+Received: from mail-lf0-f43.google.com ([209.85.215.43]:36308 "EHLO
+	mail-lf0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753112AbcDSI1M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Apr 2016 04:27:12 -0400
+Subject: [PATCH] arch/defconfig: remove CONFIG_RESOURCE_COUNTERS
+From: Konstantin Khlebnikov <koct9i@gmail.com>
+Date: Tue, 19 Apr 2016 11:27:07 +0300
+Message-ID: <146105442758.18940.2792564159961963110.stgit@zurg>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20160413124943.GH14351@dhcp22.suse.cz>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20160417165921.lUH6RCvlmEK57mpNVUjrv1_U6k6Iu52i2wSDvo6DcGg@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160419082707.1IfDFC-qQldxvgBYWSZFslMk4bgVE0BkqnX8PAZfHmA@z>
 
-On Wed 13-04-16 14:49:43, Michal Hocko wrote:
-> On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
-> > 
-> > * Ingo Molnar <mingo@kernel.org> wrote:
-> > 
-> > > I'm testing your patches today, if they are otherwise OK [...]
-> > 
-> > got this build failure:
-> > 
-> >   ./arch/x86/include/asm/rwsem.h:106:2: error: ‘asm’ operand has impossible constraints
-> 
-> Hmm, I have no idea why 64b didn't have problem with the asm but 32b
-> complains. Anyway, the following makes both happy. I have checked the
-> generated code for 64b and it hasn't changed after the patch. 32b also
-> seems to be generating a proper code. My gcc asm()-foo is rather weak so
-> I would feel better if somebody double checked after me.
+This option replaced by PAGE_COUNTER which is selected by MEMCG.
 
-Peter, Ingo, does the patch makes sense to you?
-Thanks!
+Signed-off-by: Konstantin Khlebnikov <koct9i@gmail.com>
+---
+ arch/arm/configs/bcm_defconfig              |    1 -
+ arch/arm/configs/zx_defconfig               |    1 -
+ arch/mips/configs/db1xxx_defconfig          |    1 -
+ arch/mips/configs/loongson3_defconfig       |    1 -
+ arch/mn10300/configs/asb2364_defconfig      |    1 -
+ arch/sh/configs/apsh4ad0a_defconfig         |    1 -
+ arch/sh/configs/sdk7786_defconfig           |    1 -
+ arch/sh/configs/se7206_defconfig            |    1 -
+ arch/sh/configs/shx3_defconfig              |    1 -
+ arch/sh/configs/urquell_defconfig           |    1 -
+ arch/tile/configs/tilegx_defconfig          |    1 -
+ arch/tile/configs/tilepro_defconfig         |    1 -
+ arch/um/configs/i386_defconfig              |    1 -
+ arch/um/configs/x86_64_defconfig            |    1 -
+ arch/x86/configs/i386_defconfig             |    1 -
+ arch/x86/configs/x86_64_defconfig           |    1 -
+ arch/xtensa/configs/generic_kc705_defconfig |    1 -
+ arch/xtensa/configs/smp_lx200_defconfig     |    1 -
+ 18 files changed, 18 deletions(-)
 
-> ---
-> From d23f4e6994670bf2c5d864f2190f21022b4499b2 Mon Sep 17 00:00:00 2001
-> From: Michal Hocko <mhocko@suse.com>
-> Date: Wed, 13 Apr 2016 14:21:25 +0200
-> Subject: [PATCH] x86: __down_read_trylock fix 32b build failure
-> MIME-Version: 1.0
-> Content-Type: text/plain; charset=UTF-8
-> Content-Transfer-Encoding: 8bit
-> 
-> Ingo has noticed the following compilation error with CONFIG_X86_32=y
-> ./arch/x86/include/asm/rwsem.h:106:2: error: ‘asm’ operand has impossible constraints
-> 
-> The reason seems to be that 32b doesn't like ret being input and output
-> argument sharing the same register with sem which is only the input. Fix
-> this by making ret output only and use %3 (aka sem) for xadd.
-> 
-> ret initialization is not needed now because this is done implicitly
-> by the asm even for the fast path as both sem and ret share the same
-> register.
-> 
-> Reported-by: Ingo Molnar <mingo@kernel.org>
-> Signed-off-by: Michal Hocko <mhocko@suse.com>
-> ---
->  arch/x86/include/asm/rwsem.h | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-> index d759c5f70f49..453744c1d347 100644
-> --- a/arch/x86/include/asm/rwsem.h
-> +++ b/arch/x86/include/asm/rwsem.h
-> @@ -102,9 +102,9 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
->  #define ____down_write(sem, slow_path)			\
->  ({							\
->  	long tmp;					\
-> -	struct rw_semaphore* ret = sem;			\
-> +	struct rw_semaphore* ret;			\
->  	asm volatile("# beginning down_write\n\t"	\
-> -		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
-> +		     LOCK_PREFIX "  xadd      %1,(%3)\n\t"	\
->  		     /* adds 0xffff0001, returns the old value */ \
->  		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
->  		     /* was the active mask 0 before? */\
-> @@ -112,7 +112,7 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
->  		     "  call " slow_path "\n"		\
->  		     "1:\n"				\
->  		     "# ending down_write"		\
-> -		     : "+m" (sem->count), "=d" (tmp), "+a" (ret)	\
-> +		     : "+m" (sem->count), "=d" (tmp), "=a" (ret)	\
->  		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
->  		     : "memory", "cc");			\
->  	ret;						\
-> -- 
-> 2.8.0.rc3
-> 
-> -- 
-> Michal Hocko
-> SUSE Labs
+diff --git a/arch/arm/configs/bcm_defconfig b/arch/arm/configs/bcm_defconfig
+index 7117662bab2e..909049a280ec 100644
+--- a/arch/arm/configs/bcm_defconfig
++++ b/arch/arm/configs/bcm_defconfig
+@@ -12,7 +12,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_BLK_CGROUP=y
+ CONFIG_NAMESPACES=y
+diff --git a/arch/arm/configs/zx_defconfig b/arch/arm/configs/zx_defconfig
+index ab683fbbb954..d6253a48a9fa 100644
+--- a/arch/arm/configs/zx_defconfig
++++ b/arch/arm/configs/zx_defconfig
+@@ -7,7 +7,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_DEBUG=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_RT_GROUP_SCHED=y
+ CONFIG_NAMESPACES=y
+diff --git a/arch/mips/configs/db1xxx_defconfig b/arch/mips/configs/db1xxx_defconfig
+index 3bdb72a70364..f0c8971030c4 100644
+--- a/arch/mips/configs/db1xxx_defconfig
++++ b/arch/mips/configs/db1xxx_defconfig
+@@ -18,7 +18,6 @@ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_MEMCG=y
+ CONFIG_MEMCG_SWAP=y
+ CONFIG_MEMCG_KMEM=y
+diff --git a/arch/mips/configs/loongson3_defconfig b/arch/mips/configs/loongson3_defconfig
+index f8bf915c6d6b..7f95c4b3ab2c 100644
+--- a/arch/mips/configs/loongson3_defconfig
++++ b/arch/mips/configs/loongson3_defconfig
+@@ -25,7 +25,6 @@ CONFIG_TASK_XACCT=y
+ CONFIG_TASK_IO_ACCOUNTING=y
+ CONFIG_LOG_BUF_SHIFT=14
+ CONFIG_CPUSETS=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_MEMCG=y
+ CONFIG_MEMCG_SWAP=y
+ CONFIG_BLK_CGROUP=y
+diff --git a/arch/mn10300/configs/asb2364_defconfig b/arch/mn10300/configs/asb2364_defconfig
+index fbb96ae3122a..cd0a6cb17dee 100644
+--- a/arch/mn10300/configs/asb2364_defconfig
++++ b/arch/mn10300/configs/asb2364_defconfig
+@@ -11,7 +11,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_RELAY=y
+ # CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
+ CONFIG_EXPERT=y
+diff --git a/arch/sh/configs/apsh4ad0a_defconfig b/arch/sh/configs/apsh4ad0a_defconfig
+index a8d975793b6d..fe45d2c9b151 100644
+--- a/arch/sh/configs/apsh4ad0a_defconfig
++++ b/arch/sh/configs/apsh4ad0a_defconfig
+@@ -10,7 +10,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_MEMCG=y
+ CONFIG_BLK_CGROUP=y
+ CONFIG_NAMESPACES=y
+diff --git a/arch/sh/configs/sdk7786_defconfig b/arch/sh/configs/sdk7786_defconfig
+index e7e56a4131b4..36642ec2cb97 100644
+--- a/arch/sh/configs/sdk7786_defconfig
++++ b/arch/sh/configs/sdk7786_defconfig
+@@ -17,7 +17,6 @@ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ # CONFIG_PROC_PID_CPUSET is not set
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_MEMCG=y
+ CONFIG_CGROUP_MEMCG_SWAP=y
+ CONFIG_CGROUP_SCHED=y
+diff --git a/arch/sh/configs/se7206_defconfig b/arch/sh/configs/se7206_defconfig
+index 6bc30ab9fd18..91853a67ec34 100644
+--- a/arch/sh/configs/se7206_defconfig
++++ b/arch/sh/configs/se7206_defconfig
+@@ -10,7 +10,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_DEBUG=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_MEMCG=y
+ CONFIG_RELAY=y
+ CONFIG_NAMESPACES=y
+diff --git a/arch/sh/configs/shx3_defconfig b/arch/sh/configs/shx3_defconfig
+index cd6c519f8fad..4a4269ad5b04 100644
+--- a/arch/sh/configs/shx3_defconfig
++++ b/arch/sh/configs/shx3_defconfig
+@@ -12,7 +12,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_MEMCG=y
+ CONFIG_RELAY=y
+ CONFIG_NAMESPACES=y
+diff --git a/arch/sh/configs/urquell_defconfig b/arch/sh/configs/urquell_defconfig
+index 1e843dbed5f0..01c9a91ee896 100644
+--- a/arch/sh/configs/urquell_defconfig
++++ b/arch/sh/configs/urquell_defconfig
+@@ -14,7 +14,6 @@ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ # CONFIG_PROC_PID_CPUSET is not set
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_MEMCG=y
+ CONFIG_CGROUP_MEMCG_SWAP=y
+ CONFIG_CGROUP_SCHED=y
+diff --git a/arch/tile/configs/tilegx_defconfig b/arch/tile/configs/tilegx_defconfig
+index 3f3dfb8b150a..2b91e47461c8 100644
+--- a/arch/tile/configs/tilegx_defconfig
++++ b/arch/tile/configs/tilegx_defconfig
+@@ -16,7 +16,6 @@ CONFIG_CGROUP_DEBUG=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_RT_GROUP_SCHED=y
+ CONFIG_BLK_CGROUP=y
+diff --git a/arch/tile/configs/tilepro_defconfig b/arch/tile/configs/tilepro_defconfig
+index ef9e27eb2f50..2e2e33403b31 100644
+--- a/arch/tile/configs/tilepro_defconfig
++++ b/arch/tile/configs/tilepro_defconfig
+@@ -15,7 +15,6 @@ CONFIG_CGROUP_DEBUG=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_RT_GROUP_SCHED=y
+ CONFIG_BLK_CGROUP=y
+diff --git a/arch/um/configs/i386_defconfig b/arch/um/configs/i386_defconfig
+index a12bf68c9f3a..5636221b8785 100644
+--- a/arch/um/configs/i386_defconfig
++++ b/arch/um/configs/i386_defconfig
+@@ -17,7 +17,6 @@ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_BLK_CGROUP=y
+ # CONFIG_PID_NS is not set
+diff --git a/arch/um/configs/x86_64_defconfig b/arch/um/configs/x86_64_defconfig
+index 3aab117bd553..7a67b7ac1a7e 100644
+--- a/arch/um/configs/x86_64_defconfig
++++ b/arch/um/configs/x86_64_defconfig
+@@ -15,7 +15,6 @@ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_BLK_CGROUP=y
+ # CONFIG_PID_NS is not set
+diff --git a/arch/x86/configs/i386_defconfig b/arch/x86/configs/i386_defconfig
+index 265901a84f3f..5fa6ee2c2dde 100644
+--- a/arch/x86/configs/i386_defconfig
++++ b/arch/x86/configs/i386_defconfig
+@@ -17,7 +17,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_BLK_DEV_INITRD=y
+ # CONFIG_COMPAT_BRK is not set
+diff --git a/arch/x86/configs/x86_64_defconfig b/arch/x86/configs/x86_64_defconfig
+index 0c8d7963483c..d28bdabcc87e 100644
+--- a/arch/x86/configs/x86_64_defconfig
++++ b/arch/x86/configs/x86_64_defconfig
+@@ -16,7 +16,6 @@ CONFIG_CGROUPS=y
+ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_CGROUP_SCHED=y
+ CONFIG_BLK_DEV_INITRD=y
+ # CONFIG_COMPAT_BRK is not set
+diff --git a/arch/xtensa/configs/generic_kc705_defconfig b/arch/xtensa/configs/generic_kc705_defconfig
+index f4b7b3888da8..d9444f01f4da 100644
+--- a/arch/xtensa/configs/generic_kc705_defconfig
++++ b/arch/xtensa/configs/generic_kc705_defconfig
+@@ -11,7 +11,6 @@ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_MEMCG=y
+ CONFIG_NAMESPACES=y
+ CONFIG_SCHED_AUTOGROUP=y
+diff --git a/arch/xtensa/configs/smp_lx200_defconfig b/arch/xtensa/configs/smp_lx200_defconfig
+index 22eeacba37cc..61f943c95619 100644
+--- a/arch/xtensa/configs/smp_lx200_defconfig
++++ b/arch/xtensa/configs/smp_lx200_defconfig
+@@ -11,7 +11,6 @@ CONFIG_CGROUP_FREEZER=y
+ CONFIG_CGROUP_DEVICE=y
+ CONFIG_CPUSETS=y
+ CONFIG_CGROUP_CPUACCT=y
+-CONFIG_RESOURCE_COUNTERS=y
+ CONFIG_MEMCG=y
+ CONFIG_NAMESPACES=y
+ CONFIG_SCHED_AUTOGROUP=y
 
--- 
-Michal Hocko
-SUSE Labs
