@@ -1,47 +1,51 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] asm-generic: wire up preadv2/pwritev2
-Date: Wed, 20 Apr 2016 10:28:22 +0100
-Message-ID: <20160420092822.GD30601@arm.com>
-References: <1461077954-13015-1-git-send-email-hch@lst.de>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
+Date: Wed, 20 Apr 2016 15:40:19 +0200
+Message-ID: <20160420134019.GX3448@twins.programming.kicks-ass.net>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+ <1460041951-22347-11-git-send-email-mhocko@kernel.org>
+ <20160413090829.GB29579@gmail.com>
+ <20160413091625.GF14351@dhcp22.suse.cz>
+ <20160413091943.GA17858@gmail.com>
+ <20160413102731.GA29896@gmail.com>
+ <20160413124943.GH14351@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:45624 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754013AbcDTJ2V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Apr 2016 05:28:21 -0400
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-ia64-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1461077954-13015-1-git-send-email-hch@lst.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20160413124943.GH14351@dhcp22.suse.cz>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 19, 2016 at 10:59:14AM -0400, Christoph Hellwig wrote:
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  include/uapi/asm-generic/unistd.h | 6 +++++-
->  1 file changed, 5 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> index 2622b33..6e0f5f0 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -717,9 +717,13 @@ __SYSCALL(__NR_membarrier, sys_membarrier)
->  __SYSCALL(__NR_mlock2, sys_mlock2)
->  #define __NR_copy_file_range 285
->  __SYSCALL(__NR_copy_file_range, sys_copy_file_range)
-> +#define __NR_preadv2 286
-> +__SYSCALL(__NR_preadv2, sys_preadv2)
-> +#define __NR_pwritev2 287
-> +__SYSCALL(__NR_pwritev2, sys_pwritev2)
->  
->  #undef __NR_syscalls
-> -#define __NR_syscalls 286
-> +#define __NR_syscalls 288
+On Wed, Apr 13, 2016 at 02:49:43PM +0200, Michal Hocko wrote:
+> On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
+> >=20
+> > * Ingo Molnar <mingo@kernel.org> wrote:
+> >=20
+> > > I'm testing your patches today, if they are otherwise OK [...]
+> >=20
+> > got this build failure:
+> >=20
+> >   ./arch/x86/include/asm/rwsem.h:106:2: error: =E2=80=98asm=E2=80=99=
+ operand has impossible constraints
+>=20
+> Hmm, I have no idea why 64b didn't have problem with the asm but 32b
+> complains. Anyway, the following makes both happy. I have checked the
+> generated code for 64b and it hasn't changed after the patch. 32b als=
+o
+> seems to be generating a proper code. My gcc asm()-foo is rather weak=
+ so
+> I would feel better if somebody double checked after me.
 
-We could do with this for arm64:
+I completely blow at this gcc-asm constraints thing too :/
 
-Acked-by: Will Deacon <will.deacon@arm.com>
-
-Will
+In any case, Ingo will you look after the rest of these patches, or do
+you want me to pick up the remaining bits?
+--
+To unsubscribe from this list: send the line "unsubscribe linux-ia64" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
