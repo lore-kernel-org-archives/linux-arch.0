@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:37297 "EHLO
-	mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751681AbcDUNJQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Apr 2016 09:09:16 -0400
-Date: Thu, 21 Apr 2016 09:09:11 -0400
-From: Michal Hocko <mhocko@kernel.org>
+Received: from mail.skyhub.de ([78.46.96.112]:50850 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751953AbcDUNWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Apr 2016 09:22:15 -0400
+Date: Thu, 21 Apr 2016 15:21:53 +0200
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Message-ID: <20160421130910.GB18427@dhcp22.suse.cz>
-References: <20160413091943.GA17858@gmail.com>
- <20160413102731.GA29896@gmail.com>
+Message-ID: <20160421132153.GH28821@pd.tnic>
+References: <20160413102731.GA29896@gmail.com>
  <20160413124943.GH14351@dhcp22.suse.cz>
  <20160420134019.GX3448@twins.programming.kicks-ass.net>
  <91A11395-ACAA-4043-B770-2DF6CBAED54C@zytor.com>
@@ -17,28 +16,24 @@ References: <20160413091943.GA17858@gmail.com>
  <20160420213637.GA4978@pd.tnic>
  <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
  <20160421113516.GB28821@pd.tnic>
+ <20160421130910.GB18427@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20160421113516.GB28821@pd.tnic>
+In-Reply-To: <20160421130910.GB18427@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
+To: Michal Hocko <mhocko@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20160421130911.GDFI5oFQwMkKEdFx4qs56PkiiModdeeEmIYWzeZ8l5Q@z>
+Message-ID: <20160421132153.rulEE13MeNjwMyh78-_sKFP0sjv6rMDrw_16dZtFFVU@z>
 
-On Thu 21-04-16 13:35:16, Borislav Petkov wrote:
-> On Wed, Apr 20, 2016 at 03:29:30PM -0700, H. Peter Anvin wrote:
-> > Since it is a fixed register we could just mark edx clobbered, but
-> > with more flexible register constraints it can permit gcc to allocate
-> > a temp resister for us. --
-> 
-> Right.
-> 
-> I'll try to hack up a cleanup ontop once the dust here settles and Ingo
-> pushes out the pile.
+On Thu, Apr 21, 2016 at 09:09:11AM -0400, Michal Hocko wrote:
+> Thanks Boris! This is highly appreciated.
 
-Thanks Boris! This is highly appreciated.
+I know ;-)
+
 -- 
-Michal Hocko
-SUSE Labs
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
