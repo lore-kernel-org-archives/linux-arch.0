@@ -1,39 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:50850 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751953AbcDUNWP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Apr 2016 09:22:15 -0400
-Date: Thu, 21 Apr 2016 15:21:53 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
-Message-ID: <20160421132153.GH28821@pd.tnic>
-References: <20160413102731.GA29896@gmail.com>
- <20160413124943.GH14351@dhcp22.suse.cz>
- <20160420134019.GX3448@twins.programming.kicks-ass.net>
- <91A11395-ACAA-4043-B770-2DF6CBAED54C@zytor.com>
- <20160420204501.GA6815@pd.tnic>
- <5717EF59.1030709@zytor.com>
- <20160420213637.GA4978@pd.tnic>
- <FB0197A2-6A76-43FC-A30E-BE619D3BC67E@zytor.com>
- <20160421113516.GB28821@pd.tnic>
- <20160421130910.GB18427@dhcp22.suse.cz>
+Received: from bombadil.infradead.org ([198.137.202.9]:35888 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751647AbcDUNto (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Apr 2016 09:49:44 -0400
+Date: Thu, 21 Apr 2016 06:49:42 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Message-ID: <20160421134942.GA3325@infradead.org>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
+ <20160315082254.GE9136@infradead.org>
+ <3286525.zPAGiD4Xk2@avalon>
+ <20160321152601.GA11674@infradead.org>
+ <20160413132916.GC19650@bigcity.dyn.berto.se>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160421130910.GB18427@dhcp22.suse.cz>
+In-Reply-To: <20160413132916.GC19650@bigcity.dyn.berto.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
-Message-ID: <20160421132153.rulEE13MeNjwMyh78-_sKFP0sjv6rMDrw_16dZtFFVU@z>
+To: Christoph Hellwig <hch@infradead.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160421134942.v6ORRGYA0QfuxLst9ebab9JMjv3AfgbB3KUsCuIGAAU@z>
 
-On Thu, Apr 21, 2016 at 09:09:11AM -0400, Michal Hocko wrote:
-> Thanks Boris! This is highly appreciated.
+On Wed, Apr 13, 2016 at 03:29:17PM +0200, Niklas S?derlund wrote:
+> > Yes, it would be good to do an audit of all the ARM dma_ops as well
+> > as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
+> > include/linux/dma-*.h
 
-I know ;-)
-
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+What about things like the phys_addr() helper in lib/dma-debug.c?  That
+was in fact what prompted my question for an audit, and it seems
+to not even feature on your list.  What patterns / symbols did you look
+for?
