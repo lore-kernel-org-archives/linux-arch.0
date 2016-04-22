@@ -1,35 +1,35 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 18/25] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Fri, 22 Apr 2016 17:51:30 +0100
-Message-ID: <20160422165130.GQ2998@e104818-lin.cambridge.arm.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-19-git-send-email-ynorov@caviumnetworks.com>
+From: Richard Henderson <rth@twiddle.net>
+Subject: Re: [RFC][PATCH 02/31] locking,alpha: Implement
+ atomic{,64}_fetch_{add,sub,and,andnot,or,xor}()
+Date: Fri, 22 Apr 2016 09:57:04 -0700
+Message-ID: <571A57E0.1040704@twiddle.net>
+References: <20160422090413.393652501@infradead.org>
+ <20160422093923.156825130@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35983 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754538AbcDVQvg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Apr 2016 12:51:36 -0400
-Content-Disposition: inline
-In-Reply-To: <1459894127-17698-19-git-send-email-ynorov@caviumnetworks.com>
+Received: from mail-qg0-f66.google.com ([209.85.192.66]:36709 "EHLO
+	mail-qg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753878AbcDVQ5L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 12:57:11 -0400
+In-Reply-To: <20160422093923.156825130@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
+To: Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On Wed, Apr 06, 2016 at 01:08:40AM +0300, Yury Norov wrote:
-> --- /dev/null
-> +++ b/arch/arm64/kernel/binfmt_ilp32.c
+On 04/22/2016 02:04 AM, Peter Zijlstra wrote:
+> +	"1:	ldl_l %0,%1\n"						\
+> +	"       mov %0,%2\n"						\
+> +	"	" #asm_op " %0,%3,%0\n"					\
+> +	"	stl_c %0,%1\n"						\
 
-[...]
+No need for the extra mov.
 
-> +#include "../../../fs/binfmt_elf.c"
+	ldl_l %2,%1
+	asm_op %2,%3,%0
+	stl_c %0,%1
 
-How different is this new binfmt_ilp32.c file from the first part of
-compat_binfmt_elf.c? I wonder whether we could include the latter here
-instead and make this similar to binfmt_elf32.c introduced by the
-previous patch.
 
--- 
-Catalin
+r~
