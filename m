@@ -1,20 +1,16 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 03/31] locking,arc: Implement atomic_fetch_{add,sub,and,andnot,or,xor}()
-Date: Fri, 22 Apr 2016 11:04:16 +0200
-Message-ID: <20160422093923.218866387@infradead.org>
+Subject: [RFC][PATCH 18/31] locking,powerpc: Implement atomic{,64}_fetch_{add,sub,and,or,xor}{,_relaxed,_acquire,_release}()
+Date: Fri, 22 Apr 2016 11:04:31 +0200
+Message-ID: <20160422093924.212277819@infradead.org>
 References: <20160422090413.393652501@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:35044 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752396AbcDVJm7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:42:59 -0400
-Content-Disposition: inline; filename=peterz-atomic-fetch-arc.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=peterz-atomic-fetch-powerpc.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
+List-Id: linux-arch.vger.kernel.org
 
 Implement FETCH-OP atomic primitives, these are very similar to the
 existing OP-RETURN primitives we already have, except they return the
@@ -24,105 +20,128 @@ This is especially useful for irreversible operations -- such as
 bitops (because it becomes impossible to reconstruct the state prior
 to modification).
 
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arc/include/asm/atomic.h |   69 ++++++++++++++++++++++++++++++++++++++----
- 1 file changed, 64 insertions(+), 5 deletions(-)
+ arch/powerpc/include/asm/atomic.h |   83 +++++++++++++++++++++++++++++++++-----
+ 1 file changed, 74 insertions(+), 9 deletions(-)
 
---- a/arch/arc/include/asm/atomic.h
-+++ b/arch/arc/include/asm/atomic.h
-@@ -102,6 +102,38 @@ static inline int atomic_##op##_return(i
- 	return val;							\
+--- a/arch/powerpc/include/asm/atomic.h
++++ b/arch/powerpc/include/asm/atomic.h
+@@ -78,21 +78,53 @@ static inline int atomic_##op##_return_r
+ 	return t;							\
  }
  
-+#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++#define ATOMIC_FETCH_OP_RELAXED(op, asm_op)				\
++static inline int atomic_fetch_##op##_relaxed(int a, atomic_t *v)	\
 +{									\
-+	unsigned int val, result;			                \
-+	SCOND_FAIL_RETRY_VAR_DEF                                        \
-+									\
-+	/*								\
-+	 * Explicit full memory barrier needed before/after as		\
-+	 * LLOCK/SCOND thmeselves don't provide any such semantics	\
-+	 */								\
-+	smp_mb();							\
++	int res, t;							\
 +									\
 +	__asm__ __volatile__(						\
-+	"1:	llock   %[val], [%[ctr]]		\n"		\
-+	"	mov %[result], %[val]			\n"		\
-+	"	" #asm_op " %[val], %[val], %[i]	\n"		\
-+	"	scond   %[val], [%[ctr]]		\n"		\
-+	"						\n"		\
-+	SCOND_FAIL_RETRY_ASM						\
-+									\
-+	: [val]	"=&r"	(val),						\
-+	  [result] "=&r" (result)					\
-+	  SCOND_FAIL_RETRY_VARS						\
-+	: [ctr]	"r"	(&v->counter),					\
-+	  [i]	"ir"	(i)						\
++"1:	lwarx	%0,0,%4		# atomic_fetch_" #op "_relaxed\n"	\
++	#asm_op " %1,%2,%0\n"						\
++	PPC405_ERR77(0, %4)						\
++"	stwcx.	%1,0,%4\n"						\
++"	bne-	1b\n"							\
++	: "=&r" (res), "=&r" (t), "+m" (v->counter)			\
++	: "r" (a), "r" (&v->counter)					\
 +	: "cc");							\
 +									\
-+	smp_mb();							\
-+									\
-+	return result;							\
++	return res;							\
 +}
 +
- #else	/* !CONFIG_ARC_HAS_LLSC */
+ #define ATOMIC_OPS(op, asm_op)						\
+ 	ATOMIC_OP(op, asm_op)						\
+-	ATOMIC_OP_RETURN_RELAXED(op, asm_op)
++	ATOMIC_OP_RETURN_RELAXED(op, asm_op)				\
++	ATOMIC_FETCH_OP_RELAXED(op, asm_op)
  
- #ifndef CONFIG_SMP
-@@ -164,23 +196,50 @@ static inline int atomic_##op##_return(i
- 	return temp;							\
- }
+ ATOMIC_OPS(add, add)
+ ATOMIC_OPS(sub, subf)
  
-+#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long flags;						\
-+	unsigned long temp, result;					\
-+									\
-+	/*								\
-+	 * spin lock/unlock provides the needed smp_mb() before/after	\
-+	 */								\
-+	atomic_ops_lock(flags);						\
-+	result = temp = v->counter;					\
-+	temp c_op i;							\
-+	v->counter = temp;						\
-+	atomic_ops_unlock(flags);					\
-+									\
-+	return result;							\
-+}
-+
- #endif /* !CONFIG_ARC_HAS_LLSC */
+-ATOMIC_OP(and, and)
+-ATOMIC_OP(or, or)
+-ATOMIC_OP(xor, xor)
+-
+ #define atomic_add_return_relaxed atomic_add_return_relaxed
+ #define atomic_sub_return_relaxed atomic_sub_return_relaxed
  
- #define ATOMIC_OPS(op, c_op, asm_op)					\
- 	ATOMIC_OP(op, c_op, asm_op)					\
--	ATOMIC_OP_RETURN(op, c_op, asm_op)
-+	ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-+	ATOMIC_FETCH_OP(op, c_op, asm_op)
- 
- ATOMIC_OPS(add, +=, add)
- ATOMIC_OPS(sub, -=, sub)
- 
- #define atomic_andnot atomic_andnot
- 
--ATOMIC_OP(and, &=, and)
--ATOMIC_OP(andnot, &= ~, bic)
--ATOMIC_OP(or, |=, or)
--ATOMIC_OP(xor, ^=, xor)
-+#define atomic_fetch_or atomic_fetch_or
++#define atomic_fetch_add_relaxed atomic_fetch_add_relaxed
++#define atomic_fetch_sub_relaxed atomic_fetch_sub_relaxed
 +
 +#undef ATOMIC_OPS
-+#define ATOMIC_OPS(op, c_op, asm_op)					\
-+	ATOMIC_OP(op, c_op, asm_op)					\
-+	ATOMIC_FETCH_OP(op, c_op, asm_op)
++#define ATOMIC_OPS(op, asm_op)						\
++	ATOMIC_OP(op, asm_op)						\
++	ATOMIC_FETCH_OP_RELAXED(op, asm_op)
 +
-+ATOMIC_OPS(and, &=, and)
-+ATOMIC_OPS(andnot, &= ~, bic)
-+ATOMIC_OPS(or, |=, or)
-+ATOMIC_OPS(xor, ^=, xor)
- 
++ATOMIC_OPS(and, and)
++ATOMIC_OPS(or, or)
++ATOMIC_OPS(xor, xor)
++
++#define atomic_fetch_and_relaxed atomic_fetch_and_relaxed
++#define atomic_fetch_or_relaxed  atomic_fetch_or_relaxed
++#define atomic_fetch_xor_relaxed atomic_fetch_xor_relaxed
++
  #undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP
- #undef ATOMIC_OP_RETURN
++#undef ATOMIC_FETCH_OP_RELAXED
+ #undef ATOMIC_OP_RETURN_RELAXED
  #undef ATOMIC_OP
- #undef SCOND_FAIL_RETRY_VAR_DEF
+ 
+@@ -329,20 +361,53 @@ atomic64_##op##_return_relaxed(long a, a
+ 	return t;							\
+ }
+ 
++#define ATOMIC64_FETCH_OP_RELAXED(op, asm_op)				\
++static inline long							\
++atomic64_fetch_##op##_relaxed(long a, atomic64_t *v)			\
++{									\
++	long res, t;							\
++									\
++	__asm__ __volatile__(						\
++"1:	ldarx	%0,0,%4		# atomic64_fetch_" #op "_relaxed\n"	\
++	#asm_op " %1,%3,%0\n"						\
++"	stdcx.	%1,0,%4\n"						\
++"	bne-	1b\n"							\
++	: "=&r" (res), "=&r" (t), "+m" (v->counter)			\
++	: "r" (a), "r" (&v->counter)					\
++	: "cc");							\
++									\
++	return t;							\
++}
++
+ #define ATOMIC64_OPS(op, asm_op)					\
+ 	ATOMIC64_OP(op, asm_op)						\
+-	ATOMIC64_OP_RETURN_RELAXED(op, asm_op)
++	ATOMIC64_OP_RETURN_RELAXED(op, asm_op)				\
++	ATOMIC64_FETCH_OP_RELAXED(op, asm_op)
+ 
+ ATOMIC64_OPS(add, add)
+ ATOMIC64_OPS(sub, subf)
+-ATOMIC64_OP(and, and)
+-ATOMIC64_OP(or, or)
+-ATOMIC64_OP(xor, xor)
+ 
+ #define atomic64_add_return_relaxed atomic64_add_return_relaxed
+ #define atomic64_sub_return_relaxed atomic64_sub_return_relaxed
+ 
++#define atomic64_fetch_add_relaxed atomic64_fetch_add_relaxed
++#define atomic64_fetch_sub_relaxed atomic64_fetch_sub_relaxed
++
++#undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op, asm_op)					\
++	ATOMIC64_OP(op, asm_op)						\
++	ATOMIC64_FETCH_OP_RELAXED(op, asm_op)
++
++ATOMIC64_OPS(and, and)
++ATOMIC64_OPS(or, or)
++ATOMIC64_OPS(xor, xor)
++
++#define atomic64_fetch_and_relaxed atomic64_fetch_and_relaxed
++#define atomic64_fetch_or_relaxed  atomic64_fetch_or_relaxed
++#define atomic64_fetch_xor_relaxed atomic64_fetch_xor_relaxed
++
+ #undef ATOPIC64_OPS
++#undef ATOMIC64_FETCH_OP_RELAXED
+ #undef ATOMIC64_OP_RETURN_RELAXED
+ #undef ATOMIC64_OP
+ 
