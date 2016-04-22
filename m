@@ -1,114 +1,64 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Thu, 21 Apr 2016 19:44:06 +0100
-Message-ID: <20160421184406.GG7859@jhogan-linux.le.imgtec.org>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
- <1667268.iM977TQnEK@wuerfel>
- <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
- <4206493.gjdgtfndZ8@wuerfel>
- <20160223095107.GC21143@jhogan-linux.le.imgtec.org>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 10/11] x86, rwsem: provide __down_write_killable
+Date: Fri, 22 Apr 2016 08:53:49 +0200
+Message-ID: <20160422065349.GA1135@gmail.com>
+References: <1460041951-22347-1-git-send-email-mhocko@kernel.org>
+ <1460041951-22347-11-git-send-email-mhocko@kernel.org>
+ <20160413090829.GB29579@gmail.com>
+ <20160413091625.GF14351@dhcp22.suse.cz>
+ <20160413091943.GA17858@gmail.com>
+ <20160413102731.GA29896@gmail.com>
+ <20160413124943.GH14351@dhcp22.suse.cz>
+ <20160420134019.GX3448@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="IRIOLc8eTv1AOxGv"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-ia64-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160223095107.GC21143@jhogan-linux.le.imgtec.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Michal Marek <mmarek@suse.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+In-Reply-To: <20160420134019.GX3448@twins.programming.kicks-ass.net>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Josh Poimboeuf <jpoimboe@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
---IRIOLc8eTv1AOxGv
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Tue, Feb 23, 2016 at 09:51:07AM +0000, James Hogan wrote:
-> Hi Michal,
->=20
-> On Tue, Jan 19, 2016 at 03:27:24PM +0100, Arnd Bergmann wrote:
-> > On Tuesday 19 January 2016 14:22:13 James Hogan wrote:
-> > > On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
-> > > > On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
-> > > > > When a header file is removed from generic-y (often accompanied b=
-y the
-> > > > > addition of an arch specific header), the generated wrapper file =
-will
-> > > > > persist, and in some cases may still take precedence over the new=
- arch
-> > > > > header.
-> > > > >=20
-> > > > > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for exten=
-ded
-> > > > > context") removed ucontext.h from generic-y in arch/mips/include/=
-asm/,
-> > > > > and added an arch/mips/include/uapi/asm/ucontext.h. The continued=
- use of
-> > > > > the wrapper when reusing a dirty build tree resulted in build fai=
-lures
-> > > > > in arch/mips/kernel/signal.c:
-> > > > >=20
-> > > > > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=
-=E2=80=99:
-> > > > > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=
-=E2=80=99 has no member named =E2=80=98uc_extcontext=E2=80=99
-> > > > >   return &uc->uc_extcontext;
-> > > > >             ^
-> > > > >=20
-> > > > > Fix by detecting and removing wrapper headers in generated header
-> > > > > directories that do not correspond to a filename in generic-y, ge=
-nhdr-y,
-> > > > > or the newly introduced generated-y.
-> > > >=20
-> > > > Good idea.
-> > > >=20
-> > > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+* Peter Zijlstra <peterz@infradead.org> wrote:
+
+> On Wed, Apr 13, 2016 at 02:49:43PM +0200, Michal Hocko wrote:
+> > On Wed 13-04-16 12:27:31, Ingo Molnar wrote:
 > > >=20
-> > > Thanks Arnd
+> > > * Ingo Molnar <mingo@kernel.org> wrote:
 > > >=20
-> > > > Can you merge this through the mips tree, or do you need me to pick=
- it
-> > > > up through asm-generic?
+> > > > I'm testing your patches today, if they are otherwise OK [...]
 > > >=20
-> > > I was envisaging the kbuild tree tbh, but I don't really mind how it
-> > > gets merged. This patch depends on patch 1, which adds generated-y to
-> > > x86 so we don't delete their other generated headers, but other than
-> > > that it doesn't really have any dependencies.
+> > > got this build failure:
+> > >=20
+> > >   ./arch/x86/include/asm/rwsem.h:106:2: error: =E2=80=98asm=E2=80=
+=99 operand has impossible constraints
 > >=20
-> > Ok, the kbuild tree works fine too, and I guess the x86 tree would
-> > also be fine if that helps avoid the dependency.
+> > Hmm, I have no idea why 64b didn't have problem with the asm but 32=
+b
+> > complains. Anyway, the following makes both happy. I have checked t=
+he
+> > generated code for 64b and it hasn't changed after the patch. 32b a=
+lso
+> > seems to be generating a proper code. My gcc asm()-foo is rather we=
+ak so
+> > I would feel better if somebody double checked after me.
 >=20
-> Were you okay to take these patches, or would you prefer they go via the
-> MIPS tree?
+> I completely blow at this gcc-asm constraints thing too :/
+>=20
+> In any case, Ingo will you look after the rest of these patches, or d=
+o
+> you want me to pick up the remaining bits?
 
-I'm keen for these two patches to make their way upstream one way or
-another.
+Yeah, it's on my list!
 
-Ralf: Since it affects MIPS, would you be able to take them?
+Thanks,
 
-Cheers
-James
-
---IRIOLc8eTv1AOxGv
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJXGR92AAoJEGwLaZPeOHZ6I3AP/3QBag29Wj1XCKtCidDeCXl1
-XYSd2inkBsRh0HVyjBsNtyBJdxJWHYrAHAtqceSkvL9IcZKwuObQ3zGdOjFgA64B
-0X5KL+joj7fJL9v9coBMNSeWuIPkI4r4vFL6MQsPgJz+ZxHWDArNHQ8LF0ZEo4RR
-Hfcu2tY9opIOkpZg4hrdGfiej3DBS+QR050SkpswNTySpwJPPuPjTl+uzWz6C+2m
-HdLCpRKhR77O7ZL2XCbwyx41XfegoQjTwgWwbMlSXjKHuet//QLKs5QkQRvGIM1T
-SWkAKVl7RlXLqcKtszVt+IScbABM/gFB7rgjBda4I3ewxCTHWiEzxvbTRVLeOluG
-Nsicn1cs+D+CdhEQMiVIxKablmuRAg1i1fLPcQ0E5ZAjFbPWyUDtH9nQWOphU9Cd
-N5V49kg8lkR1ygQx56cOqw1OdGdh8RaSk5d78aM7BDKbqh6SXvJ10e1t7eXeabux
-WL/LAa+FT4c3oefHghWqJjI0+XMjJ2+A2MEM7xDXqMpebG9sraGv90X7ARF3d/Nf
-9pyYMkhU/Mx0A7Jo3LHZ/XwRZQo9WU4Cwz7Se8zPTxB13kmG67WXQWCwOkzbe1fm
-z0hGrDxargrmWyX9WTSHve2LNtwjRwttZng1eZJ/l436YEyLDcQRSia2mY4QG8y8
-j9TK/jNJOu3Mprt63W2I
-=fQxU
------END PGP SIGNATURE-----
-
---IRIOLc8eTv1AOxGv--
+	Ingo
+--
+To unsubscribe from this list: send the line "unsubscribe linux-ia64" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
