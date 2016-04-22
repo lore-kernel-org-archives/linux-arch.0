@@ -1,53 +1,43 @@
-From: Kalle Valo <kvalo@codeaurora.org>
-Subject: Re: [RFC][PATCH 00/31] implement atomic_fetch_$op
-Date: Fri, 22 Apr 2016 21:35:06 +0300
-Message-ID: <874matxzj9.fsf@purkki.adurom.net>
-References: <20160422090413.393652501@infradead.org>
-	<20160422094455.GO3430@twins.programming.kicks-ass.net>
-	<20160422125656.GA15453@wfg-t540p.sh.intel.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 19/25] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Sat, 23 Apr 2016 00:40:13 +0300
+Message-ID: <20160422214013.GA2234@yury-N73SV>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-20-git-send-email-ynorov@caviumnetworks.com>
+ <20160422171009.GR2998@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:34976 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751172AbcDVSfR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 14:35:17 -0400
-In-Reply-To: <20160422125656.GA15453@wfg-t540p.sh.intel.com> (Fengguang Wu's
-	message of "Fri, 22 Apr 2016 20:56:56 +0800")
+Received: from mail-bn1on0072.outbound.protection.outlook.com ([157.56.110.72]:55008
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751845AbcDVVk4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Apr 2016 17:40:56 -0400
+Content-Disposition: inline
+In-Reply-To: <20160422171009.GR2998@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Fengguang Wu <fengguang.wu@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
 
-Fengguang Wu <fengguang.wu@intel.com> writes:
+On Fri, Apr 22, 2016 at 06:10:09PM +0100, Catalin Marinas wrote:
+> On Wed, Apr 06, 2016 at 01:08:41AM +0300, Yury Norov wrote:
+> > Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+> > detection of the task type.
+> 
+> The reason for this patch isn't clear to me. What's wrong with the
+> run-time detection? It's not some performance critical code.
+> 
+> -- 
+> Catalin
 
->> OK, weirdness. I received the "BUILD SUCCESS" email without any arm64
->> builds listed, but I just received a build bot email telling me the
->> arm64 build was borked (which I know it is).
->
-> Sorry, that may happen because even though most errors will be
-> detected in the first hour or before the BUILD SUCCESS/DONE
-> notification, the build/boot/performance tests for a particular branch
-> may continue for days, during the time test coverage keeps growing.
-> Which means it's possible to receive a build failure after receiving
-> BUILD SUCCESS notification.
->
-> In particular, 0-day bot classify 500+ kconfigs into 2 priority lists:
->
-> P1: 100+ realtime priority kconfigs which should be finished before sending
->     out BUILD SUCCESS notification
->
-> P2: 400+ background priority kconfigs which may take hours to days to finish
->
-> That split is a tradeoff between timeliness and completeness. It turns
-> out to work well as long as we choose the suitable P1 list.
->
-> So the more accurate interpretation of "BUILD SUCCESS/DONE" would be:
-> 0day bot is working on your tree (no worry about out-of-service) and
-> reached a major milestone.
+Hi Catalin,
 
-Thanks, this is very useful information. But would it be also possible
-to get a report about the P2 completion (or failure)?
+It was requested by Arnd, 
+It's not 'new' syscall basically,
+just an attempt to avoid run-time 
+detection of things that may be
+detected an compile-time.
 
--- 
-Kalle Valo
+Yury.
