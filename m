@@ -1,130 +1,55 @@
-From: Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [RFC][PATCH 06/31] locking,avr32: Implement
- atomic_fetch_{add,sub,and,or,xor}()
-Date: Fri, 22 Apr 2016 13:58:20 +0200
-Message-ID: <20160422115820.GA20038@samfundet.no>
+From: Fengguang Wu <fengguang.wu@intel.com>
+Subject: Re: [RFC][PATCH 00/31] implement atomic_fetch_$op
+Date: Fri, 22 Apr 2016 20:56:56 +0800
+Message-ID: <20160422125656.GA15453@wfg-t540p.sh.intel.com>
 References: <20160422090413.393652501@infradead.org>
- <20160422093923.427089747@infradead.org>
+ <20160422094455.GO3430@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:18483 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752053AbcDVM5T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Apr 2016 08:57:19 -0400
 Content-Disposition: inline
-In-Reply-To: <20160422093923.427089747@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20160422094455.GO3430@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
-List-Id: linux-arch.vger.kernel.org
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de
 
-Around Fri 22 Apr 2016 11:04:19 +0200 or thereabout, Peter Zijlstra wrote:
-> Implement FETCH-OP atomic primitives, these are very similar to the
-> existing OP-RETURN primitives we already have, except they return the
-> value of the atomic variable _before_ modification.
+On Fri, Apr 22, 2016 at 11:44:55AM +0200, Peter Zijlstra wrote:
+> On Fri, Apr 22, 2016 at 11:04:13AM +0200, Peter Zijlstra wrote:
+> > The one that I did not do was ARMv8.1-LSE and I was hoping Will would help out
+> > with that. Also, it looks like the 0-day built bot does not do arm64 builds,
+> > people might want to look into that.
 > 
-> This is especially useful for irreversible operations -- such as
-> bitops (because it becomes impossible to reconstruct the state prior
-> to modification).
-> 
-> 
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> OK, weirdness. I received the "BUILD SUCCESS" email without any arm64
+> builds listed, but I just received a build bot email telling me the
+> arm64 build was borked (which I know it is).
 
-Looks good.
+Sorry, that may happen because even though most errors will be
+detected in the first hour or before the BUILD SUCCESS/DONE
+notification, the build/boot/performance tests for a particular branch
+may continue for days, during the time test coverage keeps growing.
+Which means it's possible to receive a build failure after receiving
+BUILD SUCCESS notification.
 
-Acked-by: Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>
+In particular, 0-day bot classify 500+ kconfigs into 2 priority lists:
 
-> ---
->  arch/avr32/include/asm/atomic.h |   56 ++++++++++++++++++++++++++++++++++++----
->  1 file changed, 51 insertions(+), 5 deletions(-)
-> 
-> --- a/arch/avr32/include/asm/atomic.h
-> +++ b/arch/avr32/include/asm/atomic.h
-> @@ -41,21 +41,51 @@ static inline int __atomic_##op##_return
->  	return result;							\
->  }
->  
-> +#define ATOMIC_FETCH_OP(op, asm_op, asm_con)				\
-> +static inline int __atomic_fetch_##op(int i, atomic_t *v)		\
-> +{									\
-> +	int result, val;						\
-> +									\
-> +	asm volatile(							\
-> +		"/* atomic_fetch_" #op " */\n"				\
-> +		"1:	ssrf	5\n"					\
-> +		"	ld.w	%0, %3\n"				\
-> +		"	mov	%1, %0\n"				\
-> +		"	" #asm_op "	%1, %4\n"			\
-> +		"	stcond	%2, %1\n"				\
-> +		"	brne	1b"					\
-> +		: "=&r" (result), "=&r" (val), "=o" (v->counter)	\
-> +		: "m" (v->counter), #asm_con (i)			\
-> +		: "cc");						\
-> +									\
-> +	return result;							\
-> +}
-> +
->  ATOMIC_OP_RETURN(sub, sub, rKs21)
->  ATOMIC_OP_RETURN(add, add, r)
-> +ATOMIC_FETCH_OP (sub, sub, rKs21)
-> +ATOMIC_FETCH_OP (add, add, r)
->  
-> -#define ATOMIC_OP(op, asm_op)						\
-> +#define atomic_fetch_or atomic_fetch_or
-> +
-> +#define ATOMIC_OPS(op, asm_op)						\
->  ATOMIC_OP_RETURN(op, asm_op, r)						\
->  static inline void atomic_##op(int i, atomic_t *v)			\
->  {									\
->  	(void)__atomic_##op##_return(i, v);				\
-> +}									\
-> +ATOMIC_FETCH_OP(op, asm_op, r)						\
-> +static inline int atomic_fetch_##op(int i, atomic_t *v)		\
-> +{									\
-> +	return __atomic_fetch_##op(i, v);				\
->  }
->  
-> -ATOMIC_OP(and, and)
-> -ATOMIC_OP(or, or)
-> -ATOMIC_OP(xor, eor)
-> +ATOMIC_OPS(and, and)
-> +ATOMIC_OPS(or, or)
-> +ATOMIC_OPS(xor, eor)
->  
-> -#undef ATOMIC_OP
-> +#undef ATOMIC_OPS
-> +#undef ATOMIC_FETCH_OP
->  #undef ATOMIC_OP_RETURN
->  
->  /*
-> @@ -87,6 +117,14 @@ static inline int atomic_add_return(int
->  	return __atomic_add_return(i, v);
->  }
->  
-> +static inline int atomic_fetch_add(int i, atomic_t *v)
-> +{
-> +	if (IS_21BIT_CONST(i))
-> +		return __atomic_fetch_sub(-i, v);
-> +
-> +	return __atomic_fetch_add(i, v);
-> +}
-> +
->  /*
->   * atomic_sub_return - subtract the atomic variable
->   * @i: integer value to subtract
-> @@ -102,6 +140,14 @@ static inline int atomic_sub_return(int
->  	return __atomic_add_return(-i, v);
->  }
->  
-> +static inline int atomic_fetch_sub(int i, atomic_t *v)
-> +{
-> +	if (IS_21BIT_CONST(i))
-> +		return __atomic_fetch_sub(i, v);
-> +
-> +	return __atomic_fetch_add(-i, v);
-> +}
-> +
->  /*
->   * __atomic_add_unless - add unless the number is a given value
->   * @v: pointer of type atomic_t
--- 
-mvh
-Hans-Christian Noren Egtvedt
+P1: 100+ realtime priority kconfigs which should be finished before sending
+    out BUILD SUCCESS notification
+
+P2: 400+ background priority kconfigs which may take hours to days to finish
+
+That split is a tradeoff between timeliness and completeness. It turns
+out to work well as long as we choose the suitable P1 list.
+
+So the more accurate interpretation of "BUILD SUCCESS/DONE" would be:
+0day bot is working on your tree (no worry about out-of-service) and
+reached a major milestone.
+
+I'll add arm64-defconfig to P1 list to improve its coverage.
+
+Thanks,
+Fengguang
