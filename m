@@ -1,86 +1,203 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 00/31] implement atomic_fetch_$op
-Date: Fri, 22 Apr 2016 11:04:13 +0200
-Message-ID: <20160422090413.393652501@infradead.org>
+Subject: [RFC][PATCH 15/31] locking,mips: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()
+Date: Fri, 22 Apr 2016 11:04:28 +0200
+Message-ID: <20160422093924.017695144@infradead.org>
+References: <20160422090413.393652501@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=peterz-atomic-fetch-mips.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-As there have been a few requests for atomic_fetch_$op primitives and recently
-by Linus, I figured I'd go and implement the lot.
+Implement FETCH-OP atomic primitives, these are very similar to the
+existing OP-RETURN primitives we already have, except they return the
+value of the atomic variable _before_ modification.
 
-The atomic_fetch_$op differs from the existing atomic_$op_return we already
-have by returning the old value instead of the new value. This is especially
-useful when the operation is irreversible (like bitops), and allows for things
-like test-and-set.
+This is especially useful for irreversible operations -- such as
+bitops (because it becomes impossible to reconstruct the state prior
+to modification).
 
-I did these patches on the plane, without access to architecture documentation,
-so mistakes are quite possible. However, I mostly started with the
-atomic_$op_return implementation and modified those to return the old value,
-which significantly decreases the creativity required.
-
-The one that I did not do was ARMv8.1-LSE and I was hoping Will would help out
-with that. Also, it looks like the 0-day built bot does not do arm64 builds,
-people might want to look into that.
-
-No known build breakage on the build-bot, boot tested on x86_64.
-
-Notes:
- - tile might have a barrier issue
- - there are a few more archs that can be converted to _relaxed if they so care:
-   arc metag tile
-
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/include/asm/atomic.h        |  89 ++++-
- arch/arc/include/asm/atomic.h          |  67 +++-
- arch/arm/include/asm/atomic.h          | 106 +++++-
- arch/arm64/include/asm/atomic.h        |  30 ++
- arch/arm64/include/asm/atomic_ll_sc.h  | 108 ++++--
- arch/avr32/include/asm/atomic.h        |  54 ++-
- arch/blackfin/include/asm/atomic.h     |   8 +
- arch/blackfin/kernel/bfin_ksyms.c      |   1 +
- arch/blackfin/mach-bf561/atomic.S      |  43 ++-
- arch/frv/include/asm/atomic.h          |  30 +-
- arch/frv/include/asm/atomic_defs.h     |   2 +
- arch/h8300/include/asm/atomic.h        |  29 +-
- arch/hexagon/include/asm/atomic.h      |  31 +-
- arch/ia64/include/asm/atomic.h         | 130 ++++++-
- arch/m32r/include/asm/atomic.h         |  36 +-
- arch/m68k/include/asm/atomic.h         |  51 ++-
- arch/metag/include/asm/atomic_lnkget.h |  36 +-
- arch/metag/include/asm/atomic_lock1.h  |  33 +-
- arch/mips/include/asm/atomic.h         | 154 +++++++-
- arch/mn10300/include/asm/atomic.h      |  33 +-
- arch/parisc/include/asm/atomic.h       |  63 +++-
- arch/powerpc/include/asm/atomic.h      |  83 ++++-
- arch/s390/include/asm/atomic.h         |  40 ++-
- arch/sh/include/asm/atomic-grb.h       |  34 +-
- arch/sh/include/asm/atomic-irq.h       |  31 +-
- arch/sh/include/asm/atomic-llsc.h      |  32 +-
- arch/sparc/include/asm/atomic_32.h     |  13 +-
- arch/sparc/include/asm/atomic_64.h     |  16 +-
- arch/sparc/lib/atomic32.c              |  29 +-
- arch/sparc/lib/atomic_64.S             |  61 +++-
- arch/sparc/lib/ksyms.c                 |  17 +-
- arch/tile/include/asm/atomic.h         |   2 +
- arch/tile/include/asm/atomic_32.h      |  60 +++-
- arch/tile/include/asm/atomic_64.h      | 117 ++++--
- arch/tile/include/asm/bitops_32.h      |  18 +-
- arch/tile/lib/atomic_32.c              |  42 +--
- arch/tile/lib/atomic_asm_32.S          |  14 +-
- arch/x86/include/asm/atomic.h          |  35 +-
- arch/x86/include/asm/atomic64_32.h     |  25 +-
- arch/x86/include/asm/atomic64_64.h     |  35 +-
- arch/xtensa/include/asm/atomic.h       |  52 ++-
- include/asm-generic/atomic-long.h      |  36 +-
- include/asm-generic/atomic.h           |  47 +++
- include/asm-generic/atomic64.h         |  15 +-
- include/linux/atomic.h                 | 627 ++++++++++++++++++++++++---------
- kernel/locking/qrwlock.c               |   2 +-
- kernel/locking/qspinlock_paravirt.h    |   4 +-
- kernel/time/tick-sched.c               |   4 +-
- lib/atomic64.c                         |  32 +-
- lib/atomic64_test.c                    |  34 ++
- 50 files changed, 2181 insertions(+), 510 deletions(-)
+ arch/mips/include/asm/atomic.h |  138 ++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 129 insertions(+), 9 deletions(-)
+
+--- a/arch/mips/include/asm/atomic.h
++++ b/arch/mips/include/asm/atomic.h
+@@ -66,7 +66,7 @@ static __inline__ void atomic_##op(int i
+ 			"	" #asm_op " %0, %2			\n"   \
+ 			"	sc	%0, %1				\n"   \
+ 			"	.set	mips0				\n"   \
+-			: "=&r" (temp), "+" GCC_OFF_SMALL_ASM() (v->counter)      \
++			: "=&r" (temp), "+" GCC_OFF_SMALL_ASM() (v->counter)  \
+ 			: "Ir" (i));					      \
+ 		} while (unlikely(!temp));				      \
+ 	} else {							      \
+@@ -130,18 +130,78 @@ static __inline__ int atomic_##op##_retu
+ 	return result;							      \
+ }
+ 
++#define ATOMIC_FETCH_OP(op, c_op, asm_op)				      \
++static __inline__ int atomic_fetch_##op(int i, atomic_t * v)		      \
++{									      \
++	int result;							      \
++									      \
++	smp_mb__before_llsc();						      \
++									      \
++	if (kernel_uses_llsc && R10000_LLSC_WAR) {			      \
++		int temp;						      \
++									      \
++		__asm__ __volatile__(					      \
++		"	.set	arch=r4000				\n"   \
++		"1:	ll	%1, %2		# atomic_fetch_" #op "	\n"   \
++		"	" #asm_op " %0, %1, %3				\n"   \
++		"	sc	%0, %2					\n"   \
++		"	beqzl	%0, 1b					\n"   \
++		"	move	%0, %1					\n"   \
++		"	.set	mips0					\n"   \
++		: "=&r" (result), "=&r" (temp),				      \
++		  "+" GCC_OFF_SMALL_ASM() (v->counter)			      \
++		: "Ir" (i));						      \
++	} else if (kernel_uses_llsc) {					      \
++		int temp;						      \
++									      \
++		do {							      \
++			__asm__ __volatile__(				      \
++			"	.set	"MIPS_ISA_LEVEL"		\n"   \
++			"	ll	%1, %2	# atomic_fetch_" #op "	\n"   \
++			"	" #asm_op " %0, %1, %3			\n"   \
++			"	sc	%0, %2				\n"   \
++			"	.set	mips0				\n"   \
++			: "=&r" (result), "=&r" (temp),			      \
++			  "+" GCC_OFF_SMALL_ASM() (v->counter)		      \
++			: "Ir" (i));					      \
++		} while (unlikely(!result));				      \
++									      \
++		result = temp;						      \
++	} else {							      \
++		unsigned long flags;					      \
++									      \
++		raw_local_irq_save(flags);				      \
++		result = v->counter;					      \
++		v->counter c_op i;					      \
++		raw_local_irq_restore(flags);				      \
++	}								      \
++									      \
++	smp_llsc_mb();							      \
++									      \
++	return result;							      \
++}
++
+ #define ATOMIC_OPS(op, c_op, asm_op)					      \
+ 	ATOMIC_OP(op, c_op, asm_op)					      \
+-	ATOMIC_OP_RETURN(op, c_op, asm_op)
++	ATOMIC_OP_RETURN(op, c_op, asm_op)				      \
++	ATOMIC_FETCH_OP(op, c_op, asm_op)
+ 
+ ATOMIC_OPS(add, +=, addu)
+ ATOMIC_OPS(sub, -=, subu)
+ 
+-ATOMIC_OP(and, &=, and)
+-ATOMIC_OP(or, |=, or)
+-ATOMIC_OP(xor, ^=, xor)
++#undef ATOMIC_OPS
++#define ATOMIC_OPS(op, c_op, asm_op)					      \
++	ATOMIC_OP(op, c_op, asm_op)					      \
++	ATOMIC_FETCH_OP(op, c_op, asm_op)
++
++#define atomic_fetch_or atomic_fetch_or
++
++ATOMIC_OPS(and, &=, and)
++ATOMIC_OPS(or, |=, or)
++ATOMIC_OPS(xor, ^=, xor)
+ 
+ #undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
+@@ -414,17 +474,77 @@ static __inline__ long atomic64_##op##_r
+ 	return result;							      \
+ }
+ 
++#define ATOMIC64_FETCH_OP(op, c_op, asm_op)				      \
++static __inline__ long atomic64_fetch_##op(long i, atomic64_t * v)	      \
++{									      \
++	long result;							      \
++									      \
++	smp_mb__before_llsc();						      \
++									      \
++	if (kernel_uses_llsc && R10000_LLSC_WAR) {			      \
++		long temp;						      \
++									      \
++		__asm__ __volatile__(					      \
++		"	.set	arch=r4000				\n"   \
++		"1:	lld	%1, %2		# atomic64_fetch_" #op "\n"   \
++		"	" #asm_op " %0, %1, %3				\n"   \
++		"	scd	%0, %2					\n"   \
++		"	beqzl	%0, 1b					\n"   \
++		"	move	%0, %1					\n"   \
++		"	.set	mips0					\n"   \
++		: "=&r" (result), "=&r" (temp),				      \
++		  "+" GCC_OFF_SMALL_ASM() (v->counter)			      \
++		: "Ir" (i));						      \
++	} else if (kernel_uses_llsc) {					      \
++		long temp;						      \
++									      \
++		do {							      \
++			__asm__ __volatile__(				      \
++			"	.set	"MIPS_ISA_LEVEL"		\n"   \
++			"	lld	%1, %2	# atomic64_fetch_" #op "\n"   \
++			"	" #asm_op " %0, %1, %3			\n"   \
++			"	scd	%0, %2				\n"   \
++			"	.set	mips0				\n"   \
++			: "=&r" (result), "=&r" (temp),			      \
++			  "=" GCC_OFF_SMALL_ASM() (v->counter)		      \
++			: "Ir" (i), GCC_OFF_SMALL_ASM() (v->counter)	      \
++			: "memory");					      \
++		} while (unlikely(!result));				      \
++									      \
++		result = temp;						      \
++	} else {							      \
++		unsigned long flags;					      \
++									      \
++		raw_local_irq_save(flags);				      \
++		result = v->counter;					      \
++		v->counter c_op i;					      \
++		raw_local_irq_restore(flags);				      \
++	}								      \
++									      \
++	smp_llsc_mb();							      \
++									      \
++	return result;							      \
++}
++
+ #define ATOMIC64_OPS(op, c_op, asm_op)					      \
+ 	ATOMIC64_OP(op, c_op, asm_op)					      \
+-	ATOMIC64_OP_RETURN(op, c_op, asm_op)
++	ATOMIC64_OP_RETURN(op, c_op, asm_op)				      \
++	ATOMIC64_FETCH_OP(op, c_op, asm_op)
+ 
+ ATOMIC64_OPS(add, +=, daddu)
+ ATOMIC64_OPS(sub, -=, dsubu)
+-ATOMIC64_OP(and, &=, and)
+-ATOMIC64_OP(or, |=, or)
+-ATOMIC64_OP(xor, ^=, xor)
+ 
+ #undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op, c_op, asm_op)					      \
++	ATOMIC64_OP(op, c_op, asm_op)					      \
++	ATOMIC64_FETCH_OP(op, c_op, asm_op)
++
++ATOMIC64_OPS(and, &=, and)
++ATOMIC64_OPS(or, |=, or)
++ATOMIC64_OPS(xor, ^=, xor)
++
++#undef ATOMIC64_OPS
++#undef ATOMIC64_FETCH_OP
+ #undef ATOMIC64_OP_RETURN
+ #undef ATOMIC64_OP
+ 
