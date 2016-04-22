@@ -1,92 +1,195 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:34974 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:34961 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752149AbcDVJmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:42:54 -0400
-Message-ID: <20160422090413.393652501@infradead.org>
-Date: Fri, 22 Apr 2016 11:04:13 +0200
+	with ESMTP id S1751750AbcDVJmx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:42:53 -0400
+Message-ID: <20160422093923.293177377@infradead.org>
+Date: Fri, 22 Apr 2016 11:04:17 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 00/31] implement atomic_fetch_$op
+Subject: [RFC][PATCH 04/31] locking,arm: Implement atomic{,64}_fetch_{add,sub,and,andnot,or,xor}{,_relaxed,_acquire,_release}()
+References: <20160422090413.393652501@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline; filename=peterz-atomic-fetch-arm.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160422090413.m4NpxMuR1jw5RlbDc8T3Z4lRr20WxyrmxurWjbiNJ5c@z>
+Message-ID: <20160422090417.SMdnqAUq3o5wucfN8R2FSwgoJNWnv856nBKpjoQUaXY@z>
 
-As there have been a few requests for atomic_fetch_$op primitives and recently
-by Linus, I figured I'd go and implement the lot.
+Implement FETCH-OP atomic primitives, these are very similar to the
+existing OP-RETURN primitives we already have, except they return the
+value of the atomic variable _before_ modification.
 
-The atomic_fetch_$op differs from the existing atomic_$op_return we already
-have by returning the old value instead of the new value. This is especially
-useful when the operation is irreversible (like bitops), and allows for things
-like test-and-set.
+This is especially useful for irreversible operations -- such as
+bitops (because it becomes impossible to reconstruct the state prior
+to modification).
 
-I did these patches on the plane, without access to architecture documentation,
-so mistakes are quite possible. However, I mostly started with the
-atomic_$op_return implementation and modified those to return the old value,
-which significantly decreases the creativity required.
-
-The one that I did not do was ARMv8.1-LSE and I was hoping Will would help out
-with that. Also, it looks like the 0-day built bot does not do arm64 builds,
-people might want to look into that.
-
-No known build breakage on the build-bot, boot tested on x86_64.
-
-Notes:
- - tile might have a barrier issue
- - there are a few more archs that can be converted to _relaxed if they so care:
-   arc metag tile
-
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/include/asm/atomic.h        |  89 ++++-
- arch/arc/include/asm/atomic.h          |  67 +++-
- arch/arm/include/asm/atomic.h          | 106 +++++-
- arch/arm64/include/asm/atomic.h        |  30 ++
- arch/arm64/include/asm/atomic_ll_sc.h  | 108 ++++--
- arch/avr32/include/asm/atomic.h        |  54 ++-
- arch/blackfin/include/asm/atomic.h     |   8 +
- arch/blackfin/kernel/bfin_ksyms.c      |   1 +
- arch/blackfin/mach-bf561/atomic.S      |  43 ++-
- arch/frv/include/asm/atomic.h          |  30 +-
- arch/frv/include/asm/atomic_defs.h     |   2 +
- arch/h8300/include/asm/atomic.h        |  29 +-
- arch/hexagon/include/asm/atomic.h      |  31 +-
- arch/ia64/include/asm/atomic.h         | 130 ++++++-
- arch/m32r/include/asm/atomic.h         |  36 +-
- arch/m68k/include/asm/atomic.h         |  51 ++-
- arch/metag/include/asm/atomic_lnkget.h |  36 +-
- arch/metag/include/asm/atomic_lock1.h  |  33 +-
- arch/mips/include/asm/atomic.h         | 154 +++++++-
- arch/mn10300/include/asm/atomic.h      |  33 +-
- arch/parisc/include/asm/atomic.h       |  63 +++-
- arch/powerpc/include/asm/atomic.h      |  83 ++++-
- arch/s390/include/asm/atomic.h         |  40 ++-
- arch/sh/include/asm/atomic-grb.h       |  34 +-
- arch/sh/include/asm/atomic-irq.h       |  31 +-
- arch/sh/include/asm/atomic-llsc.h      |  32 +-
- arch/sparc/include/asm/atomic_32.h     |  13 +-
- arch/sparc/include/asm/atomic_64.h     |  16 +-
- arch/sparc/lib/atomic32.c              |  29 +-
- arch/sparc/lib/atomic_64.S             |  61 +++-
- arch/sparc/lib/ksyms.c                 |  17 +-
- arch/tile/include/asm/atomic.h         |   2 +
- arch/tile/include/asm/atomic_32.h      |  60 +++-
- arch/tile/include/asm/atomic_64.h      | 117 ++++--
- arch/tile/include/asm/bitops_32.h      |  18 +-
- arch/tile/lib/atomic_32.c              |  42 +--
- arch/tile/lib/atomic_asm_32.S          |  14 +-
- arch/x86/include/asm/atomic.h          |  35 +-
- arch/x86/include/asm/atomic64_32.h     |  25 +-
- arch/x86/include/asm/atomic64_64.h     |  35 +-
- arch/xtensa/include/asm/atomic.h       |  52 ++-
- include/asm-generic/atomic-long.h      |  36 +-
- include/asm-generic/atomic.h           |  47 +++
- include/asm-generic/atomic64.h         |  15 +-
- include/linux/atomic.h                 | 627 ++++++++++++++++++++++++---------
- kernel/locking/qrwlock.c               |   2 +-
- kernel/locking/qspinlock_paravirt.h    |   4 +-
- kernel/time/tick-sched.c               |   4 +-
- lib/atomic64.c                         |  32 +-
- lib/atomic64_test.c                    |  34 ++
- 50 files changed, 2181 insertions(+), 510 deletions(-)
+ arch/arm/include/asm/atomic.h |  108 ++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 98 insertions(+), 10 deletions(-)
+
+--- a/arch/arm/include/asm/atomic.h
++++ b/arch/arm/include/asm/atomic.h
+@@ -77,8 +77,36 @@ static inline int atomic_##op##_return_r
+ 	return result;							\
+ }
+ 
++#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
++static inline int atomic_fetch_##op##_relaxed(int i, atomic_t *v)	\
++{									\
++	unsigned long tmp;						\
++	int result, val;						\
++									\
++	prefetchw(&v->counter);						\
++									\
++	__asm__ __volatile__("@ atomic_fetch_" #op "\n"			\
++"1:	ldrex	%0, [%4]\n"						\
++"	" #asm_op "	%1, %0, %5\n"					\
++"	strex	%2, %1, [%4]\n"						\
++"	teq	%2, #0\n"						\
++"	bne	1b"							\
++	: "=&r" (result), "=&r" (val), "=&r" (tmp), "+Qo" (v->counter)	\
++	: "r" (&v->counter), "Ir" (i)					\
++	: "cc");							\
++									\
++	return result;							\
++}
++
+ #define atomic_add_return_relaxed	atomic_add_return_relaxed
+ #define atomic_sub_return_relaxed	atomic_sub_return_relaxed
++#define atomic_fetch_add_relaxed	atomic_fetch_add_relaxed
++#define atomic_fetch_sub_relaxed	atomic_fetch_sub_relaxed
++
++#define atomic_fetch_and_relaxed	atomic_fetch_and_relaxed
++#define atomic_fetch_andnot_relaxed	atomic_fetch_andnot_relaxed
++#define atomic_fetch_or_relaxed		atomic_fetch_or_relaxed
++#define atomic_fetch_xor_relaxed	atomic_fetch_xor_relaxed
+ 
+ static inline int atomic_cmpxchg_relaxed(atomic_t *ptr, int old, int new)
+ {
+@@ -159,6 +187,20 @@ static inline int atomic_##op##_return(i
+ 	return val;							\
+ }
+ 
++#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
++static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long flags;						\
++	int val;							\
++									\
++	raw_local_irq_save(flags);					\
++	val = v->counter;						\
++	v->counter c_op i;						\
++	raw_local_irq_restore(flags);					\
++									\
++	return val;							\
++}
++
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+ {
+ 	int ret;
+@@ -187,19 +229,28 @@ static inline int __atomic_add_unless(at
+ 
+ #define ATOMIC_OPS(op, c_op, asm_op)					\
+ 	ATOMIC_OP(op, c_op, asm_op)					\
+-	ATOMIC_OP_RETURN(op, c_op, asm_op)
++	ATOMIC_OP_RETURN(op, c_op, asm_op)				\
++	ATOMIC_FETCH_OP(op, c_op, asm_op)
+ 
+ ATOMIC_OPS(add, +=, add)
+ ATOMIC_OPS(sub, -=, sub)
+ 
+ #define atomic_andnot atomic_andnot
+ 
+-ATOMIC_OP(and, &=, and)
+-ATOMIC_OP(andnot, &= ~, bic)
+-ATOMIC_OP(or,  |=, orr)
+-ATOMIC_OP(xor, ^=, eor)
++#define atomic_fetch_or atomic_fetch_or
++
++#undef ATOMIC_OPS
++#define ATOMIC_OPS(op, c_op, asm_op)					\
++	ATOMIC_OP(op, c_op, asm_op)					\
++	ATOMIC_FETCH_OP(op, c_op, asm_op)
++
++ATOMIC_OPS(and, &=, and)
++ATOMIC_OPS(andnot, &= ~, bic)
++ATOMIC_OPS(or,  |=, orr)
++ATOMIC_OPS(xor, ^=, eor)
+ 
+ #undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
+@@ -317,24 +368,61 @@ atomic64_##op##_return_relaxed(long long
+ 	return result;							\
+ }
+ 
++#define ATOMIC64_FETCH_OP(op, op1, op2)					\
++static inline long long							\
++atomic64_fetch_##op##_relaxed(long long i, atomic64_t *v)		\
++{									\
++	long long result, val;						\
++	unsigned long tmp;						\
++									\
++	prefetchw(&v->counter);						\
++									\
++	__asm__ __volatile__("@ atomic64_fetch_" #op "\n"		\
++"1:	ldrexd	%0, %H0, [%4]\n"					\
++"	" #op1 " %Q1, %Q0, %Q5\n"					\
++"	" #op2 " %R1, %R0, %R5\n"					\
++"	strexd	%2, %1, %H0, [%4]\n"					\
++"	teq	%2, #0\n"						\
++"	bne	1b"							\
++	: "=&r" (result), "=&r" (val), "=&r" (tmp), "+Qo" (v->counter)	\
++	: "r" (&v->counter), "r" (i)					\
++	: "cc");							\
++									\
++	return result;							\
++}
++
+ #define ATOMIC64_OPS(op, op1, op2)					\
+ 	ATOMIC64_OP(op, op1, op2)					\
+-	ATOMIC64_OP_RETURN(op, op1, op2)
++	ATOMIC64_OP_RETURN(op, op1, op2)				\
++	ATOMIC64_FETCH_OP(op, op1, op2)
+ 
+ ATOMIC64_OPS(add, adds, adc)
+ ATOMIC64_OPS(sub, subs, sbc)
+ 
+ #define atomic64_add_return_relaxed	atomic64_add_return_relaxed
+ #define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
++#define atomic64_fetch_add_relaxed	atomic64_fetch_add_relaxed
++#define atomic64_fetch_sub_relaxed	atomic64_fetch_sub_relaxed
++
++#undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op, op1, op2)					\
++	ATOMIC64_OP(op, op1, op2)					\
++	ATOMIC64_FETCH_OP(op, op1, op2)
+ 
+ #define atomic64_andnot atomic64_andnot
+ 
+-ATOMIC64_OP(and, and, and)
+-ATOMIC64_OP(andnot, bic, bic)
+-ATOMIC64_OP(or,  orr, orr)
+-ATOMIC64_OP(xor, eor, eor)
++ATOMIC64_OPS(and, and, and)
++ATOMIC64_OPS(andnot, bic, bic)
++ATOMIC64_OPS(or,  orr, orr)
++ATOMIC64_OPS(xor, eor, eor)
++
++#define atomic64_fetch_and_relaxed	atomic64_fetch_and_relaxed
++#define atomic64_fetch_andnot_relaxed	atomic64_fetch_andnot_relaxed
++#define atomic64_fetch_or_relaxed	atomic64_fetch_or_relaxed
++#define atomic64_fetch_xor_relaxed	atomic64_fetch_xor_relaxed
+ 
+ #undef ATOMIC64_OPS
++#undef ATOMIC64_FETCH_OP
+ #undef ATOMIC64_OP_RETURN
+ #undef ATOMIC64_OP
+ 
+
 
