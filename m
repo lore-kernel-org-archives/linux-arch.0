@@ -1,12 +1,12 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 18/31] locking,powerpc: Implement atomic{,64}_fetch_{add,sub,and,or,xor}{,_relaxed,_acquire,_release}()
-Date: Fri, 22 Apr 2016 11:04:31 +0200
-Message-ID: <20160422093924.212277819@infradead.org>
+Subject: [RFC][PATCH 17/31] locking,parisc: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()
+Date: Fri, 22 Apr 2016 11:04:30 +0200
+Message-ID: <20160422093924.139774269@infradead.org>
 References: <20160422090413.393652501@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-atomic-fetch-powerpc.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-parisc.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
@@ -20,128 +20,100 @@ This is especially useful for irreversible operations -- such as
 bitops (because it becomes impossible to reconstruct the state prior
 to modification).
 
-
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/powerpc/include/asm/atomic.h |   83 +++++++++++++++++++++++++++++++++-----
- 1 file changed, 74 insertions(+), 9 deletions(-)
+ arch/parisc/include/asm/atomic.h |   65 ++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 57 insertions(+), 8 deletions(-)
 
---- a/arch/powerpc/include/asm/atomic.h
-+++ b/arch/powerpc/include/asm/atomic.h
-@@ -78,21 +78,53 @@ static inline int atomic_##op##_return_r
- 	return t;							\
+--- a/arch/parisc/include/asm/atomic.h
++++ b/arch/parisc/include/asm/atomic.h
+@@ -121,16 +121,41 @@ static __inline__ int atomic_##op##_retu
+ 	return ret;							\
  }
  
-+#define ATOMIC_FETCH_OP_RELAXED(op, asm_op)				\
-+static inline int atomic_fetch_##op##_relaxed(int a, atomic_t *v)	\
+-#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_op)
++#define ATOMIC_FETCH_OP(op, c_op)					\
++static __inline__ int atomic_fetch_##op(int i, atomic_t *v)		\
 +{									\
-+	int res, t;							\
++	unsigned long flags;						\
++	int ret;							\
 +									\
-+	__asm__ __volatile__(						\
-+"1:	lwarx	%0,0,%4		# atomic_fetch_" #op "_relaxed\n"	\
-+	#asm_op " %1,%2,%0\n"						\
-+	PPC405_ERR77(0, %4)						\
-+"	stwcx.	%1,0,%4\n"						\
-+"	bne-	1b\n"							\
-+	: "=&r" (res), "=&r" (t), "+m" (v->counter)			\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc");							\
++	_atomic_spin_lock_irqsave(v, flags);				\
++	ret = v->counter;						\
++	v->counter c_op i;						\
++	_atomic_spin_unlock_irqrestore(v, flags);			\
 +									\
-+	return res;							\
++	return ret;							\
 +}
 +
- #define ATOMIC_OPS(op, asm_op)						\
- 	ATOMIC_OP(op, asm_op)						\
--	ATOMIC_OP_RETURN_RELAXED(op, asm_op)
-+	ATOMIC_OP_RETURN_RELAXED(op, asm_op)				\
-+	ATOMIC_FETCH_OP_RELAXED(op, asm_op)
++#define ATOMIC_OPS(op, c_op)						\
++	ATOMIC_OP(op, c_op)						\
++	ATOMIC_OP_RETURN(op, c_op)					\
++	ATOMIC_FETCH_OP(op, c_op)
  
- ATOMIC_OPS(add, add)
- ATOMIC_OPS(sub, subf)
+ ATOMIC_OPS(add, +=)
+ ATOMIC_OPS(sub, -=)
  
--ATOMIC_OP(and, and)
--ATOMIC_OP(or, or)
--ATOMIC_OP(xor, xor)
--
- #define atomic_add_return_relaxed atomic_add_return_relaxed
- #define atomic_sub_return_relaxed atomic_sub_return_relaxed
- 
-+#define atomic_fetch_add_relaxed atomic_fetch_add_relaxed
-+#define atomic_fetch_sub_relaxed atomic_fetch_sub_relaxed
-+
+-ATOMIC_OP(and, &=)
+-ATOMIC_OP(or, |=)
+-ATOMIC_OP(xor, ^=)
 +#undef ATOMIC_OPS
-+#define ATOMIC_OPS(op, asm_op)						\
-+	ATOMIC_OP(op, asm_op)						\
-+	ATOMIC_FETCH_OP_RELAXED(op, asm_op)
++#define ATOMIC_OPS(op, c_op)						\
++	ATOMIC_OP(op, c_op)						\
++	ATOMIC_FETCH_OP(op, c_op)
 +
-+ATOMIC_OPS(and, and)
-+ATOMIC_OPS(or, or)
-+ATOMIC_OPS(xor, xor)
++#define atomic_fetch_or atomic_fetch_or
 +
-+#define atomic_fetch_and_relaxed atomic_fetch_and_relaxed
-+#define atomic_fetch_or_relaxed  atomic_fetch_or_relaxed
-+#define atomic_fetch_xor_relaxed atomic_fetch_xor_relaxed
-+
++ATOMIC_OPS(and, &=)
++ATOMIC_OPS(or, |=)
++ATOMIC_OPS(xor, ^=)
+ 
  #undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP_RELAXED
- #undef ATOMIC_OP_RETURN_RELAXED
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
  
-@@ -329,20 +361,53 @@ atomic64_##op##_return_relaxed(long a, a
- 	return t;							\
+@@ -185,15 +210,39 @@ static __inline__ s64 atomic64_##op##_re
+ 	return ret;							\
  }
  
-+#define ATOMIC64_FETCH_OP_RELAXED(op, asm_op)				\
-+static inline long							\
-+atomic64_fetch_##op##_relaxed(long a, atomic64_t *v)			\
+-#define ATOMIC64_OPS(op, c_op) ATOMIC64_OP(op, c_op) ATOMIC64_OP_RETURN(op, c_op)
++#define ATOMIC64_FETCH_OP(op, c_op)					\
++static __inline__ s64 atomic64_fetch_##op(s64 i, atomic64_t *v)		\
 +{									\
-+	long res, t;							\
++	unsigned long flags;						\
++	s64 ret;							\
 +									\
-+	__asm__ __volatile__(						\
-+"1:	ldarx	%0,0,%4		# atomic64_fetch_" #op "_relaxed\n"	\
-+	#asm_op " %1,%3,%0\n"						\
-+"	stdcx.	%1,0,%4\n"						\
-+"	bne-	1b\n"							\
-+	: "=&r" (res), "=&r" (t), "+m" (v->counter)			\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc");							\
++	_atomic_spin_lock_irqsave(v, flags);				\
++	ret = v->counter;						\
++	v->counter c_op i;						\
++	_atomic_spin_unlock_irqrestore(v, flags);			\
 +									\
-+	return t;							\
++	return ret;							\
 +}
 +
- #define ATOMIC64_OPS(op, asm_op)					\
- 	ATOMIC64_OP(op, asm_op)						\
--	ATOMIC64_OP_RETURN_RELAXED(op, asm_op)
-+	ATOMIC64_OP_RETURN_RELAXED(op, asm_op)				\
-+	ATOMIC64_FETCH_OP_RELAXED(op, asm_op)
++#define ATOMIC64_OPS(op, c_op)						\
++	ATOMIC64_OP(op, c_op)						\
++	ATOMIC64_OP_RETURN(op, c_op)					\
++	ATOMIC64_FETCH_OP(op, c_op)
  
- ATOMIC64_OPS(add, add)
- ATOMIC64_OPS(sub, subf)
--ATOMIC64_OP(and, and)
--ATOMIC64_OP(or, or)
--ATOMIC64_OP(xor, xor)
+ ATOMIC64_OPS(add, +=)
+ ATOMIC64_OPS(sub, -=)
+-ATOMIC64_OP(and, &=)
+-ATOMIC64_OP(or, |=)
+-ATOMIC64_OP(xor, ^=)
  
- #define atomic64_add_return_relaxed atomic64_add_return_relaxed
- #define atomic64_sub_return_relaxed atomic64_sub_return_relaxed
- 
-+#define atomic64_fetch_add_relaxed atomic64_fetch_add_relaxed
-+#define atomic64_fetch_sub_relaxed atomic64_fetch_sub_relaxed
+ #undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op, c_op)						\
++	ATOMIC64_OP(op, c_op)						\
++	ATOMIC64_FETCH_OP(op, c_op)
++
++ATOMIC64_OPS(and, &=)
++ATOMIC64_OPS(or, |=)
++ATOMIC64_OPS(xor, ^=)
 +
 +#undef ATOMIC64_OPS
-+#define ATOMIC64_OPS(op, asm_op)					\
-+	ATOMIC64_OP(op, asm_op)						\
-+	ATOMIC64_FETCH_OP_RELAXED(op, asm_op)
-+
-+ATOMIC64_OPS(and, and)
-+ATOMIC64_OPS(or, or)
-+ATOMIC64_OPS(xor, xor)
-+
-+#define atomic64_fetch_and_relaxed atomic64_fetch_and_relaxed
-+#define atomic64_fetch_or_relaxed  atomic64_fetch_or_relaxed
-+#define atomic64_fetch_xor_relaxed atomic64_fetch_xor_relaxed
-+
- #undef ATOPIC64_OPS
-+#undef ATOMIC64_FETCH_OP_RELAXED
- #undef ATOMIC64_OP_RETURN_RELAXED
++#undef ATOMIC64_FETCH_OP
+ #undef ATOMIC64_OP_RETURN
  #undef ATOMIC64_OP
  
