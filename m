@@ -1,45 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 18/25] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Fri, 22 Apr 2016 19:41:28 +0200
-Message-ID: <5122105.YDc1h2V3NP@wuerfel>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <1459894127-17698-19-git-send-email-ynorov@caviumnetworks.com> <20160422165130.GQ2998@e104818-lin.cambridge.arm.com>
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [RFC][PATCH 00/31] implement atomic_fetch_$op
+Date: Fri, 22 Apr 2016 21:35:06 +0300
+Message-ID: <874matxzj9.fsf@purkki.adurom.net>
+References: <20160422090413.393652501@infradead.org>
+	<20160422094455.GO3430@twins.programming.kicks-ass.net>
+	<20160422125656.GA15453@wfg-t540p.sh.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:53086 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752461AbcDVRmj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 13:42:39 -0400
-In-Reply-To: <20160422165130.GQ2998@e104818-lin.cambridge.arm.com>
+Received: from smtp.codeaurora.org ([198.145.29.96]:34976 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751172AbcDVSfR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 14:35:17 -0400
+In-Reply-To: <20160422125656.GA15453@wfg-t540p.sh.intel.com> (Fengguang Wu's
+	message of "Fri, 22 Apr 2016 20:56:56 +0800")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
+To: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de
 
-On Friday 22 April 2016 17:51:30 Catalin Marinas wrote:
-> On Wed, Apr 06, 2016 at 01:08:40AM +0300, Yury Norov wrote:
-> > --- /dev/null
-> > +++ b/arch/arm64/kernel/binfmt_ilp32.c
-> 
-> [...]
-> 
-> > +#include "../../../fs/binfmt_elf.c"
-> 
-> How different is this new binfmt_ilp32.c file from the first part of
-> compat_binfmt_elf.c? I wonder whether we could include the latter here
-> instead and make this similar to binfmt_elf32.c introduced by the
-> previous patch.
+Fengguang Wu <fengguang.wu@intel.com> writes:
 
-That is how the earlier versions did it, and I thought it ended up 
-too ugly with lots of runtime checks instead of compile-time checks.
+>> OK, weirdness. I received the "BUILD SUCCESS" email without any arm64
+>> builds listed, but I just received a build bot email telling me the
+>> arm64 build was borked (which I know it is).
+>
+> Sorry, that may happen because even though most errors will be
+> detected in the first hour or before the BUILD SUCCESS/DONE
+> notification, the build/boot/performance tests for a particular branch
+> may continue for days, during the time test coverage keeps growing.
+> Which means it's possible to receive a build failure after receiving
+> BUILD SUCCESS notification.
+>
+> In particular, 0-day bot classify 500+ kconfigs into 2 priority lists:
+>
+> P1: 100+ realtime priority kconfigs which should be finished before sending
+>     out BUILD SUCCESS notification
+>
+> P2: 400+ background priority kconfigs which may take hours to days to finish
+>
+> That split is a tradeoff between timeliness and completeness. It turns
+> out to work well as long as we choose the suitable P1 list.
+>
+> So the more accurate interpretation of "BUILD SUCCESS/DONE" would be:
+> 0day bot is working on your tree (no worry about out-of-service) and
+> reached a major milestone.
 
-The current version is how I asked it to be done. A slight
-variation would be to keep using fs/compat_binfmt_elf.c for one
-of the two compat modes (today it is used for aarch32) and have
-a separate file include "../../../fs/binfmt_elf.c" for the other
-mode (as this patch does for ilp32). I think that is what I asked
-for, but there was probably a good reason for having two files
-in the same directory. The result is basically the same.
+Thanks, this is very useful information. But would it be also possible
+to get a report about the P2 completion (or failure)?
 
-	Arnd
+-- 
+Kalle Valo
