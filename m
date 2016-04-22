@@ -1,46 +1,43 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 01/31] locking: Flip arguments to atomic_fetch_or
-Date: Fri, 22 Apr 2016 16:18:21 +0200
-Message-ID: <20160422141821.GQ3430@twins.programming.kicks-ass.net>
+Subject: Re: [RFC][PATCH 27/31] locking: Remove linux/atomic.h:atomic_fetch_or
+Date: Fri, 22 Apr 2016 16:21:50 +0200
+Message-ID: <20160422142150.GR3430@twins.programming.kicks-ass.net>
 References: <20160422090413.393652501@infradead.org>
- <20160422093923.095484070@infradead.org>
- <CAMuHMdV79ShATdNZZDWSREpeHEEbSa+UFDynzQRHo63E4L8atw@mail.gmail.com>
+ <20160422093924.799805337@infradead.org>
+ <20160422130256.GG10289@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:41153 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:41181 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753733AbcDVOUj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 10:20:39 -0400
+	with ESMTP id S1752850AbcDVOWY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 10:22:24 -0400
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdV79ShATdNZZDWSREpeHEEbSa+UFDynzQRHo63E4L8atw@mail.gmail.com>
+In-Reply-To: <20160422130256.GG10289@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On Fri, Apr 22, 2016 at 01:09:38PM +0200, Geert Uytterhoeven wrote:
-> On Fri, Apr 22, 2016 at 11:04 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > All the atomic operations have their arguments the wrong way around;
+On Fri, Apr 22, 2016 at 02:02:56PM +0100, Will Deacon wrote:
+> On Fri, Apr 22, 2016 at 11:04:40AM +0200, Peter Zijlstra wrote:
+> > --- a/arch/arm64/include/asm/atomic.h
+> > +++ b/arch/arm64/include/asm/atomic.h
+> > @@ -128,8 +128,6 @@
+> >  #define __atomic_add_unless(v, a, u)	___atomic_add_unless(v, a, u,)
+> >  #define atomic_andnot			atomic_andnot
+> >  
+> > -#define atomic_fetch_or atomic_fetch_or
 > 
-> s/wrong/other/?
+> For some reason, you added this twice to our atomic.h, so there's still
+> one left after this patch.
 
-Nah, I find they really are the wrong way around. I forever write:
-atomic_add(&v, val); and then have the compiler yell at me.
+Ah, yes. One was because of the whole _relaxed generate business, this
+one is because of this generic atomic_fetch_or() thing.
 
-> > make atomic_fetch_or() consistent and flip them.
-> 
-> BTW, there are a few other inconsistencies:
-> 
-> atomic_add_unless()
-> atomic_cmpxchg()
-> atomic_inc_not_zero_hint()
-> atomic_set()
-> atomic_xchg
-> 
-> git grep "\<atomic_.*atomic_t\>.*\<int\>"
+I went through the arch/*/include/asm/atomic*.h files pretty much
+without thinking to add this one.
 
-Yes, but fixing those will be much more pain :/ atomic_fetch_or() was
-freshly introduced and only has a few callers, furthermore, the
-following patches would require it to be in line with the other
-atomic_$op() due to them all being generated from the same 'template'.
+The end result after this patch should be good though, we have
+atomic_fetch_or_relaxed and do not want to generate atomic_fetch_or()
+using smp_mb__{before,after}_atomic() because arm64 is 'special' :-)
