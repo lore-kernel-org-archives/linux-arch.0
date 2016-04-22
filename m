@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:34955 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:34985 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751650AbcDVJmx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:42:53 -0400
-Message-ID: <20160422093923.868519504@infradead.org>
-Date: Fri, 22 Apr 2016 11:04:26 +0200
+	with ESMTP id S1752160AbcDVJmz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:42:55 -0400
+Message-ID: <20160422093923.488417920@infradead.org>
+Date: Fri, 22 Apr 2016 11:04:20 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 13/31] locking,m68k: Implement atomic_fetch_{add,sub,and,or,xor}()
+Subject: [RFC][PATCH 07/31] locking,blackfin: Implement atomic_fetch_{add,sub,and,or,xor}()
 References: <20160422090413.393652501@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch-m68k.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-blackfin.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160422090426.hCQdVRITT7oKenGrfKxvIyyjZcm-ly8RTfoysxwV7eM@z>
+Message-ID: <20160422090420.f8vKIXIUK4pRcF-LEuIpReT3I1k6jiCTocQJqBzM0HY@z>
 
 Implement FETCH-OP atomic primitives, these are very similar to the
 existing OP-RETURN primitives we already have, except they return the
@@ -27,94 +27,121 @@ to modification).
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/m68k/include/asm/atomic.h |   53 +++++++++++++++++++++++++++++++++++++----
- 1 file changed, 49 insertions(+), 4 deletions(-)
+ arch/blackfin/include/asm/atomic.h |    8 ++++++
+ arch/blackfin/kernel/bfin_ksyms.c  |    1 
+ arch/blackfin/mach-bf561/atomic.S  |   43 ++++++++++++++++++++++++++-----------
+ 3 files changed, 40 insertions(+), 12 deletions(-)
 
---- a/arch/m68k/include/asm/atomic.h
-+++ b/arch/m68k/include/asm/atomic.h
-@@ -38,6 +38,13 @@ static inline void atomic_##op(int i, at
+--- a/arch/blackfin/include/asm/atomic.h
++++ b/arch/blackfin/include/asm/atomic.h
+@@ -17,6 +17,7 @@
  
- #ifdef CONFIG_RMW_INSNS
+ asmlinkage int __raw_uncached_fetch_asm(const volatile int *ptr);
+ asmlinkage int __raw_atomic_add_asm(volatile int *ptr, int value);
++asmlinkage int __raw_atomic_xadd_asm(volatile int *ptr, int value);
  
-+/*
-+ * Am I reading these CAS loops right in that %2 is the old value and the first
-+ * iteration uses an uninitialized value?
+ asmlinkage int __raw_atomic_and_asm(volatile int *ptr, int value);
+ asmlinkage int __raw_atomic_or_asm(volatile int *ptr, int value);
+@@ -28,10 +29,17 @@ asmlinkage int __raw_atomic_test_asm(con
+ #define atomic_add_return(i, v) __raw_atomic_add_asm(&(v)->counter, i)
+ #define atomic_sub_return(i, v) __raw_atomic_add_asm(&(v)->counter, -(i))
+ 
++#define atomic_fetch_add(i, v) __raw_atomic_xadd_asm(&(v)->counter, i)
++#define atomic_fetch_sub(i, v) __raw_atomic_xadd_asm(&(v)->counter, -(i))
++
+ #define atomic_or(i, v)  (void)__raw_atomic_or_asm(&(v)->counter, i)
+ #define atomic_and(i, v) (void)__raw_atomic_and_asm(&(v)->counter, i)
+ #define atomic_xor(i, v) (void)__raw_atomic_xor_asm(&(v)->counter, i)
+ 
++#define atomic_fetch_or(i, v)  __raw_atomic_or_asm(&(v)->counter, i)
++#define atomic_fetch_and(i, v) __raw_atomic_and_asm(&(v)->counter, i)
++#define atomic_fetch_xor(i, v) __raw_atomic_xor_asm(&(v)->counter, i)
++
+ #endif
+ 
+ #include <asm-generic/atomic.h>
+--- a/arch/blackfin/kernel/bfin_ksyms.c
++++ b/arch/blackfin/kernel/bfin_ksyms.c
+@@ -84,6 +84,7 @@ EXPORT_SYMBOL(insl_16);
+ 
+ #ifdef CONFIG_SMP
+ EXPORT_SYMBOL(__raw_atomic_add_asm);
++EXPORT_SYMBOL(__raw_atomic_xadd_asm);
+ EXPORT_SYMBOL(__raw_atomic_and_asm);
+ EXPORT_SYMBOL(__raw_atomic_or_asm);
+ EXPORT_SYMBOL(__raw_atomic_xor_asm);
+--- a/arch/blackfin/mach-bf561/atomic.S
++++ b/arch/blackfin/mach-bf561/atomic.S
+@@ -607,6 +607,28 @@ ENDPROC(___raw_atomic_add_asm)
+ 
+ /*
+  * r0 = ptr
++ * r1 = value
 + *
-+ * Would it not make sense to add: tmp = atomic_read(v); to avoid this?
++ * ADD a signed value to a 32bit word and return the old value atomically.
++ * Clobbers: r3:0, p1:0
 + */
++ENTRY(___raw_atomic_xadd_asm)
++	p1 = r0;
++	r3 = r1;
++	[--sp] = rets;
++	call _get_core_lock;
++	r3 = [p1];
++	r2 = r3 + r2;
++	[p1] = r2;
++	r1 = p1;
++	call _put_core_lock;
++	r0 = r3;
++	rets = [sp++];
++	rts;
++ENDPROC(___raw_atomic_add_asm)
 +
- #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
- static inline int atomic_##op##_return(int i, atomic_t *v)		\
- {									\
-@@ -53,6 +60,21 @@ static inline int atomic_##op##_return(i
- 	return t;							\
- }
- 
-+#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	int t, tmp;							\
-+									\
-+	__asm__ __volatile__(						\
-+			"1:	movel %2,%1\n"				\
-+			"	" #asm_op "l %3,%1\n"			\
-+			"	casl %2,%1,%0\n"			\
-+			"	jne 1b"					\
-+			: "+m" (*v), "=&d" (t), "=&d" (tmp)		\
-+			: "g" (i), "2" (atomic_read(v)));		\
-+	return tmp;							\
-+}
-+
- #else
- 
- #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-@@ -68,20 +90,43 @@ static inline int atomic_##op##_return(i
- 	return t;							\
- }
- 
-+#define ATOMIC_FETCH_OP(op, c_op, asm_op)				\
-+static inline int atomic_fetch_##op(int i, atomic_t * v)		\
-+{									\
-+	unsigned long flags;						\
-+	int t;								\
-+									\
-+	local_irq_save(flags);						\
-+	t = v->counter;							\
-+	v->counter c_op i;						\
-+	local_irq_restore(flags);					\
-+									\
-+	return t;							\
-+}
-+
- #endif /* CONFIG_RMW_INSNS */
- 
- #define ATOMIC_OPS(op, c_op, asm_op)					\
- 	ATOMIC_OP(op, c_op, asm_op)					\
--	ATOMIC_OP_RETURN(op, c_op, asm_op)
-+	ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-+	ATOMIC_FETCH_OP(op, c_op, asm_op)
- 
- ATOMIC_OPS(add, +=, add)
- ATOMIC_OPS(sub, -=, sub)
- 
--ATOMIC_OP(and, &=, and)
--ATOMIC_OP(or, |=, or)
--ATOMIC_OP(xor, ^=, eor)
-+#undef ATOMIC_OPS
-+#define ATOMIC_OPS(op, c_op, asm_op)					\
-+	ATOMIC_OP(op, c_op, asm_op)					\
-+	ATOMIC_FETCH_OP(op, c_op, asm_op)
-+
-+#define atomic_fetch_or atomic_fetch_or
-+
-+ATOMIC_OPS(and, &=, and)
-+ATOMIC_OPS(or, |=, or)
-+ATOMIC_OPS(xor, ^=, eor)
- 
- #undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
++/*
++ * r0 = ptr
+  * r1 = mask
+  *
+  * AND the mask bits from a 32bit word and return the old 32bit value
+@@ -618,10 +640,9 @@ ENTRY(___raw_atomic_and_asm)
+ 	r3 = r1;
+ 	[--sp] = rets;
+ 	call _get_core_lock;
+-	r2 = [p1];
+-	r3 = r2 & r3;
+-	[p1] = r3;
+-	r3 = r2;
++	r3 = [p1];
++	r2 = r2 & r3;
++	[p1] = r2;
+ 	r1 = p1;
+ 	call _put_core_lock;
+ 	r0 = r3;
+@@ -642,10 +663,9 @@ ENTRY(___raw_atomic_or_asm)
+ 	r3 = r1;
+ 	[--sp] = rets;
+ 	call _get_core_lock;
+-	r2 = [p1];
+-	r3 = r2 | r3;
+-	[p1] = r3;
+-	r3 = r2;
++	r3 = [p1];
++	r2 = r2 | r3;
++	[p1] = r2;
+ 	r1 = p1;
+ 	call _put_core_lock;
+ 	r0 = r3;
+@@ -666,10 +686,9 @@ ENTRY(___raw_atomic_xor_asm)
+ 	r3 = r1;
+ 	[--sp] = rets;
+ 	call _get_core_lock;
+-	r2 = [p1];
+-	r3 = r2 ^ r3;
+-	[p1] = r3;
+-	r3 = r2;
++	r3 = [p1];
++	r2 = r2 ^ r3;
++	[p1] = r2;
+ 	r1 = p1;
+ 	call _put_core_lock;
+ 	r0 = r3;
 
 
