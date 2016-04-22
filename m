@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:40719 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:40759 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752823AbcDVJnY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:43:24 -0400
-Message-ID: <20160422093924.544325170@infradead.org>
-Date: Fri, 22 Apr 2016 11:04:36 +0200
+	with ESMTP id S1753143AbcDVJnT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 05:43:19 -0400
+Message-ID: <20160422093924.608055231@infradead.org>
+Date: Fri, 22 Apr 2016 11:04:37 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 23/31] locking,x86: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()
+Subject: [RFC][PATCH 24/31] locking,xtensa: Implement atomic_fetch_{add,sub,and,or,xor}()
 References: <20160422090413.393652501@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch-x86.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-xtensa.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160422090436.McOXWhISJoFYgBWOeChCc6orlrOwG72yDis9k0hcNEc@z>
+Message-ID: <20160422090437.hzekSwecpIodN9OJo_L_BDzWtP98dfUIIcSB2bU31ek@z>
 
 Implement FETCH-OP atomic primitives, these are very similar to the
 existing OP-RETURN primitives we already have, except they return the
@@ -25,153 +25,89 @@ This is especially useful for irreversible operations -- such as
 bitops (because it becomes impossible to reconstruct the state prior
 to modification).
 
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/x86/include/asm/atomic.h      |   37 ++++++++++++++++++++++++++++++++++---
- arch/x86/include/asm/atomic64_32.h |   25 ++++++++++++++++++++++---
- arch/x86/include/asm/atomic64_64.h |   35 ++++++++++++++++++++++++++++++++---
- 3 files changed, 88 insertions(+), 9 deletions(-)
+ arch/xtensa/include/asm/atomic.h |   54 ++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 50 insertions(+), 4 deletions(-)
 
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -171,6 +171,16 @@ static __always_inline int atomic_sub_re
- #define atomic_inc_return(v)  (atomic_add_return(1, v))
- #define atomic_dec_return(v)  (atomic_sub_return(1, v))
- 
-+static __always_inline int atomic_fetch_add(int i, atomic_t *v)
-+{
-+	return xadd(&v->counter, i);
-+}
-+
-+static __always_inline int atomic_fetch_sub(int i, atomic_t *v)
-+{
-+	return xadd(&v->counter, -i);
-+}
-+
- static __always_inline int atomic_cmpxchg(atomic_t *v, int old, int new)
- {
- 	return cmpxchg(&v->counter, old, new);
-@@ -190,10 +200,31 @@ static inline void atomic_##op(int i, at
- 			: "memory");					\
+--- a/arch/xtensa/include/asm/atomic.h
++++ b/arch/xtensa/include/asm/atomic.h
+@@ -98,6 +98,26 @@ static inline int atomic_##op##_return(i
+ 	return result;							\
  }
+ 
++#define ATOMIC_FETCH_OP(op)						\
++static inline int atomic_fetch_##op(int i, atomic_t * v)		\
++{									\
++	unsigned long tmp;						\
++	int result;							\
++									\
++	__asm__ __volatile__(						\
++			"1:     l32i    %1, %3, 0\n"			\
++			"       wsr     %1, scompare1\n"		\
++			"       " #op " %0, %1, %2\n"			\
++			"       s32c1i  %0, %3, 0\n"			\
++			"       bne     %0, %1, 1b\n"			\
++			: "=&a" (result), "=&a" (tmp)			\
++			: "a" (i), "a" (v)				\
++			: "memory"					\
++			);						\
++									\
++	return result;							\
++}
++
+ #else /* XCHAL_HAVE_S32C1I */
+ 
+ #define ATOMIC_OP(op)							\
+@@ -138,18 +158,44 @@ static inline int atomic_##op##_return(i
+ 	return vval;							\
+ }
+ 
++#define ATOMIC_FETCH_OP(op)						\
++static inline int atomic_fetch_##op(int i, atomic_t * v)		\
++{									\
++	unsigned int tmp, vval;						\
++									\
++	__asm__ __volatile__(						\
++			"       rsil    a15,"__stringify(TOPLEVEL)"\n"	\
++			"       l32i    %0, %3, 0\n"			\
++			"       " #op " %1, %0, %2\n"			\
++			"       s32i    %1, %3, 0\n"			\
++			"       wsr     a15, ps\n"			\
++			"       rsync\n"				\
++			: "=&a" (vval), "=&a" (tmp)			\
++			: "a" (i), "a" (v)				\
++			: "a15", "memory"				\
++			);						\
++									\
++	return vval;							\
++}
++
+ #endif /* XCHAL_HAVE_S32C1I */
+ 
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op) ATOMIC_OP_RETURN(op)
+ 
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
  
 -ATOMIC_OP(and)
 -ATOMIC_OP(or)
 -ATOMIC_OP(xor)
-+#define ATOMIC_FETCH_OP(op, c_op)					\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)		\
-+{									\
-+	int old, val = atomic_read(v);					\
-+	for (;;) {							\
-+		old = atomic_cmpxchg(v, val, val c_op i);		\
-+		if (old == val)						\
-+			break;						\
-+		val = old;						\
-+	}								\
-+	return old;							\
-+}
-+
-+#define ATOMIC_OPS(op, c_op)						\
-+	ATOMIC_OP(op)							\
-+	ATOMIC_FETCH_OP(op, c_op)
++#undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
 +
 +#define atomic_fetch_or atomic_fetch_or
 +
-+ATOMIC_OPS(and, &)
-+ATOMIC_OPS(or , |)
-+ATOMIC_OPS(xor, ^)
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
  
-+#undef ATOMIC_OPS
+ #undef ATOMIC_OPS
 +#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
  
- /**
---- a/arch/x86/include/asm/atomic64_32.h
-+++ b/arch/x86/include/asm/atomic64_32.h
-@@ -320,10 +320,29 @@ static inline void atomic64_##op(long lo
- 		c = old;						\
- }
- 
--ATOMIC64_OP(and, &)
--ATOMIC64_OP(or, |)
--ATOMIC64_OP(xor, ^)
-+#define ATOMIC64_FETCH_OP(op, c_op)					\
-+static inline long long atomic64_fetch_##op(long long i, atomic64_t *v)	\
-+{									\
-+	long long old, c = 0;						\
-+	while ((old = atomic64_cmpxchg(v, c, c c_op i)) != c)		\
-+		c = old;						\
-+	return old;							\
-+}
-+
-+ATOMIC64_FETCH_OP(add, +)
-+
-+#define atomic64_fetch_sub(i, v)	atomic64_fetch_add(-(i), (v))
-+
-+#define ATOMIC64_OPS(op, c_op)						\
-+	ATOMIC64_OP(op, c_op)						\
-+	ATOMIC64_FETCH_OP(op, c_op)
-+
-+ATOMIC64_OPS(and, &)
-+ATOMIC64_OPS(or, |)
-+ATOMIC64_OPS(xor, ^)
- 
-+#undef ATOMIC64_OPS
-+#undef ATOMIC64_FETCH_OP
- #undef ATOMIC64_OP
- 
- #endif /* _ASM_X86_ATOMIC64_32_H */
---- a/arch/x86/include/asm/atomic64_64.h
-+++ b/arch/x86/include/asm/atomic64_64.h
-@@ -158,6 +158,16 @@ static inline long atomic64_sub_return(l
- 	return atomic64_add_return(-i, v);
- }
- 
-+static inline long atomic64_fetch_add(long i, atomic64_t *v)
-+{
-+	return xadd(&v->counter, i);
-+}
-+
-+static inline long atomic64_fetch_sub(long i, atomic64_t *v)
-+{
-+	return xadd(&v->counter, -i);
-+}
-+
- #define atomic64_inc_return(v)  (atomic64_add_return(1, (v)))
- #define atomic64_dec_return(v)  (atomic64_sub_return(1, (v)))
- 
-@@ -229,10 +239,29 @@ static inline void atomic64_##op(long i,
- 			: "memory");					\
- }
- 
--ATOMIC64_OP(and)
--ATOMIC64_OP(or)
--ATOMIC64_OP(xor)
-+#define ATOMIC64_FETCH_OP(op, c_op)					\
-+static inline long atomic64_fetch_##op(long i, atomic64_t *v)		\
-+{									\
-+	long old, val = atomic64_read(v);				\
-+	for (;;) {							\
-+		old = atomic64_cmpxchg(v, val, val c_op i);		\
-+		if (old == val)						\
-+			break;						\
-+		val = old;						\
-+	}								\
-+	return old;							\
-+}
-+
-+#define ATOMIC64_OPS(op, c_op)						\
-+	ATOMIC64_OP(op)							\
-+	ATOMIC64_FETCH_OP(op, c_op)
-+
-+ATOMIC64_OPS(and, &)
-+ATOMIC64_OPS(or, |)
-+ATOMIC64_OPS(xor, ^)
- 
-+#undef ATOMIC64_OPS
-+#undef ATOMIC64_FETCH_OP
- #undef ATOMIC64_OP
- 
- #endif /* _ASM_X86_ATOMIC64_64_H */
 
 
