@@ -1,50 +1,48 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic: add new syscalls for 4.6
-Date: Sat, 23 Apr 2016 23:33:17 +0200
-Message-ID: <5983094.zeRXZxzCRP@wuerfel>
+Subject: Re: [PATCH] generic syscalls: wire up preadv2 and pwritev2 syscalls
+Date: Sun, 24 Apr 2016 00:16:50 +0200
+Message-ID: <3816292.4K8FR7W2O1@wuerfel>
+References: <1460366266-29378-1-git-send-email-andre.przywara@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:55849 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.75]:64825 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752178AbcDWVdY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Apr 2016 17:33:24 -0400
+	with ESMTP id S1752113AbcDWWRU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Apr 2016 18:17:20 -0400
+In-Reply-To: <1460366266-29378-1-git-send-email-andre.przywara@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andre Przywara <andre.przywara@arm.com>, will.deacon@arm.com, Christoph Hellwig <hch@lst.de>
+To: Andre Przywara <andre.przywara@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-The following changes since commit c3b46c73264b03000d1e18b22f5caf63332547c9:
+On Monday 11 April 2016 10:17:46 Andre Przywara wrote:
+> These new syscalls are implemented as generic code, so enable them for
+> architectures like arm64 which use the generic syscall table.
+> 
+> Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+> 
 
-  Linux 4.6-rc4 (2016-04-17 19:13:32 -0700)
+I've forwarded it now as a pull request. Generally speaking, I'd much prefer
+anyone who adds a syscall to update asm-generic/unistd.h as well
+(as documented in Documentation/adding-syscalls.txt), there is no
+need for me to put those patches into the asm-generic git tree first.
 
-are available in the git repository at:
+On a related topic, I've been thinking (for years) about coming up with a
+way to have all future syscalls just get added to a single file in the
+kernel to have them appended to the tables for all architectures. There
+are two basic methods that seem appropriate here for avoiding the split
+between unistd.h and syscalls.S:
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-4.6
+a) The current asm-generic method of interleaving the __NR_* macro definitions
+   and the entry in a .c file array, including the header multiple times
+   to get all the tables
+b) generating both files from an input like x86 does with
+   arch/x86/entry/syscalls/ infrastructure
 
-for you to fetch changes up to 987aedb5d6f6e10c5203c6d0aab9a60ec22c7e93:
+I think we need something similar to b) but with some extensions to allow
+extending the architecture specific tables in a nice way, rather than
+having to have one file per architecture.
 
-  generic syscalls: wire up preadv2 and pwritev2 syscalls (2016-04-23 22:38:08 +0200)
-
-----------------------------------------------------------------
-asm-generic changes for 4.6-rc
-
-Here is one patch to wire up the preadv/pwritev system calls in the
-generic system call table, which is required for all architectures
-that were merged in the last few years, including arm64.
-
-Usually these get merged along with the syscall implementation
-or one of the architecture trees, but this time that did not
-happen.
-
-----------------------------------------------------------------
-
-Andre and Christoph both sent a version of this patch, I picked the
-one I got first.
-
-Andre Przywara (1):
-      generic syscalls: wire up preadv2 and pwritev2 syscalls
-
- include/uapi/asm-generic/unistd.h | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+	Arnd
