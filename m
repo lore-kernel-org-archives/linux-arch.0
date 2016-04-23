@@ -1,37 +1,39 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 12/25] arm64: compat: change config dependences to aarch32
-Date: Sat, 23 Apr 2016 00:59:18 +0300
-Message-ID: <20160422215918.GB2234@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-13-git-send-email-ynorov@caviumnetworks.com>
- <20160422155818.GP2998@e104818-lin.cambridge.arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 02/31] locking,alpha: Implement
+ atomic{,64}_fetch_{add,sub,and,andnot,or,xor}()
+Date: Sat, 23 Apr 2016 03:55:34 +0200
+Message-ID: <20160423015534.GW3430@twins.programming.kicks-ass.net>
+References: <20160422090413.393652501@infradead.org>
+ <20160422093923.156825130@infradead.org>
+ <571A57E0.1040704@twiddle.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:45165 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751633AbcDWB4V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Apr 2016 21:56:21 -0400
 Content-Disposition: inline
-In-Reply-To: <20160422155818.GP2998@e104818-lin.cambridge.arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <571A57E0.1040704@twiddle.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Henderson <rth@twiddle.net>
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On Fri, Apr 22, 2016 at 04:58:18PM +0100, Catalin Marinas wrote:
-> On Wed, Apr 06, 2016 at 01:08:34AM +0300, Yury Norov wrote:
-> > From: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-> > 
-> > With the patches of ILP32, COMPAT is not equivalent to AARCH32 in EL0.
-> > This patch fix this by updating the dependency from COMPAT to
-> > AARCH32_EL0 for ARMV8_DEPRECATED and ARM64_ERRATUM_845719.
-> > 
-> > Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+On Fri, Apr 22, 2016 at 09:57:04AM -0700, Richard Henderson wrote:
+> On 04/22/2016 02:04 AM, Peter Zijlstra wrote:
+> > +	"1:	ldl_l %0,%1\n"						\
+> > +	"       mov %0,%2\n"						\
+> > +	"	" #asm_op " %0,%3,%0\n"					\
+> > +	"	stl_c %0,%1\n"						\
 > 
-> Can you not merge patches 10-12 into a single one? They all deal with
-> the s/COMPAT/AARCH32_EL0/ replacement. I'm not even sure the series is
-> bisectable after patch 10.
+> No need for the extra mov.
 > 
-> -- 
-> Catalin
+> 	ldl_l %2,%1
+> 	asm_op %2,%3,%0
+> 	stl_c %0,%1
 
- OK, if Bamvoor is not objecting
- 
+Indeed, I got my head stuck in two operand (x86) asm. This is the second
+such 'mistake', I'll go have a look at the rest too.
+
+Thanks!
