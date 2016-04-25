@@ -1,42 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48226 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754393AbcDYQ53 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Apr 2016 12:57:29 -0400
-Date: Mon, 25 Apr 2016 17:57:21 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 19/25] arm64: ptrace: handle ptrace_request differently
- for aarch32 and ilp32
-Message-ID: <20160425165721.GH9614@e104818-lin.cambridge.arm.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-20-git-send-email-ynorov@caviumnetworks.com>
- <20160422171009.GR2998@e104818-lin.cambridge.arm.com>
- <20160422214013.GA2234@yury-N73SV>
+Received: from bombadil.infradead.org ([198.137.202.9]:49757 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932961AbcDYTKK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 15:10:10 -0400
+Date: Mon, 25 Apr 2016 12:10:04 -0700
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Message-ID: <20160425191004.GA13906@infradead.org>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
+ <20160315082254.GE9136@infradead.org>
+ <3286525.zPAGiD4Xk2@avalon>
+ <20160321152601.GA11674@infradead.org>
+ <20160413132916.GC19650@bigcity.dyn.berto.se>
+ <20160421134942.GA3325@infradead.org>
+ <20160425142619.GJ28777@bigcity.dyn.berto.se>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160422214013.GA2234@yury-N73SV>
+In-Reply-To: <20160425142619.GJ28777@bigcity.dyn.berto.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-Message-ID: <20160425165721.V3vttKlqhgP3ypolzYcD6lwaB1-kYeFN3HNrTbFvDsw@z>
+To: Christoph Hellwig <hch@infradead.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160425191004.TpELzkwyJJtYxBrERvXAZc6Q24gEGmClX49wUXSh4sQ@z>
 
-On Sat, Apr 23, 2016 at 12:40:13AM +0300, Yury Norov wrote:
-> On Fri, Apr 22, 2016 at 06:10:09PM +0100, Catalin Marinas wrote:
-> > On Wed, Apr 06, 2016 at 01:08:41AM +0300, Yury Norov wrote:
-> > > Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
-> > > detection of the task type.
-> > 
-> > The reason for this patch isn't clear to me. What's wrong with the
-> > run-time detection? It's not some performance critical code.
-> 
-> It was requested by Arnd, It's not 'new' syscall basically, just an
-> attempt to avoid run-time detection of things that may be detected an
-> compile-time.
+On Mon, Apr 25, 2016 at 04:26:19PM +0200, Niklas S?derlund wrote:
+> I have followed the call path from the usage in 
+> drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in a 
+> bad way.
 
-OK. I noticed that it touches core files and wondering whether it was
-necessary but I'm fine with this approach.
-
--- 
-Catalin
+The dma-debug routines are called from the generic code in
+include/linux/dma-mapping.h, and from my reading of the other patches
+in your series you are calling it for these as well.
