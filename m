@@ -1,52 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43115 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753882AbcDYI2F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 04:28:05 -0400
-Date: Mon, 25 Apr 2016 10:26:39 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 19/31] locking,s390: Implement
- atomic{,64}_fetch_{add,sub,and,or,xor}()
-Message-ID: <20160425082639.GC3430@twins.programming.kicks-ass.net>
-References: <20160422090413.393652501@infradead.org>
- <20160422093924.273699893@infradead.org>
- <20160425100625.5f250bc1@mschwide>
+Received: from smtp-4.sys.kth.se ([130.237.48.193]:47934 "EHLO
+	smtp-4.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752563AbcDYOdM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 10:33:12 -0400
+Date: Mon, 25 Apr 2016 16:26:19 +0200
+From: Niklas =?iso-8859-1?Q?S=F6derlund?= <niso@kth.se>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Message-ID: <20160425142619.GJ28777@bigcity.dyn.berto.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
+ <20160315082254.GE9136@infradead.org>
+ <3286525.zPAGiD4Xk2@avalon>
+ <20160321152601.GA11674@infradead.org>
+ <20160413132916.GC19650@bigcity.dyn.berto.se>
+ <20160421134942.GA3325@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20160425100625.5f250bc1@mschwide>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20160421134942.GA3325@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160425082639.DuPA9yuO9hRKHf3n7ueQq5PjQ68s7F9RECsrBmo3vB0@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20160425142619.Uey5jStGahyDUWlEni2oxk73oL0hCmih4o1SX3s7sdQ@z>
 
-On Mon, Apr 25, 2016 at 10:06:25AM +0200, Martin Schwidefsky wrote:
-> On Fri, 22 Apr 2016 11:04:32 +0200
-> Peter Zijlstra <peterz@infradead.org> wrote:
+Hi Christoph,
+
+On 2016-04-21 06:49:42 -0700, Christoph Hellwig wrote:
+> On Wed, Apr 13, 2016 at 03:29:17PM +0200, Niklas S?derlund wrote:
+> > > Yes, it would be good to do an audit of all the ARM dma_ops as well
+> > > as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
+> > > include/linux/dma-*.h
 > 
-> > Implement FETCH-OP atomic primitives, these are very similar to the
-> > existing OP-RETURN primitives we already have, except they return the
-> > value of the atomic variable _before_ modification.
-> > 
-> > This is especially useful for irreversible operations -- such as
-> > bitops (because it becomes impossible to reconstruct the state prior
-> > to modification).
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  arch/s390/include/asm/atomic.h |   42 +++++++++++++++++++++++++++++++----------
-> >  1 file changed, 32 insertions(+), 10 deletions(-)
-> 
-> That looks good, the code compiles and the functions are generated correctly.
-> We will know for sure if it works after the first user of these new functions
-> hit the kernel.
+> What about things like the phys_addr() helper in lib/dma-debug.c?  That
+> was in fact what prompted my question for an audit, and it seems
+> to not even feature on your list.  What patterns / symbols did you look
+> for?
 
-So we already have an atomic_fetch_or() user in the kernel, and this
-series adds an atomic_fetch_add_acquire() user.
 
-But yes, we'll undoubtedly grow more over time :-)
+I have followed the call path from the usage in 
+drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in a 
+bad way.
 
-> Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+I also looked at the dma-mapping API and ruled out that the only 
+function that make sens to use with a dma_addr_t from dma_map_resource() 
+are dma_unmap_resource() and dma_mapping_error(). With that I can't see 
+how a dma_addr_t would end up in lib/dma-debug.c. But I might be missing 
+something?
 
-Thanks!
+In the big picture do you feel the approach I have is the correct way to 
+solve my problem? Provided we can work out this issues ofc?
+
+-- 
+Regards,
+Niklas Söderlund
