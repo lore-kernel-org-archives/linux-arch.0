@@ -1,34 +1,60 @@
-From: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
-Subject: Re: [PATCH V3 01/29] bitops: add parity functions
-Date: Mon, 25 Apr 2016 17:14:11 +0800
-Message-ID: <571DDFE3.9010407@gmail.com>
-References: <20160419184501.13069.qmail@ns.horizon.com>
+From: Niklas =?iso-8859-1?Q?S=F6derlund?= <niso@kth.se>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Mon, 25 Apr 2016 16:26:19 +0200
+Message-ID: <20160425142619.GJ28777@bigcity.dyn.berto.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160311125846.GF1111@bigcity.dyn.berto.se>
+ <20160315082254.GE9136@infradead.org>
+ <3286525.zPAGiD4Xk2@avalon>
+ <20160321152601.GA11674@infradead.org>
+ <20160413132916.GC19650@bigcity.dyn.berto.se>
+ <20160421134942.GA3325@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f66.google.com ([209.85.220.66]:33521 "EHLO
-	mail-pa0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753533AbcDYJOT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 05:14:19 -0400
-In-Reply-To: <20160419184501.13069.qmail@ns.horizon.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: George Spelvin <linux@horizon.com>, linux-kernel@vger.kernel.org, zengzhaoxiu@163.com
-Cc: akpm@linux-foundation.org, arnd@arndb.de, dvlasenk@redhat.com, linux-arch@vger.kernel.org, martink@posteo.de, mingo@kernel.org, sasha.levin@oracle.com, yury.norov@gmail.com
+Return-path: <linux-renesas-soc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160421134942.GA3325@infradead.org>
+Sender: linux-renesas-soc-owner@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-=E5=9C=A8 2016=E5=B9=B404=E6=9C=8820=E6=97=A5 02:45, George Spelvin =E5=
-=86=99=E9=81=93:
->> Add generic odd parity functions, adapted from
->> "https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel=
-"
-> Given a PARITY_MAGIC of 0x6996, this is even parity, not odd.
->
-> (Which it should be; an XOR of all bits is the "natural" form.)
+Hi Christoph,
 
- From "http://www.encyclopedia.com/doc/1O11-oddparity.html", we can get
-the definition of "odd parity":
+On 2016-04-21 06:49:42 -0700, Christoph Hellwig wrote:
+> On Wed, Apr 13, 2016 at 03:29:17PM +0200, Niklas S?derlund wrote:
+> > > Yes, it would be good to do an audit of all the ARM dma_ops as we=
+ll
+> > > as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
+> > > include/linux/dma-*.h
+>=20
+> What about things like the phys_addr() helper in lib/dma-debug.c?  Th=
+at
+> was in fact what prompted my question for an audit, and it seems
+> to not even feature on your list.  What patterns / symbols did you lo=
+ok
+> for?
 
-odd parity A property that holds when a group of binary values contains=
- an odd number of 1s.
+
+I have followed the call path from the usage in=20
+drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in =
+a=20
+bad way.
+
+I also looked at the dma-mapping API and ruled out that the only=20
+function that make sens to use with a dma_addr_t from dma_map_resource(=
+)=20
+are dma_unmap_resource() and dma_mapping_error(). With that I can't see=
+=20
+how a dma_addr_t would end up in lib/dma-debug.c. But I might be missin=
+g=20
+something?
+
+In the big picture do you feel the approach I have is the correct way t=
+o=20
+solve my problem? Provided we can work out this issues ofc?
+
+--=20
+Regards,
+Niklas S=F6derlund
