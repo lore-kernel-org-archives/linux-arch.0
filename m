@@ -1,60 +1,50 @@
-From: Niklas =?iso-8859-1?Q?S=F6derlund?= <niso@kth.se>
-Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Date: Mon, 25 Apr 2016 16:26:19 +0200
-Message-ID: <20160425142619.GJ28777@bigcity.dyn.berto.se>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160311125846.GF1111@bigcity.dyn.berto.se>
- <20160315082254.GE9136@infradead.org>
- <3286525.zPAGiD4Xk2@avalon>
- <20160321152601.GA11674@infradead.org>
- <20160413132916.GC19650@bigcity.dyn.berto.se>
- <20160421134942.GA3325@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160421134942.GA3325@infradead.org>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: [PATCH V3 01/29] bitops: add parity functions
+Date: 25 Apr 2016 12:17:09 -0400
+Message-ID: <20160425161709.15792.qmail@ns.horizon.com>
+References: <571DDFE3.9010407@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ns.horizon.com ([71.41.210.147]:28679 "HELO ns.horizon.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S933003AbcDYQRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Apr 2016 12:17:10 -0400
+In-Reply-To: <571DDFE3.9010407@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux@horizon.com, zengzhaoxiu@163.com, zhaoxiu.zeng@gmail.com
+Cc: akpm@linux-foundation.org, arnd@arndb.de, dvlasenk@redhat.com, linux-arch@vger.kernel.org, martink@posteo.de, mingo@kernel.org, sasha.levin@oracle.com, yury.norov@gmail.com
 
-Hi Christoph,
+>> Given a PARITY_MAGIC of 0x6996, this is even parity, not odd.
 
-On 2016-04-21 06:49:42 -0700, Christoph Hellwig wrote:
-> On Wed, Apr 13, 2016 at 03:29:17PM +0200, Niklas S?derlund wrote:
-> > > Yes, it would be good to do an audit of all the ARM dma_ops as we=
-ll
-> > > as generic code like drivers/base/dma-*.c, lib/dma-debug.c and
-> > > include/linux/dma-*.h
->=20
-> What about things like the phys_addr() helper in lib/dma-debug.c?  Th=
-at
-> was in fact what prompted my question for an audit, and it seems
-> to not even feature on your list.  What patterns / symbols did you lo=
-ok
-> for?
+> From "http://www.encyclopedia.com/doc/1O11-oddparity.html", we can get
+> the definition of "odd parity":
 
+> odd parity A property that holds when a group of binary values contains
+> an odd number of 1s.
 
-I have followed the call path from the usage in=20
-drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in =
-a=20
-bad way.
+That's correct, but the group of bits being discussed *includes the
+parity bit itself*.
 
-I also looked at the dma-mapping API and ruled out that the only=20
-function that make sens to use with a dma_addr_t from dma_map_resource(=
-)=20
-are dma_unmap_resource() and dma_mapping_error(). With that I can't see=
-=20
-how a dma_addr_t would end up in lib/dma-debug.c. But I might be missin=
-g=20
-something?
+Let me be specific:
 
-In the big picture do you feel the approach I have is the correct way t=
-o=20
-solve my problem? Provided we can work out this issues ofc?
+Let x be a word, which is BITS bits long.
+Let parity(x) = popcount(x) & 1
+Let y = x | parity(x) << BITS
+Let z = x | !parity(x) << BITS
 
---=20
-Regards,
-Niklas S=F6derlund
+y is described as having even parity.
+z is described as having odd parity.
+x is not normally described using those terms
+
+The bits appended are usually referred to as an "even parity bit" and
+an "odd parity bit".
+
+You're right that your function returns "true" if the word fed to it has
+odd parity, but the bit it computes is an even parity bit.
+
+In the field of error-checking codes, an inverse convention is
+generally used: zero means no error and non-zero means error.  When
+this convention is used, the same function can be used to both generate
+and check parity.  (And the one you have is the even parity function.)
+
+I think the best solution is to just delete the word "odd".
