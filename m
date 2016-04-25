@@ -1,50 +1,37 @@
-From: "George Spelvin" <linux@horizon.com>
-Subject: Re: [PATCH V3 01/29] bitops: add parity functions
-Date: 25 Apr 2016 12:17:09 -0400
-Message-ID: <20160425161709.15792.qmail@ns.horizon.com>
-References: <571DDFE3.9010407@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.horizon.com ([71.41.210.147]:28679 "HELO ns.horizon.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S933003AbcDYQRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Apr 2016 12:17:10 -0400
-In-Reply-To: <571DDFE3.9010407@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux@horizon.com, zengzhaoxiu@163.com, zhaoxiu.zeng@gmail.com
-Cc: akpm@linux-foundation.org, arnd@arndb.de, dvlasenk@redhat.com, linux-arch@vger.kernel.org, martink@posteo.de, mingo@kernel.org, sasha.levin@oracle.com, yury.norov@gmail.com
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 19/25] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Mon, 25 Apr 2016 17:57:21 +0100
+Message-ID: <20160425165721.GH9614@e104818-lin.cambridge.arm.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-20-git-send-email-ynorov@caviumnetworks.com>
+ <20160422171009.GR2998@e104818-lin.cambridge.arm.com>
+ <20160422214013.GA2234@yury-N73SV>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160422214013.GA2234@yury-N73SV>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+List-Id: linux-arch.vger.kernel.org
 
->> Given a PARITY_MAGIC of 0x6996, this is even parity, not odd.
+On Sat, Apr 23, 2016 at 12:40:13AM +0300, Yury Norov wrote:
+> On Fri, Apr 22, 2016 at 06:10:09PM +0100, Catalin Marinas wrote:
+> > On Wed, Apr 06, 2016 at 01:08:41AM +0300, Yury Norov wrote:
+> > > Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+> > > detection of the task type.
+> > 
+> > The reason for this patch isn't clear to me. What's wrong with the
+> > run-time detection? It's not some performance critical code.
+> 
+> It was requested by Arnd, It's not 'new' syscall basically, just an
+> attempt to avoid run-time detection of things that may be detected an
+> compile-time.
 
-> From "http://www.encyclopedia.com/doc/1O11-oddparity.html", we can get
-> the definition of "odd parity":
+OK. I noticed that it touches core files and wondering whether it was
+necessary but I'm fine with this approach.
 
-> odd parity A property that holds when a group of binary values contains
-> an odd number of 1s.
-
-That's correct, but the group of bits being discussed *includes the
-parity bit itself*.
-
-Let me be specific:
-
-Let x be a word, which is BITS bits long.
-Let parity(x) = popcount(x) & 1
-Let y = x | parity(x) << BITS
-Let z = x | !parity(x) << BITS
-
-y is described as having even parity.
-z is described as having odd parity.
-x is not normally described using those terms
-
-The bits appended are usually referred to as an "even parity bit" and
-an "odd parity bit".
-
-You're right that your function returns "true" if the word fed to it has
-odd parity, but the bit it computes is an even parity bit.
-
-In the field of error-checking codes, an inverse convention is
-generally used: zero means no error and non-zero means error.  When
-this convention is used, the same function can be used to both generate
-and check parity.  (And the one you have is the even parity function.)
-
-I think the best solution is to just delete the word "odd".
+-- 
+Catalin
