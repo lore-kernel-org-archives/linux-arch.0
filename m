@@ -1,47 +1,34 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 19/31] locking,s390: Implement
- atomic{,64}_fetch_{add,sub,and,or,xor}()
-Date: Mon, 25 Apr 2016 10:26:39 +0200
-Message-ID: <20160425082639.GC3430@twins.programming.kicks-ass.net>
-References: <20160422090413.393652501@infradead.org>
- <20160422093924.273699893@infradead.org>
- <20160425100625.5f250bc1@mschwide>
+From: Zeng Zhaoxiu <zhaoxiu.zeng@gmail.com>
+Subject: Re: [PATCH V3 01/29] bitops: add parity functions
+Date: Mon, 25 Apr 2016 17:14:11 +0800
+Message-ID: <571DDFE3.9010407@gmail.com>
+References: <20160419184501.13069.qmail@ns.horizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160425100625.5f250bc1@mschwide>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f66.google.com ([209.85.220.66]:33521 "EHLO
+	mail-pa0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753533AbcDYJOT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 05:14:19 -0400
+In-Reply-To: <20160419184501.13069.qmail@ns.horizon.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: George Spelvin <linux@horizon.com>, linux-kernel@vger.kernel.org, zengzhaoxiu@163.com
+Cc: akpm@linux-foundation.org, arnd@arndb.de, dvlasenk@redhat.com, linux-arch@vger.kernel.org, martink@posteo.de, mingo@kernel.org, sasha.levin@oracle.com, yury.norov@gmail.com
 
-On Mon, Apr 25, 2016 at 10:06:25AM +0200, Martin Schwidefsky wrote:
-> On Fri, 22 Apr 2016 11:04:32 +0200
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > Implement FETCH-OP atomic primitives, these are very similar to the
-> > existing OP-RETURN primitives we already have, except they return the
-> > value of the atomic variable _before_ modification.
-> > 
-> > This is especially useful for irreversible operations -- such as
-> > bitops (because it becomes impossible to reconstruct the state prior
-> > to modification).
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  arch/s390/include/asm/atomic.h |   42 +++++++++++++++++++++++++++++++----------
-> >  1 file changed, 32 insertions(+), 10 deletions(-)
-> 
-> That looks good, the code compiles and the functions are generated correctly.
-> We will know for sure if it works after the first user of these new functions
-> hit the kernel.
+=E5=9C=A8 2016=E5=B9=B404=E6=9C=8820=E6=97=A5 02:45, George Spelvin =E5=
+=86=99=E9=81=93:
+>> Add generic odd parity functions, adapted from
+>> "https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel=
+"
+> Given a PARITY_MAGIC of 0x6996, this is even parity, not odd.
+>
+> (Which it should be; an XOR of all bits is the "natural" form.)
 
-So we already have an atomic_fetch_or() user in the kernel, and this
-series adds an atomic_fetch_add_acquire() user.
+ From "http://www.encyclopedia.com/doc/1O11-oddparity.html", we can get
+the definition of "odd parity":
 
-But yes, we'll undoubtedly grow more over time :-)
-
-> Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
-
-Thanks!
+odd parity A property that holds when a group of binary values contains=
+ an odd number of 1s.
