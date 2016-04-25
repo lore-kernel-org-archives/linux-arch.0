@@ -1,34 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:49757 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932961AbcDYTKK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 15:10:10 -0400
-Date: Mon, 25 Apr 2016 12:10:04 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
-Message-ID: <20160425191004.GA13906@infradead.org>
-References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160311125846.GF1111@bigcity.dyn.berto.se>
- <20160315082254.GE9136@infradead.org>
- <3286525.zPAGiD4Xk2@avalon>
- <20160321152601.GA11674@infradead.org>
- <20160413132916.GC19650@bigcity.dyn.berto.se>
- <20160421134942.GA3325@infradead.org>
- <20160425142619.GJ28777@bigcity.dyn.berto.se>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160425142619.GJ28777@bigcity.dyn.berto.se>
+Received: from youngberry.canonical.com ([91.189.89.112]:43957 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933408AbcDYTow (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Apr 2016 15:44:52 -0400
+From: Kamal Mostafa <kamal@canonical.com>
+Subject: [4.2.y-ckt stable] Patch "asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()" has been added to the 4.2.y-ckt tree
+Date: Mon, 25 Apr 2016 12:44:46 -0700
+Message-ID: <1461613486-28371-1-git-send-email-kamal@canonical.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, Dan Williams <dan.j.williams@intel.com>, Vinod Koul <vinod.koul@intel.com>, linux-renesas-soc@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, iommu@lists.linux-foundation.org, robin.murphy@arm.com, geert+renesas@glider.be, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20160425191004.TpELzkwyJJtYxBrERvXAZc6Q24gEGmClX49wUXSh4sQ@z>
+To: Romain Perier <romain.perier@free-electrons.com>
+Cc: linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Kamal Mostafa <kamal@canonical.com>, kernel-team@lists.ubuntu.com
+Message-ID: <20160425194446.ULBzEOL9dVLV4NEjavfd8DOr8OnINtpUPEgdw10uB2Y@z>
 
-On Mon, Apr 25, 2016 at 04:26:19PM +0200, Niklas S?derlund wrote:
-> I have followed the call path from the usage in 
-> drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in a 
-> bad way.
+This is a note to let you know that I have just added a patch titled
 
-The dma-debug routines are called from the generic code in
-include/linux/dma-mapping.h, and from my reading of the other patches
-in your series you are calling it for these as well.
+    asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
+
+to the linux-4.2.y-queue branch of the 4.2.y-ckt extended stable tree 
+which can be found at:
+
+    http://kernel.ubuntu.com/git/ubuntu/linux.git/log/?h=linux-4.2.y-queue
+
+This patch is scheduled to be released in version 4.2.8-ckt9.
+
+If you, or anyone else, feels it should not be added to this tree, please 
+reply to this email.
+
+For more information about the 4.2.y-ckt tree, see
+https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
+
+Thanks.
+-Kamal
+
+---8<------------------------------------------------------------
