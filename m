@@ -1,55 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:56384 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.73]:55356 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751885AbcDZVuy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 17:50:54 -0400
+	with ESMTP id S1753304AbcDZVxf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 17:53:35 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 2/8] char/rtc: legacy RTC is no longer supported on x86
-Date: Tue, 26 Apr 2016 23:44:06 +0200
-Message-ID: <1461707052-1337718-3-git-send-email-arnd@arndb.de>
-In-Reply-To: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
+Subject: [PATCH v2 6/6] rtc: generic: remove get_rtc_time/set_rtc_time wrappers
+Date: Tue, 26 Apr 2016 23:52:31 +0200
+Message-ID: <1461707551-1337971-7-git-send-email-arnd@arndb.de>
+In-Reply-To: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
+References: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
-Message-ID: <20160426214406.CLLRxayqdnOGC4_yRGfTPGAFWPFc5Fr8fWcHt-O1CY0@z>
+To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Message-ID: <20160426215231.l2SEf_VbYsp94VsK15bRz7OxBcA6oR2rMOkjxOwDHD4@z>
 
-Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
-the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
-which in turn disables the selection of the CONFIG_RTC and
-CONFIG_GEN_RTC drivers that contain a two older implementations of
-the CONFIG_RTC_DRV_CMOS driver.
-
-This removes x86 from the list.
+All architectures using this driver are now converted to
+provide their own operations, so this one can be turned
+into a trivial stub driver relying on its platform data.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- drivers/char/Kconfig | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/rtc/rtc-generic.c | 36 +-----------------------------------
+ 1 file changed, 1 insertion(+), 35 deletions(-)
 
-diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
-index 66b5d48f409a..9bdb629fbaae 100644
---- a/drivers/char/Kconfig
-+++ b/drivers/char/Kconfig
-@@ -279,7 +279,7 @@ if RTC_LIB=n
+diff --git a/drivers/rtc/rtc-generic.c b/drivers/rtc/rtc-generic.c
+index d726c6aa96a8..1bf5d2347928 100644
+--- a/drivers/rtc/rtc-generic.c
++++ b/drivers/rtc/rtc-generic.c
+@@ -9,44 +9,10 @@
+ #include <linux/platform_device.h>
+ #include <linux/rtc.h>
  
- config RTC
- 	tristate "Enhanced Real Time Clock Support (legacy PC RTC driver)"
--	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300 || X86
-+	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300
- 	---help---
- 	  If you say Y here and create a character special file /dev/rtc with
- 	  major number 10 and minor number 135 using mknod ("man mknod"), you
-@@ -328,7 +328,7 @@ config JS_RTC
- config GEN_RTC
- 	tristate "Generic /dev/rtc emulation"
- 	depends on RTC!=y
--	depends on ALPHA || M68K || MN10300 || PARISC || PPC || X86
-+	depends on ALPHA || M68K || MN10300 || PARISC || PPC
- 	---help---
- 	  If you say Y here and create a character special file /dev/rtc with
- 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+-#if defined(CONFIG_M68K) || defined(CONFIG_PARISC) || \
+-    defined(CONFIG_PPC) || defined(CONFIG_SUPERH32)
+-#include <asm/rtc.h>
+-
+-static int generic_get_time(struct device *dev, struct rtc_time *tm)
+-{
+-	unsigned int ret = get_rtc_time(tm);
+-
+-	if (ret & RTC_BATT_BAD)
+-		return -EOPNOTSUPP;
+-
+-	return rtc_valid_tm(tm);
+-}
+-
+-static int generic_set_time(struct device *dev, struct rtc_time *tm)
+-{
+-	if (set_rtc_time(tm) < 0)
+-		return -EOPNOTSUPP;
+-
+-	return 0;
+-}
+-
+-static const struct rtc_class_ops generic_rtc_ops = {
+-	.read_time = generic_get_time,
+-	.set_time = generic_set_time,
+-};
+-#else
+-#define generic_rtc_ops *(struct rtc_class_ops*)NULL
+-#endif
+-
+ static int __init generic_rtc_probe(struct platform_device *dev)
+ {
+ 	struct rtc_device *rtc;
+-	const struct rtc_class_ops *ops;
+-
+-	ops = dev_get_platdata(&dev->dev);
+-	if (!ops)
+-		ops = &generic_rtc_ops;
++	const struct rtc_class_ops *ops = dev_get_platdata(&dev->dev);
+ 
+ 	rtc = devm_rtc_device_register(&dev->dev, "rtc-generic",
+ 					ops, THIS_MODULE);
 -- 
 2.7.0
 
