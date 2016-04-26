@@ -1,42 +1,148 @@
-From: Rolf Eike Beer <eike-kernel@sf-tec.de>
-Subject: Re: [PATCH 6/8] char/genrtc: parisc: use asm-generic/rtc.h
-Date: Wed, 27 Apr 2016 00:07:47 +0200
-Message-ID: <3034953.EvqV1iv2Ef@caliban.sf-tec.de>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-7-git-send-email-arnd@arndb.de>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Date: Tue, 26 Apr 2016 17:45:08 -0500
+Message-ID: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="nextPart1484825.uGIj57kKZR"; micalg="pgp-sha1"; protocol="application/pgp-signature"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1461707052-1337718-7-git-send-email-arnd@arndb.de>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek
+ Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo
+ Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+ Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry
+ Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
---nextPart1484825.uGIj57kKZR
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+This RFC patch series provides support for AMD's new Secure Memory
+Encryption (SME) feature.
 
-Arnd Bergmann wrote:
-> The asm-generic/rtc.h header can now be included by
-> architectures that provide their own set_rtc_time/get_rtc_time
-> macros, letting us remove most of the common contents in
-> the powerpc implementation.
+SME can be used to mark individual pages of memory as encrypted through the
+page tables. A page of memory that is marked encrypted will be automatically
+decrypted when read from DRAM and will be automatically encrypted when
+written to DRAM. Details on SME can found in the links below.
 
-parisc in this case.
+The SME feature is identified through a CPUID function and enabled through
+the SYSCFG MSR. Once enabled, page table entries will determine how the
+memory is accessed. If a page table entry has the memory encryption mask set,
+then that memory will be accessed as encrypted memory. The memory encryption
+mask (as well as other related information) is determined from settings
+returned through the same CPUID function that identifies the presence of the
+feature.
 
-Eike
---nextPart1484825.uGIj57kKZR
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part.
-Content-Transfer-Encoding: 7Bit
+The approach that this patch series takes is to encrypt everything possible
+starting early in the boot where the kernel is encrypted. Using the page
+table macros the encryption mask can be incorporated into all page table
+entries and page allocations. By updating the protection map, userspace
+allocations are also marked encrypted. Certain data must be accounted for
+as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+and accessed accordingly.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
+This patch series is a pre-cursor to another AMD processor feature called
+Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+the SME support and will be submitted later. Details on SEV can be found
+in the links below.
 
-iEYEABECAAYFAlcf5rgACgkQXKSJPmm5/E4XHQCfYLbFGGoGa3RONzYALJ5wXGhV
-eswAoJzCfTkDFm06E5j/I7xKraT4hn9i
-=TRZX
------END PGP SIGNATURE-----
+The following links provide additional detail:
 
---nextPart1484825.uGIj57kKZR--
+AMD Memory Encryption whitepaper:
+   http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
 
+AMD64 Architecture Programmer's Manual:
+   http://support.amd.com/TechDocs/24593.pdf
+   SME is section 7.10
+   SEV is section 15.34
+
+This patch series is based off of the master branch of tip.
+  Commit 8d54fcebd9b3 ("Merge branch 'x86/urgent'")
+
+---
+
+Tom Lendacky (18):
+      x86: Set the write-protect cache mode for AMD processors
+      x86: Secure Memory Encryption (SME) build enablement
+      x86: Secure Memory Encryption (SME) support
+      x86: Add the Secure Memory Encryption cpu feature
+      x86: Handle reduction in physical address size with SME
+      x86: Provide general kernel support for memory encryption
+      x86: Extend the early_memmap support with additional attrs
+      x86: Add support for early encryption/decryption of memory
+      x86: Insure that memory areas are encrypted when possible
+      x86/efi: Access EFI related tables in the clear
+      x86: Decrypt trampoline area if memory encryption is active
+      x86: Access device tree in the clear
+      x86: DMA support for memory encryption
+      iommu/amd: AMD IOMMU support for memory encryption
+      x86: Enable memory encryption on the APs
+      x86: Do not specify encrypted memory for VGA mapping
+      x86/kvm: Enable Secure Memory Encryption of nested page tables
+      x86: Add support to turn on Secure Memory Encryption
+
+
+ Documentation/kernel-parameters.txt  |    3 
+ arch/x86/Kconfig                     |    9 +
+ arch/x86/include/asm/cacheflush.h    |    3 
+ arch/x86/include/asm/cpufeature.h    |    1 
+ arch/x86/include/asm/cpufeatures.h   |    5 
+ arch/x86/include/asm/dma-mapping.h   |    5 
+ arch/x86/include/asm/fixmap.h        |   16 ++
+ arch/x86/include/asm/kvm_host.h      |    2 
+ arch/x86/include/asm/mem_encrypt.h   |   99 ++++++++++
+ arch/x86/include/asm/msr-index.h     |    2 
+ arch/x86/include/asm/pgtable_types.h |   49 +++--
+ arch/x86/include/asm/processor.h     |    3 
+ arch/x86/include/asm/realmode.h      |   12 +
+ arch/x86/include/asm/vga.h           |   13 +
+ arch/x86/kernel/Makefile             |    2 
+ arch/x86/kernel/asm-offsets.c        |    2 
+ arch/x86/kernel/cpu/common.c         |    2 
+ arch/x86/kernel/cpu/scattered.c      |    1 
+ arch/x86/kernel/devicetree.c         |    6 -
+ arch/x86/kernel/espfix_64.c          |    2 
+ arch/x86/kernel/head64.c             |  100 +++++++++-
+ arch/x86/kernel/head_64.S            |   42 +++-
+ arch/x86/kernel/machine_kexec_64.c   |    2 
+ arch/x86/kernel/mem_encrypt.S        |  343 ++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/pci-dma.c            |   11 +
+ arch/x86/kernel/pci-nommu.c          |    2 
+ arch/x86/kernel/pci-swiotlb.c        |    8 +
+ arch/x86/kernel/setup.c              |   14 +
+ arch/x86/kernel/x8664_ksyms_64.c     |    6 +
+ arch/x86/kvm/mmu.c                   |    7 -
+ arch/x86/kvm/vmx.c                   |    2 
+ arch/x86/kvm/x86.c                   |    3 
+ arch/x86/mm/Makefile                 |    1 
+ arch/x86/mm/fault.c                  |    5 
+ arch/x86/mm/ioremap.c                |   31 +++
+ arch/x86/mm/kasan_init_64.c          |    4 
+ arch/x86/mm/mem_encrypt.c            |  201 ++++++++++++++++++++
+ arch/x86/mm/pageattr.c               |   78 ++++++++
+ arch/x86/mm/pat.c                    |   11 +
+ arch/x86/platform/efi/efi.c          |   26 +--
+ arch/x86/platform/efi/efi_64.c       |    9 +
+ arch/x86/platform/efi/quirks.c       |   12 +
+ arch/x86/realmode/init.c             |   13 +
+ arch/x86/realmode/rm/trampoline_64.S |   14 +
+ drivers/firmware/efi/efi.c           |   18 +-
+ drivers/firmware/efi/esrt.c          |   12 +
+ drivers/iommu/amd_iommu.c            |   10 +
+ include/asm-generic/early_ioremap.h  |    2 
+ include/linux/efi.h                  |    3 
+ include/linux/swiotlb.h              |    1 
+ init/main.c                          |    6 +
+ lib/swiotlb.c                        |   64 ++++++
+ mm/early_ioremap.c                   |   15 +
+ 53 files changed, 1217 insertions(+), 96 deletions(-)
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/kernel/mem_encrypt.S
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+
+-- 
+Tom Lendacky
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
