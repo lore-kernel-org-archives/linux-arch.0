@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0057.outbound.protection.outlook.com ([157.56.110.57]:38912
+Received: from mail-bn1on0087.outbound.protection.outlook.com ([157.56.110.87]:43776
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752862AbcDZXAs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 19:00:48 -0400
+	id S1753847AbcDZXB1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 19:01:27 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
- enablement
-Date: Tue, 26 Apr 2016 17:45:34 -0500
-Message-ID: <20160426224533.13079.905.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v1 05/18] x86: Handle reduction in physical address size
+ with SME
+Date: Tue, 26 Apr 2016 17:46:04 -0500
+Message-ID: <20160426224604.13079.48764.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 References: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,33 +18,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426224534.d4E4V0MZEpxyMXqR2dPuRZF8FrA2tYIvlyrQt8iPY0Y@z>
+Message-ID: <20160426224604.z6RoV0yAgKzugVg7QJzkt1kH0P_IPk-XZIX1IiXx5hE@z>
 
-Provide the Kconfig support to build the SME support in the kernel.
+When System Memory Encryption (SME) is enabled, the physical address
+space is reduced. Adjust the x86_phys_bits value to reflect this
+reduction.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/Kconfig |    9 +++++++++
- 1 file changed, 9 insertions(+)
+ arch/x86/kernel/cpu/common.c |    2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 7bb1574..13249b5 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1356,6 +1356,15 @@ config X86_DIRECT_GBPAGES
- 	  supports them), so don't confuse the user by printing
- 	  that we have them enabled.
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 6bfa36d..b49e7fc 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -43,6 +43,7 @@
+ #include <asm/pat.h>
+ #include <asm/microcode.h>
+ #include <asm/microcode_intel.h>
++#include <asm/mem_encrypt.h>
  
-+config AMD_MEM_ENCRYPT
-+	bool "Secure Memory Encryption support for AMD"
-+	depends on X86_64 && CPU_SUP_AMD
-+	---help---
-+	  Say yes to enable the encryption of system memory. This requires
-+	  an AMD processor that supports Secure Memory Encryption (SME).
-+	  The encryption of system memory is disabled by default but can be
-+	  enabled with the mem_encrypt=on command line option.
-+
- # Common NUMA Features
- config NUMA
- 	bool "Numa Memory Allocation and Scheduler Support"
+ #ifdef CONFIG_X86_LOCAL_APIC
+ #include <asm/uv/uv.h>
+@@ -722,6 +723,7 @@ void get_cpu_cap(struct cpuinfo_x86 *c)
+ 
+ 		c->x86_virt_bits = (eax >> 8) & 0xff;
+ 		c->x86_phys_bits = eax & 0xff;
++		c->x86_phys_bits -= sme_get_me_loss();
+ 		c->x86_capability[CPUID_8000_0008_EBX] = ebx;
+ 	}
+ #ifdef CONFIG_X86_32
 
