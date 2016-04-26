@@ -1,7 +1,7 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 6/8] char/genrtc: parisc: use asm-generic/rtc.h
-Date: Tue, 26 Apr 2016 23:44:10 +0200
-Message-ID: <1461707052-1337718-7-git-send-email-arnd@arndb.de>
+Subject: [PATCH 8/8] char/genrtc: disallow building on mn10300
+Date: Tue, 26 Apr 2016 23:44:12 +0200
+Message-ID: <1461707052-1337718-9-git-send-email-arnd@arndb.de>
 References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
@@ -10,90 +10,35 @@ To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The asm-generic/rtc.h header can now be included by
-architectures that provide their own set_rtc_time/get_rtc_time
-macros, letting us remove most of the common contents in
-the powerpc implementation.
+The genrtc driver serves no purpose on mn10300 because it drives the
+same hardware as the original rtc.c driver, and the newer rtc-generic.c
+or rtc-cmos.c drivers on architectures that use the asm-generic/rtc.h
+header.
+
+I assume it was initially only added for completeness when the
+mn10300 port was done, but the older rtc.c driver was always used
+instead.
+
+It would be nice to change the architecture to use the rtc-cmos driver
+next, and remove support for the old rtc driver as well.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/parisc/include/asm/rtc.h | 38 +++++---------------------------------
- 1 file changed, 5 insertions(+), 33 deletions(-)
+ drivers/char/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/parisc/include/asm/rtc.h b/arch/parisc/include/asm/rtc.h
-index 099d641a42c2..d06cc581ecc2 100644
---- a/arch/parisc/include/asm/rtc.h
-+++ b/arch/parisc/include/asm/rtc.h
-@@ -12,26 +12,15 @@
- 
- #ifdef __KERNEL__
- 
--#include <linux/rtc.h>
-+#define get_rtc_time parisc_get_rtc_time
-+#define set_rtc_time parisc_set_rtc_time
-+#include <asm-generic/rtc.h>
- 
- #include <asm/pdc.h>
- 
- #define SECS_PER_HOUR   (60 * 60)
- #define SECS_PER_DAY    (SECS_PER_HOUR * 24)
- 
--
--#define RTC_PIE 0x40		/* periodic interrupt enable */
--#define RTC_AIE 0x20		/* alarm interrupt enable */
--#define RTC_UIE 0x10		/* update-finished interrupt enable */
--
--#define RTC_BATT_BAD 0x100	/* battery bad */
--
--/* some dummy definitions */
--#define RTC_SQWE 0x08		/* enable square-wave output */
--#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
--#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
--#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
--
- # define __isleap(year) \
-   ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
- 
-@@ -44,7 +33,7 @@ static const unsigned short int __mon_yday[2][13] =
- 	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
- };
- 
--static inline unsigned int get_rtc_time(struct rtc_time *wtime)
-+static inline unsigned int parisc_get_rtc_time(struct rtc_time *wtime)
- {
- 	struct pdc_tod tod_data;
- 	long int days, rem, y;
-@@ -96,7 +85,7 @@ static inline unsigned int get_rtc_time(struct rtc_time *wtime)
- 	return RTC_24H;
- }
- 
--static int set_rtc_time(struct rtc_time *wtime)
-+static int parisc_set_rtc_time(struct rtc_time *wtime)
- {
- 	u_int32_t secs;
- 
-@@ -110,22 +99,5 @@ static int set_rtc_time(struct rtc_time *wtime)
- 
- }
- 
--static inline unsigned int get_rtc_ss(void)
--{
--	struct rtc_time h;
--
--	get_rtc_time(&h);
--	return h.tm_sec;
--}
--
--static inline int get_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--static inline int set_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--
- #endif /* __KERNEL__ */
- #endif /* __ASM_RTC_H__ */
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index 697510325b1d..d17ed90ebc82 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -328,7 +328,7 @@ config JS_RTC
+ config GEN_RTC
+ 	tristate "Generic /dev/rtc emulation"
+ 	depends on RTC!=y
+-	depends on M68K || MN10300 || PARISC || PPC
++	depends on M68K || PARISC || PPC
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
 -- 
 2.7.0
