@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0097.outbound.protection.outlook.com ([207.46.100.97]:48893
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0075.outbound.protection.outlook.com ([157.56.110.75]:31520
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752913AbcDZXB5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 19:01:57 -0400
+	id S1752291AbcDZXLS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 19:11:18 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
 Subject: [RFC PATCH v1 04/18] x86: Add the Secure Memory Encryption cpu
  feature
-Date: Tue, 26 Apr 2016 17:45:54 -0500
-Message-ID: <20160426224554.13079.49954.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
-References: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
+Date: Tue, 26 Apr 2016 17:56:35 -0500
+Message-ID: <20160426225635.13567.39381.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,7 +18,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426224554.9eKOFRxJa2f0yyCEVkFoEGYO8Ks4etft056zP7AbPRM@z>
+Message-ID: <20160426225635.KPvIQlnIq1mN93hY0YQ_z-77tSXVd5695KevxJbJmSM@z>
 
 Update the cpu features to include identifying and reporting on the
 Secure Memory Encryption feature.
