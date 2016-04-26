@@ -1,91 +1,50 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 5/8] char/genrtc: powerpc: use asm-generic/rtc.h
-Date: Tue, 26 Apr 2016 23:44:09 +0200
-Message-ID: <1461707052-1337718-6-git-send-email-arnd@arndb.de>
+Subject: [PATCH 2/8] char/rtc: legacy RTC is no longer supported on x86
+Date: Tue, 26 Apr 2016 23:44:06 +0200
+Message-ID: <1461707052-1337718-3-git-send-email-arnd@arndb.de>
 References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.135]:51966 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753003AbcDZVpo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 17:45:44 -0400
+Return-path: <linux-parisc-owner@vger.kernel.org>
 In-Reply-To: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-parisc-owner@vger.kernel.org
 To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The asm-generic/rtc.h header can now be included by
-architectures that provide their own set_rtc_time/get_rtc_time
-macros, letting us remove most of the common contents in
-the powerpc implementation.
+Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
+the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
+which in turn disables the selection of the CONFIG_RTC and
+CONFIG_GEN_RTC drivers that contain a two older implementations of
+the CONFIG_RTC_DRV_CMOS driver.
+
+This removes x86 from the list.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/powerpc/include/asm/rtc.h | 36 +++++-------------------------------
- 1 file changed, 5 insertions(+), 31 deletions(-)
+ drivers/char/Kconfig | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/rtc.h b/arch/powerpc/include/asm/rtc.h
-index f5802926b6c0..c6659582bd1e 100644
---- a/arch/powerpc/include/asm/rtc.h
-+++ b/arch/powerpc/include/asm/rtc.h
-@@ -26,23 +26,14 @@
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index 66b5d48f409a..9bdb629fbaae 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -279,7 +279,7 @@ if RTC_LIB=n
  
- #ifdef __KERNEL__
- 
--#include <linux/rtc.h>
-+#define get_rtc_time powerpc_get_rtc_time
-+#define set_rtc_time powerpc_set_rtc_time
-+#include <asm-generic/rtc.h>
- 
- #include <asm/machdep.h>
- #include <asm/time.h>
- 
--#define RTC_PIE 0x40		/* periodic interrupt enable */
--#define RTC_AIE 0x20		/* alarm interrupt enable */
--#define RTC_UIE 0x10		/* update-finished interrupt enable */
--
--/* some dummy definitions */
--#define RTC_BATT_BAD 0x100	/* battery bad */
--#define RTC_SQWE 0x08		/* enable square-wave output */
--#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
--#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
--#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
--
--static inline unsigned int get_rtc_time(struct rtc_time *time)
-+static inline unsigned int powerpc_get_rtc_time(struct rtc_time *time)
- {
- 	if (ppc_md.get_rtc_time)
- 		ppc_md.get_rtc_time(time);
-@@ -50,29 +41,12 @@ static inline unsigned int get_rtc_time(struct rtc_time *time)
- }
- 
- /* Set the current date and time in the real time clock. */
--static inline int set_rtc_time(struct rtc_time *time)
-+static inline int powerpc_set_rtc_time(struct rtc_time *time)
- {
- 	if (ppc_md.set_rtc_time)
- 		return ppc_md.set_rtc_time(time);
- 	return -EINVAL;
- }
- 
--static inline unsigned int get_rtc_ss(void)
--{
--	struct rtc_time h;
--
--	get_rtc_time(&h);
--	return h.tm_sec;
--}
--
--static inline int get_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--static inline int set_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--
- #endif /* __KERNEL__ */
- #endif /* __ASM_POWERPC_RTC_H__ */
+ config RTC
+ 	tristate "Enhanced Real Time Clock Support (legacy PC RTC driver)"
+-	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300 || X86
++	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+@@ -328,7 +328,7 @@ config JS_RTC
+ config GEN_RTC
+ 	tristate "Generic /dev/rtc emulation"
+ 	depends on RTC!=y
+-	depends on ALPHA || M68K || MN10300 || PARISC || PPC || X86
++	depends on ALPHA || M68K || MN10300 || PARISC || PPC
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
 -- 
 2.7.0
+
