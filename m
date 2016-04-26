@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0057.outbound.protection.outlook.com ([157.56.110.57]:12448
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0086.outbound.protection.outlook.com ([65.55.169.86]:2896
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752249AbcDZW4O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 18:56:14 -0400
+	id S1753227AbcDZW5l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 18:57:41 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 01/18] x86: Set the write-protect cache mode for AMD
- processors
-Date: Tue, 26 Apr 2016 17:56:04 -0500
-Message-ID: <20160426225604.13567.55443.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v1 09/18] x86: Insure that memory areas are encrypted
+ when possible
+Date: Tue, 26 Apr 2016 17:57:29 -0500
+Message-ID: <20160426225729.13567.577.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,50 +18,169 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426225604.ukinDwlP0BYC8-xP_lcO_FTmho6kN2x00shcxFQTwrY@z>
+Message-ID: <20160426225729.nWhE65gSxQ5BfSIfldBRTT1xWib7dmoZf6lylVFDX0M@z>
 
-For AMD processors that support PAT, set the write-protect cache mode
-(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+Encrypt memory areas in place when possible (e.g. zero page, etc.) so
+that special handling isn't needed afterwards.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/pat.c |   11 +++++++++--
- 1 file changed, 9 insertions(+), 2 deletions(-)
+ arch/x86/kernel/head64.c |   90 +++++++++++++++++++++++++++++++++++++++++++---
+ arch/x86/kernel/setup.c  |    8 ++++
+ 2 files changed, 93 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index fb0604f..dda78ed 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -345,6 +345,8 @@ void pat_init(void)
- 		 * we lose performance without causing a correctness issue.
- 		 * Pentium 4 erratum N46 is an example for such an erratum,
- 		 * although we try not to use PAT at all on affected CPUs.
-+		 * AMD processors support write-protect so initialize the
-+		 * PAT slot 5 appropriately.
- 		 *
- 		 *  PTE encoding:
- 		 *      PAT
-@@ -356,7 +358,7 @@ void pat_init(void)
- 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
- 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
- 		 *      100    4    WB : Reserved
--		 *      101    5    WC : Reserved
-+		 *      101    5    WC : Reserved (AMD: _PAGE_CACHE_MODE_WP)
- 		 *      110    6    UC-: Reserved
- 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
- 		 *
-@@ -364,7 +366,12 @@ void pat_init(void)
- 		 * corresponding types in the presence of PAT errata.
- 		 */
- 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
--		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
-+		      PAT(4, WB) | PAT(6, UC_MINUS) | PAT(7, WT);
-+
-+		if (c->x86_vendor == X86_VENDOR_AMD)
-+			pat |= PAT(5, WP);
-+		else
-+			pat |= PAT(5, WC);
- 	}
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 3516f9f..ac3a2bf 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -47,12 +47,12 @@ static void __init reset_early_page_tables(void)
+ }
  
- 	if (!boot_cpu_done) {
+ /* Create a new PMD entry */
+-int __init early_make_pgtable(unsigned long address)
++static int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
+ {
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
+ 	pudval_t pud, *pud_p;
+-	pmdval_t pmd, *pmd_p;
++	pmdval_t *pmd_p;
+ 
+ 	/* Invalid address or early pgt is done ?  */
+ 	if (physaddr >= MAXMEM || read_cr3() != __sme_pa_nodebug(early_level4_pgt))
+@@ -94,12 +94,92 @@ again:
+ 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+ 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+ 	}
+-	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
+ 	pmd_p[pmd_index(address)] = pmd;
+ 
+ 	return 0;
+ }
+ 
++int __init early_make_pgtable(unsigned long address)
++{
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pmdval_t pmd;
++
++	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
++
++	return __early_make_pgtable(address, pmd);
++}
++
++static void __init create_unencrypted_mapping(void *address, unsigned long size)
++{
++	unsigned long physaddr = (unsigned long)address - __PAGE_OFFSET;
++	pmdval_t pmd_flags, pmd;
++
++	if (!sme_me_mask)
++		return;
++
++	/* Clear the encryption mask from the early_pmd_flags */
++	pmd_flags = early_pmd_flags & ~sme_me_mask;
++
++	do {
++		pmd = (physaddr & PMD_MASK) + pmd_flags;
++		__early_make_pgtable((unsigned long)address, pmd);
++
++		address += PMD_SIZE;
++		physaddr += PMD_SIZE;
++		size = (size < PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
++}
++
++static void __init __clear_mapping(unsigned long address)
++{
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pgdval_t pgd, *pgd_p;
++	pudval_t pud, *pud_p;
++	pmdval_t *pmd_p;
++
++	/* Invalid address or early pgt is done ?  */
++	if (physaddr >= MAXMEM ||
++	    read_cr3() != __sme_pa_nodebug(early_level4_pgt))
++		return;
++
++	pgd_p = &early_level4_pgt[pgd_index(address)].pgd;
++	pgd = *pgd_p;
++
++	if (!pgd)
++		return;
++
++	/*
++	 * The use of __START_KERNEL_map rather than __PAGE_OFFSET here matches
++	 * __early_make_pgtable where the entry was created.
++	 */
++	pud_p = (pudval_t *)((pgd & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
++	pud_p += pud_index(address);
++	pud = *pud_p;
++
++	if (!pud)
++		return;
++
++	pmd_p = (pmdval_t *)((pud & PTE_PFN_MASK) + __START_KERNEL_map - phys_base);
++	pmd_p[pmd_index(address)] = 0;
++}
++
++static void __init clear_mapping(void *address, unsigned long size)
++{
++	do {
++		__clear_mapping((unsigned long)address);
++
++		address += PMD_SIZE;
++		size = (size < PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
++}
++
++static void __init sme_memcpy(void *dst, void *src, unsigned long size)
++{
++	create_unencrypted_mapping(src, size);
++	memcpy(dst, src, size);
++	clear_mapping(src, size);
++}
++
+ /* Don't add a printk in there. printk relies on the PDA which is not initialized 
+    yet. */
+ static void __init clear_bss(void)
+@@ -122,12 +202,12 @@ static void __init copy_bootdata(char *real_mode_data)
+ 	char * command_line;
+ 	unsigned long cmd_line_ptr;
+ 
+-	memcpy(&boot_params, real_mode_data, sizeof boot_params);
++	sme_memcpy(&boot_params, real_mode_data, sizeof boot_params);
+ 	sanitize_boot_params(&boot_params);
+ 	cmd_line_ptr = get_cmd_line_ptr();
+ 	if (cmd_line_ptr) {
+ 		command_line = __va(cmd_line_ptr);
+-		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
++		sme_memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	}
+ }
+ 
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 2367ae0..1d29cf9 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -113,6 +113,7 @@
+ #include <asm/prom.h>
+ #include <asm/microcode.h>
+ #include <asm/mmu_context.h>
++#include <asm/mem_encrypt.h>
+ 
+ /*
+  * max_low_pfn_mapped: highest direct mapped pfn under 4GB
+@@ -375,6 +376,13 @@ static void __init reserve_initrd(void)
+ 	    !ramdisk_image || !ramdisk_size)
+ 		return;		/* No initrd provided by bootloader */
+ 
++	/*
++	 * This memory is marked encrypted by the kernel but the ramdisk
++	 * was loaded in the clear by the bootloader, so make sure that
++	 * the ramdisk image is encrypted.
++	 */
++	sme_early_mem_enc(ramdisk_image, ramdisk_end - ramdisk_image);
++
+ 	initrd_start = 0;
+ 
+ 	mapped_size = memblock_mem_size(max_pfn_mapped);
 
