@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0081.outbound.protection.outlook.com ([157.56.110.81]:57824
+Received: from mail-bn1bon0087.outbound.protection.outlook.com ([157.56.111.87]:56488
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753172AbcDZXB0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 19:01:26 -0400
+	id S1753982AbcDZXBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 19:01:37 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 01/18] x86: Set the write-protect cache mode for AMD
- processors
-Date: Tue, 26 Apr 2016 17:45:20 -0500
-Message-ID: <20160426224520.13079.67248.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v1 08/18] x86: Add support for early
+ encryption/decryption of memory
+Date: Tue, 26 Apr 2016 17:46:37 -0500
+Message-ID: <20160426224637.13079.72887.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 References: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,50 +18,153 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426224520.ClZ6_FbdC4zkGuOhBVGUM-KwsWFx3FRfqcYbPAKoODM@z>
+Message-ID: <20160426224637.gTk12w0K4wlLHgbqIAJmz1juuLjUjCynrATiq8WtC9w@z>
 
-For AMD processors that support PAT, set the write-protect cache mode
-(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+This adds support to be able to either encrypt or decrypt data during
+the early stages of booting the kernel. This does not change the memory
+encryption attribute - it is used for ensuring that data present in
+either an encrypted or un-encrypted memory area is in the proper state
+(for example the initrd will have been loaded by the boot loader and
+will not be encrypted, but the memory that it resides in is marked as
+encrypted).
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/pat.c |   11 +++++++++--
- 1 file changed, 9 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/mem_encrypt.h |   15 ++++++
+ arch/x86/mm/mem_encrypt.c          |   89 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 104 insertions(+)
 
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index fb0604f..dda78ed 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -345,6 +345,8 @@ void pat_init(void)
- 		 * we lose performance without causing a correctness issue.
- 		 * Pentium 4 erratum N46 is an example for such an erratum,
- 		 * although we try not to use PAT at all on affected CPUs.
-+		 * AMD processors support write-protect so initialize the
-+		 * PAT slot 5 appropriately.
- 		 *
- 		 *  PTE encoding:
- 		 *      PAT
-@@ -356,7 +358,7 @@ void pat_init(void)
- 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
- 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
- 		 *      100    4    WB : Reserved
--		 *      101    5    WC : Reserved
-+		 *      101    5    WC : Reserved (AMD: _PAGE_CACHE_MODE_WP)
- 		 *      110    6    UC-: Reserved
- 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
- 		 *
-@@ -364,7 +366,12 @@ void pat_init(void)
- 		 * corresponding types in the presence of PAT errata.
- 		 */
- 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
--		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
-+		      PAT(4, WB) | PAT(6, UC_MINUS) | PAT(7, WT);
-+
-+		if (c->x86_vendor == X86_VENDOR_AMD)
-+			pat |= PAT(5, WP);
-+		else
-+			pat |= PAT(5, WC);
- 	}
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 9f3e762..2785493 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -23,6 +23,11 @@ extern unsigned long sme_me_mask;
  
- 	if (!boot_cpu_done) {
+ u8 sme_get_me_loss(void);
+ 
++void __init sme_early_mem_enc(resource_size_t paddr,
++			      unsigned long size);
++void __init sme_early_mem_dec(resource_size_t paddr,
++			      unsigned long size);
++
+ void __init sme_early_init(void);
+ 
+ #define __sme_pa(x)		(__pa((x)) | sme_me_mask)
+@@ -39,6 +44,16 @@ static inline u8 sme_get_me_loss(void)
+ 	return 0;
+ }
+ 
++static inline void __init sme_early_mem_enc(resource_size_t paddr,
++					    unsigned long size)
++{
++}
++
++static inline void __init sme_early_mem_dec(resource_size_t paddr,
++					    unsigned long size)
++{
++}
++
+ static inline void __init sme_early_init(void)
+ {
+ }
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index 00eb705..5f19ede 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -14,6 +14,95 @@
+ #include <linux/mm.h>
+ 
+ #include <asm/mem_encrypt.h>
++#include <asm/tlbflush.h>
++#include <asm/fixmap.h>
++
++/* Buffer used for early in-place encryption by BSP, no locking needed */
++static char me_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
++
++void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
++{
++	void *src, *dst;
++	size_t len;
++
++	if (!sme_me_mask)
++		return;
++
++	local_flush_tlb();
++	wbinvd();
++
++	/*
++	 * There are limited number of early mapping slots, so map (at most)
++	 * one page at time.
++	 */
++	while (size) {
++		len = min_t(size_t, sizeof(me_early_buffer), size);
++
++		/* Create a mapping for non-encrypted write-protected memory */
++		src = early_memremap_dec_wp(paddr, len);
++
++		/* Create a mapping for encrypted memory */
++		dst = early_memremap_enc(paddr, len);
++
++		/*
++		 * If a mapping can't be obtained to perform the encryption,
++		 * then encrypted access to that area will end up causing
++		 * a crash.
++		 */
++		BUG_ON(!src || !dst);
++
++		memcpy(me_early_buffer, src, len);
++		memcpy(dst, me_early_buffer, len);
++
++		early_memunmap(dst, len);
++		early_memunmap(src, len);
++
++		paddr += len;
++		size -= len;
++	}
++}
++
++void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
++{
++	void *src, *dst;
++	size_t len;
++
++	if (!sme_me_mask)
++		return;
++
++	local_flush_tlb();
++	wbinvd();
++
++	/*
++	 * There are limited number of early mapping slots, so map (at most)
++	 * one page at time.
++	 */
++	while (size) {
++		len = min_t(size_t, sizeof(me_early_buffer), size);
++
++		/* Create a mapping for encrypted write-protected memory */
++		src = early_memremap_enc_wp(paddr, len);
++
++		/* Create a mapping for non-encrypted memory */
++		dst = early_memremap_dec(paddr, len);
++
++		/*
++		 * If a mapping can't be obtained to perform the decryption,
++		 * then un-encrypted access to that area will end up causing
++		 * a crash.
++		 */
++		BUG_ON(!src || !dst);
++
++		memcpy(me_early_buffer, src, len);
++		memcpy(dst, me_early_buffer, len);
++
++		early_memunmap(dst, len);
++		early_memunmap(src, len);
++
++		paddr += len;
++		size -= len;
++	}
++}
+ 
+ void __init sme_early_init(void)
+ {
 
