@@ -1,180 +1,61 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/18] vdso: make arch_setup_additional_pages wait for mmap_sem for write killable
-Date: Tue, 26 Apr 2016 14:56:17 +0200
-Message-ID: <1461675385-5934-11-git-send-email-mhocko@kernel.org>
-References: <1461675385-5934-1-git-send-email-mhocko@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:33351 "EHLO
-	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751919AbcDZM4k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 08:56:40 -0400
-In-Reply-To: <1461675385-5934-1-git-send-email-mhocko@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Vlastimil Babka <vbabka@suse.cz>
+From: Niklas =?iso-8859-1?Q?S=F6derlund?= <niklas.soderlund-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: Re: [PATCH v5 3/9] dma-mapping: add dma_{map,unmap}_resource
+Date: Tue, 26 Apr 2016 15:29:18 +0200
+Message-ID: <20160426132918.GN28777@bigcity.dyn.berto.se>
+References: <1457404974-1800-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<20160311125846.GF1111@bigcity.dyn.berto.se>
+	<20160315082254.GE9136@infradead.org> <3286525.zPAGiD4Xk2@avalon>
+	<20160321152601.GA11674@infradead.org>
+	<20160413132916.GC19650@bigcity.dyn.berto.se>
+	<20160421134942.GA3325@infradead.org>
+	<20160425142619.GJ28777@bigcity.dyn.berto.se>
+	<20160425191004.GA13906@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20160425191004.GA13906-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, Vinod Koul <vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>, "dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Michal Hocko <mhocko@suse.com>
+Hi Christoph,
 
-most architectures are relying on mmap_sem for write in their
-arch_setup_additional_pages. If the waiting task gets killed by the oom
-killer it would block oom_reaper from asynchronous address space reclaim
-and reduce the chances of timely OOM resolving. Wait for the lock in
-the killable mode and return with EINTR if the task got killed while
-waiting.
+On 2016-04-25 12:10:04 -0700, Christoph Hellwig wrote:
+> On Mon, Apr 25, 2016 at 04:26:19PM +0200, Niklas S?derlund wrote:
+> > I have followed the call path from the usage in =
 
-Cc: linux-arch@vger.kernel.org
-Acked-by: Andy Lutomirski <luto@amacapital.net> # for the x86 vdso
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/arm/kernel/process.c          | 3 ++-
- arch/arm64/kernel/vdso.c           | 6 ++++--
- arch/hexagon/kernel/vdso.c         | 3 ++-
- arch/mips/kernel/vdso.c            | 3 ++-
- arch/powerpc/kernel/vdso.c         | 3 ++-
- arch/s390/kernel/vdso.c            | 3 ++-
- arch/sh/kernel/vsyscall/vsyscall.c | 4 +++-
- arch/x86/entry/vdso/vma.c          | 3 ++-
- arch/x86/um/vdso/vma.c             | 3 ++-
- 9 files changed, 21 insertions(+), 10 deletions(-)
+> > drivers/dma/sh/rcar-dmac.c and made sure the dma_addr_t is not used in =
+a =
 
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index a647d6642f3e..4a803c5a1ff7 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -420,7 +420,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	npages = 1; /* for sigpage */
- 	npages += vdso_total_pages;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	hint = sigpage_addr(mm, npages);
- 	addr = get_unmapped_area(NULL, hint, npages << PAGE_SHIFT, 0, 0);
- 	if (IS_ERR_VALUE(addr)) {
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 64fc030be0f2..9fefb005812a 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -95,7 +95,8 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
- 	};
- 	void *ret;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	current->mm->context.vdso = (void *)addr;
- 
- 	/* Map vectors page at the high address. */
-@@ -163,7 +164,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
- 	/* Be sure to map the data page */
- 	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
- 	if (IS_ERR_VALUE(vdso_base)) {
- 		ret = ERR_PTR(vdso_base);
-diff --git a/arch/hexagon/kernel/vdso.c b/arch/hexagon/kernel/vdso.c
-index 0bf5a87e4d0a..3ea968415539 100644
---- a/arch/hexagon/kernel/vdso.c
-+++ b/arch/hexagon/kernel/vdso.c
-@@ -65,7 +65,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	unsigned long vdso_base;
- 	struct mm_struct *mm = current->mm;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	/* Try to get it loaded right near ld.so/glibc. */
- 	vdso_base = STACK_TOP;
-diff --git a/arch/mips/kernel/vdso.c b/arch/mips/kernel/vdso.c
-index 975e99759bab..54e1663ce639 100644
---- a/arch/mips/kernel/vdso.c
-+++ b/arch/mips/kernel/vdso.c
-@@ -104,7 +104,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	struct resource gic_res;
- 	int ret;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	/*
- 	 * Determine total area size. This includes the VDSO data itself, the
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index def1b8b5e6c1..6767605ea8da 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -195,7 +195,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	 * and end up putting it elsewhere.
- 	 * Add enough to the size so that the result can be aligned.
- 	 */
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, vdso_base,
- 				      (vdso_pages << PAGE_SHIFT) +
- 				      ((VDSO_ALIGNMENT - 1) & PAGE_MASK),
-diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
-index 94495cac8be3..5904abf6b1ae 100644
---- a/arch/s390/kernel/vdso.c
-+++ b/arch/s390/kernel/vdso.c
-@@ -216,7 +216,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	 * it at vdso_base which is the "natural" base for it, but we might
- 	 * fail and end up putting it elsewhere.
- 	 */
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 	vdso_base = get_unmapped_area(NULL, 0, vdso_pages << PAGE_SHIFT, 0, 0);
- 	if (IS_ERR_VALUE(vdso_base)) {
- 		rc = vdso_base;
-diff --git a/arch/sh/kernel/vsyscall/vsyscall.c b/arch/sh/kernel/vsyscall/vsyscall.c
-index ea2aa1393b87..cc0cc5b4ff18 100644
---- a/arch/sh/kernel/vsyscall/vsyscall.c
-+++ b/arch/sh/kernel/vsyscall/vsyscall.c
-@@ -64,7 +64,9 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	unsigned long addr;
- 	int ret;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
-+
- 	addr = get_unmapped_area(NULL, 0, PAGE_SIZE, 0, 0);
- 	if (IS_ERR_VALUE(addr)) {
- 		ret = addr;
-diff --git a/arch/x86/entry/vdso/vma.c b/arch/x86/entry/vdso/vma.c
-index b3cf81333a54..ab220ac9b3b9 100644
---- a/arch/x86/entry/vdso/vma.c
-+++ b/arch/x86/entry/vdso/vma.c
-@@ -163,7 +163,8 @@ static int map_vdso(const struct vdso_image *image, bool calculate_addr)
- 		addr = 0;
- 	}
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	addr = get_unmapped_area(NULL, addr,
- 				 image->size - image->sym_vvar_start, 0, 0);
-diff --git a/arch/x86/um/vdso/vma.c b/arch/x86/um/vdso/vma.c
-index 237c6831e095..6be22f991b59 100644
---- a/arch/x86/um/vdso/vma.c
-+++ b/arch/x86/um/vdso/vma.c
-@@ -61,7 +61,8 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
- 	if (!vdso_enabled)
- 		return 0;
- 
--	down_write(&mm->mmap_sem);
-+	if (down_write_killable(&mm->mmap_sem))
-+		return -EINTR;
- 
- 	err = install_special_mapping(mm, um_vdso_addr, PAGE_SIZE,
- 		VM_READ|VM_EXEC|
--- 
-2.8.0.rc3
+> > bad way.
+> =
+
+> The dma-debug routines are called from the generic code in
+> include/linux/dma-mapping.h, and from my reading of the other patches
+> in your series you are calling it for these as well.
+
+You are correct I have not consider that dma_mapping_error() call in to =
+
+lib/dma-debug.c. I will see if I can make the dma_mapping_error() safe =
+
+to use with a dma_addr_t obtained from dma_map_resource() and post a new =
+
+series.
+
+Thanks for pointing this out!
+
+-- =
+
+Regards,
+Niklas S=F6derlund
