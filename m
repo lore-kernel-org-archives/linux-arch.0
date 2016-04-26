@@ -1,63 +1,42 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v2 6/6] rtc: generic: remove get_rtc_time/set_rtc_time wrappers
-Date: Tue, 26 Apr 2016 23:52:31 +0200
-Message-ID: <1461707551-1337971-7-git-send-email-arnd@arndb.de>
-References: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
+From: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Subject: Re: [PATCH 6/8] char/genrtc: parisc: use asm-generic/rtc.h
+Date: Wed, 27 Apr 2016 00:07:47 +0200
+Message-ID: <3034953.EvqV1iv2Ef@caliban.sf-tec.de>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-7-git-send-email-arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="nextPart1484825.uGIj57kKZR"; micalg="pgp-sha1"; protocol="application/pgp-signature"
 Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
+In-Reply-To: <1461707052-1337718-7-git-send-email-arnd@arndb.de>
 Sender: linux-parisc-owner@vger.kernel.org
-To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-All architectures using this driver are now converted to
-provide their own operations, so this one can be turned
-into a trivial stub driver relying on its platform data.
+--nextPart1484825.uGIj57kKZR
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- drivers/rtc/rtc-generic.c | 36 +-----------------------------------
- 1 file changed, 1 insertion(+), 35 deletions(-)
+Arnd Bergmann wrote:
+> The asm-generic/rtc.h header can now be included by
+> architectures that provide their own set_rtc_time/get_rtc_time
+> macros, letting us remove most of the common contents in
+> the powerpc implementation.
 
-diff --git a/drivers/rtc/rtc-generic.c b/drivers/rtc/rtc-generic.c
-index d726c6aa96a8..1bf5d2347928 100644
---- a/drivers/rtc/rtc-generic.c
-+++ b/drivers/rtc/rtc-generic.c
-@@ -9,44 +9,10 @@
- #include <linux/platform_device.h>
- #include <linux/rtc.h>
- 
--#if defined(CONFIG_M68K) || defined(CONFIG_PARISC) || \
--    defined(CONFIG_PPC) || defined(CONFIG_SUPERH32)
--#include <asm/rtc.h>
--
--static int generic_get_time(struct device *dev, struct rtc_time *tm)
--{
--	unsigned int ret = get_rtc_time(tm);
--
--	if (ret & RTC_BATT_BAD)
--		return -EOPNOTSUPP;
--
--	return rtc_valid_tm(tm);
--}
--
--static int generic_set_time(struct device *dev, struct rtc_time *tm)
--{
--	if (set_rtc_time(tm) < 0)
--		return -EOPNOTSUPP;
--
--	return 0;
--}
--
--static const struct rtc_class_ops generic_rtc_ops = {
--	.read_time = generic_get_time,
--	.set_time = generic_set_time,
--};
--#else
--#define generic_rtc_ops *(struct rtc_class_ops*)NULL
--#endif
--
- static int __init generic_rtc_probe(struct platform_device *dev)
- {
- 	struct rtc_device *rtc;
--	const struct rtc_class_ops *ops;
+parisc in this case.
+
+Eike
+--nextPart1484825.uGIj57kKZR
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
+Content-Transfer-Encoding: 7Bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iEYEABECAAYFAlcf5rgACgkQXKSJPmm5/E4XHQCfYLbFGGoGa3RONzYALJ5wXGhV
+eswAoJzCfTkDFm06E5j/I7xKraT4hn9i
+=TRZX
+-----END PGP SIGNATURE-----
+
+--nextPart1484825.uGIj57kKZR--
+
