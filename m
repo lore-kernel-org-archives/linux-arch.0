@@ -1,46 +1,43 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 7/8] char/genrtc: disallow building on Alpha
-Date: Tue, 26 Apr 2016 23:44:11 +0200
-Message-ID: <1461707052-1337718-8-git-send-email-arnd@arndb.de>
+Subject: [PATCH 1/8] char/rtc: replace blacklist with whitelist
+Date: Tue, 26 Apr 2016 23:44:05 +0200
+Message-ID: <1461707052-1337718-2-git-send-email-arnd@arndb.de>
 References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:58296 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751881AbcDZVp0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 17:45:26 -0400
+Return-path: <linux-sh-owner@vger.kernel.org>
 In-Reply-To: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-sh-owner@vger.kernel.org
 To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The genrtc driver serves no purpose on Alpha because it drives the
-same hardware as the original rtc.c driver, and the newer rtc-generic.c
-or rtc-cmos.c drivers on architectures that use the asm-generic/rtc.h
-header.
+Every new architecture has to add itself to the growing list of those
+that do not support the legacy PC RTC driver.
 
-The defconfig uses CONFIG_RTC=y, so this driver is not used by default.
-At one point it was used to abstract a quirk for the "Marvel" platform,
-but it does not do this any more after the code was moved into yet
-another driver in arch/alpha/kernel/rtc.c.
+This replaces the long list of architectures that don't support it
+with a shorter list of those that do.
+
+The list is taken from those architectures that have a non-empty
+asm/mc146818rtc.h header file and were not explicitly blacklisted.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- drivers/char/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/char/Kconfig | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
-index 9bdb629fbaae..697510325b1d 100644
+index 3ec0766ed5e9..66b5d48f409a 100644
 --- a/drivers/char/Kconfig
 +++ b/drivers/char/Kconfig
-@@ -328,7 +328,7 @@ config JS_RTC
- config GEN_RTC
- 	tristate "Generic /dev/rtc emulation"
- 	depends on RTC!=y
--	depends on ALPHA || M68K || MN10300 || PARISC || PPC
-+	depends on M68K || MN10300 || PARISC || PPC
+@@ -279,8 +279,7 @@ if RTC_LIB=n
+ 
+ config RTC
+ 	tristate "Enhanced Real Time Clock Support (legacy PC RTC driver)"
+-	depends on !PPC && !PARISC && !IA64 && !M68K && !SPARC && !FRV \
+-			&& !ARM && !SUPERH && !S390 && !AVR32 && !BLACKFIN && !UML
++	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300 || X86
  	---help---
  	  If you say Y here and create a character special file /dev/rtc with
  	  major number 10 and minor number 135 using mknod ("man mknod"), you
 -- 
 2.7.0
+
