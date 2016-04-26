@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0087.outbound.protection.outlook.com ([157.56.111.87]:56488
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0097.outbound.protection.outlook.com ([207.46.100.97]:48893
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753982AbcDZXBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 19:01:37 -0400
+	id S1752913AbcDZXB5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 19:01:57 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 08/18] x86: Add support for early
- encryption/decryption of memory
-Date: Tue, 26 Apr 2016 17:46:37 -0500
-Message-ID: <20160426224637.13079.72887.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v1 04/18] x86: Add the Secure Memory Encryption cpu
+ feature
+Date: Tue, 26 Apr 2016 17:45:54 -0500
+Message-ID: <20160426224554.13079.49954.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 References: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,153 +18,63 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426224637.gTk12w0K4wlLHgbqIAJmz1juuLjUjCynrATiq8WtC9w@z>
+Message-ID: <20160426224554.9eKOFRxJa2f0yyCEVkFoEGYO8Ks4etft056zP7AbPRM@z>
 
-This adds support to be able to either encrypt or decrypt data during
-the early stages of booting the kernel. This does not change the memory
-encryption attribute - it is used for ensuring that data present in
-either an encrypted or un-encrypted memory area is in the proper state
-(for example the initrd will have been loaded by the boot loader and
-will not be encrypted, but the memory that it resides in is marked as
-encrypted).
+Update the cpu features to include identifying and reporting on the
+Secure Memory Encryption feature.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |   15 ++++++
- arch/x86/mm/mem_encrypt.c          |   89 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 104 insertions(+)
+ arch/x86/include/asm/cpufeature.h  |    1 +
+ arch/x86/include/asm/cpufeatures.h |    5 ++++-
+ arch/x86/kernel/cpu/scattered.c    |    1 +
+ 3 files changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 9f3e762..2785493 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -23,6 +23,11 @@ extern unsigned long sme_me_mask;
+diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
+index 07c942d..e27e352 100644
+--- a/arch/x86/include/asm/cpufeature.h
++++ b/arch/x86/include/asm/cpufeature.h
+@@ -27,6 +27,7 @@ enum cpuid_leafs
+ 	CPUID_6_EAX,
+ 	CPUID_8000_000A_EDX,
+ 	CPUID_7_ECX,
++	CPUID_8000_001F_EAX,
+ };
  
- u8 sme_get_me_loss(void);
+ #ifdef CONFIG_X86_FEATURE_NAMES
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 47b5056..4aea205 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -12,7 +12,7 @@
+ /*
+  * Defines x86 CPU feature bits
+  */
+-#define NCAPINTS	17	/* N 32-bit words worth of info */
++#define NCAPINTS	18	/* N 32-bit words worth of info */
+ #define NBUGINTS	1	/* N 32-bit bug flags */
  
-+void __init sme_early_mem_enc(resource_size_t paddr,
-+			      unsigned long size);
-+void __init sme_early_mem_dec(resource_size_t paddr,
-+			      unsigned long size);
-+
- void __init sme_early_init(void);
+ /*
+@@ -282,6 +282,9 @@
+ #define X86_FEATURE_PKU		(16*32+ 3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE	(16*32+ 4) /* OS Protection Keys Enable */
  
- #define __sme_pa(x)		(__pa((x)) | sme_me_mask)
-@@ -39,6 +44,16 @@ static inline u8 sme_get_me_loss(void)
- 	return 0;
- }
++/* AMD SME Feature Identification, CPUID level 0x8000001f (eax), word 17 */
++#define X86_FEATURE_SME		(17*32+ 0) /* Secure Memory Encryption support */
++
+ /*
+  * BUG word(s)
+  */
+diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
+index 8cb57df..d86d9a5 100644
+--- a/arch/x86/kernel/cpu/scattered.c
++++ b/arch/x86/kernel/cpu/scattered.c
+@@ -37,6 +37,7 @@ void init_scattered_cpuid_features(struct cpuinfo_x86 *c)
+ 		{ X86_FEATURE_HW_PSTATE,	CR_EDX, 7, 0x80000007, 0 },
+ 		{ X86_FEATURE_CPB,		CR_EDX, 9, 0x80000007, 0 },
+ 		{ X86_FEATURE_PROC_FEEDBACK,	CR_EDX,11, 0x80000007, 0 },
++		{ X86_FEATURE_SME,		CR_EAX, 0, 0x8000001f, 0 },
+ 		{ 0, 0, 0, 0, 0 }
+ 	};
  
-+static inline void __init sme_early_mem_enc(resource_size_t paddr,
-+					    unsigned long size)
-+{
-+}
-+
-+static inline void __init sme_early_mem_dec(resource_size_t paddr,
-+					    unsigned long size)
-+{
-+}
-+
- static inline void __init sme_early_init(void)
- {
- }
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 00eb705..5f19ede 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -14,6 +14,95 @@
- #include <linux/mm.h>
- 
- #include <asm/mem_encrypt.h>
-+#include <asm/tlbflush.h>
-+#include <asm/fixmap.h>
-+
-+/* Buffer used for early in-place encryption by BSP, no locking needed */
-+static char me_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-+
-+void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-+{
-+	void *src, *dst;
-+	size_t len;
-+
-+	if (!sme_me_mask)
-+		return;
-+
-+	local_flush_tlb();
-+	wbinvd();
-+
-+	/*
-+	 * There are limited number of early mapping slots, so map (at most)
-+	 * one page at time.
-+	 */
-+	while (size) {
-+		len = min_t(size_t, sizeof(me_early_buffer), size);
-+
-+		/* Create a mapping for non-encrypted write-protected memory */
-+		src = early_memremap_dec_wp(paddr, len);
-+
-+		/* Create a mapping for encrypted memory */
-+		dst = early_memremap_enc(paddr, len);
-+
-+		/*
-+		 * If a mapping can't be obtained to perform the encryption,
-+		 * then encrypted access to that area will end up causing
-+		 * a crash.
-+		 */
-+		BUG_ON(!src || !dst);
-+
-+		memcpy(me_early_buffer, src, len);
-+		memcpy(dst, me_early_buffer, len);
-+
-+		early_memunmap(dst, len);
-+		early_memunmap(src, len);
-+
-+		paddr += len;
-+		size -= len;
-+	}
-+}
-+
-+void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-+{
-+	void *src, *dst;
-+	size_t len;
-+
-+	if (!sme_me_mask)
-+		return;
-+
-+	local_flush_tlb();
-+	wbinvd();
-+
-+	/*
-+	 * There are limited number of early mapping slots, so map (at most)
-+	 * one page at time.
-+	 */
-+	while (size) {
-+		len = min_t(size_t, sizeof(me_early_buffer), size);
-+
-+		/* Create a mapping for encrypted write-protected memory */
-+		src = early_memremap_enc_wp(paddr, len);
-+
-+		/* Create a mapping for non-encrypted memory */
-+		dst = early_memremap_dec(paddr, len);
-+
-+		/*
-+		 * If a mapping can't be obtained to perform the decryption,
-+		 * then un-encrypted access to that area will end up causing
-+		 * a crash.
-+		 */
-+		BUG_ON(!src || !dst);
-+
-+		memcpy(me_early_buffer, src, len);
-+		memcpy(dst, me_early_buffer, len);
-+
-+		early_memunmap(dst, len);
-+		early_memunmap(src, len);
-+
-+		paddr += len;
-+		size -= len;
-+	}
-+}
- 
- void __init sme_early_init(void)
- {
 
