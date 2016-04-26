@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0091.outbound.protection.outlook.com ([207.46.100.91]:49646
+Received: from mail-by2on0054.outbound.protection.outlook.com ([207.46.100.54]:55424
 	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752617AbcDZWp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Apr 2016 18:45:58 -0400
+	id S1752646AbcDZWqi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 18:46:38 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 03/18] x86: Secure Memory Encryption (SME) support
-Date: Tue, 26 Apr 2016 17:45:43 -0500
-Message-ID: <20160426224543.13079.88894.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v1 07/18] x86: Extend the early_memmap support with
+ additional attrs
+Date: Tue, 26 Apr 2016 17:46:27 -0500
+Message-ID: <20160426224627.13079.90610.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 References: <20160426224508.13079.90373.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,133 +18,160 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160426224543.GwP9MDpc_fwXm6_sNSaFJzCP_k8gvkn4dh1MtE9Qsq8@z>
+Message-ID: <20160426224627._g8VDSEsDo1wpaQmyuB_UGdp2ISJyayaSRawjCIorGE@z>
 
-Provide support for Secure Memory Encryption (SME). This initial support
-defines the memory encryption mask as a variable for quick access and an
-accessor for retrieving the number of physical addressing bits lost if
-SME is enabled.
+Add to the early_memmap support to be able to specify encrypted and
+un-encrypted mappings with and without write-protection. The use of
+write-protection is necessary when encrypting data "in place". The
+write-protect attribute is considered cacheable for loads, but not
+stores. This implies that the hardware will never give the core a
+dirty line with this memtype.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |   37 ++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/Makefile           |    2 ++
- arch/x86/kernel/mem_encrypt.S      |   29 ++++++++++++++++++++++++++++
- arch/x86/kernel/x8664_ksyms_64.c   |    6 ++++++
- 4 files changed, 74 insertions(+)
- create mode 100644 arch/x86/include/asm/mem_encrypt.h
- create mode 100644 arch/x86/kernel/mem_encrypt.S
+ arch/x86/include/asm/fixmap.h        |    9 +++++++++
+ arch/x86/include/asm/pgtable_types.h |    8 ++++++++
+ arch/x86/mm/ioremap.c                |   28 ++++++++++++++++++++++++++++
+ include/asm-generic/early_ioremap.h  |    2 ++
+ mm/early_ioremap.c                   |   15 +++++++++++++++
+ 5 files changed, 62 insertions(+)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-new file mode 100644
-index 0000000..747fc52
---- /dev/null
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -0,0 +1,37 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+diff --git a/arch/x86/include/asm/fixmap.h b/arch/x86/include/asm/fixmap.h
+index 83e91f0..4d41878 100644
+--- a/arch/x86/include/asm/fixmap.h
++++ b/arch/x86/include/asm/fixmap.h
+@@ -160,6 +160,15 @@ static inline void __set_fixmap(enum fixed_addresses idx,
+  */
+ #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_IO_NOCACHE
+ 
++void __init *early_memremap_enc(resource_size_t phys_addr,
++				unsigned long size);
++void __init *early_memremap_enc_wp(resource_size_t phys_addr,
++				   unsigned long size);
++void __init *early_memremap_dec(resource_size_t phys_addr,
++				unsigned long size);
++void __init *early_memremap_dec_wp(resource_size_t phys_addr,
++				   unsigned long size);
 +
-+#ifndef __X86_MEM_ENCRYPT_H__
-+#define __X86_MEM_ENCRYPT_H__
+ #include <asm-generic/fixmap.h>
+ 
+ #define __late_set_fixmap(idx, phys, flags) __set_fixmap(idx, phys, flags)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index fda7877..6291248 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -154,6 +154,7 @@ enum page_cache_mode {
+ 
+ #define _PAGE_CACHE_MASK	(_PAGE_PAT | _PAGE_PCD | _PAGE_PWT)
+ #define _PAGE_NOCACHE		(cachemode2protval(_PAGE_CACHE_MODE_UC))
++#define _PAGE_CACHE_WP		(cachemode2protval(_PAGE_CACHE_MODE_WP))
+ 
+ #define PAGE_NONE	__pgprot(_PAGE_PROTNONE | _PAGE_ACCESSED)
+ #define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | \
+@@ -182,6 +183,7 @@ enum page_cache_mode {
+ #define __PAGE_KERNEL_VVAR		(__PAGE_KERNEL_RO | _PAGE_USER)
+ #define __PAGE_KERNEL_LARGE		(__PAGE_KERNEL | _PAGE_PSE)
+ #define __PAGE_KERNEL_LARGE_EXEC	(__PAGE_KERNEL_EXEC | _PAGE_PSE)
++#define __PAGE_KERNEL_WP		(__PAGE_KERNEL | _PAGE_CACHE_WP)
+ 
+ #define __PAGE_KERNEL_IO		(__PAGE_KERNEL)
+ #define __PAGE_KERNEL_IO_NOCACHE	(__PAGE_KERNEL_NOCACHE)
+@@ -196,6 +198,12 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED |	\
+ 			 _PAGE_DIRTY | _PAGE_ENC)
+ 
++#define __PAGE_KERNEL_ENC	(__PAGE_KERNEL | _PAGE_ENC)
++#define __PAGE_KERNEL_ENC_WP	(__PAGE_KERNEL_WP | _PAGE_ENC)
 +
-+#ifndef __ASSEMBLY__
++#define __PAGE_KERNEL_DEC	(__PAGE_KERNEL)
++#define __PAGE_KERNEL_DEC_WP	(__PAGE_KERNEL_WP)
 +
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
-+extern unsigned long sme_me_mask;
-+
-+u8 sme_get_me_loss(void);
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#define sme_me_mask		0UL
-+
-+static inline u8 sme_get_me_loss(void)
+ #define PAGE_KERNEL		__pgprot(__PAGE_KERNEL | _PAGE_ENC)
+ #define PAGE_KERNEL_RO		__pgprot(__PAGE_KERNEL_RO | _PAGE_ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot(__PAGE_KERNEL_EXEC | _PAGE_ENC)
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 77dadf5..14c7ed5 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -420,6 +420,34 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+ }
+ 
++/* Remap memory with encryption */
++void __init *early_memremap_enc(resource_size_t phys_addr,
++				unsigned long size)
 +{
-+	return 0;
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC);
 +}
 +
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++/* Remap memory with encryption and write-protected */
++void __init *early_memremap_enc_wp(resource_size_t phys_addr,
++				   unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC_WP);
++}
 +
-+#endif	/* __ASSEMBLY__ */
++/* Remap memory without encryption */
++void __init *early_memremap_dec(resource_size_t phys_addr,
++				unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_DEC);
++}
 +
-+#endif	/* __X86_MEM_ENCRYPT_H__ */
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index 9abf855..11536d9 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -126,6 +126,8 @@ obj-$(CONFIG_EFI)			+= sysfb_efi.o
- obj-$(CONFIG_PERF_EVENTS)		+= perf_regs.o
- obj-$(CONFIG_TRACING)			+= tracepoint.o
++/* Remap memory without encryption and write-protected */
++void __init *early_memremap_dec_wp(resource_size_t phys_addr,
++				   unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_DEC_WP);
++}
++
+ static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
  
-+obj-y					+= mem_encrypt.o
-+
- ###
- # 64 bit specific files
- ifeq ($(CONFIG_X86_64),y)
-diff --git a/arch/x86/kernel/mem_encrypt.S b/arch/x86/kernel/mem_encrypt.S
-new file mode 100644
-index 0000000..ef7f325
---- /dev/null
-+++ b/arch/x86/kernel/mem_encrypt.S
-@@ -0,0 +1,29 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+	.text
-+	.code64
-+ENTRY(sme_get_me_loss)
-+	xor	%rax, %rax
-+	mov	sme_me_loss(%rip), %al
-+	ret
-+ENDPROC(sme_get_me_loss)
-+
-+	.data
-+	.align 16
-+ENTRY(sme_me_mask)
-+	.quad	0x0000000000000000
-+sme_me_loss:
-+	.byte	0x00
-+	.align	8
-diff --git a/arch/x86/kernel/x8664_ksyms_64.c b/arch/x86/kernel/x8664_ksyms_64.c
-index cd05942..72cb689 100644
---- a/arch/x86/kernel/x8664_ksyms_64.c
-+++ b/arch/x86/kernel/x8664_ksyms_64.c
-@@ -11,6 +11,7 @@
- #include <asm/uaccess.h>
- #include <asm/desc.h>
- #include <asm/ftrace.h>
-+#include <asm/mem_encrypt.h>
+ static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+index 734ad4d..2edef8d 100644
+--- a/include/asm-generic/early_ioremap.h
++++ b/include/asm-generic/early_ioremap.h
+@@ -13,6 +13,8 @@ extern void *early_memremap(resource_size_t phys_addr,
+ 			    unsigned long size);
+ extern void *early_memremap_ro(resource_size_t phys_addr,
+ 			       unsigned long size);
++extern void *early_memremap_prot(resource_size_t phys_addr,
++				 unsigned long size, unsigned long prot_val);
+ extern void early_iounmap(void __iomem *addr, unsigned long size);
+ extern void early_memunmap(void *addr, unsigned long size);
  
- #ifdef CONFIG_FUNCTION_TRACER
- /* mcount and __fentry__ are defined in assembly */
-@@ -79,3 +80,8 @@ EXPORT_SYMBOL(native_load_gs_index);
- EXPORT_SYMBOL(___preempt_schedule);
- EXPORT_SYMBOL(___preempt_schedule_notrace);
+diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+index 6d5717b..d71b98b 100644
+--- a/mm/early_ioremap.c
++++ b/mm/early_ioremap.c
+@@ -226,6 +226,14 @@ early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+ }
  #endif
+ 
++void __init *
++early_memremap_prot(resource_size_t phys_addr, unsigned long size,
++		    unsigned long prot_val)
++{
++	return (__force void *)__early_ioremap(phys_addr, size,
++					       __pgprot(prot_val));
++}
 +
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+EXPORT_SYMBOL_GPL(sme_me_mask);
-+EXPORT_SYMBOL_GPL(sme_get_me_loss);
-+#endif
+ #define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
+ 
+ void __init copy_from_early_mem(void *dest, phys_addr_t src, unsigned long size)
+@@ -267,6 +275,13 @@ early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+ 	return (void *)phys_addr;
+ }
+ 
++void __init *
++early_memremap_prot(resource_size_t phys_addr, unsigned long size,
++		    unsigned long prot_val)
++{
++	return (void *)phys_addr;
++}
++
+ void __init early_iounmap(void __iomem *addr, unsigned long size)
+ {
+ }
 
