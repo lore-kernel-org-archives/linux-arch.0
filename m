@@ -1,76 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:56525 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753235AbcDZSTL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2016 14:19:11 -0400
-From: Kamal Mostafa <kamal@canonical.com>
-Subject: [PATCH 4.2.y-ckt 69/93] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
-Date: Tue, 26 Apr 2016 11:17:09 -0700
-Message-ID: <1461694653-29506-70-git-send-email-kamal@canonical.com>
-In-Reply-To: <1461694653-29506-1-git-send-email-kamal@canonical.com>
-References: <1461694653-29506-1-git-send-email-kamal@canonical.com>
+Received: from smtprelay0187.hostedemail.com ([216.40.44.187]:55047 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752893AbcDZTme (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Apr 2016 15:42:34 -0400
+Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
+	by smtpgrave03.hostedemail.com (Postfix) with ESMTP id 4450028D748
+	for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2016 19:32:59 +0000 (UTC)
+Date: Tue, 26 Apr 2016 15:32:55 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH] tracing: add support for tracing MMIO helpers
+Message-ID: <20160426153255.0fcb5f82@gandalf.local.home>
+In-Reply-To: <6253918.VUpbMrMy7R@wuerfel>
+References: <1461697482-32406-1-git-send-email-rabin@rab.in>
+	<6253918.VUpbMrMy7R@wuerfel>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
-Cc: Romain Perier <romain.perier@free-electrons.com>, linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Kamal Mostafa <kamal@canonical.com>
-Message-ID: <20160426181709.NmnVFFT5setqnHjSwJ6pDrU1RXvoH7yoCbBrs-7al2c@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Rabin Vincent <rabin@rab.in>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20160426193255.c7yTiEr-mYYiAAys_JXpgrYdhOgl_BXoCFIrApr6Lf4@z>
 
-4.2.8-ckt9 -stable review patch.  If anyone has any objections, please let me know.
+On Tue, 26 Apr 2016 21:14:47 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
 
----8<------------------------------------------------------------
 
-From: Romain Perier <romain.perier@free-electrons.com>
+> > +/* This part must be outside protection */
+> > +#include <trace/define_trace.h>
+> > diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
+> > index e45db6b0d878..feca834436c5 100644
+> > --- a/kernel/trace/Kconfig
+> > +++ b/kernel/trace/Kconfig
+> > @@ -372,6 +372,22 @@ config STACK_TRACER
+> >  
+> >  	  Say N if unsure.
+> >  
+> > +config TRACE_MMIO_HELPERS
+> > +       bool "Support for tracing MMIO helpers"
+> > +       select GENERIC_TRACER  
+> 
+> How about putting a whitelist of architectures here that are including
+> the necessary definitions? Or better, a HAVE_TRACE_MMIO_HELPERS
+> symbol that gets selected by architectures and that this depends on?
+> 
 
-commit fba7cd681b6155e2d93e7862fcd6f970336b83c3 upstream.
+Agreed.
 
-The recent decoupling of pagefault disable and preempt disable added an
-explicit preempt_disable/enable() pair to the futex_atomic_cmpxchg_inatomic()
-implementation in asm-generic/futex.h. But it forgot to add preempt_enable()
-calls to the error handling code pathes, which results in a preemption count
-imbalance.
-
-This is observable on boot when the test for atomic_cmpxchg() is calling
-futex_atomic_cmpxchg_inatomic() on a NULL pointer.
-
-Add the missing preempt_enable() calls to the error handling code pathes.
-
-[ tglx: Massaged changelog ]
-
-Fixes: d9b9ff8c1889 ("sched/preempt, futex: Disable preemption in UP futex_atomic_cmpxchg_inatomic() explicitly")
-Signed-off-by: Romain Perier <romain.perier@free-electrons.com>
-Cc: linux-arch@vger.kernel.org
-Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Link: http://lkml.kernel.org/r/1460640963-690-1-git-send-email-romain.perier@free-electrons.com
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Kamal Mostafa <kamal@canonical.com>
----
- include/asm-generic/futex.h | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index e56272c..bf2d34c 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -108,11 +108,15 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
- 	u32 val;
- 
- 	preempt_disable();
--	if (unlikely(get_user(val, uaddr) != 0))
-+	if (unlikely(get_user(val, uaddr) != 0)) {
-+		preempt_enable();
- 		return -EFAULT;
-+	}
- 
--	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-+	if (val == oldval && unlikely(put_user(newval, uaddr) != 0)) {
-+		preempt_enable();
- 		return -EFAULT;
-+	}
- 
- 	*uval = val;
- 	preempt_enable();
--- 
-2.7.4
-
+-- Steve
