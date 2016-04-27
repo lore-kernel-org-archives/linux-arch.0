@@ -1,61 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f52.google.com ([209.85.218.52]:33562 "EHLO
-	mail-oi0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753495AbcD0PfE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 11:35:04 -0400
-Received: by mail-oi0-f52.google.com with SMTP id v145so19831283oie.0
-        for <linux-arch@vger.kernel.org>; Wed, 27 Apr 2016 08:35:02 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20160427153158.GJ21011@pd.tnic>
+Received: from mail.skyhub.de ([78.46.96.112]:35411 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753625AbcD0Plr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Apr 2016 11:41:47 -0400
+Date: Wed, 27 Apr 2016 17:41:40 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
+ enablement
+Message-ID: <20160427154140.GK21011@pd.tnic>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225604.13567.55443.stgit@tlendack-t1.amdoffice.net>
- <CALCETrU9ozp1mBKG-P88cKRJRY5bifn2Ab__AZcn5b33n3j2cg@mail.gmail.com>
- <5720D066.7080409@amd.com> <CALCETrV+JzPZjrrqkhWSVfvKQt62Aq8NSW=ZvfdiAi8XKoLi8A@mail.gmail.com>
- <5720D546.6050105@amd.com> <CALCETrVcS-H9BtCevT4=Luo2sK0A3cbBs7Rs=RaBr2yzOzxp4w@mail.gmail.com>
- <20160427153158.GJ21011@pd.tnic>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 27 Apr 2016 08:34:42 -0700
-Message-ID: <CALCETrUUL+2CJvo8WWWCw7LB6+osrsx5VfLNBLW=FWiRZchtjg@mail.gmail.com>
-Subject: Re: [RFC PATCH v1 01/18] x86: Set the write-protect cache mode for
- AMD processors
-Content-Type: text/plain; charset=UTF-8
+ <20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
+ <20160322130150.GB16528@xo-6d-61-c0.localdomain>
+ <5720D810.9060602@amd.com>
+ <20160427153010.GA7861@amd>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20160427153010.GA7861@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160427153442.iXbTobomsmZrx-UoqHPZY1HML3B7g9mJwjE-eKPh-cc@z>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160427154140.9-_8npWF3FY1gY6K5f0mWaE4BAkz316260DZx7-ibzg@z>
 
-On Wed, Apr 27, 2016 at 8:31 AM, Borislav Petkov <bp@alien8.de> wrote:
-> On Wed, Apr 27, 2016 at 08:12:56AM -0700, Andy Lutomirski wrote:
->> I think there are some errata
->
-> Isn't that addressed by the first branch of the if-test in pat_init():
->
->         if ((c->x86_vendor == X86_VENDOR_INTEL) &&
->             (((c->x86 == 0x6) && (c->x86_model <= 0xd)) ||
->              ((c->x86 == 0xf) && (c->x86_model <= 0x6)))) {
->
+On Wed, Apr 27, 2016 at 05:30:10PM +0200, Pavel Machek wrote:
+> Doing it early will break bisect, right?
 
-That's the intent, but I'm unconvinced that it's complete.  The reason
-that WT is in slot 7 is that if it accidentally ends up using the slot
-3 entry instead of 7 (e.g. if a 2M page gets confused due to an
-erratum we didn't handle or similar), then it falls back to UC, which
-is safe.
-
-But this is mostly moot in this case.  There is no safe fallback for
-WP, but it doesn't really matter, because no one will actually try to
-use it except on a system will full PAT support anyway.  So I'm not
-really concerned.
-
->
-> --
-> Regards/Gruss,
->     Boris.
->
-> ECO tip #101: Trim your mails when you reply.
-
-
+How exactly? Please do tell.
 
 -- 
-Andy Lutomirski
-AMA Capital Management, LLC
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
