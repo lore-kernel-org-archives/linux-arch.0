@@ -1,60 +1,32 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 1/6] rtc: m68k: provide rtc_class_ops directly
-Date: Wed, 27 Apr 2016 12:34:19 +0200
-Message-ID: <4888267.R0sXv0tuDQ@wuerfel>
-References: <1461707551-1337971-1-git-send-email-arnd@arndb.de> <1461707551-1337971-2-git-send-email-arnd@arndb.de> <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
+Subject: Re: [PATCH 6/8] char/genrtc: parisc: use asm-generic/rtc.h
+Date: Wed, 27 Apr 2016 13:21:16 +0200
+Message-ID: <18012781.hPTzXnRcSP@wuerfel>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-7-git-send-email-arnd@arndb.de> <3034953.EvqV1iv2Ef@caliban.sf-tec.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([217.72.192.75]:60218 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752448AbcD0LXE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 07:23:04 -0400
+In-Reply-To: <3034953.EvqV1iv2Ef@caliban.sf-tec.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 
-On Wednesday 27 April 2016 09:47:56 Geert Uytterhoeven wrote:
-> > --- a/arch/m68k/kernel/time.c
-> > +++ b/arch/m68k/kernel/time.c
-> > @@ -86,7 +86,24 @@ void read_persistent_clock(struct timespec *ts)
-> >         }
-> >  }
-> >
-> > -#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-> > +#if defined(CONFIG_ARCH_USES_GETTIMEOFFSET) && defined(CONFIG_RTC_DRV_GENERIC)
+On Wednesday 27 April 2016 00:07:47 Rolf Eike Beer wrote:
+> Arnd Bergmann wrote:
+> > The asm-generic/rtc.h header can now be included by
+> > architectures that provide their own set_rtc_time/get_rtc_time
+> > macros, letting us remove most of the common contents in
+> > the powerpc implementation.
 > 
-> s/defined/IS_ENABLED/ for the modular case.
-
-Thanks, fixed in all three architectures/
-
-> > @@ -95,7 +112,10 @@ static int __init rtc_init(void)
-> >         if (!mach_hwclk)
-> >                 return -ENODEV;
-> >
-> > -       pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
-> > +       /* or just call devm_rtc_device_register instead? */
+> parisc in this case.
 > 
-> I guess this comment is a bogus leftover? There's no "dev" parameter to
-> pass to devm_rtc_device_register() here.
 
-Sort of. When I wrote it, I thought that a NULL argument would work,
-and I later found out myself that it doesn't.
-
-I'll drop the comment there, but there are still a few ways we (probably
-not me, but whoever is interested) could take this further:
-
-- register both the device and the driver here, and call
-  devm_rtc_device_register from the probe function so we can move away
-  from drivers/rtc/rtc-generic.c
-
-- do this separately for mac, mvme147, mvme16x, sun3, q40 and sun3x
-
-- move the six implementations into drivers/rtc as standalone drivers.
-
-One (AFAIK) unsolved problem here is the question of how to handle
-read_boot_clock/read_persistent_clock/update_persistent_clock in this
-case. This is a really odd API that is implemented in various ways
-on a few major architectures, and not at all on others, so it's all
-highly inconsistent.
+Fixed, thanks!
 
 	Arnd
