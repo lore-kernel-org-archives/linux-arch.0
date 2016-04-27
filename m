@@ -1,28 +1,27 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 4/8] char/rtc: move mc146818rtc code out of asm-generic/rtc.h
-Date: Wed, 27 Apr 2016 11:59:45 +0200
-Message-ID: <13463932.UFUngJV7ZH@wuerfel>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-5-git-send-email-arnd@arndb.de> <20160427084707.GI3264@piout.net>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 2/8] char/rtc: legacy RTC is no longer supported on x86
+Date: Wed, 27 Apr 2016 12:05:23 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1604271205100.3941@nanos>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-3-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160427084707.GI3264@piout.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, dalias@libc.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, dhowells@redhat.com, linux-arch@vger.kernel.org, deller@gmx.de, x86@kernel.org, jejb@parisc-linux.org, geert@linux-m68k.org, rtc-linux@googlegroups.com, ink@jurassic.park.msu.ru, rth@twiddle.net, a.zummo@towertech.it, tony.luck@intel.com, linux-parisc@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, yasutake.koichi@jp.panasonic.com
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <1461707052-1337718-3-git-send-email-arnd@arndb.de>
+Sender: linux-sh-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 27 April 2016 11:29:12 Alexandre Belloni wrote:
-> The subject should be:
-> rtc: cmos: move mc146818rtc code out of asm-generic/rtc.h
+On Tue, 26 Apr 2016, Arnd Bergmann wrote:
 
-Good point, the functions are only used by rtc-cmos, not the old
-drivers/char/rtc.c.
- 
-> Else, you can add:
-> Acked-by: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+> Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
+> the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
+> which in turn disables the selection of the CONFIG_RTC and
+> CONFIG_GEN_RTC drivers that contain a two older implementations of
+> the CONFIG_RTC_DRV_CMOS driver.
+> 
+> This removes x86 from the list.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Thanks.
-
-	Arnd
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
