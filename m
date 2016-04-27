@@ -1,49 +1,32 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 0/6] simplify rtc-generic driver
-Date: Wed, 27 Apr 2016 09:50:58 +0200
-Message-ID: <CAMuHMdWppdXFjoj-+YC137fgPYb4TE_Kp4fycitJdPaqMGn3VA@mail.gmail.com>
-References: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
+Subject: Re: char: legacy RTC cleanups
+Date: Wed, 27 Apr 2016 09:54:41 +0200
+Message-ID: <CAMuHMdV=R3ad33vPdMZNvZZ8A_DF+F2C8nyAmXOmFiiP50D_UQ@mail.gmail.com>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f195.google.com ([209.85.213.195]:34127 "EHLO
-	mail-ig0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752544AbcD0Hu7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 03:50:59 -0400
-In-Reply-To: <1461707551-1337971-1-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
+Sender: linux-ia64-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh
+List-Id: linux-arch.vger.kernel.org
 
 Hi Arnd,
 
-On Tue, Apr 26, 2016 at 11:52 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> This is a resend of an earlier series, to clean up the rtc-generic
-> driver by avoiding the dependency on the architecture specific
-> include/asm/rtc.h header that after this series is only used
-> for the deprecated "genrtc" driver. As I've shown in another
-> series, only three architectures (m68k, powerpc, parisc)
-> actually use the genrtc driver, and they all support rtc-generic
-> as a replacement as well.
->
-> The only missing piece appears to be the ioctl support for
-> the m68k q40 machine that I'm adding in patch 2 here.
+On Tue, Apr 26, 2016 at 11:44 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> For the genrtc driver, rearranging the headers makes it simpler
+> to use and reduces duplication. In case of alpha and mn10300,
+> I've shown that the genrtc and rtc drivers are doing the same
+> thing, so we don't need them both. The remaining three
+> architectures (m68k, parisc, powerpc) actually all support
+> the newer rtc-generic driver, so we could remove genrtc completely
+> if we want to.
 
-Apparently I had applied your previous version to my local tree, but I had
-completely forgotten about it. So it has received quite some compile testing.
-
-CONFIG_GEN_RTC is not enabled in any of the m68k defconfigs, so I think it's
-been unused for a while.
-CONFIG_RTC_DRV_GENERIC is modular, so I typically don't run-test it.
-I just did that, and after fixing patch 1 to use IS_ENABLED() it worked fine
-on ARAnyM.
-
-Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-I do not have a Q40, so I couldn't test that part.
-
-Thanks!
+CONFIG_GEN_RTC is not enabled in any of the m68k defconfigs, so I think genrtc
+has been unused for a while.
+All defconfigs either use CONFIG_RTC_DRV_GENERIC, or enable a more specific
+RTC driver.
 
 Gr{oetje,eeting}s,
 
