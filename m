@@ -1,44 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f170.google.com ([209.85.214.170]:36091 "EHLO
-	mail-ob0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752778AbcD0OsF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 10:48:05 -0400
-Received: by mail-ob0-f170.google.com with SMTP id j9so23680754obd.3
-        for <linux-arch@vger.kernel.org>; Wed, 27 Apr 2016 07:48:04 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <5720D066.7080409@amd.com>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:45203 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752784AbcD0O6F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 10:58:05 -0400
+Date: Wed, 27 Apr 2016 16:58:01 +0200
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Message-ID: <20160427145801.GA5895@amd>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225604.13567.55443.stgit@tlendack-t1.amdoffice.net>
- <CALCETrU9ozp1mBKG-P88cKRJRY5bifn2Ab__AZcn5b33n3j2cg@mail.gmail.com> <5720D066.7080409@amd.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 27 Apr 2016 07:47:44 -0700
-Message-ID: <CALCETrV+JzPZjrrqkhWSVfvKQt62Aq8NSW=ZvfdiAi8XKoLi8A@mail.gmail.com>
-Subject: Re: [RFC PATCH v1 01/18] x86: Set the write-protect cache mode for
- AMD processors
-Content-Type: text/plain; charset=UTF-8
+ <20160322130058.GA16528@xo-6d-61-c0.localdomain>
+ <20160427140520.GG21011@pd.tnic>
+ <20160427143045.GA4718@amd>
+ <20160427143951.GH21011@pd.tnic>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160427143951.GH21011@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160427144744.lAZ7SrpuOvCgoY_1yjWQpUB4V2wiI6rtH4MWDESYgdc@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160427145801.Ym38me_GJ6E4PMZmr9GNJ46K7em-obe9hruJCbCws4g@z>
 
-On Wed, Apr 27, 2016 at 7:44 AM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
-> On 04/27/2016 09:33 AM, Andy Lutomirski wrote:
->> On Tue, Apr 26, 2016 at 3:56 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->>> For AMD processors that support PAT, set the write-protect cache mode
->>> (_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
->>
->> What's the purpose of using the WP memory type?
->
-> The WP memory type is used for encrypting or decrypting data "in place".
-> The use of the WP on the source data will prevent any of the source
-> data from being cached.  Refer to section 7.10.8 "Encrypt-in-Place" in
-> the AMD64 APM link provided in the cover letter.
->
-> This memory type will be used in subsequent patches for this purpose.
+On Wed 2016-04-27 16:39:51, Borislav Petkov wrote:
+> On Wed, Apr 27, 2016 at 04:30:45PM +0200, Pavel Machek wrote:
+> > That does not answer the question. "Why would I want SME on my
+> > system?".
+> 
+> Because your question wasn't formulated properly. Here's some text from
+> the 0th mail which you could've found on your own:
 
-OK.
+> "The following links provide additional detail:
+> 
+> AMD Memory Encryption whitepaper:
+>    http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+> "
+> 
+> > And that answer should go to Documentation/.
+> 
+> It will.
 
-Why AMD-only?  I thought Intel supported WP, too.
+Yeah? So why not include it in reply instead of flaming me?
 
---Andy
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
