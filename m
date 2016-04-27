@@ -1,47 +1,65 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: char: legacy RTC cleanups
-Date: Wed, 27 Apr 2016 10:33:04 +0200
-Message-ID: <6883809.SRgmlLMdyd@wuerfel>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <CAMuHMdV=R3ad33vPdMZNvZZ8A_DF+F2C8nyAmXOmFiiP50D_UQ@mail.gmail.com>
+From: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Subject: Re: [PATCH 2/8] char/rtc: legacy RTC is no longer supported on x86
+Date: Wed, 27 Apr 2016 10:35:59 +0200
+Message-ID: <20160427083559.GG3264@piout.net>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
+ <1461707052-1337718-3-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdV=R3ad33vPdMZNvZZ8A_DF+F2C8nyAmXOmFiiP50D_UQ@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <1461707052-1337718-3-git-send-email-arnd@arndb.de>
 Sender: linux-alpha-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>Linux-sh list <l>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 27 April 2016 09:54:41 Geert Uytterhoeven wrote:
-> Hi Arnd,
+On 26/04/2016 at 23:44:06 +0200, Arnd Bergmann wrote :
+> Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
+> the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
+> which in turn disables the selection of the CONFIG_RTC and
+> CONFIG_GEN_RTC drivers that contain a two older implementations of
+> the CONFIG_RTC_DRV_CMOS driver.
 > 
-> On Tue, Apr 26, 2016 at 11:44 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > For the genrtc driver, rearranging the headers makes it simpler
-> > to use and reduces duplication. In case of alpha and mn10300,
-> > I've shown that the genrtc and rtc drivers are doing the same
-> > thing, so we don't need them both. The remaining three
-> > architectures (m68k, parisc, powerpc) actually all support
-> > the newer rtc-generic driver, so we could remove genrtc completely
-> > if we want to.
+> This removes x86 from the list.
 > 
-> CONFIG_GEN_RTC is not enabled in any of the m68k defconfigs, so I think genrtc
-> has been unused for a while.
-> All defconfigs either use CONFIG_RTC_DRV_GENERIC, or enable a more specific
-> RTC driver.
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 
-Ok, good to know. I'm guessing the same is true for parisc, but there are
-also very few users.
+Two down, still four drivers for the x86 RTCs...
 
-Regarding the Q40 specific ioctls, what do you think this means, is it
 
-a) nobody uses Q40 with modern kernels,
-b) nobody calls RTC_PLL_GET/RTC_PLL_SET on q40, or
-c) Q40 users have their own configurations and enable GEN_RTC?
+> ---
+>  drivers/char/Kconfig | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+> index 66b5d48f409a..9bdb629fbaae 100644
+> --- a/drivers/char/Kconfig
+> +++ b/drivers/char/Kconfig
+> @@ -279,7 +279,7 @@ if RTC_LIB=n
+>  
+>  config RTC
+>  	tristate "Enhanced Real Time Clock Support (legacy PC RTC driver)"
+> -	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300 || X86
+> +	depends on ALPHA || (MIPS && MACH_LOONGSON64) || MN10300
+>  	---help---
+>  	  If you say Y here and create a character special file /dev/rtc with
+>  	  major number 10 and minor number 135 using mknod ("man mknod"), you
+> @@ -328,7 +328,7 @@ config JS_RTC
+>  config GEN_RTC
+>  	tristate "Generic /dev/rtc emulation"
+>  	depends on RTC!=y
+> -	depends on ALPHA || M68K || MN10300 || PARISC || PPC || X86
+> +	depends on ALPHA || M68K || MN10300 || PARISC || PPC
+>  	---help---
+>  	  If you say Y here and create a character special file /dev/rtc with
+>  	  major number 10 and minor number 135 using mknod ("man mknod"), you
+> -- 
+> 2.7.0
+> 
 
-On powerpc, a quarter of the defconfigs (mostly for really old hardware)
-still use GEN_RTC, but I guess we can either bulk-convert them to RTC_GENERIC,
-or convert the five implementations of .get_rtc_time/.set_rtc_time
-(8xx, rtas, chrp, powermac, maple) into five regular RTC class drivers.
-
-	Arnd
+-- 
+Alexandre Belloni, Free Electrons
+Embedded Linux, Kernel and Android engineering
+http://free-electrons.com
