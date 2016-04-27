@@ -1,55 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f179.google.com ([209.85.214.179]:33107 "EHLO
-	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752914AbcD0OkB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 10:40:01 -0400
-Received: by mail-ob0-f179.google.com with SMTP id x1so5174110obt.0
-        for <linux-arch@vger.kernel.org>; Wed, 27 Apr 2016 07:40:00 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 27 Apr 2016 07:39:24 -0700
-Message-ID: <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+Received: from mail.skyhub.de ([78.46.96.112]:53253 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752485AbcD0Oj6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Apr 2016 10:39:58 -0400
+Date: Wed, 27 Apr 2016 16:39:51 +0200
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20160427143951.GH21011@pd.tnic>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160322130058.GA16528@xo-6d-61-c0.localdomain>
+ <20160427140520.GG21011@pd.tnic>
+ <20160427143045.GA4718@amd>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20160427143045.GA4718@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160427143924.hgW4u_Ldj3AVspu0qwonj4hAUfJihgCLgRR_dInOFxg@z>
+To: Pavel Machek <pavel@ucw.cz>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160427143951.My2jEr1vwwk1cNYn1gK2ssMHLD2jb3BLeOWg1rcniqg@z>
 
-On Tue, Apr 26, 2016 at 3:55 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
-> This RFC patch series provides support for AMD's new Secure Memory
-> Encryption (SME) feature.
->
-> SME can be used to mark individual pages of memory as encrypted through the
-> page tables. A page of memory that is marked encrypted will be automatically
-> decrypted when read from DRAM and will be automatically encrypted when
-> written to DRAM. Details on SME can found in the links below.
+On Wed, Apr 27, 2016 at 04:30:45PM +0200, Pavel Machek wrote:
+> That does not answer the question. "Why would I want SME on my
+> system?".
 
-Having read through the docs briefly, some questions:
+Because your question wasn't formulated properly. Here's some text from
+the 0th mail which you could've found on your own:
 
-1. How does the crypto work?  Is it straight AES-ECB?  Is it a
-tweakable mode?  If so, what does into the tweak?  For example, if I
-swap the ciphertext of two pages, does the plaintext of the pages get
-swapped?  If not, why not?
+"The following links provide additional detail:
 
-2. In SEV mode, how does the hypervisor relocate a physical backing
-page?  Does it simple move it and update the 2nd-level page tables?
-If so, is the result of decryption guaranteed to be garbage if it
-relocates a page and re-inserts it at the wrong guest physical
-address?
+AMD Memory Encryption whitepaper:
+   http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+"
 
-3. In SEV mode, does anything prevent the hypervisor from resuming a
-guest with the wrong ASID, or is this all relying on the resulting
-corruption of the guest code and data to cause a crash?
+> And that answer should go to Documentation/.
 
-4. As I understand it, the caches are all unencrypted, and they're
-tagged with the physical address, *including* the SME bit (bit 47).
-In SEV mode, are they also tagged with the ASID?  I.e. if I have a
-page in cache for ASID 1 and I try to read it with ASID 2, will I get
-a fresh copy decrypted with ASID 2's key?  If so, will the old ASID 1
-copy be evicted, or will it stay in cache and be non-coherent?
+It will.
 
---Andy
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
