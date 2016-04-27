@@ -1,63 +1,60 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: char: legacy RTC cleanups
-Date: Wed, 27 Apr 2016 12:19:59 +0200
-Message-ID: <CAMuHMdW6AODmVwB59uTvMydbTNiDDxQWB3p-Dp9Dka+GVyP_iw@mail.gmail.com>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de>
-	<20160427094410.GJ3264@piout.net>
-	<4937900.aITlOE9vLo@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 1/6] rtc: m68k: provide rtc_class_ops directly
+Date: Wed, 27 Apr 2016 12:34:19 +0200
+Message-ID: <4888267.R0sXv0tuDQ@wuerfel>
+References: <1461707551-1337971-1-git-send-email-arnd@arndb.de> <1461707551-1337971-2-git-send-email-arnd@arndb.de> <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <4937900.aITlOE9vLo@wuerfel>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On Wednesday 27 April 2016 09:47:56 Geert Uytterhoeven wrote:
+> > --- a/arch/m68k/kernel/time.c
+> > +++ b/arch/m68k/kernel/time.c
+> > @@ -86,7 +86,24 @@ void read_persistent_clock(struct timespec *ts)
+> >         }
+> >  }
+> >
+> > -#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+> > +#if defined(CONFIG_ARCH_USES_GETTIMEOFFSET) && defined(CONFIG_RTC_DRV_GENERIC)
+> 
+> s/defined/IS_ENABLED/ for the modular case.
 
-On Wed, Apr 27, 2016 at 12:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wednesday 27 April 2016 11:44:10 Alexandre Belloni wrote:
->> On 26/04/2016 at 23:44:04 +0200, Arnd Bergmann wrote :
->> > I've had these patches in my tree for a while, after the first one
->> > had a few issues that are fixed in this new version. The old-style
->> > PC RTC driver is now also disabled on m68k (as pointed out by
->> > Geert), ppc (it was also blacklisted), and m32r (I showed that
->> > it did not build).
->> >
->> > For the genrtc driver, rearranging the headers makes it simpler
->> > to use and reduces duplication. In case of alpha and mn10300,
->> > I've shown that the genrtc and rtc drivers are doing the same
->> > thing, so we don't need them both. The remaining three
->> > architectures (m68k, parisc, powerpc) actually all support
->> > the newer rtc-generic driver, so we could remove genrtc completely
->> > if we want to.
->> >
->>
->> Personally, I'd go for the kill and remove genrtc instead of cleaning it up.
->
-> Right, so we could skip patches 5 and 6, and instead remove the two
-> headers as we remove the driver. Let's see what the architecture
-> maintainers think about it, at least powerpc actually enables gen_rtc
-> in its defconfig, so it might take a while to move it over.
+Thanks, fixed in all three architectures/
 
-FWIW, all PPC defconfigs (except tqm8xx.dts, which is a more recent platform)
-enabling it did that long before my old commit to enable rtc-generic support
-on PPC:
+> > @@ -95,7 +112,10 @@ static int __init rtc_init(void)
+> >         if (!mach_hwclk)
+> >                 return -ENODEV;
+> >
+> > -       pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
+> > +       /* or just call devm_rtc_device_register instead? */
+> 
+> I guess this comment is a bogus leftover? There's no "dev" parameter to
+> pass to devm_rtc_device_register() here.
 
-commit bcd68a70cb0eee556d86d93133aa150319bd9f53
-Author: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>
-Date:   Thu Feb 19 16:50:46 2009 +0100
+Sort of. When I wrote it, I thought that a NULL argument would work,
+and I later found out myself that it doesn't.
 
-    powerpc: Hook up rtc-generic, and kill rtc-ppc
+I'll drop the comment there, but there are still a few ways we (probably
+not me, but whoever is interested) could take this further:
 
-Gr{oetje,eeting}s,
+- register both the device and the driver here, and call
+  devm_rtc_device_register from the probe function so we can move away
+  from drivers/rtc/rtc-generic.c
 
-                        Geert
+- do this separately for mac, mvme147, mvme16x, sun3, q40 and sun3x
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+- move the six implementations into drivers/rtc as standalone drivers.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+One (AFAIK) unsolved problem here is the question of how to handle
+read_boot_clock/read_persistent_clock/update_persistent_clock in this
+case. This is a really odd API that is implemented in various ways
+on a few major architectures, and not at all on others, so it's all
+highly inconsistent.
+
+	Arnd
