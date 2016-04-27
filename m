@@ -1,221 +1,329 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f52.google.com ([209.85.215.52]:35026 "EHLO
-	mail-lf0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752770AbcD0VPc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 17:15:32 -0400
-MIME-Version: 1.0
-In-Reply-To: <CA+=Sn1kT7-3k4smZ60zcjcXeVMzjH6AxV6-um68SNhD9meC=ZA@mail.gmail.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
-	<20160405224412.GA18300@yury-N73SV>
-	<571AEDF9.6030701@huawei.com>
-	<CA+=Sn1kT7-3k4smZ60zcjcXeVMzjH6AxV6-um68SNhD9meC=ZA@mail.gmail.com>
-Date: Wed, 27 Apr 2016 14:15:30 -0700
-Message-ID: <CA+=Sn1=xnbDDHL921rTLEZmXt4QDLPO=Y8GkQWv7VkidWzt4-A@mail.gmail.com>
-Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64 - LTP results
-From: Andrew Pinski <pinskia@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from mout.kundenserver.de ([217.72.192.74]:63797 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754067AbcD0Wfj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 18:35:39 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v3 11/16] char/genrtc: remove m68k support
+Date: Thu, 28 Apr 2016 00:34:25 +0200
+Message-ID: <1461796470-1291527-12-git-send-email-arnd@arndb.de>
+In-Reply-To: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
+References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Nathan Lynch <Nathan_Lynch@mentor.com>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, linux-doc@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Hanjun Guo <guohanjun@huawei.com>, GCC Mailing List <gcc@gcc.gnu.org>
-Message-ID: <20160427211530.3-8JvgWfDn-WAnDtzCk4D5qVT3eow_Lb7zrBjliZKZM@z>
+To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Message-ID: <20160427223425.olPIOUkkef2oied84VjFEFsX3fd28INVPujLug2f3kA@z>
 
-On Wed, Apr 27, 2016 at 12:30 AM, Andrew Pinski <pinskia@gmail.com> wrote:
-> On Fri, Apr 22, 2016 at 8:37 PM, Zhangjian (Bamvor)
-> <bamvor.zhangjian@huawei.com> wrote:
->> Hi, Yury
->>
->>
->> On 2016/4/6 6:44, Yury Norov wrote:
->>>
->>> There are about 20 failing tests of 782 in lite scenario.
->>> float_bessel
->>> float_exp_log
->>> float_iperb
->>> float_power
->>> float_trigo
->>> pipeio_1
->>> pipeio_3
->>> pipeio_5
->>> pipeio_8
->>> abort01
->>> clone02
->>> kill11
->>> mmap16
->>> open12
->>> pause01
->>> rename11
->>> rmdir02
->>> umount2_01
->>> umount2_02
->>> umount2_03
->>> utime06
->>> mtest06
->>>
->>> The list is rough because some tests fail not every time.
->>>
->>> Tests abort01 and kill11 fail for lp64 too, so maybe there's
->>> a reason unrelated to ilp32 itself.
->>>
->>> float_xxx tests fail because they call unwind() from signal context,
->>> and GCC for ilp32 has problem with it, as Andrew told.
->>
->> Is there some progress about this issue. When we talk about unwind
->> functions, do you mean the function in libgcc?
->>
->> We encountered another issue(abort not segfault) which also called
->> pthread_cancel(). The test code is in the attachment. Here is the
->> backtrace:
->
-> Yes this was a known issue I knew about.  I have a patch GCC to fix
-> this.  Basically REG_VALUE_IN_UNWIND_CONTEXT needs to be defined while
-> building libgcc to support the correct unwind information.
-> I will be posting a GCC patch to fix this tomorrow.  This was a bug
-> even in the original set of ilp32 patches.  I only finally was able to
-> sit down and fix it today.
+The asm/rtc.h header is only used for the old gen_rtc driver
+that has been replaced by rtc-generic. According to Geert
+Uytterhoeven, nobody has used the old driver on m68k for
+a long time, so we can now just remove the header file
+and disallow the driver in Kconfig.
 
-Here is the link to the GCC patch which I said was going to submit today:
-https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01726.html
+All files that used to include asm/rtc.h are now changed so
+they include the headers that were used implicitly through
+asm/rtc.h.
 
-Thanks,
-Andrew
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/m68k/amiga/config.c    |  1 -
+ arch/m68k/apollo/config.c   |  1 -
+ arch/m68k/bvme6000/config.c |  1 -
+ arch/m68k/hp300/config.c    |  2 +-
+ arch/m68k/include/asm/rtc.h | 79 ---------------------------------------------
+ arch/m68k/mac/config.c      |  3 +-
+ arch/m68k/mac/misc.c        |  1 -
+ arch/m68k/mvme147/config.c  |  1 -
+ arch/m68k/mvme16x/config.c  |  1 -
+ arch/m68k/q40/config.c      |  2 +-
+ arch/m68k/sun3/config.c     |  1 -
+ arch/m68k/sun3/intersil.c   |  2 +-
+ arch/m68k/sun3x/time.c      |  2 +-
+ drivers/char/Kconfig        |  2 +-
+ 14 files changed, 7 insertions(+), 92 deletions(-)
+ delete mode 100644 arch/m68k/include/asm/rtc.h
 
->
->
-> Thanks,
-> Andrew
->
->>
->> ```
->> Program received signal SIGABRT, Aborted.
->> [Switching to Thread 0xf77ee330 (LWP 2958)]
->> 0x000000000040f5bc in raise (sig=sig@entry=6)
->>     at ../sysdeps/unix/sysv/linux/raise.c:55
->> 55      ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
->> (gdb) bt
->> #0  0x000000000040f5bc in raise (sig=sig@entry=6)
->>     at ../sysdeps/unix/sysv/linux/raise.c:55
->> #1  0x000000000040f884 in abort () at abort.c:89
->>
->> #2  0x00000000004073b4 in uw_update_context_1 (
->>     context=context@entry=0xf77ec820, fs=fs@entry=0xf77ebec8)
->> at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1430
->>
->> #3  0x00000000004078c0 in uw_update_context
->> (context=context@entry=0xf77ec820,
->>     fs=fs@entry=0xf77ebec8)
->>    at
->> /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1506
->> #4  0x0000000000407a9c in uw_advance_context (fs=0xf77ebec8,
->>     context=0xf77ec820)
->>     at
->> /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1529
->> #5  _Unwind_ForcedUnwind_Phase2 (exc=exc@entry=0xf77ee580,
->>     context=context@entry=0xf77ec820)
->>     at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind.inc:185
->> #6  0x0000000000408228 in _Unwind_ForcedUnwind (exc=0xf77ee580,
->>     stop=stop@entry=0x405440 <unwind_stop>, stop_argument=0xf77eddd8)
->>     at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind.inc:207
->> #7  0x00000000004055c4 in __pthread_unwind (buf=<optimized out>)
->>     at unwind.c:126
->> #8  0x00000000004050b4 in __do_cancel () at ./pthreadP.h:283
->> #9  sigcancel_handler (sig=<optimized out>, si=<optimized out>,
->>     ctx=<optimized out>) at nptl-init.c:225
->> ---Type <return> to continue, or q <return> to quit---
->> #10 <signal handler called>
->>
->> #11 0x0000000000000000 in ?? ()
->>
->> #12 0x0000000000423084 in __select (nfds=-66661, readfds=<optimized out>,
->>     writefds=<optimized out>, exceptfds=<optimized out>, timeout=0x0)
->>     at ../sysdeps/unix/sysv/linux/generic/select.c:45
->> #13 0x0000000000400604 in TEST_TaskDelay (
->>     uiMillSecs=<error reading variable: can't compute CFA for this frame>)
->>     at test-cancel.c:18
->> #14 0x0000000000400680 in printids (
->>     s=<error reading variable: can't compute CFA for this frame>)
->>     at test-cancel.c:38
->> #15 0x00000000004006d0 in thr_fn (
->>     arg=<error reading variable: can't compute CFA for this frame>)
->>     at test-cancel.c:49
->> #16 0x0000000000401b28 in start_thread (arg=0x4a3000) at
->> pthread_create.c:335
->> #17 0x0000000000401b28 in start_thread (arg=0x4a3000) at
->> pthread_create.c:335
->> Backtrace stopped: previous frame identical to this frame (corrupt stack?)
->> ```
->>
->> Such abort is raise by the following code:
->> ```
->> static void
->> uw_update_context_1 (struct _Unwind_Context *context, _Unwind_FrameState
->> *fs)
->> {
->> //...
->>   /* Compute this frame's CFA.  */
->>   switch (fs->regs.cfa_how)
->>     {
->>     case CFA_REG_OFFSET:
->>       cfa = _Unwind_GetPtr (&orig_context, fs->regs.cfa_reg);
->>       cfa += fs->regs.cfa_offset;
->>       break;
->>
->>     case CFA_EXP:
->>       {
->>         const unsigned char *exp = fs->regs.cfa_exp;
->>         _uleb128_t len;
->>
->>         exp = read_uleb128 (exp, &len);
->>         cfa = (void *) (_Unwind_Ptr)
->>           execute_stack_op (exp, exp + len, &orig_context, 0);
->>         break;
->>       }
->>
->>     default:
->>       gcc_unreachable ();
->>     }
->>   context->cfa = cfa;
->> //...
->> }
->> ``
->>
->> Any suggestion is appreciated.
->>
->> CC gcc mailing list. Sorry if it is off topic.
->>
->> Regards
->>
->> Bamvor
->>
->>
->>
->>
->>> pipeio_x tests are very unstable and may fail randomly. I strongly
->>> suspect race conditions, as they all work like a charm if pinned to
->>> single CPU with taskset. Probably, race is the reason of clone02 too.
->>> Though I'm not sure, is the race in kernel, glibc or test itself.
->>>
->>> But I know for sure that pause01 fails due to test design:
->>>         if (setitimer(ITIMER_REAL, &it, NULL)) // For 1000us
->>>                 tst_brkm(TBROK | TERRNO, NULL, "setitimer() failed");
->>>
->>>         TEST(pause());
->>>
->>> As setitimer() and pause() calls are not atomic, alarm may come before
->>> pause()
->>> is called, and be silently dropped by the handler. Next pause() call hangs
->>> test forever. I already reported to LTP list.
->>>
->>> open12, rename11, rmdir02, mmap16, mtest06 - all call mkfs tool, and it
->>> returns
->>> error code. I didn't investigate it much yet.
->>>
->>> umount02_x, utime06 - cannot reproduce out of scenario, even run it in
->>> infinite
->>> loop - they work fine.
->>>
->>> Full test log is attached.
->>>
->>> Yury
->>>
->>
+diff --git a/arch/m68k/amiga/config.c b/arch/m68k/amiga/config.c
+index 01693df7f2f6..ec9cc1fdd237 100644
+--- a/arch/m68k/amiga/config.c
++++ b/arch/m68k/amiga/config.c
+@@ -35,7 +35,6 @@
+ #include <asm/amigahw.h>
+ #include <asm/amigaints.h>
+ #include <asm/irq.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m68k/apollo/config.c b/arch/m68k/apollo/config.c
+index 6e62d66c396e..432bc8bacfc2 100644
+--- a/arch/m68k/apollo/config.c
++++ b/arch/m68k/apollo/config.c
+@@ -15,7 +15,6 @@
+ #include <asm/pgtable.h>
+ #include <asm/apollohw.h>
+ #include <asm/irq.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ 
+ u_long sio01_physaddr;
+diff --git a/arch/m68k/bvme6000/config.c b/arch/m68k/bvme6000/config.c
+index 478623dbb209..611d4d9ea2bd 100644
+--- a/arch/m68k/bvme6000/config.c
++++ b/arch/m68k/bvme6000/config.c
+@@ -34,7 +34,6 @@
+ #include <asm/setup.h>
+ #include <asm/irq.h>
+ #include <asm/traps.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ #include <asm/bvme6000hw.h>
+ 
+diff --git a/arch/m68k/hp300/config.c b/arch/m68k/hp300/config.c
+index a9befe65adc4..7cfab158fb61 100644
+--- a/arch/m68k/hp300/config.c
++++ b/arch/m68k/hp300/config.c
+@@ -12,6 +12,7 @@
+ #include <linux/string.h>
+ #include <linux/kernel.h>
+ #include <linux/console.h>
++#include <linux/rtc.h>
+ 
+ #include <asm/bootinfo.h>
+ #include <asm/bootinfo-hp300.h>
+@@ -20,7 +21,6 @@
+ #include <asm/blinken.h>
+ #include <asm/io.h>                               /* readb() and writeb() */
+ #include <asm/hp300hw.h>
+-#include <asm/rtc.h>
+ 
+ #include "time.h"
+ 
+diff --git a/arch/m68k/include/asm/rtc.h b/arch/m68k/include/asm/rtc.h
+deleted file mode 100644
+index a4d08ea122ee..000000000000
+--- a/arch/m68k/include/asm/rtc.h
++++ /dev/null
+@@ -1,79 +0,0 @@
+-/* include/asm-m68k/rtc.h
+- *
+- * Copyright Richard Zidlicky
+- * implementation details for genrtc/q40rtc driver
+- */
+-/* permission is hereby granted to copy, modify and redistribute this code
+- * in terms of the GNU Library General Public License, Version 2 or later,
+- * at your option.
+- */
+-
+-#ifndef _ASM_RTC_H
+-#define _ASM_RTC_H
+-
+-#ifdef __KERNEL__
+-
+-#include <linux/rtc.h>
+-#include <asm/errno.h>
+-#include <asm/machdep.h>
+-
+-#define RTC_PIE 0x40		/* periodic interrupt enable */
+-#define RTC_AIE 0x20		/* alarm interrupt enable */
+-#define RTC_UIE 0x10		/* update-finished interrupt enable */
+-
+-/* some dummy definitions */
+-#define RTC_BATT_BAD 0x100	/* battery bad */
+-#define RTC_SQWE 0x08		/* enable square-wave output */
+-#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
+-#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
+-#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
+-
+-static inline unsigned int get_rtc_time(struct rtc_time *time)
+-{
+-	/*
+-	 * Only the values that we read from the RTC are set. We leave
+-	 * tm_wday, tm_yday and tm_isdst untouched. Even though the
+-	 * RTC has RTC_DAY_OF_WEEK, we ignore it, as it is only updated
+-	 * by the RTC when initially set to a non-zero value.
+-	 */
+-	if (mach_hwclk)
+-		mach_hwclk(0, time);
+-	return RTC_24H;
+-}
+-
+-static inline int set_rtc_time(struct rtc_time *time)
+-{
+-	if (mach_hwclk)
+-		return mach_hwclk(1, time);
+-	return -EINVAL;
+-}
+-
+-static inline unsigned int get_rtc_ss(void)
+-{
+-	if (mach_get_ss)
+-		return mach_get_ss();
+-	else{
+-		struct rtc_time h;
+-
+-		get_rtc_time(&h);
+-		return h.tm_sec;
+-	}
+-}
+-
+-static inline int get_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	if (mach_get_rtc_pll)
+-		return mach_get_rtc_pll(pll);
+-	else
+-		return -EINVAL;
+-}
+-static inline int set_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	if (mach_set_rtc_pll)
+-		return mach_set_rtc_pll(pll);
+-	else
+-		return -EINVAL;
+-}
+-#endif /* __KERNEL__ */
+-
+-#endif /* _ASM__RTC_H */
+diff --git a/arch/m68k/mac/config.c b/arch/m68k/mac/config.c
+index 689b47d292ac..2f33a33001e5 100644
+--- a/arch/m68k/mac/config.c
++++ b/arch/m68k/mac/config.c
+@@ -10,6 +10,7 @@
+  * Miscellaneous linux stuff
+  */
+ 
++#include <linux/errno.h>
+ #include <linux/module.h>
+ #include <linux/types.h>
+ #include <linux/mm.h>
+@@ -25,6 +26,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/adb.h>
+ #include <linux/cuda.h>
++#include <linux/rtc.h>
+ 
+ #include <asm/setup.h>
+ #include <asm/bootinfo.h>
+@@ -34,7 +36,6 @@
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/pgtable.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ 
+ #include <asm/macintosh.h>
+diff --git a/arch/m68k/mac/misc.c b/arch/m68k/mac/misc.c
+index 707b61aea203..0fb54a90eac2 100644
+--- a/arch/m68k/mac/misc.c
++++ b/arch/m68k/mac/misc.c
+@@ -18,7 +18,6 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+-#include <asm/rtc.h>
+ #include <asm/segment.h>
+ #include <asm/setup.h>
+ #include <asm/macintosh.h>
+diff --git a/arch/m68k/mvme147/config.c b/arch/m68k/mvme147/config.c
+index e6a3b56c6481..c11d38dfad08 100644
+--- a/arch/m68k/mvme147/config.c
++++ b/arch/m68k/mvme147/config.c
+@@ -32,7 +32,6 @@
+ #include <asm/setup.h>
+ #include <asm/irq.h>
+ #include <asm/traps.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ #include <asm/mvme147hw.h>
+ 
+diff --git a/arch/m68k/mvme16x/config.c b/arch/m68k/mvme16x/config.c
+index a53803cc66cd..58e240939d26 100644
+--- a/arch/m68k/mvme16x/config.c
++++ b/arch/m68k/mvme16x/config.c
+@@ -35,7 +35,6 @@
+ #include <asm/setup.h>
+ #include <asm/irq.h>
+ #include <asm/traps.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ #include <asm/mvme16xhw.h>
+ 
+diff --git a/arch/m68k/q40/config.c b/arch/m68k/q40/config.c
+index e90fe903613e..fcb7f05b60b6 100644
+--- a/arch/m68k/q40/config.c
++++ b/arch/m68k/q40/config.c
+@@ -12,6 +12,7 @@
+  * for more details.
+  */
+ 
++#include <linux/errno.h>
+ #include <linux/types.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+@@ -27,7 +28,6 @@
+ #include <linux/platform_device.h>
+ 
+ #include <asm/io.h>
+-#include <asm/rtc.h>
+ #include <asm/bootinfo.h>
+ #include <asm/pgtable.h>
+ #include <asm/setup.h>
+diff --git a/arch/m68k/sun3/config.c b/arch/m68k/sun3/config.c
+index 71884bf01d72..3af34fa3a344 100644
+--- a/arch/m68k/sun3/config.c
++++ b/arch/m68k/sun3/config.c
+@@ -26,7 +26,6 @@
+ #include <asm/pgalloc.h>
+ #include <asm/sun3-head.h>
+ #include <asm/sun3mmu.h>
+-#include <asm/rtc.h>
+ #include <asm/machdep.h>
+ #include <asm/machines.h>
+ #include <asm/idprom.h>
+diff --git a/arch/m68k/sun3/intersil.c b/arch/m68k/sun3/intersil.c
+index 889829e11f1d..2cd0bcbe6f30 100644
+--- a/arch/m68k/sun3/intersil.c
++++ b/arch/m68k/sun3/intersil.c
+@@ -14,8 +14,8 @@
+ #include <linux/rtc.h>
+ 
+ #include <asm/errno.h>
+-#include <asm/rtc.h>
+ #include <asm/intersil.h>
++#include <asm/machdep.h>
+ 
+ 
+ /* bits to set for start/run of the intersil */
+diff --git a/arch/m68k/sun3x/time.c b/arch/m68k/sun3x/time.c
+index c8eb08add6b0..431d3c4306dd 100644
+--- a/arch/m68k/sun3x/time.c
++++ b/arch/m68k/sun3x/time.c
+@@ -15,10 +15,10 @@
+ 
+ #include <asm/irq.h>
+ #include <asm/io.h>
++#include <asm/machdep.h>
+ #include <asm/traps.h>
+ #include <asm/sun3x.h>
+ #include <asm/sun3ints.h>
+-#include <asm/rtc.h>
+ 
+ #include "time.h"
+ 
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index abab6e565c60..26089feae9b0 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -328,7 +328,7 @@ config JS_RTC
+ config GEN_RTC
+ 	tristate "Generic /dev/rtc emulation"
+ 	depends on RTC!=y
+-	depends on M68K || PPC
++	depends on PPC
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+-- 
+2.7.0
+
