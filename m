@@ -1,64 +1,45 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [RFC PATCH v1 03/18] x86: Secure Memory Encryption (SME) support
-Date: Tue, 22 Mar 2016 14:03:54 +0100
-Message-ID: <20160322130354.GC16528@xo-6d-61-c0.localdomain>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225626.13567.72425.stgit@tlendack-t1.amdoffice.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 6/8] char/genrtc: parisc: use asm-generic/rtc.h
+Date: Wed, 27 Apr 2016 14:44:34 +0200
+Message-ID: <4737487.5iYaado825@wuerfel>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <4599222.az1Zyv5Lrl@wuerfel> <CAMuHMdV0DwdMkJURBH05ntrJWz0eY_wT__vHG32sx-sjSp0m_w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160426225626.13567.72425.stgit@tlendack-t1.amdoffice.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdV0DwdMkJURBH05ntrJWz0eY_wT__vHG32sx-sjSp0m_w@mail.gmail.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Rolf Eike Beer <eike-kernel@sf-tec.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, Alexandre Belloni <alexandre.belloni@free-electrons.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue 2016-04-26 17:56:26, Tom Lendacky wrote:
-> Provide support for Secure Memory Encryption (SME). This initial support
-> defines the memory encryption mask as a variable for quick access and an
-> accessor for retrieving the number of physical addressing bits lost if
-> SME is enabled.
+On Wednesday 27 April 2016 13:55:43 Geert Uytterhoeven wrote:
+> On Wed, Apr 27, 2016 at 1:35 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Wednesday 27 April 2016 13:21:16 Arnd Bergmann wrote:
+> >> On Wednesday 27 April 2016 00:07:47 Rolf Eike Beer wrote:
+> >> > Arnd Bergmann wrote:
+> >> > > The asm-generic/rtc.h header can now be included by
+> >> > > architectures that provide their own set_rtc_time/get_rtc_time
+> >> > > macros, letting us remove most of the common contents in
+> >> > > the powerpc implementation.
+> >> >
+> >> > parisc in this case.
+> >> >
+> >>
+> >> Fixed, thanks!
+> >
+> > Actually, after the comment about just removing the gen_rtc driver
+> > in the long run, I checked again and found that PARISC unconditionally
+> > selects RTC_CLASS, so this driver can't even be built here.
+> > We should just remove the header and drop PARISC from the list.
+> >
+> > If we also drop m68k, that just leaves powerpc.
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/mem_encrypt.h |   37 ++++++++++++++++++++++++++++++++++++
->  arch/x86/kernel/Makefile           |    2 ++
->  arch/x86/kernel/mem_encrypt.S      |   29 ++++++++++++++++++++++++++++
->  arch/x86/kernel/x8664_ksyms_64.c   |    6 ++++++
->  4 files changed, 74 insertions(+)
->  create mode 100644 arch/x86/include/asm/mem_encrypt.h
->  create mode 100644 arch/x86/kernel/mem_encrypt.S
-> 
-> index 0000000..ef7f325
-> --- /dev/null
-> +++ b/arch/x86/kernel/mem_encrypt.S
-> @@ -0,0 +1,29 @@
-> +/*
-> + * AMD Memory Encryption Support
-> + *
-> + * Copyright (C) 2016 Advanced Micro Devices, Inc.
-> + *
-> + * Author: Tom Lendacky <thomas.lendacky@amd.com>
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +
-> +#include <linux/linkage.h>
-> +
-> +	.text
-> +	.code64
-> +ENTRY(sme_get_me_loss)
-> +	xor	%rax, %rax
-> +	mov	sme_me_loss(%rip), %al
-> +	ret
-> +ENDPROC(sme_get_me_loss)
+> I've just checked Debian's unofficial linux-image-4.5.0-1-m68k_4.5.1-1_m68k,
+> and it also enables RTC_CLASS and CONFIG_RTC_DRV_GENERIC, so gen_rtc
+> can be dropped on m68k for sure.
 
-Does this really need to be implemented in assembly?
+Ok, excellent. I'll try to rework the series then to completely eliminate
+the driver (or leaving it ppc-only).
 
-
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+	Arnd
