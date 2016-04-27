@@ -1,27 +1,40 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 2/8] char/rtc: legacy RTC is no longer supported on x86
-Date: Wed, 27 Apr 2016 12:05:23 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1604271205100.3941@nanos>
-References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <1461707052-1337718-3-git-send-email-arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: char: legacy RTC cleanups
+Date: Wed, 27 Apr 2016 12:07:29 +0200
+Message-ID: <4937900.aITlOE9vLo@wuerfel>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <20160427094410.GJ3264@piout.net>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <1461707052-1337718-3-git-send-email-arnd@arndb.de>
-Sender: linux-sh-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, alexandre.belloni@free-electrons.com, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20160427094410.GJ3264@piout.net>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, tony.luck@intel.com, geert@linux-m68k.org, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, rth@twiddle.net, ink@jurassic.park.msu.ru, linux-alpha@vger.kernel.org, x86@kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 26 Apr 2016, Arnd Bergmann wrote:
-
-> Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
-> the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
-> which in turn disables the selection of the CONFIG_RTC and
-> CONFIG_GEN_RTC drivers that contain a two older implementations of
-> the CONFIG_RTC_DRV_CMOS driver.
+On Wednesday 27 April 2016 11:44:10 Alexandre Belloni wrote:
+> On 26/04/2016 at 23:44:04 +0200, Arnd Bergmann wrote :
+> > I've had these patches in my tree for a while, after the first one
+> > had a few issues that are fixed in this new version. The old-style
+> > PC RTC driver is now also disabled on m68k (as pointed out by
+> > Geert), ppc (it was also blacklisted), and m32r (I showed that
+> > it did not build).
+> > 
+> > For the genrtc driver, rearranging the headers makes it simpler
+> > to use and reduces duplication. In case of alpha and mn10300,
+> > I've shown that the genrtc and rtc drivers are doing the same
+> > thing, so we don't need them both. The remaining three
+> > architectures (m68k, parisc, powerpc) actually all support
+> > the newer rtc-generic driver, so we could remove genrtc completely
+> > if we want to.
+> > 
 > 
-> This removes x86 from the list.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Personally, I'd go for the kill and remove genrtc instead of cleaning it up.
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Right, so we could skip patches 5 and 6, and instead remove the two
+headers as we remove the driver. Let's see what the architecture
+maintainers think about it, at least powerpc actually enables gen_rtc
+in its defconfig, so it might take a while to move it over.
+
+	Arnd
