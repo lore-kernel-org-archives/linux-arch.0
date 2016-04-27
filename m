@@ -1,37 +1,39 @@
-From: Pavel Machek <pavel@ucw.cz>
+From: Robin Murphy <robin.murphy@arm.com>
 Subject: Re: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
  enablement
-Date: Wed, 27 Apr 2016 18:41:37 +0200
-Message-ID: <20160427164137.GA11779@amd>
+Date: Wed, 27 Apr 2016 18:07:34 +0100
+Message-ID: <5720F1D6.7020400@arm.com>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
  <20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
- <20160322130150.GB16528@xo-6d-61-c0.localdomain>
- <5720D810.9060602@amd.com>
- <20160427153010.GA7861@amd>
- <20160427154140.GK21011@pd.tnic>
+ <20160322130150.GB16528@xo-6d-61-c0.localdomain> <5720D810.9060602@amd.com>
+ <20160427153010.GA7861@amd> <20160427154140.GK21011@pd.tnic>
+ <20160427164137.GA11779@amd>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:48124 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753292AbcD0Qlm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 12:41:42 -0400
-Content-Disposition: inline
-In-Reply-To: <20160427154140.GK21011@pd.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <kvm-owner@vger.kernel.org>
+In-Reply-To: <20160427164137.GA11779@amd>
+Sender: kvm-owner@vger.kernel.org
+To: Pavel Machek <pavel@ucw.cz>, Borislav Petkov <bp@alien8.de>
+Cc: linux-efi@vger.kernel.org, kvm@vger.kernel.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, x86@kernel.org, linux-mm@kvack.org, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, kasan-dev@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Tom Lendacky <thomas.lendacky@amd.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, Paolo Bonzini <pbonzini@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed 2016-04-27 17:41:40, Borislav Petkov wrote:
-> On Wed, Apr 27, 2016 at 05:30:10PM +0200, Pavel Machek wrote:
-> > Doing it early will break bisect, right?
-> 
-> How exactly? Please do tell.
+On 27/04/16 17:41, Pavel Machek wrote:
+> On Wed 2016-04-27 17:41:40, Borislav Petkov wrote:
+>> On Wed, Apr 27, 2016 at 05:30:10PM +0200, Pavel Machek wrote:
+>>> Doing it early will break bisect, right?
+>>
+>> How exactly? Please do tell.
+>
+> Hey look, SME slowed down 30% since being initially merged into
+> kernel!
 
-Hey look, SME slowed down 30% since being initially merged into
-kernel!
-									Pavel
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+As opposed to "well, bisection shows these n+1 complicated changes are 
+all fine and the crash is down to this Kconfig patch", presumably. I'm 
+sure we all love spending a whole afternoon only to find that, right? :P
+
+Robin.
+
+> 									Pavel
+>
+
