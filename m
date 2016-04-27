@@ -1,89 +1,216 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
-Date: Wed, 27 Apr 2016 15:10:19 -0500
-Message-ID: <57211CAB.9040902@amd.com>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+From: Andrew Pinski <pinskia@gmail.com>
+Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64 - LTP results
+Date: Wed, 27 Apr 2016 14:15:30 -0700
+Message-ID: <CA+=Sn1=xnbDDHL921rTLEZmXt4QDLPO=Y8GkQWv7VkidWzt4-A@mail.gmail.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+	<20160405224412.GA18300@yury-N73SV>
+	<571AEDF9.6030701@huawei.com>
+	<CA+=Sn1kT7-3k4smZ60zcjcXeVMzjH6AxV6-um68SNhD9meC=ZA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo
- Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav
- Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas
- Gleixner <tglx@l>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CA+=Sn1kT7-3k4smZ60zcjcXeVMzjH6AxV6-um68SNhD9meC=ZA@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Andreas Schwab <schwab@suse.de>, Nathan Lynch <Nathan_Lynch@mentor.com>, Alexander Graf <agraf@suse.de>, Alexey Klimov <klimov.linux@gmail.com>, Mark Brown <broonie@kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, linux-doc@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Hanjun Guo <guohanjun@huawei.com>, GCC Mailing List <gcc@gcc.gnu.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 04/27/2016 09:39 AM, Andy Lutomirski wrote:
-> On Tue, Apr 26, 2016 at 3:55 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
->> This RFC patch series provides support for AMD's new Secure Memory
->> Encryption (SME) feature.
+On Wed, Apr 27, 2016 at 12:30 AM, Andrew Pinski <pinskia@gmail.com> wrote:
+> On Fri, Apr 22, 2016 at 8:37 PM, Zhangjian (Bamvor)
+> <bamvor.zhangjian@huawei.com> wrote:
+>> Hi, Yury
 >>
->> SME can be used to mark individual pages of memory as encrypted through the
->> page tables. A page of memory that is marked encrypted will be automatically
->> decrypted when read from DRAM and will be automatically encrypted when
->> written to DRAM. Details on SME can found in the links below.
-> 
-> Having read through the docs briefly, some questions:
-> 
-> 1. How does the crypto work?  Is it straight AES-ECB?  Is it a
-> tweakable mode?  If so, what does into the tweak?  For example, if I
-> swap the ciphertext of two pages, does the plaintext of the pages get
-> swapped?  If not, why not?
+>>
+>> On 2016/4/6 6:44, Yury Norov wrote:
+>>>
+>>> There are about 20 failing tests of 782 in lite scenario.
+>>> float_bessel
+>>> float_exp_log
+>>> float_iperb
+>>> float_power
+>>> float_trigo
+>>> pipeio_1
+>>> pipeio_3
+>>> pipeio_5
+>>> pipeio_8
+>>> abort01
+>>> clone02
+>>> kill11
+>>> mmap16
+>>> open12
+>>> pause01
+>>> rename11
+>>> rmdir02
+>>> umount2_01
+>>> umount2_02
+>>> umount2_03
+>>> utime06
+>>> mtest06
+>>>
+>>> The list is rough because some tests fail not every time.
+>>>
+>>> Tests abort01 and kill11 fail for lp64 too, so maybe there's
+>>> a reason unrelated to ilp32 itself.
+>>>
+>>> float_xxx tests fail because they call unwind() from signal context,
+>>> and GCC for ilp32 has problem with it, as Andrew told.
+>>
+>> Is there some progress about this issue. When we talk about unwind
+>> functions, do you mean the function in libgcc?
+>>
+>> We encountered another issue(abort not segfault) which also called
+>> pthread_cancel(). The test code is in the attachment. Here is the
+>> backtrace:
+>
+> Yes this was a known issue I knew about.  I have a patch GCC to fix
+> this.  Basically REG_VALUE_IN_UNWIND_CONTEXT needs to be defined while
+> building libgcc to support the correct unwind information.
+> I will be posting a GCC patch to fix this tomorrow.  This was a bug
+> even in the original set of ilp32 patches.  I only finally was able to
+> sit down and fix it today.
 
-The AES crypto uses a tweak such that two identical plaintexts at
-different locations will have different ciphertext. So swapping the
-ciphertext of two pages will not result in the plaintext being swapped.
-
-> 
-> 2. In SEV mode, how does the hypervisor relocate a physical backing
-> page?  Does it simple move it and update the 2nd-level page tables?
-> If so, is the result of decryption guaranteed to be garbage if it
-> relocates a page and re-inserts it at the wrong guest physical
-> address?
-
-For SEV mode, relocating a physical backing page takes extra steps.
-There are APIs that are used to have the AMD Secure Processor create a
-transportable encrypted page that can then be moved to a new location
-in memory. After moving it to the new location the APIs are used to
-haves the AMD Secure Processor re-encrypt the page for use with the
-guests SEV key. Based on #1 above, just moving a page without invoking
-the necessary APIs will result in the decryption returning garbage.
-
-> 
-> 3. In SEV mode, does anything prevent the hypervisor from resuming a
-> guest with the wrong ASID, or is this all relying on the resulting
-> corruption of the guest code and data to cause a crash?
-
-There is nothing that prevents resuming a guest with the wrong ASID.
-This relies on the resulting corruption of the guest code/data to
-cause a crash.
-
-> 
-> 4. As I understand it, the caches are all unencrypted, and they're
-> tagged with the physical address, *including* the SME bit (bit 47).
-> In SEV mode, are they also tagged with the ASID?  I.e. if I have a
-> page in cache for ASID 1 and I try to read it with ASID 2, will I get
-> a fresh copy decrypted with ASID 2's key?  If so, will the old ASID 1
-> copy be evicted, or will it stay in cache and be non-coherent?
-
-In SEV mode, the caches are tagged with the ASID. So if you try to read
-a cached page with a different ASID, it would result in a cache miss
-for that ASID and will instead fetch from memory and decrypt using
-the that ASID's key.
+Here is the link to the GCC patch which I said was going to submit today:
+https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01726.html
 
 Thanks,
-Tom
+Andrew
 
-> 
-> --Andy
-> 
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>
+>
+> Thanks,
+> Andrew
+>
+>>
+>> ```
+>> Program received signal SIGABRT, Aborted.
+>> [Switching to Thread 0xf77ee330 (LWP 2958)]
+>> 0x000000000040f5bc in raise (sig=sig@entry=6)
+>>     at ../sysdeps/unix/sysv/linux/raise.c:55
+>> 55      ../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+>> (gdb) bt
+>> #0  0x000000000040f5bc in raise (sig=sig@entry=6)
+>>     at ../sysdeps/unix/sysv/linux/raise.c:55
+>> #1  0x000000000040f884 in abort () at abort.c:89
+>>
+>> #2  0x00000000004073b4 in uw_update_context_1 (
+>>     context=context@entry=0xf77ec820, fs=fs@entry=0xf77ebec8)
+>> at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1430
+>>
+>> #3  0x00000000004078c0 in uw_update_context
+>> (context=context@entry=0xf77ec820,
+>>     fs=fs@entry=0xf77ebec8)
+>>    at
+>> /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1506
+>> #4  0x0000000000407a9c in uw_advance_context (fs=0xf77ebec8,
+>>     context=0xf77ec820)
+>>     at
+>> /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind-dw2.c:1529
+>> #5  _Unwind_ForcedUnwind_Phase2 (exc=exc@entry=0xf77ee580,
+>>     context=context@entry=0xf77ec820)
+>>     at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind.inc:185
+>> #6  0x0000000000408228 in _Unwind_ForcedUnwind (exc=0xf77ee580,
+>>     stop=stop@entry=0x405440 <unwind_stop>, stop_argument=0xf77eddd8)
+>>     at /home/GCC-Build/p660/p660_build_dir/src/gcc-4.9/libgcc/unwind.inc:207
+>> #7  0x00000000004055c4 in __pthread_unwind (buf=<optimized out>)
+>>     at unwind.c:126
+>> #8  0x00000000004050b4 in __do_cancel () at ./pthreadP.h:283
+>> #9  sigcancel_handler (sig=<optimized out>, si=<optimized out>,
+>>     ctx=<optimized out>) at nptl-init.c:225
+>> ---Type <return> to continue, or q <return> to quit---
+>> #10 <signal handler called>
+>>
+>> #11 0x0000000000000000 in ?? ()
+>>
+>> #12 0x0000000000423084 in __select (nfds=-66661, readfds=<optimized out>,
+>>     writefds=<optimized out>, exceptfds=<optimized out>, timeout=0x0)
+>>     at ../sysdeps/unix/sysv/linux/generic/select.c:45
+>> #13 0x0000000000400604 in TEST_TaskDelay (
+>>     uiMillSecs=<error reading variable: can't compute CFA for this frame>)
+>>     at test-cancel.c:18
+>> #14 0x0000000000400680 in printids (
+>>     s=<error reading variable: can't compute CFA for this frame>)
+>>     at test-cancel.c:38
+>> #15 0x00000000004006d0 in thr_fn (
+>>     arg=<error reading variable: can't compute CFA for this frame>)
+>>     at test-cancel.c:49
+>> #16 0x0000000000401b28 in start_thread (arg=0x4a3000) at
+>> pthread_create.c:335
+>> #17 0x0000000000401b28 in start_thread (arg=0x4a3000) at
+>> pthread_create.c:335
+>> Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+>> ```
+>>
+>> Such abort is raise by the following code:
+>> ```
+>> static void
+>> uw_update_context_1 (struct _Unwind_Context *context, _Unwind_FrameState
+>> *fs)
+>> {
+>> //...
+>>   /* Compute this frame's CFA.  */
+>>   switch (fs->regs.cfa_how)
+>>     {
+>>     case CFA_REG_OFFSET:
+>>       cfa = _Unwind_GetPtr (&orig_context, fs->regs.cfa_reg);
+>>       cfa += fs->regs.cfa_offset;
+>>       break;
+>>
+>>     case CFA_EXP:
+>>       {
+>>         const unsigned char *exp = fs->regs.cfa_exp;
+>>         _uleb128_t len;
+>>
+>>         exp = read_uleb128 (exp, &len);
+>>         cfa = (void *) (_Unwind_Ptr)
+>>           execute_stack_op (exp, exp + len, &orig_context, 0);
+>>         break;
+>>       }
+>>
+>>     default:
+>>       gcc_unreachable ();
+>>     }
+>>   context->cfa = cfa;
+>> //...
+>> }
+>> ``
+>>
+>> Any suggestion is appreciated.
+>>
+>> CC gcc mailing list. Sorry if it is off topic.
+>>
+>> Regards
+>>
+>> Bamvor
+>>
+>>
+>>
+>>
+>>> pipeio_x tests are very unstable and may fail randomly. I strongly
+>>> suspect race conditions, as they all work like a charm if pinned to
+>>> single CPU with taskset. Probably, race is the reason of clone02 too.
+>>> Though I'm not sure, is the race in kernel, glibc or test itself.
+>>>
+>>> But I know for sure that pause01 fails due to test design:
+>>>         if (setitimer(ITIMER_REAL, &it, NULL)) // For 1000us
+>>>                 tst_brkm(TBROK | TERRNO, NULL, "setitimer() failed");
+>>>
+>>>         TEST(pause());
+>>>
+>>> As setitimer() and pause() calls are not atomic, alarm may come before
+>>> pause()
+>>> is called, and be silently dropped by the handler. Next pause() call hangs
+>>> test forever. I already reported to LTP list.
+>>>
+>>> open12, rename11, rmdir02, mmap16, mtest06 - all call mkfs tool, and it
+>>> returns
+>>> error code. I didn't investigate it much yet.
+>>>
+>>> umount02_x, utime06 - cannot reproduce out of scenario, even run it in
+>>> infinite
+>>> loop - they work fine.
+>>>
+>>> Full test log is attached.
+>>>
+>>> Yury
+>>>
+>>
