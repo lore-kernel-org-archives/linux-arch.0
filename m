@@ -1,38 +1,62 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
-	enablement
-Date: Wed, 27 Apr 2016 17:41:40 +0200
-Message-ID: <20160427154140.GK21011@pd.tnic>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Date: Wed, 27 Apr 2016 17:47:57 +0200
+Message-ID: <20160427154757.GB8501@amd>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-	<20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
-	<20160322130150.GB16528@xo-6d-61-c0.localdomain>
-	<5720D810.9060602@amd.com> <20160427153010.GA7861@amd>
+ <20160322130058.GA16528@xo-6d-61-c0.localdomain>
+ <20160427140520.GG21011@pd.tnic>
+ <20160427143045.GA4718@amd>
+ <20160427143951.GH21011@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20160427153010.GA7861@amd>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Pavel Machek <pavel-+ZI9xUNit7I@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+In-Reply-To: <20160427143951.GH21011@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 27, 2016 at 05:30:10PM +0200, Pavel Machek wrote:
-> Doing it early will break bisect, right?
+On Wed 2016-04-27 16:39:51, Borislav Petkov wrote:
+> On Wed, Apr 27, 2016 at 04:30:45PM +0200, Pavel Machek wrote:
+> > That does not answer the question. "Why would I want SME on my
+> > system?".
+> 
+> Because your question wasn't formulated properly. Here's some text from
+> the 0th mail which you could've found on your own:
+> 
+> "The following links provide additional detail:
+> 
+> AMD Memory Encryption whitepaper:
+>    http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+> "
 
-How exactly? Please do tell.
+
+Unfortunately that document is marketing junk.
+
+AFAICT:
+
+SME can protect against cold boot attack and snooping at DRAM
+level. That's pretty much it.
+
+Does the AES encryption take the address as a parameter?
+
+SEV may protect against passive attack on the VM. For active attack,
+they claim it will "probably" crash the VM, but we already know that
+is untrue, see the work on gaining root using rowhammer. In this case,
+attacker can choose which address to damage and has precise control of
+timing.
+
+Best regards,
+                                                                Pavel
+								
 
 -- 
-Regards/Gruss,
-    Boris.
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
 
-ECO tip #101: Trim your mails when you reply.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
