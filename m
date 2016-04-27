@@ -1,400 +1,337 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v1 18/18] x86: Add support to turn on Secure Memory
- Encryption
-Date: Tue, 26 Apr 2016 17:59:04 -0500
-Message-ID: <20160426225904.13567.538.stgit@tlendack-t1.amdoffice.net>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH v2 4/6] rtc: parisc: provide rtc_class_ops directly
+Date: Wed, 27 Apr 2016 08:22:24 +0800
+Message-ID: <201604270817.uNDAZuA5%fengguang.wu@intel.com>
+References: <1461707551-1337971-5-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek
- Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo
- Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
- Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry
- Vyukov <dvyukov@google.com>
+Content-Type: multipart/mixed; boundary="OgqxwSJOaUobr8KG"
+Return-path: <linux-m68k-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1461707551-1337971-5-git-send-email-arnd@arndb.de>
+Sender: linux-m68k-owner@vger.kernel.org
+Cc: kbuild-all@01.org, Alexandre Belloni <alexandre.belloni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the support to check for and enable SME when available
-on the processor and when the mem_encrypt=on command line option is set.
-This consists of setting the encryption mask, calculating the number of
-physical bits of addressing lost and encrypting the kernel "in place."
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+--OgqxwSJOaUobr8KG
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+Hi,
+
+[auto build test ERROR on next-20160426]
+[cannot apply to m68k/for-next abelloni/rtc-next v4.6-rc5 v4.6-rc4 v4.6-rc3 v4.6-rc5]
+[if your patch is applied to the wrong git tree, please drop us a note to help improving the system]
+
+url:    https://github.com/0day-ci/linux/commits/Arnd-Bergmann/simplify-rtc-generic-driver/20160427-055751
+config: parisc-c3000_defconfig (attached as .config)
+compiler: hppa-linux-gnu-gcc (Debian 5.3.1-8) 5.3.1 20160205
+reproduce:
+        wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        make.cross ARCH=parisc 
+
+Note: the linux-review/Arnd-Bergmann/simplify-rtc-generic-driver/20160427-055751 HEAD ba518829eb442ee7f7806864a806fa45791f787f builds fine.
+      It only hurts bisectibility.
+
+All errors (new ones prefixed by >>):
+
+   arch/parisc/kernel/time.c: In function 'rtc_generic_get_time':
+>> arch/parisc/kernel/time.c:262:37: error: passing argument 2 of 'rtc_time64_to_tm' from incompatible pointer type [-Werror=incompatible-pointer-types]
+     rtc_time64_to_tm(tod_data.tod_sec, &tm);
+                                        ^
+   In file included from arch/parisc/kernel/time.c:15:0:
+   include/linux/rtc.h:23:13: note: expected 'struct rtc_time *' but argument is of type 'struct rtc_time **'
+    extern void rtc_time64_to_tm(time64_t time, struct rtc_time *tm);
+                ^
+   cc1: some warnings being treated as errors
+
+vim +/rtc_time64_to_tm +262 arch/parisc/kernel/time.c
+
+   256	
+   257		memset(tm, 0, sizeof(*tm));
+   258		if (pdc_tod_read(&tod_data) < 0)
+   259			return -EOPNOTSUPP;
+   260	
+   261		/* we treat tod_sec as unsigned, so this can work until year 2106 */
+ > 262		rtc_time64_to_tm(tod_data.tod_sec, &tm);
+   263		return rtc_valid_tm(tm);
+   264	}
+   265	
+
 ---
- Documentation/kernel-parameters.txt |    3 
- arch/x86/kernel/asm-offsets.c       |    2 
- arch/x86/kernel/mem_encrypt.S       |  306 +++++++++++++++++++++++++++++++++++
- 3 files changed, 311 insertions(+)
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 8ba7f82..0a2678a 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -2210,6 +2210,9 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 			memory contents and reserves bad memory
- 			regions that are detected.
- 
-+	mem_encrypt=on	[X86_64] Enable memory encryption on processors
-+			that support this feature.
-+
- 	meye.*=		[HW] Set MotionEye Camera parameters
- 			See Documentation/video4linux/meye.txt.
- 
-diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
-index 5c04246..a0f76de 100644
---- a/arch/x86/kernel/asm-offsets.c
-+++ b/arch/x86/kernel/asm-offsets.c
-@@ -82,6 +82,8 @@ void common(void) {
- 	OFFSET(BP_kernel_alignment, boot_params, hdr.kernel_alignment);
- 	OFFSET(BP_pref_address, boot_params, hdr.pref_address);
- 	OFFSET(BP_code32_start, boot_params, hdr.code32_start);
-+	OFFSET(BP_cmd_line_ptr, boot_params, hdr.cmd_line_ptr);
-+	OFFSET(BP_ext_cmd_line_ptr, boot_params, ext_cmd_line_ptr);
- 
- 	BLANK();
- 	DEFINE(PTREGS_SIZE, sizeof(struct pt_regs));
-diff --git a/arch/x86/kernel/mem_encrypt.S b/arch/x86/kernel/mem_encrypt.S
-index f2e0536..4d3326d 100644
---- a/arch/x86/kernel/mem_encrypt.S
-+++ b/arch/x86/kernel/mem_encrypt.S
-@@ -12,13 +12,236 @@
- 
- #include <linux/linkage.h>
- 
-+#include <asm/processor-flags.h>
-+#include <asm/pgtable.h>
-+#include <asm/page.h>
-+#include <asm/msr.h>
-+#include <asm/asm-offsets.h>
-+
- 	.text
- 	.code64
- ENTRY(sme_enable)
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+	/* Check for AMD processor */
-+	xorl	%eax, %eax
-+	cpuid
-+	cmpl    $0x68747541, %ebx	# AuthenticAMD
-+	jne     .Lno_mem_encrypt
-+	cmpl    $0x69746e65, %edx
-+	jne     .Lno_mem_encrypt
-+	cmpl    $0x444d4163, %ecx
-+	jne     .Lno_mem_encrypt
-+
-+	/* Check for memory encryption leaf */
-+	movl	$0x80000000, %eax
-+	cpuid
-+	cmpl	$0x8000001f, %eax
-+	jb	.Lno_mem_encrypt
-+
-+	/*
-+	 * Check for memory encryption feature:
-+	 *   CPUID Fn8000_001F[EAX] - Bit 0
-+	 */
-+	movl	$0x8000001f, %eax
-+	cpuid
-+	bt	$0, %eax
-+	jnc	.Lno_mem_encrypt
-+
-+	/* Check for the mem_encrypt=on command line option */
-+	push	%rsi			/* Save RSI (real_mode_data) */
-+	movl	BP_ext_cmd_line_ptr(%rsi), %ecx
-+	shlq	$32, %rcx
-+	movl	BP_cmd_line_ptr(%rsi), %edi
-+	addq	%rcx, %rdi
-+	leaq	mem_encrypt_enable_option(%rip), %rsi
-+	call	cmdline_find_option_bool
-+	pop	%rsi			/* Restore RSI (real_mode_data) */
-+	testl	%eax, %eax
-+	jz	.Lno_mem_encrypt
-+
-+	/*
-+	 * Get memory encryption information:
-+	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-+	 *     Pagetable bit position used to indicate encryption
-+	 */
-+	movl	%ebx, %ecx
-+	andl	$0x3f, %ecx
-+	jz	.Lno_mem_encrypt
-+	bts	%ecx, sme_me_mask(%rip)
-+	shrl	$6, %ebx
-+
-+	/*
-+	 * Get memory encryption information:
-+	 *   CPUID Fn8000_001F[EBX] - Bits 11:6
-+	 *     Reduction in physical address space (in bits) when enabled
-+	 */
-+	movl	%ebx, %ecx
-+	andl	$0x3f, %ecx
-+	movb	%cl, sme_me_loss(%rip)
-+
-+	/*
-+	 * Enable memory encryption through the SYSCFG MSR
-+	 */
-+	movl	$MSR_K8_SYSCFG, %ecx
-+	rdmsr
-+	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-+	jc	.Lmem_encrypt_exit
-+	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-+	wrmsr
-+	jmp	.Lmem_encrypt_exit
-+
-+.Lno_mem_encrypt:
-+	/* Did not get enabled, clear settings */
-+	movq	$0, sme_me_mask(%rip)
-+	movb	$0, sme_me_loss(%rip)
-+
-+.Lmem_encrypt_exit:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	ret
- ENDPROC(sme_enable)
- 
- ENTRY(sme_encrypt_kernel)
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+	cmpq	$0, sme_me_mask(%rip)
-+	jz	.Lencrypt_exit
-+
-+	/*
-+	 * Encrypt the kernel.
-+	 * Pagetables for performing kernel encryption:
-+	 *   0x0000000000 - 0x00FFFFFFFF will map just the memory occupied by
-+	 *				 the kernel as encrypted memory
-+	 *   0x8000000000 - 0x80FFFFFFFF will map all memory as write-protected,
-+	 *				 non-encrypted
-+	 *
-+	 * The use of write-protected memory will prevent any of the
-+	 * non-encrypted memory from being cached.
-+	 *
-+	 * 0x00... and 0x80... represent the first and second PGD entries.
-+	 *
-+	 * This collection of entries will be created in an area outside
-+	 * of the area that is being encrypted (outside the kernel) and
-+	 * requires 11 4K pages:
-+	 *   1 - PGD
-+	 *   2 - PUDs (1 for each mapping)
-+	 *   8 - PMDs (4 for each mapping)
-+	 */
-+	leaq	_end(%rip), %rdi
-+	addq	$~PMD_PAGE_MASK, %rdi
-+	andq	$PMD_PAGE_MASK, %rdi	/* RDI points to the new PGD */
-+
-+	/* Clear the pagetable memory */
-+	movq	%rdi, %rbx		/* Save pointer to PGD */
-+	movl	$(4096 * 11), %ecx
-+	xorl	%eax, %eax
-+	rep	stosb
-+	movq	%rbx, %rdi		/* Restore pointer to PGD */
-+
-+	/* Set up PGD entries for the two mappings */
-+	leaq	(0x1000 + 0x03)(%rdi), %rbx	/* PUD for encrypted kernel */
-+	movq	%rbx, (%rdi)
-+	leaq	(0x2000 + 0x03)(%rdi), %rbx	/* PUD for unencrypted kernel */
-+	movq	%rbx, 8(%rdi)
-+
-+	/* Set up PUD entries (4 per mapping) for the two mappings */
-+	leaq	(0x3000 + 0x03)(%rdi), %rbx	/* PMD for encrypted kernel */
-+	leaq	(0x7000 + 0x03)(%rdi), %rdx	/* PMD for unencrypted kernel */
-+	xorq	%rcx, %rcx
-+1:
-+	/* Populate the PUD entries in each mapping */
-+	movq	%rbx, 0x1000(%rdi, %rcx, 8)
-+	movq	%rdx, 0x2000(%rdi, %rcx, 8)
-+	addq	$0x1000, %rbx
-+	addq	$0x1000, %rdx
-+	incq	%rcx
-+	cmpq	$4, %rcx
-+	jb	1b
-+
-+	/*
-+	 * Set up PMD entries (4GB worth) for the two mappings.
-+	 *   For the encrypted kernel mapping, when R11 is above RDX
-+	 *   and below RDI then we know we are in the kernel and we
-+	 *   set the encryption mask for that PMD entry.
-+	 *
-+	 *   The use of _PAGE_PAT and _PAGE_PWT will provide for the
-+	 *   write-protected mapping.
-+	 */
-+	movq	sme_me_mask(%rip), %r10
-+	movq	$__PAGE_KERNEL_LARGE_EXEC, %r11
-+	andq	$~_PAGE_GLOBAL, %r11
-+	movq	%r11, %r12
-+	andq	$~_PAGE_CACHE_MASK, %r12
-+	orq	$(_PAGE_PAT | _PAGE_PWT), %r12	/* PA5 index */
-+	xorq	%rcx, %rcx
-+	leaq	_text(%rip), %rdx	/* RDX points to start of kernel */
-+1:
-+	/* Populate the PMD entries in each mapping */
-+	movq	%r11, 0x3000(%rdi, %rcx, 8)
-+	movq	%r12, 0x7000(%rdi, %rcx, 8)
-+
-+	/*
-+	 * Check if we are in the kernel range, and if so, set the
-+	 * memory encryption mask.
-+	 */
-+	cmpq	%r11, %rdx
-+	jae	2f
-+	cmpq	%r11, %rdi
-+	jbe	2f
-+	orq	%r10, 0x3000(%rdi, %rcx, 8)
-+2:
-+	addq	$PMD_SIZE, %r11
-+	addq	$PMD_SIZE, %r12
-+	incq	%rcx
-+	cmpq	$2048, %rcx
-+	jb	1b
-+
-+	/*
-+	 * Set up a one page stack in the non-encrypted memory area.
-+	 *   Set RAX to point to the next page in memory after all the
-+	 *   page tables. The stack grows from the bottom so point to
-+	 *   the end of the page.
-+	 */
-+	leaq	(4096 * 11)(%rdi), %rax
-+	addq	$PAGE_SIZE, %rax
-+	movq	%rsp, %rbp
-+	movq	%rax, %rsp
-+	push	%rbp			/* Save original stack pointer */
-+
-+	push	%rsi			/* Save RSI (real mode data) */
-+
-+	/*
-+	 * Copy encryption routine into safe memory
-+	 *   - RAX points to the page after all the page tables and stack
-+	 *     where the routine will copied
-+	 *   - RDI points to the PGD table
-+	 *   - Setup registers for call
-+	 * and then call it
-+	 */
-+	movq	%rdi, %rbx
-+
-+	leaq	.Lencrypt_start(%rip), %rsi
-+	movq	%rax, %rdi
-+	movq	$(.Lencrypt_stop - .Lencrypt_start), %rcx
-+	rep	movsb
-+
-+	leaq	_text(%rip), %rsi	/* Kernel start */
-+	movq	%rbx, %rcx		/* New PGD start */
-+	subq	%rsi, %rcx		/* Size of area to encrypt */
-+
-+	movq	%rsi, %rdi		/* Encrypted kernel space start */
-+	movq	$1, %rsi
-+	shlq	$PGDIR_SHIFT, %rsi
-+	addq	%rdi, %rsi		/* Non-encrypted kernel start */
-+
-+	/* Call the encryption routine */
-+	call	*%rax
-+
-+	pop	%rsi			/* Restore RSI (real mode data ) */
-+
-+	pop	%rsp			/* Restore original stack pointer */
-+.Lencrypt_exit:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	ret
- ENDPROC(sme_encrypt_kernel)
- 
-@@ -28,6 +251,87 @@ ENTRY(sme_get_me_loss)
- 	ret
- ENDPROC(sme_get_me_loss)
- 
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+/*
-+ * Routine used to encrypt kernel.
-+ *   This routine must be run outside of the kernel proper since
-+ *   the kernel will be encrypted during the process. So this
-+ *   routine is defined here and then copied to an area outside
-+ *   of the kernel where it will remain and run un-encrypted
-+ *   during execution.
-+ *
-+ *   On entry the registers must be:
-+ *   - RAX points to this routine
-+ *   - RBX points to new PGD to use
-+ *   - RCX contains the kernel length
-+ *   - RSI points to the non-encrypted kernel space
-+ *   - RDI points to the encrypted kernel space
-+ *
-+ * The kernel will be encrypted by copying from the non-encrypted
-+ * kernel space to a temporary buffer and then copying from the
-+ * temporary buffer back to the encrypted kernel space. The physical
-+ * addresses of the two kernel space mappings are the same which
-+ * results in the kernel being encrypted "in place".
-+ */
-+.Lencrypt_start:
-+	/* Enable the new page tables */
-+	mov	%rbx, %cr3
-+
-+	/* Flush any global TLBs */
-+	mov	%cr4, %rbx
-+	andq	$~X86_CR4_PGE, %rbx
-+	mov	%rbx, %cr4
-+	orq	$X86_CR4_PGE, %rbx
-+	mov	%rbx, %cr4
-+
-+	/* Set the PAT register PA5 entry to write-protect */
-+	push	%rax
-+	push	%rcx
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	push	%rdx			/* Save original PAT value */
-+	andl	$0xffff00ff, %edx	/* Clear PA5 */
-+	orl	$0x00000500, %edx	/* Set PA5 to WP */
-+	wrmsr
-+	pop	%rdx			/* RDX contains original PAT value */
-+	pop	%rcx
-+	pop	%rax
-+
-+	movq	%rsi, %r10		/* Save source address */
-+	movq	%rdi, %r11		/* Save destination address */
-+	movq	%rcx, %r12		/* Save length */
-+	addq	$PAGE_SIZE, %rax	/* RAX now points to temp copy page */
-+
-+	wbinvd				/* Invalidate any cache entries */
-+
-+	/* Copy/encrypt 2MB at a time */
-+1:
-+	movq	%r10, %rsi
-+	movq	%rax, %rdi
-+	movq	$PMD_PAGE_SIZE, %rcx
-+	rep	movsb
-+
-+	movq	%rax, %rsi
-+	movq	%r11, %rdi
-+	movq	$PMD_PAGE_SIZE, %rcx
-+	rep	movsb
-+
-+	addq	$PMD_PAGE_SIZE, %r10
-+	addq	$PMD_PAGE_SIZE, %r11
-+	subq	$PMD_PAGE_SIZE, %r12
-+	jnz	1b
-+
-+	/* Restore PAT register */
-+	push	%rdx
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	pop	%rdx
-+	wrmsr
-+
-+	ret
-+.Lencrypt_stop:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	.data
- 	.align 16
- ENTRY(sme_me_mask)
-@@ -35,3 +339,5 @@ ENTRY(sme_me_mask)
- sme_me_loss:
- 	.byte	0x00
- 	.align	8
-+mem_encrypt_enable_option:
-+	.asciz "mem_encrypt=on"
+--OgqxwSJOaUobr8KG
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+H4sICOQFIFcAAy5jb25maWcAlDzbcuO2ku/nK1iTfUiqkowlezT2bvkBAkEJRyRBA6As+4Wl
+sTUZVTySjyQnk7/fbvAGUgC9+zBjCd24dTf6hoZ++tdPAXk77b+vT9un9cvLP8Efm93msD5t
+noOv25fN/wShCFKhAxZy/Tsgx9vd24+Pr+vD9vgUXP0++f3it8PTp2CxOew2LwHd775u/3iD
+/tv97l8//YuKNOKzIiOSK3r7T/09SfL2i9KELoqZFPcqz9pmea9YUsxYyiSnhcp4Ggu6APhP
+QYVBJJ0Xc6IKHovZuMgvx8H2GOz2p+C4OfnRJlc2WoVUzzPNZ+0S6sb5PeOzuT4HUBLzqSSa
+FSGLyUNvT1oSygrYVCak1TllLCzChBQJyRBRsx5MzQw4ZulMz1tYNtNkGjNoX7JY3Y6buR5U
+PYkq5vmM6XgaqbZfyKLqU8yVvv3w8WX75eP3/fPby+b48b/ylCSskCxmRLGPvz8ZBn6o+3J5
+V9wLuWhHm+Y8DjWHPmxVrkeVuwNu/xTMjPC8IGXfXlv+T6VYsLQQaaESi8U85bpg6RJYhItL
+uL69bLZFpVCqoCLJeMxuP3xoGVq1FZop7WAliAmJl0wqLtJOPxtQkFwLR2cgFsljXcyF0kiZ
+2w8/7/a7zS8NRdQ9sXYAtF/yjJ414F+qY1taM6H4qkjucpYzx8TldhOWCPlQEA3yY7E+mpM0
+jJk9XK4YyJ5b4HM4q44p5mTJytNgMHCJJI5r1gGrg+Pbl+M/x9Pme8u6WtRREjIppqzGp1n+
+Ua+Pfwan7fdNsN49B8fT+nQM1k9P+7fdabv7ox1Eczjh0KEglIo81Tyd2XuZqhDHpgwoABja
+uStN1AJPi7KhZiWS5oE6XznM8lAAzJ4JvoLcZky66KN6yGZG7OJcDw4F64ljlMdEpO5FS8YM
+ptEF3nFwScARVkyFcK3MHLpiytOxJWp8UX44bzHEbJtB7cEIUaHmPNK3o0lHHvJUVceYzkH3
+0L6SpaCY80w5lw496CITPNWgQJQW0r1DPEcqg/27RyknxvNopnLjPKhIweHMJKOgMEM3JVEH
+u6gXL6Dr0qgbGXbVjyQJDKxELqlRMvVQYTF75LY1AvJDw7jTEj8mpNOweuzBRe/7VYe0tBAZ
+qFL+yIpIyELBB5dY1qqkPt4pqC+eipCpjt4BJBAkymBIQDACdwY3px9UfsxnoALjWNxbmj2L
+2i/lIbEsNihFDjpHWkOCpUngiBStIulwq2222YirqCCOvS6gWT0k1sbqlqI3VNs+VSLO4ezA
+gkHFDAxaTMHEGSnRfGnRJpMgwR0TZ50pFkdwwKWFbkaJcnvDEcy/svpkokMOIDaJI0vy0H5K
+uwFMeqpNQ6sUs2iAUGoOpsKSCW5JGgmXHJZYdVY9qyGNgYtCx6AZ5cVdzuXCoj9MMyVScsP5
+ZhxoZGHIXIMYrQK8iMpNqdpeVB5itjl83R++r3dPm4D9tdmBxSBgOyjajM3haPmMnSGamUMG
+7CmBsJlimaAUU8c6lknZuzAWB6x+uyd0IIgGr8RiuorJtCOqce62rioWHsCD0uCxhkSTArwM
+HnFQVbxrGFr9HPG4tIJVkyjb2O33DiGbZpuJxg67lanpNLmagmNlDjlqVoqGddAfMMpiLoRF
+j8bxTrKCh+htzSUjlshWbjUMkSa8UCRiBU2yFZ1bm2pnUIwi1QvYi+4okX67rR2NFw2b1YyC
+cfHtIBFhNUfGKFLdEl4R5jFTRlLwIOPZt8QgFimYXJjjnshQ9baWCpCTOZMoQsZbT4zjV7q5
+VCx/+7I+QpD0ZynWr4c9hEul09NsAdGKBZMpi92OWh2ZGMSK00XvwHdZW7MFV1Qvz6UeQJp5
+GtnmR4MOBy1lGw2jyRSeoNuLHslsTpRNaKIgnIkFcZ36CidPEd5nQNW1AdojV/64W5qr7uCY
+NW67hzg1Jp8NgVHUZO8wWL4aT2CNICthsUB74d2mKv26GA5M3g9n0CEEV1/xaWzbjMqtqj2y
+aUgiG1o6KFM1czaCo9+xDI0/o9lMcv3g3A5i0SQELcMw/gbFf+Y4Z+vDaYuReqD/ed0cbdGF
+HpobRwKsCUmpU9UnKhSqRbXMWcQ7zWWAIQL19G2Dcaet57koHcBUCJuWVWsIOge3cA6h0V3X
+LpSBW91hILbz9MQFDPSq5r398PT1P42fWAW2UqDWtyXBkB2TFkbqIfqB+OkMjgq1gg/BnH3v
+JcYLns42sOrdbDcC0X10CcNh/7Q5HveH4ATCYAK6r5v16e3QF4zPFxcXTokD0OjiIqY+4Njf
+77LfrwFdry4uLFeNjO1vkkVMm0C5Pemg1GfG73HOZUyjcyLMUMGfGTN+eHG16Jy5M/hosnC7
+AWeYkysPJphWx0qAXcbu9e1RBG4rOGMFS8m06w8AGViSoQA7xb4GL8FNTjWRD46+boPzWIy6
+LGsB408X9jDQcunhbjmKe5hbGKYfCM4lZgsc6BUBLK8bGgqMg9BJLUrz3LWWGE4jDE2hwXSZ
+yiwGtZ1pc1YggFC3Vx0/kXZVW8JnklRNLRXnDxCIhKEstFfCHtHZQLMNy5619nbJwTJrAUFH
+x+YuVDKgi9AXgZWkZs7bq4ubJqY3CUTwjk22ZZF0HKqYgSInQGQnnyIpwNW+J+4A/DETwm15
+H6e5Oxx/vIxE7AEpr9uekFWVETaHJ5neXlsiYjxRc7TQZV2AB+0YwmS3zKGpTc/07RjsX9HS
+HYOfIcr5NchoQjn5NWBcwf8zRX8N4NMvHe9NOTUS5R3OU84w8wrsc2sDCKkSxb0wE854oWAE
+kEzVmT/LWXZwlfYELAjkYumFQfjrhxHF3SycC53FucE6NyXQ9m1/PAVP+93psH8Bgx88H7Z/
+lXa/Q7sivC8yOMeeaDSeko7lJ5nt3nORJHmhujjYNGdx1o0mMkrBxz9fKfkNtXVwfN08bb9u
+n6xl1uohh5Hs6JqCw664KmIaFjHruLNZSGuwaz8ttICAw9IpCCmzcLXAsh+bp7fT+svLxtzC
+BCZkPlnLQu8+0RjU2GGtBHrmEE3VegJjnjk4Ep3ot+qqqOSZPlOZRORua1B1S7jzWODcOLV9
+ldG58wAHKp2h711vMd2c/t4f/oSQqT6a9n0RXTDdtb/YUoScuE58nvJVJ0KG7z7cVSQtG4Lf
+wGefiTbuNk0m1fW9HdE0qnwKvn3MqdvjNjilfXCr2HIQDeZDgY1zyYjB4BkannZBSLwFe7CX
+UzW5Zms8QZv+PCszeJSoDlmhvfbvwYmF+NAVZQNSlma9btBShHPq9GBKKBpfVy9JpNvGGCHJ
++BBwhhLOknzlmLbEKHSeQrzdmzcxm/OkbVKQXrHgnoxKOexSu5UkQvOwntWLEgn3JUIFa9ft
+XgMysyBzP4wpN9V4uXqUJz/cCN35BmyUhqhn/RL0v8AYp6p7y9nHGB5gyrrH3YD7B7iN1GkG
+LEtnQ7Fpg0PzqW0zatVYwyGee/uyffrQHT0JP/VSCY0sLSdd2VpOqpNjwhE3lRGpTPXjwS9C
+4rapuOvJEJ8nfUZ3YI3e6E6c8GziXxaPiXdASzBabVSC3K3vSsTkHZGYvCMTNtxQvbpAOUu0
+djfZO702SHF9xk9oKybSJVUGnIYY4GE4oR8yOzOBwIYw3SFnnruxkkOomjPMsaIP4FEBBtGv
+xoA4eFGPCdWESFf8hEcq0yD1MfogUScMrHtDIGMuJ8BIJZnbuwbUfhK3aSrdWRegPqm19af7
+wwZdAPBuTuAdeupG2v6t82CvuQLCp5inC//d8Tnq2TX8AG4s3GooxZuhNDWRiA9hgKPtRKtB
+vgNL3bsC0PL8Npxn/z1AWHttoAolMZJ15Vt+mGeDcLxa9przEjzUXbJ/M6r9KLBDwAI3dZA+
+gAJrOMepyPHX5P9PELfCbAnihbc78qJURPHp5Mn/ZcshpR6DDuJCtRsmQ0/iGwyH+35CJ872
+eOyZYSp5OHN5o+U9Edp0RewzvIxJWlxfjEd3zvFCRlOP8McxdZd78Wzl2QyJ3cd0Nf7knoJk
+noh6LnzLmsTiPiMeU8QYw71+8pwHpssUmJsU1L2WKTCJmCy9Eywyli7VPdfU7VUslcDAyquh
+jAL0OmJJ5nFY50r692hWEzL3ghEjviwSCFSMPXFjKZOsM/Ui5sLVY+7kCvNqD0X3Pn56F/eC
+0OC0OXYrloyxXOgZS21TPieJJCF3J2Goj+0yJG7WuUWIgBZZSd+RjIoFdaUG7znW8HUtJI1m
+KG8jt3Tz6Rmw1Id1r91m83wMTvvgyybY7DAZ8YyJiCAh1CC01KpbMLjFC815mcbjj+zWSt7d
+c2h1a6ZowT0Xe8iIG7e2oYS7/W3Ksnnhq45LIzdl43tvCBQqXZjEac/9QPHEA+JMYz6YW+cK
+o5a3cPPX9mkThE2Wqa2a3D5VzYHop0PyspChyWq5mouM6Pnth4/HL9vdx2/70+vLW1vGCavQ
+SdYtCi1bwJXO044HDCxMQxL37hJa3SfLWSMuk3sC4bipTXNQILo3d8X2gps+PK2uxe2CI/Cj
+GoxO3WYzksnK1PuNSBxPifOmwBQ2mStSKy1lGRWsIAklXzK3kqoQ2FL6KtYeVDEH118uuRLu
+MZoK4SzHkbiv+A0vBNQcdhxiiV7kuJfD3PWzEZtO8hQ9z7OyiFYxa7cVEZGLXHi9lGCFc1W8
+g7dXsgrerAycaXL0r+6jXVfUaR7H+MWt/yokzAMrFcKieXY5XrlVhLnOzu4KypUqfAq1GjAk
+9GbiunGqEXK8R/p+3pGC2JxXc/aQ4s5Ftd1qrmRMudHtdR9O5UOmhenrmDiUUzfDGkK+A1er
+60G4JG5XjoZSJGjpaLh0z4DlTAKOSsG024Wop5gPr/C9HUo1wHlDgmXCzk5Hgs8QHMdDsRSO
+psKS98t4eTH2OFV5kjzgjavHzSOpFm66qRleqlC3J6d5lBjV44SylMZC5aAGFWoQn2aYZ/hg
+wT25l5vj/hEtbxNYBlwOjm+vr/vDySZTCSluLunKHY/Q6efRxdlezBB682N9DPjueDq8fTeF
+fMdv6wP4CKfDenfEmYKX7W4TPAOLtq/4sbZ3BCOxdRBlMxJ83R6+/w3dguf937uX/fo5KJ8m
+1Lh8d9q8BAmnRhGWFrKGKQoOwHnzUmSO1nagOV5N+YB0fXh2TePF3782hRPqtD5tgmS9W/+x
+QYoEP1Ohkl/65h7X1wzXsoLOPX7lKjaVWl5gaUoLkrlT1IjC2Nyh0Yy256GdwgqbK6jsZbM+
+bgAd3JX9k+GwiZk/bp83+O/304+TcQe/bV5eP253X/fBfhfAAOUdml3hE7JiBabNpO06c6Fy
+ybjLcCBQuR17BM3C7jizsCgLcFqvu2nNXLk/ax4anmtz04xVnFOBpYNSCqk8y4QJPKk9zHFi
+fTToCe3MrAMCVuoXUXMphuR7+rZ9Baz6uH788vbH1+2PrnprTGdMdCSkKyCwlmicjChqOEu5
+PdHRUgznfcv77nbF5laYcgirCiHD7iVr3a1yfga1OSZuJ+PR+wvvXbjXUMLoZMhXMDgxH31a
+XQ7jJOHnq3fGoUk4uRpG0ZJHMRvGmWf6cuJWszXKv0GlSE8mu+E558PzcH09+uxOjlgo49Ew
+YQyK656tscfq+vPV6JOLOVlIxxfAncJXAHKGmLL7Yf9meb9w28kGg0N4OXMfxQYnpjcX7B0e
+aJmMb9y1TDXKkpPrMV29IzaaXk/oxcX7Ml4fTEUVr5yZ8zOJQNSgNr0l4ajitHTdJWMHq9Aa
+u5dztX4EtlVJHrejYea8qy/NPJP0lZjZRrX+spjwZ/AB/vw1OK1fN78GNPwNfI5fzrWNshQx
+ncuyrROD1K1COV/+NQM5tZKSoNDT0FlI3kw3c02nPMkzs3n4jCGzJ4VmUGIxm/UuU7oIimIK
+Tz2kHZ3ZElPXHtWxJw8q4yX/z9ga0UHBKLj5v+z7vb8cos47n6PEfAp/BnBkNrwGiNLNY9aO
+3TYQ7UtvGyhWFpSPjAbYsppNL0v8YaSr95Cm6Wo8gDNl4wFgJXuX9wVoi5U5sP6Z5plyB7YG
+CmPc+FROjTDID9IvgeqBCR1eHuH08+ACEOHmHYQbn7Etdc1ycAfJMk8GOBVmuuBjT8xk5sdb
+SBCcAQxJE0/u2sAZrG/sybmwGTEKGWwZeEDDODF88JQRNTjDpABn4j2E8SBCHqk5HZRGzYXn
+OaY53qnHxatMzepydDMaGD/KNQbBoUgId1OrVFSex6clMMUnBoNwMvIUJpeb0Mzl45Swh+TT
+Jb2GYzvu2dEWgh4qFuEypUDDlxHOhQ+3Lj0hM2U9w+1hYebcYEyufBiJqUfsbuQOjAynxWh8
+PbDbu5i8p+1Cennz6cfAAcFV3Hx2Jz5Kh0Jlnl9iMOD78PPoxkvzsoCgb5Cy5B3VlCXXPUer
+t6sBAy5UWMoR8WVT3XFo4ogb7bakfNQMESKjutOMbzSI7DTh9i7OWkadlw1Vm5u/FfTqk9u5
+BXBZZUI8WTxAMNLpeUx0Vjfe23iYmIsAzdNzooSdXCtguj1KG+OsLLoFTfOIi96AZcbePLKq
+isexKMNdvwLoJhfb1i5Bi0pJpuZC98bVc56id7vk+PjM58LhiN6yegAy6RIfpAPHxEJvTiwP
+wHsO82LeN2T/NLSQRyZFZ2sN2/tMqNtBK/imaXHUAKt6r+5tYHlF5YNGMVkwb198Q+sRR+SY
+/067IqJ5BOWpeCByxvRZWrOCRrnqPPkov6OvbZOwbiUu97YCmlvQGbsFrdyD4Iv+88EcgUKZ
+FmKMBaPLm6vg52h72NzDv19c6dyIS4YXwc5N18AiFcr1MwkQCFY3VfZrF96tQ+49hRdpiK+Y
+W3nDhLq9MXaXk5g/em7aTPmr24kwVafMk+dOCMXKEXeIkHlBy5UPAgMq5l0Ihngi9paLYXWB
+dw8IxBhRS/jgLK/WeafGAL4WS0Nq84swnmmXvtuYNPb9Fgm4tr2qlVJ08Ba9Tdk/d3PV4fZ4
+Omy/vOHvQam/t6enbwE5PH3bnjZP+DTQ9ayjKvMBZ/36mk18AcMZVvV0yfkLDrBZzHH3HhSU
+0XxxSUXnndNSSO3JxOmHbC6cl3vWeCQkGZhse8iqCW2LjLhTadgDzJjslAowPbp0ptLsTrFm
+ttIB5Q/+tS0YZUshEg4ng8/wR0DcfMaaQlJo9d4yk04uCb5ej0Yj7zVfhtLTdewcY0rq5BFB
+BopOloLo2PN7XTp2e3IIcJ8GhHjqZWK/+NVry8EI+yqIKAlZSjvcBF0xHabCVAoS9qRyeuV2
+mac0wXS5581NunLTiPZir1q+USwuOxfMMIInS5muXDm07jZw+51dpD5CVX0oWfI8ccoAeEix
+6kYuVVOh3QxvwO5MdQN2U7YFL11VD/bKICbqrIv5Qtuwx6nzscL/ZexKutvGlfX+/QqfXnUv
++rVm0++dLCASkhBxCgFKVDY8asfp+FzbyvGwyL+/VQApASSK6kUG4SuAmFEF1MA7K0CVse1I
+KOKT8WhWWUemSYDN0PLC0GayToUYzVj2vresButIhSY1pV4FIz6r/GqPe5HiuV4HM7+kESV3
+45F/WsIn55PFlZ0uahSiLgXGE+L6uUwj1BofLo8Dl8od868ln1wdJ/413IjcO1F5xZwLZDkh
+rhh2lVfZ1Spq49ok5357aisD+nSwtaIgw2Wq4K+Rw11hAvH6uParv0H6jrBSqagsABAfmY2u
+dIAIJvPKGZzPyZUsCSt23HX2lOwSSusyQV6J1UtCTWNLvAjJ7eHKUZZAHViaOXVP4mpWU1d7
+iJFKH4DOB1G5p8QRu04iLNzr8q0MgvkYCvBzoFv5NQhgc+lY6XpKPhTOMyv+Ho+IzltxFqdX
+VnnKgAFJnDKbJP95LINpMLmyOOC/RZZmCfcu22B65/gkSPlke73h6U5EwnkV085qog4b1M+Y
+bYXL42289uxaBjDGqzxdG08mlw2BATOx8ffIgaMW40pc4VbNvZ9d6JeYTSmu+0vc5RwsiBht
++FjF05rM5zW/s2sIEiAq1XkHDS3cFXeOgwAEXeL5ByGV+TeCIhgv7oZrUgCjBfK6vyKR04nF
+YjS7MhsL1JwvvIVJlsDZ5bwlStxEu8y1JyfnX/xFCtiN3Fvfu8lo6ntcdnK5L4NC3lG34UKO
+iVdvuaImdvuVRDqdx3MRkrfuQHs3HhNvQAjOrm0DUmktCVdpOYGV9C+6t0zd9ZfnhwSmIMV+
+rDmhaIcmdCmxlQmfCGtX4pBmuTz456Him1I5O4tJGS6yk0PUYQ4HCiMuD1TnGqRf3s7dEuFn
+XWwEoRKOKJzYWdi5rusXuxdfU9eo06TU+zk1X84ElH+ZVRT5xwHYO6/qV745oEOt50aBVIgb
+SGnVLjz3GQw2sFRBG5HML30Go2lFw0lEYg2vQ+IRiFMhKugS+Bc8UEk0rhSJhQJkO7pNO7w7
+lZzE8YoBxkWEkiTBxUyCrYhME4QJPjYP4cHtAC7CPC7pyjXnDomn2qKY0SMjFTDflf+YivGh
+WI1H4zHdAYaVowc+B35oFgzji9vB4jOUcEiKlaj4wMQEfrteCrVkxKOHIQjRY56Arde3znLL
+hwX8QDfPrmMLTIw4unHitlSDycYy1n8RBXCSE0qXGsRXC8IuB/CMuzXQejduEqbUSjk32TIW
+PtN7GW+szKVcmptNbV3Scb26hGND+ZkoBLdsT929IZzzNZOElyHECxUH47l/j7zghNwOOJwJ
+twHBNiIOf6hrKoRFvvGfvnvDt1i/LhetiWH9fJhyvLrhExTtKgnQOcXqu4UmtnBtQ9aVnQdt
+L4g8UEdg70IF8G0Ox5FJRbjYygshE9c21FPoRTr2gRxkGbJPC9bcvPiwMx/uA21FQhuQyp+u
+CPqvh4id1QS5Nim82T+iVeDvfXdAf6DpIaqfv/9oqTyn855660kqvK/2nw0y8mdKdw6716j6
+//x4J7UyRZqXHS8VkFCvVuiTLqZcjRoifBqiDFwNhdSOO7cJMWMMUcJUIaouka57+fbw+oSe
+HB/RufL3472jlm9yZ+jw1LXecpE6l8zrcKdDJuFAAzmx+jRejEbDNIdP48lo1P3g5+ww3B18
+dw3v7BDWAPYsL52cW35YZqxwHkTaNNg2toTt0pkk3l4lSfleES9zZxq01sZbIP+sOZNJle3Z
+nnh1v1CV6dVKVd2m9YfNuRXCBJgP/lPEoJIXghCoDAHIXDFXWUm83hsi4CzmlJaRodhJYA+Z
+X1+yqckhZblmUeGAGpg2MO9k1+dkh0R7YyC8cBgCbI+Z3UNLteM87cKOJqJ/eahn7+b4+k3b
+R4m/spuuCrD2TPfs/MS/temmzbpoAM7Hzsg5MMhEAPezFcyvmW/Q5rGRmhLNl+UkoZR9mmKK
+kCyj1CReaM0S7rV4C38cX4/36O/jYhvYSi7KitOzsw6w0LzyG9dFseb/pU3ZElzSNvt+GtBd
+ktFpXuS4eUfPdHfA1qtDx6v9Llfy4ghIaJ3yjmlgK11o1dG2iF5iY4A6mS/cTgZZJjWq6hGl
+BpxmXzPqfrZeS/9VSBPlyM9uQ7scl63we2sSjHL7w+vj8cnjdNHUl7MiPoT2q3gDBMb9bD/R
+ChGiLYycIbTpeuNmg47Nkw2kRV2yQslP46kPLjC0TcIbmpmPhFcKWCEe+ctPWIrOKgpF1Fpb
+incdOrvNV9r9DGHR6lSW0jW3aFaSuBmzP0lvD+dPqUkQEDd+duspDU+bJqtYb7Wnp5c/EYUU
+PZ+0IotHPaopCIcnFoQfLe2ls6/v45bgakFZida86n71M7F+GliGYUpcJzQUzVb7WbE1tuBf
+kF4lKwgFbgMXOb2pAwyTo47za99IdiC20TWB3biJv+I/NvNE1Cb4lf8yAPZa2K4jwkq7mN4t
+/DwEMiF4s+YZYzjwGvnd0oNjlUnnO+lurSqEP7nfWfOu60OhEnF86LgKNjzqJPRNWEz29i3x
+qC9zYvveSI+X3lz25RlIdK9i5IDcnaocKbwl3z89Gpvwfquw0DAW6EVkqyPhEDc5Z6o4ovgm
+i2idu0zCuSZNQMPTq10Zg6oc6nm6/4+nH6Bp43kQNAGxnh2R1dwgaxf5pOM8S3Y9fvumoyzA
+zqS/9va/jgDr133Jsz0vdFy/2M/nGwKQFQi+1OBs52MhNvskcx0bYUK9o3w9a9QoWeOdYn8D
+Pr7DCe4Tz1s/DGK+rVlC+MFvaFa342A09ysn2DTBZEXY0rUfU8HtIAEs5/HdMEkeBrfTBfGG
+ZdHMJsPlpCqsUfkNXX8S5gVn0lAtFoH/ysKmub31K+60NFLI+fzuCk0iw9ltQphMOETL6ZWu
+kuFmvqiqoTh4LelOsEWwoBiPhkaNKZ9VF5JgMh0m2QfTxeR2MzybDBEnqPSwEaLsnqEPs8xn
+YCDxsvYSAcYwuqeXx/u3G/n49Hh/erlZHu//8/PpqD1iXColfWqFIAizXnHL19Px2/3p+eK3
+HNYWcxwEQLbeMk0+nt4fv3+83OuYL/SLV7KKBnRVAIzi1M8abFSofcaH/lkc52EtCLkfMcrQ
+Fr/5maVf6zDJSEUgoNnyJCcszhFO1IKaywjvRI4OHyjpCEmKKJxOiMdrjSvZU7bpE1DXEUgg
+kzlhyMSW1XzU98Xi5j7IkFiCCCu035pO51WtZMgi/5mqCZOBXt5Vwdy/uxR8XcakGZW+nW5D
+1fYm5/r1+PMHLhIPx8DWvqeX3ZoBC7u0ZG+ToLm1NUbyGFuMWlT073ZZmN/8zj6+PZ5uwtM5
+AM4ftJPQCL3Fo2FX2D8EV6/H54ebvz++f394ba4bLZF25YSTOXtCgy7xOk9btrGbLDOUJQjo
+quO4FxIjYhwB0obSOy69vW59Cv6sgDUtHEO1Bgiz/AA1ZT1Au1tYxq7/5AYrtJ+KiscSfb0t
+D4SwBZToS6399hBNW40hmnONKKIVrB2MfAkiuCDeDdoqZYTZKeIwzyjvgiucfbhLEXe4OCgs
+3MbobY0sAL1bGy93ZCFKxLqlymcu5MzEH+0Fomejx9ESRUG8KgKaJ/59HjMelryYULGggACO
+gRh6mWymSKQiJqR09VkgZfhmHLOMozGp9oZLR+v5USiIeyQmbglFaD3WqsjIbxYs4sRujP2j
+DuOJ32ubQcmm+g9XRNiOcoGCqCB7L+UZrB1BbiTbQ+E/DwCbRiuyB3ZZFmWZ/zxDWAWLCdka
+VYiIsh7EHir8dwZ62pKFhgxYcUKRCfsIWN6Sbk8Z+dlBnCbLpF5XajanVwTGeioJhhInU6ve
+ShIsA9LnEW4s+IYtN5wQCLHLyqzeju9GZBFSAAM10Dm3Y8KvULun6bA4nsPmTAl7p45539u0
+4Mx9Oz1pd3HAGv9qtqu+ZG589oXd+1snGf6NyyRFBmDkJyiyvW1hvypYwo0DTt8Vngdur1rz
+Ak6dglirnmxFpqiosFKJfrvibO1oOuJvNCAvKzgnUv+itGigu8d+i3CLKIxLNZn4NA80URPR
+rqGy7j2zMo06P9E1T/d61ElHB7JhzIT1KCCdUtLIhEd2k/LQzQAi3JcSLbNcSw0DmLH29bCp
+CFqMuKUlwKsUCPW+SibWGP5KpB7QU/1zbZvinBpHh5QlIkTvoZnfWU56XlPoUas2PvPsr54d
+MFmJrfc6BFe9j15Q8vJV140wxNdFGCfd3ZILtk/grMU2k8VmeTzFF8drRLOrRHLJ9nyQAkZ7
+PNqOuzQWBQvvbmFyOqZbuvF9LS6d3J1dDsrijPKagn0GjL8gFFb1RFQ5I1ye62lkHjDGizmh
+6aXLyMsZ5QyjbW1zvch23lcOPZE7c4xF4yC46/YF7GWCerY4w5qjJV4/kKgMAsKrRQtPhuHp
+ALwnHjEAW6rglniWAjRko/HIv3dqOBGUoK8nb3WgnADp3HI2CegxAnhB+UlCWFUr+tMRK2I2
+0GOwaw3BMTsMZjfFEw5g2uJp2BRP43CqEfeDep+mMXSgOiUuhlN08RKJNeEq6AxTvoTOBNHn
+qyXQw9YWQVPwVI6nt3TfG5yeN6skGFj5m4gIE9aC9BoVIR/fDoyaVoMMKrrmLQH9iW1WrMcT
+gsHUMyeL6dGPq8VsMaMctpsjnnyqBDhNJoTrHLMbVhvi8h5PPJErERGGhognnPKIZNA7+ssa
+JdR2zZGwoKeT9lM5sI80+JX9WYstmaSXxq6aTOgaHpKVL0joJvpT37w5V+B6HjIzWYiDCfG8
+DYyqQ0xYjrIAL+Wye0ihfjIGhaVboBWc2Xhg7Rj1bcFoPgMpFl3vED2KjVhRfn30kRRG5J1K
+W0SeEXoSF5zwxd5SqCzt6U31iHbA9hPxOvTEy4i3ac3uo1jkYy0082FiHZtZIKK+iAeJjs60
+iDDMDbCaB5CRCp6uCTV5IKS01cqN954Vi268FZ+favBJ5fika+a5MsMcbAaiH1kFaGNR+vtN
+ozklYZ9RQeg6IF4WlLma7iYebwlnegZWWV6v/M9dSBBueEEIswYW8IvGQdSIxJYTDhZ1CfoR
+gIYPeUEpTSMO47vOUhBH6R7kiRxqIY95SGiLGNi/SWjsK+WtykyjZCmIpyONrwr6s5sMte9J
+GL5LK8xqggPdIWWoTYRJfM9iRUgsut6Hgo6uiARoSEZ/Xe1FuiHu2k3TUvScSKlGI0kcammF
+xnma7ehhw9YPrld986lVhmkSNKeS2cq/Y2qKDK09BuaH1u0cHsVUFcLPwCKKbo3oKZKzFN+r
+42xgCuY81eF+BggUiw8pvXnlsP5jwmmoxmOGnq7STnTjziZBxoFCuMjCkNFVlEwMdUNjeU3j
+OecR6e9aUyjOYxS0qbgcQqvWo3Uh3QZKDQvXE+qIMzmwCcoEGNXP2WHwE0oMTHlYz5ITgeQ0
+vilKqcz1zcC+MLRRVgLmEomiF8LB6qMlEOnpXneCVtGoN25Qe2PVIpd+vsHwVz3eIfce/Q2x
+MX2x0rINxp0XSsW8eSd08eYizk00qi9umg6rtGGy3tgRJjrsqSZMU1iVIQZI3PuCRZ0D3Tw8
+oc7I6eNNd0EvajqW1fqYxbdD4TpP1zB51eiQZWpd7zew0GJBOH5sqZaxvvmXqjtSDmUZ56Je
+DhgvUnpDiO11By/Zyj8RMJhLeHp5fz09PeHDe59l0/kXt9VoVFMOj5GkwoEfIuDXCLKqnIxH
+m3yQSMh8PF5UV2mmi8kgzQq6H77WpenO5O7kO6d2A2u4mCeuiDui1/pCxsF4PEhRBGyxmIM4
+MESElVFcKi2ieidAY9gVPh3f3nwMu15h3pCJWlYqtJWmrQup51xEN10lfS/9aab4/93odqus
+wDfYbw8/H16+vWFMHO1w+e+P95tLoIOb5+OvVgv1+PSmQyxiuMWHb/9/g2qjdkmbh6efOtDO
+M8ZMxkA77pJv6LpNaJIH1Hdtqsb+8yodBttcMXqlt3QrOOWo48OmExLlXWJwWiL4P1OukXUL
+ySgqRnc0Np/7sc9l0nP4a+MsZiURZc4mwziwJEtnE25ZkVwvrhF/0OE0Ee7Vpga5tS6Xi8mA
+0XfJ+icJLhrxfPwHTW171lF6M47CwHY7ptOQAUYDYbe/RE7ro+lseg1HhJ2BPpH2hK5gA9IG
+67hJ3roauuf2dVyZut3XM1A8Z3MPWSI/T8SCrhWgE/9tnt6IolIRdwOmajvJ6cVaiGxOLpaY
+rzOFclJ3SlP8uslEY+1kDA+34YIeo/Cg9WTpYYpo0UqfYyoSIHYTIqLuNLwTiWC4KUfTuiV0
+Q9CgLwS2almQqom6otmeFdDFNAUeRAPcgdQuiyXGRq0wtMHAzEVViRVxUwUEB8hNzxL+Vfcb
+4RpUd4YOW88OvOjV+TzX8x+/3h7vj0838fEX2kn6JzvpHyXLDdMUcuF/r0R0zaI15TNiT+jA
+JoRWKk9oI11knGGK+PlLFoYYnWEpYsqduIC/U7FkqY+TKlSIj9AXJgoTwpjZagGYtAlV5jh1
+shIbrv7Tb6/v96PfbAIAFXBdbq4msZPrXF0k6Z3qeuAKdC/iMfXHHMDnrEzQHPdjOh11BDzJ
+Hb8AdnpdCq5db3p7VFex2PlnH1o1YU07rqbRqIlIRksbIlf+dHwH5ui5g/VqEsnxJPBvzBbJ
+nDA8sEnm/r3QIlkE83oFchZhuWNR3s78i/hCMpmN/K9uLYlU2/GtYn5FwpYomQXqSuuRZEqo
+dVsk87thEpksJlcatfwyCwgHsi1Jkc9D4jGmJdlNR5P+4X96+TPMy85k6OTsXPjjVYJ8eMEA
+nlfmkHUvoQShphclbCjeMyurwZOM8jQrirNToV6bd4+v748nX8Uxm7H8J0sFOEk8lnPJ4/3r
+6e30/f1m8+vnw+ufu5t/Ph5A1PaZ1SrmjVpwdl0gfz6+aDO7ztoNdaI8fbwSntfQX0+dE/rc
+CRPxMvM6JsmSpLQuav7HDrKuwZv8+M/Duzbmk65NYPHwfHp/wJiuXnM2xc1jKczQIuvLgcXP
+57d/ejsYEP4uf729PzzfZC834Y/Hn39cLHc8FxayTCtBR/mF8mrlH9Ec43HsQPjyP1PyCmMZ
+UOdrRrz8CGJSpsp/hO8STl725HufJA7CUY3Ri9BwIy0+ja0af01zWVPPFwI9q5Lf0raRROyF
+M9HKI80j0yM//n7TQ2YPTBvVneKK0Ao0r1g9CdIEbW4Jo1WbCtgkQqU2TOptljJNQX8ROf6Q
+8A+UhP3L0xyYAzgujy+w5J5PL4/vp1ffmi6IyGFqU6YRqg7G/XOdvXx7PT1+c1ZwGhUZYVWK
+8byJCa786VotoHYff43BA0aSdox2rGV9GWqk6mV9hD3AjLR1VMBCmdSu0mSTVFcY0tAzhwGf
+9rNgEprviQr4UD+v1FJJHpbdiDcXklm/7Nm/KntGle0S8VRHRaIe+jQNpQz6eRlN7Lrhb5IY
+apOYcFIOa8kFyOWAETEdP/egBqg0YMu8mPKlzJT/uqW62mdIQahGIARCor+LEKQv29YrOaEa
+t1QDLU9FPJB1NaFzYn2IhzaqE86jjSenLSmsRMxrNIV3vNkk6EwGZOpDF7c/5J9ZZ/xs09Yy
+UN0EYRK0HyCnaGYAbwPpCaARf0BuDNe2kt2VtkJfUkQXZ8CQAS/Xgc2mc7z/4QbtXslemDAD
+64C4f0W7SO9Gvc1IyOxusRg5Ct6fs1i4nnS/AhlRyzJa+WoYZfKvFVN/pcr/XcDM0mpHW0IO
+J2XXJcHf7RMUKlTneDE9m976cJGFG3Rvpz799vh2CoL53Z/j3+zhvZCWauWXb0AY7U5/c8q9
+PXx8O9189zWrpyyvE7au0YJOQ2taFXcSsUn4XiVg3tv9r8FwI+Ko4L6ZvuVF6qjou6K4SnJ3
+2umEK1uVoemdSGd8U665ipfEtGhQ3SIvgfmH2nnRmZle93hdwROn8lnB0jWntyYWDWArGtsM
+QtrjL7XHDtRmSUMDueJsTSAhcO5UbOIvJZMbAtxV9NcSkcJEoLahZKBfchr7klazQXRBo8XQ
+R3N8oyC0HA9yR2UrqbnWullxp1sLGhbA+b2bdH5P7elpUshlpWH/rQtCcs985ugFGlunnYpE
+7q9+PaIrFYk6NWnZCe11LUfPeNYn8ADu/oT8bld0dRVA2ixyx3+/SRlgZkKeb6gxDAXFyIQ5
+mSeLGL0dUHMitrs6lu1p4RwnFtyeRzWcR/9t7Np629aR8F8x9mkX2C3iJM1xH/pAybKlRpYc
+SoqTvAipayRGTy6wHZzm3y9nKEqkNEMbaOGW84l3DsmZ4Yx9XnRof13Q/iFckOuAhYJMvp6x
+ZUwYc+4eiJbF9UAn1HbCeLHpgWhpWw90SsUZXVEPxCwvF3RKF1zRYs0eiJZaOqBvFyfk9I1R
+tvZyOqGfvl2eUKcJ4wIVQOq8B7O8Zk5GdjZjTkfcR5HhRBRGFKETCdQqftyf54bA94FB8BPF
+II63np8iBsGPqkHwi8gg+KFqu+F4Y8YUI3cAX/t9eZ0nk5qJnWrIFUuGkChqm2ZUqwYRRmnJ
+SKo6SFZGFeMCoAXJXJScW40WdC+TND1S3FxERyEyYqxVDCIJQanMiJ4MJqsY4bLTfccaVVby
+OinI0DMKAZcX40DuerN73fw9en5cg6dzIyB+321fD79Ry/XrZbN/Gpr26Ve6qHXoggQuoqKA
+dasOoml0G6XtBnhpHW3hUNJ87YnU3JgF0lrF8O3lXV2k/nfYvmxG6lK7/r3Huq51+s6qbpcj
+OotLsllO9EqUgTtllKRYDlu7zbyhL6qihBcJoeWWHp/U45ffx2fnVkOLUiYQy2GhDpgLTh4s
+ppixYFxxVhm4KYcMgjxlDrZo9bPKyEi+utH2CTBWRUayaFvR658iCkuME50UC9ELZ23a1YPo
+Xsuz1JKQoKXpSmRl0z3LXIce6Hdbkz6sB4Y8q1eRuIYjZR2SQXjRTB6O79KKUGUltrd1PXzf
+z/6M3Y6BGzDGStAKps3L2+5zNN38/Hh60ovB7WV0lVtwAkmdJQDxJRg/WKrRhSd2O2aTBz9U
+N9Mj3oxUyhi9NWQMOl8V3E1ao27paaeJWgGjlkxCOcWJxW1klwWCp1mar4g5ZZN9VY57XoK1
+TAiGY5S+rX9/vOtVHj++PjlLG24V1bLxf8FYyzTOMeIqg2DrBc2pVzekGz1r+DDesZrtPWdM
+FL2+FWllMUdNBIaZV2WXXKiV2Hg1cG48mNxnVy4Z3JYwl3r8Ws+BKJvq1e7peqjVdRQtuUmJ
+DiTqQXk4CDA03aIZ/Xvf6Fb3/x29fBw2fzbqH5vD+suXL/8Z8mNZKqZaRneMcrqZGKpeMMYs
+g2uyGE49UeawixSpapungEZMDG4sFHtLZ2AkwolYVI+qOQbWVLz1FXY8uiH3FHqt17gHof42
+TjF8decM4ht+lBxDFD4+hALthHP71ThglRF4RUpEOpwcMqwYhioVR6iBTHYghhkBstki6Gl5
+bCAwA8V4/IiTsuGHE6jRjU/VovtJcRe9rcnBhtYfeJxmarsB3TlzHGwGpo6kxMg+P/S2TIIb
+8bYXAzGvsvC+9/DO3s/h5Yjh6DJRzBT0H+gGT/MXYv0xQG47mVWZPltgZ1sea1zqXIplTGNA
+QK62X03EqWNLtFFEpf0nd6ZlsPC1SyQysYbdfIUiNjcngAye3sywDFdZ47SJ7Hu17xX5bOaD
+aI7uATRHVHPk0UhGDddESNB9xajV8fu6yARapRMjFoARawwLGVVtWe5GkjXp8JaoxPAH+gOG
+07dwNXheoN7UPB1h3jRAoHV2zariIPjpreJb3JOwAjoxmc+5XuymWB2olRMvOPdv9mQ6Hana
+qbjSkjZYlB+vePcpN/tDj7Gm11PGWAEtgfFlVMG9tA/MvoXboIchBqW67vJ0ZNnq/FP7YYo1
+K0bI0/X2fXXZbsp8u+Loblot6E0eAcCKsrnXiyXirhWwZFymIADvrox/ZqAHScmFx0K6VHw0
+xvA91KKqklSdBvOwkI4AXI/dtWdgWx7rqdnSU23jANZTAn9db3pYlOqwxb62LwS48mP0LEFB
+RoDVk1Hxx1kq5sWQ3zanyBxeAdnxL0KM69gGdVl/7LaHT0oswNe2MVCpp4uoQNMt3Mu8WC+R
+VBkYdt2VJkK7dS71+79a/QFaMOSmheHu8/3wNlrDe6y33eh58/f7ZtcJazRY8da546jNST4f
+pkdi2klYrcQhVPHcEOItygG+pQw/gnVAJg6hMpsPclZpJLAVOg2qbtWkHR3znRt7xiUuRKau
+0cO2NelUfrAaj2ZYT5MCN228bxC5zGfj80nPot1FZFWaDuoFicOuAXXlTRVVEVEQ/tCSSVPl
+4xBRlbHa3vjKQjON3FF8HJ43ahNbPx42v0bR6xpmMJjJ/bM9PI/Efv+23iJp+nh4tBesqXHI
+xMFues5PDmOh/pyfLfP0fnxxRovsG2wR3bgPSlxypDJKsuTWNCxAE+KXt1/2cwdTbBDa8nST
+ythKtGROp9+UT4uBGnIqaZFLQ16qKvnod/7CFfdcSSLMY/y4f277YNAgOjqvYQCKSnTS3ZGK
+3vYy1bKj7ZM6IA2HQYYX5yG5DEJXUTYgl+OzaTIj6jcHxuXt6ROm2mJKKWRa4leiXHU+ikWU
+wq8vZ7mYcq6dLQSjl+0QnEeyDnHB+OkziykWlEavo6oSiFYqwlfGD5vhLXM5/uZFrJa9LPTU
+3L4/O28y2n2OYsgiqwLGZ7VByNAzhupiv5olatsbbpOaYGwhCC4hFlGaMk46WkxReicYAK74
+6k2jgih5hr9eNhCLB+HdGwqRFpwLxx5P9vNi5nloS5dLzkF3uwl5u7Bc5bOe5qxVOe02+70O
+v9DvtkHEcMN9H2jxbUOeMO+S2q9pbXNHjokHH4+vv95eRtnHy8/NTr8xGQSNaGdzkdThUmaU
+VbRpmwxAE5BVgymLFOTWw3WiaUc4IoJC0nTdQgzK/ZGA47UI3lAs74k+x4sQSHKPld8Ci+Zg
+eBJYMiLyPg4Oyj5gvBrOsc3uAC9w1Llnj/4V9tun18fDx65RcvZu+kGSCXlP3Ee1WH77c/e4
++xzt3j4O21f7MKIuqDKCd1vOSRDFZyjn6+jEyGjXW8KyQTVPUNT9KAuX9/VM5gtjGt2DQCD6
+qkxsM6n2AUuYwCspW8hmSElun2VDdfRTM8CeFuH4ykVQu7TKp6xqSpCFu747iVUCKXNwAWkS
+RsH9hPhUU7jVixAhV4IJQqIRAWMIoKh/EXVKk6A517jN5jZ9EKtEIeMCAnxTlno2wEValGYw
+aGkQxjv0d9kDuM1OMs0oP53Ujn2apjwAT4WC4bm/ZT34cEmm3z3Ujqds/f/6bnI1SMPXScsh
+NhFXl4NEIRdUWhlXi2BAAJXFMN8g/GFPjyaV6aOubfX8IbFWgkUIFOGcpKQPC0ES7h4YfM6k
+Wz0BMn+1LO2IuToJXb87yxXVA04VbiwukaVgEz5c3EbE17MdgMxa6R8O0Awtz8vk1r2/5nLK
+zMrplBW2Y6B7YgBmeVZaMqZOYJ73xMQ2fvJnYsn/dQoypE4CBAqtlNSiF/BgLk9tdNv+AmIb
+Ctd55v8BalXieR7jAAA=
+
+--OgqxwSJOaUobr8KG--
