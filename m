@@ -1,44 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37225 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752684AbcD0RHk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Apr 2016 13:07:40 -0400
-Subject: Re: [RFC PATCH v1 02/18] x86: Secure Memory Encryption (SME) build
- enablement
+Received: from mail-bl2on0087.outbound.protection.outlook.com ([65.55.169.87]:46523
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752352AbcD0UK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Apr 2016 16:10:28 -0400
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225614.13567.47487.stgit@tlendack-t1.amdoffice.net>
- <20160322130150.GB16528@xo-6d-61-c0.localdomain> <5720D810.9060602@amd.com>
- <20160427153010.GA7861@amd> <20160427154140.GK21011@pd.tnic>
- <20160427164137.GA11779@amd>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <5720F1D6.7020400@arm.com>
-Date: Wed, 27 Apr 2016 18:07:34 +0100
+ <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <57211CAB.9040902@amd.com>
+Date: Wed, 27 Apr 2016 15:10:19 -0500
 MIME-Version: 1.0
-In-Reply-To: <20160427164137.GA11779@amd>
-Content-Type: text/plain; charset=windows-1252; format=flowed
+In-Reply-To: <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>, Borislav Petkov <bp@alien8.de>
-Cc: linux-efi@vger.kernel.org, kvm@vger.kernel.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Matt Fleming <matt@codeblueprint.co.uk>, x86@kernel.org, linux-mm@kvack.org, Alexander Potapenko <glider@google.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, kasan-dev@googlegroups.com, Ingo Molnar <mingo@redhat.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Tom Lendacky <thomas.lendacky@amd.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, linux-kernel@vger.kernel.org, iommu@lists.linux-foundation.org, Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <20160427170734.9icuUbZ_NwoHZusZ1ZDErIQ15fGss1LGPvChv45XqdU@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160427201019.DRZn3Vau79DgBpyRleohZYA39pEVqLqvR29ptuPK_98@z>
 
-On 27/04/16 17:41, Pavel Machek wrote:
-> On Wed 2016-04-27 17:41:40, Borislav Petkov wrote:
->> On Wed, Apr 27, 2016 at 05:30:10PM +0200, Pavel Machek wrote:
->>> Doing it early will break bisect, right?
+On 04/27/2016 09:39 AM, Andy Lutomirski wrote:
+> On Tue, Apr 26, 2016 at 3:55 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+>> This RFC patch series provides support for AMD's new Secure Memory
+>> Encryption (SME) feature.
 >>
->> How exactly? Please do tell.
->
-> Hey look, SME slowed down 30% since being initially merged into
-> kernel!
+>> SME can be used to mark individual pages of memory as encrypted through the
+>> page tables. A page of memory that is marked encrypted will be automatically
+>> decrypted when read from DRAM and will be automatically encrypted when
+>> written to DRAM. Details on SME can found in the links below.
+> 
+> Having read through the docs briefly, some questions:
+> 
+> 1. How does the crypto work?  Is it straight AES-ECB?  Is it a
+> tweakable mode?  If so, what does into the tweak?  For example, if I
+> swap the ciphertext of two pages, does the plaintext of the pages get
+> swapped?  If not, why not?
 
-As opposed to "well, bisection shows these n+1 complicated changes are 
-all fine and the crash is down to this Kconfig patch", presumably. I'm 
-sure we all love spending a whole afternoon only to find that, right? :P
+The AES crypto uses a tweak such that two identical plaintexts at
+different locations will have different ciphertext. So swapping the
+ciphertext of two pages will not result in the plaintext being swapped.
 
-Robin.
+> 
+> 2. In SEV mode, how does the hypervisor relocate a physical backing
+> page?  Does it simple move it and update the 2nd-level page tables?
+> If so, is the result of decryption guaranteed to be garbage if it
+> relocates a page and re-inserts it at the wrong guest physical
+> address?
 
-> 									Pavel
->
+For SEV mode, relocating a physical backing page takes extra steps.
+There are APIs that are used to have the AMD Secure Processor create a
+transportable encrypted page that can then be moved to a new location
+in memory. After moving it to the new location the APIs are used to
+haves the AMD Secure Processor re-encrypt the page for use with the
+guests SEV key. Based on #1 above, just moving a page without invoking
+the necessary APIs will result in the decryption returning garbage.
 
+> 
+> 3. In SEV mode, does anything prevent the hypervisor from resuming a
+> guest with the wrong ASID, or is this all relying on the resulting
+> corruption of the guest code and data to cause a crash?
+
+There is nothing that prevents resuming a guest with the wrong ASID.
+This relies on the resulting corruption of the guest code/data to
+cause a crash.
+
+> 
+> 4. As I understand it, the caches are all unencrypted, and they're
+> tagged with the physical address, *including* the SME bit (bit 47).
+> In SEV mode, are they also tagged with the ASID?  I.e. if I have a
+> page in cache for ASID 1 and I try to read it with ASID 2, will I get
+> a fresh copy decrypted with ASID 2's key?  If so, will the old ASID 1
+> copy be evicted, or will it stay in cache and be non-coherent?
+
+In SEV mode, the caches are tagged with the ASID. So if you try to read
+a cached page with a different ASID, it would result in a cache miss
+for that ASID and will instead fetch from memory and decrypt using
+the that ASID's key.
+
+Thanks,
+Tom
+
+> 
+> --Andy
+> 
