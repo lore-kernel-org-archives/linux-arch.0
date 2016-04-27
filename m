@@ -1,65 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:64851 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.187]:53470 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752392AbcD0Ke7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 06:34:59 -0400
+	with ESMTP id S1752249AbcD0LbN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2016 07:31:13 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 1/6] rtc: m68k: provide rtc_class_ops directly
-Date: Wed, 27 Apr 2016 12:34:19 +0200
-Message-ID: <4888267.R0sXv0tuDQ@wuerfel>
-In-Reply-To: <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
-References: <1461707551-1337971-1-git-send-email-arnd@arndb.de> <1461707551-1337971-2-git-send-email-arnd@arndb.de> <CAMuHMdXS0JL_weLvjV4+i0ZPj=N+G6Vs1WDE9jffGUWehq5Xzg@mail.gmail.com>
+Subject: Re: char: legacy RTC cleanups
+Date: Wed, 27 Apr 2016 13:30:05 +0200
+Message-ID: <13390963.BOLfm8tOYx@wuerfel>
+In-Reply-To: <CAMuHMdW6AODmVwB59uTvMydbTNiDDxQWB3p-Dp9Dka+GVyP_iw@mail.gmail.com>
+References: <1461707052-1337718-1-git-send-email-arnd@arndb.de> <4937900.aITlOE9vLo@wuerfel> <CAMuHMdW6AODmVwB59uTvMydbTNiDDxQWB3p-Dp9Dka+GVyP_iw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20160427103419.rsQwc7g1QXQbl-Vc0adP0jyrb-cJxk4AtYIOgqwR1uc@z>
+Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Tony Luck <tony.luck@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20160427113005.TTsX39QaJ2PBJ_8IVFRv705MOJgpkTIA7-uyc0ddL8k@z>
 
-On Wednesday 27 April 2016 09:47:56 Geert Uytterhoeven wrote:
-> > --- a/arch/m68k/kernel/time.c
-> > +++ b/arch/m68k/kernel/time.c
-> > @@ -86,7 +86,24 @@ void read_persistent_clock(struct timespec *ts)
-> >         }
-> >  }
+On Wednesday 27 April 2016 12:19:59 Geert Uytterhoeven wrote:
 > >
-> > -#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-> > +#if defined(CONFIG_ARCH_USES_GETTIMEOFFSET) && defined(CONFIG_RTC_DRV_GENERIC)
+> > Right, so we could skip patches 5 and 6, and instead remove the two
+> > headers as we remove the driver. Let's see what the architecture
+> > maintainers think about it, at least powerpc actually enables gen_rtc
+> > in its defconfig, so it might take a while to move it over.
 > 
-> s/defined/IS_ENABLED/ for the modular case.
-
-Thanks, fixed in all three architectures/
-
-> > @@ -95,7 +112,10 @@ static int __init rtc_init(void)
-> >         if (!mach_hwclk)
-> >                 return -ENODEV;
-> >
-> > -       pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
-> > +       /* or just call devm_rtc_device_register instead? */
+> FWIW, all PPC defconfigs (except tqm8xx.dts, which is a more recent platform)
+> enabling it did that long before my old commit to enable rtc-generic support
+> on PPC:
 > 
-> I guess this comment is a bogus leftover? There's no "dev" parameter to
-> pass to devm_rtc_device_register() here.
+> commit bcd68a70cb0eee556d86d93133aa150319bd9f53
+> Author: Geert Uytterhoeven <Geert.Uytterhoeven@sonycom.com>
+> Date:   Thu Feb 19 16:50:46 2009 +0100
+> 
+>     powerpc: Hook up rtc-generic, and kill rtc-ppc
 
-Sort of. When I wrote it, I thought that a NULL argument would work,
-and I later found out myself that it doesn't.
+Ah, interesting. I have two observations about that patch:
 
-I'll drop the comment there, but there are still a few ways we (probably
-not me, but whoever is interested) could take this further:
+- you were moving basically in the opposite direction that I am
+  trying to bring it now. ;-)
 
-- register both the device and the driver here, and call
-  devm_rtc_device_register from the probe function so we can move away
-  from drivers/rtc/rtc-generic.c
-
-- do this separately for mac, mvme147, mvme16x, sun3, q40 and sun3x
-
-- move the six implementations into drivers/rtc as standalone drivers.
-
-One (AFAIK) unsolved problem here is the question of how to handle
-read_boot_clock/read_persistent_clock/update_persistent_clock in this
-case. This is a really odd API that is implemented in various ways
-on a few major architectures, and not at all on others, so it's all
-highly inconsistent.
+- I see now that four defconfigs (gamecube, powernv, pseries and wii)
+  do enable RTC_DRV_GENERIC. For some reason, ppc64_defconfig only
+  enables RTC_DRV_DS1307, I assume that is not intentional.
 
 	Arnd
