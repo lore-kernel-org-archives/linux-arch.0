@@ -1,172 +1,159 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v3 03/16] char/genrtc: x86: remove remnants of asm/rtc.h
-Date: Thu, 28 Apr 2016 00:34:17 +0200
-Message-ID: <1461796470-1291527-4-git-send-email-arnd@arndb.de>
+Subject: [PATCH v3 08/16] char/genrtc: remove parisc support
+Date: Thu, 28 Apr 2016 00:34:22 +0200
+Message-ID: <1461796470-1291527-9-git-send-email-arnd@arndb.de>
 References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 In-Reply-To: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-parisc-owner@vger.kernel.org
 To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Commit 3195ef59cb42 ("x86: Do full rtc synchronization with ntp") had
-the side-effect of unconditionally enabling the RTC_LIB symbol on x86,
-which in turn disables the selection of the CONFIG_RTC and
-CONFIG_GEN_RTC drivers that contain a two older implementations of
-the CONFIG_RTC_DRV_CMOS driver.
+This architecture selects RTC_CLASS unconditionally, so the GEN_RTC
+has not worked here for a long time.
 
-This removes x86 from the list for genrtc, and changes all references
-to the asm/rtc.h header to instead point to the interfaces
-from linux/mc146818rtc.h.
+Now we can remove both the asm/rtc.h header and the Kconfig dependency
+for CONFIG_GEN_RTC.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/x86/include/asm/rtc.h   | 1 -
- arch/x86/kernel/hpet.c       | 3 +--
- arch/x86/kernel/rtc.c        | 3 +--
- arch/x86/platform/efi/efi.c  | 1 -
- drivers/acpi/acpi_cmos_rtc.c | 2 +-
- drivers/base/power/trace.c   | 6 +++---
- drivers/char/Kconfig         | 2 +-
- drivers/rtc/rtc-mrst.c       | 2 +-
- 8 files changed, 8 insertions(+), 12 deletions(-)
- delete mode 100644 arch/x86/include/asm/rtc.h
+ arch/parisc/include/asm/rtc.h | 131 ------------------------------------------
+ drivers/char/Kconfig          |   2 +-
+ 2 files changed, 1 insertion(+), 132 deletions(-)
+ delete mode 100644 arch/parisc/include/asm/rtc.h
 
-diff --git a/arch/x86/include/asm/rtc.h b/arch/x86/include/asm/rtc.h
+diff --git a/arch/parisc/include/asm/rtc.h b/arch/parisc/include/asm/rtc.h
 deleted file mode 100644
-index f71c3b0ed360..000000000000
---- a/arch/x86/include/asm/rtc.h
+index 099d641a42c2..000000000000
+--- a/arch/parisc/include/asm/rtc.h
 +++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/rtc.h>
-diff --git a/arch/x86/kernel/hpet.c b/arch/x86/kernel/hpet.c
-index f112af7aa62e..357900aad62c 100644
---- a/arch/x86/kernel/hpet.c
-+++ b/arch/x86/kernel/hpet.c
-@@ -1020,7 +1020,6 @@ void hpet_disable(void)
-  */
- #include <linux/mc146818rtc.h>
- #include <linux/rtc.h>
--#include <asm/rtc.h>
- 
- #define DEFAULT_RTC_INT_FREQ	64
- #define DEFAULT_RTC_SHIFT	6
-@@ -1244,7 +1243,7 @@ irqreturn_t hpet_rtc_interrupt(int irq, void *dev_id)
- 	memset(&curr_time, 0, sizeof(struct rtc_time));
- 
- 	if (hpet_rtc_flags & (RTC_UIE | RTC_AIE))
--		get_rtc_time(&curr_time);
-+		mc146818_set_time(&curr_time);
- 
- 	if (hpet_rtc_flags & RTC_UIE &&
- 	    curr_time.tm_sec != hpet_prev_update_sec) {
-diff --git a/arch/x86/kernel/rtc.c b/arch/x86/kernel/rtc.c
-index eceaa082ec3f..79c6311cd912 100644
---- a/arch/x86/kernel/rtc.c
-+++ b/arch/x86/kernel/rtc.c
-@@ -13,7 +13,6 @@
- #include <asm/x86_init.h>
- #include <asm/time.h>
- #include <asm/intel-mid.h>
--#include <asm/rtc.h>
- #include <asm/setup.h>
- 
- #ifdef CONFIG_X86_32
-@@ -47,7 +46,7 @@ int mach_set_rtc_mmss(const struct timespec *now)
- 
- 	rtc_time_to_tm(nowtime, &tm);
- 	if (!rtc_valid_tm(&tm)) {
--		retval = set_rtc_time(&tm);
-+		retval = mc146818_set_time(&tm);
- 		if (retval)
- 			printk(KERN_ERR "%s: RTC write failed with error %d\n",
- 			       __func__, retval);
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index 994a7df84a7b..13b216f71191 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -51,7 +51,6 @@
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
- #include <asm/x86_init.h>
--#include <asm/rtc.h>
- #include <asm/uv/uv.h>
- 
- #define EFI_DEBUG
-diff --git a/drivers/acpi/acpi_cmos_rtc.c b/drivers/acpi/acpi_cmos_rtc.c
-index 81dc75033f15..0980a133916f 100644
---- a/drivers/acpi/acpi_cmos_rtc.c
-+++ b/drivers/acpi/acpi_cmos_rtc.c
-@@ -14,7 +14,7 @@
- #include <linux/err.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
--#include <asm-generic/rtc.h>
-+#include <linux/mc146818rtc.h>
- 
- #include "internal.h"
- 
-diff --git a/drivers/base/power/trace.c b/drivers/base/power/trace.c
-index a6975795e7f3..efec10b49d59 100644
---- a/drivers/base/power/trace.c
-+++ b/drivers/base/power/trace.c
-@@ -11,7 +11,7 @@
- #include <linux/export.h>
- #include <linux/rtc.h>
- 
--#include <asm/rtc.h>
-+#include <linux/mc146818rtc.h>
- 
- #include "power.h"
- 
-@@ -103,7 +103,7 @@ static int set_magic_time(unsigned int user, unsigned int file, unsigned int dev
- 	n /= 24;
- 	time.tm_min = (n % 20) * 3;
- 	n /= 20;
--	set_rtc_time(&time);
-+	mc146818_set_time(&time);
- 	return n ? -1 : 0;
- }
- 
-@@ -112,7 +112,7 @@ static unsigned int read_magic_time(void)
- 	struct rtc_time time;
- 	unsigned int val;
- 
--	get_rtc_time(&time);
-+	mc146818_get_time(&time);
- 	pr_info("RTC time: %2d:%02d:%02d, date: %02d/%02d/%02d\n",
- 		time.tm_hour, time.tm_min, time.tm_sec,
- 		time.tm_mon + 1, time.tm_mday, time.tm_year % 100);
-diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
-index ca397384dc15..9bdb629fbaae 100644
---- a/drivers/char/Kconfig
-+++ b/drivers/char/Kconfig
-@@ -328,7 +328,7 @@ config JS_RTC
- config GEN_RTC
- 	tristate "Generic /dev/rtc emulation"
- 	depends on RTC!=y
--	depends on ALPHA || M68K || MN10300 || PARISC || PPC || X86
-+	depends on ALPHA || M68K || MN10300 || PARISC || PPC
- 	---help---
- 	  If you say Y here and create a character special file /dev/rtc with
- 	  major number 10 and minor number 135 using mknod ("man mknod"), you
-diff --git a/drivers/rtc/rtc-mrst.c b/drivers/rtc/rtc-mrst.c
-index 548ea6f6f384..bb8ac7c5e217 100644
---- a/drivers/rtc/rtc-mrst.c
-+++ b/drivers/rtc/rtc-mrst.c
-@@ -32,11 +32,11 @@
- #include <linux/interrupt.h>
- #include <linux/spinlock.h>
- #include <linux/kernel.h>
-+#include <linux/mc146818rtc.h>
- #include <linux/module.h>
- #include <linux/init.h>
- #include <linux/sfi.h>
- 
--#include <asm-generic/rtc.h>
- #include <asm/intel_scu_ipc.h>
- #include <asm/intel-mid.h>
- #include <asm/intel_mid_vrtc.h>
--- 
-2.7.0
+@@ -1,131 +0,0 @@
+-/* 
+- * include/asm-parisc/rtc.h
+- *
+- * Copyright 2002 Randolph CHung <tausq@debian.org>
+- *
+- * Based on: include/asm-ppc/rtc.h and the genrtc driver in the
+- * 2.4 parisc linux tree
+- */
+-
+-#ifndef __ASM_RTC_H__
+-#define __ASM_RTC_H__
+-
+-#ifdef __KERNEL__
+-
+-#include <linux/rtc.h>
+-
+-#include <asm/pdc.h>
+-
+-#define SECS_PER_HOUR   (60 * 60)
+-#define SECS_PER_DAY    (SECS_PER_HOUR * 24)
+-
+-
+-#define RTC_PIE 0x40		/* periodic interrupt enable */
+-#define RTC_AIE 0x20		/* alarm interrupt enable */
+-#define RTC_UIE 0x10		/* update-finished interrupt enable */
+-
+-#define RTC_BATT_BAD 0x100	/* battery bad */
+-
+-/* some dummy definitions */
+-#define RTC_SQWE 0x08		/* enable square-wave output */
+-#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
+-#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
+-#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
+-
+-# define __isleap(year) \
+-  ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
+-
+-/* How many days come before each month (0-12).  */
+-static const unsigned short int __mon_yday[2][13] =
+-{
+-	/* Normal years.  */
+-	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
+-	/* Leap years.  */
+-	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
+-};
+-
+-static inline unsigned int get_rtc_time(struct rtc_time *wtime)
+-{
+-	struct pdc_tod tod_data;
+-	long int days, rem, y;
+-	const unsigned short int *ip;
+-
+-	memset(wtime, 0, sizeof(*wtime));
+-	if (pdc_tod_read(&tod_data) < 0)
+-		return RTC_24H | RTC_BATT_BAD;
+-
+-	// most of the remainder of this function is:
+-//	Copyright (C) 1991, 1993, 1997, 1998 Free Software Foundation, Inc.
+-//	This was originally a part of the GNU C Library.
+-//      It is distributed under the GPL, and was swiped from offtime.c
+-
+-
+-	days = tod_data.tod_sec / SECS_PER_DAY;
+-	rem = tod_data.tod_sec % SECS_PER_DAY;
+-
+-	wtime->tm_hour = rem / SECS_PER_HOUR;
+-	rem %= SECS_PER_HOUR;
+-	wtime->tm_min = rem / 60;
+-	wtime->tm_sec = rem % 60;
+-
+-	y = 1970;
+-
+-#define DIV(a, b) ((a) / (b) - ((a) % (b) < 0))
+-#define LEAPS_THRU_END_OF(y) (DIV (y, 4) - DIV (y, 100) + DIV (y, 400))
+-
+-	while (days < 0 || days >= (__isleap (y) ? 366 : 365))
+-	{
+-		/* Guess a corrected year, assuming 365 days per year.  */
+-		long int yg = y + days / 365 - (days % 365 < 0);
+-
+-		/* Adjust DAYS and Y to match the guessed year.  */
+-		days -= ((yg - y) * 365
+-			 + LEAPS_THRU_END_OF (yg - 1)
+-			 - LEAPS_THRU_END_OF (y - 1));
+-		y = yg;
+-	}
+-	wtime->tm_year = y - 1900;
+-
+-	ip = __mon_yday[__isleap(y)];
+-	for (y = 11; days < (long int) ip[y]; --y)
+-		continue;
+-	days -= ip[y];
+-	wtime->tm_mon = y;
+-	wtime->tm_mday = days + 1;
+-
+-	return RTC_24H;
+-}
+-
+-static int set_rtc_time(struct rtc_time *wtime)
+-{
+-	u_int32_t secs;
+-
+-	secs = mktime(wtime->tm_year + 1900, wtime->tm_mon + 1, wtime->tm_mday, 
+-		      wtime->tm_hour, wtime->tm_min, wtime->tm_sec);
+-
+-	if(pdc_tod_set(secs, 0) < 0)
+-		return -1;
+-	else
+-		return 0;
+-
+-}
+-
+-static inline unsigned int get_rtc_ss(void)
+-{
+-	struct rtc_time h;
+-
+-	get_rtc_time(&h);
+-	return h.tm_sec;
+-}
+-
+-static inline int get_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	return -EINVAL;
+-}
+-static inline int set_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	return -EINVAL;
+-}
