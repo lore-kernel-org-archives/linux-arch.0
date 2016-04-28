@@ -1,101 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:37011 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:36713 "EHLO
 	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752634AbcD1PUm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:42 -0400
+	with ESMTP id S1753217AbcD1PUX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:23 -0400
 From: Christopher Covington <cov@codeaurora.org>
-Subject: [RFC 3/5] mm/powerpc: Make VDSO remap generic
-Date: Thu, 28 Apr 2016 11:18:55 -0400
-Message-ID: <1461856737-17071-4-git-send-email-cov@codeaurora.org>
-In-Reply-To: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+Subject: VDSO unmap and remap support for additional architectures
+Date: Thu, 28 Apr 2016 11:18:52 -0400
+Message-ID: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+In-Reply-To: <20151202121918.GA4523@arm.com>
 References: <20151202121918.GA4523@arm.com>
- <1461856737-17071-1-git-send-email-cov@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Christopher Covington <cov@codeaurora.org>
-Message-ID: <20160428151855.gkhHdCTWLVfEg_LigJ8x-qM3Ll9llBSxsCRuAa45eQM@z>
+Message-ID: <20160428151852.SHaFJhnERkxMmpqupy442j2yYUmnZqvy6B24zPT9BE8@z>
 
-In order to support remapping the VDSO on additional architectures without
-duplicating code, move the remap code out from arch/powerpc. Architectures
-that wish to use the generic logic must have an unsigned long vdso in
-mm->context and can opt in by selecting CONFIG_ARCH_WANT_VDSO_MAP. This
-allows PowerPC to use mm-arch-hooks.h from include/asm-generic.
+Please take a look at the following prototype of sharing the PowerPC
+VDSO unmap and remap code with other architectures. I've only hooked
+up arm64 to begin with. If folks think this is a reasonable approach I
+can work on 32 bit ARM as well. Not hearing back from an earlier
+request for guidance [1], I simply dove in and started hacking.
+Laurent's test case [2][3] is a compelling illustration of whether VDSO
+remap works or not on a given architecture.
 
-Signed-off-by: Christopher Covington <cov@codeaurora.org>
----
- arch/powerpc/include/asm/Kbuild          |  1 +
- arch/powerpc/include/asm/mm-arch-hooks.h | 28 ----------------------------
- mm/mremap.c                              | 10 ++++++++--
- 3 files changed, 9 insertions(+), 30 deletions(-)
- delete mode 100644 arch/powerpc/include/asm/mm-arch-hooks.h
+1. https://lkml.org/lkml/2016/3/2/225
+2. https://lists.openvz.org/pipermail/criu/2015-March/019161.html
+3. http://lists.openvz.org/pipermail/criu/attachments/20150318/f02ed9ea/attachment.bin
 
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index ab9f4e0..9dbb372 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -7,3 +7,4 @@ generic-y += mcs_spinlock.h
- generic-y += preempt.h
- generic-y += rwsem.h
- generic-y += vtime.h
-+generic-y += mm-arch-hooks.h
-diff --git a/arch/powerpc/include/asm/mm-arch-hooks.h b/arch/powerpc/include/asm/mm-arch-hooks.h
-deleted file mode 100644
-index ea6da89..0000000
---- a/arch/powerpc/include/asm/mm-arch-hooks.h
-+++ /dev/null
-@@ -1,28 +0,0 @@
--/*
-- * Architecture specific mm hooks
-- *
-- * Copyright (C) 2015, IBM Corporation
-- * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--
--#ifndef _ASM_POWERPC_MM_ARCH_HOOKS_H
--#define _ASM_POWERPC_MM_ARCH_HOOKS_H
--
--static inline void arch_remap(struct mm_struct *mm,
--			      unsigned long old_start, unsigned long old_end,
--			      unsigned long new_start, unsigned long new_end)
--{
--	/*
--	 * mremap() doesn't allow moving multiple vmas so we can limit the
--	 * check to old_start == vdso.
--	 */
--	if (old_start == mm->context.vdso)
--		mm->context.vdso = new_start;
--}
--#define arch_remap arch_remap
--
--#endif /* _ASM_POWERPC_MM_ARCH_HOOKS_H */
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 3fa0a467..59032b7 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -293,8 +293,14 @@ static unsigned long move_vma(struct vm_area_struct *vma,
- 		old_addr = new_addr;
- 		new_addr = err;
- 	} else {
--		arch_remap(mm, old_addr, old_addr + old_len,
--			   new_addr, new_addr + new_len);
-+#ifdef CONFIG_ARCH_WANT_VDSO_MAP
-+		/*
-+		 * mremap() doesn't allow moving multiple vmas so we can limit the
-+		 * check to old_addr == vdso.
-+		 */
-+		if (old_addr == mm->context.vdso)
-+			mm->context.vdso = new_addr;
-+#endif  /* CONFIG_ARCH_WANT_VDSO_MAP */
- 	}
- 
- 	/* Conceal VM_ACCOUNT so old reservation is not undone */
--- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+Thanks,
+Christopher Covington
 
