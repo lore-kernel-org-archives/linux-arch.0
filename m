@@ -1,569 +1,304 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f44.google.com ([74.125.82.44]:38684 "EHLO
-	mail-wm0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751578AbcD1NYP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:15 -0400
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 01/20] tree wide: get rid of __GFP_REPEAT for order-0 allocations part I
-Date: Thu, 28 Apr 2016 15:23:47 +0200
-Message-ID: <1461849846-27209-2-git-send-email-mhocko@kernel.org>
-In-Reply-To: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
-References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
+Received: from smtp.codeaurora.org ([198.145.29.96]:36799 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752634AbcD1PUg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:36 -0400
+From: Christopher Covington <cov@codeaurora.org>
+Subject: [RFC 1/5] powerpc: Rename context.vdso_base to context.vdso
+Date: Thu, 28 Apr 2016 11:18:53 -0400
+Message-ID: <1461856737-17071-2-git-send-email-cov@codeaurora.org>
+In-Reply-To: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
-Message-ID: <20160428132347.i4VFA50-qx1JmPU95lBUVETSwYtDR_mpIcG9chHr6oc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Christopher Covington <cov@codeaurora.org>
+Message-ID: <20160428151853.HATOzT5Ebl7SujntUSie_W8VyqMXhPveS6R4Ksx56Ko@z>
 
-From: Michal Hocko <mhocko@suse.com>
+In order to share remap and unmap support for the VDSO with other
+architectures without duplicating the code, we need a common name and type
+for the address of the VDSO. An informal survey of the architectures
+indicates unsigned long vdso is popular. Change the variable name in
+powerpc from mm->context.vdso_base to simply mm->context.vdso.
 
-__GFP_REPEAT has a rather weak semantic but since it has been introduced
-around 2.6.12 it has been ignored for low order allocations. Yet we have
-the full kernel tree with its usage for apparently order-0 allocations.
-This is really confusing because __GFP_REPEAT is explicitly documented
-to allow allocation failures which is a weaker semantic than the current
-order-0 has (basically nofail).
-
-Let's simply drop __GFP_REPEAT from those places. This would allow
-to identify place which really need allocator to retry harder and
-formulate a more specific semantic for what the flag is supposed to do
-actually.
-
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Michal Hocko <mhocko@suse.com>
+Signed-off-by: Christopher Covington <cov@codeaurora.org>
 ---
- arch/alpha/include/asm/pgalloc.h         | 4 ++--
- arch/arm/include/asm/pgalloc.h           | 2 +-
- arch/avr32/include/asm/pgalloc.h         | 6 +++---
- arch/cris/include/asm/pgalloc.h          | 4 ++--
- arch/frv/mm/pgalloc.c                    | 6 +++---
- arch/hexagon/include/asm/pgalloc.h       | 4 ++--
- arch/m68k/include/asm/mcf_pgalloc.h      | 4 ++--
- arch/m68k/include/asm/motorola_pgalloc.h | 4 ++--
- arch/m68k/include/asm/sun3_pgalloc.h     | 4 ++--
- arch/metag/include/asm/pgalloc.h         | 5 ++---
- arch/microblaze/include/asm/pgalloc.h    | 4 ++--
- arch/microblaze/mm/pgtable.c             | 3 +--
- arch/mn10300/mm/pgtable.c                | 6 +++---
- arch/openrisc/include/asm/pgalloc.h      | 2 +-
- arch/openrisc/mm/ioremap.c               | 2 +-
- arch/parisc/include/asm/pgalloc.h        | 4 ++--
- arch/powerpc/include/asm/pgalloc-64.h    | 2 +-
- arch/powerpc/mm/pgtable_32.c             | 4 ++--
- arch/powerpc/mm/pgtable_64.c             | 3 +--
- arch/sh/include/asm/pgalloc.h            | 4 ++--
- arch/sparc/mm/init_64.c                  | 6 ++----
- arch/um/kernel/mem.c                     | 4 ++--
- arch/x86/include/asm/pgalloc.h           | 4 ++--
- arch/x86/xen/p2m.c                       | 2 +-
- arch/xtensa/include/asm/pgalloc.h        | 2 +-
- drivers/block/aoe/aoecmd.c               | 2 +-
- 26 files changed, 46 insertions(+), 51 deletions(-)
+ arch/powerpc/include/asm/book3s/32/mmu-hash.h |  2 +-
+ arch/powerpc/include/asm/book3s/64/mmu-hash.h |  2 +-
+ arch/powerpc/include/asm/mm-arch-hooks.h      |  6 +++---
+ arch/powerpc/include/asm/mmu-40x.h            |  2 +-
+ arch/powerpc/include/asm/mmu-44x.h            |  2 +-
+ arch/powerpc/include/asm/mmu-8xx.h            |  2 +-
+ arch/powerpc/include/asm/mmu-book3e.h         |  2 +-
+ arch/powerpc/include/asm/mmu_context.h        |  4 ++--
+ arch/powerpc/include/asm/vdso.h               |  2 +-
+ arch/powerpc/include/uapi/asm/elf.h           |  2 +-
+ arch/powerpc/kernel/signal_32.c               |  8 ++++----
+ arch/powerpc/kernel/signal_64.c               |  4 ++--
+ arch/powerpc/kernel/vdso.c                    |  8 ++++----
+ arch/powerpc/perf/callchain.c                 | 12 ++++++------
+ 14 files changed, 29 insertions(+), 29 deletions(-)
 
-diff --git a/arch/alpha/include/asm/pgalloc.h b/arch/alpha/include/asm/pgalloc.h
-index aab14a019c20..c2ebb6f36c9d 100644
---- a/arch/alpha/include/asm/pgalloc.h
-+++ b/arch/alpha/include/asm/pgalloc.h
-@@ -40,7 +40,7 @@ pgd_free(struct mm_struct *mm, pgd_t *pgd)
- static inline pmd_t *
- pmd_alloc_one(struct mm_struct *mm, unsigned long address)
- {
--	pmd_t *ret = (pmd_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pmd_t *ret = (pmd_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	return ret;
- }
+diff --git a/arch/powerpc/include/asm/book3s/32/mmu-hash.h b/arch/powerpc/include/asm/book3s/32/mmu-hash.h
+index 16f513e..9d8de53 100644
+--- a/arch/powerpc/include/asm/book3s/32/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/32/mmu-hash.h
+@@ -79,7 +79,7 @@ struct hash_pte {
  
-@@ -53,7 +53,7 @@ pmd_free(struct mm_struct *mm, pmd_t *pmd)
- static inline pte_t *
- pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
- {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	return pte;
- }
+ typedef struct {
+ 	unsigned long id;
+-	unsigned long vdso_base;
++	unsigned long vdso;
+ } mm_context_t;
  
-diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
-index 19cfab526d13..20febb368844 100644
---- a/arch/arm/include/asm/pgalloc.h
-+++ b/arch/arm/include/asm/pgalloc.h
-@@ -29,7 +29,7 @@
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return (pmd_t *)get_zeroed_page(GFP_KERNEL | __GFP_REPEAT);
-+	return (pmd_t *)get_zeroed_page(GFP_KERNEL);
- }
- 
- static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-diff --git a/arch/avr32/include/asm/pgalloc.h b/arch/avr32/include/asm/pgalloc.h
-index 1aba19d68c5e..db039cb368be 100644
---- a/arch/avr32/include/asm/pgalloc.h
-+++ b/arch/avr32/include/asm/pgalloc.h
-@@ -43,7 +43,7 @@ static inline void pgd_ctor(void *x)
-  */
- static inline pgd_t *pgd_alloc(struct mm_struct *mm)
- {
--	return quicklist_alloc(QUICK_PGD, GFP_KERNEL | __GFP_REPEAT, pgd_ctor);
-+	return quicklist_alloc(QUICK_PGD, GFP_KERNEL, pgd_ctor);
- }
- 
- static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-@@ -54,7 +54,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
- {
--	return quicklist_alloc(QUICK_PT, GFP_KERNEL | __GFP_REPEAT, NULL);
-+	return quicklist_alloc(QUICK_PT, GFP_KERNEL, NULL);
- }
- 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
-@@ -63,7 +63,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 	struct page *page;
- 	void *pg;
- 
--	pg = quicklist_alloc(QUICK_PT, GFP_KERNEL | __GFP_REPEAT, NULL);
-+	pg = quicklist_alloc(QUICK_PT, GFP_KERNEL, NULL);
- 	if (!pg)
- 		return NULL;
- 
-diff --git a/arch/cris/include/asm/pgalloc.h b/arch/cris/include/asm/pgalloc.h
-index 235ece437ddd..42f1affb9c2d 100644
---- a/arch/cris/include/asm/pgalloc.h
-+++ b/arch/cris/include/asm/pgalloc.h
-@@ -24,14 +24,14 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- 
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
- {
--  	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
-  	return pte;
- }
- 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- {
- 	struct page *pte;
--	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
-+	pte = alloc_pages(GFP_KERNEL|__GFP_ZERO, 0);
- 	if (!pte)
- 		return NULL;
- 	if (!pgtable_page_ctor(pte)) {
-diff --git a/arch/frv/mm/pgalloc.c b/arch/frv/mm/pgalloc.c
-index 41907d25ed38..c9ed14f6c67d 100644
---- a/arch/frv/mm/pgalloc.c
-+++ b/arch/frv/mm/pgalloc.c
-@@ -22,7 +22,7 @@ pgd_t swapper_pg_dir[PTRS_PER_PGD] __attribute__((aligned(PAGE_SIZE)));
- 
- pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
- {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL);
- 	if (pte)
- 		clear_page(pte);
- 	return pte;
-@@ -33,9 +33,9 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	struct page *page;
- 
- #ifdef CONFIG_HIGHPTE
--	page = alloc_pages(GFP_KERNEL|__GFP_HIGHMEM|__GFP_REPEAT, 0);
-+	page = alloc_pages(GFP_KERNEL|__GFP_HIGHMEM, 0);
+ #endif /* !__ASSEMBLY__ */
+diff --git a/arch/powerpc/include/asm/book3s/64/mmu-hash.h b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+index 0cea480..99df600 100644
+--- a/arch/powerpc/include/asm/book3s/64/mmu-hash.h
++++ b/arch/powerpc/include/asm/book3s/64/mmu-hash.h
+@@ -525,7 +525,7 @@ typedef struct {
  #else
--	page = alloc_pages(GFP_KERNEL|__GFP_REPEAT, 0);
-+	page = alloc_pages(GFP_KERNEL, 0);
+ 	u16 sllp;		/* SLB page size encoding */
  #endif
- 	if (!page)
- 		return NULL;
-diff --git a/arch/hexagon/include/asm/pgalloc.h b/arch/hexagon/include/asm/pgalloc.h
-index 77da3b0ae3c2..eeebf862c46c 100644
---- a/arch/hexagon/include/asm/pgalloc.h
-+++ b/arch/hexagon/include/asm/pgalloc.h
-@@ -64,7 +64,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+-	unsigned long vdso_base;
++	unsigned long vdso;
+ #ifdef CONFIG_PPC_SUBPAGE_PROT
+ 	struct subpage_prot_table spt;
+ #endif /* CONFIG_PPC_SUBPAGE_PROT */
+diff --git a/arch/powerpc/include/asm/mm-arch-hooks.h b/arch/powerpc/include/asm/mm-arch-hooks.h
+index f2a2da8..ea6da89 100644
+--- a/arch/powerpc/include/asm/mm-arch-hooks.h
++++ b/arch/powerpc/include/asm/mm-arch-hooks.h
+@@ -18,10 +18,10 @@ static inline void arch_remap(struct mm_struct *mm,
  {
- 	struct page *pte;
+ 	/*
+ 	 * mremap() doesn't allow moving multiple vmas so we can limit the
+-	 * check to old_start == vdso_base.
++	 * check to old_start == vdso.
+ 	 */
+-	if (old_start == mm->context.vdso_base)
+-		mm->context.vdso_base = new_start;
++	if (old_start == mm->context.vdso)
++		mm->context.vdso = new_start;
+ }
+ #define arch_remap arch_remap
  
--	pte = alloc_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
-+	pte = alloc_page(GFP_KERNEL | __GFP_ZERO);
- 	if (!pte)
- 		return NULL;
- 	if (!pgtable_page_ctor(pte)) {
-@@ -78,7 +78,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
+diff --git a/arch/powerpc/include/asm/mmu-40x.h b/arch/powerpc/include/asm/mmu-40x.h
+index 3491686..e8e57b7 100644
+--- a/arch/powerpc/include/asm/mmu-40x.h
++++ b/arch/powerpc/include/asm/mmu-40x.h
+@@ -56,7 +56,7 @@
+ typedef struct {
+ 	unsigned int	id;
+ 	unsigned int	active;
+-	unsigned long	vdso_base;
++	unsigned long	vdso;
+ } mm_context_t;
+ 
+ #endif /* !__ASSEMBLY__ */
+diff --git a/arch/powerpc/include/asm/mmu-44x.h b/arch/powerpc/include/asm/mmu-44x.h
+index bf52d70..471891c 100644
+--- a/arch/powerpc/include/asm/mmu-44x.h
++++ b/arch/powerpc/include/asm/mmu-44x.h
+@@ -107,7 +107,7 @@ extern unsigned int tlb_44x_index;
+ typedef struct {
+ 	unsigned int	id;
+ 	unsigned int	active;
+-	unsigned long	vdso_base;
++	unsigned long	vdso;
+ } mm_context_t;
+ 
+ #endif /* !__ASSEMBLY__ */
+diff --git a/arch/powerpc/include/asm/mmu-8xx.h b/arch/powerpc/include/asm/mmu-8xx.h
+index 0a566f1..9d1f160 100644
+--- a/arch/powerpc/include/asm/mmu-8xx.h
++++ b/arch/powerpc/include/asm/mmu-8xx.h
+@@ -167,7 +167,7 @@
+ typedef struct {
+ 	unsigned int id;
+ 	unsigned int active;
+-	unsigned long vdso_base;
++	unsigned long vdso;
+ } mm_context_t;
+ #endif /* !__ASSEMBLY__ */
+ 
+diff --git a/arch/powerpc/include/asm/mmu-book3e.h b/arch/powerpc/include/asm/mmu-book3e.h
+index cd4f04a..0cf1d11 100644
+--- a/arch/powerpc/include/asm/mmu-book3e.h
++++ b/arch/powerpc/include/asm/mmu-book3e.h
+@@ -228,7 +228,7 @@ extern unsigned int tlbcam_index;
+ typedef struct {
+ 	unsigned int	id;
+ 	unsigned int	active;
+-	unsigned long	vdso_base;
++	unsigned long	vdso;
+ #ifdef CONFIG_PPC_MM_SLICES
+ 	u64 low_slices_psize;   /* SLB page size encodings */
+ 	u64 high_slices_psize;  /* 4 bits per slice for now */
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 4eaab40..508b842 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -139,8 +139,8 @@ static inline void arch_unmap(struct mm_struct *mm,
+ 			      struct vm_area_struct *vma,
+ 			      unsigned long start, unsigned long end)
  {
--	gfp_t flags =  GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO;
-+	gfp_t flags =  GFP_KERNEL | __GFP_ZERO;
- 	return (pte_t *) __get_free_page(flags);
+-	if (start <= mm->context.vdso_base && mm->context.vdso_base < end)
+-		mm->context.vdso_base = 0;
++	if (start <= mm->context.vdso && mm->context.vdso < end)
++		mm->context.vdso = 0;
  }
  
-diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
-index f9924fbcfe42..fb95aed5f428 100644
---- a/arch/m68k/include/asm/mcf_pgalloc.h
-+++ b/arch/m68k/include/asm/mcf_pgalloc.h
-@@ -14,7 +14,7 @@ extern const char bad_pmd_string[];
- extern inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 	unsigned long address)
- {
--	unsigned long page = __get_free_page(GFP_DMA|__GFP_REPEAT);
-+	unsigned long page = __get_free_page(GFP_DMA);
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+diff --git a/arch/powerpc/include/asm/vdso.h b/arch/powerpc/include/asm/vdso.h
+index c53f5f6..fc90971 100644
+--- a/arch/powerpc/include/asm/vdso.h
++++ b/arch/powerpc/include/asm/vdso.h
+@@ -17,7 +17,7 @@
  
- 	if (!page)
- 		return NULL;
-@@ -51,7 +51,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t page,
- static inline struct page *pte_alloc_one(struct mm_struct *mm,
- 	unsigned long address)
- {
--	struct page *page = alloc_pages(GFP_DMA|__GFP_REPEAT, 0);
-+	struct page *page = alloc_pages(GFP_DMA, 0);
- 	pte_t *pte;
+ #ifndef __ASSEMBLY__
  
- 	if (!page)
-diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-index 24bcba496c75..c895b987202c 100644
---- a/arch/m68k/include/asm/motorola_pgalloc.h
-+++ b/arch/m68k/include/asm/motorola_pgalloc.h
-@@ -11,7 +11,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long ad
- {
- 	pte_t *pte;
+-/* Offsets relative to thread->vdso_base */
++/* Offsets relative to mm->context.vdso */
+ extern unsigned long vdso64_rt_sigtramp;
+ extern unsigned long vdso32_sigtramp;
+ extern unsigned long vdso32_rt_sigtramp;
+diff --git a/arch/powerpc/include/uapi/asm/elf.h b/arch/powerpc/include/uapi/asm/elf.h
+index c2d21d1..6cf0bbf 100644
+--- a/arch/powerpc/include/uapi/asm/elf.h
++++ b/arch/powerpc/include/uapi/asm/elf.h
+@@ -177,7 +177,7 @@ do {									\
+ 	NEW_AUX_ENT(AT_DCACHEBSIZE, dcache_bsize);			\
+ 	NEW_AUX_ENT(AT_ICACHEBSIZE, icache_bsize);			\
+ 	NEW_AUX_ENT(AT_UCACHEBSIZE, ucache_bsize);			\
+-	VDSO_AUX_ENT(AT_SYSINFO_EHDR, current->mm->context.vdso_base);	\
++	VDSO_AUX_ENT(AT_SYSINFO_EHDR, current->mm->context.vdso);	\
+ } while (0)
  
--	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	if (pte) {
- 		__flush_page_to_ram(pte);
- 		flush_tlb_kernel_page(pte);
-@@ -32,7 +32,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long addres
- 	struct page *page;
- 	pte_t *pte;
+ /* PowerPC64 relocations defined by the ABIs */
+diff --git a/arch/powerpc/kernel/signal_32.c b/arch/powerpc/kernel/signal_32.c
+index b6aa378..39c39d72 100644
+--- a/arch/powerpc/kernel/signal_32.c
++++ b/arch/powerpc/kernel/signal_32.c
+@@ -1000,9 +1000,9 @@ int handle_rt_signal32(struct ksignal *ksig, sigset_t *oldset,
+ 	/* Save user registers on the stack */
+ 	frame = &rt_sf->uc.uc_mcontext;
+ 	addr = frame;
+-	if (vdso32_rt_sigtramp && current->mm->context.vdso_base) {
++	if (vdso32_rt_sigtramp && current->mm->context.vdso) {
+ 		sigret = 0;
+-		tramp = current->mm->context.vdso_base + vdso32_rt_sigtramp;
++		tramp = current->mm->context.vdso + vdso32_rt_sigtramp;
+ 	} else {
+ 		sigret = __NR_rt_sigreturn;
+ 		tramp = (unsigned long) frame->tramp;
+@@ -1425,9 +1425,9 @@ int handle_signal32(struct ksignal *ksig, sigset_t *oldset, struct pt_regs *regs
+ 	    || __put_user(ksig->sig, &sc->signal))
+ 		goto badframe;
  
--	page = alloc_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, 0);
-+	page = alloc_pages(GFP_KERNEL|__GFP_ZERO, 0);
- 	if(!page)
- 		return NULL;
- 	if (!pgtable_page_ctor(page)) {
-diff --git a/arch/m68k/include/asm/sun3_pgalloc.h b/arch/m68k/include/asm/sun3_pgalloc.h
-index 0931388de47f..1901f61f926f 100644
---- a/arch/m68k/include/asm/sun3_pgalloc.h
-+++ b/arch/m68k/include/asm/sun3_pgalloc.h
-@@ -37,7 +37,7 @@ do {							\
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
- {
--	unsigned long page = __get_free_page(GFP_KERNEL|__GFP_REPEAT);
-+	unsigned long page = __get_free_page(GFP_KERNEL);
+-	if (vdso32_sigtramp && current->mm->context.vdso_base) {
++	if (vdso32_sigtramp && current->mm->context.vdso) {
+ 		sigret = 0;
+-		tramp = current->mm->context.vdso_base + vdso32_sigtramp;
++		tramp = current->mm->context.vdso + vdso32_sigtramp;
+ 	} else {
+ 		sigret = __NR_sigreturn;
+ 		tramp = (unsigned long) frame->mctx.tramp;
+diff --git a/arch/powerpc/kernel/signal_64.c b/arch/powerpc/kernel/signal_64.c
+index 2552079..4cb437f 100644
+--- a/arch/powerpc/kernel/signal_64.c
++++ b/arch/powerpc/kernel/signal_64.c
+@@ -751,8 +751,8 @@ int handle_rt_signal64(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs
+ 	current->thread.fp_state.fpscr = 0;
  
- 	if (!page)
- 		return NULL;
-@@ -49,7 +49,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 					unsigned long address)
- {
--        struct page *page = alloc_pages(GFP_KERNEL|__GFP_REPEAT, 0);
-+        struct page *page = alloc_pages(GFP_KERNEL, 0);
- 
- 	if (page == NULL)
- 		return NULL;
-diff --git a/arch/metag/include/asm/pgalloc.h b/arch/metag/include/asm/pgalloc.h
-index 3104df0a4822..c2caa1ee4360 100644
---- a/arch/metag/include/asm/pgalloc.h
-+++ b/arch/metag/include/asm/pgalloc.h
-@@ -42,8 +42,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
- {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_REPEAT |
--					      __GFP_ZERO);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
- 	return pte;
- }
- 
-@@ -51,7 +50,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 				      unsigned long address)
- {
- 	struct page *pte;
--	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO, 0);
-+	pte = alloc_pages(GFP_KERNEL  | __GFP_ZERO, 0);
- 	if (!pte)
- 		return NULL;
- 	if (!pgtable_page_ctor(pte)) {
-diff --git a/arch/microblaze/include/asm/pgalloc.h b/arch/microblaze/include/asm/pgalloc.h
-index 61436d69775c..7c89390c0c13 100644
---- a/arch/microblaze/include/asm/pgalloc.h
-+++ b/arch/microblaze/include/asm/pgalloc.h
-@@ -116,9 +116,9 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- 	struct page *ptepage;
- 
- #ifdef CONFIG_HIGHPTE
--	int flags = GFP_KERNEL | __GFP_HIGHMEM | __GFP_REPEAT;
-+	int flags = GFP_KERNEL | __GFP_HIGHMEM;
- #else
--	int flags = GFP_KERNEL | __GFP_REPEAT;
-+	int flags = GFP_KERNEL;
+ 	/* Set up to return from userspace. */
+-	if (vdso64_rt_sigtramp && current->mm->context.vdso_base) {
+-		regs->link = current->mm->context.vdso_base + vdso64_rt_sigtramp;
++	if (vdso64_rt_sigtramp && current->mm->context.vdso) {
++		regs->link = current->mm->context.vdso + vdso64_rt_sigtramp;
+ 	} else {
+ 		err |= setup_trampoline(__NR_rt_sigreturn, &frame->tramp[0]);
+ 		if (err)
+diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
+index def1b8b..e6e5f68 100644
+--- a/arch/powerpc/kernel/vdso.c
++++ b/arch/powerpc/kernel/vdso.c
+@@ -179,7 +179,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	vdso_base = VDSO32_MBASE;
  #endif
  
- 	ptepage = alloc_pages(flags, 0);
-diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
-index 4f4520e779a5..eb99fcc76088 100644
---- a/arch/microblaze/mm/pgtable.c
-+++ b/arch/microblaze/mm/pgtable.c
-@@ -239,8 +239,7 @@ __init_refok pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- {
- 	pte_t *pte;
- 	if (mem_init_done) {
--		pte = (pte_t *)__get_free_page(GFP_KERNEL |
--					__GFP_REPEAT | __GFP_ZERO);
-+		pte = (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
- 	} else {
- 		pte = (pte_t *)early_get_page();
- 		if (pte)
-diff --git a/arch/mn10300/mm/pgtable.c b/arch/mn10300/mm/pgtable.c
-index e77a7c728081..9577cf768875 100644
---- a/arch/mn10300/mm/pgtable.c
-+++ b/arch/mn10300/mm/pgtable.c
-@@ -63,7 +63,7 @@ void set_pmd_pfn(unsigned long vaddr, unsigned long pfn, pgprot_t flags)
+-	current->mm->context.vdso_base = 0;
++	current->mm->context.vdso = 0;
  
- pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
- {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL);
- 	if (pte)
- 		clear_page(pte);
- 	return pte;
-@@ -74,9 +74,9 @@ struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
- 	struct page *pte;
+ 	/* vDSO has a problem and was disabled, just don't "enable" it for the
+ 	 * process
+@@ -213,7 +213,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 	 * install_special_mapping or the perf counter mmap tracking code
+ 	 * will fail to recognise it as a vDSO (since arch_vma_name fails).
+ 	 */
+-	current->mm->context.vdso_base = vdso_base;
++	current->mm->context.vdso = vdso_base;
  
- #ifdef CONFIG_HIGHPTE
--	pte = alloc_pages(GFP_KERNEL|__GFP_HIGHMEM|__GFP_REPEAT, 0);
-+	pte = alloc_pages(GFP_KERNEL|__GFP_HIGHMEM, 0);
- #else
--	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT, 0);
-+	pte = alloc_pages(GFP_KERNEL, 0);
- #endif
- 	if (!pte)
- 		return NULL;
-diff --git a/arch/openrisc/include/asm/pgalloc.h b/arch/openrisc/include/asm/pgalloc.h
-index 21484e5b9e9a..87eebd185089 100644
---- a/arch/openrisc/include/asm/pgalloc.h
-+++ b/arch/openrisc/include/asm/pgalloc.h
-@@ -77,7 +77,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- 					 unsigned long address)
- {
- 	struct page *pte;
--	pte = alloc_pages(GFP_KERNEL|__GFP_REPEAT, 0);
-+	pte = alloc_pages(GFP_KERNEL, 0);
- 	if (!pte)
- 		return NULL;
- 	clear_page(page_address(pte));
-diff --git a/arch/openrisc/mm/ioremap.c b/arch/openrisc/mm/ioremap.c
-index 62b08ef392be..5b2a95116e8f 100644
---- a/arch/openrisc/mm/ioremap.c
-+++ b/arch/openrisc/mm/ioremap.c
-@@ -122,7 +122,7 @@ pte_t __init_refok *pte_alloc_one_kernel(struct mm_struct *mm,
- 	pte_t *pte;
+ 	/*
+ 	 * our vma flags don't have VM_WRITE so by default, the process isn't
+@@ -230,7 +230,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 				     VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+ 				     vdso_pagelist);
+ 	if (rc) {
+-		current->mm->context.vdso_base = 0;
++		current->mm->context.vdso = 0;
+ 		goto fail_mmapsem;
+ 	}
  
- 	if (likely(mem_init_done)) {
--		pte = (pte_t *) __get_free_page(GFP_KERNEL | __GFP_REPEAT);
-+		pte = (pte_t *) __get_free_page(GFP_KERNEL);
- 	} else {
- 		pte = (pte_t *) alloc_bootmem_low_pages(PAGE_SIZE);
- #if 0
-diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
-index f2fd327dce2e..52c3defb40c9 100644
---- a/arch/parisc/include/asm/pgalloc.h
-+++ b/arch/parisc/include/asm/pgalloc.h
-@@ -124,7 +124,7 @@ pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
- static inline pgtable_t
- pte_alloc_one(struct mm_struct *mm, unsigned long address)
+@@ -244,7 +244,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
+ 
+ const char *arch_vma_name(struct vm_area_struct *vma)
  {
--	struct page *page = alloc_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	struct page *page = alloc_page(GFP_KERNEL|__GFP_ZERO);
- 	if (!page)
- 		return NULL;
- 	if (!pgtable_page_ctor(page)) {
-@@ -137,7 +137,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
- static inline pte_t *
- pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
- {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	return pte;
+-	if (vma->vm_mm && vma->vm_start == vma->vm_mm->context.vdso_base)
++	if (vma->vm_mm && vma->vm_start == vma->vm_mm->context.vdso)
+ 		return "[vdso]";
+ 	return NULL;
  }
- 
-diff --git a/arch/powerpc/include/asm/pgalloc-64.h b/arch/powerpc/include/asm/pgalloc-64.h
-index 8d5fc3ac43da..5dcfde5dc673 100644
---- a/arch/powerpc/include/asm/pgalloc-64.h
-+++ b/arch/powerpc/include/asm/pgalloc-64.h
-@@ -88,7 +88,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
+diff --git a/arch/powerpc/perf/callchain.c b/arch/powerpc/perf/callchain.c
+index e04a675..04fc505 100644
+--- a/arch/powerpc/perf/callchain.c
++++ b/arch/powerpc/perf/callchain.c
+@@ -209,8 +209,8 @@ static int is_sigreturn_64_address(unsigned long nip, unsigned long fp)
  {
--	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO);
-+	return (pte_t *)__get_free_page(GFP_KERNEL | __GFP_ZERO);
+ 	if (nip == fp + offsetof(struct signal_frame_64, tramp))
+ 		return 1;
+-	if (vdso64_rt_sigtramp && current->mm->context.vdso_base &&
+-	    nip == current->mm->context.vdso_base + vdso64_rt_sigtramp)
++	if (vdso64_rt_sigtramp && current->mm->context.vdso &&
++	    nip == current->mm->context.vdso + vdso64_rt_sigtramp)
+ 		return 1;
+ 	return 0;
  }
- 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
-diff --git a/arch/powerpc/mm/pgtable_32.c b/arch/powerpc/mm/pgtable_32.c
-index bf7bf32b54f8..7f922f557936 100644
---- a/arch/powerpc/mm/pgtable_32.c
-+++ b/arch/powerpc/mm/pgtable_32.c
-@@ -84,7 +84,7 @@ __init_refok pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long add
- 	pte_t *pte;
- 
- 	if (slab_is_available()) {
--		pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+		pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	} else {
- 		pte = __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
- 		if (pte)
-@@ -97,7 +97,7 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
+@@ -368,8 +368,8 @@ static int is_sigreturn_32_address(unsigned int nip, unsigned int fp)
  {
- 	struct page *ptepage;
- 
--	gfp_t flags = GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO;
-+	gfp_t flags = GFP_KERNEL | __GFP_ZERO;
- 
- 	ptepage = alloc_pages(flags, 0);
- 	if (!ptepage)
-diff --git a/arch/powerpc/mm/pgtable_64.c b/arch/powerpc/mm/pgtable_64.c
-index 347106080bb1..03cc73e86675 100644
---- a/arch/powerpc/mm/pgtable_64.c
-+++ b/arch/powerpc/mm/pgtable_64.c
-@@ -386,8 +386,7 @@ static pte_t *get_from_cache(struct mm_struct *mm)
- static pte_t *__alloc_for_cache(struct mm_struct *mm, int kernel)
- {
- 	void *ret = NULL;
--	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK |
--				       __GFP_REPEAT | __GFP_ZERO);
-+	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO);
- 	if (!page)
- 		return NULL;
- 	if (!kernel && !pgtable_page_ctor(page)) {
-diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
-index a33673b3687d..f3f42c84c40f 100644
---- a/arch/sh/include/asm/pgalloc.h
-+++ b/arch/sh/include/asm/pgalloc.h
-@@ -34,7 +34,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
- {
--	return quicklist_alloc(QUICK_PT, GFP_KERNEL | __GFP_REPEAT, NULL);
-+	return quicklist_alloc(QUICK_PT, GFP_KERNEL, NULL);
+ 	if (nip == fp + offsetof(struct signal_frame_32, mctx.mc_pad))
+ 		return 1;
+-	if (vdso32_sigtramp && current->mm->context.vdso_base &&
+-	    nip == current->mm->context.vdso_base + vdso32_sigtramp)
++	if (vdso32_sigtramp && current->mm->context.vdso &&
++	    nip == current->mm->context.vdso + vdso32_sigtramp)
+ 		return 1;
+ 	return 0;
  }
- 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
-@@ -43,7 +43,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
- 	struct page *page;
- 	void *pg;
- 
--	pg = quicklist_alloc(QUICK_PT, GFP_KERNEL | __GFP_REPEAT, NULL);
-+	pg = quicklist_alloc(QUICK_PT, GFP_KERNEL, NULL);
- 	if (!pg)
- 		return NULL;
- 	page = virt_to_page(pg);
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index 09e838801e39..4b905ea1f1c8 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -2716,8 +2716,7 @@ void __flush_tlb_all(void)
- pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 			    unsigned long address)
- {
--	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK |
--				       __GFP_REPEAT | __GFP_ZERO);
-+	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO);
- 	pte_t *pte = NULL;
- 
- 	if (page)
-@@ -2729,8 +2728,7 @@ pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- pgtable_t pte_alloc_one(struct mm_struct *mm,
- 			unsigned long address)
- {
--	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK |
--				       __GFP_REPEAT | __GFP_ZERO);
-+	struct page *page = alloc_page(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO);
- 	if (!page)
- 		return NULL;
- 	if (!pgtable_page_ctor(page)) {
-diff --git a/arch/um/kernel/mem.c b/arch/um/kernel/mem.c
-index b2a2dff50b4e..e7437ec62710 100644
---- a/arch/um/kernel/mem.c
-+++ b/arch/um/kernel/mem.c
-@@ -204,7 +204,7 @@ pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
- {
- 	pte_t *pte;
- 
--	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_ZERO);
- 	return pte;
+@@ -379,8 +379,8 @@ static int is_rt_sigreturn_32_address(unsigned int nip, unsigned int fp)
+ 	if (nip == fp + offsetof(struct rt_signal_frame_32,
+ 				 uc.uc_mcontext.mc_pad))
+ 		return 1;
+-	if (vdso32_rt_sigtramp && current->mm->context.vdso_base &&
+-	    nip == current->mm->context.vdso_base + vdso32_rt_sigtramp)
++	if (vdso32_rt_sigtramp && current->mm->context.vdso &&
++	    nip == current->mm->context.vdso + vdso32_rt_sigtramp)
+ 		return 1;
+ 	return 0;
  }
- 
-@@ -212,7 +212,7 @@ pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address)
- {
- 	struct page *pte;
- 
--	pte = alloc_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
-+	pte = alloc_page(GFP_KERNEL|__GFP_ZERO);
- 	if (!pte)
- 		return NULL;
- 	if (!pgtable_page_ctor(pte)) {
-diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
-index bf7f8b55b0f9..574c23cf761a 100644
---- a/arch/x86/include/asm/pgalloc.h
-+++ b/arch/x86/include/asm/pgalloc.h
-@@ -81,7 +81,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
- 	struct page *page;
--	page = alloc_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO, 0);
-+	page = alloc_pages(GFP_KERNEL |  __GFP_ZERO, 0);
- 	if (!page)
- 		return NULL;
- 	if (!pgtable_pmd_page_ctor(page)) {
-@@ -125,7 +125,7 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
- 
- static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return (pud_t *)get_zeroed_page(GFP_KERNEL|__GFP_REPEAT);
-+	return (pud_t *)get_zeroed_page(GFP_KERNEL);
- }
- 
- static inline void pud_free(struct mm_struct *mm, pud_t *pud)
-diff --git a/arch/x86/xen/p2m.c b/arch/x86/xen/p2m.c
-index cab9f766bb06..dd2a49a8aacc 100644
---- a/arch/x86/xen/p2m.c
-+++ b/arch/x86/xen/p2m.c
-@@ -182,7 +182,7 @@ static void * __ref alloc_p2m_page(void)
- 	if (unlikely(!slab_is_available()))
- 		return alloc_bootmem_align(PAGE_SIZE, PAGE_SIZE);
- 
--	return (void *)__get_free_page(GFP_KERNEL | __GFP_REPEAT);
-+	return (void *)__get_free_page(GFP_KERNEL);
- }
- 
- static void __ref free_p2m_page(void *p)
-diff --git a/arch/xtensa/include/asm/pgalloc.h b/arch/xtensa/include/asm/pgalloc.h
-index d38eb9237e64..1065bc8bcae5 100644
---- a/arch/xtensa/include/asm/pgalloc.h
-+++ b/arch/xtensa/include/asm/pgalloc.h
-@@ -44,7 +44,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 	pte_t *ptep;
- 	int i;
- 
--	ptep = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT);
-+	ptep = (pte_t *)__get_free_page(GFP_KERNEL);
- 	if (!ptep)
- 		return NULL;
- 	for (i = 0; i < 1024; i++)
-diff --git a/drivers/block/aoe/aoecmd.c b/drivers/block/aoe/aoecmd.c
-index d597e432e195..ab19adb07a12 100644
---- a/drivers/block/aoe/aoecmd.c
-+++ b/drivers/block/aoe/aoecmd.c
-@@ -1750,7 +1750,7 @@ aoecmd_init(void)
- 	int ret;
- 
- 	/* get_zeroed_page returns page with ref count 1 */
--	p = (void *) get_zeroed_page(GFP_KERNEL | __GFP_REPEAT);
-+	p = (void *) get_zeroed_page(GFP_KERNEL);
- 	if (!p)
- 		return -ENOMEM;
- 	empty_page = virt_to_page(p);
 -- 
-2.8.0.rc3
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
 
