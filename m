@@ -1,64 +1,115 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 04/20] arm: get rid of superfluous __GFP_REPEAT
-Date: Thu, 28 Apr 2016 17:08:31 +0200
-Message-ID: <20160428150831.GK31489@dhcp22.suse.cz>
-References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
- <1461849846-27209-5-git-send-email-mhocko@kernel.org>
- <20160428145545.GN19428@n2100.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f43.google.com ([74.125.82.43]:37410 "EHLO
-	mail-wm0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751731AbcD1PIe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:08:34 -0400
-Content-Disposition: inline
-In-Reply-To: <20160428145545.GN19428@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+From: Christopher Covington <cov@codeaurora.org>
+Subject: [RFC 2/5] mm/powerpc: Make VDSO unmap generic
+Date: Thu, 28 Apr 2016 11:18:54 -0400
+Message-ID: <1461856737-17071-3-git-send-email-cov@codeaurora.org>
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Christopher Covington <cov@codeaurora.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu 28-04-16 15:55:45, Russell King - ARM Linux wrote:
-> On Thu, Apr 28, 2016 at 03:23:50PM +0200, Michal Hocko wrote:
-> > From: Michal Hocko <mhocko@suse.com>
-> > 
-> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
-> > around 2.6.12 it has been ignored for low order allocations.
-> > 
-> > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-> > this flag is for more than order-2. This means that this flag has never
-> > been actually useful here because it has always been used only for
-> > PAGE_ALLOC_COSTLY requests.
-> 
-> I'm unconvinced.  Back in 2013, I was seeing a lot of failures, so:
-> 
-> commit 8c65da6dc89ccb605d73773b1dd617e72982d971
-> Author: Russell King <rmk+kernel@arm.linux.org.uk>
-> Date:   Sat Nov 30 12:52:31 2013 +0000
-> 
->     ARM: pgd allocation: retry on failure
-> 
->     Make pgd allocation retry on failure; we really need this to succeed
->     otherwise fork() can trigger OOMs.
-> 
->     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> 
-> Maybe something has changed again in the MM layer which makes this flag
-> unnecessary again, and it was a temporary blip around that time, I don't
-> know.
+In order to support unmapping the VDSO on additional architectures, move the
+unmap code out from arch/powerpc. Architectures that wish to use the generic
+logic must have an unsigned long vdso in mm->context and can opt in by
+selecting CONFIG_ARCH_WANT_VDSO_MAP. This allows PowerPC to go back to using
+the generic MM hooks, instead of carrying its own.
 
-PAGE_ALLOC_COSTLY_ORDER is defined to order 3 since 2007 and even before
-the code was doing
--               if ((order <= 3) || (gfp_mask & __GFP_REPEAT))
-+               if ((order <= PAGE_ALLOC_COSTLY_ORDER) ||
-+                                               (gfp_mask & __GFP_REPEAT))
-                        do_retry = 1;
+Signed-off-by: Christopher Covington <cov@codeaurora.org>
+---
+ arch/powerpc/Kconfig                   |  1 +
+ arch/powerpc/include/asm/mmu_context.h | 35 +---------------------------------
+ include/asm-generic/mm_hooks.h         |  4 ++++
+ 3 files changed, 6 insertions(+), 34 deletions(-)
 
-So an order-2 allocation which is the case for this particular code now
-will trigger the OOM killer and fail only when the current task is
-killed by the OOM killer. Other than that order-2 is basically
-GFP_NOFAIL. Have a look at __alloc_pages_slowpath() for more details.
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 7cd32c0..f74320e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -160,6 +160,7 @@ config PPC
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
++	select ARCH_WANT_VDSO_MAP
+ 
+ config GENERIC_CSUM
+ 	def_bool CPU_LITTLE_ENDIAN
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 508b842..3e51842 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -8,6 +8,7 @@
+ #include <linux/spinlock.h>
+ #include <asm/mmu.h>	
+ #include <asm/cputable.h>
++#include <asm-generic/mm_hooks.h>
+ #include <asm/cputhreads.h>
+ 
+ /*
+@@ -126,39 +127,5 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
+ #endif
+ }
+ 
+-static inline void arch_dup_mmap(struct mm_struct *oldmm,
+-				 struct mm_struct *mm)
+-{
+-}
+-
+-static inline void arch_exit_mmap(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void arch_unmap(struct mm_struct *mm,
+-			      struct vm_area_struct *vma,
+-			      unsigned long start, unsigned long end)
+-{
+-	if (start <= mm->context.vdso && mm->context.vdso < end)
+-		mm->context.vdso = 0;
+-}
+-
+-static inline void arch_bprm_mm_init(struct mm_struct *mm,
+-				     struct vm_area_struct *vma)
+-{
+-}
+-
+-static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+-		bool write, bool execute, bool foreign)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index cc5d9a14..6645116 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -19,6 +19,10 @@ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
++#ifdef CONFIG_ARCH_WANT_VDSO_MAP
++	if (start <= mm->context.vdso && mm->context.vdso < end)
++		mm->context.vdso = 0;
++#endif  /* CONFIG_ARCH_WANT_VDSO_MAP */
+ }
+ 
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
 -- 
-Michal Hocko
-SUSE Labs
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
