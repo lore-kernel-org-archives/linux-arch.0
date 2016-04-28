@@ -1,98 +1,44 @@
-From: Christopher Covington <cov@codeaurora.org>
-Subject: [RFC 3/5] mm/powerpc: Make VDSO remap generic
-Date: Thu, 28 Apr 2016 11:18:55 -0400
-Message-ID: <1461856737-17071-4-git-send-email-cov@codeaurora.org>
-References: <20151202121918.GA4523@arm.com>
- <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: Re: [PATCH 15/20] tile: get rid of superfluous __GFP_REPEAT
+Date: Thu, 28 Apr 2016 12:21:11 -0400
+Message-ID: <7390db4d-9035-6f09-8f0d-134d2bdeccf7@mellanox.com>
+References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
+ <1461849846-27209-16-git-send-email-mhocko@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+In-Reply-To: <1461849846-27209-16-git-send-email-mhocko@kernel.org>
 Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: Christopher Covington <cov@codeaurora.org>
+To: Michal Hocko <mhocko@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In order to support remapping the VDSO on additional architectures without
-duplicating code, move the remap code out from arch/powerpc. Architectures
-that wish to use the generic logic must have an unsigned long vdso in
-mm->context and can opt in by selecting CONFIG_ARCH_WANT_VDSO_MAP. This
-allows PowerPC to use mm-arch-hooks.h from include/asm-generic.
+On 4/28/2016 9:24 AM, Michal Hocko wrote:
+> From: Michal Hocko<mhocko@suse.com>
+>
+> __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> around 2.6.12 it has been ignored for low order allocations.
+>
+> pgtable_alloc_one uses __GFP_REPEAT flag for L2_USER_PGTABLE_ORDER but
+> the order is either 0 or 3 if L2_KERNEL_PGTABLE_SHIFT for HPAGE_SHIFT.
+> This means that this flag has never been actually useful here because it
+> has always been used only for PAGE_ALLOC_COSTLY requests.
+>
+> Cc: Chris Metcalf<cmetcalf@mellanox.com>
+> Cc:linux-arch@vger.kernel.org
+> Signed-off-by: Michal Hocko<mhocko@suse.com>
+> ---
+>   arch/tile/mm/pgtable.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
 
-Signed-off-by: Christopher Covington <cov@codeaurora.org>
----
- arch/powerpc/include/asm/Kbuild          |  1 +
- arch/powerpc/include/asm/mm-arch-hooks.h | 28 ----------------------------
- mm/mremap.c                              | 10 ++++++++--
- 3 files changed, 9 insertions(+), 30 deletions(-)
- delete mode 100644 arch/powerpc/include/asm/mm-arch-hooks.h
+This seems OK as far as I can tell from code review.
 
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index ab9f4e0..9dbb372 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -7,3 +7,4 @@ generic-y += mcs_spinlock.h
- generic-y += preempt.h
- generic-y += rwsem.h
- generic-y += vtime.h
-+generic-y += mm-arch-hooks.h
-diff --git a/arch/powerpc/include/asm/mm-arch-hooks.h b/arch/powerpc/include/asm/mm-arch-hooks.h
-deleted file mode 100644
-index ea6da89..0000000
---- a/arch/powerpc/include/asm/mm-arch-hooks.h
-+++ /dev/null
-@@ -1,28 +0,0 @@
--/*
-- * Architecture specific mm hooks
-- *
-- * Copyright (C) 2015, IBM Corporation
-- * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--
--#ifndef _ASM_POWERPC_MM_ARCH_HOOKS_H
--#define _ASM_POWERPC_MM_ARCH_HOOKS_H
--
--static inline void arch_remap(struct mm_struct *mm,
--			      unsigned long old_start, unsigned long old_end,
--			      unsigned long new_start, unsigned long new_end)
--{
--	/*
--	 * mremap() doesn't allow moving multiple vmas so we can limit the
--	 * check to old_start == vdso.
--	 */
--	if (old_start == mm->context.vdso)
--		mm->context.vdso = new_start;
--}
--#define arch_remap arch_remap
--
--#endif /* _ASM_POWERPC_MM_ARCH_HOOKS_H */
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 3fa0a467..59032b7 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -293,8 +293,14 @@ static unsigned long move_vma(struct vm_area_struct *vma,
- 		old_addr = new_addr;
- 		new_addr = err;
- 	} else {
--		arch_remap(mm, old_addr, old_addr + old_len,
--			   new_addr, new_addr + new_len);
-+#ifdef CONFIG_ARCH_WANT_VDSO_MAP
-+		/*
-+		 * mremap() doesn't allow moving multiple vmas so we can limit the
-+		 * check to old_addr == vdso.
-+		 */
-+		if (old_addr == mm->context.vdso)
-+			mm->context.vdso = new_addr;
-+#endif  /* CONFIG_ARCH_WANT_VDSO_MAP */
- 	}
- 
- 	/* Conceal VM_ACCOUNT so old reservation is not undone */
+Acked-by: Chris Metcalf <cmetcalf@mellanox.com> [for tile]
+
 -- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
