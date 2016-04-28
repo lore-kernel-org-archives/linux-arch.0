@@ -1,31 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:36713 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753217AbcD1PUX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:23 -0400
-From: Christopher Covington <cov@codeaurora.org>
-Subject: VDSO unmap and remap support for additional architectures
-Date: Thu, 28 Apr 2016 11:18:52 -0400
-Message-ID: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
-In-Reply-To: <20151202121918.GA4523@arm.com>
-References: <20151202121918.GA4523@arm.com>
+Received: from mail-db3on0064.outbound.protection.outlook.com ([157.55.234.64]:21632
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753028AbcD1QV3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Apr 2016 12:21:29 -0400
+Subject: Re: [PATCH 15/20] tile: get rid of superfluous __GFP_REPEAT
+References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
+ <1461849846-27209-16-git-send-email-mhocko@kernel.org>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <7390db4d-9035-6f09-8f0d-134d2bdeccf7@mellanox.com>
+Date: Thu, 28 Apr 2016 12:21:11 -0400
+MIME-Version: 1.0
+In-Reply-To: <1461849846-27209-16-git-send-email-mhocko@kernel.org>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20160428151852.SHaFJhnERkxMmpqupy442j2yYUmnZqvy6B24zPT9BE8@z>
+To: Michal Hocko <mhocko@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
+Message-ID: <20160428162111.tsPBHrE6tSwfYVTCJojpD7XY3CAksZ1y4KplnoPMWAw@z>
 
-Please take a look at the following prototype of sharing the PowerPC
-VDSO unmap and remap code with other architectures. I've only hooked
-up arm64 to begin with. If folks think this is a reasonable approach I
-can work on 32 bit ARM as well. Not hearing back from an earlier
-request for guidance [1], I simply dove in and started hacking.
-Laurent's test case [2][3] is a compelling illustration of whether VDSO
-remap works or not on a given architecture.
+On 4/28/2016 9:24 AM, Michal Hocko wrote:
+> From: Michal Hocko<mhocko@suse.com>
+>
+> __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> around 2.6.12 it has been ignored for low order allocations.
+>
+> pgtable_alloc_one uses __GFP_REPEAT flag for L2_USER_PGTABLE_ORDER but
+> the order is either 0 or 3 if L2_KERNEL_PGTABLE_SHIFT for HPAGE_SHIFT.
+> This means that this flag has never been actually useful here because it
+> has always been used only for PAGE_ALLOC_COSTLY requests.
+>
+> Cc: Chris Metcalf<cmetcalf@mellanox.com>
+> Cc:linux-arch@vger.kernel.org
+> Signed-off-by: Michal Hocko<mhocko@suse.com>
+> ---
+>   arch/tile/mm/pgtable.c | 2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
 
-1. https://lkml.org/lkml/2016/3/2/225
-2. https://lists.openvz.org/pipermail/criu/2015-March/019161.html
-3. http://lists.openvz.org/pipermail/criu/attachments/20150318/f02ed9ea/attachment.bin
+This seems OK as far as I can tell from code review.
 
-Thanks,
-Christopher Covington
+Acked-by: Chris Metcalf <cmetcalf@mellanox.com> [for tile]
+
+-- 
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
 
