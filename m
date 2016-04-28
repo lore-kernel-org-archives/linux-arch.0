@@ -1,31 +1,40 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 04/16] rtc: sh: provide rtc_class_ops directly
-Date: Thu, 28 Apr 2016 11:38:47 +0200
-Message-ID: <5905519.cjzepiYx4I@wuerfel>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de> <20160427232122.GW21636@brightrain.aerifal.cx> <2582931.5Q3899gsIm@wuerfel>
+Subject: Re: [PATCH v3 13/16] char/genrtc: remove powerpc support
+Date: Thu, 28 Apr 2016 11:39:56 +0200
+Message-ID: <2182936.7ADRRgWoa5@wuerfel>
+References: <1461796470-1291527-1-git-send-email-arnd@arndb.de> <1461796470-1291527-14-git-send-email-arnd@arndb.de> <CAMuHMdUhydMDeQ=ciVFgjBcjnCD_q2qU0F0gUP28U9=EcH2ZRQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <2582931.5Q3899gsIm@wuerfel>
+In-Reply-To: <CAMuHMdUhydMDeQ=ciVFgjBcjnCD_q2qU0F0gUP28U9=EcH2ZRQ@mail.gmail.com>
 Sender: linux-alpha-owner@vger.kernel.org
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Rich Felker <dalias@libc.org>, linux-arch@vger.kernel.org, a.zummo@towertech.it, rtc-linux@googlegroups.com, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, deller@gmx.de, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com, linux-m68k@lists.linux-m68k.org, geert@linux-m68k.org, Alexandre Belloni <alexandre.belloni@free-electrons.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 28 April 2016 11:08:41 Arnd Bergmann wrote:
-> I only see two of them anyway (dreamcast and sh03), so that should
-> be easy enough to do. For instance in arch/sh/boards/mach-sh03/rtc.c,
-> the sh03_time_init() function should register a platform driver,
-> whose probe function calls devm_rtc_device_register() to register
-> with the rtc subsystem. Then you move the entire file to drivers/rtc/
-> and change the callers of sh03_time_init() to create the device
-> manually (for the classic board file) or drop it (for DT).
+On Thursday 28 April 2016 09:25:25 Geert Uytterhoeven wrote:
+> On Thu, Apr 28, 2016 at 12:34 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > --- a/arch/powerpc/platforms/Kconfig
+> > +++ b/arch/powerpc/platforms/Kconfig
+> > @@ -321,6 +321,17 @@ config OF_RTC
+> >           Uses information from the OF or flattened device tree to instantiate
+> >           platform devices for direct mapped RTC chips like the DS1742 or DS1743.
+> >
+> > +config GEN_RTC
+> > +       bool "Use the platform RTC operations from user space"
+> > +       select RTC_CLASS
+> > +       select RTC_DRV_GENERIC
+> > +       help
+> > +         This option provides backwards compatibility with the old gen_rtc.ko
+> > +         module that was traditionally used for old PowerPC machines.
+> > +         Platforms should migrate to enabling the RTC_DRV_GENERIC by hand
+> > +         replacing changing their get_rtc_time/set_rtc_time callbacks with
+> 
+> Drop "changing".
+> 
+> 
 
-Just FYI:
-
-Another look at the sh03_rtc_settimeofday function shows that it's
-always been wrong: unlike the set_mmss() function it calls, it should
-set all the time fields, not just minutes and seconds.
+done, thanks!
 
 	Arnd
