@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:37148 "EHLO
+Received: from smtp.codeaurora.org ([198.145.29.96]:36883 "EHLO
 	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753041AbcD1PUo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:44 -0400
+	with ESMTP id S1753285AbcD1PUn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 11:20:43 -0400
 From: Christopher Covington <cov@codeaurora.org>
-Subject: [RFC 5/5] arm64: Gain VDSO unmap and remap powers
-Date: Thu, 28 Apr 2016 11:18:57 -0400
-Message-ID: <1461856737-17071-6-git-send-email-cov@codeaurora.org>
+Subject: [RFC 2/5] mm/powerpc: Make VDSO unmap generic
+Date: Thu, 28 Apr 2016 11:18:54 -0400
+Message-ID: <1461856737-17071-3-git-send-email-cov@codeaurora.org>
 In-Reply-To: <1461856737-17071-1-git-send-email-cov@codeaurora.org>
 References: <20151202121918.GA4523@arm.com>
  <1461856737-17071-1-git-send-email-cov@codeaurora.org>
@@ -14,32 +14,100 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: Christopher Covington <cov@codeaurora.org>
-Message-ID: <20160428151857.zzPKp90Veowncqu5rSGr8MKwf-Xp-rmbcLtajhFEwmk@z>
+Message-ID: <20160428151854.8NuAMhCFLc7jiu8BafHsQXdRcNeyt45clL1ZOVq86hk@z>
 
-Checkpoint/Restore In Userspace (CRIU) must be able to remap and unmap the
-Virtual Dynamic Shared Object (VDSO) to be able to handle the changing
-addresses that result from address space layout randomization. Now that the
-support for this originally written for PowerPC has been moved to a generic
-location and arm64 has adopted unsigned long for the type of mm->context.vdso,
-simply opt-in to VDSO unmap and remap support.
+In order to support unmapping the VDSO on additional architectures, move the
+unmap code out from arch/powerpc. Architectures that wish to use the generic
+logic must have an unsigned long vdso in mm->context and can opt in by
+selecting CONFIG_ARCH_WANT_VDSO_MAP. This allows PowerPC to go back to using
+the generic MM hooks, instead of carrying its own.
 
 Signed-off-by: Christopher Covington <cov@codeaurora.org>
 ---
- arch/arm64/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+ arch/powerpc/Kconfig                   |  1 +
+ arch/powerpc/include/asm/mmu_context.h | 35 +---------------------------------
+ include/asm-generic/mm_hooks.h         |  4 ++++
+ 3 files changed, 6 insertions(+), 34 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 4f43622..cbdce39 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -14,6 +14,7 @@ config ARM64
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
- 	select ARCH_WANT_FRAME_POINTERS
-+	select ARCH_WANT_VDSO_MAP
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 7cd32c0..f74320e 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -160,6 +160,7 @@ config PPC
+ 	select HAVE_ARCH_SECCOMP_FILTER
  	select ARCH_HAS_UBSAN_SANITIZE_ALL
- 	select ARM_AMBA
- 	select ARM_ARCH_TIMER
+ 	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
++	select ARCH_WANT_VDSO_MAP
+ 
+ config GENERIC_CSUM
+ 	def_bool CPU_LITTLE_ENDIAN
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 508b842..3e51842 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -8,6 +8,7 @@
+ #include <linux/spinlock.h>
+ #include <asm/mmu.h>	
+ #include <asm/cputable.h>
++#include <asm-generic/mm_hooks.h>
+ #include <asm/cputhreads.h>
+ 
+ /*
+@@ -126,39 +127,5 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
+ #endif
+ }
+ 
+-static inline void arch_dup_mmap(struct mm_struct *oldmm,
+-				 struct mm_struct *mm)
+-{
+-}
+-
+-static inline void arch_exit_mmap(struct mm_struct *mm)
+-{
+-}
+-
+-static inline void arch_unmap(struct mm_struct *mm,
+-			      struct vm_area_struct *vma,
+-			      unsigned long start, unsigned long end)
+-{
+-	if (start <= mm->context.vdso && mm->context.vdso < end)
+-		mm->context.vdso = 0;
+-}
+-
+-static inline void arch_bprm_mm_init(struct mm_struct *mm,
+-				     struct vm_area_struct *vma)
+-{
+-}
+-
+-static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
+-		bool write, bool execute, bool foreign)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+-
+-static inline bool arch_pte_access_permitted(pte_t pte, bool write)
+-{
+-	/* by default, allow everything */
+-	return true;
+-}
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
+index cc5d9a14..6645116 100644
+--- a/include/asm-generic/mm_hooks.h
++++ b/include/asm-generic/mm_hooks.h
+@@ -19,6 +19,10 @@ static inline void arch_unmap(struct mm_struct *mm,
+ 			struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end)
+ {
++#ifdef CONFIG_ARCH_WANT_VDSO_MAP
++	if (start <= mm->context.vdso && mm->context.vdso < end)
++		mm->context.vdso = 0;
++#endif  /* CONFIG_ARCH_WANT_VDSO_MAP */
+ }
+ 
+ static inline void arch_bprm_mm_init(struct mm_struct *mm,
 -- 
 Qualcomm Innovation Center, Inc.
 Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
