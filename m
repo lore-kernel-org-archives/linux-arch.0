@@ -1,64 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:32886 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752321AbcD1NYR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:17 -0400
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36451 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751837AbcD1NYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:16 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 04/20] arm: get rid of superfluous __GFP_REPEAT
-Date: Thu, 28 Apr 2016 15:23:50 +0200
-Message-ID: <1461849846-27209-5-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 03/20] x86/efi: get rid of superfluous __GFP_REPEAT
+Date: Thu, 28 Apr 2016 15:23:49 +0200
+Message-ID: <1461849846-27209-4-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org
-Message-ID: <20160428132350.NMKYyMBcSCv_aHg5gWN-HXVWbRJTqLXnqWNCgGZhMXE@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org, Matt Fleming <matt@codeblueprint.co.uk>
+Message-ID: <20160428132349._TL1hNtF_IePcPdhKhR9lklYRpxiI7_UTPdefL2dqkw@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-this flag is for more than order-2. This means that this flag has never
-been actually useful here because it has always been used only for
-PAGE_ALLOC_COSTLY requests.
+efi_alloc_page_tables uses __GFP_REPEAT but it allocates an order-0
+page. This means that this flag has never been actually useful here
+because it has always been used only for PAGE_ALLOC_COSTLY requests.
 
-Cc: Russell King <linux@arm.linux.org.uk>
 Cc: linux-arch@vger.kernel.org
+Acked-by: Matt Fleming <matt@codeblueprint.co.uk>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/arm/include/asm/pgalloc.h | 2 +-
- arch/arm/mm/pgd.c              | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/platform/efi/efi_64.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
-index 20febb368844..b2902a5cd780 100644
---- a/arch/arm/include/asm/pgalloc.h
-+++ b/arch/arm/include/asm/pgalloc.h
-@@ -57,7 +57,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
- extern pgd_t *pgd_alloc(struct mm_struct *mm);
- extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 49e4dd4a1f58..a7ee3f08074f 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -141,7 +141,7 @@ int __init efi_alloc_page_tables(void)
+ 	if (efi_enabled(EFI_OLD_MEMMAP))
+ 		return 0;
  
--#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
-+#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
- 
- static inline void clean_pte_table(pte_t *pte)
- {
-diff --git a/arch/arm/mm/pgd.c b/arch/arm/mm/pgd.c
-index b8d477321730..c1c1a5c67da1 100644
---- a/arch/arm/mm/pgd.c
-+++ b/arch/arm/mm/pgd.c
-@@ -23,7 +23,7 @@
- #define __pgd_alloc()	kmalloc(PTRS_PER_PGD * sizeof(pgd_t), GFP_KERNEL)
- #define __pgd_free(pgd)	kfree(pgd)
- #else
--#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, 2)
-+#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL, 2)
- #define __pgd_free(pgd)	free_pages((unsigned long)pgd, 2)
- #endif
- 
+-	gfp_mask = GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO;
++	gfp_mask = GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO;
+ 	efi_pgd = (pgd_t *)__get_free_page(gfp_mask);
+ 	if (!efi_pgd)
+ 		return -ENOMEM;
 -- 
 2.8.0.rc3
 
