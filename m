@@ -1,60 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:36460 "EHLO
-	mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751578AbcD1NYV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:21 -0400
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36436 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751731AbcD1NYP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:15 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/20] score: get rid of superfluous __GFP_REPEAT
-Date: Thu, 28 Apr 2016 15:23:56 +0200
-Message-ID: <1461849846-27209-11-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 02/20] x86: get rid of superfluous __GFP_REPEAT
+Date: Thu, 28 Apr 2016 15:23:48 +0200
+Message-ID: <1461849846-27209-3-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20160428132356.S9jLWWHZeG4moqJnNPNWymlTq8WnR_XnOqMcvkscwTc@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160428132348.k9kR9nZj5V37ZnqE8l0eFkR7pH9RgxsNoQsVm6vCZbE@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pte_alloc_one{_kernel} allocate PTE_ORDER which is 0. This means that
-this flag has never been actually useful here because it has always been
-used only for PAGE_ALLOC_COSTLY requests.
+PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses this
+flag is for more than order-0. This means that this flag has never
+been actually useful here because it has always been used only for
+PAGE_ALLOC_COSTLY requests.
 
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andy Lutomirski <luto@kernel.org>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/score/include/asm/pgalloc.h | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/x86/kernel/espfix_64.c | 2 +-
+ arch/x86/mm/pgtable.c       | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/score/include/asm/pgalloc.h b/arch/score/include/asm/pgalloc.h
-index 2e067657db98..49b012d78c1a 100644
---- a/arch/score/include/asm/pgalloc.h
-+++ b/arch/score/include/asm/pgalloc.h
-@@ -42,8 +42,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- {
- 	pte_t *pte;
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 4d38416e2a7f..04f89caef9c4 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -57,7 +57,7 @@
+ # error "Need more than one PGD for the ESPFIX hack"
+ #endif
  
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
--					PTE_ORDER);
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+-#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
  
- 	return pte;
- }
-@@ -53,7 +52,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- {
- 	struct page *pte;
+ /* This contains the *bottom* address of the espfix stack */
+ DEFINE_PER_CPU_READ_MOSTLY(unsigned long, espfix_stack);
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index 4eb287e25043..aa0ff4b02a96 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -6,7 +6,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/mtrr.h>
  
--	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
-+	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
- 	if (!pte)
- 		return NULL;
- 	clear_highpage(pte);
+-#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO
++#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO
+ 
+ #ifdef CONFIG_HIGHPTE
+ #define PGALLOC_USER_GFP __GFP_HIGHMEM
 -- 
 2.8.0.rc3
 
