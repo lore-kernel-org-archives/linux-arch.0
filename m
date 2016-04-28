@@ -1,61 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:37763 "EHLO
-	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752832AbcD1NYX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:23 -0400
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:35783 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752661AbcD1NY0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 09:24:26 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 12/20] sparc: get rid of superfluous __GFP_REPEAT
-Date: Thu, 28 Apr 2016 15:23:58 +0200
-Message-ID: <1461849846-27209-13-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 16/20] unicore32: get rid of superfluous __GFP_REPEAT
+Date: Thu, 28 Apr 2016 15:24:02 +0200
+Message-ID: <1461849846-27209-17-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
-Message-ID: <20160428132358.OqjwX2kSwKhInIVH92E1fnlbLwYTwi7VCR2t9UpJ9jc@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org
+Message-ID: <20160428132402.0zTwobQmZ9J1_sBMExzIaYYdfLquxbANu_MH0A9Daoc@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-{pud,pmd}_alloc_one is using __GFP_REPEAT but it always allocates from
-pgtable_cache which is initialzed to PAGE_SIZE objects. This means that
-this flag has never been actually useful here because it has always been
-used only for PAGE_ALLOC_COSTLY requests.
+PGALLOC_GFP uses __GFP_REPEAT but it is only used in pte_alloc_one,
+pte_alloc_one_kernel which does order-0 request.  This means that this
+flag has never been actually useful here because it has always been used
+only for PAGE_ALLOC_COSTLY requests.
 
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/sparc/include/asm/pgalloc_64.h | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ arch/unicore32/include/asm/pgalloc.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
-index 5e3187185b4a..3529f1378cd8 100644
---- a/arch/sparc/include/asm/pgalloc_64.h
-+++ b/arch/sparc/include/asm/pgalloc_64.h
-@@ -41,8 +41,7 @@ static inline void __pud_populate(pud_t *pud, pmd_t *pmd)
+diff --git a/arch/unicore32/include/asm/pgalloc.h b/arch/unicore32/include/asm/pgalloc.h
+index 2e02d1356fdf..26775793c204 100644
+--- a/arch/unicore32/include/asm/pgalloc.h
++++ b/arch/unicore32/include/asm/pgalloc.h
+@@ -28,7 +28,7 @@ extern void free_pgd_slow(struct mm_struct *mm, pgd_t *pgd);
+ #define pgd_alloc(mm)			get_pgd_slow(mm)
+ #define pgd_free(mm, pgd)		free_pgd_slow(mm, pgd)
  
- static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return kmem_cache_alloc(pgtable_cache,
--				GFP_KERNEL|__GFP_REPEAT);
-+	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
- }
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
  
- static inline void pud_free(struct mm_struct *mm, pud_t *pud)
-@@ -52,8 +51,7 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return kmem_cache_alloc(pgtable_cache,
--				GFP_KERNEL|__GFP_REPEAT);
-+	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
- }
- 
- static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ /*
+  * Allocate one PTE table.
 -- 
 2.8.0.rc3
 
