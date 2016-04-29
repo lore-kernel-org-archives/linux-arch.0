@@ -1,57 +1,113 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Fri, 29 Apr 2016 00:43:41 +0200
-Message-ID: <4271094.ei7kj5zJxn@wuerfel>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <2760348.qmm1L3yQch@wuerfel> <20160428222137.GB18227@yury-N73SV>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
+Date: Fri, 29 Apr 2016 03:17:43 -0400
+Message-ID: <20160429071743.GC11592@char.us.oracle.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20160428222137.GB18227@yury-N73SV>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Friday 29 April 2016 01:21:37 Yury Norov wrote:
-> index 1458ad7..410d817 100644
-> --- a/arch/arm64/kernel/sys_ilp32.c
-> +++ b/arch/arm64/kernel/sys_ilp32.c
-> @@ -17,6 +17,8 @@
->  * along with this program.  If not, see
->  * <http://www.gnu.org/licenses/>.
->  */
->     
-> +#define __SYSCALL_COMPAT
-> +
->  #include <linux/compiler.h>
->  #include <linux/errno.h>
->  #include <linux/fs.h>
-> @@ -48,13 +50,12 @@ asmlinkage long
->  ilp32_sys_rt_sigreturn_wrapper(void);
->    
->  #include <asm/syscall.h>
->      
-> -#undef __SYSCALL
-> -#undef __SC_COMP
-> -#undef __SC_WRAP
-> -#undef __SC_3264
-> -#undef __SC_COMP_3264
+On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
+> Since DMA addresses will effectively look like 48-bit addresses when the
+> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+> device performing the DMA does not support 48-bits. SWIOTLB will be
+> initialized to create un-encrypted bounce buffers for use by these devices.
+> 
+
+
+I presume the sme_me_mask does not use the lower 48 bits?
+
+
+..snip..
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index 7d56d1b..594dc65 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -12,6 +12,8 @@
 >  
-> -#define __SYSCALL_COMPAT
->  #define __SYSCALL(nr, sym)     [nr] = sym,
->  #define __SC_WRAP(nr, sym)     [nr] = compat_##sym,
->          
-> This patch makes gcc warn about redefinition.
-> 
-> arch/arm64/kernel/sys_ilp32.c:59:0: warning: "__SYSCALL" redefined
->  #define __SYSCALL(nr, sym) [nr] = sym,
->  ^
-> In file included from include/asm-generic/unistd.h:1:0,
-> 
+>  #include <linux/init.h>
+>  #include <linux/mm.h>
+> +#include <linux/dma-mapping.h>
+> +#include <linux/swiotlb.h>
+>  
+>  #include <asm/mem_encrypt.h>
+>  #include <asm/cacheflush.h>
+> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
+>  }
+>  
+>  /* Architecture __weak replacement functions */
+> +void __init mem_encrypt_init(void)
+> +{
+> +	if (!sme_me_mask)
+> +		return;
+> +
+> +	/* Make SWIOTLB use an unencrypted DMA area */
+> +	swiotlb_clear_encryption();
+> +}
+> +
+> +unsigned long swiotlb_get_me_mask(void)
+> +{
+> +	return sme_me_mask;
+> +}
+> +
+> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+> +{
+> +	sme_set_mem_dec(vaddr, size);
+> +}
+> +
+>  void __init *efi_me_early_memremap(resource_size_t paddr,
+>  				   unsigned long size)
+>  {
+> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+> index 017fced..121b9de 100644
+> --- a/include/linux/swiotlb.h
+> +++ b/include/linux/swiotlb.h
+> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
+>  extern unsigned long swiotlb_nr_tbl(void);
+>  unsigned long swiotlb_size_or_default(void);
+>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
+> +extern void __init swiotlb_clear_encryption(void);
+>  
+>  /*
+>   * Enumeration for sync targets
+> diff --git a/init/main.c b/init/main.c
+> index b3c6e36..1013d1c 100644
+> --- a/init/main.c
+> +++ b/init/main.c
+> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
+>  }
+>  #endif
+>  
+> +void __init __weak mem_encrypt_init(void)
+> +{
+> +}
+> +
+>  /*
+>   * Set up kernel memory allocators
+>   */
+> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
+>  	 */
+>  	locking_selftest();
+>  
+> +	mem_encrypt_init();
+> +
+>  #ifdef CONFIG_BLK_DEV_INITRD
+>  	if (initrd_start && !initrd_below_start_ok &&
+>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
 
-Ok, I think I see it now. Can you #undef the two symbols at the
-end of arch/arm64/include/uapi/asm/unistd.h or possibly
-include/uapi/asm-generic/unistd.h?
+What happens if devices use the bounce buffer before mem_encrypt_init()?
 
-	Arnd
+..snip..
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
