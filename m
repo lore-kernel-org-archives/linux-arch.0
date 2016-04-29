@@ -1,73 +1,125 @@
-From: Dmitry Safonov <dsafonov@virtuozzo.com>
-Subject: Re: VDSO unmap and remap support for additional architectures
-Date: Fri, 29 Apr 2016 16:55:03 +0300
-Message-ID: <572367B7.6030105@virtuozzo.com>
-References: <20151202121918.GA4523@arm.com>
- <1461856737-17071-1-git-send-email-cov@codeaurora.org>
- <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
- <57236003.5060804@codeaurora.org>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
+Date: Fri, 29 Apr 2016 10:12:45 -0500
+Message-ID: <572379ED.9050404@amd.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+ <20160429071743.GC11592@char.us.oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <57236003.5060804@codeaurora.org>
+In-Reply-To: <20160429071743.GC11592@char.us.oracle.com>
 Sender: owner-linux-mm@kvack.org
-To: Christopher Covington <cov@codeaurora.org>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 04/29/2016 04:22 PM, Christopher Covington wrote:
-> On 04/28/2016 02:53 PM, Andy Lutomirski wrote:
->> Also, at some point, possibly quite soon, x86 will want a way for
->> user code to ask the kernel to map a specific vdso variant at a specific
->> address. Could we perhaps add a new pair of syscalls:
+On 04/29/2016 02:17 AM, Konrad Rzeszutek Wilk wrote:
+> On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
+>> Since DMA addresses will effectively look like 48-bit addresses when the
+>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+>> device performing the DMA does not support 48-bits. SWIOTLB will be
+>> initialized to create un-encrypted bounce buffers for use by these devices.
 >>
->> struct vdso_info {
->>      unsigned long space_needed_before;
->>      unsigned long space_needed_after;
->>      unsigned long alignment;
->> };
->>
->> long vdso_get_info(unsigned int vdso_type, struct vdso_info *info);
->>
->> long vdso_remap(unsigned int vdso_type, unsigned long addr, unsigned int flags);
->>
->> #define VDSO_X86_I386 0
->> #define VDSO_X86_64 1
->> #define VDSO_X86_X32 2
->> // etc.
->>
->> vdso_remap will map the vdso of the chosen type such at
->> AT_SYSINFO_EHDR lines up with addr. It will use up to
->> space_needed_before bytes before that address and space_needed_after
->> after than address. It will also unmap the old vdso (or maybe only do
->> that if some flag is set).
->>
->> On x86, mremap is *not* sufficient for everything that's needed,
->> because some programs will need to change the vdso type.
-> I don't I understand. Why can't people just exec() the ELF type that
-> corresponds to the VDSO they want?
+> 
+> 
+> I presume the sme_me_mask does not use the lower 48 bits?
 
-I may say about my needs in it: to not lose all the existing
-information in application.
-Imagine you're restoring a container with 64-bit and 32-bit
-applications (in compatible mode). So you need somehow
-switch vdso type in restorer for a 32-bit application.
-Yes, you may exec() and then - all already restored application
-properties will got lost. You will need to transpher information
-about mappings, make protocol between restorer binary
-and main criu application, finally you'll end up with some
-really much more difficult architecture than it is now.
-And it'll be slower.
+The sme_me_mask will actually be bit 47. So, when applied, the address
+will become a 48-bit address.
 
-Also it's pretty logical: if one can switch between modes,
-why can't he change vdso mapping to mode he got to?
-(note: if the work about removing thread compatible flags
-will be done (on x86), there will not even be such a thing,
-as application mode - just difference on which syscalls it
-uses: compatible or native).
+> 
+> 
+> ..snip..
+>> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+>> index 7d56d1b..594dc65 100644
+>> --- a/arch/x86/mm/mem_encrypt.c
+>> +++ b/arch/x86/mm/mem_encrypt.c
+>> @@ -12,6 +12,8 @@
+>>  
+>>  #include <linux/init.h>
+>>  #include <linux/mm.h>
+>> +#include <linux/dma-mapping.h>
+>> +#include <linux/swiotlb.h>
+>>  
+>>  #include <asm/mem_encrypt.h>
+>>  #include <asm/cacheflush.h>
+>> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
+>>  }
+>>  
+>>  /* Architecture __weak replacement functions */
+>> +void __init mem_encrypt_init(void)
+>> +{
+>> +	if (!sme_me_mask)
+>> +		return;
+>> +
+>> +	/* Make SWIOTLB use an unencrypted DMA area */
+>> +	swiotlb_clear_encryption();
+>> +}
+>> +
+>> +unsigned long swiotlb_get_me_mask(void)
+>> +{
+>> +	return sme_me_mask;
+>> +}
+>> +
+>> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+>> +{
+>> +	sme_set_mem_dec(vaddr, size);
+>> +}
+>> +
+>>  void __init *efi_me_early_memremap(resource_size_t paddr,
+>>  				   unsigned long size)
+>>  {
+>> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+>> index 017fced..121b9de 100644
+>> --- a/include/linux/swiotlb.h
+>> +++ b/include/linux/swiotlb.h
+>> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
+>>  extern unsigned long swiotlb_nr_tbl(void);
+>>  unsigned long swiotlb_size_or_default(void);
+>>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
+>> +extern void __init swiotlb_clear_encryption(void);
+>>  
+>>  /*
+>>   * Enumeration for sync targets
+>> diff --git a/init/main.c b/init/main.c
+>> index b3c6e36..1013d1c 100644
+>> --- a/init/main.c
+>> +++ b/init/main.c
+>> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
+>>  }
+>>  #endif
+>>  
+>> +void __init __weak mem_encrypt_init(void)
+>> +{
+>> +}
+>> +
+>>  /*
+>>   * Set up kernel memory allocators
+>>   */
+>> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
+>>  	 */
+>>  	locking_selftest();
+>>  
+>> +	mem_encrypt_init();
+>> +
+>>  #ifdef CONFIG_BLK_DEV_INITRD
+>>  	if (initrd_start && !initrd_below_start_ok &&
+>>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+> 
+> What happens if devices use the bounce buffer before mem_encrypt_init()?
+
+The call to mem_encrypt_init is early in the boot process, I may have
+overlooked something, but what devices would be performing DMA before
+this?
 
 Thanks,
-     Dmitry Safonov
+Tom
+
+> 
+> ..snip..
+> 
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
