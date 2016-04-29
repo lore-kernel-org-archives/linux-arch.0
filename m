@@ -1,88 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:35364 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752501AbcD2VaG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2016 17:30:06 -0400
-Date: Fri, 29 Apr 2016 23:29:50 +0200
-From: Rabin Vincent <rabin@rab.in>
-Subject: Re: [PATCH] tracing: add support for tracing MMIO helpers
-Message-ID: <20160429212950.GA3846@debian>
-References: <1461697482-32406-1-git-send-email-rabin@rab.in>
- <6253918.VUpbMrMy7R@wuerfel>
+Received: from mail-bn1on0054.outbound.protection.outlook.com ([157.56.110.54]:15494
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752613AbcD2XuI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Apr 2016 19:50:08 -0400
+Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+ <20160429071743.GC11592@char.us.oracle.com> <572379ED.9050404@amd.com>
+ <20160429162757.GA1191@char.us.oracle.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <5723F324.9040909@amd.com>
+Date: Fri, 29 Apr 2016 18:49:56 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6253918.VUpbMrMy7R@wuerfel>
+In-Reply-To: <20160429162757.GA1191@char.us.oracle.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20160429212950.7VqIyj_s0J75X3QnZ2F3VioxUlQY1PFAYGyD5jCq98E@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160429234956.vDvFYtjvrygDzTyIVHigNzVH4udUiqm06nujhtD5Ja4@z>
 
-On Tue, Apr 26, 2016 at 09:14:47PM +0200, Arnd Bergmann wrote:
-> On Tuesday 26 April 2016 21:04:42 Rabin Vincent wrote:
-> > The support is added via <asm-generic/io.h> and as such is only
-> > available on the archs which use that header.
+On 04/29/2016 11:27 AM, Konrad Rzeszutek Wilk wrote:
+> On Fri, Apr 29, 2016 at 10:12:45AM -0500, Tom Lendacky wrote:
+>> On 04/29/2016 02:17 AM, Konrad Rzeszutek Wilk wrote:
+>>> On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
+>>>> Since DMA addresses will effectively look like 48-bit addresses when the
+>>>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+>>>> device performing the DMA does not support 48-bits. SWIOTLB will be
+>>>> initialized to create un-encrypted bounce buffers for use by these devices.
+>>>>
+>>>
+>>>
+>>> I presume the sme_me_mask does not use the lower 48 bits?
+>>
+>> The sme_me_mask will actually be bit 47. So, when applied, the address
+>> will become a 48-bit address.
+>>
+>>>
+>>>
+>>> ..snip..
+>>>> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+>>>> index 7d56d1b..594dc65 100644
+>>>> --- a/arch/x86/mm/mem_encrypt.c
+>>>> +++ b/arch/x86/mm/mem_encrypt.c
+>>>> @@ -12,6 +12,8 @@
+>>>>  
+>>>>  #include <linux/init.h>
+>>>>  #include <linux/mm.h>
+>>>> +#include <linux/dma-mapping.h>
+>>>> +#include <linux/swiotlb.h>
+>>>>  
+>>>>  #include <asm/mem_encrypt.h>
+>>>>  #include <asm/cacheflush.h>
+>>>> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
+>>>>  }
+>>>>  
+>>>>  /* Architecture __weak replacement functions */
+>>>> +void __init mem_encrypt_init(void)
+>>>> +{
+>>>> +	if (!sme_me_mask)
+>>>> +		return;
+>>>> +
+>>>> +	/* Make SWIOTLB use an unencrypted DMA area */
+>>>> +	swiotlb_clear_encryption();
+>>>> +}
+>>>> +
+>>>> +unsigned long swiotlb_get_me_mask(void)
+>>>> +{
+>>>> +	return sme_me_mask;
+>>>> +}
+>>>> +
+>>>> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+>>>> +{
+>>>> +	sme_set_mem_dec(vaddr, size);
+>>>> +}
+>>>> +
+>>>>  void __init *efi_me_early_memremap(resource_size_t paddr,
+>>>>  				   unsigned long size)
+>>>>  {
+>>>> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+>>>> index 017fced..121b9de 100644
+>>>> --- a/include/linux/swiotlb.h
+>>>> +++ b/include/linux/swiotlb.h
+>>>> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
+>>>>  extern unsigned long swiotlb_nr_tbl(void);
+>>>>  unsigned long swiotlb_size_or_default(void);
+>>>>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
+>>>> +extern void __init swiotlb_clear_encryption(void);
+>>>>  
+>>>>  /*
+>>>>   * Enumeration for sync targets
+>>>> diff --git a/init/main.c b/init/main.c
+>>>> index b3c6e36..1013d1c 100644
+>>>> --- a/init/main.c
+>>>> +++ b/init/main.c
+>>>> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
+>>>>  }
+>>>>  #endif
+>>>>  
+>>>> +void __init __weak mem_encrypt_init(void)
+>>>> +{
+>>>> +}
+>>>> +
+>>>>  /*
+>>>>   * Set up kernel memory allocators
+>>>>   */
+>>>> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
+>>>>  	 */
+>>>>  	locking_selftest();
+>>>>  
+>>>> +	mem_encrypt_init();
+>>>> +
+>>>>  #ifdef CONFIG_BLK_DEV_INITRD
+>>>>  	if (initrd_start && !initrd_below_start_ok &&
+>>>>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+>>>
+>>> What happens if devices use the bounce buffer before mem_encrypt_init()?
+>>
+>> The call to mem_encrypt_init is early in the boot process, I may have
+>> overlooked something, but what devices would be performing DMA before
+>> this?
 > 
-> Why that limitation? I think only few architectures use it. Maybe
-> at least enable it for x86 as well?
-
-Seems to work to on x86 (and presumably other archs as well, not tested
-yet) to insert the include into linux/io.h instead of asm-generic/io.h.
-
+> I am not saying that you overlooked. Merely wondering if somebody re-orders these
+> calls what would happen. It maybe also good to have a comment right before
+> mem_encrpyt_init stating what will happen if the device does DMA before the function
+> is called.
 > 
-> > +/* This part must be outside protection */
-> > +#include <trace/define_trace.h>
-> > diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
-> > index e45db6b0d878..feca834436c5 100644
-> > --- a/kernel/trace/Kconfig
-> > +++ b/kernel/trace/Kconfig
-> > @@ -372,6 +372,22 @@ config STACK_TRACER
-> >  
-> >  	  Say N if unsure.
-> >  
-> > +config TRACE_MMIO_HELPERS
-> > +       bool "Support for tracing MMIO helpers"
-> > +       select GENERIC_TRACER
-> 
-> How about putting a whitelist of architectures here that are including
-> the necessary definitions? Or better, a HAVE_TRACE_MMIO_HELPERS
-> symbol that gets selected by architectures and that this depends on?
 
-If it works with linux/io.h we won't need to restrict it to specific
-archs, otherwise I'll add a symbol as you suggest.
+Ah, ok. Before mem_encrypt_init is called the bounce buffers will be
+marked as encrypted in the page tables. The use of the bounce buffers
+will not have the memory encryption bit as part of the DMA address so a
+device will DMA into memory in the clear. When the bounce buffer is
+copied to the original buffer it will be accessed by a virtual address
+that has the memory encryption bit set in the page tables. So the
+plaintext data that was DMA'd in will be decrypted resulting in invalid
+data in the destination buffer.
 
-> > +#define DEFINE_MMIO_RW_TRACE(c, type)					\
-> > +type read ## c ## _trace(const volatile void __iomem *addr,		\
-> > +		    const char *addrexp, bool relaxed,			\
-> > +		    unsigned long caller)				\
-> > +{									\
-> > +	type value;							\
-> > +									\
-> > +	if (relaxed)							\
-> > +		value = read ## c ## _relaxed_notrace(addr);		\
-> > +	else								\
-> > +		value = read ## c ## _notrace(addr);			\
-> > +									\
-> > +	trace_mmio_read(addr, addrexp, value,				\
-> > +			sizeof(value), relaxed, caller);		\
-> > +									\
-> > +	return value;							\
-> > +}									\
-> > +									\
-> 
-> We have a number of other accessors that are commonly used:
-> 
-> {ioread,iowrite}{8,16,32,64}{,_be}
+I'll be sure to add a comment before the call.
 
-I'll make the code handle these.
+Thanks,
+Tom
 
-> {in,out}{b,w,l,q}
-
-These are port-mapped IO accesors, aren't they?  They don't even take
-pointer arguments so mmio:* tracepoints don't seem appropriate for them?
-
-> {hi_lo_,lo_hi_}{read,write}q
-
-There's only a single definition of these and that is in terms of
-writel()/readl() so they should be coverd by the readl/writel case.
