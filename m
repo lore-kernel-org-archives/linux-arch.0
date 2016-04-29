@@ -1,72 +1,82 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
- (in entry.S) to use it
-Date: Fri, 29 Apr 2016 16:13:38 +0300
-Message-ID: <20160429131338.GB32007@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <2760348.qmm1L3yQch@wuerfel>
- <20160428222137.GB18227@yury-N73SV>
- <4271094.ei7kj5zJxn@wuerfel>
+From: Christopher Covington <cov@codeaurora.org>
+Subject: Re: VDSO unmap and remap support for additional architectures
+Date: Fri, 29 Apr 2016 09:22:11 -0400
+Message-ID: <57236003.5060804@codeaurora.org>
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+ <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0083.outbound.protection.outlook.com ([207.46.100.83]:64880
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753439AbcD2NOH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Apr 2016 09:14:07 -0400
-Content-Disposition: inline
-In-Reply-To: <4271094.ei7kj5zJxn@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.orgdsafonov@virtuozzo.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 29, 2016 at 12:43:41AM +0200, Arnd Bergmann wrote:
-> On Friday 29 April 2016 01:21:37 Yury Norov wrote:
-> > index 1458ad7..410d817 100644
-> > --- a/arch/arm64/kernel/sys_ilp32.c
-> > +++ b/arch/arm64/kernel/sys_ilp32.c
-> > @@ -17,6 +17,8 @@
-> >  * along with this program.  If not, see
-> >  * <http://www.gnu.org/licenses/>.
-> >  */
-> >     
-> > +#define __SYSCALL_COMPAT
-> > +
-> >  #include <linux/compiler.h>
-> >  #include <linux/errno.h>
-> >  #include <linux/fs.h>
-> > @@ -48,13 +50,12 @@ asmlinkage long
-> >  ilp32_sys_rt_sigreturn_wrapper(void);
-> >    
-> >  #include <asm/syscall.h>
-> >      
-> > -#undef __SYSCALL
-> > -#undef __SC_COMP
-> > -#undef __SC_WRAP
-> > -#undef __SC_3264
-> > -#undef __SC_COMP_3264
-> >  
-> > -#define __SYSCALL_COMPAT
-> >  #define __SYSCALL(nr, sym)     [nr] = sym,
-> >  #define __SC_WRAP(nr, sym)     [nr] = compat_##sym,
-> >          
-> > This patch makes gcc warn about redefinition.
-> > 
-> > arch/arm64/kernel/sys_ilp32.c:59:0: warning: "__SYSCALL" redefined
-> >  #define __SYSCALL(nr, sym) [nr] = sym,
-> >  ^
-> > In file included from include/asm-generic/unistd.h:1:0,
-> > 
+Hi Andy,
+
+On 04/28/2016 02:53 PM, Andy Lutomirski wrote:
+> On 04/28/2016 08:18 AM, Christopher Covington wrote:
+>> Please take a look at the following prototype of sharing the PowerPC
+>> VDSO unmap and remap code with other architectures. I've only hooked
+>> up arm64 to begin with. If folks think this is a reasonable approach I
+>> can work on 32 bit ARM as well. Not hearing back from an earlier
+>> request for guidance [1], I simply dove in and started hacking.
+>> Laurent's test case [2][3] is a compelling illustration of whether VDSO
+>> remap works or not on a given architecture.
 > 
-> Ok, I think I see it now. Can you #undef the two symbols at the
-> end of arch/arm64/include/uapi/asm/unistd.h
-
-I think it doesn't look better than what we have now, but not worse
-as well. If you like it, I'll change.
-
-> or possibly
-> include/uapi/asm-generic/unistd.h?
+> I think there's a much nicer way:
 > 
-> 	Arnd
+> https://lkml.kernel.org/r/1461584223-9418-1-git-send-email-dsafonov@virtuozzo.com
+> 
+> Could arm64 and ppc use this approach?  These arch_xyz hooks are gross.
+
+Thanks for the pointer. Any thoughts on how to keep essentially
+identical definitions of vdso_mremap from proliferating into every
+architecture and variant?
+
+> Also, at some point, possibly quite soon, x86 will want a way for
+> user code to ask the kernel to map a specific vdso variant at a specific
+> address. Could we perhaps add a new pair of syscalls:
+> 
+> struct vdso_info {
+>     unsigned long space_needed_before;
+>     unsigned long space_needed_after;
+>     unsigned long alignment;
+> };
+> 
+> long vdso_get_info(unsigned int vdso_type, struct vdso_info *info);
+> 
+> long vdso_remap(unsigned int vdso_type, unsigned long addr, unsigned int flags);
+> 
+> #define VDSO_X86_I386 0
+> #define VDSO_X86_64 1
+> #define VDSO_X86_X32 2
+> // etc.
+> 
+> vdso_remap will map the vdso of the chosen type such at
+> AT_SYSINFO_EHDR lines up with addr. It will use up to
+> space_needed_before bytes before that address and space_needed_after
+> after than address. It will also unmap the old vdso (or maybe only do
+> that if some flag is set).
+> 
+> On x86, mremap is *not* sufficient for everything that's needed,
+> because some programs will need to change the vdso type.
+
+I don't I understand. Why can't people just exec() the ELF type that
+corresponds to the VDSO they want?
+
+Thanks,
+Cov
+
+-- 
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
