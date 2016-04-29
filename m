@@ -1,69 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:38354 "EHLO
-	mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751215AbcD2Jly (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2016 05:41:54 -0400
-Date: Fri, 29 Apr 2016 11:41:52 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 04/20] arm: get rid of superfluous __GFP_REPEAT
-Message-ID: <20160429094152.GF21977@dhcp22.suse.cz>
-References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
- <1461849846-27209-5-git-send-email-mhocko@kernel.org>
- <20160428145545.GN19428@n2100.arm.linux.org.uk>
- <20160428150831.GK31489@dhcp22.suse.cz>
+Received: from smtp.codeaurora.org ([198.145.29.96]:53510 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753321AbcD2NWP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2016 09:22:15 -0400
+Subject: Re: VDSO unmap and remap support for additional architectures
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+ <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
+From: Christopher Covington <cov@codeaurora.org>
+Message-ID: <57236003.5060804@codeaurora.org>
+Date: Fri, 29 Apr 2016 09:22:11 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160428150831.GK31489@dhcp22.suse.cz>
+In-Reply-To: <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20160429094152.TAnlCIy3cnWe2ObxhdLZr1g1GFMwofuTyH_7eDjRF-A@z>
+To: Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Dmitry Safonov <dsafonov@virtuozzo.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.orgdsafonov@virtuozzo.com
+Message-ID: <20160429132211.KkbANDSJDwVeLZPathpikzrUbghXM1z1_uUlivtLj6M@z>
 
-On Thu 28-04-16 17:08:31, Michal Hocko wrote:
-> On Thu 28-04-16 15:55:45, Russell King - ARM Linux wrote:
-> > On Thu, Apr 28, 2016 at 03:23:50PM +0200, Michal Hocko wrote:
-> > > From: Michal Hocko <mhocko@suse.com>
-> > > 
-> > > __GFP_REPEAT has a rather weak semantic but since it has been introduced
-> > > around 2.6.12 it has been ignored for low order allocations.
-> > > 
-> > > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-> > > this flag is for more than order-2. This means that this flag has never
-> > > been actually useful here because it has always been used only for
-> > > PAGE_ALLOC_COSTLY requests.
-> > 
-> > I'm unconvinced.  Back in 2013, I was seeing a lot of failures, so:
-> > 
-> > commit 8c65da6dc89ccb605d73773b1dd617e72982d971
-> > Author: Russell King <rmk+kernel@arm.linux.org.uk>
-> > Date:   Sat Nov 30 12:52:31 2013 +0000
-> > 
-> >     ARM: pgd allocation: retry on failure
-> > 
-> >     Make pgd allocation retry on failure; we really need this to succeed
-> >     otherwise fork() can trigger OOMs.
-> > 
-> >     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> > 
-> > Maybe something has changed again in the MM layer which makes this flag
-> > unnecessary again, and it was a temporary blip around that time, I don't
-> > know.
-> 
-> PAGE_ALLOC_COSTLY_ORDER is defined to order 3 since 2007 and even before
-> the code was doing
-> -               if ((order <= 3) || (gfp_mask & __GFP_REPEAT))
-> +               if ((order <= PAGE_ALLOC_COSTLY_ORDER) ||
-> +                                               (gfp_mask & __GFP_REPEAT))
->                         do_retry = 1;
-> 
-> So an order-2 allocation which is the case for this particular code now
-> will trigger the OOM killer and fail only when the current task is
-> killed by the OOM killer. Other than that order-2 is basically
-> GFP_NOFAIL. Have a look at __alloc_pages_slowpath() for more details.
+Hi Andy,
 
-Does this explanation help?
+On 04/28/2016 02:53 PM, Andy Lutomirski wrote:
+> On 04/28/2016 08:18 AM, Christopher Covington wrote:
+>> Please take a look at the following prototype of sharing the PowerPC
+>> VDSO unmap and remap code with other architectures. I've only hooked
+>> up arm64 to begin with. If folks think this is a reasonable approach I
+>> can work on 32 bit ARM as well. Not hearing back from an earlier
+>> request for guidance [1], I simply dove in and started hacking.
+>> Laurent's test case [2][3] is a compelling illustration of whether VDSO
+>> remap works or not on a given architecture.
+> 
+> I think there's a much nicer way:
+> 
+> https://lkml.kernel.org/r/1461584223-9418-1-git-send-email-dsafonov@virtuozzo.com
+> 
+> Could arm64 and ppc use this approach?  These arch_xyz hooks are gross.
+
+Thanks for the pointer. Any thoughts on how to keep essentially
+identical definitions of vdso_mremap from proliferating into every
+architecture and variant?
+
+> Also, at some point, possibly quite soon, x86 will want a way for
+> user code to ask the kernel to map a specific vdso variant at a specific
+> address. Could we perhaps add a new pair of syscalls:
+> 
+> struct vdso_info {
+>     unsigned long space_needed_before;
+>     unsigned long space_needed_after;
+>     unsigned long alignment;
+> };
+> 
+> long vdso_get_info(unsigned int vdso_type, struct vdso_info *info);
+> 
+> long vdso_remap(unsigned int vdso_type, unsigned long addr, unsigned int flags);
+> 
+> #define VDSO_X86_I386 0
+> #define VDSO_X86_64 1
+> #define VDSO_X86_X32 2
+> // etc.
+> 
+> vdso_remap will map the vdso of the chosen type such at
+> AT_SYSINFO_EHDR lines up with addr. It will use up to
+> space_needed_before bytes before that address and space_needed_after
+> after than address. It will also unmap the old vdso (or maybe only do
+> that if some flag is set).
+> 
+> On x86, mremap is *not* sufficient for everything that's needed,
+> because some programs will need to change the vdso type.
+
+I don't I understand. Why can't people just exec() the ELF type that
+corresponds to the VDSO they want?
+
+Thanks,
+Cov
+
 -- 
-Michal Hocko
-SUSE Labs
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
