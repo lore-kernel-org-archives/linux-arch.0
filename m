@@ -1,48 +1,128 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 25/25] arm64:ilp32: add ARM64_ILP32 to Kconfig
-Date: Fri, 29 Apr 2016 19:26:12 +0300
-Message-ID: <20160429162612.GB16451@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-26-git-send-email-ynorov@caviumnetworks.com>
- <20160429160334.GD30316@e104818-lin.cambridge.arm.com>
- <20160429160855.GA16451@yury-N73SV>
- <20160429161445.GE30316@e104818-lin.cambridge.arm.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
+Date: Fri, 29 Apr 2016 12:27:58 -0400
+Message-ID: <20160429162757.GA1191@char.us.oracle.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+ <20160429071743.GC11592@char.us.oracle.com>
+ <572379ED.9050404@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20160429161445.GE30316@e104818-lin.cambridge.arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, joseph@codesourcery.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+In-Reply-To: <572379ED.9050404@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 29, 2016 at 05:14:46PM +0100, Catalin Marinas wrote:
-> On Fri, Apr 29, 2016 at 07:08:55PM +0300, Yury Norov wrote:
-> > On Fri, Apr 29, 2016 at 05:03:34PM +0100, Catalin Marinas wrote:
-> > > On Wed, Apr 06, 2016 at 01:08:47AM +0300, Yury Norov wrote:
-> > > > +config ARM64_ILP32
-> > > > +	bool "Kernel support for ILP32"
-> > > > +	select COMPAT_WRAPPER
-> > > > +	help
-> > > > +	  This option enables support for AArch64 ILP32 user space.  ILP32
-> > > > +	  is an ABI where long and pointers are 32bits but it uses the AARCH64
-> > > > +	  instruction set.
-> > > 
-> > > Is there any penalty for AArch32 tasks when selecting COMPAT_WRAPPER?
+On Fri, Apr 29, 2016 at 10:12:45AM -0500, Tom Lendacky wrote:
+> On 04/29/2016 02:17 AM, Konrad Rzeszutek Wilk wrote:
+> > On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
+> >> Since DMA addresses will effectively look like 48-bit addresses when the
+> >> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+> >> device performing the DMA does not support 48-bits. SWIOTLB will be
+> >> initialized to create un-encrypted bounce buffers for use by these devices.
+> >>
 > > 
-> > No. AARCH32 doesn't define __SC_WRAP and so __SYSCALL macro is used,
-> > which fills syscall table with sys_xxx versions, not compat_sys_xxx.
+> > 
+> > I presume the sme_me_mask does not use the lower 48 bits?
 > 
-> Ah, I forgot it has its own unistd32.h.
+> The sme_me_mask will actually be bit 47. So, when applied, the address
+> will become a 48-bit address.
 > 
-> Thanks.
+> > 
+> > 
+> > ..snip..
+> >> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> >> index 7d56d1b..594dc65 100644
+> >> --- a/arch/x86/mm/mem_encrypt.c
+> >> +++ b/arch/x86/mm/mem_encrypt.c
+> >> @@ -12,6 +12,8 @@
+> >>  
+> >>  #include <linux/init.h>
+> >>  #include <linux/mm.h>
+> >> +#include <linux/dma-mapping.h>
+> >> +#include <linux/swiotlb.h>
+> >>  
+> >>  #include <asm/mem_encrypt.h>
+> >>  #include <asm/cacheflush.h>
+> >> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
+> >>  }
+> >>  
+> >>  /* Architecture __weak replacement functions */
+> >> +void __init mem_encrypt_init(void)
+> >> +{
+> >> +	if (!sme_me_mask)
+> >> +		return;
+> >> +
+> >> +	/* Make SWIOTLB use an unencrypted DMA area */
+> >> +	swiotlb_clear_encryption();
+> >> +}
+> >> +
+> >> +unsigned long swiotlb_get_me_mask(void)
+> >> +{
+> >> +	return sme_me_mask;
+> >> +}
+> >> +
+> >> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+> >> +{
+> >> +	sme_set_mem_dec(vaddr, size);
+> >> +}
+> >> +
+> >>  void __init *efi_me_early_memremap(resource_size_t paddr,
+> >>  				   unsigned long size)
+> >>  {
+> >> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+> >> index 017fced..121b9de 100644
+> >> --- a/include/linux/swiotlb.h
+> >> +++ b/include/linux/swiotlb.h
+> >> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
+> >>  extern unsigned long swiotlb_nr_tbl(void);
+> >>  unsigned long swiotlb_size_or_default(void);
+> >>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
+> >> +extern void __init swiotlb_clear_encryption(void);
+> >>  
+> >>  /*
+> >>   * Enumeration for sync targets
+> >> diff --git a/init/main.c b/init/main.c
+> >> index b3c6e36..1013d1c 100644
+> >> --- a/init/main.c
+> >> +++ b/init/main.c
+> >> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
+> >>  }
+> >>  #endif
+> >>  
+> >> +void __init __weak mem_encrypt_init(void)
+> >> +{
+> >> +}
+> >> +
+> >>  /*
+> >>   * Set up kernel memory allocators
+> >>   */
+> >> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
+> >>  	 */
+> >>  	locking_selftest();
+> >>  
+> >> +	mem_encrypt_init();
+> >> +
+> >>  #ifdef CONFIG_BLK_DEV_INITRD
+> >>  	if (initrd_start && !initrd_below_start_ok &&
+> >>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+> > 
+> > What happens if devices use the bounce buffer before mem_encrypt_init()?
+> 
+> The call to mem_encrypt_init is early in the boot process, I may have
+> overlooked something, but what devices would be performing DMA before
+> this?
 
-Even if it was sharing generic unistd,h, it's OK as well. To use
-wrappers, you have to enable COMPAT_WRAPPER (which is enabled even if
-only a single ABI needs it) *and* define  __SC_WRAP in corresponding
-sys_xxx.c, which is individual for each abi, of course.
+I am not saying that you overlooked. Merely wondering if somebody re-orders these
+calls what would happen. It maybe also good to have a comment right before
+mem_encrpyt_init stating what will happen if the device does DMA before the function
+is called.
 
-> 
-> -- 
-> Catalin
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
