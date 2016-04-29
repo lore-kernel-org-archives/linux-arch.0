@@ -1,62 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:51341 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750847AbcD1Wow (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2016 18:44:52 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Fri, 29 Apr 2016 00:43:41 +0200
-Message-ID: <4271094.ei7kj5zJxn@wuerfel>
-In-Reply-To: <20160428222137.GB18227@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <2760348.qmm1L3yQch@wuerfel> <20160428222137.GB18227@yury-N73SV>
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:38354 "EHLO
+	mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751215AbcD2Jly (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2016 05:41:54 -0400
+Date: Fri, 29 Apr 2016 11:41:52 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 04/20] arm: get rid of superfluous __GFP_REPEAT
+Message-ID: <20160429094152.GF21977@dhcp22.suse.cz>
+References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
+ <1461849846-27209-5-git-send-email-mhocko@kernel.org>
+ <20160428145545.GN19428@n2100.arm.linux.org.uk>
+ <20160428150831.GK31489@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160428150831.GK31489@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160428224341.NyW6yKsREm8dNyGI0ZwR7m4mrOgVCfGOvLoEF_5OZD0@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160429094152.TAnlCIy3cnWe2ObxhdLZr1g1GFMwofuTyH_7eDjRF-A@z>
 
-On Friday 29 April 2016 01:21:37 Yury Norov wrote:
-> index 1458ad7..410d817 100644
-> --- a/arch/arm64/kernel/sys_ilp32.c
-> +++ b/arch/arm64/kernel/sys_ilp32.c
-> @@ -17,6 +17,8 @@
->  * along with this program.  If not, see
->  * <http://www.gnu.org/licenses/>.
->  */
->     
-> +#define __SYSCALL_COMPAT
-> +
->  #include <linux/compiler.h>
->  #include <linux/errno.h>
->  #include <linux/fs.h>
-> @@ -48,13 +50,12 @@ asmlinkage long
->  ilp32_sys_rt_sigreturn_wrapper(void);
->    
->  #include <asm/syscall.h>
->      
-> -#undef __SYSCALL
-> -#undef __SC_COMP
-> -#undef __SC_WRAP
-> -#undef __SC_3264
-> -#undef __SC_COMP_3264
->  
-> -#define __SYSCALL_COMPAT
->  #define __SYSCALL(nr, sym)     [nr] = sym,
->  #define __SC_WRAP(nr, sym)     [nr] = compat_##sym,
->          
-> This patch makes gcc warn about redefinition.
+On Thu 28-04-16 17:08:31, Michal Hocko wrote:
+> On Thu 28-04-16 15:55:45, Russell King - ARM Linux wrote:
+> > On Thu, Apr 28, 2016 at 03:23:50PM +0200, Michal Hocko wrote:
+> > > From: Michal Hocko <mhocko@suse.com>
+> > > 
+> > > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > > around 2.6.12 it has been ignored for low order allocations.
+> > > 
+> > > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
+> > > this flag is for more than order-2. This means that this flag has never
+> > > been actually useful here because it has always been used only for
+> > > PAGE_ALLOC_COSTLY requests.
+> > 
+> > I'm unconvinced.  Back in 2013, I was seeing a lot of failures, so:
+> > 
+> > commit 8c65da6dc89ccb605d73773b1dd617e72982d971
+> > Author: Russell King <rmk+kernel@arm.linux.org.uk>
+> > Date:   Sat Nov 30 12:52:31 2013 +0000
+> > 
+> >     ARM: pgd allocation: retry on failure
+> > 
+> >     Make pgd allocation retry on failure; we really need this to succeed
+> >     otherwise fork() can trigger OOMs.
+> > 
+> >     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+> > 
+> > Maybe something has changed again in the MM layer which makes this flag
+> > unnecessary again, and it was a temporary blip around that time, I don't
+> > know.
 > 
-> arch/arm64/kernel/sys_ilp32.c:59:0: warning: "__SYSCALL" redefined
->  #define __SYSCALL(nr, sym) [nr] = sym,
->  ^
-> In file included from include/asm-generic/unistd.h:1:0,
+> PAGE_ALLOC_COSTLY_ORDER is defined to order 3 since 2007 and even before
+> the code was doing
+> -               if ((order <= 3) || (gfp_mask & __GFP_REPEAT))
+> +               if ((order <= PAGE_ALLOC_COSTLY_ORDER) ||
+> +                                               (gfp_mask & __GFP_REPEAT))
+>                         do_retry = 1;
 > 
+> So an order-2 allocation which is the case for this particular code now
+> will trigger the OOM killer and fail only when the current task is
+> killed by the OOM killer. Other than that order-2 is basically
+> GFP_NOFAIL. Have a look at __alloc_pages_slowpath() for more details.
 
-Ok, I think I see it now. Can you #undef the two symbols at the
-end of arch/arm64/include/uapi/asm/unistd.h or possibly
-include/uapi/asm-generic/unistd.h?
-
-	Arnd
+Does this explanation help?
+-- 
+Michal Hocko
+SUSE Labs
