@@ -1,110 +1,67 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
-Date: Fri, 29 Apr 2016 03:17:43 -0400
-Message-ID: <20160429071743.GC11592@char.us.oracle.com>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 04/20] arm: get rid of superfluous __GFP_REPEAT
+Date: Fri, 29 Apr 2016 11:41:52 +0200
+Message-ID: <20160429094152.GF21977@dhcp22.suse.cz>
+References: <1461849846-27209-1-git-send-email-mhocko@kernel.org>
+ <1461849846-27209-5-git-send-email-mhocko@kernel.org>
+ <20160428145545.GN19428@n2100.arm.linux.org.uk>
+ <20160428150831.GK31489@dhcp22.suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20160428150831.GK31489@dhcp22.suse.cz>
 Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
-> Since DMA addresses will effectively look like 48-bit addresses when the
-> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
-> device performing the DMA does not support 48-bits. SWIOTLB will be
-> initialized to create un-encrypted bounce buffers for use by these devices.
+On Thu 28-04-16 17:08:31, Michal Hocko wrote:
+> On Thu 28-04-16 15:55:45, Russell King - ARM Linux wrote:
+> > On Thu, Apr 28, 2016 at 03:23:50PM +0200, Michal Hocko wrote:
+> > > From: Michal Hocko <mhocko@suse.com>
+> > > 
+> > > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > > around 2.6.12 it has been ignored for low order allocations.
+> > > 
+> > > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
+> > > this flag is for more than order-2. This means that this flag has never
+> > > been actually useful here because it has always been used only for
+> > > PAGE_ALLOC_COSTLY requests.
+> > 
+> > I'm unconvinced.  Back in 2013, I was seeing a lot of failures, so:
+> > 
+> > commit 8c65da6dc89ccb605d73773b1dd617e72982d971
+> > Author: Russell King <rmk+kernel@arm.linux.org.uk>
+> > Date:   Sat Nov 30 12:52:31 2013 +0000
+> > 
+> >     ARM: pgd allocation: retry on failure
+> > 
+> >     Make pgd allocation retry on failure; we really need this to succeed
+> >     otherwise fork() can trigger OOMs.
+> > 
+> >     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+> > 
+> > Maybe something has changed again in the MM layer which makes this flag
+> > unnecessary again, and it was a temporary blip around that time, I don't
+> > know.
 > 
+> PAGE_ALLOC_COSTLY_ORDER is defined to order 3 since 2007 and even before
+> the code was doing
+> -               if ((order <= 3) || (gfp_mask & __GFP_REPEAT))
+> +               if ((order <= PAGE_ALLOC_COSTLY_ORDER) ||
+> +                                               (gfp_mask & __GFP_REPEAT))
+>                         do_retry = 1;
+> 
+> So an order-2 allocation which is the case for this particular code now
+> will trigger the OOM killer and fail only when the current task is
+> killed by the OOM killer. Other than that order-2 is basically
+> GFP_NOFAIL. Have a look at __alloc_pages_slowpath() for more details.
 
-
-I presume the sme_me_mask does not use the lower 48 bits?
-
-
-..snip..
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index 7d56d1b..594dc65 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -12,6 +12,8 @@
->  
->  #include <linux/init.h>
->  #include <linux/mm.h>
-> +#include <linux/dma-mapping.h>
-> +#include <linux/swiotlb.h>
->  
->  #include <asm/mem_encrypt.h>
->  #include <asm/cacheflush.h>
-> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
->  }
->  
->  /* Architecture __weak replacement functions */
-> +void __init mem_encrypt_init(void)
-> +{
-> +	if (!sme_me_mask)
-> +		return;
-> +
-> +	/* Make SWIOTLB use an unencrypted DMA area */
-> +	swiotlb_clear_encryption();
-> +}
-> +
-> +unsigned long swiotlb_get_me_mask(void)
-> +{
-> +	return sme_me_mask;
-> +}
-> +
-> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
-> +{
-> +	sme_set_mem_dec(vaddr, size);
-> +}
-> +
->  void __init *efi_me_early_memremap(resource_size_t paddr,
->  				   unsigned long size)
->  {
-> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-> index 017fced..121b9de 100644
-> --- a/include/linux/swiotlb.h
-> +++ b/include/linux/swiotlb.h
-> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
->  extern unsigned long swiotlb_nr_tbl(void);
->  unsigned long swiotlb_size_or_default(void);
->  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
-> +extern void __init swiotlb_clear_encryption(void);
->  
->  /*
->   * Enumeration for sync targets
-> diff --git a/init/main.c b/init/main.c
-> index b3c6e36..1013d1c 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
->  }
->  #endif
->  
-> +void __init __weak mem_encrypt_init(void)
-> +{
-> +}
-> +
->  /*
->   * Set up kernel memory allocators
->   */
-> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
->  	 */
->  	locking_selftest();
->  
-> +	mem_encrypt_init();
-> +
->  #ifdef CONFIG_BLK_DEV_INITRD
->  	if (initrd_start && !initrd_below_start_ok &&
->  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
-
-What happens if devices use the bounce buffer before mem_encrypt_init()?
-
-..snip..
+Does this explanation help?
+-- 
+Michal Hocko
+SUSE Labs
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
