@@ -1,145 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0054.outbound.protection.outlook.com ([157.56.110.54]:15494
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752613AbcD2XuI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Apr 2016 19:50:08 -0400
-Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:34902 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751548AbcD3GOv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 Apr 2016 02:14:51 -0400
+From: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
+Subject: RE: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Date: Sat, 30 Apr 2016 06:13:33 +0000
+Message-ID: <94D0CD8314A33A4D9D801C0FE68B402963918FDA@G4W3296.americas.hpqcorp.net>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
- <20160429071743.GC11592@char.us.oracle.com> <572379ED.9050404@amd.com>
- <20160429162757.GA1191@char.us.oracle.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <5723F324.9040909@amd.com>
-Date: Fri, 29 Apr 2016 18:49:56 -0500
+In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-In-Reply-To: <20160429162757.GA1191@char.us.oracle.com>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160429234956.vDvFYtjvrygDzTyIVHigNzVH4udUiqm06nujhtD5Ja4@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>
+Cc: =?utf-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160430061333.62CHbRTivE7puCz7eD60iaCg8hxSSE5QBjEplapecak@z>
 
-On 04/29/2016 11:27 AM, Konrad Rzeszutek Wilk wrote:
-> On Fri, Apr 29, 2016 at 10:12:45AM -0500, Tom Lendacky wrote:
->> On 04/29/2016 02:17 AM, Konrad Rzeszutek Wilk wrote:
->>> On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
->>>> Since DMA addresses will effectively look like 48-bit addresses when the
->>>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
->>>> device performing the DMA does not support 48-bits. SWIOTLB will be
->>>> initialized to create un-encrypted bounce buffers for use by these devices.
->>>>
->>>
->>>
->>> I presume the sme_me_mask does not use the lower 48 bits?
->>
->> The sme_me_mask will actually be bit 47. So, when applied, the address
->> will become a 48-bit address.
->>
->>>
->>>
->>> ..snip..
->>>> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
->>>> index 7d56d1b..594dc65 100644
->>>> --- a/arch/x86/mm/mem_encrypt.c
->>>> +++ b/arch/x86/mm/mem_encrypt.c
->>>> @@ -12,6 +12,8 @@
->>>>  
->>>>  #include <linux/init.h>
->>>>  #include <linux/mm.h>
->>>> +#include <linux/dma-mapping.h>
->>>> +#include <linux/swiotlb.h>
->>>>  
->>>>  #include <asm/mem_encrypt.h>
->>>>  #include <asm/cacheflush.h>
->>>> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
->>>>  }
->>>>  
->>>>  /* Architecture __weak replacement functions */
->>>> +void __init mem_encrypt_init(void)
->>>> +{
->>>> +	if (!sme_me_mask)
->>>> +		return;
->>>> +
->>>> +	/* Make SWIOTLB use an unencrypted DMA area */
->>>> +	swiotlb_clear_encryption();
->>>> +}
->>>> +
->>>> +unsigned long swiotlb_get_me_mask(void)
->>>> +{
->>>> +	return sme_me_mask;
->>>> +}
->>>> +
->>>> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
->>>> +{
->>>> +	sme_set_mem_dec(vaddr, size);
->>>> +}
->>>> +
->>>>  void __init *efi_me_early_memremap(resource_size_t paddr,
->>>>  				   unsigned long size)
->>>>  {
->>>> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
->>>> index 017fced..121b9de 100644
->>>> --- a/include/linux/swiotlb.h
->>>> +++ b/include/linux/swiotlb.h
->>>> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
->>>>  extern unsigned long swiotlb_nr_tbl(void);
->>>>  unsigned long swiotlb_size_or_default(void);
->>>>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
->>>> +extern void __init swiotlb_clear_encryption(void);
->>>>  
->>>>  /*
->>>>   * Enumeration for sync targets
->>>> diff --git a/init/main.c b/init/main.c
->>>> index b3c6e36..1013d1c 100644
->>>> --- a/init/main.c
->>>> +++ b/init/main.c
->>>> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
->>>>  }
->>>>  #endif
->>>>  
->>>> +void __init __weak mem_encrypt_init(void)
->>>> +{
->>>> +}
->>>> +
->>>>  /*
->>>>   * Set up kernel memory allocators
->>>>   */
->>>> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
->>>>  	 */
->>>>  	locking_selftest();
->>>>  
->>>> +	mem_encrypt_init();
->>>> +
->>>>  #ifdef CONFIG_BLK_DEV_INITRD
->>>>  	if (initrd_start && !initrd_below_start_ok &&
->>>>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
->>>
->>> What happens if devices use the bounce buffer before mem_encrypt_init()?
->>
->> The call to mem_encrypt_init is early in the boot process, I may have
->> overlooked something, but what devices would be performing DMA before
->> this?
-> 
-> I am not saying that you overlooked. Merely wondering if somebody re-orders these
-> calls what would happen. It maybe also good to have a comment right before
-> mem_encrpyt_init stating what will happen if the device does DMA before the function
-> is called.
-> 
-
-Ah, ok. Before mem_encrypt_init is called the bounce buffers will be
-marked as encrypted in the page tables. The use of the bounce buffers
-will not have the memory encryption bit as part of the DMA address so a
-device will DMA into memory in the clear. When the bounce buffer is
-copied to the original buffer it will be accessed by a virtual address
-that has the memory encryption bit set in the page tables. So the
-plaintext data that was DMA'd in will be decrypted resulting in invalid
-data in the destination buffer.
-
-I'll be sure to add a comment before the call.
-
-Thanks,
-Tom
-
+PiAtLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KPiBGcm9tOiBsaW51eC1rZXJuZWwtb3duZXJA
+dmdlci5rZXJuZWwub3JnIFttYWlsdG86bGludXgta2VybmVsLQ0KPiBvd25lckB2Z2VyLmtlcm5l
+bC5vcmddIE9uIEJlaGFsZiBPZiBUb20gTGVuZGFja3kNCj4gU2VudDogVHVlc2RheSwgQXByaWwg
+MjYsIDIwMTYgNTo1NiBQTQ0KPiBTdWJqZWN0OiBbUkZDIFBBVENIIHYxIDAwLzE4XSB4ODY6IFNl
+Y3VyZSBNZW1vcnkgRW5jcnlwdGlvbiAoQU1EKQ0KPiANCj4gVGhpcyBSRkMgcGF0Y2ggc2VyaWVz
+IHByb3ZpZGVzIHN1cHBvcnQgZm9yIEFNRCdzIG5ldyBTZWN1cmUgTWVtb3J5DQo+IEVuY3J5cHRp
+b24gKFNNRSkgZmVhdHVyZS4NCj4gDQo+IFNNRSBjYW4gYmUgdXNlZCB0byBtYXJrIGluZGl2aWR1
+YWwgcGFnZXMgb2YgbWVtb3J5IGFzIGVuY3J5cHRlZCB0aHJvdWdoIHRoZQ0KPiBwYWdlIHRhYmxl
+cy4gQSBwYWdlIG9mIG1lbW9yeSB0aGF0IGlzIG1hcmtlZCBlbmNyeXB0ZWQgd2lsbCBiZSBhdXRv
+bWF0aWNhbGx5DQo+IGRlY3J5cHRlZCB3aGVuIHJlYWQgZnJvbSBEUkFNIGFuZCB3aWxsIGJlIGF1
+dG9tYXRpY2FsbHkgZW5jcnlwdGVkIHdoZW4NCj4gd3JpdHRlbiB0byBEUkFNLiBEZXRhaWxzIG9u
+IFNNRSBjYW4gZm91bmQgaW4gdGhlIGxpbmtzIGJlbG93Lg0KPiANCi4uLg0KPiAuLi4gIENlcnRh
+aW4gZGF0YSBtdXN0IGJlIGFjY291bnRlZCBmb3INCj4gYXMgaGF2aW5nIGJlZW4gcGxhY2VkIGlu
+IG1lbW9yeSBiZWZvcmUgU01FIHdhcyBlbmFibGVkIChFRkksIGluaXRyZCwgZXRjLikNCj4gYW5k
+IGFjY2Vzc2VkIGFjY29yZGluZ2x5Lg0KPiANCi4uLg0KPiAgICAgICB4ODYvZWZpOiBBY2Nlc3Mg
+RUZJIHJlbGF0ZWQgdGFibGVzIGluIHRoZSBjbGVhcg0KPiAgICAgICB4ODY6IEFjY2VzcyBkZXZp
+Y2UgdHJlZSBpbiB0aGUgY2xlYXINCj4gICAgICAgeDg2OiBEbyBub3Qgc3BlY2lmeSBlbmNyeXB0
+ZWQgbWVtb3J5IGZvciBWR0EgbWFwcGluZw0KDQpJZiB0aGUgU01FIGVuY3J5cHRpb24ga2V5ICJp
+cyBjcmVhdGVkIHJhbmRvbWx5IGVhY2ggdGltZSBhIHN5c3RlbSBpcyBib290ZWQsIg0KZGF0YSBv
+biBOVkRJTU1zIHdvbid0IGRlY3J5cHQgcHJvcGVybHkgb24gdGhlIG5leHQgYm9vdC4gIFlvdSBu
+ZWVkIHRvIGV4Y2x1ZGUNCnBlcnNpc3RlbnQgbWVtb3J5IHJlZ2lvbnMgKHJlcG9ydGVkIGluIHRo
+ZSBVRUZJIG1lbW9yeSBtYXAgYXMgDQpFZmlSZXNlcnZlZE1lbW9yeVR5cGUgd2l0aCB0aGUgTlYg
+YXR0cmlidXRlLCBvciBhcyBFZmlQZXJzaXN0ZW50TWVtb3J5KS4NCg0KUGVyaGFwcyB0aGUgU0VW
+IGZlYXR1cmUgd2lsbCBhbGxvdyBrZXkgZXhwb3J0L2ltcG9ydCB0aGF0IGNvdWxkIHdvcmsgZm9y
+DQpOVkRJTU1zLg0KDQotLS0NClJvYmVydCBFbGxpb3R0LCBIUEUgUGVyc2lzdGVudCBNZW1vcnkN
+Cg0KDQo=
