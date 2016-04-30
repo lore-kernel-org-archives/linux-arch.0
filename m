@@ -1,146 +1,240 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [RFC PATCH v1 13/18] x86: DMA support for memory encryption
-Date: Fri, 29 Apr 2016 18:49:56 -0500
-Message-ID: <5723F324.9040909@amd.com>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-	<20160426225812.13567.91220.stgit@tlendack-t1.amdoffice.net>
-	<20160429071743.GC11592@char.us.oracle.com> <572379ED.9050404@amd.com>
-	<20160429162757.GA1191@char.us.oracle.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC][PATCH 14/31] locking,metag: Implement
+ atomic_fetch_{add,sub,and,or,xor}()
+Date: Sat, 30 Apr 2016 01:20:31 +0100
+Message-ID: <20160430002031.GB15188@jhogan-linux.le.imgtec.org>
+References: <20160422090413.393652501@infradead.org>
+ <20160422093923.941873289@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20160429162757.GA1191-he5eyhs8q0BAdwtm4QZOy9BPR1lH4CV8@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="1UWUbFP1cBYEclgG"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:15500 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752363AbcD3AUe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2016 20:20:34 -0400
+Content-Disposition: inline
+In-Reply-To: <20160422093923.941873289@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On 04/29/2016 11:27 AM, Konrad Rzeszutek Wilk wrote:
-> On Fri, Apr 29, 2016 at 10:12:45AM -0500, Tom Lendacky wrote:
->> On 04/29/2016 02:17 AM, Konrad Rzeszutek Wilk wrote:
->>> On Tue, Apr 26, 2016 at 05:58:12PM -0500, Tom Lendacky wrote:
->>>> Since DMA addresses will effectively look like 48-bit addresses when the
->>>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
->>>> device performing the DMA does not support 48-bits. SWIOTLB will be
->>>> initialized to create un-encrypted bounce buffers for use by these devices.
->>>>
->>>
->>>
->>> I presume the sme_me_mask does not use the lower 48 bits?
->>
->> The sme_me_mask will actually be bit 47. So, when applied, the address
->> will become a 48-bit address.
->>
->>>
->>>
->>> ..snip..
->>>> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
->>>> index 7d56d1b..594dc65 100644
->>>> --- a/arch/x86/mm/mem_encrypt.c
->>>> +++ b/arch/x86/mm/mem_encrypt.c
->>>> @@ -12,6 +12,8 @@
->>>>  
->>>>  #include <linux/init.h>
->>>>  #include <linux/mm.h>
->>>> +#include <linux/dma-mapping.h>
->>>> +#include <linux/swiotlb.h>
->>>>  
->>>>  #include <asm/mem_encrypt.h>
->>>>  #include <asm/cacheflush.h>
->>>> @@ -168,6 +170,25 @@ void __init sme_early_init(void)
->>>>  }
->>>>  
->>>>  /* Architecture __weak replacement functions */
->>>> +void __init mem_encrypt_init(void)
->>>> +{
->>>> +	if (!sme_me_mask)
->>>> +		return;
->>>> +
->>>> +	/* Make SWIOTLB use an unencrypted DMA area */
->>>> +	swiotlb_clear_encryption();
->>>> +}
->>>> +
->>>> +unsigned long swiotlb_get_me_mask(void)
->>>> +{
->>>> +	return sme_me_mask;
->>>> +}
->>>> +
->>>> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
->>>> +{
->>>> +	sme_set_mem_dec(vaddr, size);
->>>> +}
->>>> +
->>>>  void __init *efi_me_early_memremap(resource_size_t paddr,
->>>>  				   unsigned long size)
->>>>  {
->>>> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
->>>> index 017fced..121b9de 100644
->>>> --- a/include/linux/swiotlb.h
->>>> +++ b/include/linux/swiotlb.h
->>>> @@ -30,6 +30,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
->>>>  extern unsigned long swiotlb_nr_tbl(void);
->>>>  unsigned long swiotlb_size_or_default(void);
->>>>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
->>>> +extern void __init swiotlb_clear_encryption(void);
->>>>  
->>>>  /*
->>>>   * Enumeration for sync targets
->>>> diff --git a/init/main.c b/init/main.c
->>>> index b3c6e36..1013d1c 100644
->>>> --- a/init/main.c
->>>> +++ b/init/main.c
->>>> @@ -458,6 +458,10 @@ void __init __weak thread_info_cache_init(void)
->>>>  }
->>>>  #endif
->>>>  
->>>> +void __init __weak mem_encrypt_init(void)
->>>> +{
->>>> +}
->>>> +
->>>>  /*
->>>>   * Set up kernel memory allocators
->>>>   */
->>>> @@ -597,6 +601,8 @@ asmlinkage __visible void __init start_kernel(void)
->>>>  	 */
->>>>  	locking_selftest();
->>>>  
->>>> +	mem_encrypt_init();
->>>> +
->>>>  #ifdef CONFIG_BLK_DEV_INITRD
->>>>  	if (initrd_start && !initrd_below_start_ok &&
->>>>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
->>>
->>> What happens if devices use the bounce buffer before mem_encrypt_init()?
->>
->> The call to mem_encrypt_init is early in the boot process, I may have
->> overlooked something, but what devices would be performing DMA before
->> this?
-> 
-> I am not saying that you overlooked. Merely wondering if somebody re-orders these
-> calls what would happen. It maybe also good to have a comment right before
-> mem_encrpyt_init stating what will happen if the device does DMA before the function
-> is called.
-> 
+--1UWUbFP1cBYEclgG
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Ah, ok. Before mem_encrypt_init is called the bounce buffers will be
-marked as encrypted in the page tables. The use of the bounce buffers
-will not have the memory encryption bit as part of the DMA address so a
-device will DMA into memory in the clear. When the bounce buffer is
-copied to the original buffer it will be accessed by a virtual address
-that has the memory encryption bit set in the page tables. So the
-plaintext data that was DMA'd in will be decrypted resulting in invalid
-data in the destination buffer.
+Hi Peter,
 
-I'll be sure to add a comment before the call.
+On Fri, Apr 22, 2016 at 11:04:27AM +0200, Peter Zijlstra wrote:
+> Implement FETCH-OP atomic primitives, these are very similar to the
+> existing OP-RETURN primitives we already have, except they return the
+> value of the atomic variable _before_ modification.
+>=20
+> This is especially useful for irreversible operations -- such as
+> bitops (because it becomes impossible to reconstruct the state prior
+> to modification).
+>=20
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/metag/include/asm/atomic.h        |    2 +
+>  arch/metag/include/asm/atomic_lnkget.h |   36 ++++++++++++++++++++++++++=
++++----
+>  arch/metag/include/asm/atomic_lock1.h  |   33 ++++++++++++++++++++++++++=
+----
+>  3 files changed, 63 insertions(+), 8 deletions(-)
+>=20
+> --- a/arch/metag/include/asm/atomic.h
+> +++ b/arch/metag/include/asm/atomic.h
+> @@ -17,6 +17,8 @@
+>  #include <asm/atomic_lnkget.h>
+>  #endif
+> =20
+> +#define atomic_fetch_or atomic_fetch_or
+> +
+>  #define atomic_add_negative(a, v)       (atomic_add_return((a), (v)) < 0)
+> =20
+>  #define atomic_dec_return(v) atomic_sub_return(1, (v))
+> --- a/arch/metag/include/asm/atomic_lnkget.h
+> +++ b/arch/metag/include/asm/atomic_lnkget.h
+> @@ -69,16 +69,44 @@ static inline int atomic_##op##_return(i
+>  	return result;							\
+>  }
+> =20
+> -#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
+> +#define ATOMIC_FETCH_OP(op)						\
+> +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+> +{									\
+> +	int result, temp;						\
+> +									\
+> +	smp_mb();							\
+> +									\
+> +	asm volatile (							\
+> +		"1:	LNKGETD %1, [%2]\n"				\
+> +		"	" #op "	%0, %1, %3\n"				\
 
-Thanks,
-Tom
+i was hoping never to have to think about meta asm constraints again :-P
+
+and/or/xor are only available in the data units, as determined by %1 in
+this case, so the constraint for result shouldn't have "a" in it.
+
+diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/as=
+m/atomic_lnkget.h
+index 50ad05050947..def2c642f053 100644
+--- a/arch/metag/include/asm/atomic_lnkget.h
++++ b/arch/metag/include/asm/atomic_lnkget.h
+@@ -84,7 +84,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)		=
+	\
+ 		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
+ 		"	CMPT	%0, #HI(0x02000000)\n"			\
+ 		"	BNZ 1b\n"					\
+-		: "=3D&d" (temp), "=3D&da" (result)				\
++		: "=3D&d" (temp), "=3D&d" (result)				\
+ 		: "da" (&v->counter), "bd" (i)				\
+ 		: "cc");						\
+
+That also ensures the "bd" constraint for %3 (meaning "an op2 register
+where op1 [%1 in this case] is a data unit register and the instruction
+supports O2R") is consistent.
+
+So with that change this patch looks good to me:
+Acked-by: James Hogan <james.hogan@imgtec.com>
+
+
+Note that for the ATOMIC_OP_RETURN() case (add/sub only) either address
+or data units can be used (hence the "da" for %1), but then the "bd"
+constraint on %3 is wrong as op1 [%1] may not be in data unit (sorry I
+didn't spot that at the time). I'll queue a fix, something like below
+probably ("br" means "An Op2 register and the instruction supports O2R",
+i.e. op1/%1 doesn't have to be a data unit register):
+
+diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/as=
+m/atomic_lnkget.h
+index 50ad05050947..def2c642f053 100644
+--- a/arch/metag/include/asm/atomic_lnkget.h
++++ b/arch/metag/include/asm/atomic_lnkget.h
+@@ -61,7 +61,7 @@ static inline int atomic_##op##_return(int i, atomic_t *v=
+)		\
+ 		"	CMPT	%0, #HI(0x02000000)\n"			\
+ 		"	BNZ 1b\n"					\
+ 		: "=3D&d" (temp), "=3D&da" (result)				\
+-		: "da" (&v->counter), "bd" (i)				\
++		: "da" (&v->counter), "br" (i)				\
+ 		: "cc");						\
+ 									\
+ 	smp_mb();							\
+ 									\							\
+
+Thanks
+James
+
+> +		"	LNKSETD [%2], %0\n"				\
+> +		"	DEFR	%0, TXSTAT\n"				\
+> +		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
+> +		"	CMPT	%0, #HI(0x02000000)\n"			\
+> +		"	BNZ 1b\n"					\
+> +		: "=3D&d" (temp), "=3D&da" (result)				\
+> +		: "da" (&v->counter), "bd" (i)				\
+> +		: "cc");						\
+> +									\
+> +	smp_mb();							\
+> +									\
+> +	return result;							\
+> +}
+> +
+> +#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_O=
+P(op)
+> =20
+>  ATOMIC_OPS(add)
+>  ATOMIC_OPS(sub)
+> =20
+> -ATOMIC_OP(and)
+> -ATOMIC_OP(or)
+> -ATOMIC_OP(xor)
+> +#undef ATOMIC_OPS
+> +#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
+> +
+> +ATOMIC_OPS(and)
+> +ATOMIC_OPS(or)
+> +ATOMIC_OPS(xor)
+> =20
+>  #undef ATOMIC_OPS
+> +#undef ATOMIC_FETCH_OP
+>  #undef ATOMIC_OP_RETURN
+>  #undef ATOMIC_OP
+> =20
+> --- a/arch/metag/include/asm/atomic_lock1.h
+> +++ b/arch/metag/include/asm/atomic_lock1.h
+> @@ -64,15 +64,40 @@ static inline int atomic_##op##_return(i
+>  	return result;							\
+>  }
+> =20
+> -#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_=
+op)
+> +#define ATOMIC_FETCH_OP(op, c_op)					\
+> +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long result;						\
+> +	unsigned long flags;						\
+> +									\
+> +	__global_lock1(flags);						\
+> +	result =3D v->counter;						\
+> +	fence();							\
+> +	v->counter c_op i;						\
+> +	__global_unlock1(flags);					\
+> +									\
+> +	return result;							\
+> +}
+> +
+> +#define ATOMIC_OPS(op, c_op)						\
+> +	ATOMIC_OP(op, c_op)						\
+> +	ATOMIC_OP_RETURN(op, c_op)					\
+> +	ATOMIC_FETCH_OP(op, c_op)
+> =20
+>  ATOMIC_OPS(add, +=3D)
+>  ATOMIC_OPS(sub, -=3D)
+> -ATOMIC_OP(and, &=3D)
+> -ATOMIC_OP(or, |=3D)
+> -ATOMIC_OP(xor, ^=3D)
+> =20
+>  #undef ATOMIC_OPS
+> +#define ATOMIC_OPS(op, c_op)						\
+> +	ATOMIC_OP(op, c_op)						\
+> +	ATOMIC_FETCH_OP(op, c_op)
+> +
+> +ATOMIC_OPS(and, &=3D)
+> +ATOMIC_OPS(or, |=3D)
+> +ATOMIC_OPS(xor, ^=3D)
+> +
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_FETCH_OP
+>  #undef ATOMIC_OP_RETURN
+>  #undef ATOMIC_OP
+> =20
+>=20
+>=20
+
+--1UWUbFP1cBYEclgG
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJXI/pOAAoJEGwLaZPeOHZ6McoQAILWrlj7yPdWvEuEu1ppqntI
+u1jRQBO9lTVzUH1opU2FKtZtT6/SkIAmiGOVjytodIfx+wkqy7I64ZDen3YjXdNA
+5y6vrMr1CAQd++e4o56ia8RYlik8do95kj2VLlznu9F7JjSyXV0HAu3meL3EnpGy
+TGEMeUf1aNAtfGJaXxSBAk8DjaXRxom/w3kZ+hYBHlK5LBB3ENFPqknnSXKQcS8c
+e/ERouTx51jCO3mPS0jjtT1zGRMiZeGnorLgtgPlYVNcZDLJ7J5R1W/TnWJMA6pD
+hXxJl3qAxeKTVtscRB2iASfByUR1C31D3bvf6H3DdTqOkaVloU6r7h9bJwjiB6r8
+YdNQviP6dnUayR46g4lZtLsC0CRjFa6Bc6ufMohsKMmQdx9Lmh+XGc4mM36Zn5/F
+SUlSp6bmWejnLCtuVFYvcPCbt9BZlTEQbnj4nkkl54XxAjK1NazLqtjS+uE+buyU
+bP+hTpIN2YfXRmkLccUxDa/U8+WNu2rWOyf0QhLamGPLtVyt7nHgUdghl3hZq596
+4HhG2ADmqxAUcnNaej5fnO3T84QbeJ8nPLVAN5218OO509UpWe/93CjdUTPAqyH5
+XOqPP6UCmrrKdv50a4vmIxt/qIP7Z2/SGUl/foCtVy2PaYoWxIkMdCMhmV6YbkmZ
+6MbRNYgHd3q7TA1japC+
+=5VM6
+-----END PGP SIGNATURE-----
+
+--1UWUbFP1cBYEclgG--
