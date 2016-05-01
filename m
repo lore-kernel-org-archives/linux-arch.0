@@ -1,49 +1,149 @@
-From: "Elliott, Robert (Persistent Memory)" <elliott@hpe.com>
-Subject: RE: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
-Date: Sat, 30 Apr 2016 06:13:33 +0000
-Message-ID: <94D0CD8314A33A4D9D801C0FE68B402963918FDA@G4W3296.americas.hpqcorp.net>
+From: "Huang, Kai" <kai.huang@linux.intel.com>
+Subject: Re: [RFC PATCH v1 15/18] x86: Enable memory encryption on the APs
+Date: Mon, 2 May 2016 10:10:24 +1200
+Message-ID: <f37dd7de-23ad-f70f-c32d-a32f116215ce@linux.intel.com>
 References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225833.13567.55695.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>
-Cc: =?utf-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek
- Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga04.intel.com ([192.55.52.120]:3815 "EHLO mga04.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752352AbcEAWKk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 May 2016 18:10:40 -0400
+In-Reply-To: <20160426225833.13567.55695.stgit@tlendack-t1.amdoffice.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 
-PiAtLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KPiBGcm9tOiBsaW51eC1rZXJuZWwtb3duZXJA
-dmdlci5rZXJuZWwub3JnIFttYWlsdG86bGludXgta2VybmVsLQ0KPiBvd25lckB2Z2VyLmtlcm5l
-bC5vcmddIE9uIEJlaGFsZiBPZiBUb20gTGVuZGFja3kNCj4gU2VudDogVHVlc2RheSwgQXByaWwg
-MjYsIDIwMTYgNTo1NiBQTQ0KPiBTdWJqZWN0OiBbUkZDIFBBVENIIHYxIDAwLzE4XSB4ODY6IFNl
-Y3VyZSBNZW1vcnkgRW5jcnlwdGlvbiAoQU1EKQ0KPiANCj4gVGhpcyBSRkMgcGF0Y2ggc2VyaWVz
-IHByb3ZpZGVzIHN1cHBvcnQgZm9yIEFNRCdzIG5ldyBTZWN1cmUgTWVtb3J5DQo+IEVuY3J5cHRp
-b24gKFNNRSkgZmVhdHVyZS4NCj4gDQo+IFNNRSBjYW4gYmUgdXNlZCB0byBtYXJrIGluZGl2aWR1
-YWwgcGFnZXMgb2YgbWVtb3J5IGFzIGVuY3J5cHRlZCB0aHJvdWdoIHRoZQ0KPiBwYWdlIHRhYmxl
-cy4gQSBwYWdlIG9mIG1lbW9yeSB0aGF0IGlzIG1hcmtlZCBlbmNyeXB0ZWQgd2lsbCBiZSBhdXRv
-bWF0aWNhbGx5DQo+IGRlY3J5cHRlZCB3aGVuIHJlYWQgZnJvbSBEUkFNIGFuZCB3aWxsIGJlIGF1
-dG9tYXRpY2FsbHkgZW5jcnlwdGVkIHdoZW4NCj4gd3JpdHRlbiB0byBEUkFNLiBEZXRhaWxzIG9u
-IFNNRSBjYW4gZm91bmQgaW4gdGhlIGxpbmtzIGJlbG93Lg0KPiANCi4uLg0KPiAuLi4gIENlcnRh
-aW4gZGF0YSBtdXN0IGJlIGFjY291bnRlZCBmb3INCj4gYXMgaGF2aW5nIGJlZW4gcGxhY2VkIGlu
-IG1lbW9yeSBiZWZvcmUgU01FIHdhcyBlbmFibGVkIChFRkksIGluaXRyZCwgZXRjLikNCj4gYW5k
-IGFjY2Vzc2VkIGFjY29yZGluZ2x5Lg0KPiANCi4uLg0KPiAgICAgICB4ODYvZWZpOiBBY2Nlc3Mg
-RUZJIHJlbGF0ZWQgdGFibGVzIGluIHRoZSBjbGVhcg0KPiAgICAgICB4ODY6IEFjY2VzcyBkZXZp
-Y2UgdHJlZSBpbiB0aGUgY2xlYXINCj4gICAgICAgeDg2OiBEbyBub3Qgc3BlY2lmeSBlbmNyeXB0
-ZWQgbWVtb3J5IGZvciBWR0EgbWFwcGluZw0KDQpJZiB0aGUgU01FIGVuY3J5cHRpb24ga2V5ICJp
-cyBjcmVhdGVkIHJhbmRvbWx5IGVhY2ggdGltZSBhIHN5c3RlbSBpcyBib290ZWQsIg0KZGF0YSBv
-biBOVkRJTU1zIHdvbid0IGRlY3J5cHQgcHJvcGVybHkgb24gdGhlIG5leHQgYm9vdC4gIFlvdSBu
-ZWVkIHRvIGV4Y2x1ZGUNCnBlcnNpc3RlbnQgbWVtb3J5IHJlZ2lvbnMgKHJlcG9ydGVkIGluIHRo
-ZSBVRUZJIG1lbW9yeSBtYXAgYXMgDQpFZmlSZXNlcnZlZE1lbW9yeVR5cGUgd2l0aCB0aGUgTlYg
-YXR0cmlidXRlLCBvciBhcyBFZmlQZXJzaXN0ZW50TWVtb3J5KS4NCg0KUGVyaGFwcyB0aGUgU0VW
-IGZlYXR1cmUgd2lsbCBhbGxvdyBrZXkgZXhwb3J0L2ltcG9ydCB0aGF0IGNvdWxkIHdvcmsgZm9y
-DQpOVkRJTU1zLg0KDQotLS0NClJvYmVydCBFbGxpb3R0LCBIUEUgUGVyc2lzdGVudCBNZW1vcnkN
-Cg0KDQo=
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+On 4/27/2016 10:58 AM, Tom Lendacky wrote:
+> Add support to set the memory encryption enable flag on the APs during
+> realmode initialization. When an AP is started it checks this flag, and
+> if set, enables memory encryption on its core.
+>
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/include/asm/msr-index.h     |    2 ++
+>  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
+>  arch/x86/realmode/init.c             |    4 ++++
+>  arch/x86/realmode/rm/trampoline_64.S |   14 ++++++++++++++
+>  4 files changed, 32 insertions(+)
+>
+> diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+> index 94555b4..b73182b 100644
+> --- a/arch/x86/include/asm/msr-index.h
+> +++ b/arch/x86/include/asm/msr-index.h
+> @@ -349,6 +349,8 @@
+>  #define MSR_K8_TOP_MEM1			0xc001001a
+>  #define MSR_K8_TOP_MEM2			0xc001001d
+>  #define MSR_K8_SYSCFG			0xc0010010
+> +#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
+> +#define MSR_K8_SYSCFG_MEM_ENCRYPT	(1ULL << MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
+>  #define MSR_K8_INT_PENDING_MSG		0xc0010055
+>  /* C1E active bits in int pending message */
+>  #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
+> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+> index 9c6b890..e24d2ec 100644
+> --- a/arch/x86/include/asm/realmode.h
+> +++ b/arch/x86/include/asm/realmode.h
+> @@ -1,6 +1,15 @@
+>  #ifndef _ARCH_X86_REALMODE_H
+>  #define _ARCH_X86_REALMODE_H
+>
+> +/*
+> + * Flag bit definitions for use with the flags field of the trampoline header
+> + * when configured for X86_64
+> + */
+> +#define TH_FLAGS_MEM_ENCRYPT_BIT	0
+> +#define TH_FLAGS_MEM_ENCRYPT		(1ULL << TH_FLAGS_MEM_ENCRYPT_BIT)
+
+Would mind change it to a more vendor specific name, such as 
+AMD_MEM_ENCRYPT, or SME_MEM_ENCRYPT?
+
+> +
+> +#ifndef __ASSEMBLY__
+> +
+>  #include <linux/types.h>
+>  #include <asm/io.h>
+>
+> @@ -38,6 +47,7 @@ struct trampoline_header {
+>  	u64 start;
+>  	u64 efer;
+>  	u32 cr4;
+> +	u32 flags;
+>  #endif
+>  };
+>
+> @@ -61,4 +71,6 @@ extern unsigned char secondary_startup_64[];
+>  void reserve_real_mode(void);
+>  void setup_real_mode(void);
+>
+> +#endif /* __ASSEMBLY__ */
+> +
+>  #endif /* _ARCH_X86_REALMODE_H */
+> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+> index 85b145c..657532b 100644
+> --- a/arch/x86/realmode/init.c
+> +++ b/arch/x86/realmode/init.c
+> @@ -84,6 +84,10 @@ void __init setup_real_mode(void)
+>  	trampoline_cr4_features = &trampoline_header->cr4;
+>  	*trampoline_cr4_features = __read_cr4();
+>
+> +	trampoline_header->flags = 0;
+> +	if (sme_me_mask)
+> +		trampoline_header->flags |= TH_FLAGS_MEM_ENCRYPT;
+> +
+>  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
+>  	trampoline_pgd[0] = init_level4_pgt[pgd_index(__PAGE_OFFSET)].pgd;
+>  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
+> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+> index dac7b20..8d84167 100644
+> --- a/arch/x86/realmode/rm/trampoline_64.S
+> +++ b/arch/x86/realmode/rm/trampoline_64.S
+> @@ -30,6 +30,7 @@
+>  #include <asm/msr.h>
+>  #include <asm/segment.h>
+>  #include <asm/processor-flags.h>
+> +#include <asm/realmode.h>
+>  #include "realmode.h"
+>
+>  	.text
+> @@ -109,6 +110,18 @@ ENTRY(startup_32)
+>  	movl	$(X86_CR0_PG | X86_CR0_WP | X86_CR0_PE), %eax
+>  	movl	%eax, %cr0
+>
+> +	# Check for and enable memory encryption support
+> +	movl	pa_tr_flags, %eax
+> +	bt	$TH_FLAGS_MEM_ENCRYPT_BIT, pa_tr_flags
+
+pa_tr_flags -> %eax ? Otherwise looks the previous line is useless.
+
+Thanks,
+-Kai
+
+> +	jnc	.Ldone
+> +	movl	$MSR_K8_SYSCFG, %ecx
+> +	rdmsr
+> +	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
+> +	jc	.Ldone
+> +	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
+> +	wrmsr
+> +.Ldone:
+> +
+>  	/*
+>  	 * At this point we're in long mode but in 32bit compatibility mode
+>  	 * with EFER.LME = 1, CS.L = 0, CS.D = 1 (and in turn
+> @@ -147,6 +160,7 @@ GLOBAL(trampoline_header)
+>  	tr_start:		.space	8
+>  	GLOBAL(tr_efer)		.space	8
+>  	GLOBAL(tr_cr4)		.space	4
+> +	GLOBAL(tr_flags)	.space	4
+>  END(trampoline_header)
+>
+>  #include "trampoline_common.S"
+>
+>
