@@ -1,39 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:50818 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752658AbcEBNZd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 09:25:33 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2] asm-generic: Drop renameat syscall from default list
-Date: Mon, 02 May 2016 15:23:12 +0200
-Message-ID: <5769874.XvA4zrbPZs@wuerfel>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
-References: <1461965366-7893-1-git-send-email-james.hogan@imgtec.com> <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
+Received: from mail-oi0-f46.google.com ([209.85.218.46]:34071 "EHLO
+	mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754647AbcEBSbo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 14:31:44 -0400
+Received: by mail-oi0-f46.google.com with SMTP id k142so201475760oib.1
+        for <linux-arch@vger.kernel.org>; Mon, 02 May 2016 11:31:43 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <57211CAB.9040902@amd.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com> <57211CAB.9040902@amd.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Mon, 2 May 2016 11:31:23 -0700
+Message-ID: <CALCETrWAP5hxQeVSwNx-XkO53-X3bX0LasjOuHxeRWCTob7JAA@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Chen Liqin <liqin.linux@gmail.com>
-Cc: James Hogan <james.hogan@imgtec.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ley Foon Tan <lftan@altera.com>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, "uclinux-h8-devel@lists.sourceforge.jp" <uclinux-h8-devel@lists.sourceforge.jp>
-Message-ID: <20160502132312.tM_PhzN146I3FG598hNCx1reHXB67JN-V6d9o7mXi6o@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160502183123.W_wjx_v3PXuaykX_DKnWB1e1Nyn_9wfQx4D2I06-Kgc@z>
 
-On Monday 02 May 2016 05:13:46 Vineet Gupta wrote:
-> On Saturday 30 April 2016 02:59 AM, James Hogan wrote:
-> > The newer renameat2 syscall provides all the functionality provided by
-> > the renameat syscall and adds flags, so future architectures won't need
-> > to include renameat.
-> >
-> > Therefore drop the renameat syscall from the generic syscall list unless
-> > __ARCH_WANT_RENAMEAT is defined by the architecture's unistd.h prior to
-> > including asm-generic/unistd.h, and adjust all architectures using the
-> > generic syscall list to define it so that no in-tree architectures are
-> > affected.
-> >
-> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> 
-> Acked-by: Vineet Gupta <vgupta@synopsys.com>  # for arch/arc
+On Wed, Apr 27, 2016 at 1:10 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+> On 04/27/2016 09:39 AM, Andy Lutomirski wrote:
+>> On Tue, Apr 26, 2016 at 3:55 PM, Tom Lendacky <thomas.lendacky@amd.com> wrote:
+>>> This RFC patch series provides support for AMD's new Secure Memory
+>>> Encryption (SME) feature.
+>>>
+>>> SME can be used to mark individual pages of memory as encrypted through the
+>>> page tables. A page of memory that is marked encrypted will be automatically
+>>> decrypted when read from DRAM and will be automatically encrypted when
+>>> written to DRAM. Details on SME can found in the links below.
+>>
+>> Having read through the docs briefly, some questions:
+>>
+>> 1. How does the crypto work?  Is it straight AES-ECB?  Is it a
+>> tweakable mode?  If so, what does into the tweak?  For example, if I
+>> swap the ciphertext of two pages, does the plaintext of the pages get
+>> swapped?  If not, why not?
+>
+> The AES crypto uses a tweak such that two identical plaintexts at
+> different locations will have different ciphertext. So swapping the
+> ciphertext of two pages will not result in the plaintext being swapped.
 
-Applied to the asm-generic, tree, thanks!
+OK, makes sense.
 
-	Arnd
+>
+>>
+>> 2. In SEV mode, how does the hypervisor relocate a physical backing
+>> page?  Does it simple move it and update the 2nd-level page tables?
+>> If so, is the result of decryption guaranteed to be garbage if it
+>> relocates a page and re-inserts it at the wrong guest physical
+>> address?
+>
+> For SEV mode, relocating a physical backing page takes extra steps.
+> There are APIs that are used to have the AMD Secure Processor create a
+> transportable encrypted page that can then be moved to a new location
+> in memory. After moving it to the new location the APIs are used to
+> haves the AMD Secure Processor re-encrypt the page for use with the
+> guests SEV key. Based on #1 above, just moving a page without invoking
+> the necessary APIs will result in the decryption returning garbage.
+>
+>>
+>> 3. In SEV mode, does anything prevent the hypervisor from resuming a
+>> guest with the wrong ASID, or is this all relying on the resulting
+>> corruption of the guest code and data to cause a crash?
+>
+> There is nothing that prevents resuming a guest with the wrong ASID.
+> This relies on the resulting corruption of the guest code/data to
+> cause a crash.
+
+This all seems somewhat useful, but I almost guarantee that if there
+is ever anything economically important (or important for national
+security reasons, or simply something that sounds fun for an
+enterprising kid to break) that it *will* be broken in many creative
+ways.
+
+Someone will break it by replaying old data through the VM, either to
+confuse control flow or to use some part of the VM code as an oracle
+with which to attack another part.
+
+Someone else will break it by installing a #UD / #PF handler and using
+the resulting exceptions as an oracle.
+
+A third clever person will break it by carefully constructing a
+scenario in which randomizing 16 bytes of data has a high probability
+of letting then pwn your system.  (For example, what if the secured VM
+creates an RSA key and you can carefully interrupt it right after
+generating p and q.  Replace 16 bytes from the middle of both p and q
+(32 bytes total) with random garbage.  With reasonably high
+probability, the resulting p and q will no longer be prime.)
+
+Depending on how strong your ASID protection is, a fourth clever
+person will break it by replacing a bunch of the VM out from under the
+target while leaving the sensitive data in place and then will use
+some existing exploit or design issue to gain code execution in the
+modified VM.
+
+Also, I really hope that your tweakable cipher mode is at least CCA2
+secure, because attackers can absolutely hit it with adaptive chosen
+ciphertext attacks.  (Actually, attackers can alternate between
+adaptive chosen ciphertext and adaptive chosen plaintext.)
+
+And did the SEV implementation remember to encrypt the guest register
+state?  Because, if not, everything of importance will leak out
+through the VMCB and/or GPRs.
+
+But I guess it's better than nothing.
+
+--Andy
