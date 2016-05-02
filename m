@@ -1,82 +1,112 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 14/31] locking,metag: Implement
- atomic_fetch_{add,sub,and,or,xor}()
-Date: Mon, 2 May 2016 10:15:15 +0200
-Message-ID: <20160502081515.GA3430@twins.programming.kicks-ass.net>
-References: <20160422090413.393652501@infradead.org>
- <20160422093923.941873289@infradead.org>
- <20160430002031.GB15188@jhogan-linux.le.imgtec.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v3 00/16] genrtc removal
+Date: Mon, 2 May 2016 10:45:52 +0200
+Message-ID: <CAMuHMdV3ZHEKgv-LPPQdZzP8KBY-yiSoeJ-cAXy54qD04--LgA@mail.gmail.com>
+References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
+	<CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:50938 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752317AbcEBIQh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 04:16:37 -0400
-Content-Disposition: inline
-In-Reply-To: <20160430002031.GB15188@jhogan-linux.le.imgtec.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 30, 2016 at 01:20:31AM +0100, James Hogan wrote:
-> > +	asm volatile (							\
-> > +		"1:	LNKGETD %1, [%2]\n"				\
-> > +		"	" #op "	%0, %1, %3\n"				\
-> 
-> i was hoping never to have to think about meta asm constraints again :-P
+Hi Arnd,
 
-There is a solution for that: rm -rf arch/metag :-)
+On Thu, Apr 28, 2016 at 9:48 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Thu, Apr 28, 2016 at 12:34 AM, Arnd Bergmann <arnd@arndb.de> wrote=
+:
+>> I ended up stuffing the two patch series into one, as they are now
+>> more dependent on one another. This now thoroughly removes the
+>> genrtc driver including the asm/rtc.h headers it uses. For all
+>> architectures that still have a meaningful asm/rtc.h, this goes
+>> through two stages:
+>>
+>> 1) make the rtc-generic implementation independent of asm/rtc.h
+>> 2) remove the asm/rtc.h header and disallow the gen_rtc driver
+>>
+>> As the last step, the driver itself gets removed.
+>
+> In general, after fixing the minor nit:
+> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>
+> For the m68k bits:
+> Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-> and/or/xor are only available in the data units, as determined by %1 in
-> this case, so the constraint for result shouldn't have "a" in it.
-> 
-> diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
-> index 50ad05050947..def2c642f053 100644
-> --- a/arch/metag/include/asm/atomic_lnkget.h
-> +++ b/arch/metag/include/asm/atomic_lnkget.h
-> @@ -84,7 +84,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
->  		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
->  		"	CMPT	%0, #HI(0x02000000)\n"			\
->  		"	BNZ 1b\n"					\
-> -		: "=&d" (temp), "=&da" (result)				\
-> +		: "=&d" (temp), "=&d" (result)				\
->  		: "da" (&v->counter), "bd" (i)				\
->  		: "cc");						\
-> 
-> That also ensures the "bd" constraint for %3 (meaning "an op2 register
-> where op1 [%1 in this case] is a data unit register and the instruction
-> supports O2R") is consistent.
-> 
-> So with that change this patch looks good to me:
+More build coverage uncovered two build failures on m68k due to "[PATCH=
+ v3
+02/16] rtc: cmos: move mc146818rtc code out of asm-generic/rtc.h":
 
-Right, so I'd _never_ have thought to look at that,
+bvme6000_defconfig:
 
-> Acked-by: James Hogan <james.hogan@imgtec.com>
+    In file included from arch/m68k/bvme6000/rtc.c:19:
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_is_updat=
+ing=E2=80=99:
+    include/linux/mc146818rtc.h:138: error: implicit declaration of
+function =E2=80=98CMOS_READ=E2=80=99
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_get_time=
+=E2=80=99:
+    include/linux/mc146818rtc.h:189: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
+=99
+undeclared (first use in this function)
+    include/linux/mc146818rtc.h:189: error: (Each undeclared
+identifier is reported only once
+    include/linux/mc146818rtc.h:189: error: for each function it appear=
+s in.)
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_set_time=
+=E2=80=99:
+    include/linux/mc146818rtc.h:279: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
+=99
+undeclared (first use in this function)
+    include/linux/mc146818rtc.h:290: error: implicit declaration of
+function =E2=80=98CMOS_WRITE=E2=80=99
 
-Thanks!
+mvme16x_defconfig:
 
-> Note that for the ATOMIC_OP_RETURN() case (add/sub only) either address
-> or data units can be used (hence the "da" for %1), but then the "bd"
-> constraint on %3 is wrong as op1 [%1] may not be in data unit (sorry I
-> didn't spot that at the time). I'll queue a fix, something like below
-> probably ("br" means "An Op2 register and the instruction supports O2R",
-> i.e. op1/%1 doesn't have to be a data unit register):
-> 
-> diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
-> index 50ad05050947..def2c642f053 100644
-> --- a/arch/metag/include/asm/atomic_lnkget.h
-> +++ b/arch/metag/include/asm/atomic_lnkget.h
-> @@ -61,7 +61,7 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
->  		"	CMPT	%0, #HI(0x02000000)\n"			\
->  		"	BNZ 1b\n"					\
->  		: "=&d" (temp), "=&da" (result)				\
-> -		: "da" (&v->counter), "bd" (i)				\
-> +		: "da" (&v->counter), "br" (i)				\
->  		: "cc");						\
->  									\
->  	smp_mb();							\
->  									\							\
+    In file included from arch/m68k/mvme16x/rtc.c:18:
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_is_updat=
+ing=E2=80=99:
+    include/linux/mc146818rtc.h:138: error: implicit declaration of
+function =E2=80=98CMOS_READ=E2=80=99
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_get_time=
+=E2=80=99:
+    include/linux/mc146818rtc.h:189: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
+=99
+undeclared (first use in this function)
+    include/linux/mc146818rtc.h:189: error: (Each undeclared
+identifier is reported only once
+    include/linux/mc146818rtc.h:189: error: for each function it appear=
+s in.)
+    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_set_time=
+=E2=80=99:
+    include/linux/mc146818rtc.h:279: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
+=99
+undeclared (first use in this function)
+    include/linux/mc146818rtc.h:290: error: implicit declaration of
+function =E2=80=98CMOS_WRITE=E2=80=99
 
-Thanks, again :-)
+These do not show up with a multi-platform config including Atari
+support, as arch/m68k/include/asm/mc146818rtc.h provides a definition o=
+f
+CMOS_READ() if CONFIG_ATARI=3Dy.
+
+=46ortunately the fixes are simple: replace <linux/mc146818rtc.h> by
+<linux/rtc.h>. Will send patches to fix...
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+                                -- Linus Torvalds
