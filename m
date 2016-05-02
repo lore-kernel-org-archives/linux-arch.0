@@ -1,99 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f196.google.com ([209.85.223.196]:33446 "EHLO
-	mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752372AbcEBIpy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 04:45:54 -0400
+Received: from mout.kundenserver.de ([212.227.126.187]:50818 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752658AbcEBNZd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 09:25:33 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2] asm-generic: Drop renameat syscall from default list
+Date: Mon, 02 May 2016 15:23:12 +0200
+Message-ID: <5769874.XvA4zrbPZs@wuerfel>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
+References: <1461965366-7893-1-git-send-email-james.hogan@imgtec.com> <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
-	<CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
-Date: Mon, 2 May 2016 10:45:52 +0200
-Message-ID: <CAMuHMdV3ZHEKgv-LPPQdZzP8KBY-yiSoeJ-cAXy54qD04--LgA@mail.gmail.com>
-Subject: Re: [PATCH v3 00/16] genrtc removal
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20160502084552.D61EiMqk4Lm7tgE2pG2vVXLutbJVOGZk7DVQqAbGI8M@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Chen Liqin <liqin.linux@gmail.com>
+Cc: James Hogan <james.hogan@imgtec.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ley Foon Tan <lftan@altera.com>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, "uclinux-h8-devel@lists.sourceforge.jp" <uclinux-h8-devel@lists.sourceforge.jp>
+Message-ID: <20160502132312.tM_PhzN146I3FG598hNCx1reHXB67JN-V6d9o7mXi6o@z>
 
-Hi Arnd,
+On Monday 02 May 2016 05:13:46 Vineet Gupta wrote:
+> On Saturday 30 April 2016 02:59 AM, James Hogan wrote:
+> > The newer renameat2 syscall provides all the functionality provided by
+> > the renameat syscall and adds flags, so future architectures won't need
+> > to include renameat.
+> >
+> > Therefore drop the renameat syscall from the generic syscall list unless
+> > __ARCH_WANT_RENAMEAT is defined by the architecture's unistd.h prior to
+> > including asm-generic/unistd.h, and adjust all architectures using the
+> > generic syscall list to define it so that no in-tree architectures are
+> > affected.
+> >
+> > Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> 
+> Acked-by: Vineet Gupta <vgupta@synopsys.com>  # for arch/arc
 
-On Thu, Apr 28, 2016 at 9:48 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Thu, Apr 28, 2016 at 12:34 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> I ended up stuffing the two patch series into one, as they are now
->> more dependent on one another. This now thoroughly removes the
->> genrtc driver including the asm/rtc.h headers it uses. For all
->> architectures that still have a meaningful asm/rtc.h, this goes
->> through two stages:
->>
->> 1) make the rtc-generic implementation independent of asm/rtc.h
->> 2) remove the asm/rtc.h header and disallow the gen_rtc driver
->>
->> As the last step, the driver itself gets removed.
->
-> In general, after fixing the minor nit:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->
-> For the m68k bits:
-> Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Applied to the asm-generic, tree, thanks!
 
-More build coverage uncovered two build failures on m68k due to "[PATCH v3
-02/16] rtc: cmos: move mc146818rtc code out of asm-generic/rtc.h":
-
-bvme6000_defconfig:
-
-    In file included from arch/m68k/bvme6000/rtc.c:19:
-    include/linux/mc146818rtc.h: In function ‘mc146818_is_updating’:
-    include/linux/mc146818rtc.h:138: error: implicit declaration of
-function ‘CMOS_READ’
-    include/linux/mc146818rtc.h: In function ‘mc146818_get_time’:
-    include/linux/mc146818rtc.h:189: error: ‘RTC_ALWAYS_BCD’
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:189: error: (Each undeclared
-identifier is reported only once
-    include/linux/mc146818rtc.h:189: error: for each function it appears in.)
-    include/linux/mc146818rtc.h: In function ‘mc146818_set_time’:
-    include/linux/mc146818rtc.h:279: error: ‘RTC_ALWAYS_BCD’
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:290: error: implicit declaration of
-function ‘CMOS_WRITE’
-
-mvme16x_defconfig:
-
-    In file included from arch/m68k/mvme16x/rtc.c:18:
-    include/linux/mc146818rtc.h: In function ‘mc146818_is_updating’:
-    include/linux/mc146818rtc.h:138: error: implicit declaration of
-function ‘CMOS_READ’
-    include/linux/mc146818rtc.h: In function ‘mc146818_get_time’:
-    include/linux/mc146818rtc.h:189: error: ‘RTC_ALWAYS_BCD’
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:189: error: (Each undeclared
-identifier is reported only once
-    include/linux/mc146818rtc.h:189: error: for each function it appears in.)
-    include/linux/mc146818rtc.h: In function ‘mc146818_set_time’:
-    include/linux/mc146818rtc.h:279: error: ‘RTC_ALWAYS_BCD’
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:290: error: implicit declaration of
-function ‘CMOS_WRITE’
-
-These do not show up with a multi-platform config including Atari
-support, as arch/m68k/include/asm/mc146818rtc.h provides a definition of
-CMOS_READ() if CONFIG_ATARI=y.
-
-Fortunately the fixes are simple: replace <linux/mc146818rtc.h> by
-<linux/rtc.h>. Will send patches to fix...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Arnd
