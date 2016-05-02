@@ -1,61 +1,82 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] asm-generic: Drop renameat syscall from default list
-Date: Mon, 2 May 2016 05:13:46 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
-References: <1461965366-7893-1-git-send-email-james.hogan@imgtec.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 14/31] locking,metag: Implement
+ atomic_fetch_{add,sub,and,or,xor}()
+Date: Mon, 2 May 2016 10:15:15 +0200
+Message-ID: <20160502081515.GA3430@twins.programming.kicks-ass.net>
+References: <20160422090413.393652501@infradead.org>
+ <20160422093923.941873289@infradead.org>
+ <20160430002031.GB15188@jhogan-linux.le.imgtec.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-hexagon-owner@vger.kernel.org
-To: James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, Richard Kuo <rkuo@codeaurora.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-metag@vger.kernel.org" <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, "linux@lists.openrisc.net" <linux@lists.openrisc.net>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ley Foon Ta
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:50938 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752317AbcEBIQh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 04:16:37 -0400
+Content-Disposition: inline
+In-Reply-To: <20160430002031.GB15188@jhogan-linux.le.imgtec.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On Saturday 30 April 2016 02:59 AM, James Hogan wrote:
-> The newer renameat2 syscall provides all the functionality provided by
-> the renameat syscall and adds flags, so future architectures won't need
-> to include renameat.
->
-> Therefore drop the renameat syscall from the generic syscall list unless
-> __ARCH_WANT_RENAMEAT is defined by the architecture's unistd.h prior to
-> including asm-generic/unistd.h, and adjust all architectures using the
-> generic syscall list to define it so that no in-tree architectures are
-> affected.
->
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: linux-snps-arc@lists.infradead.org
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Mark Salter <msalter@redhat.com>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> Cc: linux-c6x-dev@linux-c6x.org
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: linux-hexagon@vger.kernel.org
-> Cc: linux-metag@vger.kernel.org
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: linux@lists.openrisc.net
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> Cc: Chris Metcalf <cmetcalf@mellanox.com>
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> Cc: Ley Foon Tan <lftan@altera.com>
-> Cc: nios2-dev@lists.rocketboards.org
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: uclinux-h8-devel@lists.sourceforge.jp
-> ---
-> I just found this patch on an old branch, it appears to have slipped
-> through the cracks. Time for a respon.
->
-> Changes in v2:
-> - Rebase onto v4.6-rc5.
-> - Add __ARCH_WANT_RENAMEAT to h8300 and nios2 arches too.
-> ---
->  arch/arc/include/uapi/asm/unistd.h       | 1 +
+On Sat, Apr 30, 2016 at 01:20:31AM +0100, James Hogan wrote:
+> > +	asm volatile (							\
+> > +		"1:	LNKGETD %1, [%2]\n"				\
+> > +		"	" #op "	%0, %1, %3\n"				\
+> 
+> i was hoping never to have to think about meta asm constraints again :-P
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>  # for arch/arc
+There is a solution for that: rm -rf arch/metag :-)
+
+> and/or/xor are only available in the data units, as determined by %1 in
+> this case, so the constraint for result shouldn't have "a" in it.
+> 
+> diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
+> index 50ad05050947..def2c642f053 100644
+> --- a/arch/metag/include/asm/atomic_lnkget.h
+> +++ b/arch/metag/include/asm/atomic_lnkget.h
+> @@ -84,7 +84,7 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
+>  		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
+>  		"	CMPT	%0, #HI(0x02000000)\n"			\
+>  		"	BNZ 1b\n"					\
+> -		: "=&d" (temp), "=&da" (result)				\
+> +		: "=&d" (temp), "=&d" (result)				\
+>  		: "da" (&v->counter), "bd" (i)				\
+>  		: "cc");						\
+> 
+> That also ensures the "bd" constraint for %3 (meaning "an op2 register
+> where op1 [%1 in this case] is a data unit register and the instruction
+> supports O2R") is consistent.
+> 
+> So with that change this patch looks good to me:
+
+Right, so I'd _never_ have thought to look at that,
+
+> Acked-by: James Hogan <james.hogan@imgtec.com>
+
+Thanks!
+
+> Note that for the ATOMIC_OP_RETURN() case (add/sub only) either address
+> or data units can be used (hence the "da" for %1), but then the "bd"
+> constraint on %3 is wrong as op1 [%1] may not be in data unit (sorry I
+> didn't spot that at the time). I'll queue a fix, something like below
+> probably ("br" means "An Op2 register and the instruction supports O2R",
+> i.e. op1/%1 doesn't have to be a data unit register):
+> 
+> diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
+> index 50ad05050947..def2c642f053 100644
+> --- a/arch/metag/include/asm/atomic_lnkget.h
+> +++ b/arch/metag/include/asm/atomic_lnkget.h
+> @@ -61,7 +61,7 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+>  		"	CMPT	%0, #HI(0x02000000)\n"			\
+>  		"	BNZ 1b\n"					\
+>  		: "=&d" (temp), "=&da" (result)				\
+> -		: "da" (&v->counter), "bd" (i)				\
+> +		: "da" (&v->counter), "br" (i)				\
+>  		: "cc");						\
+>  									\
+>  	smp_mb();							\
+>  									\							\
+
+Thanks, again :-)
