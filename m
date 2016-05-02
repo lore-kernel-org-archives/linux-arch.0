@@ -1,112 +1,34 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v3 00/16] genrtc removal
-Date: Mon, 2 May 2016 10:45:52 +0200
-Message-ID: <CAMuHMdV3ZHEKgv-LPPQdZzP8KBY-yiSoeJ-cAXy54qD04--LgA@mail.gmail.com>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
-	<CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v2] asm-generic: Drop renameat syscall from default list
+Date: Mon, 02 May 2016 15:23:12 +0200
+Message-ID: <5769874.XvA4zrbPZs@wuerfel>
+References: <1461965366-7893-1-git-send-email-james.hogan@imgtec.com> <C2D7FE5348E1B147BCA15975FBA23075F4EA010A@us01wembx1.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdUcrB38jL1_estfq5aK55UFUeF=4JciVGFqcE17pY9X7g@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4EA010A-cALIpNOex2c3t6iM5Z/N3fufCSb+aD3WLzEdoUbNIic@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Vineet Gupta <Vineet.Gupta1-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, Chen Liqin <liqin.linux-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-snps-arc-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Aurelien Jacquiot <a-jacquiot-l0cyMroinI0@public.gmane.org>, "linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org" <linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org>, Richard Kuo <rkuo-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, "linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jonas Bonn <jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org>, Lennox Wu <lennox.wu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Chris Metcalf <cmetcalf-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, Ley Foon Tan <lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org>, "nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org" <nios2-dev-g9ZBwUv/Ih/yUk5EbOjzuce+I+R0W71w@public.gmane.org>, Yoshin
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On Monday 02 May 2016 05:13:46 Vineet Gupta wrote:
+> On Saturday 30 April 2016 02:59 AM, James Hogan wrote:
+> > The newer renameat2 syscall provides all the functionality provided by
+> > the renameat syscall and adds flags, so future architectures won't need
+> > to include renameat.
+> >
+> > Therefore drop the renameat syscall from the generic syscall list unless
+> > __ARCH_WANT_RENAMEAT is defined by the architecture's unistd.h prior to
+> > including asm-generic/unistd.h, and adjust all architectures using the
+> > generic syscall list to define it so that no in-tree architectures are
+> > affected.
+> >
+> > Signed-off-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+> 
+> Acked-by: Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>  # for arch/arc
 
-On Thu, Apr 28, 2016 at 9:48 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Thu, Apr 28, 2016 at 12:34 AM, Arnd Bergmann <arnd@arndb.de> wrote=
-:
->> I ended up stuffing the two patch series into one, as they are now
->> more dependent on one another. This now thoroughly removes the
->> genrtc driver including the asm/rtc.h headers it uses. For all
->> architectures that still have a meaningful asm/rtc.h, this goes
->> through two stages:
->>
->> 1) make the rtc-generic implementation independent of asm/rtc.h
->> 2) remove the asm/rtc.h header and disallow the gen_rtc driver
->>
->> As the last step, the driver itself gets removed.
->
-> In general, after fixing the minor nit:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->
-> For the m68k bits:
-> Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Applied to the asm-generic, tree, thanks!
 
-More build coverage uncovered two build failures on m68k due to "[PATCH=
- v3
-02/16] rtc: cmos: move mc146818rtc code out of asm-generic/rtc.h":
-
-bvme6000_defconfig:
-
-    In file included from arch/m68k/bvme6000/rtc.c:19:
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_is_updat=
-ing=E2=80=99:
-    include/linux/mc146818rtc.h:138: error: implicit declaration of
-function =E2=80=98CMOS_READ=E2=80=99
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_get_time=
-=E2=80=99:
-    include/linux/mc146818rtc.h:189: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
-=99
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:189: error: (Each undeclared
-identifier is reported only once
-    include/linux/mc146818rtc.h:189: error: for each function it appear=
-s in.)
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_set_time=
-=E2=80=99:
-    include/linux/mc146818rtc.h:279: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
-=99
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:290: error: implicit declaration of
-function =E2=80=98CMOS_WRITE=E2=80=99
-
-mvme16x_defconfig:
-
-    In file included from arch/m68k/mvme16x/rtc.c:18:
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_is_updat=
-ing=E2=80=99:
-    include/linux/mc146818rtc.h:138: error: implicit declaration of
-function =E2=80=98CMOS_READ=E2=80=99
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_get_time=
-=E2=80=99:
-    include/linux/mc146818rtc.h:189: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
-=99
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:189: error: (Each undeclared
-identifier is reported only once
-    include/linux/mc146818rtc.h:189: error: for each function it appear=
-s in.)
-    include/linux/mc146818rtc.h: In function =E2=80=98mc146818_set_time=
-=E2=80=99:
-    include/linux/mc146818rtc.h:279: error: =E2=80=98RTC_ALWAYS_BCD=E2=80=
-=99
-undeclared (first use in this function)
-    include/linux/mc146818rtc.h:290: error: implicit declaration of
-function =E2=80=98CMOS_WRITE=E2=80=99
-
-These do not show up with a multi-platform config including Atari
-support, as arch/m68k/include/asm/mc146818rtc.h provides a definition o=
-f
-CMOS_READ() if CONFIG_ATARI=3Dy.
-
-=46ortunately the fixes are simple: replace <linux/mc146818rtc.h> by
-<linux/rtc.h>. Will send patches to fix...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-                                -- Linus Torvalds
+	Arnd
