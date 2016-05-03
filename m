@@ -1,76 +1,102 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 12/16] rtc: powerpc: provide rtc_class_ops directly
-Date: Tue, 03 May 2016 12:29:21 +0200
-Message-ID: <3723014.RkUgaFBZte@wuerfel>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de> <1461796470-1291527-13-git-send-email-arnd@arndb.de> <1462248309.12788.4.camel@ellerman.id.au>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Subject: Re: [PATCH 24/25] arm64:ilp32: add vdso-ilp32 and use for signal
+ return
+Date: Tue, 3 May 2016 19:07:12 +0800
+Message-ID: <57288660.9030607@huawei.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1554541.oDP7Ro5zB2@wuerfel>
+ <20160503090045.GB10733@e104818-lin.cambridge.arm.com>
+ <3846428.6xx69KGEja@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <1462248309.12788.4.camel@ellerman.id.au>
-Sender: linux-sh-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <3846428.6xx69KGEja@wuerfel>
+Sender: linux-doc-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 03 May 2016 14:05:09 Michael Ellerman wrote:
-> On Thu, 2016-04-28 at 00:34 +0200, Arnd Bergmann wrote:
-> 
-> > The rtc-generic driver provides an architecture specific
-> > wrapper on top of the generic rtc_class_ops abstraction,
-> > and powerpc has another abstraction on top, which is a bit
-> > silly.
-> > 
-> > This changes the powerpc rtc-generic device to provide its
-> > rtc_class_ops directly, to reduce the number of layers
-> > by one.
-> > 
-> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> > ---
-> >  arch/powerpc/kernel/time.c | 29 ++++++++++++++++++++++++++++-
-> >  drivers/rtc/rtc-generic.c  |  2 +-
-> >  2 files changed, 29 insertions(+), 2 deletions(-)
-> 
-> If this hits linux-next it will go through my automated boot testing, which
-> hopefully would be sufficient to catch any bugs in this patch, cross fingers.
-> 
-> I don't know jack about all the layers of RTC mess, so my ack is basically
-> worthless here. But if you like you can have one anyway 
-> 
-> Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 
-Thanks!
 
-The main thing that could use testing here is for patch 12/16 to see if
-/sbin/hwclock can still read and write the time on a machine that
-uses one of the genrtc backends on powerpc, this includes
-rtas_get_rtc_time, mpc8xx_get_rtc_time, maple_get_rtc_time,
-ps3_get_rtc_time and pmac_get_rtc_time. Testing on a pSeries with rtas
-should be sufficient, and if I made a mistake, it probably fails
-spectacularly.
+On 2016/5/3 17:05, Arnd Bergmann wrote:
+> On Tuesday 03 May 2016 10:00:45 Catalin Marinas wrote:
+>> On Fri, Apr 29, 2016 at 07:30:19PM +0200, Arnd Bergmann wrote:
+>>> On Friday 29 April 2016 17:01:55 Catalin Marinas wrote:
+>>>> On Wed, Apr 06, 2016 at 01:08:46AM +0300, Yury Norov wrote:
+>>>>> ILP32 VDSO exports next symbols:
+>>>>>   __kernel_rt_sigreturn;
+>>>>>   __kernel_gettimeofday;
+>>>>>   __kernel_clock_gettime;
+>>>>>   __kernel_clock_getres;
+>>>>
+>>>> [...]
+>>>>
+>>>>> +$(obj)/gettimeofday-ilp32.o: $(src)/../vdso/gettimeofday.S
+>>>>> + $(call if_changed_dep,vdso-ilp32as)
+>>>>
+>>>> Are struct timeval and timespec the same between ILP32 and LP64? For
+>>>> example, __kernel_gettimeofday() assumes TVAL_TV_SEC offset defined in
+>>>> asm-offsets.c based on the LP64 timeval.
+>>>
+>>> No, ilp32 uses the generic 32-bit data structures, which have a 32-bit
+>>> time_t. I guess that means it can work for little-endian but not
+>>> big-endian, right?
+>>
+>> I don't think it works for little-endian either. The LP64 struct timeval
+>> is 16 bytes while the ILP32 one is 8 bytes. The VDSO gettimeofday is
+>> storing 16 bytes (stp x10, x11, [x0, #TVAL_TV_SEC])
+>
+> You are right. Yury asked pointed out the same thing on IRC as well.
+> Using the 64-bit gettimeofday() will put the right number in the
+> .tv_sec member on little-endian, but will write zeroes to tv_nsec
+> and corrupt the memory following it.
+>
+> Yury also tried it out and noticed that for a (so far) unknown reason,
+> the vdso gets never used by his glibc build, so it has not triggered
+> any test case failures.
+We found this issue too. And it is because the version is different from
+the glibc wanted. We define 2.6.39 for lp64 but 2.6 for ilp32 in vdso
+in kernel:
++VERSION
++{
++	LINUX_2.6 {
++	global:
++		__kernel_rt_sigreturn;
++		__kernel_gettimeofday;
++		__kernel_clock_gettime;
++		__kernel_clock_getres;
++	local: *;
++	};
++}
+If I change 2.6 to 2.6.39, the ilp32 application will call vdso instead
+of syscall. But the result is wrong as Catalin mentioned before.
 
-Just for reference, if anyone ever wants to clean this up further on
-powerpc to remove all of the rtc handling from architecture code,
-it has gotten easier after my series:
+Should we set this version to 4.6 or higher version? We will need to update
+the version in "sysdeps/unix/sysv/linux/aarch64/init-first.c" too:
+static inline void
+_libc_vdso_platform_setup (void)
+{
+   PREPARE_VERSION (linux2639, "LINUX_2.6.39", 123718537);
 
-- The update_persistent_clock() and read_persistent_clock() callbacks
-  are now unnecessary: as long as the RTC driver is built into the
-  kernel, drivers/rtc/hctosys.c takes care of setting the initial
-  time (otherwise user space has to do it), and the other users
-  (ntp and suspend/resume) will work fine whenever an rtc driver
-  is loaded. Obviously you will want to test the kernel better after
-  removing the two functions.
+   void *p = _dl_vdso_vsym ("__kernel_gettimeofday", &linux2639);
+   PTR_MANGLE (p);
+   VDSO_SYMBOL(gettimeofday) = p;
 
-- Once they are gone, the only users of the ppc_md.{get,set}_rtc_time
-  callbacks are in the "const struct rtc_class_ops rtc_generic_ops".
-  You can move them into the five files implementing those callbacks
-  and call the functions directly to get rid of the function pointers.
+   p = _dl_vdso_vsym ("__kernel_clock_gettime", &linux2639);
+   PTR_MANGLE (p);
+   VDSO_SYMBOL(clock_gettime) = p;
 
-- Lastly, after that is done, you basically have five independent
-  rtc device drivers that can get moved to drivers/rtc and converted
-  into regular platform drivers. Instead of registering the fake
-  "rtc-generic" device, you then register the one that is actually
-  there like arch/powerpc/sysdev/rtc_cmos_setup.c already does, or
-  use the one that gets created from DT.
+   p = _dl_vdso_vsym ("__kernel_clock_getres", &linux2639);
+   PTR_MANGLE (p);
+   VDSO_SYMBOL(clock_getres) = p;
+}
 
-	Arnd
+Regards
+
+Bamvor
+
+>
+> 	Arnd
+>
+
