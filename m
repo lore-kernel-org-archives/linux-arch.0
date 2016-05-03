@@ -1,58 +1,69 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [RFC v2 3/7] firmware: port built-in section to linker table
-Date: Mon, 2 May 2016 11:41:06 -0700
-Message-ID: <20160502184106.GA17329@kroah.com>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
- <1456740770.4666.366.camel@infradead.org>
- <20160229185606.GD25240@wotan.suse.de>
- <CAGXu5jKkKvA5zWmr+U0TYKBBFgDL62xzQwWDOFGQMkmwKXMaMQ@mail.gmail.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.5 045/200] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
+Date: Mon,  2 May 2016 17:10:44 -0700
+Message-ID: <20160503000556.080712447@linuxfoundation.org>
+References: <20160503000554.631204776@linuxfoundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:51521 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754969AbcEBSlH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 14:41:07 -0400
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jKkKvA5zWmr+U0TYKBBFgDL62xzQwWDOFGQMkmwKXMaMQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "Luis R. Rodriguez" <mcgrof@suse.com>, David Woodhouse <dwmw2@infradead.org>, "Luis R. Rodriguez" <mcgrof@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Rusty Russell <rusty@rustcorp.com.au>, David Vrabel <david.vrabel@citrix.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, mcb30@ipxe.org, jgross@suse.com, Ming Lei <ming.lei@canonical.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, jbaron@akamai.com, "ananth@in.ibm.com" <ananth@in.ibm.com>, anil.s.keshavamurthy@intel.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160503000554.631204776@linuxfoundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Romain Perier <romain.perier@free-electrons.com>, linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 02, 2016 at 11:34:33AM -0700, Kees Cook wrote:
-> On Mon, Feb 29, 2016 at 10:56 AM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> > On Mon, Feb 29, 2016 at 10:12:50AM +0000, David Woodhouse wrote:
-> >> On Fri, 2016-02-19 at 05:45 -0800, Luis R. Rodriguez wrote:
-> >> > This ports built-in firmware to use linker tables,
-> >> > this replaces the custom section solution with a
-> >> > generic solution.
-> >> >
-> >> > This also demos the use of the .rodata (SECTION_RO)
-> >> > linker tables.
-> >> >
-> >> > Tested with 0 built-in firmware, 1 and 2 built-in
-> >> > firmwares successfully.
-> >>
-> >> I think we'd do better to rip this support out entirely. It just isn't
-> >> needed; firmware can live in an initramfs and don't even need *any*
-> >> actual running userspace support to load it from there these days, do
-> >> we?
-> >
-> > I think this is reasonable if and only if we really don't know of anyone
-> > out there not able to use initramfs. I'm happy to rip it out.
-> 
-> The changelog for this doesn't say anything about _why_ the change is
-> being made? (and what about other architectures.) Also, Chrome OS
-> doesn't use an initramfs (and plenty of other things don't too). Being
-> able to build monolithic kernels (e.g. Android and Brillo) with
-> builtin firmware is very handy. Please don't remove built-in firmware
-> support.
+4.5-stable review patch.  If anyone has any objections, please let me know.
 
-I second this, we can't break existing systems at all.  I thought we
-were going to keep built-in firmware, right Luis?
+------------------
 
-thanks,
+From: Romain Perier <romain.perier@free-electrons.com>
 
-greg k-h
+commit fba7cd681b6155e2d93e7862fcd6f970336b83c3 upstream.
+
+The recent decoupling of pagefault disable and preempt disable added an
+explicit preempt_disable/enable() pair to the futex_atomic_cmpxchg_inatomic()
+implementation in asm-generic/futex.h. But it forgot to add preempt_enable()
+calls to the error handling code pathes, which results in a preemption count
+imbalance.
+
+This is observable on boot when the test for atomic_cmpxchg() is calling
+futex_atomic_cmpxchg_inatomic() on a NULL pointer.
+
+Add the missing preempt_enable() calls to the error handling code pathes.
+
+[ tglx: Massaged changelog ]
+
+Fixes: d9b9ff8c1889 ("sched/preempt, futex: Disable preemption in UP futex_atomic_cmpxchg_inatomic() explicitly")
+Signed-off-by: Romain Perier <romain.perier@free-electrons.com>
+Cc: linux-arch@vger.kernel.org
+Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Link: http://lkml.kernel.org/r/1460640963-690-1-git-send-email-romain.perier@free-electrons.com
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ include/asm-generic/futex.h |    8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+--- a/include/asm-generic/futex.h
++++ b/include/asm-generic/futex.h
+@@ -108,11 +108,15 @@ futex_atomic_cmpxchg_inatomic(u32 *uval,
+ 	u32 val;
+ 
+ 	preempt_disable();
+-	if (unlikely(get_user(val, uaddr) != 0))
++	if (unlikely(get_user(val, uaddr) != 0)) {
++		preempt_enable();
+ 		return -EFAULT;
++	}
+ 
+-	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
++	if (val == oldval && unlikely(put_user(newval, uaddr) != 0)) {
++		preempt_enable();
+ 		return -EFAULT;
++	}
+ 
+ 	*uval = val;
+ 	preempt_enable();
