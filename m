@@ -1,76 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:59662 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932703AbcECAQe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 20:16:34 -0400
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 035/163] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
-Date: Mon,  2 May 2016 17:11:03 -0700
-Message-ID: <20160503000509.691394455@linuxfoundation.org>
-In-Reply-To: <20160503000508.556845508@linuxfoundation.org>
-References: <20160503000508.556845508@linuxfoundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Received: from ozlabs.org ([103.22.144.67]:54302 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750756AbcECEFM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 May 2016 00:05:12 -0400
+Message-ID: <1462248309.12788.4.camel@ellerman.id.au>
+Subject: Re: [PATCH v3 12/16] rtc: powerpc: provide rtc_class_ops directly
+From: Michael Ellerman <mpe@ellerman.id.au>
+Date: Tue, 03 May 2016 14:05:09 +1000
+In-Reply-To: <1461796470-1291527-13-git-send-email-arnd@arndb.de>
+References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
+	 <1461796470-1291527-13-git-send-email-arnd@arndb.de>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Romain Perier <romain.perier@free-electrons.com>, linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20160503001103.zECdE9dwLUnOWB4qu_db-Ex2j2dCkA8tkZDIr-RMjt8@z>
+To: Arnd Bergmann <arnd@arndb.de>, Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Cc: geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Message-ID: <20160503040509.dnpVgxcJxT3syB5jQAUN8NymIyPe0_NwluhNYJOctrY@z>
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+On Thu, 2016-04-28 at 00:34 +0200, Arnd Bergmann wrote:
 
-------------------
+> The rtc-generic driver provides an architecture specific
+> wrapper on top of the generic rtc_class_ops abstraction,
+> and powerpc has another abstraction on top, which is a bit
+> silly.
+> 
+> This changes the powerpc rtc-generic device to provide its
+> rtc_class_ops directly, to reduce the number of layers
+> by one.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  arch/powerpc/kernel/time.c | 29 ++++++++++++++++++++++++++++-
+>  drivers/rtc/rtc-generic.c  |  2 +-
+>  2 files changed, 29 insertions(+), 2 deletions(-)
 
-From: Romain Perier <romain.perier@free-electrons.com>
+If this hits linux-next it will go through my automated boot testing, which
+hopefully would be sufficient to catch any bugs in this patch, cross fingers.
 
-commit fba7cd681b6155e2d93e7862fcd6f970336b83c3 upstream.
+I don't know jack about all the layers of RTC mess, so my ack is basically
+worthless here. But if you like you can have one anyway :)
 
-The recent decoupling of pagefault disable and preempt disable added an
-explicit preempt_disable/enable() pair to the futex_atomic_cmpxchg_inatomic()
-implementation in asm-generic/futex.h. But it forgot to add preempt_enable()
-calls to the error handling code pathes, which results in a preemption count
-imbalance.
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
 
-This is observable on boot when the test for atomic_cmpxchg() is calling
-futex_atomic_cmpxchg_inatomic() on a NULL pointer.
-
-Add the missing preempt_enable() calls to the error handling code pathes.
-
-[ tglx: Massaged changelog ]
-
-Fixes: d9b9ff8c1889 ("sched/preempt, futex: Disable preemption in UP futex_atomic_cmpxchg_inatomic() explicitly")
-Signed-off-by: Romain Perier <romain.perier@free-electrons.com>
-Cc: linux-arch@vger.kernel.org
-Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Link: http://lkml.kernel.org/r/1460640963-690-1-git-send-email-romain.perier@free-electrons.com
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-
----
- include/asm-generic/futex.h |    8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
-
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -108,11 +108,15 @@ futex_atomic_cmpxchg_inatomic(u32 *uval,
- 	u32 val;
- 
- 	preempt_disable();
--	if (unlikely(get_user(val, uaddr) != 0))
-+	if (unlikely(get_user(val, uaddr) != 0)) {
-+		preempt_enable();
- 		return -EFAULT;
-+	}
- 
--	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-+	if (val == oldval && unlikely(put_user(newval, uaddr) != 0)) {
-+		preempt_enable();
- 		return -EFAULT;
-+	}
- 
- 	*uval = val;
- 	preempt_enable();
-
+cheers
 
