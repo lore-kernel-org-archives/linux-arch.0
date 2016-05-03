@@ -1,39 +1,80 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [RFC v2 3/7] firmware: port built-in section to linker table
-Date: Tue, 3 May 2016 11:12:21 -0700
-Message-ID: <20160503181221.GA7315@kroah.com>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-4-git-send-email-mcgrof@kernel.org>
- <1456740770.4666.366.camel@infradead.org>
- <20160229185606.GD25240@wotan.suse.de>
- <CAGXu5jKkKvA5zWmr+U0TYKBBFgDL62xzQwWDOFGQMkmwKXMaMQ@mail.gmail.com>
- <CAB=NE6VC6m8N3Me4ek7jXkBi_fv6S_oYN8-sHLdPJPd2CUEZNQ@mail.gmail.com>
- <CAB=NE6WnA-VDPPX7YfkrRZC=vMtpbq41wn9pkSy7OHBdGhgwFQ@mail.gmail.com>
+From: Christopher Covington <cov@codeaurora.org>
+Subject: Re: VDSO unmap and remap support for additional architectures
+Date: Tue, 3 May 2016 17:37:25 -0400
+Message-ID: <57291A15.8010105@codeaurora.org>
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+ <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
+ <57236003.5060804@codeaurora.org> <572367B7.6030105@virtuozzo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:56444 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964824AbcECSMX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2016 14:12:23 -0400
-Content-Disposition: inline
-In-Reply-To: <CAB=NE6WnA-VDPPX7YfkrRZC=vMtpbq41wn9pkSy7OHBdGhgwFQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, David Woodhouse <dwmw2@infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Rusty Russell <rusty@rustcorp.com.au>, David Vrabel <david.vrabel@citrix.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Michael Brown <mcb30@ipxe.org>, Juergen Gross <jgross@suse.com>, Ming Lei <ming.lei@canonical.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, jbaron@akamai.com, "ananth@in.ibm.com" <ananth@in.ibm.com>, anil.s.keshavamurthy@intel.com, David S. M
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <572367B7.6030105@virtuozzo.com>
+Sender: owner-linux-mm@kvack.org
+To: Dmitry Safonov <dsafonov@virtuozzo.com>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, "CRIU@openvz.org" <CRIU@openvz.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 03, 2016 at 10:10:24AM -0700, Luis R. Rodriguez wrote:
-> On Tue, May 3, 2016 at 10:07 AM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> > Thanks! Can you confirm if any Android or Brillo builds are already using it?
+On 04/29/2016 09:55 AM, Dmitry Safonov wrote:
+> On 04/29/2016 04:22 PM, Christopher Covington wrote:
+>> On 04/28/2016 02:53 PM, Andy Lutomirski wrote:
+>>> Also, at some point, possibly quite soon, x86 will want a way for
+>>> user code to ask the kernel to map a specific vdso variant at a specific
+>>> address. Could we perhaps add a new pair of syscalls:
+>>>
+>>> struct vdso_info {
+>>>      unsigned long space_needed_before;
+>>>      unsigned long space_needed_after;
+>>>      unsigned long alignment;
+>>> };
+>>>
+>>> long vdso_get_info(unsigned int vdso_type, struct vdso_info *info);
+>>>
+>>> long vdso_remap(unsigned int vdso_type, unsigned long addr, unsigned
+>>> int flags);
+>>>
+>>> #define VDSO_X86_I386 0
+>>> #define VDSO_X86_64 1
+>>> #define VDSO_X86_X32 2
+>>> // etc.
+>>>
+>>> vdso_remap will map the vdso of the chosen type such at
+>>> AT_SYSINFO_EHDR lines up with addr. It will use up to
+>>> space_needed_before bytes before that address and space_needed_after
+>>> after than address. It will also unmap the old vdso (or maybe only do
+>>> that if some flag is set).
+>>>
+>>> On x86, mremap is *not* sufficient for everything that's needed,
+>>> because some programs will need to change the vdso type.
+>> I don't I understand. Why can't people just exec() the ELF type that
+>> corresponds to the VDSO they want?
 > 
-> Also more importantly, any chance you can provide any technical
-> reasons why initramfs cannot be used, or it was decided to not use it
-> on these systems? It should help others in the future as well.
+> I may say about my needs in it: to not lose all the existing
+> information in application.
+> Imagine you're restoring a container with 64-bit and 32-bit
+> applications (in compatible mode). So you need somehow
+> switch vdso type in restorer for a 32-bit application.
+> Yes, you may exec() and then - all already restored application
+> properties will got lost. You will need to transpher information
+> about mappings, make protocol between restorer binary
+> and main criu application, finally you'll end up with some
+> really much more difficult architecture than it is now.
+> And it'll be slower.
 
-Some systems just don't need it, nor want it.  We can't break working
-systems, so this is not something we can remove, sorry.
+Perhaps a more modest exec based strategy would be for x86_64 criu to
+handle all of the x86_64 restores as usual but exec i386 and/or x32 criu
+service daemons and use them for restoring applications needing those ABIs.
 
-thanks,
+Regards,
+Christopher Covington
 
-greg k-h
+-- 
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
