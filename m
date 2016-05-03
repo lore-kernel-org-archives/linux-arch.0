@@ -1,18 +1,18 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.5 045/200] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
-Date: Mon,  2 May 2016 17:10:44 -0700
-Message-ID: <20160503000556.080712447@linuxfoundation.org>
-References: <20160503000554.631204776@linuxfoundation.org>
+Subject: [PATCH 4.4 035/163] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
+Date: Mon,  2 May 2016 17:11:03 -0700
+Message-ID: <20160503000509.691394455@linuxfoundation.org>
+References: <20160503000508.556845508@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160503000554.631204776@linuxfoundation.org>
+In-Reply-To: <20160503000508.556845508@linuxfoundation.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Romain Perier <romain.perier@free-electrons.com>, linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-4.5-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
