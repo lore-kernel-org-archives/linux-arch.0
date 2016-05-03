@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60769 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:59662 "EHLO
 	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933538AbcECAhA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 20:37:00 -0400
+	with ESMTP id S932703AbcECAQe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 May 2016 20:16:34 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.5 045/200] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
-Date: Mon,  2 May 2016 17:10:44 -0700
-Message-ID: <20160503000556.080712447@linuxfoundation.org>
-In-Reply-To: <20160503000554.631204776@linuxfoundation.org>
-References: <20160503000554.631204776@linuxfoundation.org>
+Subject: [PATCH 4.4 035/163] asm-generic/futex: Re-enable preemption in futex_atomic_cmpxchg_inatomic()
+Date: Mon,  2 May 2016 17:11:03 -0700
+Message-ID: <20160503000509.691394455@linuxfoundation.org>
+In-Reply-To: <20160503000508.556845508@linuxfoundation.org>
+References: <20160503000508.556845508@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Romain Perier <romain.perier@free-electrons.com>, linux-arch@vger.kernel.org, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20160503001044.FD_98p4nX9dtDuuc5QpO9DzgVwbw46NQvovIkUm8TvM@z>
+Message-ID: <20160503001103.zECdE9dwLUnOWB4qu_db-Ex2j2dCkA8tkZDIr-RMjt8@z>
 
-4.5-stable review patch.  If anyone has any objections, please let me know.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
