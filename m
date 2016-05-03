@@ -1,42 +1,51 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v3 12/16] rtc: powerpc: provide rtc_class_ops directly
-Date: Tue, 03 May 2016 14:05:09 +1000
-Message-ID: <1462248309.12788.4.camel@ellerman.id.au>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
-	 <1461796470-1291527-13-git-send-email-arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <1461796470-1291527-13-git-send-email-arnd@arndb.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Cc: geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: maryjanesogrub <maryjanesogrub123@gmail.com>
+Subject: Listing from maryjanesogrub
+Date: Mon,  2 May 2016 22:07:48 -0700 (MST)
+Message-ID: <20160503050748.76B2B38A5F6@shared5.precisionpros.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shared5.precisionpros.com ([67.59.131.61]:51120 "EHLO
+	shared5.precisionpros.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750878AbcECFPR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2016 01:15:17 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: raven@themaw.net, linux-arch@vger.kernel.org, blaisorblade@yahoo.it, hitoshiy@linux-m32r.org, takata.hirokazu@renesas.com, alan@linuxcare.com.au, mikukkon@miku.homelinux.net, riel@redhat.com, joerg.roedel@amd.com, bhalevy@panasas.com
 
-On Thu, 2016-04-28 at 00:34 +0200, Arnd Bergmann wrote:
+Your friend, maryjanesogrub, has sent along the following link:
+http://www.midwestrealty.net/listingview.php?listingID=1128
 
-> The rtc-generic driver provides an architecture specific
-> wrapper on top of the generic rtc_class_ops abstraction,
-> and powerpc has another abstraction on top, which is a bit
-> silly.
-> 
-> This changes the powerpc rtc-generic device to provide its
-> rtc_class_ops directly, to reduce the number of layers
-> by one.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  arch/powerpc/kernel/time.c | 29 ++++++++++++++++++++++++++++-
->  drivers/rtc/rtc-generic.c  |  2 +-
->  2 files changed, 29 insertions(+), 2 deletions(-)
+Comment:
+JOB POSITION AVAILABLE - APPLY NOW!
+WE'RE HIRING: Data Entry Workers Earn $500 up to $1000 Daily 
+(No Experience Required)
 
-If this hits linux-next it will go through my automated boot testing, which
-hopefully would be sufficient to catch any bugs in this patch, cross fingers.
+Good Day,
 
-I don't know jack about all the layers of RTC mess, so my ack is basically
-worthless here. But if you like you can have one anyway :)
+You recently expressed an interest in obtaining a
+position you could do from the comfort of your own home.
+I am happy to let you know that I found a great company
+that will help you get started working online.
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+Visit our website here:
 
-cheers
+http://link.limo/1jqz
+
+The scope of the work is very simple.
+You can work as little or as much as you want
+depending on how much you want your paycheck to be
+
+No background experience is needed because you
+will be given a detailed step-by-step training in
+all the job fields along with all the resources you
+needed to help you get started immediately.
+
+Visit our website here:
+
+http://link.limo/1jqz
+
+If you're serious about this position, though,
+then I encourage you to take action immediately.
+We only have a few openings left, and we expect them
+to fill up fast. This really is a great opportunity!
+
+THANKS
