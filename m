@@ -1,79 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:45036 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756430AbcECVh3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2016 17:37:29 -0400
-Subject: Re: VDSO unmap and remap support for additional architectures
-References: <20151202121918.GA4523@arm.com>
- <1461856737-17071-1-git-send-email-cov@codeaurora.org>
- <2ce7203f-305c-6edf-0ef9-448c141cb103@kernel.org>
- <57236003.5060804@codeaurora.org> <572367B7.6030105@virtuozzo.com>
-From: Christopher Covington <cov@codeaurora.org>
-Message-ID: <57291A15.8010105@codeaurora.org>
-Date: Tue, 3 May 2016 17:37:25 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:53564 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751088AbcEDNrr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 09:47:47 -0400
+Date: Wed, 4 May 2016 15:47:29 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: kmap_atomic and preemption
+Message-ID: <20160504134729.GP3430@twins.programming.kicks-ass.net>
+References: <5729D0F4.9090907@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <572367B7.6030105@virtuozzo.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5729D0F4.9090907@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Safonov <dsafonov@virtuozzo.com>, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, "CRIU@openvz.org" <CRIU@openvz.org>
-Message-ID: <20160503213725.nOW-lP6dtxoqfjbrusTnEBut31aTcu9K_wKtt1D2r-U@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20160504134729.qv1VcmHD8L1SJFQfvdK3AxfFFmOWtYpRM-__L5uonsg@z>
 
-On 04/29/2016 09:55 AM, Dmitry Safonov wrote:
-> On 04/29/2016 04:22 PM, Christopher Covington wrote:
->> On 04/28/2016 02:53 PM, Andy Lutomirski wrote:
->>> Also, at some point, possibly quite soon, x86 will want a way for
->>> user code to ask the kernel to map a specific vdso variant at a specific
->>> address. Could we perhaps add a new pair of syscalls:
->>>
->>> struct vdso_info {
->>>      unsigned long space_needed_before;
->>>      unsigned long space_needed_after;
->>>      unsigned long alignment;
->>> };
->>>
->>> long vdso_get_info(unsigned int vdso_type, struct vdso_info *info);
->>>
->>> long vdso_remap(unsigned int vdso_type, unsigned long addr, unsigned
->>> int flags);
->>>
->>> #define VDSO_X86_I386 0
->>> #define VDSO_X86_64 1
->>> #define VDSO_X86_X32 2
->>> // etc.
->>>
->>> vdso_remap will map the vdso of the chosen type such at
->>> AT_SYSINFO_EHDR lines up with addr. It will use up to
->>> space_needed_before bytes before that address and space_needed_after
->>> after than address. It will also unmap the old vdso (or maybe only do
->>> that if some flag is set).
->>>
->>> On x86, mremap is *not* sufficient for everything that's needed,
->>> because some programs will need to change the vdso type.
->> I don't I understand. Why can't people just exec() the ELF type that
->> corresponds to the VDSO they want?
+On Wed, May 04, 2016 at 04:07:40PM +0530, Vineet Gupta wrote:
+> Hi,
 > 
-> I may say about my needs in it: to not lose all the existing
-> information in application.
-> Imagine you're restoring a container with 64-bit and 32-bit
-> applications (in compatible mode). So you need somehow
-> switch vdso type in restorer for a 32-bit application.
-> Yes, you may exec() and then - all already restored application
-> properties will got lost. You will need to transpher information
-> about mappings, make protocol between restorer binary
-> and main criu application, finally you'll end up with some
-> really much more difficult architecture than it is now.
-> And it'll be slower.
+> I was staring at some recent ARC highmem crashes and see that kmap_atomic()
+> disables preemption even when page is in lowmem and call returns right away.
+> This seems to be true for other arches as well.
+> 
+> arch/arc/mm/highmem.c:
+> 
+> void *kmap_atomic(struct page *page)
+> {
+> 	int idx, cpu_idx;
+> 	unsigned long vaddr;
+> 
+> 	preempt_disable();
+> 	pagefault_disable();
+> 	if (!PageHighMem(page))
+> 		return page_address(page);
+> 
+>         /* do the highmem foo ... */
+> ..
+> }
+> 
+> I would really like to implement a inline fastpath for !PageHighMem(page) case and
+> do the highmem foo out-of-line.
+> 
+> Is preemption disabling a requirement of kmap_atomic() callers independent of
+> where page is or is it only needed when page is in highmem and can trigger page
+> faults or TLB Misses between kmap_atomic() and kunmap_atomic and wants protection
+> against reschedules etc.
 
-Perhaps a more modest exec based strategy would be for x86_64 criu to
-handle all of the x86_64 restores as usual but exec i386 and/or x32 criu
-service daemons and use them for restoring applications needing those ABIs.
+Traditionally kmap_atomic() disables preemption; and the reason is that
+the returned pointer must stay valid. This had a side effect in that it
+also disabled pagefaults.
 
-Regards,
-Christopher Covington
+We've since de-coupled the pagefault from the preemption thing, so you
+could disable pagefaults while leaving preemption enabled.
 
--- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+Now, I've also done preemptible kmap_atomic() on -rt; which appears to
+work, suggesting nothing relies on it disabling preemption (on -rt).
+
+So sure; you can try and leave preemption enabled for lowmem pages, see
+what comes apart -- if anything. It gives weird semantics for
+kmap_atomic() though, and I'm not sure the cost of doing that
+preempt_disable/preempt_enable() is worth the pain.
+
+If you want a fast-slow path splt, you can easily do something like:
+
+
+static inline void *kmap_atomic(struct page *page)
+{
+	preempt_disable();
+	pagefault_disable();
+	if (!PageHighMem(page))
+		return page_address(page);
+
+	return __kmap_atomic(page);
+}
