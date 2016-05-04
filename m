@@ -1,42 +1,57 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: kmap_atomic and preemption
-Date: Wed, 4 May 2016 20:17:55 +0100
-Message-ID: <20160504191755.GV19428@n2100.arm.linux.org.uk>
-References: <5729D0F4.9090907@synopsys.com>
- <20160504134729.GP3430@twins.programming.kicks-ass.net>
+From: Christopher Covington <cov@codeaurora.org>
+Subject: Re: [RFC 1/5] powerpc: Rename context.vdso_base to context.vdso
+Date: Wed, 4 May 2016 17:21:18 -0400
+Message-ID: <572A67CE.4010109@codeaurora.org>
+References: <20151202121918.GA4523@arm.com>
+ <1461856737-17071-1-git-send-email-cov@codeaurora.org>
+ <1461856737-17071-2-git-send-email-cov@codeaurora.org>
+ <5726A7D5.7030305@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:41960 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751132AbcEDTUe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 15:20:34 -0400
-Content-Disposition: inline
-In-Reply-To: <20160504134729.GP3430@twins.programming.kicks-ass.net>
+Received: from smtp.codeaurora.org ([198.145.29.96]:34269 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752613AbcEDVVW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 17:21:22 -0400
+In-Reply-To: <5726A7D5.7030305@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Balbir Singh <bsingharora@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Wed, May 04, 2016 at 03:47:29PM +0200, Peter Zijlstra wrote:
-> Traditionally kmap_atomic() disables preemption; and the reason is that
-> the returned pointer must stay valid. This had a side effect in that it
-> also disabled pagefaults.
+Hi Balbir,
 
-A lowmem page should never change its page_address(), so that much is
-safe.  I think the question is whether there is any driver code which
-assumes that preemption is unconditionally disabled between a
-kmap_atomic() has been called.
+On 05/01/2016 09:05 PM, Balbir Singh wrote:
+> On 29/04/16 01:18, Christopher Covington wrote:
+>> In order to share remap and unmap support for the VDSO with other
+>> architectures without duplicating the code, we need a common name and type
+>> for the address of the VDSO. An informal survey of the architectures
+>> indicates unsigned long vdso is popular. Change the variable name in
+>> powerpc from mm->context.vdso_base to simply mm->context.vdso.
+> 
+> Could you please provide additional details on why the remap/unmap operations are required?
 
-That wouldn't be an unreasonable assumption given the name of the
-function, so I'd suggest caution with making kmap_atomic() have these
-kinds of differing behaviours depending on whether we're asking to
-kmap a high or lowmem page.
+The goal is to make checkpointing and restoring processes work on
+several different architectures and ABIs, in the face of Address Space
+Layout Randomization (ASLR) and other factors that might change the VDSO
+virtual address from one exec() to the next.
 
-If we are going to allow this, I think it at least needs to be well
-documented.
+Here's the patch adding PowerPC support:
+
+http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=83d3f0e90c6c8f833e3da91917c243a916fda69e
+
+> This patch does rename, but should it abstract via a function acesss
+> to vmap field using arch_* operations? Not sure
+
+I'm sorry, but I don't understand this question. Are you saying ARM,
+Power etc. need VDSO unmap and remap log that behave differently? So far
+I've found the differences to be stylistic rather than really affecting
+generated code behavior.
+
+Thanks,
+Christopher Covington
 
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
