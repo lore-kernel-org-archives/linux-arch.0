@@ -1,69 +1,64 @@
-From: Chen Yucong <slaoub@gmail.com>
-Subject: [PATCH] cpu/hotplug: print warning message in proper places for online or offline cpu
-Date: Wed,  4 May 2016 21:51:48 +0800
-Message-ID: <1462369908-17395-1-git-send-email-slaoub@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f67.google.com ([209.85.220.67]:35429 "EHLO
-	mail-pa0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752124AbcEDNyp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 09:54:45 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: peterz@infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Yucong <slaoub@gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: kmap_atomic and preemption
+Date: Wed, 4 May 2016 14:01:52 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4EA0647@us01wembx1.internal.synopsys.com>
+References: <5729D0F4.9090907@synopsys.com>
+ <20160504134729.GP3430@twins.programming.kicks-ass.net>
+ <20160504155345.5fdd366e@free-electrons.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-When we online or offline a CPU, unexpected errors may occur for
-a number of reasons. So if a function called within _cpu_down() or
-_cpu_up() returns a error code indicating a failed operation, the
-warning message should be printed rather than fallow the failed
-__cpu_notify().
+On Wednesday 04 May 2016 07:23 PM, Thomas Petazzoni wrote:=0A=
+> Hello,=0A=
+>=0A=
+> On Wed, 4 May 2016 15:47:29 +0200, Peter Zijlstra wrote:=0A=
+>=0A=
+>> static inline void *kmap_atomic(struct page *page)=0A=
+>> {=0A=
+>> 	preempt_disable();=0A=
+>> 	pagefault_disable();=0A=
+>> 	if (!PageHighMem(page))=0A=
+>> 		return page_address(page);=0A=
+>>=0A=
+>> 	return __kmap_atomic(page);=0A=
+>> }=0A=
+> This is essentially what has been done on ARM in commit=0A=
+> 9ff0bb5ba60638a688a46e93df8c5009896672eb, showing a pretty significant=0A=
+> improvement in network workloads.=0A=
+=0A=
+ARC already has that semantically - only not inline ! I really want to avoi=
+d 2=0A=
+needless LD-ADD-ST for the disabling of preemption and page fault for the l=
+ow mem=0A=
+pages by returning early !=0A=
+=0A=
+static inline void *kmap_atomic(struct page *page)=0A=
+{=0A=
+        if (!PageHighMem(page))=0A=
+		return page_address(page);=0A=
+=0A=
+	preempt_disable();=0A=
+	pagefault_disable();=0A=
+	=0A=
+	return __kmap_atomic(page);=0A=
+=0A=
+}=0A=
+=0A=
+>=0A=
+> Best regards,=0A=
+>=0A=
+> Thomas=0A=
+=0A=
 
-Signed-off-by: Chen Yucong <slaoub@gmail.com>
----
- kernel/cpu.c |   10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
-
-diff --git a/kernel/cpu.c b/kernel/cpu.c
-index 3e3f6e4..b8a2d2a 100644
---- a/kernel/cpu.c
-+++ b/kernel/cpu.c
-@@ -317,8 +317,8 @@ static int notify_prepare(unsigned int cpu)
- 	ret = __cpu_notify(CPU_UP_PREPARE, cpu, -1, &nr_calls);
- 	if (ret) {
- 		nr_calls--;
--		printk(KERN_WARNING "%s: attempt to bring up CPU %u failed\n",
--				__func__, cpu);
-+		pr_warn("%s: attempt to bring up CPU %u failed\n",
-+			__func__, cpu);
- 		__cpu_notify(CPU_UP_CANCELED, cpu, nr_calls, NULL);
- 	}
- 	return ret;
-@@ -353,6 +353,8 @@ static int bringup_cpu(unsigned int cpu)
- 	ret = __cpu_up(cpu, idle);
- 	if (ret) {
- 		cpu_notify(CPU_UP_CANCELED, cpu);
-+		pr_warn("%s: attempt to bring up CPU %u failed\n",
-+			__func__, cpu);
- 		return ret;
- 	}
- 	ret = bringup_wait_for_ap(cpu);
-@@ -662,7 +664,7 @@ static int notify_down_prepare(unsigned int cpu)
- 		nr_calls--;
- 		__cpu_notify(CPU_DOWN_FAILED, cpu, nr_calls, NULL);
- 		pr_warn("%s: attempt to take down CPU %u failed\n",
--				__func__, cpu);
-+			__func__, cpu);
- 	}
- 	return err;
- }
-@@ -737,6 +739,8 @@ static int takedown_cpu(unsigned int cpu)
- 		irq_unlock_sparse();
- 		/* Unpark the hotplug thread so we can rollback there */
- 		kthread_unpark(per_cpu_ptr(&cpuhp_state, cpu)->thread);
-+		pr_warn("%s: attempt to take down CPU %u failed\n",
-+			__func__, cpu);
- 		return err;
- 	}
- 	BUG_ON(cpu_online(cpu));
--- 
-1.7.10.4
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
