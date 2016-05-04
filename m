@@ -1,165 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0089.outbound.protection.outlook.com ([207.46.100.89]:17344
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1bon0087.outbound.protection.outlook.com ([157.56.111.87]:6784
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754043AbcEDRcD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 May 2016 13:32:03 -0400
-From: =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>
-Subject: [PATCH 1/7] asm-generic/io.h: add io{read,write}64 accessors
-Date: Wed, 4 May 2016 20:16:19 +0300
-Message-ID: <1462382179-11889-1-git-send-email-horia.geanta@nxp.com>
+	id S1754519AbcEDVuF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 May 2016 17:50:05 -0400
+Date: Thu, 5 May 2016 00:49:49 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 24/25] arm64:ilp32: add vdso-ilp32 and use for signal
+ return
+Message-ID: <20160504214949.GA28217@yury-N73SV>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1554541.oDP7Ro5zB2@wuerfel>
+ <20160503090045.GB10733@e104818-lin.cambridge.arm.com>
+ <3846428.6xx69KGEja@wuerfel>
+ <57288660.9030607@huawei.com>
+ <57289C75.50904@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <57289C75.50904@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-crypto@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Scott Wood <scott.wood@nxp.com>, Alexandru Porosanu <alexandru.porosanu@nxp.com>, Tudor Ambarus <tudor-dan.ambarus@nxp.com>, Cristian Stoica <cristian.stoica@nxp.com>
-Message-ID: <20160504171619.J-T4nOEpk6QpONvWCZcOf91ZsMKfeW36CPClbFjPpe4@z>
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>
+Message-ID: <20160504214949.YdB-K35AgOjnRgVneUeS7nnN6ohc233nNOOgQZC8z0g@z>
 
-This will allow device drivers to consistently use io{read,write}XX
-also for 64-bit accesses.
+On Tue, May 03, 2016 at 08:41:25PM +0800, Zhangjian (Bamvor) wrote:
+> Hi, all
+> 
+> After apply this patch with my small testcase, the vsyscall of gettimeofday in
+> ilp32 works in both big endian and small endian. In this patch, I use the
+> different register and offset for ilp32 and lp64. Actually, the
+> COMPAT_TVAL_TV_SEC is same as TVAL_TV_SEC(so as to COMPAT_TSPEC_TV_SEC and
+> TSPEC_TV_SEC). I add it to keep the logic clear. I also change the version
+> of vdso to 4.6. It should change to 2.6.39 if glibc is not update.
+> 
 
-Signed-off-by: Horia Geantă <horia.geanta@nxp.com>
----
- include/asm-generic/io.h    | 63 +++++++++++++++++++++++++++++++++++++++++++++
- include/asm-generic/iomap.h |  8 ++++++
- 2 files changed, 71 insertions(+)
+[...]
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index eed3bbe88c8a..0e2c73bb6d56 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -585,6 +585,16 @@ static inline u32 ioread32(const volatile void __iomem *addr)
- }
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#ifndef ioread64
-+#define ioread64 ioread64
-+static inline u64 ioread64(const volatile void __iomem *addr)
-+{
-+	return readq(addr);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
- #ifndef iowrite8
- #define iowrite8 iowrite8
- static inline void iowrite8(u8 value, volatile void __iomem *addr)
-@@ -609,6 +619,16 @@ static inline void iowrite32(u32 value, volatile void __iomem *addr)
- }
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#ifndef iowrite64
-+#define iowrite64 iowrite64
-+static inline void iowrite64(u64 value, volatile void __iomem *addr)
-+{
-+	writeq(value, addr);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
- #ifndef ioread16be
- #define ioread16be ioread16be
- static inline u16 ioread16be(const volatile void __iomem *addr)
-@@ -625,6 +645,16 @@ static inline u32 ioread32be(const volatile void __iomem *addr)
- }
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#ifndef ioread64be
-+#define ioread64be ioread64be
-+static inline u64 ioread64be(const volatile void __iomem *addr)
-+{
-+	return __be64_to_cpu(__raw_readq(addr));
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
- #ifndef iowrite16be
- #define iowrite16be iowrite16be
- static inline void iowrite16be(u16 value, void volatile __iomem *addr)
-@@ -641,6 +671,16 @@ static inline void iowrite32be(u32 value, volatile void __iomem *addr)
- }
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#ifndef iowrite64be
-+#define iowrite64be iowrite64be
-+static inline void iowrite64be(u64 value, volatile void __iomem *addr)
-+{
-+	__raw_writeq(__cpu_to_be64(value), addr);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
- #ifndef ioread8_rep
- #define ioread8_rep ioread8_rep
- static inline void ioread8_rep(const volatile void __iomem *addr, void *buffer,
-@@ -668,6 +708,17 @@ static inline void ioread32_rep(const volatile void __iomem *addr,
- }
- #endif
- 
-+#ifdef CONFIG_64BIT
-+#ifndef ioread64_rep
-+#define ioread64_rep ioread64_rep
-+static inline void ioread64_rep(const volatile void __iomem *addr,
-+				void *buffer, unsigned int count)
-+{
-+	readsq(addr, buffer, count);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
-+
- #ifndef iowrite8_rep
- #define iowrite8_rep iowrite8_rep
- static inline void iowrite8_rep(volatile void __iomem *addr,
-@@ -697,6 +748,18 @@ static inline void iowrite32_rep(volatile void __iomem *addr,
- 	writesl(addr, buffer, count);
- }
- #endif
-+
-+#ifdef CONFIG_64BIT
-+#ifndef iowrite64_rep
-+#define iowrite64_rep iowrite64_rep
-+static inline void iowrite64_rep(volatile void __iomem *addr,
-+				 const void *buffer,
-+				 unsigned int count)
-+{
-+	writesq(addr, buffer, count);
-+}
-+#endif
-+#endif /* CONFIG_64BIT */
- #endif /* CONFIG_GENERIC_IOMAP */
- 
- #ifdef __KERNEL__
-diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
-index d8f8622fa044..650fede33c25 100644
---- a/include/asm-generic/iomap.h
-+++ b/include/asm-generic/iomap.h
-@@ -30,12 +30,20 @@ extern unsigned int ioread16(void __iomem *);
- extern unsigned int ioread16be(void __iomem *);
- extern unsigned int ioread32(void __iomem *);
- extern unsigned int ioread32be(void __iomem *);
-+#ifdef CONFIG_64BIT
-+extern u64 ioread64(void __iomem *);
-+extern u64 ioread64be(void __iomem *);
-+#endif
- 
- extern void iowrite8(u8, void __iomem *);
- extern void iowrite16(u16, void __iomem *);
- extern void iowrite16be(u16, void __iomem *);
- extern void iowrite32(u32, void __iomem *);
- extern void iowrite32be(u32, void __iomem *);
-+#ifdef CONFIG_64BIT
-+extern void iowrite64(u64, void __iomem *);
-+extern void iowrite64be(u64, void __iomem *);
-+#endif
- 
- /*
-  * "string" versions of the above. Note that they
--- 
-2.4.4
+Hi Bamvor,
 
+It works for me as well. Thank you.
+I'll incorporate it in next submission.
+
+Yury.
