@@ -1,78 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53564 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751088AbcEDNrr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 09:47:47 -0400
-Date: Wed, 4 May 2016 15:47:29 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from down.free-electrons.com ([37.187.137.238]:57573 "EHLO
+	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752560AbcEDNxt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 09:53:49 -0400
+Date: Wed, 4 May 2016 15:53:45 +0200
+From: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 Subject: Re: kmap_atomic and preemption
-Message-ID: <20160504134729.GP3430@twins.programming.kicks-ass.net>
+Message-ID: <20160504155345.5fdd366e@free-electrons.com>
+In-Reply-To: <20160504134729.GP3430@twins.programming.kicks-ass.net>
 References: <5729D0F4.9090907@synopsys.com>
+	<20160504134729.GP3430@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5729D0F4.9090907@synopsys.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20160504134729.qv1VcmHD8L1SJFQfvdK3AxfFFmOWtYpRM-__L5uonsg@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20160504135345.SpzdxHJ-QzhjJMq29R4mDdgiAO6huTzWtTKhSSzafO8@z>
 
-On Wed, May 04, 2016 at 04:07:40PM +0530, Vineet Gupta wrote:
-> Hi,
-> 
-> I was staring at some recent ARC highmem crashes and see that kmap_atomic()
-> disables preemption even when page is in lowmem and call returns right away.
-> This seems to be true for other arches as well.
-> 
-> arch/arc/mm/highmem.c:
-> 
-> void *kmap_atomic(struct page *page)
+Hello,
+
+On Wed, 4 May 2016 15:47:29 +0200, Peter Zijlstra wrote:
+
+> static inline void *kmap_atomic(struct page *page)
 > {
-> 	int idx, cpu_idx;
-> 	unsigned long vaddr;
-> 
 > 	preempt_disable();
 > 	pagefault_disable();
 > 	if (!PageHighMem(page))
 > 		return page_address(page);
 > 
->         /* do the highmem foo ... */
-> ..
+> 	return __kmap_atomic(page);
 > }
-> 
-> I would really like to implement a inline fastpath for !PageHighMem(page) case and
-> do the highmem foo out-of-line.
-> 
-> Is preemption disabling a requirement of kmap_atomic() callers independent of
-> where page is or is it only needed when page is in highmem and can trigger page
-> faults or TLB Misses between kmap_atomic() and kunmap_atomic and wants protection
-> against reschedules etc.
 
-Traditionally kmap_atomic() disables preemption; and the reason is that
-the returned pointer must stay valid. This had a side effect in that it
-also disabled pagefaults.
+This is essentially what has been done on ARM in commit
+9ff0bb5ba60638a688a46e93df8c5009896672eb, showing a pretty significant
+improvement in network workloads.
 
-We've since de-coupled the pagefault from the preemption thing, so you
-could disable pagefaults while leaving preemption enabled.
+Best regards,
 
-Now, I've also done preemptible kmap_atomic() on -rt; which appears to
-work, suggesting nothing relies on it disabling preemption (on -rt).
-
-So sure; you can try and leave preemption enabled for lowmem pages, see
-what comes apart -- if anything. It gives weird semantics for
-kmap_atomic() though, and I'm not sure the cost of doing that
-preempt_disable/preempt_enable() is worth the pain.
-
-If you want a fast-slow path splt, you can easily do something like:
-
-
-static inline void *kmap_atomic(struct page *page)
-{
-	preempt_disable();
-	pagefault_disable();
-	if (!PageHighMem(page))
-		return page_address(page);
-
-	return __kmap_atomic(page);
-}
+Thomas
+-- 
+Thomas Petazzoni, CTO, Free Electrons
+Embedded Linux, Kernel and Android engineering
+http://free-electrons.com
