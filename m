@@ -1,40 +1,80 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 24/25] arm64:ilp32: add vdso-ilp32 and use for signal
- return
-Date: Thu, 5 May 2016 00:49:49 +0300
-Message-ID: <20160504214949.GA28217@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1554541.oDP7Ro5zB2@wuerfel>
- <20160503090045.GB10733@e104818-lin.cambridge.arm.com>
- <3846428.6xx69KGEja@wuerfel>
- <57288660.9030607@huawei.com>
- <57289C75.50904@huawei.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/7] asm-generic/io.h: add io{read,write}64 accessors
+Date: Thu, 05 May 2016 00:35:50 +0200
+Message-ID: <16429831.u9JK7qO1GE@wuerfel>
+References: <1462382179-11889-1-git-send-email-horia.geanta@nxp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <57289C75.50904@huawei.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-crypto-owner@vger.kernel.org>
+In-Reply-To: <1462382179-11889-1-git-send-email-horia.geanta@nxp.com>
+Sender: linux-crypto-owner@vger.kernel.org
+To: Horia =?utf-8?B?R2VhbnTEgw==?= <horia.geanta@nxp.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, linux-crypto@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Scott Wood <scott.wood@nxp.com>, Alexandru Porosanu <alexandru.porosanu@nxp.com>, Tudor Ambarus <tudor-dan.ambarus@nxp.com>, Cristian Stoica <cristian.stoica@nxp.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 03, 2016 at 08:41:25PM +0800, Zhangjian (Bamvor) wrote:
-> Hi, all
-> 
-> After apply this patch with my small testcase, the vsyscall of gettimeofday in
-> ilp32 works in both big endian and small endian. In this patch, I use the
-> different register and offset for ilp32 and lp64. Actually, the
-> COMPAT_TVAL_TV_SEC is same as TVAL_TV_SEC(so as to COMPAT_TSPEC_TV_SEC and
-> TSPEC_TV_SEC). I add it to keep the logic clear. I also change the version
-> of vdso to 4.6. It should change to 2.6.39 if glibc is not update.
-> 
+On Wednesday 04 May 2016 20:16:19 Horia Geant=C4=83 wrote:
+> @@ -625,6 +645,16 @@ static inline u32 ioread32be(const volatile void=
+ __iomem *addr)
+>  }
+>  #endif
+> =20
+> +#ifdef CONFIG_64BIT
+> +#ifndef ioread64be
+> +#define ioread64be ioread64be
+> +static inline u64 ioread64be(const volatile void __iomem *addr)
+> +{
+> +       return __be64_to_cpu(__raw_readq(addr));
+> +}
+> +#endif
+> +#endif /* CONFIG_64BIT */
+> +
+>  #ifndef iowrite16be
+>  #define iowrite16be iowrite16be
+>  static inline void iowrite16be(u16 value, void volatile __iomem *add=
+r)
+> @@ -641,6 +671,16 @@ static inline void iowrite32be(u32 value, volati=
+le void __iomem *addr)
+>  }
+>  #endif
+> =20
+> +#ifdef CONFIG_64BIT
+> +#ifndef iowrite64be
+> +#define iowrite64be iowrite64be
+> +static inline void iowrite64be(u64 value, volatile void __iomem *add=
+r)
+> +{
+> +       __raw_writeq(__cpu_to_be64(value), addr);
+> +}
+> +#endif
+> +#endif /* CONFIG_64BIT */
+> +
+>=20
 
-[...]
+I just noticed that these two are both a bit wrong, but they copy the
+mistake that already exists in the 16 and 32 bit versions: If an
+architecture overrides readq/writeq to have barriers but does not overr=
+ide
+ioread64be/iowrite64be, this will lack the barriers and behave differen=
+tly
+from the little-endian version. I think the only affected architecture
+is ARC, since ARM and ARM64 both override the big-endian accessors to
+have the correct barriers, and all others don't use barriers at all.
 
-Hi Bamvor,
+Maybe you can add a patch before this one to replace the 16/32-bit acce=
+ssors
+with ones that do a
 
-It works for me as well. Thank you.
-I'll incorporate it in next submission.
+static inline void iowrite32be(u32 value, volatile void __iomem *addr)
+{
+	writel(swab32(value), addr);
+}
 
-Yury.
+This will lead to a double-swap on architectures that don't override it=
+,
+but it will work correctly on all architectures without them having
+to override the big-endian accessors.
+
+Aside from that, the patch looks fine.
+
+	Arnd
