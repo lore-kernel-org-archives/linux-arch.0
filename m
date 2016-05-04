@@ -1,57 +1,40 @@
-From: Christopher Covington <cov@codeaurora.org>
-Subject: Re: [RFC 1/5] powerpc: Rename context.vdso_base to context.vdso
-Date: Wed, 4 May 2016 17:21:18 -0400
-Message-ID: <572A67CE.4010109@codeaurora.org>
-References: <20151202121918.GA4523@arm.com>
- <1461856737-17071-1-git-send-email-cov@codeaurora.org>
- <1461856737-17071-2-git-send-email-cov@codeaurora.org>
- <5726A7D5.7030305@gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 24/25] arm64:ilp32: add vdso-ilp32 and use for signal
+ return
+Date: Thu, 5 May 2016 00:49:49 +0300
+Message-ID: <20160504214949.GA28217@yury-N73SV>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1554541.oDP7Ro5zB2@wuerfel>
+ <20160503090045.GB10733@e104818-lin.cambridge.arm.com>
+ <3846428.6xx69KGEja@wuerfel>
+ <57288660.9030607@huawei.com>
+ <57289C75.50904@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:34269 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752613AbcEDVVW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2016 17:21:22 -0400
-In-Reply-To: <5726A7D5.7030305@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, criu@openvz.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <57289C75.50904@huawei.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, joseph@codesourcery.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Balbir,
-
-On 05/01/2016 09:05 PM, Balbir Singh wrote:
-> On 29/04/16 01:18, Christopher Covington wrote:
->> In order to share remap and unmap support for the VDSO with other
->> architectures without duplicating the code, we need a common name and type
->> for the address of the VDSO. An informal survey of the architectures
->> indicates unsigned long vdso is popular. Change the variable name in
->> powerpc from mm->context.vdso_base to simply mm->context.vdso.
+On Tue, May 03, 2016 at 08:41:25PM +0800, Zhangjian (Bamvor) wrote:
+> Hi, all
 > 
-> Could you please provide additional details on why the remap/unmap operations are required?
+> After apply this patch with my small testcase, the vsyscall of gettimeofday in
+> ilp32 works in both big endian and small endian. In this patch, I use the
+> different register and offset for ilp32 and lp64. Actually, the
+> COMPAT_TVAL_TV_SEC is same as TVAL_TV_SEC(so as to COMPAT_TSPEC_TV_SEC and
+> TSPEC_TV_SEC). I add it to keep the logic clear. I also change the version
+> of vdso to 4.6. It should change to 2.6.39 if glibc is not update.
+> 
 
-The goal is to make checkpointing and restoring processes work on
-several different architectures and ABIs, in the face of Address Space
-Layout Randomization (ASLR) and other factors that might change the VDSO
-virtual address from one exec() to the next.
+[...]
 
-Here's the patch adding PowerPC support:
+Hi Bamvor,
 
-http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=83d3f0e90c6c8f833e3da91917c243a916fda69e
+It works for me as well. Thank you.
+I'll incorporate it in next submission.
 
-> This patch does rename, but should it abstract via a function acesss
-> to vmap field using arch_* operations? Not sure
-
-I'm sorry, but I don't understand this question. Are you saying ARM,
-Power etc. need VDSO unmap and remap log that behave differently? So far
-I've found the differences to be stylistic rather than really affecting
-generated code behavior.
-
-Thanks,
-Christopher Covington
-
--- 
-Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-a Linux Foundation Collaborative Project
+Yury.
