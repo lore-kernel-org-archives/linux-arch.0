@@ -1,57 +1,72 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 1/7] asm-generic/io.h: add io{read,write}64 accessors
-Date: Thu, 5 May 2016 16:35:08 +0530
-Message-ID: <572B28E4.3090700@synopsys.com>
-References: <1462382179-11889-1-git-send-email-horia.geanta@nxp.com>
- <16429831.u9JK7qO1GE@wuerfel>
- <C2D7FE5348E1B147BCA15975FBA23075F4EA07DD@us01wembx1.internal.synopsys.com>
- <4560398.4eHNWD6mu5@wuerfel>
+Subject: Re: kmap_atomic and preemption
+Date: Thu, 5 May 2016 12:37:17 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4EA086B@us01wembx1.internal.synopsys.com>
+References: <5729D0F4.9090907@synopsys.com>
+ <20160504134729.GP3430@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA23075F4EA065E@us01wembx1.internal.synopsys.com>
+ <20160504150138.GR3430@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:34106 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752377AbcEELFa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2016 07:05:30 -0400
-In-Reply-To: <4560398.4eHNWD6mu5@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: =?UTF-8?Q?Horia_Geant=c4=83?= <horia.geanta@nxp.com>, Herbert Xu <herbert@gondor.apana.org.au>, "linux-crypto@vger.kernel.org" <linux-crypto@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, Scott Wood <scott.wood@nxp.com>, Alexandru Porosanu <alexandru.porosanu@nxp.com>, Tudor Ambarus <tudor-dan.ambarus@nxp.com>, Cristian Stoica <cristian.stoica@nxp.com>, arcml <linux-snps-arc@lists.infradead.org>, Noam Camus <noamc@ezchip.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 05 May 2016 04:26 PM, Arnd Bergmann wrote:
-> On Thursday 05 May 2016 08:16:47 Vineet Gupta wrote:
->> > Thx for noticing this Arnd and the heads up. Does the patch below look ok to you ?
->> > 
->> > ----------->
->> > rom b7e719831c389ab4fa338b2e2e7c0d1ff90dabb0 Mon Sep 17 00:00:00 2001
->> > From: Vineet Gupta <vgupta@synopsys.com>
->> > Date: Thu, 5 May 2016 13:32:34 +0530
->> > Subject: [PATCH] ARC: Add missing io barriers to io{read,write}{16,32}be()
->> > 
->> > While reviewing a different change to asm-generic/io.h Arnd spotted that
->> > ARC ioread32 and ioread32be both of which come from asm-generic versions
->> > are not symmetrical in terms of calling the io barriers.
->> > 
->> > generic ioread32   -> ARC readl()                  [ has barriers]
->> > generic ioread32be -> __be32_to_cpu(__raw_readl()) [ lacks barriers]
->> > 
->> > While generic ioread32be is being remediated to call readl(), that involves
->> > a swab32(), causing double swaps on ioread32be() on Big Endian systems.
->> > 
->> > So provide our versions of big endian IO accessors to ensure io barrier
->> > calls while also keeping them optimal
->> > 
->> > Suggested-by: Arnd Bergmann <arnd@arndb.de>
->> > Cc: stable@vger.kernel.org  [4.2+]
->> > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->
-> Yes, that looks correct. We probably want this regardless of the change
-> I proposed for the generic file, to avoid the double swap.
+On Wednesday 04 May 2016 08:31 PM, Peter Zijlstra wrote:=0A=
+> So I'm fairly sure people rely on the fact you cannot have pagefault=0A=
+> inside a kmap_atomic().=0A=
+=0A=
+So this translates to: any hardware page faults inside kmap_atomic() can't =
+lead to=0A=
+do_page_fault() taking a lock - those can only be ex_table fixups, yes ?=0A=
+Could you please also help explain your earlier comment about kmap_atomic n=
+eeding=0A=
+to disable preemption so that "returned pointer stayed valid". I can't quit=
+e=0A=
+fathom how that can happen=0A=
+=0A=
+> But you could potentially get away with leaving preemption enabled. Give=
+=0A=
+> it a try, see if something goes *bang* ;-)=0A=
+=0A=
+So tried patch further below: on a quad core slowish FPGA setup, concurrent=
+=0A=
+hackbench and LMBench seem to run w/o issues  - so it is not obviously brok=
+en even=0A=
+if not proven otherwise. But the point is highmem page is a slow path anywa=
+ys -=0A=
+needs a PTE update, new TLB entry etc. I hoped to not wiggle even a single =
+cache=0A=
+line for the low page - but seems like that is not possible.=0A=
+=0A=
+OTOH, if we do keep the status quo - then making these 2 cache lines into 1=
+ is not=0A=
+possible either. From reading the orig "decoupling of prremption and page f=
+ault"=0A=
+thread it seems to be because preempt count is per cpu on x86.=0A=
+=0A=
+@@ -67,7 +67,6 @@ void *kmap_atomic(struct page *page)=0A=
+        int idx, cpu_idx;=0A=
+        unsigned long vaddr;=0A=
+ =0A=
+-       preempt_disable();=0A=
+        pagefault_disable();=0A=
+        if (!PageHighMem(page))=0A=
+                return page_address(page);=0A=
+@@ -107,7 +106,6 @@ void __kunmap_atomic(void *kv)=0A=
+        }=0A=
+ =0A=
+        pagefault_enable();=0A=
+-       preempt_enable();=0A=
+ }=0A=
+=0A=
 
-Indeed so - I've queued this for 4.6 fixes !
-
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-Thx !
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
