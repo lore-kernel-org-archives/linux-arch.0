@@ -1,72 +1,83 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: kmap_atomic and preemption
-Date: Thu, 5 May 2016 12:37:17 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4EA086B@us01wembx1.internal.synopsys.com>
-References: <5729D0F4.9090907@synopsys.com>
- <20160504134729.GP3430@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075F4EA065E@us01wembx1.internal.synopsys.com>
- <20160504150138.GR3430@twins.programming.kicks-ass.net>
+From: =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>
+Subject: [PATCH v2 1/8] asm-generic/io.h: allow barriers in io{read,write}{16,32}be
+Date: Thu, 5 May 2016 18:35:45 +0300
+Message-ID: <1462462545-27637-1-git-send-email-horia.geanta@nxp.com>
+References: <1462462435-27403-1-git-send-email-horia.geanta@nxp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, David Hildenbrand <dahi@linux.vnet.ibm.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Russell King <linux@arm.linux.org.uk>, lkml <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1462462435-27403-1-git-send-email-horia.geanta@nxp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 04 May 2016 08:31 PM, Peter Zijlstra wrote:=0A=
-> So I'm fairly sure people rely on the fact you cannot have pagefault=0A=
-> inside a kmap_atomic().=0A=
-=0A=
-So this translates to: any hardware page faults inside kmap_atomic() can't =
-lead to=0A=
-do_page_fault() taking a lock - those can only be ex_table fixups, yes ?=0A=
-Could you please also help explain your earlier comment about kmap_atomic n=
-eeding=0A=
-to disable preemption so that "returned pointer stayed valid". I can't quit=
-e=0A=
-fathom how that can happen=0A=
-=0A=
-> But you could potentially get away with leaving preemption enabled. Give=
-=0A=
-> it a try, see if something goes *bang* ;-)=0A=
-=0A=
-So tried patch further below: on a quad core slowish FPGA setup, concurrent=
-=0A=
-hackbench and LMBench seem to run w/o issues  - so it is not obviously brok=
-en even=0A=
-if not proven otherwise. But the point is highmem page is a slow path anywa=
-ys -=0A=
-needs a PTE update, new TLB entry etc. I hoped to not wiggle even a single =
-cache=0A=
-line for the low page - but seems like that is not possible.=0A=
-=0A=
-OTOH, if we do keep the status quo - then making these 2 cache lines into 1=
- is not=0A=
-possible either. From reading the orig "decoupling of prremption and page f=
-ault"=0A=
-thread it seems to be because preempt count is per cpu on x86.=0A=
-=0A=
-@@ -67,7 +67,6 @@ void *kmap_atomic(struct page *page)=0A=
-        int idx, cpu_idx;=0A=
-        unsigned long vaddr;=0A=
- =0A=
--       preempt_disable();=0A=
-        pagefault_disable();=0A=
-        if (!PageHighMem(page))=0A=
-                return page_address(page);=0A=
-@@ -107,7 +106,6 @@ void __kunmap_atomic(void *kv)=0A=
-        }=0A=
- =0A=
-        pagefault_enable();=0A=
--       preempt_enable();=0A=
- }=0A=
-=0A=
+While reviewing the addition of io{read,write}64be accessors, Arnd
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-finds a potential problem:
+"If an architecture overrides readq/writeq to have barriers but does
+not override ioread64be/iowrite64be, this will lack the barriers and
+behave differently from the little-endian version. I think the only
+affected architecture is ARC, since ARM and ARM64 both override the
+big-endian accessors to have the correct barriers, and all others
+don't use barriers at all."
+
+-suggests a fix for the same problem in existing code (16/32-bit
+accessors); the fix leads "to a double-swap on architectures that
+don't override the io{read,write}{16,32}be accessors, but it will
+work correctly on all architectures without them having to override
+these accessors."
+
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Horia Geant=C4=83 <horia.geanta@nxp.com>
+---
+ include/asm-generic/io.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index eed3bbe88c8a..b79fb2c248a1 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -613,7 +613,7 @@ static inline void iowrite32(u32 value, volatile vo=
+id __iomem *addr)
+ #define ioread16be ioread16be
+ static inline u16 ioread16be(const volatile void __iomem *addr)
+ {
+-	return __be16_to_cpu(__raw_readw(addr));
++	return swab16(readw(addr));
+ }
+ #endif
+=20
+@@ -621,7 +621,7 @@ static inline u16 ioread16be(const volatile void __=
+iomem *addr)
+ #define ioread32be ioread32be
+ static inline u32 ioread32be(const volatile void __iomem *addr)
+ {
+-	return __be32_to_cpu(__raw_readl(addr));
++	return swab32(readl(addr));
+ }
+ #endif
+=20
+@@ -629,7 +629,7 @@ static inline u32 ioread32be(const volatile void __=
+iomem *addr)
+ #define iowrite16be iowrite16be
+ static inline void iowrite16be(u16 value, void volatile __iomem *addr)
+ {
+-	__raw_writew(__cpu_to_be16(value), addr);
++	writew(swab16(value), addr);
+ }
+ #endif
+=20
+@@ -637,7 +637,7 @@ static inline void iowrite16be(u16 value, void vola=
+tile __iomem *addr)
+ #define iowrite32be iowrite32be
+ static inline void iowrite32be(u32 value, volatile void __iomem *addr)
+ {
+-	__raw_writel(__cpu_to_be32(value), addr);
++	writel(swab32(value), addr);
+ }
+ #endif
+=20
+--=20
+2.4.4
