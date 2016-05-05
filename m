@@ -1,19 +1,21 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: asm-generic syscall fix for 4.6-rc
-Date: Thu, 05 May 2016 21:48:34 +0200
-Message-ID: <4518228.KAZUJ4ZH78@wuerfel>
+Subject: [GIT PULL] asm-generic syscall fix for 4.6-rc
+Date: Thu, 05 May 2016 21:58:39 +0200
+Message-ID: <4487176.5tu1gc5SEP@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.74]:57723 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.134]:53127 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757051AbcEETsj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2016 15:48:39 -0400
+	with ESMTP id S1755101AbcEET66 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2016 15:58:58 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yury Norov <ynorov@caviumnetworks.com>, Chris Metcalf <cmetcalf@mellanox.com>
+
+[resent to fix subject line]
 
 The following changes since commit 02da2d72174c61988eb4456b53f405e3ebdebce4:
 
@@ -21,7 +23,7 @@ The following changes since commit 02da2d72174c61988eb4456b53f405e3ebdebce4:
 
 are available in the git repository at:
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arm/arm-soc.git asm-generic-4.6
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-4.6
 
 for you to fetch changes up to 1f93e9f2318b598e6775a1fc9701604993c512b1:
 
