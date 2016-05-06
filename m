@@ -1,55 +1,92 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic syscall fix for 4.6-rc
-Date: Thu, 05 May 2016 21:58:39 +0200
-Message-ID: <4487176.5tu1gc5SEP@wuerfel>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Subject: Re: [PATCH 15/25] arm64: introduce is_a32_task and is_a32_thread (for
+ AArch32 compat)
+Date: Fri, 6 May 2016 20:02:20 +0800
+Message-ID: <572C87CC.4090709@huawei.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-16-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:53127 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755101AbcEET66 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2016 15:58:58 -0400
+Received: from szxga05-in.huawei.com ([119.145.14.199]:27359 "EHLO
+	szxga05-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1758303AbcEFMG0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2016 08:06:26 -0400
+In-Reply-To: <1459894127-17698-16-git-send-email-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yury Norov <ynorov@caviumnetworks.com>, Chris Metcalf <cmetcalf@mellanox.com>
+To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Philipp Tomsich <philipp.tomsich@theobroma-systems.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
 
-[resent to fix subject line]
+Hi,
 
-The following changes since commit 02da2d72174c61988eb4456b53f405e3ebdebce4:
+On 2016/4/6 6:08, Yury Norov wrote:
+> Based on patch of Andrew Pinski.
+>
+> This patch introduces is_a32_compat_task and is_a32_thread so it is
+> easier to say this is a a32 specific thread or a generic compat thread/task.
+> Corresponding functions are located in <asm/is_compat.h> to avoid mess in
+> headers.
+>
+> Some files include both <linux/compat.h> and <asm/compat.h>,
+> and this is wrong because <linux/compat.h> has <asm/compat.h> already
+> included. It was fixed too.
 
-  Linux 4.6-rc5 (2016-04-24 16:17:05 -0700)
+1.  in "kernel/seccomp.c"
+     There are different list for a32 and LP64. I do not know we
+     should add a new one or align to one of them. Currently, we
+     align ilp32 to a32 list.
+```
+/*
+  * Secure computing mode 1 allows only read/write/exit/sigreturn.
+  * To be fully secure this must be combined with rlimit
+  * to limit the stack allocations too.
+  */
+static int mode1_syscalls[] = {
+         __NR_seccomp_read, __NR_seccomp_write, __NR_seccomp_exit, __NR_seccomp_sigreturn,
+         0, /* null terminated */
+};
 
-are available in the git repository at:
+#ifdef CONFIG_COMPAT
+static int mode1_syscalls_32[] = {
+         __NR_seccomp_read_32, __NR_seccomp_write_32, __NR_seccomp_exit_32, __NR_seccomp_sigreturn_32,
+         0, /* null terminated */
+};
+#endif
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-4.6
+static void __secure_computing_strict(int this_syscall)
+{
+         int *syscall_whitelist = mode1_syscalls;
+#ifdef CONFIG_COMPAT
+         if (in_compat_syscall())
+                 syscall_whitelist = mode1_syscalls_32;
+#endif
+```
 
-for you to fetch changes up to 1f93e9f2318b598e6775a1fc9701604993c512b1:
+2.  in "kernel/auditsc.c"
+     __audit_seccomp will print if compat or not. But in the same file,
+     it call syscall_get_arch() to get the architecture in which ILP32
+     is same as LP64.
+     And consequenly, do we need to split in_compat_syscall to
+     in_a32_compat_syscall and in_ilp32 compat_syscall?
 
-  asm-generic: use compat version for preadv2 and pwritev2 (2016-05-05 00:42:20 +0200)
+```
+void __audit_seccomp(unsigned long syscall, long signr, int code)
+{
+         struct audit_buffer *ab;
 
-----------------------------------------------------------------
-asm-generic syscall fix for 4.6-rc
+         ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_SECCOMP);
+         if (unlikely(!ab))
+                 return;
+         audit_log_task(ab);
+         audit_log_format(ab, " sig=%ld arch=%x syscall=%ld compat=%d ip=0x%lx code=0x%x",
+                          signr, syscall_get_arch(), syscall,
+                          in_compat_syscall(), KSTK_EIP(current), code);
+         audit_log_end(ab);
+}
+```
 
-My last pull request for asm-generic had just one patch that added two
-new system calls to asm/unistd.h, but unfortunately it turned out
-to be wrong, pointing arch/tile compat mode at the native handlers
-rather than the compat ones.
+Thanks
 
-This was spotted by Yury Norov, who is working on ILP32 mode
-for arch/arm64, which would have the same problem when merged.
-This fixes the table to use the correct compat syscalls, like
-the other 64-bit architectures do.
-
-I'll try to find the time to come up with a solution that
-prevents this problem from happening again, by allowing all
-future system calls to just get added in a single file
-for use by all architectures.
-
-----------------------------------------------------------------
-Yury Norov (1):
-      asm-generic: use compat version for preadv2 and pwritev2
-
- include/uapi/asm-generic/unistd.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Bamvor
