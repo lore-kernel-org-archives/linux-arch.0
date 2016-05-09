@@ -1,88 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37375 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750916AbcEIPNq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 May 2016 11:13:46 -0400
-Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
- <57211CAB.9040902@amd.com>
- <CALCETrWAP5hxQeVSwNx-XkO53-X3bX0LasjOuHxeRWCTob7JAA@mail.gmail.com>
-From: Paolo Bonzini <pbonzini@redhat.com>
-Message-ID: <5730A91E.6040601@redhat.com>
-Date: Mon, 9 May 2016 17:13:34 +0200
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:38521 "EHLO
+	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750916AbcEIQzH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2016 12:55:07 -0400
+From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCHv6 1/8] dma-mapping: add {map,unmap}_resource to dma_map_ops
+Date: Mon,  9 May 2016 18:44:00 +0200
+Message-ID: <1462812247-3414-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+In-Reply-To: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrWAP5hxQeVSwNx-XkO53-X3bX0LasjOuHxeRWCTob7JAA@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160509151334.EuQXHb4kTnJTgFzxFu3Gql1WQAzuin6yUUiqXe4fNOA@z>
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org
+Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Message-ID: <20160509164400.dj-B_sjIN3sClZvsgsLa494MDWdQx0Q4mdf60lg4VZ0@z>
 
+Add methods to handle mapping of device resources from a physical
+address. This is needed for example to be able to map MMIO FIFO
+registers to a IOMMU.
 
+Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
+Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+---
+ include/linux/dma-mapping.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-On 02/05/2016 20:31, Andy Lutomirski wrote:
-> And did the SEV implementation remember to encrypt the guest register
-> state?  Because, if not, everything of importance will leak out
-> through the VMCB and/or GPRs.
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 0e4d3a6..8617fa1 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -49,6 +49,12 @@ struct dma_map_ops {
+ 			 struct scatterlist *sg, int nents,
+ 			 enum dma_data_direction dir,
+ 			 struct dma_attrs *attrs);
++	dma_addr_t (*map_resource)(struct device *dev, phys_addr_t phys_addr,
++			       size_t size, enum dma_data_direction dir,
++			       struct dma_attrs *attrs);
++	void (*unmap_resource)(struct device *dev, dma_addr_t dma_handle,
++			   size_t size, enum dma_data_direction dir,
++			   struct dma_attrs *attrs);
+ 	void (*sync_single_for_cpu)(struct device *dev,
+ 				    dma_addr_t dma_handle, size_t size,
+ 				    enum dma_data_direction dir);
+-- 
+2.8.2
 
-No, it doesn't.  And SEV is very limited unless you paravirtualize
-everything.
-
-For example, the hypervisor needs to read some instruction bytes from
-memory, and instruction bytes are always encrypted (15.34.5 in the APM).
- So you're pretty much restricted to IN/OUT operations (not even
-INS/OUTS) on emulated (non-assigned) devices, paravirtualized MSRs, and
-hypercalls.  These are the only operations that connect the guest and
-the hypervisor, where the vmexit doesn't have the need to e.g. walk
-guest page tables (also always encrypted).  It possibly can be made to
-work once the guest boots, and a modern UEFI firmware probably can cope
-with it too just like a kernel can, but you need to ensure that your
-hardware has no memory BARs for example.  And I/O port space is not very
-abundant.
-
-Even in order to emulate I/O ports or RDMSR/WRMSR or process hypercalls,
-the hypervisor needs to read the GPRs.  The VMCB doesn't store guest
-GPRs, not even on SEV-enabled processors.  Accordingly, the hypervisor
-has access to the guest GPRs on every exit.
-
-In general, SEV provides mitigation only.  Even if the hypervisor cannot
-write known plaintext directly to memory, an accomplice virtual machine
-can e.g. use the network to spray the attacked VM's memory.  At least
-it's not as easy as "disable NX under the guest's feet and redirect RIP"
-(pte.nx is reserved if efer.nxe=0, all you get is a #PF).  But the
-hypervisor can still disable SMEP and SMAP, it can use hardware
-breakpoints to leak information through the registers, and it can do all
-the other attacks you mentioned.  If AMD had rdrand/rdseed, it could
-replace the output with not so random values, and so on.
-
-It's surely better than nothing, but "encryption that really is nothing
-more than mitigation" is pretty weird.  I'm waiting for cloud vendors to
-sell this as the best thing since sliced bread, when in reality it's
-just mitigation.  I wonder how wise it is to merge SEV in its current
-state---and since security is not my specialty I am definitely looking
-for advice on this.
-
-Paolo
-
-ps: I'm now reminded of this patch:
-
-    commit dab429a798a8ab3377136e09dda55ea75a41648d
-    Author: David Kaplan <David.Kaplan@amd.com>
-    Date:   Mon Mar 2 13:43:37 2015 -0600
-
-    kvm: svm: make wbinvd faster
-
-    No need to re-decode WBINVD since we know what it is from the
-    intercept.
-
-    Signed-off-by: David Kaplan <David.Kaplan@amd.com>
-    [extracted from larger unlrelated patch, forward ported,
-     tested,style cleanup]
-    Signed-off-by: Joel Schopp <joel.schopp@amd.com>
-    Reviewed-by: Radim Krčmář <rkrcmar@redhat.com>
-    Signed-off-by: Marcelo Tosatti <mtosatti@redhat.com>
-
-and I wonder if the larger unlrelated patch had anything to do with SEV!
