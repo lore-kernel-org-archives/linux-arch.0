@@ -1,127 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:38524 "EHLO
-	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751040AbcEIQzH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2016 12:55:07 -0400
-From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCHv6 5/8] dmaengine: rcar-dmac: group slave configuration
-Date: Mon,  9 May 2016 18:44:04 +0200
-Message-ID: <1462812247-3414-6-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-In-Reply-To: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Received: from mail-bn1bon0085.outbound.protection.outlook.com ([157.56.111.85]:60873
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751888AbcEIVIN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 9 May 2016 17:08:13 -0400
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+ <57211CAB.9040902@amd.com>
+ <CALCETrWAP5hxQeVSwNx-XkO53-X3bX0LasjOuHxeRWCTob7JAA@mail.gmail.com>
+ <5730A91E.6040601@redhat.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <5730FC33.2060804@amd.com>
+Date: Mon, 9 May 2016 16:08:03 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <5730A91E.6040601@redhat.com>
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Message-ID: <20160509164404.MuLZfplybz4al_-qJG3EKbe6rH-dN69DHWy7dEgxyQA@z>
+To: Paolo Bonzini <pbonzini@redhat.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160509210803.rhgPO2HPCNTma1hi_EA0JkoEiAhG6pF25oMkF8g0jP0@z>
 
-Group slave address and transfer size in own structs for source and
-destination. This is in preparation for hooking up the dma-mapping API
-to the slave addresses.
+On 05/09/2016 10:13 AM, Paolo Bonzini wrote:
+> 
+> 
+> On 02/05/2016 20:31, Andy Lutomirski wrote:
+>> And did the SEV implementation remember to encrypt the guest register
+>> state?  Because, if not, everything of importance will leak out
+>> through the VMCB and/or GPRs.
+> 
+> No, it doesn't.  And SEV is very limited unless you paravirtualize
+> everything.
+> 
+> For example, the hypervisor needs to read some instruction bytes from
+> memory, and instruction bytes are always encrypted (15.34.5 in the APM).
+>  So you're pretty much restricted to IN/OUT operations (not even
+> INS/OUTS) on emulated (non-assigned) devices, paravirtualized MSRs, and
+> hypercalls.  These are the only operations that connect the guest and
+> the hypervisor, where the vmexit doesn't have the need to e.g. walk
+> guest page tables (also always encrypted).  It possibly can be made to
+> work once the guest boots, and a modern UEFI firmware probably can cope
+> with it too just like a kernel can, but you need to ensure that your
+> hardware has no memory BARs for example.  And I/O port space is not very
+> abundant.
 
-Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
----
- drivers/dma/sh/rcar-dmac.c | 38 ++++++++++++++++++++++----------------
- 1 file changed, 22 insertions(+), 16 deletions(-)
+The instruction bytes stored in the VMCB at offset 0xd0 for a data
+side #NPF are stored un-encrypted (which is not clearly documented in
+the APM). This allows for the hypervisor to perform MMIO on emulated
+devices. Because the hardware provides enough information on VMEXIT
+events, such as exit codes, decode assist, etc., the hypervisor has
+the information it needs to perform the operation without having to
+read the guest pagetables and/or the guest instruction stream from
+guest memory. There are a few minor corner cases (e.g. rep ins) and
+there will be more info on those when the SEV patches are submitted.
 
-diff --git a/drivers/dma/sh/rcar-dmac.c b/drivers/dma/sh/rcar-dmac.c
-index dfb1792..b0c3bb2 100644
---- a/drivers/dma/sh/rcar-dmac.c
-+++ b/drivers/dma/sh/rcar-dmac.c
-@@ -118,14 +118,22 @@ struct rcar_dmac_desc_page {
- 	sizeof(struct rcar_dmac_xfer_chunk))
- 
- /*
-+ * struct rcar_dmac_chan_slave - Slave configuration
-+ * @slave_addr: slave memory address
-+ * @xfer_size: size (in bytes) of hardware transfers
-+ */
-+struct rcar_dmac_chan_slave {
-+	phys_addr_t slave_addr;
-+	unsigned int xfer_size;
-+};
-+
-+/*
-  * struct rcar_dmac_chan - R-Car Gen2 DMA Controller Channel
-  * @chan: base DMA channel object
-  * @iomem: channel I/O memory base
-  * @index: index of this channel in the controller
-- * @src_xfer_size: size (in bytes) of hardware transfers on the source side
-- * @dst_xfer_size: size (in bytes) of hardware transfers on the destination side
-- * @src_slave_addr: slave source memory address
-- * @dst_slave_addr: slave destination memory address
-+ * @src: slave memory address and size on the source side
-+ * @dst: slave memory address and size on the destination side
-  * @mid_rid: hardware MID/RID for the DMA client using this channel
-  * @lock: protects the channel CHCR register and the desc members
-  * @desc.free: list of free descriptors
-@@ -142,10 +150,8 @@ struct rcar_dmac_chan {
- 	void __iomem *iomem;
- 	unsigned int index;
- 
--	unsigned int src_xfer_size;
--	unsigned int dst_xfer_size;
--	dma_addr_t src_slave_addr;
--	dma_addr_t dst_slave_addr;
-+	struct rcar_dmac_chan_slave src;
-+	struct rcar_dmac_chan_slave dst;
- 	int mid_rid;
- 
- 	spinlock_t lock;
-@@ -793,13 +799,13 @@ static void rcar_dmac_chan_configure_desc(struct rcar_dmac_chan *chan,
- 	case DMA_DEV_TO_MEM:
- 		chcr = RCAR_DMACHCR_DM_INC | RCAR_DMACHCR_SM_FIXED
- 		     | RCAR_DMACHCR_RS_DMARS;
--		xfer_size = chan->src_xfer_size;
-+		xfer_size = chan->src.xfer_size;
- 		break;
- 
- 	case DMA_MEM_TO_DEV:
- 		chcr = RCAR_DMACHCR_DM_FIXED | RCAR_DMACHCR_SM_INC
- 		     | RCAR_DMACHCR_RS_DMARS;
--		xfer_size = chan->dst_xfer_size;
-+		xfer_size = chan->dst.xfer_size;
- 		break;
- 
- 	case DMA_MEM_TO_MEM:
-@@ -1038,7 +1044,7 @@ rcar_dmac_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
- 	}
- 
- 	dev_addr = dir == DMA_DEV_TO_MEM
--		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
-+		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
- 	return rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
- 				      dir, flags, false);
- }
-@@ -1093,7 +1099,7 @@ rcar_dmac_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t buf_addr,
- 	}
- 
- 	dev_addr = dir == DMA_DEV_TO_MEM
--		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
-+		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
- 	desc = rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
- 				      dir, flags, true);
- 
-@@ -1110,10 +1116,10 @@ static int rcar_dmac_device_config(struct dma_chan *chan,
- 	 * We could lock this, but you shouldn't be configuring the
- 	 * channel, while using it...
- 	 */
--	rchan->src_slave_addr = cfg->src_addr;
--	rchan->dst_slave_addr = cfg->dst_addr;
--	rchan->src_xfer_size = cfg->src_addr_width;
--	rchan->dst_xfer_size = cfg->dst_addr_width;
-+	rchan->src.slave_addr = cfg->src_addr;
-+	rchan->dst.slave_addr = cfg->dst_addr;
-+	rchan->src.xfer_size = cfg->src_addr_width;
-+	rchan->dst.xfer_size = cfg->dst_addr_width;
- 
- 	return 0;
- }
--- 
-2.8.2
+> 
+> Even in order to emulate I/O ports or RDMSR/WRMSR or process hypercalls,
+> the hypervisor needs to read the GPRs.  The VMCB doesn't store guest
+> GPRs, not even on SEV-enabled processors.  Accordingly, the hypervisor
+> has access to the guest GPRs on every exit.
 
+In this initial version of SEV support the hardware does not encrypt
+the guest save state and the hypervisor does have access to the GPRs.
+
+> 
+> In general, SEV provides mitigation only.  Even if the hypervisor cannot
+> write known plaintext directly to memory, an accomplice virtual machine
+> can e.g. use the network to spray the attacked VM's memory.  At least
+
+Can you elaborate further on this? The accomplice VM will not have
+access to the encryption key of the target VM and cannot accomplish
+any spraying that the hypervisor itself cannot do.
+
+> it's not as easy as "disable NX under the guest's feet and redirect RIP"
+> (pte.nx is reserved if efer.nxe=0, all you get is a #PF).  But the
+> hypervisor can still disable SMEP and SMAP, it can use hardware
+> breakpoints to leak information through the registers, and it can do all
+> the other attacks you mentioned.  If AMD had rdrand/rdseed, it could
+> replace the output with not so random values, and so on.
+
+AMD added support for the rdrand in some of the later fam16h models.
+
+> 
+> It's surely better than nothing, but "encryption that really is nothing
+> more than mitigation" is pretty weird.  I'm waiting for cloud vendors to
+> sell this as the best thing since sliced bread, when in reality it's
+> just mitigation.  I wonder how wise it is to merge SEV in its current
+> state---and since security is not my specialty I am definitely looking
+> for advice on this.
+> 
+
+In this first generation of SEV, we are targeting a threat model very
+similar to the one used by SMEP and SMAP. Specifically, SEV protects a
+guest from a benign but vulnerable hypervisor, where a malicious guest
+or unprivileged process exploits a system/hypervisor interface in an
+attempt to read or modify the guest's memory.  But, like SMEP and SMAP,
+if an attacker has the ability to arbitrarily execute code in the
+kernel, he would be able to circumvent the control. AMD has a vision
+for this generation of SEV to be foundational to future generations
+that defend against stronger attacks.
+
+Thanks,
+Tom
+
+> Paolo
+> 
+> ps: I'm now reminded of this patch:
+> 
+>     commit dab429a798a8ab3377136e09dda55ea75a41648d
+>     Author: David Kaplan <David.Kaplan@amd.com>
+>     Date:   Mon Mar 2 13:43:37 2015 -0600
+> 
+>     kvm: svm: make wbinvd faster
+> 
+>     No need to re-decode WBINVD since we know what it is from the
+>     intercept.
+> 
+>     Signed-off-by: David Kaplan <David.Kaplan@amd.com>
+>     [extracted from larger unlrelated patch, forward ported,
+>      tested,style cleanup]
+>     Signed-off-by: Joel Schopp <joel.schopp@amd.com>
+>     Reviewed-by: Radim Krčmář <rkrcmar@redhat.com>
+>     Signed-off-by: Marcelo Tosatti <mtosatti@redhat.com>
+> 
+> and I wonder if the larger unlrelated patch had anything to do with SEV!
+> 
