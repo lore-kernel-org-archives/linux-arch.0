@@ -1,110 +1,140 @@
-From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-Subject: [PATCHv6 6/8] dmaengine: rcar-dmac: add iommu support for slave
-	transfers
-Date: Mon,  9 May 2016 18:44:05 +0200
-Message-ID: <1462812247-3414-7-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v1 00/18] x86: Secure Memory Encryption (AMD)
+Date: Mon, 9 May 2016 16:08:03 -0500
+Message-ID: <5730FC33.2060804@amd.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <CALCETrUdrMAmE6Vgj6_PALdmRZVVKa3QDwJtO=YDTOQdox=rhQ@mail.gmail.com>
+ <57211CAB.9040902@amd.com>
+ <CALCETrWAP5hxQeVSwNx-XkO53-X3bX0LasjOuHxeRWCTob7JAA@mail.gmail.com>
+ <5730A91E.6040601@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <5730A91E.6040601@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Paolo Bonzini <pbonzini@redhat.com>, Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, kvm list <kvm@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Ingo
+ Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
+ Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry
+ Vyukov <dvyukov>
 List-Id: linux-arch.vger.kernel.org
 
-RW5hYmxlIHNsYXZlIHRyYW5zZmVycyB0byBhIGRldmljZSBiZWhpbmQgYSBJUE1NVSBieSBtYXBw
-aW5nIHRoZSBzbGF2ZQphZGRyZXNzZXMgdXNpbmcgdGhlIGRtYS1tYXBwaW5nIEFQSS4KClNpZ25l
-ZC1vZmYtYnk6IE5pa2xhcyBTw7ZkZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3JlbmVzYXNAcmFn
-bmF0ZWNoLnNlPgotLS0KIGRyaXZlcnMvZG1hL3NoL3JjYXItZG1hYy5jIHwgODIgKysrKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKystLS0tLQogMSBmaWxlIGNoYW5nZWQsIDc0
-IGluc2VydGlvbnMoKyksIDggZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvZHJpdmVycy9kbWEv
-c2gvcmNhci1kbWFjLmMgYi9kcml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYwppbmRleCBiMGMzYmIy
-Li44NTkyNTk4IDEwMDY0NAotLS0gYS9kcml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYworKysgYi9k
-cml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYwpAQCAtMTI4LDYgKzEyOCwxOCBAQCBzdHJ1Y3QgcmNh
-cl9kbWFjX2NoYW5fc2xhdmUgewogfTsKIAogLyoKKyAqIHN0cnVjdCByY2FyX2RtYWNfY2hhbl9t
-YXAgLSBNYXAgb2Ygc2xhdmUgZGV2aWNlIHBoeXMgdG8gZG1hIGFkZHJlc3MKKyAqIEBhZGRyOiBz
-bGF2ZSBkbWEgYWRkcmVzcworICogQGRpcjogZGlyZWN0aW9uIG9mIG1hcHBpbmcKKyAqIEBzbGF2
-ZTogc2xhdmUgY29uZmlndXJhdGlvbiB0aGF0IGlzIG1hcHBlZAorICovCitzdHJ1Y3QgcmNhcl9k
-bWFjX2NoYW5fbWFwIHsKKwlkbWFfYWRkcl90IGFkZHI7CisJZW51bSBkbWFfZGF0YV9kaXJlY3Rp
-b24gZGlyOworCXN0cnVjdCByY2FyX2RtYWNfY2hhbl9zbGF2ZSBzbGF2ZTsKK307CisKKy8qCiAg
-KiBzdHJ1Y3QgcmNhcl9kbWFjX2NoYW4gLSBSLUNhciBHZW4yIERNQSBDb250cm9sbGVyIENoYW5u
-ZWwKICAqIEBjaGFuOiBiYXNlIERNQSBjaGFubmVsIG9iamVjdAogICogQGlvbWVtOiBjaGFubmVs
-IEkvTyBtZW1vcnkgYmFzZQpAQCAtMTUyLDYgKzE2NCw3IEBAIHN0cnVjdCByY2FyX2RtYWNfY2hh
-biB7CiAKIAlzdHJ1Y3QgcmNhcl9kbWFjX2NoYW5fc2xhdmUgc3JjOwogCXN0cnVjdCByY2FyX2Rt
-YWNfY2hhbl9zbGF2ZSBkc3Q7CisJc3RydWN0IHJjYXJfZG1hY19jaGFuX21hcCBtYXA7CiAJaW50
-IG1pZF9yaWQ7CiAKIAlzcGlubG9ja190IGxvY2s7CkBAIC0xMDI3LDEzICsxMDQwLDY1IEBAIHJj
-YXJfZG1hY19wcmVwX2RtYV9tZW1jcHkoc3RydWN0IGRtYV9jaGFuICpjaGFuLCBkbWFfYWRkcl90
-IGRtYV9kZXN0LAogCQkJCSAgICAgIERNQV9NRU1fVE9fTUVNLCBmbGFncywgZmFsc2UpOwogfQog
-CitzdGF0aWMgaW50IHJjYXJfZG1hY19tYXBfc2xhdmVfYWRkcihzdHJ1Y3QgZG1hX2NoYW4gKmNo
-YW4sCisJCQkJICAgIGVudW0gZG1hX3RyYW5zZmVyX2RpcmVjdGlvbiBkaXIpCit7CisJc3RydWN0
-IHJjYXJfZG1hY19jaGFuICpyY2hhbiA9IHRvX3JjYXJfZG1hY19jaGFuKGNoYW4pOworCXN0cnVj
-dCByY2FyX2RtYWNfY2hhbl9tYXAgKm1hcCA9ICZyY2hhbi0+bWFwOworCXBoeXNfYWRkcl90IGRl
-dl9hZGRyOworCXNpemVfdCBkZXZfc2l6ZTsKKwllbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBkZXZf
-ZGlyOworCisJaWYgKGRpciA9PSBETUFfREVWX1RPX01FTSkgeworCQlkZXZfYWRkciA9IHJjaGFu
-LT5zcmMuc2xhdmVfYWRkcjsKKwkJZGV2X3NpemUgPSByY2hhbi0+c3JjLnhmZXJfc2l6ZTsKKwkJ
-ZGV2X2RpciA9IERNQV9UT19ERVZJQ0U7CisJfSBlbHNlIHsKKwkJZGV2X2FkZHIgPSByY2hhbi0+
-ZHN0LnNsYXZlX2FkZHI7CisJCWRldl9zaXplID0gcmNoYW4tPmRzdC54ZmVyX3NpemU7CisJCWRl
-dl9kaXIgPSBETUFfRlJPTV9ERVZJQ0U7CisJfQorCisJLyogUmV1c2UgY3VycmVudCBtYXAgaWYg
-cG9zc2libGUuICovCisJaWYgKGRldl9hZGRyID09IG1hcC0+c2xhdmUuc2xhdmVfYWRkciAmJgor
-CSAgICBkZXZfc2l6ZSA9PSBtYXAtPnNsYXZlLnhmZXJfc2l6ZSAmJgorCSAgICBkZXZfZGlyID09
-IG1hcC0+ZGlyKQorCQlyZXR1cm4gMDsKKworCS8qIFJlbW92ZSBvbGQgbWFwcGluZyBpZiBwcmVz
-ZW50LiAqLworCWlmIChtYXAtPnNsYXZlLnhmZXJfc2l6ZSkKKwkJZG1hX3VubWFwX3Jlc291cmNl
-KGNoYW4tPmRldmljZS0+ZGV2LCBtYXAtPmFkZHIsCisJCQkJICAgbWFwLT5zbGF2ZS54ZmVyX3Np
-emUsIG1hcC0+ZGlyLCBOVUxMKTsKKwltYXAtPnNsYXZlLnhmZXJfc2l6ZSA9IDA7CisKKwkvKiBD
-cmVhdGUgbmV3IHNsYXZlIGFkZHJlc3MgbWFwLiAqLworCW1hcC0+YWRkciA9IGRtYV9tYXBfcmVz
-b3VyY2UoY2hhbi0+ZGV2aWNlLT5kZXYsIGRldl9hZGRyLCBkZXZfc2l6ZSwKKwkJCQkgICAgIGRl
-dl9kaXIsIE5VTEwpOworCisJaWYgKGRtYV9tYXBwaW5nX2Vycm9yKGNoYW4tPmRldmljZS0+ZGV2
-LCBtYXAtPmFkZHIpKSB7CisJCWRldl9lcnIoY2hhbi0+ZGV2aWNlLT5kZXYsCisJCQkiY2hhbiV1
-OiBmYWlsZWQgdG8gbWFwICV6eEAlcGFwIiwgcmNoYW4tPmluZGV4LAorCQkJZGV2X3NpemUsICZk
-ZXZfYWRkcik7CisJCXJldHVybiAtRUlPOworCX0KKworCWRldl9kYmcoY2hhbi0+ZGV2aWNlLT5k
-ZXYsICJjaGFuJXU6IG1hcCAlenhAJXBhcCB0byAlcGFkIGRpcjogJXNcbiIsCisJCXJjaGFuLT5p
-bmRleCwgZGV2X3NpemUsICZkZXZfYWRkciwgJm1hcC0+YWRkciwKKwkJZGV2X2RpciA9PSBETUFf
-VE9fREVWSUNFID8gIkRNQV9UT19ERVZJQ0UiIDogIkRNQV9GUk9NX0RFVklDRSIpOworCisJbWFw
-LT5zbGF2ZS5zbGF2ZV9hZGRyID0gZGV2X2FkZHI7CisJbWFwLT5zbGF2ZS54ZmVyX3NpemUgPSBk
-ZXZfc2l6ZTsKKwltYXAtPmRpciA9IGRldl9kaXI7CisKKwlyZXR1cm4gMDsKK30KKwogc3RhdGlj
-IHN0cnVjdCBkbWFfYXN5bmNfdHhfZGVzY3JpcHRvciAqCiByY2FyX2RtYWNfcHJlcF9zbGF2ZV9z
-ZyhzdHJ1Y3QgZG1hX2NoYW4gKmNoYW4sIHN0cnVjdCBzY2F0dGVybGlzdCAqc2dsLAogCQkJdW5z
-aWduZWQgaW50IHNnX2xlbiwgZW51bSBkbWFfdHJhbnNmZXJfZGlyZWN0aW9uIGRpciwKIAkJCXVu
-c2lnbmVkIGxvbmcgZmxhZ3MsIHZvaWQgKmNvbnRleHQpCiB7CiAJc3RydWN0IHJjYXJfZG1hY19j
-aGFuICpyY2hhbiA9IHRvX3JjYXJfZG1hY19jaGFuKGNoYW4pOwotCWRtYV9hZGRyX3QgZGV2X2Fk
-ZHI7CiAKIAkvKiBTb21lb25lIGNhbGxpbmcgc2xhdmUgRE1BIG9uIGEgZ2VuZXJpYyBjaGFubmVs
-PyAqLwogCWlmIChyY2hhbi0+bWlkX3JpZCA8IDAgfHwgIXNnX2xlbikgewpAQCAtMTA0Myw5ICsx
-MTA4LDEwIEBAIHJjYXJfZG1hY19wcmVwX3NsYXZlX3NnKHN0cnVjdCBkbWFfY2hhbiAqY2hhbiwg
-c3RydWN0IHNjYXR0ZXJsaXN0ICpzZ2wsCiAJCXJldHVybiBOVUxMOwogCX0KIAotCWRldl9hZGRy
-ID0gZGlyID09IERNQV9ERVZfVE9fTUVNCi0JCSA/IHJjaGFuLT5zcmMuc2xhdmVfYWRkciA6IHJj
-aGFuLT5kc3Quc2xhdmVfYWRkcjsKLQlyZXR1cm4gcmNhcl9kbWFjX2NoYW5fcHJlcF9zZyhyY2hh
-biwgc2dsLCBzZ19sZW4sIGRldl9hZGRyLAorCWlmIChyY2FyX2RtYWNfbWFwX3NsYXZlX2FkZHIo
-Y2hhbiwgZGlyKSkKKwkJcmV0dXJuIE5VTEw7CisKKwlyZXR1cm4gcmNhcl9kbWFjX2NoYW5fcHJl
-cF9zZyhyY2hhbiwgc2dsLCBzZ19sZW4sIHJjaGFuLT5tYXAuYWRkciwKIAkJCQkgICAgICBkaXIs
-IGZsYWdzLCBmYWxzZSk7CiB9CiAKQEAgLTEwNTksNyArMTEyNSw2IEBAIHJjYXJfZG1hY19wcmVw
-X2RtYV9jeWNsaWMoc3RydWN0IGRtYV9jaGFuICpjaGFuLCBkbWFfYWRkcl90IGJ1Zl9hZGRyLAog
-CXN0cnVjdCByY2FyX2RtYWNfY2hhbiAqcmNoYW4gPSB0b19yY2FyX2RtYWNfY2hhbihjaGFuKTsK
-IAlzdHJ1Y3QgZG1hX2FzeW5jX3R4X2Rlc2NyaXB0b3IgKmRlc2M7CiAJc3RydWN0IHNjYXR0ZXJs
-aXN0ICpzZ2w7Ci0JZG1hX2FkZHJfdCBkZXZfYWRkcjsKIAl1bnNpZ25lZCBpbnQgc2dfbGVuOwog
-CXVuc2lnbmVkIGludCBpOwogCkBAIC0xMDcxLDYgKzExMzYsOSBAQCByY2FyX2RtYWNfcHJlcF9k
-bWFfY3ljbGljKHN0cnVjdCBkbWFfY2hhbiAqY2hhbiwgZG1hX2FkZHJfdCBidWZfYWRkciwKIAkJ
-cmV0dXJuIE5VTEw7CiAJfQogCisJaWYgKHJjYXJfZG1hY19tYXBfc2xhdmVfYWRkcihjaGFuLCBk
-aXIpKQorCQlyZXR1cm4gTlVMTDsKKwogCXNnX2xlbiA9IGJ1Zl9sZW4gLyBwZXJpb2RfbGVuOwog
-CWlmIChzZ19sZW4gPiBSQ0FSX0RNQUNfTUFYX1NHX0xFTikgewogCQlkZXZfZXJyKGNoYW4tPmRl
-dmljZS0+ZGV2LApAQCAtMTA5OCw5ICsxMTY2LDcgQEAgcmNhcl9kbWFjX3ByZXBfZG1hX2N5Y2xp
-YyhzdHJ1Y3QgZG1hX2NoYW4gKmNoYW4sIGRtYV9hZGRyX3QgYnVmX2FkZHIsCiAJCXNnX2RtYV9s
-ZW4oJnNnbFtpXSkgPSBwZXJpb2RfbGVuOwogCX0KIAotCWRldl9hZGRyID0gZGlyID09IERNQV9E
-RVZfVE9fTUVNCi0JCSA/IHJjaGFuLT5zcmMuc2xhdmVfYWRkciA6IHJjaGFuLT5kc3Quc2xhdmVf
-YWRkcjsKLQlkZXNjID0gcmNhcl9kbWFjX2NoYW5fcHJlcF9zZyhyY2hhbiwgc2dsLCBzZ19sZW4s
-IGRldl9hZGRyLAorCWRlc2MgPSByY2FyX2RtYWNfY2hhbl9wcmVwX3NnKHJjaGFuLCBzZ2wsIHNn
-X2xlbiwgcmNoYW4tPm1hcC5hZGRyLAogCQkJCSAgICAgIGRpciwgZmxhZ3MsIHRydWUpOwogCiAJ
-a2ZyZWUoc2dsKTsKLS0gCjIuOC4yCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fXwppb21tdSBtYWlsaW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRh
-dGlvbi5vcmcKaHR0cHM6Ly9saXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGlu
-Zm8vaW9tbXU=
+On 05/09/2016 10:13 AM, Paolo Bonzini wrote:
+>=20
+>=20
+> On 02/05/2016 20:31, Andy Lutomirski wrote:
+>> And did the SEV implementation remember to encrypt the guest register
+>> state?  Because, if not, everything of importance will leak out
+>> through the VMCB and/or GPRs.
+>=20
+> No, it doesn't.  And SEV is very limited unless you paravirtualize
+> everything.
+>=20
+> For example, the hypervisor needs to read some instruction bytes from
+> memory, and instruction bytes are always encrypted (15.34.5 in the APM)=
+.
+>  So you're pretty much restricted to IN/OUT operations (not even
+> INS/OUTS) on emulated (non-assigned) devices, paravirtualized MSRs, and
+> hypercalls.  These are the only operations that connect the guest and
+> the hypervisor, where the vmexit doesn't have the need to e.g. walk
+> guest page tables (also always encrypted).  It possibly can be made to
+> work once the guest boots, and a modern UEFI firmware probably can cope
+> with it too just like a kernel can, but you need to ensure that your
+> hardware has no memory BARs for example.  And I/O port space is not ver=
+y
+> abundant.
+
+The instruction bytes stored in the VMCB at offset 0xd0 for a data
+side #NPF are stored un-encrypted (which is not clearly documented in
+the APM). This allows for the hypervisor to perform MMIO on emulated
+devices. Because the hardware provides enough information on VMEXIT
+events, such as exit codes, decode assist, etc., the hypervisor has
+the information it needs to perform the operation without having to
+read the guest pagetables and/or the guest instruction stream from
+guest memory. There are a few minor corner cases (e.g. rep ins) and
+there will be more info on those when the SEV patches are submitted.
+
+>=20
+> Even in order to emulate I/O ports or RDMSR/WRMSR or process hypercalls=
+,
+> the hypervisor needs to read the GPRs.  The VMCB doesn't store guest
+> GPRs, not even on SEV-enabled processors.  Accordingly, the hypervisor
+> has access to the guest GPRs on every exit.
+
+In this initial version of SEV support the hardware does not encrypt
+the guest save state and the hypervisor does have access to the GPRs.
+
+>=20
+> In general, SEV provides mitigation only.  Even if the hypervisor canno=
+t
+> write known plaintext directly to memory, an accomplice virtual machine
+> can e.g. use the network to spray the attacked VM's memory.  At least
+
+Can you elaborate further on this? The accomplice VM will not have
+access to the encryption key of the target VM and cannot accomplish
+any spraying that the hypervisor itself cannot do.
+
+> it's not as easy as "disable NX under the guest's feet and redirect RIP=
+"
+> (pte.nx is reserved if efer.nxe=3D0, all you get is a #PF).  But the
+> hypervisor can still disable SMEP and SMAP, it can use hardware
+> breakpoints to leak information through the registers, and it can do al=
+l
+> the other attacks you mentioned.  If AMD had rdrand/rdseed, it could
+> replace the output with not so random values, and so on.
+
+AMD added support for the rdrand in some of the later fam16h models.
+
+>=20
+> It's surely better than nothing, but "encryption that really is nothing
+> more than mitigation" is pretty weird.  I'm waiting for cloud vendors t=
+o
+> sell this as the best thing since sliced bread, when in reality it's
+> just mitigation.  I wonder how wise it is to merge SEV in its current
+> state---and since security is not my specialty I am definitely looking
+> for advice on this.
+>=20
+
+In this first generation of SEV, we are targeting a threat model very
+similar to the one used by SMEP and SMAP. Specifically, SEV protects a
+guest from a benign but vulnerable hypervisor, where a malicious guest
+or unprivileged process exploits a system/hypervisor interface in an
+attempt to read or modify the guest's memory.  But, like SMEP and SMAP,
+if an attacker has the ability to arbitrarily execute code in the
+kernel, he would be able to circumvent the control. AMD has a vision
+for this generation of SEV to be foundational to future generations
+that defend against stronger attacks.
+
+Thanks,
+Tom
+
+> Paolo
+>=20
+> ps: I'm now reminded of this patch:
+>=20
+>     commit dab429a798a8ab3377136e09dda55ea75a41648d
+>     Author: David Kaplan <David.Kaplan@amd.com>
+>     Date:   Mon Mar 2 13:43:37 2015 -0600
+>=20
+>     kvm: svm: make wbinvd faster
+>=20
+>     No need to re-decode WBINVD since we know what it is from the
+>     intercept.
+>=20
+>     Signed-off-by: David Kaplan <David.Kaplan@amd.com>
+>     [extracted from larger unlrelated patch, forward ported,
+>      tested,style cleanup]
+>     Signed-off-by: Joel Schopp <joel.schopp@amd.com>
+>     Reviewed-by: Radim Kr=C4=8Dm=C3=A1=C5=99 <rkrcmar@redhat.com>
+>     Signed-off-by: Marcelo Tosatti <mtosatti@redhat.com>
+>=20
+> and I wonder if the larger unlrelated patch had anything to do with SEV=
+!
+>=20
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
