@@ -1,125 +1,110 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCHv6 3/8] dma-mapping: add dma_{map,unmap}_resource
-Date: Mon,  9 May 2016 18:44:02 +0200
-Message-ID: <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: [PATCHv6 6/8] dmaengine: rcar-dmac: add iommu support for slave
+	transfers
+Date: Mon,  9 May 2016 18:44:05 +0200
+Message-ID: <1462812247-3414-7-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-In-Reply-To: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Map/Unmap a device MMIO resource from a physical address. If no dma_map=
-_ops
-method is available the operation is a no-op.
-
-Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
-h.se>
----
- Documentation/DMA-API.txt   | 22 +++++++++++++++++-----
- include/linux/dma-mapping.h | 36 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 53 insertions(+), 5 deletions(-)
-
-diff --git a/Documentation/DMA-API.txt b/Documentation/DMA-API.txt
-index 45ef3f2..c7e5f99 100644
---- a/Documentation/DMA-API.txt
-+++ b/Documentation/DMA-API.txt
-@@ -277,14 +277,26 @@ and <size> parameters are provided to do partial =
-page mapping, it is
- recommended that you never use these unless you really know what the
- cache width is.
-=20
-+dma_addr_t
-+dma_map_resource(struct device *dev, phys_addr_t phys_addr, size_t siz=
-e,
-+		 enum dma_data_direction dir, struct dma_attrs *attrs)
-+
-+void
-+dma_unmap_resource(struct device *dev, dma_addr_t addr, size_t size,
-+		   enum dma_data_direction dir, struct dma_attrs *attrs)
-+
-+API for mapping and unmapping for MMIO resources. All the notes and
-+warnings for the other mapping APIs apply here. The API should only be
-+used to map device MMIO resources, mapping of RAM is not permitted.
-+
- int
- dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-=20
--In some circumstances dma_map_single() and dma_map_page() will fail to=
- create
--a mapping. A driver can check for these errors by testing the returned
--DMA address with dma_mapping_error(). A non-zero return value means th=
-e mapping
--could not be created and the driver should take appropriate action (e.=
-g.
--reduce current DMA mapping usage or delay and try again later).
-+In some circumstances dma_map_single(), dma_map_page() and dma_map_res=
-ource()
-+will fail to create a mapping. A driver can check for these errors by =
-testing
-+the returned DMA address with dma_mapping_error(). A non-zero return v=
-alue
-+means the mapping could not be created and the driver should take appr=
-opriate
-+action (e.g. reduce current DMA mapping usage or delay and try again l=
-ater).
-=20
- 	int
- 	dma_map_sg(struct device *dev, struct scatterlist *sg,
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 8617fa1..dd228ce 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -218,6 +218,42 @@ static inline void dma_unmap_page(struct device *d=
-ev, dma_addr_t addr,
- 	debug_dma_unmap_page(dev, addr, size, dir, false);
- }
-=20
-+static inline dma_addr_t dma_map_resource(struct device *dev,
-+					  phys_addr_t phys_addr,
-+					  size_t size,
-+					  enum dma_data_direction dir,
-+					  struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops =3D get_dma_ops(dev);
-+	unsigned long pfn =3D __phys_to_pfn(phys_addr);
-+	dma_addr_t addr;
-+
-+	BUG_ON(!valid_dma_direction(dir));
-+
-+	/* Don't allow RAM to be mapped */
-+	BUG_ON(pfn_valid(pfn));
-+
-+	addr =3D phys_addr;
-+	if (ops->map_resource)
-+		addr =3D ops->map_resource(dev, phys_addr, size, dir, attrs);
-+
-+	debug_dma_map_resource(dev, phys_addr, size, dir, addr);
-+
-+	return addr;
-+}
-+
-+static inline void dma_unmap_resource(struct device *dev, dma_addr_t a=
-ddr,
-+				      size_t size, enum dma_data_direction dir,
-+				      struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops =3D get_dma_ops(dev);
-+
-+	BUG_ON(!valid_dma_direction(dir));
-+	if (ops->unmap_resource)
-+		ops->unmap_resource(dev, addr, size, dir, attrs);
-+	debug_dma_unmap_resource(dev, addr, size, dir);
-+}
-+
- static inline void dma_sync_single_for_cpu(struct device *dev, dma_add=
-r_t addr,
- 					   size_t size,
- 					   enum dma_data_direction dir)
---=20
-2.8.2
+RW5hYmxlIHNsYXZlIHRyYW5zZmVycyB0byBhIGRldmljZSBiZWhpbmQgYSBJUE1NVSBieSBtYXBw
+aW5nIHRoZSBzbGF2ZQphZGRyZXNzZXMgdXNpbmcgdGhlIGRtYS1tYXBwaW5nIEFQSS4KClNpZ25l
+ZC1vZmYtYnk6IE5pa2xhcyBTw7ZkZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3JlbmVzYXNAcmFn
+bmF0ZWNoLnNlPgotLS0KIGRyaXZlcnMvZG1hL3NoL3JjYXItZG1hYy5jIHwgODIgKysrKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKystLS0tLQogMSBmaWxlIGNoYW5nZWQsIDc0
+IGluc2VydGlvbnMoKyksIDggZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvZHJpdmVycy9kbWEv
+c2gvcmNhci1kbWFjLmMgYi9kcml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYwppbmRleCBiMGMzYmIy
+Li44NTkyNTk4IDEwMDY0NAotLS0gYS9kcml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYworKysgYi9k
+cml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYwpAQCAtMTI4LDYgKzEyOCwxOCBAQCBzdHJ1Y3QgcmNh
+cl9kbWFjX2NoYW5fc2xhdmUgewogfTsKIAogLyoKKyAqIHN0cnVjdCByY2FyX2RtYWNfY2hhbl9t
+YXAgLSBNYXAgb2Ygc2xhdmUgZGV2aWNlIHBoeXMgdG8gZG1hIGFkZHJlc3MKKyAqIEBhZGRyOiBz
+bGF2ZSBkbWEgYWRkcmVzcworICogQGRpcjogZGlyZWN0aW9uIG9mIG1hcHBpbmcKKyAqIEBzbGF2
+ZTogc2xhdmUgY29uZmlndXJhdGlvbiB0aGF0IGlzIG1hcHBlZAorICovCitzdHJ1Y3QgcmNhcl9k
+bWFjX2NoYW5fbWFwIHsKKwlkbWFfYWRkcl90IGFkZHI7CisJZW51bSBkbWFfZGF0YV9kaXJlY3Rp
+b24gZGlyOworCXN0cnVjdCByY2FyX2RtYWNfY2hhbl9zbGF2ZSBzbGF2ZTsKK307CisKKy8qCiAg
+KiBzdHJ1Y3QgcmNhcl9kbWFjX2NoYW4gLSBSLUNhciBHZW4yIERNQSBDb250cm9sbGVyIENoYW5u
+ZWwKICAqIEBjaGFuOiBiYXNlIERNQSBjaGFubmVsIG9iamVjdAogICogQGlvbWVtOiBjaGFubmVs
+IEkvTyBtZW1vcnkgYmFzZQpAQCAtMTUyLDYgKzE2NCw3IEBAIHN0cnVjdCByY2FyX2RtYWNfY2hh
+biB7CiAKIAlzdHJ1Y3QgcmNhcl9kbWFjX2NoYW5fc2xhdmUgc3JjOwogCXN0cnVjdCByY2FyX2Rt
+YWNfY2hhbl9zbGF2ZSBkc3Q7CisJc3RydWN0IHJjYXJfZG1hY19jaGFuX21hcCBtYXA7CiAJaW50
+IG1pZF9yaWQ7CiAKIAlzcGlubG9ja190IGxvY2s7CkBAIC0xMDI3LDEzICsxMDQwLDY1IEBAIHJj
+YXJfZG1hY19wcmVwX2RtYV9tZW1jcHkoc3RydWN0IGRtYV9jaGFuICpjaGFuLCBkbWFfYWRkcl90
+IGRtYV9kZXN0LAogCQkJCSAgICAgIERNQV9NRU1fVE9fTUVNLCBmbGFncywgZmFsc2UpOwogfQog
+CitzdGF0aWMgaW50IHJjYXJfZG1hY19tYXBfc2xhdmVfYWRkcihzdHJ1Y3QgZG1hX2NoYW4gKmNo
+YW4sCisJCQkJICAgIGVudW0gZG1hX3RyYW5zZmVyX2RpcmVjdGlvbiBkaXIpCit7CisJc3RydWN0
+IHJjYXJfZG1hY19jaGFuICpyY2hhbiA9IHRvX3JjYXJfZG1hY19jaGFuKGNoYW4pOworCXN0cnVj
+dCByY2FyX2RtYWNfY2hhbl9tYXAgKm1hcCA9ICZyY2hhbi0+bWFwOworCXBoeXNfYWRkcl90IGRl
+dl9hZGRyOworCXNpemVfdCBkZXZfc2l6ZTsKKwllbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBkZXZf
+ZGlyOworCisJaWYgKGRpciA9PSBETUFfREVWX1RPX01FTSkgeworCQlkZXZfYWRkciA9IHJjaGFu
+LT5zcmMuc2xhdmVfYWRkcjsKKwkJZGV2X3NpemUgPSByY2hhbi0+c3JjLnhmZXJfc2l6ZTsKKwkJ
+ZGV2X2RpciA9IERNQV9UT19ERVZJQ0U7CisJfSBlbHNlIHsKKwkJZGV2X2FkZHIgPSByY2hhbi0+
+ZHN0LnNsYXZlX2FkZHI7CisJCWRldl9zaXplID0gcmNoYW4tPmRzdC54ZmVyX3NpemU7CisJCWRl
+dl9kaXIgPSBETUFfRlJPTV9ERVZJQ0U7CisJfQorCisJLyogUmV1c2UgY3VycmVudCBtYXAgaWYg
+cG9zc2libGUuICovCisJaWYgKGRldl9hZGRyID09IG1hcC0+c2xhdmUuc2xhdmVfYWRkciAmJgor
+CSAgICBkZXZfc2l6ZSA9PSBtYXAtPnNsYXZlLnhmZXJfc2l6ZSAmJgorCSAgICBkZXZfZGlyID09
+IG1hcC0+ZGlyKQorCQlyZXR1cm4gMDsKKworCS8qIFJlbW92ZSBvbGQgbWFwcGluZyBpZiBwcmVz
+ZW50LiAqLworCWlmIChtYXAtPnNsYXZlLnhmZXJfc2l6ZSkKKwkJZG1hX3VubWFwX3Jlc291cmNl
+KGNoYW4tPmRldmljZS0+ZGV2LCBtYXAtPmFkZHIsCisJCQkJICAgbWFwLT5zbGF2ZS54ZmVyX3Np
+emUsIG1hcC0+ZGlyLCBOVUxMKTsKKwltYXAtPnNsYXZlLnhmZXJfc2l6ZSA9IDA7CisKKwkvKiBD
+cmVhdGUgbmV3IHNsYXZlIGFkZHJlc3MgbWFwLiAqLworCW1hcC0+YWRkciA9IGRtYV9tYXBfcmVz
+b3VyY2UoY2hhbi0+ZGV2aWNlLT5kZXYsIGRldl9hZGRyLCBkZXZfc2l6ZSwKKwkJCQkgICAgIGRl
+dl9kaXIsIE5VTEwpOworCisJaWYgKGRtYV9tYXBwaW5nX2Vycm9yKGNoYW4tPmRldmljZS0+ZGV2
+LCBtYXAtPmFkZHIpKSB7CisJCWRldl9lcnIoY2hhbi0+ZGV2aWNlLT5kZXYsCisJCQkiY2hhbiV1
+OiBmYWlsZWQgdG8gbWFwICV6eEAlcGFwIiwgcmNoYW4tPmluZGV4LAorCQkJZGV2X3NpemUsICZk
+ZXZfYWRkcik7CisJCXJldHVybiAtRUlPOworCX0KKworCWRldl9kYmcoY2hhbi0+ZGV2aWNlLT5k
+ZXYsICJjaGFuJXU6IG1hcCAlenhAJXBhcCB0byAlcGFkIGRpcjogJXNcbiIsCisJCXJjaGFuLT5p
+bmRleCwgZGV2X3NpemUsICZkZXZfYWRkciwgJm1hcC0+YWRkciwKKwkJZGV2X2RpciA9PSBETUFf
+VE9fREVWSUNFID8gIkRNQV9UT19ERVZJQ0UiIDogIkRNQV9GUk9NX0RFVklDRSIpOworCisJbWFw
+LT5zbGF2ZS5zbGF2ZV9hZGRyID0gZGV2X2FkZHI7CisJbWFwLT5zbGF2ZS54ZmVyX3NpemUgPSBk
+ZXZfc2l6ZTsKKwltYXAtPmRpciA9IGRldl9kaXI7CisKKwlyZXR1cm4gMDsKK30KKwogc3RhdGlj
+IHN0cnVjdCBkbWFfYXN5bmNfdHhfZGVzY3JpcHRvciAqCiByY2FyX2RtYWNfcHJlcF9zbGF2ZV9z
+ZyhzdHJ1Y3QgZG1hX2NoYW4gKmNoYW4sIHN0cnVjdCBzY2F0dGVybGlzdCAqc2dsLAogCQkJdW5z
+aWduZWQgaW50IHNnX2xlbiwgZW51bSBkbWFfdHJhbnNmZXJfZGlyZWN0aW9uIGRpciwKIAkJCXVu
+c2lnbmVkIGxvbmcgZmxhZ3MsIHZvaWQgKmNvbnRleHQpCiB7CiAJc3RydWN0IHJjYXJfZG1hY19j
+aGFuICpyY2hhbiA9IHRvX3JjYXJfZG1hY19jaGFuKGNoYW4pOwotCWRtYV9hZGRyX3QgZGV2X2Fk
+ZHI7CiAKIAkvKiBTb21lb25lIGNhbGxpbmcgc2xhdmUgRE1BIG9uIGEgZ2VuZXJpYyBjaGFubmVs
+PyAqLwogCWlmIChyY2hhbi0+bWlkX3JpZCA8IDAgfHwgIXNnX2xlbikgewpAQCAtMTA0Myw5ICsx
+MTA4LDEwIEBAIHJjYXJfZG1hY19wcmVwX3NsYXZlX3NnKHN0cnVjdCBkbWFfY2hhbiAqY2hhbiwg
+c3RydWN0IHNjYXR0ZXJsaXN0ICpzZ2wsCiAJCXJldHVybiBOVUxMOwogCX0KIAotCWRldl9hZGRy
+ID0gZGlyID09IERNQV9ERVZfVE9fTUVNCi0JCSA/IHJjaGFuLT5zcmMuc2xhdmVfYWRkciA6IHJj
+aGFuLT5kc3Quc2xhdmVfYWRkcjsKLQlyZXR1cm4gcmNhcl9kbWFjX2NoYW5fcHJlcF9zZyhyY2hh
+biwgc2dsLCBzZ19sZW4sIGRldl9hZGRyLAorCWlmIChyY2FyX2RtYWNfbWFwX3NsYXZlX2FkZHIo
+Y2hhbiwgZGlyKSkKKwkJcmV0dXJuIE5VTEw7CisKKwlyZXR1cm4gcmNhcl9kbWFjX2NoYW5fcHJl
+cF9zZyhyY2hhbiwgc2dsLCBzZ19sZW4sIHJjaGFuLT5tYXAuYWRkciwKIAkJCQkgICAgICBkaXIs
+IGZsYWdzLCBmYWxzZSk7CiB9CiAKQEAgLTEwNTksNyArMTEyNSw2IEBAIHJjYXJfZG1hY19wcmVw
+X2RtYV9jeWNsaWMoc3RydWN0IGRtYV9jaGFuICpjaGFuLCBkbWFfYWRkcl90IGJ1Zl9hZGRyLAog
+CXN0cnVjdCByY2FyX2RtYWNfY2hhbiAqcmNoYW4gPSB0b19yY2FyX2RtYWNfY2hhbihjaGFuKTsK
+IAlzdHJ1Y3QgZG1hX2FzeW5jX3R4X2Rlc2NyaXB0b3IgKmRlc2M7CiAJc3RydWN0IHNjYXR0ZXJs
+aXN0ICpzZ2w7Ci0JZG1hX2FkZHJfdCBkZXZfYWRkcjsKIAl1bnNpZ25lZCBpbnQgc2dfbGVuOwog
+CXVuc2lnbmVkIGludCBpOwogCkBAIC0xMDcxLDYgKzExMzYsOSBAQCByY2FyX2RtYWNfcHJlcF9k
+bWFfY3ljbGljKHN0cnVjdCBkbWFfY2hhbiAqY2hhbiwgZG1hX2FkZHJfdCBidWZfYWRkciwKIAkJ
+cmV0dXJuIE5VTEw7CiAJfQogCisJaWYgKHJjYXJfZG1hY19tYXBfc2xhdmVfYWRkcihjaGFuLCBk
+aXIpKQorCQlyZXR1cm4gTlVMTDsKKwogCXNnX2xlbiA9IGJ1Zl9sZW4gLyBwZXJpb2RfbGVuOwog
+CWlmIChzZ19sZW4gPiBSQ0FSX0RNQUNfTUFYX1NHX0xFTikgewogCQlkZXZfZXJyKGNoYW4tPmRl
+dmljZS0+ZGV2LApAQCAtMTA5OCw5ICsxMTY2LDcgQEAgcmNhcl9kbWFjX3ByZXBfZG1hX2N5Y2xp
+YyhzdHJ1Y3QgZG1hX2NoYW4gKmNoYW4sIGRtYV9hZGRyX3QgYnVmX2FkZHIsCiAJCXNnX2RtYV9s
+ZW4oJnNnbFtpXSkgPSBwZXJpb2RfbGVuOwogCX0KIAotCWRldl9hZGRyID0gZGlyID09IERNQV9E
+RVZfVE9fTUVNCi0JCSA/IHJjaGFuLT5zcmMuc2xhdmVfYWRkciA6IHJjaGFuLT5kc3Quc2xhdmVf
+YWRkcjsKLQlkZXNjID0gcmNhcl9kbWFjX2NoYW5fcHJlcF9zZyhyY2hhbiwgc2dsLCBzZ19sZW4s
+IGRldl9hZGRyLAorCWRlc2MgPSByY2FyX2RtYWNfY2hhbl9wcmVwX3NnKHJjaGFuLCBzZ2wsIHNn
+X2xlbiwgcmNoYW4tPm1hcC5hZGRyLAogCQkJCSAgICAgIGRpciwgZmxhZ3MsIHRydWUpOwogCiAJ
+a2ZyZWUoc2dsKTsKLS0gCjIuOC4yCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fXwppb21tdSBtYWlsaW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRh
+dGlvbi5vcmcKaHR0cHM6Ly9saXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGlu
+Zm8vaW9tbXU=
