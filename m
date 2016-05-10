@@ -1,41 +1,30 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Tue, 10 May 2016 10:36:40 +0200
-Message-ID: <9651510.pg5Vmm8vKS@wuerfel>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <20160506123731.GA11959@yury-N73SV> <573190CF.6030408@huawei.com>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH v2 2/8] asm-generic/io.h: add io{read,write}64 accessors
+Date: Tue, 10 May 2016 17:33:21 +0800
+Message-ID: <20160510093321.GA15677@gondor.apana.org.au>
+References: <1462462435-27403-1-git-send-email-horia.geanta@nxp.com>
+ <1462462556-27684-1-git-send-email-horia.geanta@nxp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <573190CF.6030408@huawei.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-arm-kernel@lists.infradead.org
-Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-crypto-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1462462556-27684-1-git-send-email-horia.geanta@nxp.com>
+Sender: linux-crypto-owner@vger.kernel.org
+To: Horia =?utf-8?Q?Geant=C4=83?= <horia.geanta@nxp.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-crypto@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Scott Wood <scott.wood@nxp.com>, Alexandru Porosanu <alexandru.porosanu@nxp.com>, Tudor Ambarus <tudor-dan.ambarus@nxp.com>, Cristian Stoica <cristian.stoica@nxp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 10 May 2016 15:42:07 Zhangjian wrote:
-> On 2016/5/6 20:37, Yury Norov wrote:
-> > On Fri, May 06, 2016 at 08:16:48PM +0800, Zhangjian (Bamvor) wrote:
-> >
-> > AFAIR, here we don't shift offset, as it's 64-bit both in user-
-> > and kernel-space,
-> In your ilp32-2.22 branch, you wrapper mmap to mmap2 in which type of
-> offset is off_t. And off_t is 32bit in ilp32, correct?
-> "sysdeps/unix/sysv/linux/aarch64/ilp32/mmap64.c"
-> /* mmap is provided by mmap as they are the same. */
-> void *__mmap (void *__addr, size_t __len, int __prot,
->                       int __flags, int __fd, __off_t __offset)
-> {
->     void *result;
->     result = (void *)
->       INLINE_SYSCALL (mmap2, 6, __addr,
->                       __len, __prot, __flags, __fd, __offset);
->     return result;
-> }
+On Thu, May 05, 2016 at 06:35:56PM +0300, Horia Geant=C4=83 wrote:
+> This will allow device drivers to consistently use io{read,write}XX
+> also for 64-bit accesses.
+>=20
+> Signed-off-by: Horia Geant=C4=83 <horia.geanta@nxp.com>
 
-__off_t should be 'long long' on new architectures, and map
-to __kernel_loff_t.
+I don't see patch 1/8.
 
-Can you see how it is defined?
-
-	Arnd
+Cheers,
+--=20
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
