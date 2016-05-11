@@ -1,37 +1,77 @@
-From: "Rafael J. Wysocki" <rafael@kernel.org>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-Date: Wed, 11 May 2016 18:24:14 +0200
-Message-ID: <CAJZ5v0ig1f-MMZUuCBZ4DpOhweKtTWnGUw8OvB9CLXR9KD36uA@mail.gmail.com>
-References: <20160511101920.GZ4329@intel.com>
-	<57332171.8070403@linutronix.de>
-	<20160511122116.GA4329@intel.com>
-	<5733354F.6080703@intel.com>
-	<625fc476-744c-240d-28b0-e1f09712c6a3@xs4all.nl>
-	<CAJZ5v0iNakYVA6bynyRakK11GbjSaGVo-41X3dWZcJ3OQngmBQ@mail.gmail.com>
-	<57335C18.6010009@linutronix.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Date: Wed, 11 May 2016 17:59:01 +0100
+Message-ID: <20160511165900.GM3051@e104818-lin.cambridge.arm.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <57329320.1000500@huawei.com>
+ <20160511075438.GA15628@yury-N73SV>
+ <5842999.Zgpfq4gkVz@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f67.google.com ([209.85.215.67]:34581 "EHLO
-	mail-lf0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751381AbcEKQYQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2016 12:24:16 -0400
-In-Reply-To: <57335C18.6010009@linutronix.de>
+Received: from foss.arm.com ([217.140.101.70]:54075 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751407AbcEKQ7I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 May 2016 12:59:08 -0400
+Content-Disposition: inline
+In-Reply-To: <5842999.Zgpfq4gkVz@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Jim Bos <jim876@xs4all.nl>
-Cc: "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <ville.syrjala@linux.intel.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel@lists.infradead.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com
 
-On Wed, May 11, 2016 at 6:21 PM, Sebastian Andrzej Siewior
-<bigeasy@linutronix.de> wrote:
-> On 05/11/2016 06:19 PM, Rafael J. Wysocki wrote:
->> Have you tried to check if this is the same commit reported in this thread?
->
-> The commit in this thread is part of v4.6-rc1 and he is saying that rc1
-> is working fine.
+On Wed, May 11, 2016 at 12:55:01PM +0200, Arnd Bergmann wrote:
+> On Wednesday 11 May 2016 11:04:38 Yury Norov wrote:
+> > On Wed, May 11, 2016 at 10:04:16AM +0800, Zhangjian (Bamvor) wrote:
+> > [...]
+> > 
+> > > >>Ok, I will test the ltp syscall test.
+> > > >>With this changes, the issue I mentioned should be fixed. But we still
+> > > >>use mmap2 syscall for ILP32 application when we pass the offset instead
+> > > >>of page offset. Is it correct?
+> > > >
+> > > >I don't remember. It's probably not important whether we have the shift
+> > > >in there, as long as it's independent of the actual kernel page size and
+> > > >user space and kernel agree on the calling conventions.
+> > > Well. I am ok with where to shift the pages size because we get the same
+> > > result. I was just thinking if we should get rid of the name of mmap2 in our
+> > > ILP32 porting. Actually, it is mmap but we name it as mmap2. User may confused
+> > > if they do not know the implementations.
+> > > 
+> > 
+> > This is what generic unistd.h does. If you want to change it, you'd
+> > change each arch that uses generic unistd.h.
+> 
+> Generic unistd.h has this:
+> 
+> #ifdef __SYSCALL_COMPAT
+> #define __SC_COMP_3264(_nr, _32, _64, _comp) __SYSCALL(_nr, _comp)
+> #else
+> #define __SC_COMP_3264(_nr, _32, _64, _comp) __SC_3264(_nr, _32, _64)
+> #endif
+> 
+> #define __NR3264_mmap 222
+> __SC_3264(__NR3264_mmap, sys_mmap2, sys_mmap)
+> 
+> 
+> #if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
+> #define __NR_mmap __NR3264_mmap
+> #else
+> #define __NR_mmap2 __NR3264_mmap
+> #endif
+> 
+> So by default we get __NR_mmap2 and sys_mmap2 on 32-bit ABIs, but
+> __NR_mmap and sys_mmap on 64-bit ABIs, as it should be.
+> 
+> The problem is that arch/arm64/kernel/sys_ilp32.c now overrides
+> this to use __NR_mmap2 with sys_mmap, so we have a mismatch. I think
+> we should either override both the implementation and the number,
+> or neither of them.
 
-I see.  That is a different problem then.
+I would vote for "neither of them" (so we use __NR_mmap2 and sys_mmap2)
+to keep it close to new 32-bit architectures, even though we would have
+some shifts by 12 in both glibc and kernel.
 
-Jim, can you please start a new thread (with a CC to linux-pm) or just
-file a bug at bugzilla.kernel.org to avoid confusing things?
+-- 
+Catalin
