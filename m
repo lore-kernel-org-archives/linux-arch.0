@@ -1,137 +1,181 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([58.251.152.52]:63547 "EHLO
-	szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751767AbcEKCE4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 May 2016 22:04:56 -0400
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
- (in entry.S) to use it
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <7091358.aJt1stteb5@wuerfel> <5731D68D.2090109@huawei.com>
- <4119683.coHZhzaE6c@wuerfel>
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <57329320.1000500@huawei.com>
-Date: Wed, 11 May 2016 10:04:16 +0800
-MIME-Version: 1.0
-In-Reply-To: <4119683.coHZhzaE6c@wuerfel>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from m50-135.163.com ([123.125.50.135]:42236 "EHLO m50-135.163.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751648AbcEKI3Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 May 2016 04:29:16 -0400
+From: zengzhaoxiu@163.com
+Subject: [patch V4 00/31] bitops: add parity functions
+Date: Wed, 11 May 2016 16:25:58 +0800
+Message-ID: <1462955158-28394-1-git-send-email-zengzhaoxiu@163.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, Yury Norov <ynorov@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <20160511020416.PlG15jcC4IsMD4YvKJsjel53KNuZnCePS7iww2Igg-k@z>
+To: akpm@linux-foundation.org, linux@horizon.com, bp@suse.de, ulrik.debie-os@e2big.org, sam@ravnborg.org, davem@davemloft.net, ddaney.cavm@gmail.com, joe@perches.com, computersforpeace@gmail.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, qat-linux@intel.com, linux-crypto@vger.kernel.org, linux-edac@vger.kernel.org, linux-media@vger.kernel.org, linux-mtd@lists.infradead.org, netdev@vger.kernel.org, linux-scsi@vger.kernel.org, linux-nfs@vger.kernel.org, linux-mediatek@lists.infradead.org, Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+Message-ID: <20160511082558.Ez_ZOnPbq0UcKpjMeuaWHyXHZYOVObIvo9lmCRcONvY@z>
 
-Hi,
+From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
 
-On 2016/5/10 20:50, Arnd Bergmann wrote:
-> On Tuesday 10 May 2016 20:39:41 Zhangjian wrote:
->> Hi,
->>
->> On 2016/5/10 19:48, Arnd Bergmann wrote:
->>> On Tuesday 10 May 2016 17:47:26 Zhangjian wrote:
->>>> On 2016/5/10 16:36, Arnd Bergmann wrote:
->>>>> On Tuesday 10 May 2016 15:42:07 Zhangjian wrote:
->>>>>> On 2016/5/6 20:37, Yury Norov wrote:
->>>>
->>>> "include/uapi/asm-generic/posix_types.h" is uapi, we could not check
->>>> "ARCH_32BIT_OFF_T" here. Besides, the `__kernel_long_t` is long which
->>>> mean it is 32bit in ILP32. should we define something like x32?
->>>>        ```
->>>>        diff --git a/arch/arm64/include/uapi/asm/posix_types.h b/arch/arm64/include/uapi/asm/posix_types.h
->>>>        index 7985ff6..9baa8d3 100644
->>>>        --- a/arch/arm64/include/uapi/asm/posix_types.h
->>>>        +++ b/arch/arm64/include/uapi/asm/posix_types.h
->>>
->>> glibc does not use the definition of __kernel_off_t, it has its own
->>> copy, so changing the kernel headers would do nothing.
->> Yes, I think so. I am puzzle that how do we ensure that all the new
->> 32bit architecture will define off_t as 64bit after introduce
->> ARCH_32BIT_OFF_T and do not change any other code?
->
-> This is for historic reasons: we have two sets of system calls passing
-> file offsets: the original ones passing a 'long' are named e.g. lseek,
-> pread, pwrite, fadvise, ...
->
-> The replacement syscalls that pass a 'long long' __kernel_loff_t are only
-> available on 32-bit architectures and have different names, e.g. llseek,
-> pread64, pwrite64, fadvise64, ...
->
-> On 64-bit architectures, we only provide the first set, because
-> __kernel_off_t was already wide enough. On old 32-bit architectures
-> we have both, and on new 32-bit architectures we only have the second
-> set, which lets us use the same definitions on all 32-bit architectures.
->
->>>>        @@ -5,6 +5,9 @@ typedef unsigned short __kernel_old_uid_t;
->>>>         typedef unsigned short __kernel_old_gid_t;
->>>>          #define __kernel_old_uid_t __kernel_old_uid_t
->>>>
->>>>         +typedef long long __kernel_long_t;
->>>>         +typedef unsigned long long __kernel_ulong_t;
->>>>         +
->>>>          #include <asm-generic/posix_types.h>
->>>>
->>>>          #endif /*  __ASM_POSIX_TYPES_H */u
->>>>        ```
->>>
->>> This would break all sorts of things, because __kernel_long_t/__kernel_ulong_t
->>> are not just used for off_t but also other things.
->> Yes. But if we do not change __kernel_long_t and __kernel_ulong_t, the
->> application of ilp32 will think size of long in kernel is 32bit. Is that
->> correct?
->
-> No, __kernel_long_t refers to the definition of 'long' in the kernel/user
-> ABI, not in the kernel (except on the x86-64 "x32" ABI, which is weird).
-Thanks, that is answer my question. I ask this because I saw the posix_types.h
-for x32.
-> A 32-bit user space application must not care about how 'long' is defined
-> in the kernel, it should run on either 32-bit kernels or 64-bit kernels.
-> We don't have any plans to do an ilp32-mode kernel, but if we ever want
-> one, it must use the exact same ABI as the 64-bit kernel when running
-> ilp32 user space.
->
->>>>
->>>> On the other hand, glibc define it own off_t in "bits/types.h":
->>>>        __STD_TYPE __OFF_T_TYPE __off_t;        /* Type of file sizes and offsets.  */
->>>>        __STD_TYPE __OFF64_T_TYPE __off64_t;    /* Type of file sizes and offsets (LFS).  */
->>>>
->>>> in "sysdeps/unix/sysv/linux/aarch64/bits/typesizes.h":
->>>>        #define __OFF_T_TYPE            __SLONGWORD_TYPE
->>>>        #define __OFF64_T_TYPE          __SQUAD_TYPE
->>>>
->>>> If we define off_t as 64bit in glibc:
->>>>        #define __OFF_T_TYPE           __SQUAD_TYPE
->>>>
->>>> Should We need to align all the off_t syscall to 64bit syscall in
->>>> kernel?
->>>>
->>>
->>> Yes, this is the change that I think we need to make, along with
->>> the same change for __INO_T_TYPE and
->>>
->>> #define __OFF_T_MATCHES_OFF64_T        1
->>> #define __INO_T_MATCHES_INO64_T        1
->>>
->>> If I read the rest of the glibc headers right, that should be all we need
->>> to ensure that both off_t and off64_t match the __kernel_loff_t based
->>> syscalls.
->> Ok, I will test the ltp syscall test.
->> With this changes, the issue I mentioned should be fixed. But we still
->> use mmap2 syscall for ILP32 application when we pass the offset instead
->> of page offset. Is it correct?
->
-> I don't remember. It's probably not important whether we have the shift
-> in there, as long as it's independent of the actual kernel page size and
-> user space and kernel agree on the calling conventions.
-Well. I am ok with where to shift the pages size because we get the same
-result. I was just thinking if we should get rid of the name of mmap2 in our
-ILP32 porting. Actually, it is mmap but we name it as mmap2. User may confused
-if they do not know the implementations.
+When I do "grep parity -r linux", I found many parity calculations
+distributed in many drivers.
 
-Regards
+This patch series does:
+  1. provide generic and architecture-specific parity calculations
+  2. remove drivers' local parity calculations, use bitops' parity
+     functions instead
+  3. replace "hweightN(x) & 1" with "parityN(x)" to improve readability,
+     and improve performance on some CPUs that without popcount support
 
-Bamvor
+I did not use GCC's __builtin_parity* functions, based on the following reasons:
+  1. I don't know where to identify which version of GCC from the beginning
+     supported __builtin_parity for the architecture.
+  2. For the architecture that doesn't has popcount instruction, GCC instead use
+     "call __paritysi2" (__paritydi2 for 64-bits). So if use __builtin_parity, we must
+     provide __paritysi2 and __paritydi2 functions for these architectures.
+     Additionally, parity4,8,16 might be "__builtin_parity(x & mask)", but the "& mask"
+     operation is totally unnecessary.
+  3. For the architecture that has popcount instruction, we do the same things as GCC.
+  4. For powerpc, sparc, and x86, we do runtime patching to use popcount instruction
+     if the CPU support.
 
->
-> 	Arnd
->
+I have compiled successfully with x86_64_defconfig, i386_defconfig, pseries_defconfig
+and sparc64_defconfig.
+
+Changes to V3:
+- Remove "odd" and "even" from documents. The function parityN returns whether an odd
+  or even number of bits are on in a N-bit word, does not involve the definition of
+  odd/even parity. Is it an odd or even parity checking, depends on the caller's context.
+- Replace "hweightN(x) % 2" with "parityN(x)" in crypto/sahara.c and edac/amd64_edac.c
+- Use PARITY_MAGIC instead of 0x6996 in powerpc's parity_64.S
+- Use PARITY_MAGIC instead of 0x6996 in sparc's parity.S
+- Pick up ACKs
+
+Changes to v2:
+- X86, remove custom calling convention, use inline asm
+- Add constant PARITY_MAGIC (proposals by Sam Ravnborg)
+- Add include/asm-generic/bitops/popc-parity.h (proposals by Chris Metcalf)
+- Tile uses popc-parity.h directly
+- Mips uses popc-parity.h if has usable __builtin_popcount
+- Add few comments in powerpc's and sparc's parity.S
+
+Changes to v1:
+- Add runtime patching for powerpc, sparc, and x86
+- Avr32 use grenric parity too
+- Fix error in ssfdc's patch, and add commit message
+- Don't change the original code composition of adxrs450.c
+- Directly assignement to phy_cap.parity in drivers/scsi/isci/phy.c
+
+Regards,
+
+=== diffstat ===
+
+Zhaoxiu Zeng (31):
+  bitops: add parity functions
+  bitops: Include generic parity.h in some architectures' bitops.h
+  bitops: Add alpha-specific parity functions
+  bitops: Add blackfin-specific parity functions
+  bitops: Add ia-specific parity functions
+  bitops: Tile and MIPS (if has usable __builtin_popcount) use popcount
+    parity functions
+  bitops: Add powerpc-specific parity functions
+  bitops: Add sparc-specific parity functions
+  bitops: Add x86-specific parity functions
+  sunrpc: use parity8
+  mips: use parity functions in cerr-sb1.c
+  lib: bch: use parity32
+  media: use parity8 in vivid-vbi-gen.c
+  media: use parity functions in saa7115
+  input: use parity32 in grip_mp
+  input: use parity64 in sidewinder
+  input: use parity16 in ams_delta_serio
+  scsi: use parity32 in isci's phy
+  mtd: use parity16 in ssfdc
+  mtd: use parity functions in inftlcore
+  crypto: use parity functions in qat_hal
+  mtd: use parity16 in sm_ftl
+  ethernet: use parity8 in sun/niu.c
+  input: use parity8 in pcips2
+  input: use parity8 in sa1111ps2
+  iio: use parity32 in adxrs450
+  serial: use parity32 in max3100
+  input: use parity8 in elantech
+  ethernet: use parity8 in broadcom/tg3.c
+  crypto: use parity_long is sahara.c
+  edac: use parity8 in amd64_edac.c
+
+ arch/alpha/include/asm/bitops.h              |  27 +++++
+ arch/arc/include/asm/bitops.h                |   1 +
+ arch/arm/include/asm/bitops.h                |   1 +
+ arch/arm64/include/asm/bitops.h              |   1 +
+ arch/avr32/include/asm/bitops.h              |   1 +
+ arch/blackfin/include/asm/bitops.h           |  31 ++++++
+ arch/c6x/include/asm/bitops.h                |   1 +
+ arch/cris/include/asm/bitops.h               |   1 +
+ arch/frv/include/asm/bitops.h                |   1 +
+ arch/h8300/include/asm/bitops.h              |   1 +
+ arch/hexagon/include/asm/bitops.h            |   1 +
+ arch/ia64/include/asm/bitops.h               |  31 ++++++
+ arch/m32r/include/asm/bitops.h               |   1 +
+ arch/m68k/include/asm/bitops.h               |   1 +
+ arch/metag/include/asm/bitops.h              |   1 +
+ arch/mips/include/asm/bitops.h               |   7 ++
+ arch/mips/mm/cerr-sb1.c                      |  67 ++++---------
+ arch/mn10300/include/asm/bitops.h            |   1 +
+ arch/openrisc/include/asm/bitops.h           |   1 +
+ arch/parisc/include/asm/bitops.h             |   1 +
+ arch/powerpc/include/asm/bitops.h            |  11 +++
+ arch/powerpc/lib/Makefile                    |   2 +-
+ arch/powerpc/lib/parity_64.S                 | 143 +++++++++++++++++++++++++++
+ arch/powerpc/lib/ppc_ksyms.c                 |   5 +
+ arch/s390/include/asm/bitops.h               |   1 +
+ arch/sh/include/asm/bitops.h                 |   1 +
+ arch/sparc/include/asm/bitops_32.h           |   1 +
+ arch/sparc/include/asm/bitops_64.h           |  18 ++++
+ arch/sparc/kernel/sparc_ksyms_64.c           |   6 ++
+ arch/sparc/lib/Makefile                      |   2 +-
+ arch/sparc/lib/parity.S                      | 129 ++++++++++++++++++++++++
+ arch/tile/include/asm/bitops.h               |   2 +
+ arch/x86/include/asm/arch_hweight.h          |   5 +
+ arch/x86/include/asm/arch_parity.h           | 117 ++++++++++++++++++++++
+ arch/x86/include/asm/bitops.h                |   4 +-
+ arch/xtensa/include/asm/bitops.h             |   1 +
+ drivers/crypto/qat/qat_common/qat_hal.c      |  32 ++----
+ drivers/crypto/sahara.c                      |   2 +-
+ drivers/edac/amd64_edac.c                    |   2 +-
+ drivers/iio/gyro/adxrs450.c                  |   4 +-
+ drivers/input/joystick/grip_mp.c             |  16 +--
+ drivers/input/joystick/sidewinder.c          |  24 +----
+ drivers/input/mouse/elantech.c               |  10 +-
+ drivers/input/mouse/elantech.h               |   1 -
+ drivers/input/serio/ams_delta_serio.c        |   8 +-
+ drivers/input/serio/pcips2.c                 |   2 +-
+ drivers/input/serio/sa1111ps2.c              |   2 +-
+ drivers/media/i2c/saa7115.c                  |  17 +---
+ drivers/media/platform/vivid/vivid-vbi-gen.c |   9 +-
+ drivers/mtd/inftlcore.c                      |  17 +---
+ drivers/mtd/sm_ftl.c                         |   5 +-
+ drivers/mtd/ssfdc.c                          |  31 ++----
+ drivers/net/ethernet/broadcom/tg3.c          |   6 +-
+ drivers/net/ethernet/sun/niu.c               |  10 +-
+ drivers/scsi/isci/phy.c                      |  15 +--
+ drivers/tty/serial/max3100.c                 |   2 +-
+ include/asm-generic/bitops.h                 |   1 +
+ include/asm-generic/bitops/arch_parity.h     |  39 ++++++++
+ include/asm-generic/bitops/const_parity.h    |  36 +++++++
+ include/asm-generic/bitops/parity.h          |   7 ++
+ include/asm-generic/bitops/popc-parity.h     |  32 ++++++
+ include/linux/bitops.h                       |  10 ++
+ lib/bch.c                                    |  14 +--
+ net/sunrpc/auth_gss/gss_krb5_keys.c          |   6 +-
+ 64 files changed, 749 insertions(+), 237 deletions(-)
+ create mode 100644 arch/powerpc/lib/parity_64.S
+ create mode 100644 arch/sparc/lib/parity.S
+ create mode 100644 arch/x86/include/asm/arch_parity.h
+ create mode 100644 include/asm-generic/bitops/arch_parity.h
+ create mode 100644 include/asm-generic/bitops/const_parity.h
+ create mode 100644 include/asm-generic/bitops/parity.h
+ create mode 100644 include/asm-generic/bitops/popc-parity.h
+
+-- 
+2.7.4
+
 
