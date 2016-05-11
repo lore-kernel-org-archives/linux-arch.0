@@ -1,218 +1,71 @@
-From: zengzhaoxiu@163.com
-Subject: [patch V4 01/31] bitops: add parity functions
-Date: Wed, 11 May 2016 16:47:56 +0800
-Message-ID: <1462956486-29349-1-git-send-email-zengzhaoxiu@163.com>
-References: <1462955158-28394-1-git-send-email-zengzhaoxiu@163.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from m50-133.163.com ([123.125.50.133]:34508 "EHLO m50-133.163.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751370AbcEKJG7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 May 2016 05:06:59 -0400
-In-Reply-To: <1462955158-28394-1-git-send-email-zengzhaoxiu@163.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux@horizon.com, ulrik.debie-os@e2big.org
-Cc: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Martin Kepplinger <martink@posteo.de>, Andrew Morton <akpm@linux-foundation.org>, Sasha Levin <sasha.levin@oracle.com>, Ingo Molnar <mingo@kernel.org>, Denys Vlasenko <dvlasenk@redhat.com>, linux-arch@vger.kernel.org
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Date: Wed, 11 May 2016 18:12:56 +0800
+Message-ID: <573305A8.50406@huawei.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <4119683.coHZhzaE6c@wuerfel> <57329320.1000500@huawei.com>
+ <4876119.A8fbdncu9Z@wuerfel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4876119.A8fbdncu9Z@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, Yury Norov <ynorov@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
+Hi, Arnd
 
-Add generic parity functions, adapted from
-"https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel".
+On 2016/5/11 16:09, Arnd Bergmann wrote:
+ > On Wednesday 11 May 2016 10:04:16 Zhangjian wrote:
+ >>> I don't remember. It's probably not important whether we have the shift
+ >>> in there, as long as it's independent of the actual kernel page size and
+ >>> user space and kernel agree on the calling conventions.
+ >> Well. I am ok with where to shift the pages size because we get the same
+ >> result. I was just thinking if we should get rid of the name of mmap2 in our
+ >> ILP32 porting. Actually, it is mmap but we name it as mmap2. User may confused
+ >> if they do not know the implementations.
+ >
+ > That is a good point: If the implementation matches the mmap() behavior rather than
+ > mmap2(), we should rename the macro by doing
+ >
+ > #undef __NR_mmap2
+ > #define __NR_mmap 222
+ >
+ > in the uapi/asm/unistd.h file for ilp32 mode.
+Do you mean define the following things in kernel:
+```
+diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+index 1caadc2..3f79640 100644
+--- a/arch/arm64/include/uapi/asm/unistd.h
++++ b/arch/arm64/include/uapi/asm/unistd.h
+@@ -14,3 +14,9 @@
+   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   */
+  #include <asm-generic/unistd.h>
++
++#ifdef __ILP32__
++#undef __NR_mmap2
++#define __NR_mmap 222
++#endif /* #ifdef __ILP32__ */
++
+```
+Then glibc could call mmap instead of mmap2.
+I could not try it now. Because after change off_t to 64bit in glibc, stat
+is fail. I may need to revert the stat relative patch.
 
-The function parityN returns whether an odd or even number of bits are on
-in a N-bit word.
+ > Alternatively we can keep the
+ > __NR_mmap2 definition but then we need to pass the pgoff (value shifted by
+ > 12 bits) argument rather than the size in bytes.
+It means that we could reuse the existing code of mmap2 in kernel and glibc.
+But we need to shift twice when kernel is 64k page.
+It seems that the first method is more clear. Suggestion?
 
-Signed-off-by: Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>
----
- include/asm-generic/bitops.h              |  1 +
- include/asm-generic/bitops/arch_parity.h  | 39 +++++++++++++++++++++++++++++++
- include/asm-generic/bitops/const_parity.h | 36 ++++++++++++++++++++++++++++
- include/asm-generic/bitops/parity.h       |  7 ++++++
- include/asm-generic/bitops/popc-parity.h  | 32 +++++++++++++++++++++++++
- include/linux/bitops.h                    | 10 ++++++++
- 6 files changed, 125 insertions(+)
- create mode 100644 include/asm-generic/bitops/arch_parity.h
- create mode 100644 include/asm-generic/bitops/const_parity.h
- create mode 100644 include/asm-generic/bitops/parity.h
- create mode 100644 include/asm-generic/bitops/popc-parity.h
+Regards
 
-diff --git a/include/asm-generic/bitops.h b/include/asm-generic/bitops.h
-index dcdcacf..d85722f 100644
---- a/include/asm-generic/bitops.h
-+++ b/include/asm-generic/bitops.h
-@@ -27,6 +27,7 @@
- #include <asm-generic/bitops/sched.h>
- #include <asm-generic/bitops/ffs.h>
- #include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/parity.h>
- #include <asm-generic/bitops/lock.h>
- 
- #include <asm-generic/bitops/atomic.h>
-diff --git a/include/asm-generic/bitops/arch_parity.h b/include/asm-generic/bitops/arch_parity.h
-new file mode 100644
-index 0000000..813e152
---- /dev/null
-+++ b/include/asm-generic/bitops/arch_parity.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_ARCH_PARITY_H_
-+
-+#include <asm/types.h>
-+
-+/*
-+ * Refrence to 'https://graphics.stanford.edu/~seander/bithacks.html#ParityParallel'.
-+ */
-+
-+static inline unsigned int __arch_parity4(unsigned int w)
-+{
-+	w &= 0xf;
-+	return ((PARITY_MAGIC) >> w) & 1;
-+}
-+
-+static inline unsigned int __arch_parity8(unsigned int w)
-+{
-+	w ^= w >> 4;
-+	return __arch_parity4(w);
-+}
-+
-+static inline unsigned int __arch_parity16(unsigned int w)
-+{
-+	w ^= w >> 8;
-+	return __arch_parity8(w);
-+}
-+
-+static inline unsigned int __arch_parity32(unsigned int w)
-+{
-+	w ^= w >> 16;
-+	return __arch_parity16(w);
-+}
-+
-+static inline unsigned int __arch_parity64(__u64 w)
-+{
-+	return __arch_parity32((unsigned int)(w >> 32) ^ (unsigned int)w);
-+}
-+
-+#endif /* _ASM_GENERIC_BITOPS_ARCH_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/const_parity.h b/include/asm-generic/bitops/const_parity.h
-new file mode 100644
-index 0000000..3970546
---- /dev/null
-+++ b/include/asm-generic/bitops/const_parity.h
-@@ -0,0 +1,36 @@
-+#ifndef _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_CONST_PARITY_H_
-+
-+/*
-+ * Compile time versions of __arch_parityN()
-+ */
-+#define __const_parity4(w)   (((PARITY_MAGIC) >> ((w) & 0xf)) & 1)
-+#define __const_parity8(w)   (__const_parity4((w) ^ ((w) >> 4)))
-+#define __const_parity16(w)  (__const_parity8((w) ^ ((w) >> 8)))
-+#define __const_parity32(w)  (__const_parity16((w) ^ ((w) >> 16)))
-+#define __const_parity64(w)  (__const_parity32((w) ^ ((w) >> 32)))
-+
-+/*
-+ * Generic interface.
-+ */
-+#define parity4(w)   (__builtin_constant_p(w) ? __const_parity4(w)  : __arch_parity4(w))
-+#define parity8(w)   (__builtin_constant_p(w) ? __const_parity8(w)  : __arch_parity8(w))
-+#define parity16(w)  (__builtin_constant_p(w) ? __const_parity16(w) : __arch_parity16(w))
-+#define parity32(w)  (__builtin_constant_p(w) ? __const_parity32(w) : __arch_parity32(w))
-+#define parity64(w)  (__builtin_constant_p(w) ? __const_parity64(w) : __arch_parity64(w))
-+
-+/*
-+ * Interface for known constant arguments
-+ */
-+#define PARITY4(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity4(w))
-+#define PARITY8(w)   (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity8(w))
-+#define PARITY16(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity16(w))
-+#define PARITY32(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity32(w))
-+#define PARITY64(w)  (BUILD_BUG_ON_ZERO(!__builtin_constant_p(w)) + __const_parity64(w))
-+
-+/*
-+ * Type invariant interface to the compile time constant parity functions.
-+ */
-+#define PARITY(w)    PARITY64((u64)(w))
-+
-+#endif /* _ASM_GENERIC_BITOPS_CONST_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/parity.h b/include/asm-generic/bitops/parity.h
-new file mode 100644
-index 0000000..a91dce7
---- /dev/null
-+++ b/include/asm-generic/bitops/parity.h
-@@ -0,0 +1,7 @@
-+#ifndef _ASM_GENERIC_BITOPS_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_PARITY_H_
-+
-+#include <asm-generic/bitops/arch_parity.h>
-+#include <asm-generic/bitops/const_parity.h>
-+
-+#endif /* _ASM_GENERIC_BITOPS_PARITY_H_ */
-diff --git a/include/asm-generic/bitops/popc-parity.h b/include/asm-generic/bitops/popc-parity.h
-new file mode 100644
-index 0000000..bf05999
---- /dev/null
-+++ b/include/asm-generic/bitops/popc-parity.h
-@@ -0,0 +1,32 @@
-+#ifndef _ASM_GENERIC_BITOPS_POPC_PARITY_H_
-+#define _ASM_GENERIC_BITOPS_POPC_PARITY_H_
-+
-+#include <asm/types.h>
-+
-+static inline unsigned int __arch_parity32(unsigned int w)
-+{
-+	return __builtin_popcount(w) & 1;
-+}
-+
-+static inline unsigned int __arch_parity16(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xffff);
-+}
-+
-+static inline unsigned int __arch_parity8(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xff);
-+}
-+
-+static inline unsigned int __arch_parity4(unsigned int w)
-+{
-+	return __arch_parity32(w & 0xf);
-+}
-+
-+static inline unsigned int __arch_parity64(__u64 w)
-+{
-+	return (unsigned int)__builtin_popcountll(w) & 1;
-+}
-+
-+#endif
-+
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index defeaac..c3ea19e 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -30,6 +30,11 @@ extern unsigned int __sw_hweight32(unsigned int w);
- extern unsigned long __sw_hweight64(__u64 w);
- 
- /*
-+ * a miniature 16-bit parity-table of 4-bits number
-+ */
-+#define	PARITY_MAGIC	0x6996
-+
-+/*
-  * Include this here because some architectures need generic_ffs/fls in
-  * scope
-  */
-@@ -80,6 +85,11 @@ static __always_inline unsigned long hweight_long(unsigned long w)
- 	return sizeof(w) == 4 ? hweight32(w) : hweight64(w);
- }
- 
-+static __always_inline unsigned int parity_long(unsigned long w)
-+{
-+	return sizeof(w) == 4 ? parity32(w) : parity64(w);
-+}
-+
- /**
-  * rol64 - rotate a 64-bit value left
-  * @word: value to rotate
--- 
-2.7.4
+Bamvor
+ >
+ >   Arnd
+ >
