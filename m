@@ -1,26 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59170 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751923AbcELOUX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 May 2016 10:20:23 -0400
-Date: Thu, 12 May 2016 15:20:16 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
+Received: from mail-bn1bon0053.outbound.protection.outlook.com ([157.56.111.53]:45024
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S932085AbcELOZX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 May 2016 10:25:23 -0400
+Date: Thu, 12 May 2016 17:24:57 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
 Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
-Message-ID: <20160512142016.GH11226@e104818-lin.cambridge.arm.com>
+Message-ID: <20160512142457.GC30205@yury-N73SV>
 References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
  <20160512002000.GA30997@yury-N73SV>
  <20160512133533.GF11226@e104818-lin.cambridge.arm.com>
  <20160512134431.GB30205@yury-N73SV>
  <20160512140734.GG11226@e104818-lin.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
 In-Reply-To: <20160512140734.GG11226@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, heiko.carstens@de.ibm.com, linux-doc@vger.kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, schwab@suse.de, schwidefsky@de.ibm.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160512142016.R7AmeaxxOiauhzs05WyvSldFFtNVeWZV9WKYM9VWIGE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, Nathan_Lynch@mentor.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, joseph@codesourcery.com, schwab@suse.de, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+Message-ID: <20160512142457.EzPU6pwiBXeCDOLZZRbV58rQotXv3NXTFYLPMoLeZnY@z>
 
 On Thu, May 12, 2016 at 03:07:35PM +0100, Catalin Marinas wrote:
 > On Thu, May 12, 2016 at 04:44:31PM +0300, Yury Norov wrote:
@@ -82,10 +83,23 @@ On Thu, May 12, 2016 at 03:07:35PM +0100, Catalin Marinas wrote:
 > maximum 64-bit task value, so they should have a similar issue with
 > native 32-bit vs compat behaviour.
 
-I think we have another problem. flush_old_exec() calls the arm64
-flush_thread() where tls_thread_flush() checks for is_compat_task(). So
-starting a 32-bit application from a 64-bit one not go on the correct
-path.
+Hmmm. If so, it means we'd introduce generic fix. It would be removing 
+set_fs() from flush_old_exec() and appending it to load_elf_binary()
+after SET_PERSONALITY(). But I think it should be agreed with other
+arches developers. I've sent standalone patch for aarch64 (you in CC)
+so let's move discussion there.
 
--- 
-Catalin
+> So what exactly is LTP complaining about? Is different error (like
+> EFAULT vs EINVAL) or not getting an error at all.
+ 
+It should be EINVAL, but it succeed. The other problem is that
+following fs routines does not complain on wrong address.
+
+> (I need to update my LTP, the preadv tests appeared in December last
+> year)
+> 
+
+preadv02 was extended with this testcase in April.
+
+> -- 
+> Catalin
