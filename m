@@ -1,79 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:63045 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932065AbcEKTbF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2016 15:31:05 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Wed, 11 May 2016 21:30:07 +0200
-Message-ID: <4989778.Fs81NJurjH@wuerfel>
-In-Reply-To: <20160511165900.GM3051@e104818-lin.cambridge.arm.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <5842999.Zgpfq4gkVz@wuerfel> <20160511165900.GM3051@e104818-lin.cambridge.arm.com>
+Received: from szxga05-in.huawei.com ([58.251.152.179]:1679 "EHLO
+	szxga05-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751552AbcELDqZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2016 23:46:25 -0400
+Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <573305A8.50406@huawei.com> <5733149C.4030903@huawei.com>
+ <5250356.myv9GIZ34h@wuerfel>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <5733FC71.8070101@huawei.com>
+Date: Thu, 12 May 2016 11:45:53 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <5250356.myv9GIZ34h@wuerfel>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel@lists.infradead.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160511193007.RjBx5vx-5oe-61d-n6Ld6fVDlQrAiS-lbJ02OBQzeI8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, Yury Norov <ynorov@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, "jijun (D)" <jijun2@huawei.com>, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, agraf@suse.de, pinskia@gmail.com, klimov.linux@gmail.com, broonie@kernel.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, christoph.muellner@theobroma-systems.com, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <20160512034553.Wh1KlllG8kxm6eu89iegwjvpVDqP8OrJzZZ3qYALBZw@z>
 
-On Wednesday 11 May 2016 17:59:01 Catalin Marinas wrote:
-> On Wed, May 11, 2016 at 12:55:01PM +0200, Arnd Bergmann wrote:
-> > On Wednesday 11 May 2016 11:04:38 Yury Norov wrote:
-> > > On Wed, May 11, 2016 at 10:04:16AM +0800, Zhangjian (Bamvor) wrote:
-> > > [...]
-> > > 
-> > > > >>Ok, I will test the ltp syscall test.
-> > > > >>With this changes, the issue I mentioned should be fixed. But we still
-> > > > >>use mmap2 syscall for ILP32 application when we pass the offset instead
-> > > > >>of page offset. Is it correct?
-> > > > >
-> > > > >I don't remember. It's probably not important whether we have the shift
-> > > > >in there, as long as it's independent of the actual kernel page size and
-> > > > >user space and kernel agree on the calling conventions.
-> > > > Well. I am ok with where to shift the pages size because we get the same
-> > > > result. I was just thinking if we should get rid of the name of mmap2 in our
-> > > > ILP32 porting. Actually, it is mmap but we name it as mmap2. User may confused
-> > > > if they do not know the implementations.
-> > > > 
-> > > 
-> > > This is what generic unistd.h does. If you want to change it, you'd
-> > > change each arch that uses generic unistd.h.
-> > 
-> > Generic unistd.h has this:
-> > 
-> > #ifdef __SYSCALL_COMPAT
-> > #define __SC_COMP_3264(_nr, _32, _64, _comp) __SYSCALL(_nr, _comp)
-> > #else
-> > #define __SC_COMP_3264(_nr, _32, _64, _comp) __SC_3264(_nr, _32, _64)
-> > #endif
-> > 
-> > #define __NR3264_mmap 222
-> > __SC_3264(__NR3264_mmap, sys_mmap2, sys_mmap)
-> > 
-> > 
-> > #if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
-> > #define __NR_mmap __NR3264_mmap
-> > #else
-> > #define __NR_mmap2 __NR3264_mmap
-> > #endif
-> > 
-> > So by default we get __NR_mmap2 and sys_mmap2 on 32-bit ABIs, but
-> > __NR_mmap and sys_mmap on 64-bit ABIs, as it should be.
-> > 
-> > The problem is that arch/arm64/kernel/sys_ilp32.c now overrides
-> > this to use __NR_mmap2 with sys_mmap, so we have a mismatch. I think
-> > we should either override both the implementation and the number,
-> > or neither of them.
-> 
-> I would vote for "neither of them" (so we use __NR_mmap2 and sys_mmap2)
-> to keep it close to new 32-bit architectures, even though we would have
-> some shifts by 12 in both glibc and kernel.
+Hi, Arnd
 
-I don't think the shifts are a problem, the main downside would be
-the limit to 44 bits of file offsets (16TB files), but it's also
-unclear if that is a practical problem at all. If it is, we run
-into the same problem on all other 32-bit architectures too.
+On 2016/5/11 22:50, Arnd Bergmann wrote:
+> On Wednesday 11 May 2016 19:16:44 Zhangjian wrote:
+>> Hi,
+>>
+>> On 2016/5/11 18:12, Zhangjian (Bamvor) wrote:
+>>> Hi, Arnd
+>>>
+>>> On 2016/5/11 16:09, Arnd Bergmann wrote:
+>>>   > On Wednesday 11 May 2016 10:04:16 Zhangjian wrote:
+>>>   >>> I don't remember. It's probably not important whether we have the shift
+>>>   >>> in there, as long as it's independent of the actual kernel page size and
+>>>   >>> user space and kernel agree on the calling conventions.
+>>>   >> Well. I am ok with where to shift the pages size because we get the same
+>>>   >> result. I was just thinking if we should get rid of the name of mmap2 in our
+>>>   >> ILP32 porting. Actually, it is mmap but we name it as mmap2. User may confused
+>>>   >> if they do not know the implementations.
+>>>   >
+>>>   > That is a good point: If the implementation matches the mmap() behavior rather than
+>>>   > mmap2(), we should rename the macro by doing
+>>>   >
+>>>   > #undef __NR_mmap2
+>>>   > #define __NR_mmap 222
+>>>   >
+>>>   > in the uapi/asm/unistd.h file for ilp32 mode.
+>>> Do you mean define the following things in kernel:
+>>> ```
+>>> diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+>>> index 1caadc2..3f79640 100644
+>>> --- a/arch/arm64/include/uapi/asm/unistd.h
+>>> +++ b/arch/arm64/include/uapi/asm/unistd.h
+>>> @@ -14,3 +14,9 @@
+>>>     * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>>>     */
+>>>    #include <asm-generic/unistd.h>
+>>> +
+>>> +#ifdef __ILP32__
+>>> +#undef __NR_mmap2
+>>> +#define __NR_mmap 222
+>>> +#endif /* #ifdef __ILP32__ */
+>>> +
+>>> ```
+>>> Then glibc could call mmap instead of mmap2.
+>>> I could not try it now. Because after change off_t to 64bit in glibc, stat
+>>> is fail. I may need to revert the stat relative patch.
+>> After revert stat relative patch in glibc, mmap01-mmap14 success. But mmap16
+>> success with segfault. I will investigate it later.
+>>
+>> There is pointer and size_t in mmap, so, IIUC, we need to clear the top halves
+>> of register by using COMPAT_SYSCALL_WRAP6.
+>
+> Correct, good catch!
+>
+>> And after check the function in
+>> arch/s390/kernel/compat_linux.c, I feel that we need to do the same thing for
+>> pread64 and pwrite64.
+>>
+>
+>> But I got following error when I try to add
+>> COMPAT_SYSCALL_WRAP4(pread64, unsigned int, fd, char __user *, buf,
+>> size_t, count, loff_t, pos);
+>> COMPAT_SYSCALL_WRAP4(pwrite64, unsigned int, fd, const char __user *, buf,
+>> size_t, count, loff_t, pos);
+>>
+>
+> Hmm, that is indeed tricky. I think COMPAT_SYSCALL_WRAP4 rightfully
+> refuses the loff_t argument here, as the common case is that this is
+> not possible.
+It works if I apply the following patch, I defined the wrong `__TYPE_IS_xxx`
+yesterday. Should we merge this into ILP32 series or send the compat.h
+and syscalls.h individually? The current series of ILP32 is a little bit
+long and hard to review.
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index ba6ebe0..22a9565 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -747,7 +747,8 @@ asmlinkage long compat_sys_fanotify_mark(int, unsigned int, __u32, __u32,
+  #ifndef __SC_COMPAT_CAST
+  #define __SC_COMPAT_CAST(t, a) ({                                      \
+         BUILD_BUG_ON((sizeof(t) > 4) && !__TYPE_IS_L(t) &&              \
+-                    !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t));            \
++                    !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t) &&           \
++                    !__TYPE_IS_LOFFT(t));                              \
+         ((t) ((t)(-1) < 0 ? (s64)(s32)(a) : (u64)(u32)(a)));            \
+  })
+  #endif
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 6e57d9c..66eb85d 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -47,6 +47,7 @@
+  #define __TYPE_IS_L(t) (__same_type((t)0, 0L))
+  #define __TYPE_IS_UL(t)        (__same_type((t)0, 0UL))
+  #define __TYPE_IS_LL(t) (__same_type((t)0, 0LL) || __same_type((t)0, 0ULL))
++#define __TYPE_IS_LOFFT(t)     (__same_type((t)0, (loff_t)0))
+  #define __SC_LONG(t, a) __typeof(__builtin_choose_expr(__TYPE_IS_LL(t), 0LL, 0L)) a
+  #define __SC_CAST(t, a)        (t) a
+  #define __SC_ARGS(t, a)        a
+diff --git a/kernel/compat_wrapper.c b/kernel/compat_wrapper.c
+index 98b68b8..28f02d0 100644
+--- a/kernel/compat_wrapper.c
++++ b/kernel/compat_wrapper.c
+@@ -304,3 +304,7 @@ COMPAT_SYSCALL_WRAP3(getpeername, int, fd, struct sockaddr __user *, usockaddr,
+  COMPAT_SYSCALL_WRAP6(sendto, int, fd, void __user *, buff, size_t, len,
+                      unsigned int, flags, struct sockaddr __user *, addr,
+                      int, addr_len);
++COMPAT_SYSCALL_WRAP4(pread64, unsigned int, fd, char __user *, buf,
++                       size_t, count, loff_t, pos);
++COMPAT_SYSCALL_WRAP4(pwrite64, unsigned int, fd, const char __user *, buf,
++                        size_t, count, loff_t, pos);
+ >
+ > Can you open-code this using a COMPAT_SYSCALL4 definition similar to what
+ > arch/tile has, but without the merging of the two halves of the argument?
+I am lost here. Tile do not use the wrapper, and it do not use the loff_t
+either:
+COMPAT_SYSCALL_DEFINE6(pread64, unsigned int, fd, char __user *, ubuf,
+                        size_t, count, u32, dummy, u32, low, u32, high)
 
-	Arnd
+Regards
+
+Bamvor
+> 	Arnd
+>
+
