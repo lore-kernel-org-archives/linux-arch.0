@@ -1,115 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0096.outbound.protection.outlook.com ([157.56.111.96]:2513
+Received: from mail-bn1bon0062.outbound.protection.outlook.com ([157.56.111.62]:48311
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752177AbcELPb6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 May 2016 11:31:58 -0400
-Date: Thu, 12 May 2016 18:27:21 +0300
+	id S1752693AbcELSEI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 May 2016 14:04:08 -0400
+Date: Thu, 12 May 2016 21:03:42 +0300
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
-Message-ID: <20160512152721.GA31729@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <20160512002000.GA30997@yury-N73SV>
- <20160512133533.GF11226@e104818-lin.cambridge.arm.com>
- <20160512134431.GB30205@yury-N73SV>
- <20160512140734.GG11226@e104818-lin.cambridge.arm.com>
- <20160512142016.GH11226@e104818-lin.cambridge.arm.com>
- <20160512143415.GD30205@yury-N73SV>
- <20160512145402.GI11226@e104818-lin.cambridge.arm.com>
+Subject: Re: [PATCH v2] arm64: fix current_thread_info()->addr_limit setup
+Message-ID: <20160512175154.GA13383@yury-N73SV>
+References: <1463069163-374-1-git-send-email-ynorov@caviumnetworks.com>
+ <20160512172203.GL11226@e104818-lin.cambridge.arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
-In-Reply-To: <20160512145402.GI11226@e104818-lin.cambridge.arm.com>
+In-Reply-To: <20160512172203.GL11226@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, Nathan_Lynch@mentor.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, joseph@codesourcery.com, schwab@suse.de, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-Message-ID: <20160512152721.6Om4LF1xIsPLBEC3PttWZttJh4ThStIPDuhmveWc-Yg@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160512180342.0KwVigu9hGsE1NfHpH2ILuOM2zuZl_wBDdFW7kX48R8@z>
 
-On Thu, May 12, 2016 at 03:54:03PM +0100, Catalin Marinas wrote:
-> On Thu, May 12, 2016 at 05:34:15PM +0300, Yury Norov wrote:
-> > On Thu, May 12, 2016 at 03:20:16PM +0100, Catalin Marinas wrote:
-> > > On Thu, May 12, 2016 at 03:07:35PM +0100, Catalin Marinas wrote:
-> > > > On Thu, May 12, 2016 at 04:44:31PM +0300, Yury Norov wrote:
-> > > > > On Thu, May 12, 2016 at 02:35:34PM +0100, Catalin Marinas wrote:
-> > > > > > On Thu, May 12, 2016 at 03:20:00AM +0300, Yury Norov wrote:
-> > > > > > > I debugged preadv02 and pwritev02 failures and found very weird bug.
-> > > > > > > Test passes {iovec_base = 0xffffffff, iovec_len = 64} as one element
-> > > > > > > of vector, and kernel reports successful read/write.
-> > > > > > > 
-> > > > > > > There are 2 problems:
-> > > > > > > 1. How kernel allows such address to be passed to fs subsystem;
-> > > > > > > 2. How fs successes to read/write at non-mapped, and in fact non-user
-> > > > > > > address.
-> > > > > > > 
-> > > > > > > I don't know the answer on 2'nd question, and it might be something
-> > > > > > > generic. But I investigated first problem.
-> > > > > > > 
-> > > > > > > The problem is that compat_rw_copy_check_uvector() uses access_ok() to
-> > > > > > > validate user address, and on arm64 it ends up with checking buffer
-> > > > > > > end against current_thread_info()->addr_limit.
-> > > > > > > 
-> > > > > > > current_thread_info()->addr_limit for ilp32, and most probably for
-> > > > > > > aarch32 is equal to aarch64 one, and so adress_ok() doesn't fail.
-> > > > > > > It happens because on thread creation we call flush_old_exec() to set 
-> > > > > > > addr_limit, and completely ignore compat mode there.
-> > > > 
-> > > > [...]
-> > > > 
-> > > > > > > --- a/arch/arm64/kernel/binfmt_elf32.c
-> > > > > > > +++ b/arch/arm64/kernel/binfmt_elf32.c
-> > > > > > > @@ -12,6 +12,7 @@
-> > > > > > >  do {						\
-> > > > > > >  	clear_thread_flag(TIF_32BIT_AARCH64);	\
-> > > > > > >  	set_thread_flag(TIF_32BIT);		\
-> > > > > > > +	set_fs(TASK_SIZE_32);			\
-> > > > > > >  } while (0)
-> > > > > > >  
-> > > > > > >  #define COMPAT_ARCH_DLINFO
-> > > > > > > diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
-> > > > > > > index a934fd4..a8599c6 100644
-> > > > > > > --- a/arch/arm64/kernel/binfmt_ilp32.c
-> > > > > > > +++ b/arch/arm64/kernel/binfmt_ilp32.c
-> > > > > > > @@ -59,6 +59,7 @@ static void cputime_to_compat_timeval(const cputime_t cputime,
-> > > > > > >  do {									\
-> > > > > > >  	set_thread_flag(TIF_32BIT_AARCH64);				\
-> > > > > > >  	clear_thread_flag(TIF_32BIT);					\
-> > > > > > > +	set_fs(TASK_SIZE_32);						\
-> > > > > > >  } while (0)
-> > > > > > 
-> > > > > > I don't think we need these two. AFAICT, flush_old_exec() takes care of
-> > > > > > setting the USER_DS for the new thread.
-> > > > > 
-> > > > > That's true, but USER_DS depends on personality which is not set yet
-> > > > > for new thread, as I wrote above. In fact, I tried correct USER_DS
-> > > > > only, and it doesn't work
-> > > > 
-> > > > Ah, it looks like load_elf_binary() sets the personality after
-> > > > flush_old_exec(). Looking at powerpc and x86, they set USER_DS to the
-> > > > maximum 64-bit task value, so they should have a similar issue with
-> > > > native 32-bit vs compat behaviour.
-> > > 
-> > > I think we have another problem. flush_old_exec() calls the arm64
-> > > flush_thread() where tls_thread_flush() checks for is_compat_task(). So
-> > > starting a 32-bit application from a 64-bit one not go on the correct
-> > > path.
-> > 
-> > As per now, all native, aarch32 and ilp32 tasks can exec() any
-> > binaries they need.
+On Thu, May 12, 2016 at 06:22:03PM +0100, Catalin Marinas wrote:
+> On Thu, May 12, 2016 at 07:06:03PM +0300, Yury Norov wrote:
+> > diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+> > index 24ed037..fda75ce 100644
+> > --- a/arch/arm64/include/asm/elf.h
+> > +++ b/arch/arm64/include/asm/elf.h
+> > @@ -138,7 +138,10 @@ typedef struct user_fpsimd_state elf_fpregset_t;
+> >   */
+> >  #define ELF_PLAT_INIT(_r, load_addr)	(_r)->regs[0] = 0
+> >  
+> > -#define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
+> > +#define SET_PERSONALITY(ex) do {					\
+> > +	clear_thread_flag(TIF_32BIT);					\
+> > +	set_fs(TASK_SIZE_64);						\
+> > +} while (0)
+> >  
+> >  #define ARCH_DLINFO							\
+> >  do {									\
+> > @@ -181,7 +184,11 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
+> >  					 ((x)->e_flags & EF_ARM_EABI_MASK))
+> >  
+> >  #define compat_start_thread		compat_start_thread
+> > -#define COMPAT_SET_PERSONALITY(ex)	set_thread_flag(TIF_32BIT);
+> > +#define COMPAT_SET_PERSONALITY(ex) do {					\
+> > +	set_thread_flag(TIF_32BIT);					\
+> > +	set_fs(TASK_SIZE_32);						\
+> > +} while (0)
+> > +
+> >  #define COMPAT_ARCH_DLINFO
+> >  extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
+> >  				      int uses_interp);
+> > diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> > index 0685d74..5b269e6 100644
+> > --- a/arch/arm64/include/asm/uaccess.h
+> > +++ b/arch/arm64/include/asm/uaccess.h
+> > @@ -60,7 +60,7 @@ extern int fixup_exception(struct pt_regs *regs);
+> >  #define KERNEL_DS	(-1UL)
+> >  #define get_ds()	(KERNEL_DS)
+> >  
+> > -#define USER_DS		TASK_SIZE_64
+> > +#define USER_DS		TASK_SIZE
 > 
-> And that's correct.
+> We can avoid the USER_DS change as long as SET_PERSONALITY updates the
+> thread's addr_limit. There are very few explicit set_fs(USER_DS) calls
+> and they are on the thread exit path (or exec).
 > 
-> > Are you think it's wrong? If so, how we coild run
-> > first compat application (maybe shell), it there are only lp64 tasks
-> > on the system?
-> 
-> What I meant is that we rely on flush_old_exec() to initialise the TLS
-> register for the compat task but it currently depends on what the parent
-> is. I think tls_thread_flush() should actually drop the is_compat_task()
-> thread and always initialise all the TLS registers.
+> That's unless we try to make a generic set_fs(USER_DS) addition to
+> something like setup_new_exec() and we wouldn't need the SET_PERSONALITY
+> changes:
 > 
 
-OK. I'll do it in v2.
+I think we'd better leave it fixed. Just because it's correct. Now it
+looks like we have fixed early usages (before SET_PERSONALITY()) of
+set_fs() explicitly, and normal usages (and possible in future) by
+fixing USER_DS.
+
+> diff --git a/fs/exec.c b/fs/exec.c
+> index c4010b8207a1..54cc537f5986 100644
+> --- a/fs/exec.c
+> +++ b/fs/exec.c
+> @@ -1226,6 +1226,9 @@ EXPORT_SYMBOL(would_dump);
+>  
+>  void setup_new_exec(struct linux_binprm * bprm)
+>  {
+> +	/* set the address limit for the new executable */
+> +	set_fs(USER_DS);
+> +
+>  	arch_pick_mmap_layout(current->mm);
+>  
+>  	/* This is the point of no return */
+> 
+> >  #define get_fs()	(current_thread_info()->addr_limit)
+> >  
+> >  static inline void set_fs(mm_segment_t fs)
+> > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> > index 8062482..2b25930 100644
+> > --- a/arch/arm64/kernel/process.c
+> > +++ b/arch/arm64/kernel/process.c
+> > @@ -211,17 +211,13 @@ static void tls_thread_flush(void)
+> >  {
+> >  	asm ("msr tpidr_el0, xzr");
+> >  
+> > -	if (is_compat_task()) {
+> > -		current->thread.tp_value = 0;
+> > -
+> > -		/*
+> > -		 * We need to ensure ordering between the shadow state and the
+> > -		 * hardware state, so that we don't corrupt the hardware state
+> > -		 * with a stale shadow state during context switch.
+> > -		 */
+> > -		barrier();
+> > -		asm ("msr tpidrro_el0, xzr");
+> > -	}
+> > +	/*
+> > +	 * We need to ensure ordering between the shadow state and the
+> > +	 * hardware state, so that we don't corrupt the hardware state
+> > +	 * with a stale shadow state during context switch.
+> > +	 */
+> > +	barrier();
+> > +	asm ("msr tpidrro_el0, xzr");
+> >  }
+> 
+> Why did you dropped tp_value initialisation? Context switching on native
+> 64-bit tasks rely on copying the tpidr_el0 in and out of tp_value.
+> However, compat tasks use the read-only tpidrro_el0 register set
+> explicitly via a system call. Until this call happens, the TLS register
+> would contain some garbage after the thread has been switched back in.
+> 
+
+OOPS, my fault. I just missed a line. Should I send v3, or you or Arnd
+can apply it and fix in your branch?
 
 > -- 
 > Catalin
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
