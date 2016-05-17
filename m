@@ -1,38 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:33639 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750758AbcEQPk4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 11:40:56 -0400
-Date: Tue, 17 May 2016 15:40:47 +0000
-From: Joseph Myers <joseph@codesourcery.com>
+Received: from mx2.suse.de ([195.135.220.15]:37049 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932272AbcEQQCp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 May 2016 12:02:45 -0400
+From: Andreas Schwab <schwab@suse.de>
 Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
-In-Reply-To: <573B0A4D.4090704@arm.com>
-Message-ID: <alpine.DEB.2.20.1605171538040.24255@digraph.polyomino.org.uk>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <573B0A4D.4090704@arm.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+	<573B0A4D.4090704@arm.com> <4173531.IRSphtVpg9@wuerfel>
+	<alpine.DEB.2.20.1605171542340.24255@digraph.polyomino.org.uk>
+Date: Tue, 17 May 2016 18:02:36 +0200
+In-Reply-To: <alpine.DEB.2.20.1605171542340.24255@digraph.polyomino.org.uk>
+	(Joseph Myers's message of "Tue, 17 May 2016 15:45:11 +0000")
+Message-ID: <mvm1t50ad0j.fsf@hawking.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, nd@arm.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, christoph.muellner@theobroma-systems.com, GNU C Library <libc-alpha@sourceware.org>
-Message-ID: <20160517154047.bV98cUoxTmZAlewn0xdbjorLHZhPq8GFRcrGeMuHJw4@z>
+To: Joseph Myers <joseph@codesourcery.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, nd@arm.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, christoph.muellner@theobroma-systems.com, GNU C Library <libc-alpha@sourceware.org>
+Message-ID: <20160517160236.E8fzM1GQgxLQxRTk1z0JhEMK0AUl6t0zSpmtiL1viDs@z>
 
-On Tue, 17 May 2016, Szabolcs Nagy wrote:
+Joseph Myers <joseph@codesourcery.com> writes:
 
-> i think even legacy software should be able to deal with 64bit off_t,
-> so we could avoid having two sets of filesystem apis or is 64bit-only
-> off_t more work to do in linux/glibc?
+> On Tue, 17 May 2016, Arnd Bergmann wrote:
+>
+>> I think it has become easier to override now and we just need to
+>> update sysdeps/unix/sysv/linux/generic/bits/typesizes.h to set
+>> 
+>> #define __INO64_T_TYPE          __UQUAD_TYPE
+>> #define __OFF64_T_TYPE          __UQUAD_TYPE
+>> #define __OFF_T_MATCHES_OFF64_T        1
+>> #define __INO_T_MATCHES_INO64_T        1
+>> 
+>> for new architectures (obviously not the ones that already use the
+>> 32-bit types). I haven't tries this, so there may be other things
+>> that are required.
+>
+> I think more than that would be needed to get struct stat to match and get 
+> things aliased for that (which is presumably desirable).
 
-wordsize-64 directories generally expect 64-bit interfaces.  wordsize-32 
-directories generally expect that there are two sets of filesystem APIs 
-which are not aliased (at the userspace level - the versions for the 
-generic syscall API deal with setting EOVERFLOW in userspace as needed).
+Looking at sysdeps/unix/sysv/linux/generic/bits/stat.h, there is at
+least blkcnt_t that differs between stat and stat64.  And you probably
+want to alias statfs and statfs64 as well, ie. fs{blk,fil}cnt_t.
 
-The "wordsize" concept is not wonderfully well-defined and could do with 
-being split up into multiple better-defined concepts, but that's obvious 
-something pretty tricky to get right, involving a very careful analysis of 
-the existing code.
+Andreas.
 
 -- 
-Joseph S. Myers
-joseph@codesourcery.com
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
