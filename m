@@ -1,61 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47554 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753183AbcEPRGM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 May 2016 13:06:12 -0400
-Date: Mon, 16 May 2016 18:06:05 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
- (in entry.S) to use it
-Message-ID: <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-21-git-send-email-ynorov@caviumnetworks.com>
- <20160514150352.GA30533@yury-N73SV>
+Received: from userp1040.oracle.com ([156.151.31.81]:50135 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755525AbcEQOvM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 10:51:12 -0400
+Date: Tue, 17 May 2016 10:50:02 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCHv6 2/8] dma-debug: add support for resource mappings
+Message-ID: <20160517145002.GD4074@char.us.oracle.com>
+References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1462812247-3414-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160514150352.GA30533@yury-N73SV>
+In-Reply-To: <1462812247-3414-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, heiko.carstens@de.ibm.com, linux-doc@vger.kernel.org, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwab@suse.de, schwidefsky@de.ibm.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160516170605.Nml4BgBaISarZgx24KNgaD7_iKqG60aUWBgLb1zXbLQ@z>
+To: Niklas =?iso-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
+Message-ID: <20160517145002.P3NEaSSxHW_kZnX_Cdj6WCA63eYPDf1S29CoFOX4jWY@z>
 
-On Sat, May 14, 2016 at 06:03:52PM +0300, Yury Norov wrote:
-> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-> +       unsigned long, prot, unsigned long, flags, unsigned long, fd,
-> +       unsigned long, pgoff)
-
-To avoid the types confusion we could add __SC_WRAP to mmap2 in unistd.h
-and use COMPAT_SYSCALL_DEFINE6 here (together with compat_ptr_t etc.).
-
+> +void debug_dma_map_resource(struct device *dev, phys_addr_t addr, size_t size,
+> +			    int direction, dma_addr_t dma_addr)
 > +{
-> +       if (pgoff & (~PAGE_MASK >> 12))
-> +               return -EINVAL;
+> +	struct dma_debug_entry *entry;
 > +
-> +       return sys_mmap_pgoff((compat_uptr_t) addr, (compat_size_t) len,
-> +		       (int) prot, (int) flags, (int) fd,
-> +		       pgoff >> (PAGE_SHIFT-12));
+> +	if (unlikely(dma_debug_disabled()))
+> +		return;
+> +
+> +	entry = dma_entry_alloc();
+> +	if (!entry)
+> +		return;
+> +
+> +	entry->type		= dma_debug_resource;
+> +	entry->dev		= dev;
+> +	entry->pfn		= __phys_to_pfn(addr);
+> +	entry->offset		= addr - PHYS_PFN(entry->pfn);
 
-Then we wouldn't need the explicit casting here.
+Is that right? 
 
+__phys_to_pfn(addr) is PHYS_PFN(addr), so what you get here is
+
+addr - PHYS_PFN(PHYS_PFN(addr)) ?
+
+
+> +	entry->size		= size;
+> +	entry->dev_addr		= dma_addr;
+> +	entry->direction	= direction;
+> +	entry->map_err_type	= MAP_ERR_NOT_CHECKED;
+> +
+> +	add_dma_entry(entry);
 > +}
+> +EXPORT_SYMBOL(debug_dma_map_resource);
 > +
-> +COMPAT_SYSCALL_DEFINE4(pread64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> +		       compat_size_t, count, off_t, offset)
-> +{
-> +	return sys_pread64(fd, (char *) ubuf, count, offset);
-> +}
-> +
-> +COMPAT_SYSCALL_DEFINE4(pwrite64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> +		       compat_size_t, count, off_t, offset)
-> +{
-> +	return sys_pwrite64(fd, (char *) ubuf, count, offset);
-
-Nitpick: no space between cast type and variable name: (char *)ubuf, ...
-
-We can also make these functions static as they are not used outside
-this file.
-
--- 
-Catalin
