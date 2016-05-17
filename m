@@ -1,48 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.135]:49601 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750792AbcEQWqw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 18:46:52 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
-Date: Wed, 18 May 2016 00:45:51 +0200
-Message-ID: <4095406.jADDlVRiDg@wuerfel>
-In-Reply-To: <mvm1t50ad0j.fsf@hawking.suse.de>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <alpine.DEB.2.20.1605171542340.24255@digraph.polyomino.org.uk> <mvm1t50ad0j.fsf@hawking.suse.de>
+Received: from mga09.intel.com ([134.134.136.24]:62530 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750790AbcEQXOx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 May 2016 19:14:53 -0400
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+References: <20160511101920.GZ4329@intel.com> <57332171.8070403@linutronix.de>
+ <20160511122116.GA4329@intel.com>
+ <20160511084445.00030b49@gandalf.local.home>
+ <20160511133406.GC4329@intel.com> <20160516193910.GL4329@intel.com>
+From: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Message-ID: <573BA5E2.5040506@intel.com>
+Date: Wed, 18 May 2016 01:14:42 +0200
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <20160516193910.GL4329@intel.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@suse.de>
-Cc: Joseph Myers <joseph@codesourcery.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, nd@arm.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, christoph.muellner@theobroma-systems.com, GNU C Library <libc-alpha@sourceware.org>
-Message-ID: <20160517224551.czZd7-uDQeK7XRXPv2MuZ0u3HvUU_HRoVFXiUHP5F_E@z>
+To: =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <ville.syrjala@linux.intel.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, linux-kernel@vger.kernel.org, rui.zhang@intel.com, len.brown@intel.com, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20160517231442.SfmCzqwo4S9mzOJ2zxzjo0VX6FdglHdB30h-OC3vGGg@z>
 
-On Tuesday 17 May 2016 18:02:36 Andreas Schwab wrote:
-> Joseph Myers <joseph@codesourcery.com> writes:
-> 
-> > On Tue, 17 May 2016, Arnd Bergmann wrote:
-> >
-> >> I think it has become easier to override now and we just need to
-> >> update sysdeps/unix/sysv/linux/generic/bits/typesizes.h to set
-> >> 
-> >> #define __INO64_T_TYPE          __UQUAD_TYPE
-> >> #define __OFF64_T_TYPE          __UQUAD_TYPE
-> >> #define __OFF_T_MATCHES_OFF64_T        1
-> >> #define __INO_T_MATCHES_INO64_T        1
-> >> 
-> >> for new architectures (obviously not the ones that already use the
-> >> 32-bit types). I haven't tries this, so there may be other things
-> >> that are required.
-> >
-> > I think more than that would be needed to get struct stat to match and get 
-> > things aliased for that (which is presumably desirable).
-> 
-> Looking at sysdeps/unix/sysv/linux/generic/bits/stat.h, there is at
-> least blkcnt_t that differs between stat and stat64.  And you probably
-> want to alias statfs and statfs64 as well, ie. fs{blk,fil}cnt_t.
+On 5/16/2016 9:39 PM, Ville Syrjälä wrote:
+> On Wed, May 11, 2016 at 04:34:06PM +0300, Ville Syrjälä wrote:
+>> On Wed, May 11, 2016 at 08:44:45AM -0400, Steven Rostedt wrote:
+>>> On Wed, 11 May 2016 15:21:16 +0300
+>>> Ville Syrjälä <ville.syrjala@linux.intel.com> wrote:
+>>>
+>>>> Yeah can't get anything from the machine at that point. netconsole
+>>>> didn't help either, and no serial on this machine. And IIRC I've
+>>>> tried ramoops on this thing in the past but unfortunately the memory
+>>>> got cleared on reboot.
+>>>>
+>>> Can you look at the documentation in the kernel code at
+>>>
+>>> Documentation/power/basic-pm-debugging.txt And follow the procedures
+>>> for testing suspend to RAM (although it requires mostly running the
+>>> same tests as for hibernation suspending).
+>>>
+>>> You can also use the tool s2ram for this as well.
+>>>
+>>> See Documentation/power/s2ram.txt
+>>>
+>>> Perhaps this can give us a bit more light onto the problem.
+>>>
+>>> Basically the above does partial suspend and resume, and can pinpoint
+>>> problem areas down to a more select location.
+>> All the pm_test modes work fine. The only difference between them was
+>> that 'platform' required me to manually wake up the machine (hitting a
+>> key was sufficient), whereas the others woke up without help.
+>>
+>> pm_trace gave me
+>> [    1.306633]   Magic number: 0:185:178
+>> [    1.322880]   hash matches ../drivers/base/power/main.c:1070
+>> [    1.339270] acpi device:0e: hash matches
+>> [    1.355414]  platform: hash matches
+>>
+>> which is the TRACE_SUSPEND in __device_suspend_noirq(), so no help
+>> there.
+>>
+>> I guess I could try to sprinkle more TRACE_RESUMEs around into some
+>> early resume code. If anyone has good ideas where to put them it
+>> might speed things up a bit.
+> So I did a bunch of that and found that it gets stuck somewhere
+> around executing the _WAK method:
+> platform_resume_noirq
+>   acpi_pm_finish
+>    acpi_leave_sleep_state
+>     acpi_hw_sleep_dispatch
+>      acpi_hw_legacy_wake
+>       acpi_hw_execute_sleep_method
+>        acpi_evaluate_object
+>         acpi_ns_evaluate
+>          acpi_ps_execute_method
+>           acpi_ps_parse_aml
+>
+> It also seesm that adding a few TRACE_RESUME()s or an msleep() right
+> after enable_nonboot_cpus() can avoid the hang, sometimes.
+>
+> I've attached the DSDT in case anyone is interested in looking at it.
+>
 
-Makes sense. Indeed that is a bit more work than I hoped, in particular
-if we have to audit the uses of __WORDSIZE as well.
+What if you comment out the execution of _WAK (line 318 of 
+drivers/acpi/acpica/hwsleep.c in 4.6)?  Does that make any difference?
 
-	Arnd
