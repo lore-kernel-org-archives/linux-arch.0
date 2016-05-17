@@ -1,18 +1,81 @@
-From: ROBERT <charman_padri@banyuasinkab.go.id>
-Subject: : RE: RE
-Date: Wed, 18 May 2016 01:07:01 +0700 (WIB)
-Message-ID: <798437458.143824.1463508421665.JavaMail.zimbra__30637.4971442439$1463511851$gmane$org@banyuasinkab.go.id>
-Reply-To: ROBERT <sspsaviacess@netzero.net>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Date: Tue, 17 May 2016 22:05:26 +0300
+Message-ID: <20160517190526.GA3731@yury-N73SV>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-21-git-send-email-ynorov@caviumnetworks.com>
+ <20160514150352.GA30533@yury-N73SV>
+ <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 251.subnet118-97-131.static.astinet.telkom.net.id ([118.97.131.251]:49662
-	"EHLO zcs.banyuasinkab.go.id" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751663AbcEQTEA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 May 2016 15:04:00 -0400
+Received: from mail-bl2on0076.outbound.protection.outlook.com ([65.55.169.76]:57515
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752353AbcEQTFf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 May 2016 15:05:35 -0400
+Content-Disposition: inline
+In-Reply-To: <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, heiko.carstens@de.ibm.com, linux-doc@vger.kernel.org, Nathan_Lynch@mentor.com, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwab@suse.de, schwidefsky@de.ibm.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
 
-When can i call you? Did you receive my previous mail?
+On Mon, May 16, 2016 at 06:06:05PM +0100, Catalin Marinas wrote:
+> On Sat, May 14, 2016 at 06:03:52PM +0300, Yury Norov wrote:
+> > +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+> > +       unsigned long, prot, unsigned long, flags, unsigned long, fd,
+> > +       unsigned long, pgoff)
+> 
+> To avoid the types confusion we could add __SC_WRAP to mmap2 in unistd.h
+> and use COMPAT_SYSCALL_DEFINE6 here (together with compat_ptr_t etc.).
+> 
+> > +{
+> > +       if (pgoff & (~PAGE_MASK >> 12))
+> > +               return -EINVAL;
+> > +
+> > +       return sys_mmap_pgoff((compat_uptr_t) addr, (compat_size_t) len,
+> > +		       (int) prot, (int) flags, (int) fd,
+> > +		       pgoff >> (PAGE_SHIFT-12));
+> 
+> Then we wouldn't need the explicit casting here.
+
+See below
+
+> 
+> > +}
+> > +
+> > +COMPAT_SYSCALL_DEFINE4(pread64, unsigned int, fd, compat_uptr_t __user *, ubuf,
+> > +		       compat_size_t, count, off_t, offset)
+> > +{
+> > +	return sys_pread64(fd, (char *) ubuf, count, offset);
+> > +}
+> > +
+> > +COMPAT_SYSCALL_DEFINE4(pwrite64, unsigned int, fd, compat_uptr_t __user *, ubuf,
+> > +		       compat_size_t, count, off_t, offset)
+> > +{
+> > +	return sys_pwrite64(fd, (char *) ubuf, count, offset);
+> 
+> Nitpick: no space between cast type and variable name: (char *)ubuf, ...
+
+I think it's really a matter of taste. I prefer to have a space, and
+there's no solid rule in coding style.
+
+And there are 13032 insertions of my version vs 35030 of yours:
+~/work/linux$ git grep ' \*)[a-zA-Z]'|wc -l
+35030
+~/work/linux$ git grep ' \*) [a-zA-Z]'|wc -l
+13032
+
+Of course, I will change it if you insist.
+
+> We can also make these functions static as they are not used outside
+> this file.
+
+If it's OK, we can use just compat_sys_xxx() instead of
+COMPAT_SYSCALL_DEFINEx(xxx), and for mmap2 we'll not need to change 
+_SYSCALL to _SC_WRAP in unistd.h that way.
+
+> > -- 
+> Catalin
