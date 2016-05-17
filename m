@@ -1,34 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:32415 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752834AbcEQOzs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 10:55:48 -0400
-Date: Tue, 17 May 2016 10:54:45 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCHv6 3/8] dma-mapping: add dma_{map,unmap}_resource
-Message-ID: <20160517145445.GE4074@char.us.oracle.com>
-References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Received: from relay1.mentorg.com ([192.94.38.131]:33639 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750758AbcEQPk4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 11:40:56 -0400
+Date: Tue, 17 May 2016 15:40:47 +0000
+From: Joseph Myers <joseph@codesourcery.com>
+Subject: Re: [RFC6 PATCH v6 00/21] ILP32 for ARM64
+In-Reply-To: <573B0A4D.4090704@arm.com>
+Message-ID: <alpine.DEB.2.20.1605171538040.24255@digraph.polyomino.org.uk>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com> <573B0A4D.4090704@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Niklas =?iso-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
-Message-ID: <20160517145445.Zs2X8IDxfeGCf5mBXhXjicJv_0hYJcJILz8wauIAKBA@z>
+To: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, nd@arm.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, schwab@suse.de, broonie@kernel.org, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, agraf@suse.de, klimov.linux@gmail.com, bamvor.zhangjian@huawei.com, schwidefsky@de.ibm.com, Nathan_Lynch@mentor.com, christoph.muellner@theobroma-systems.com, GNU C Library <libc-alpha@sourceware.org>
+Message-ID: <20160517154047.bV98cUoxTmZAlewn0xdbjorLHZhPq8GFRcrGeMuHJw4@z>
 
->  
-> -In some circumstances dma_map_single() and dma_map_page() will fail to create
-> -a mapping. A driver can check for these errors by testing the returned
-> -DMA address with dma_mapping_error(). A non-zero return value means the mapping
-> -could not be created and the driver should take appropriate action (e.g.
-> -reduce current DMA mapping usage or delay and try again later).
-> +In some circumstances dma_map_single(), dma_map_page() and dma_map_resource()
-> +will fail to create a mapping. A driver can check for these errors by testing
-> +the returned DMA address with dma_mapping_error(). A non-zero return value
-> +means the mapping could not be created and the driver should take appropriate
-> +action (e.g. reduce current DMA mapping usage or delay and try again later).
+On Tue, 17 May 2016, Szabolcs Nagy wrote:
 
-This looks like it belongs to another patch?
+> i think even legacy software should be able to deal with 64bit off_t,
+> so we could avoid having two sets of filesystem apis or is 64bit-only
+> off_t more work to do in linux/glibc?
+
+wordsize-64 directories generally expect 64-bit interfaces.  wordsize-32 
+directories generally expect that there are two sets of filesystem APIs 
+which are not aliased (at the userspace level - the versions for the 
+generic syscall API deal with setting EOVERFLOW in userspace as needed).
+
+The "wordsize" concept is not wonderfully well-defined and could do with 
+being split up into multiple better-defined concepts, but that's obvious 
+something pretty tricky to get right, involving a very careful analysis of 
+the existing code.
+
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
