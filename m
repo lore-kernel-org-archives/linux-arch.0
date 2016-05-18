@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [RFC PATCH 12/15] x86: Use ISO xchg(), cmpxchg() and friends
-Date: Wed, 18 May 2016 16:12:07 +0100
-Message-ID: <146358432774.8596.8004304272934835091.stgit@warthog.procyon.org.uk>
+Subject: [RFC PATCH 11/15] x86: Use ISO bitops
+Date: Wed, 18 May 2016 16:12:00 +0100
+Message-ID: <146358432028.8596.7926127062587912916.stgit@warthog.procyon.org.uk>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,208 +13,213 @@ To: linux-arch@vger.kernel.org
 Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Make x86 use the ISO intrinsic xchg(), cmpxchg() and similar functions.
+Make x86 use the ISO intrinsic bitops.
 
 This boots fine, however it can't NOP out the LOCK prefixes if the number
 of online CPUs is 1.
 
 Without this patch, according to size -A, .text for my test kernel is:
 
-	.text                     6273589   18446744071578845184
+	.text                     6268277   18446744071578845184
 
 with this patch:
 
-	.text                     6273013   18446744071578845184
+	.text                     6273589   18446744071578845184
 
 There are still some underoptimisations to be dealt with.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/x86/include/asm/cmpxchg.h    |   99 -------------------------------------
- arch/x86/include/asm/cmpxchg_32.h |    3 -
- arch/x86/include/asm/cmpxchg_64.h |    6 --
- 3 files changed, 1 insertion(+), 107 deletions(-)
+ arch/x86/include/asm/bitops.h |  143 +----------------------------------------
+ 1 file changed, 2 insertions(+), 141 deletions(-)
 
-diff --git a/arch/x86/include/asm/cmpxchg.h b/arch/x86/include/asm/cmpxchg.h
-index 9733361fed6f..cde270af1b94 100644
---- a/arch/x86/include/asm/cmpxchg.h
-+++ b/arch/x86/include/asm/cmpxchg.h
-@@ -2,6 +2,7 @@
- #define ASM_X86_CMPXCHG_H
- 
- #include <linux/compiler.h>
-+#include <asm-generic/iso-cmpxchg.h>
- #include <asm/cpufeatures.h>
- #include <asm/alternative.h> /* Provides LOCK_PREFIX */
- 
-@@ -9,12 +10,8 @@
-  * Non-existant functions to indicate usage errors at link time
-  * (or compile-time if the compiler implements __compiletime_error().
-  */
--extern void __xchg_wrong_size(void)
--	__compiletime_error("Bad argument size for xchg");
- extern void __cmpxchg_wrong_size(void)
- 	__compiletime_error("Bad argument size for cmpxchg");
--extern void __xadd_wrong_size(void)
--	__compiletime_error("Bad argument size for xadd");
- extern void __add_wrong_size(void)
- 	__compiletime_error("Bad argument size for add");
- 
-@@ -34,48 +31,6 @@ extern void __add_wrong_size(void)
- #define	__X86_CASE_Q	-1		/* sizeof will never return -1 */
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index 7766d1cf096e..f89aec3a41d2 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -25,6 +25,8 @@
+ # error "Unexpected BITS_PER_LONG"
  #endif
  
--/* 
-- * An exchange-type operation, which takes a value and a pointer, and
-- * returns the old value.
-- */
--#define __xchg_op(ptr, arg, op, lock)					\
--	({								\
--	        __typeof__ (*(ptr)) __ret = (arg);			\
--		switch (sizeof(*(ptr))) {				\
--		case __X86_CASE_B:					\
--			asm volatile (lock #op "b %b0, %1\n"		\
--				      : "+q" (__ret), "+m" (*(ptr))	\
--				      : : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_W:					\
--			asm volatile (lock #op "w %w0, %1\n"		\
--				      : "+r" (__ret), "+m" (*(ptr))	\
--				      : : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_L:					\
--			asm volatile (lock #op "l %0, %1\n"		\
--				      : "+r" (__ret), "+m" (*(ptr))	\
--				      : : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_Q:					\
--			asm volatile (lock #op "q %q0, %1\n"		\
--				      : "+r" (__ret), "+m" (*(ptr))	\
--				      : : "memory", "cc");		\
--			break;						\
--		default:						\
--			__ ## op ## _wrong_size();			\
--		}							\
--		__ret;							\
--	})
--
--/*
-- * Note: no "lock" prefix even on SMP: xchg always implies lock anyway.
-- * Since this is generally used to protect other memory information, we
-- * use "asm volatile" and "memory" clobbers to prevent gcc from moving
-- * information around.
-- */
--#define xchg(ptr, v)	__xchg_op((ptr), (v), xchg, "")
--
- /*
-  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
-  * store NEW in MEM.  Return the initial value in MEM.  Success is
-@@ -129,9 +84,6 @@ extern void __add_wrong_size(void)
- 	__ret;								\
- })
- 
--#define __cmpxchg(ptr, old, new, size)					\
--	__raw_cmpxchg((ptr), (old), (new), (size), LOCK_PREFIX)
--
- #define __sync_cmpxchg(ptr, old, new, size)				\
- 	__raw_cmpxchg((ptr), (old), (new), (size), "lock; ")
- 
-@@ -144,9 +96,6 @@ extern void __add_wrong_size(void)
- # include <asm/cmpxchg_64.h>
- #endif
- 
--#define cmpxchg(ptr, old, new)						\
--	__cmpxchg(ptr, old, new, sizeof(*(ptr)))
--
- #define sync_cmpxchg(ptr, old, new)					\
- 	__sync_cmpxchg(ptr, old, new, sizeof(*(ptr)))
- 
-@@ -154,56 +103,10 @@ extern void __add_wrong_size(void)
- 	__cmpxchg_local(ptr, old, new, sizeof(*(ptr)))
++#include <asm-generic/iso-bitops.h>
++
+ #define BIT_64(n)			(U64_C(1) << (n))
  
  /*
-- * xadd() adds "inc" to "*ptr" and atomically returns the previous
-- * value of "*ptr".
+@@ -54,35 +56,6 @@
+ #define CONST_MASK(nr)			(1 << ((nr) & 7))
+ 
+ /**
+- * set_bit - Atomically set a bit in memory
+- * @nr: the bit to set
+- * @addr: the address to start counting from
 - *
-- * xadd() is locked when multiple CPUs are online
-- * xadd_sync() is always locked
-- * xadd_local() is never locked
+- * This function is atomic and may not be reordered.  See __set_bit()
+- * if you do not require the atomic guarantees.
+- *
+- * Note: there are no guarantees that this function will not be reordered
+- * on non x86 architectures, so if you are writing portable code,
+- * make sure not to rely on its reordering guarantees.
+- *
+- * Note that @nr may be almost arbitrarily large; this function is not
+- * restricted to acting on a single-word quantity.
 - */
--#define __xadd(ptr, inc, lock)	__xchg_op((ptr), (inc), xadd, lock)
--#define xadd(ptr, inc)		__xadd((ptr), (inc), LOCK_PREFIX)
--#define xadd_sync(ptr, inc)	__xadd((ptr), (inc), "lock; ")
--#define xadd_local(ptr, inc)	__xadd((ptr), (inc), "")
+-static __always_inline void
+-set_bit(long nr, volatile unsigned long *addr)
+-{
+-	if (IS_IMMEDIATE(nr)) {
+-		asm volatile(LOCK_PREFIX "orb %1,%0"
+-			: CONST_MASK_ADDR(nr, addr)
+-			: "iq" ((u8)CONST_MASK(nr))
+-			: "memory");
+-	} else {
+-		asm volatile(LOCK_PREFIX "bts %1,%0"
+-			: BITOP_ADDR(addr) : "Ir" (nr) : "memory");
+-	}
+-}
 -
--#define __add(ptr, inc, lock)						\
--	({								\
--	        __typeof__ (*(ptr)) __ret = (inc);			\
--		switch (sizeof(*(ptr))) {				\
--		case __X86_CASE_B:					\
--			asm volatile (lock "addb %b1, %0\n"		\
--				      : "+m" (*(ptr)) : "qi" (inc)	\
--				      : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_W:					\
--			asm volatile (lock "addw %w1, %0\n"		\
--				      : "+m" (*(ptr)) : "ri" (inc)	\
--				      : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_L:					\
--			asm volatile (lock "addl %1, %0\n"		\
--				      : "+m" (*(ptr)) : "ri" (inc)	\
--				      : "memory", "cc");		\
--			break;						\
--		case __X86_CASE_Q:					\
--			asm volatile (lock "addq %1, %0\n"		\
--				      : "+m" (*(ptr)) : "ri" (inc)	\
--				      : "memory", "cc");		\
--			break;						\
--		default:						\
--			__add_wrong_size();				\
--		}							\
--		__ret;							\
--	})
+-/**
+  * __set_bit - Set a bit in memory
+  * @nr: the bit to set
+  * @addr: the address to start counting from
+@@ -96,44 +69,6 @@ static __always_inline void __set_bit(long nr, volatile unsigned long *addr)
+ 	asm volatile("bts %1,%0" : ADDR : "Ir" (nr) : "memory");
+ }
+ 
+-/**
+- * clear_bit - Clears a bit in memory
+- * @nr: Bit to clear
+- * @addr: Address to start counting from
+- *
+- * clear_bit() is atomic and may not be reordered.  However, it does
+- * not contain a memory barrier, so if it is used for locking purposes,
+- * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
+- * in order to ensure changes are visible on other processors.
+- */
+-static __always_inline void
+-clear_bit(long nr, volatile unsigned long *addr)
+-{
+-	if (IS_IMMEDIATE(nr)) {
+-		asm volatile(LOCK_PREFIX "andb %1,%0"
+-			: CONST_MASK_ADDR(nr, addr)
+-			: "iq" ((u8)~CONST_MASK(nr)));
+-	} else {
+-		asm volatile(LOCK_PREFIX "btr %1,%0"
+-			: BITOP_ADDR(addr)
+-			: "Ir" (nr));
+-	}
+-}
 -
 -/*
-  * add_*() adds "inc" to "*ptr"
-  *
-- * __add() takes a lock prefix
-- * add_smp() is locked when multiple CPUs are online
-  * add_sync() is always locked
-  */
--#define add_smp(ptr, inc)	__add((ptr), (inc), LOCK_PREFIX)
- #define add_sync(ptr, inc)	__add((ptr), (inc), "lock; ")
- 
- #define __cmpxchg_double(pfx, p1, p2, o1, o2, n1, n2)			\
-diff --git a/arch/x86/include/asm/cmpxchg_32.h b/arch/x86/include/asm/cmpxchg_32.h
-index e4959d023af8..959908c06569 100644
---- a/arch/x86/include/asm/cmpxchg_32.h
-+++ b/arch/x86/include/asm/cmpxchg_32.h
-@@ -35,9 +35,6 @@ static inline void set_64bit(volatile u64 *ptr, u64 value)
- }
- 
- #ifdef CONFIG_X86_CMPXCHG64
--#define cmpxchg64(ptr, o, n)						\
--	((__typeof__(*(ptr)))__cmpxchg64((ptr), (unsigned long long)(o), \
--					 (unsigned long long)(n)))
- #define cmpxchg64_local(ptr, o, n)					\
- 	((__typeof__(*(ptr)))__cmpxchg64_local((ptr), (unsigned long long)(o), \
- 					       (unsigned long long)(n)))
-diff --git a/arch/x86/include/asm/cmpxchg_64.h b/arch/x86/include/asm/cmpxchg_64.h
-index caa23a34c963..3f86acb1f6d2 100644
---- a/arch/x86/include/asm/cmpxchg_64.h
-+++ b/arch/x86/include/asm/cmpxchg_64.h
-@@ -6,12 +6,6 @@ static inline void set_64bit(volatile u64 *ptr, u64 val)
- 	*ptr = val;
- }
- 
--#define cmpxchg64(ptr, o, n)						\
--({									\
--	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
--	cmpxchg((ptr), (o), (n));					\
--})
+- * clear_bit_unlock - Clears a bit in memory
+- * @nr: Bit to clear
+- * @addr: Address to start counting from
+- *
+- * clear_bit() is atomic and implies release semantics before the memory
+- * operation. It can be used for an unlock.
+- */
+-static __always_inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
+-{
+-	barrier();
+-	clear_bit(nr, addr);
+-}
 -
- #define cmpxchg64_local(ptr, o, n)					\
- ({									\
- 	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+ static __always_inline void __clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	asm volatile("btr %1,%0" : ADDR : "Ir" (nr));
+@@ -172,54 +107,6 @@ static __always_inline void __change_bit(long nr, volatile unsigned long *addr)
+ }
+ 
+ /**
+- * change_bit - Toggle a bit in memory
+- * @nr: Bit to change
+- * @addr: Address to start counting from
+- *
+- * change_bit() is atomic and may not be reordered.
+- * Note that @nr may be almost arbitrarily large; this function is not
+- * restricted to acting on a single-word quantity.
+- */
+-static __always_inline void change_bit(long nr, volatile unsigned long *addr)
+-{
+-	if (IS_IMMEDIATE(nr)) {
+-		asm volatile(LOCK_PREFIX "xorb %1,%0"
+-			: CONST_MASK_ADDR(nr, addr)
+-			: "iq" ((u8)CONST_MASK(nr)));
+-	} else {
+-		asm volatile(LOCK_PREFIX "btc %1,%0"
+-			: BITOP_ADDR(addr)
+-			: "Ir" (nr));
+-	}
+-}
+-
+-/**
+- * test_and_set_bit - Set a bit and return its old value
+- * @nr: Bit to set
+- * @addr: Address to count from
+- *
+- * This operation is atomic and cannot be reordered.
+- * It also implies a memory barrier.
+- */
+-static __always_inline int test_and_set_bit(long nr, volatile unsigned long *addr)
+-{
+-	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", *addr, "Ir", nr, "%0", "c");
+-}
+-
+-/**
+- * test_and_set_bit_lock - Set a bit and return its old value for lock
+- * @nr: Bit to set
+- * @addr: Address to count from
+- *
+- * This is the same as test_and_set_bit on x86.
+- */
+-static __always_inline int
+-test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+-{
+-	return test_and_set_bit(nr, addr);
+-}
+-
+-/**
+  * __test_and_set_bit - Set a bit and return its old value
+  * @nr: Bit to set
+  * @addr: Address to count from
+@@ -240,19 +127,6 @@ static __always_inline int __test_and_set_bit(long nr, volatile unsigned long *a
+ }
+ 
+ /**
+- * test_and_clear_bit - Clear a bit and return its old value
+- * @nr: Bit to clear
+- * @addr: Address to count from
+- *
+- * This operation is atomic and cannot be reordered.
+- * It also implies a memory barrier.
+- */
+-static __always_inline int test_and_clear_bit(long nr, volatile unsigned long *addr)
+-{
+-	GEN_BINARY_RMWcc(LOCK_PREFIX "btr", *addr, "Ir", nr, "%0", "c");
+-}
+-
+-/**
+  * __test_and_clear_bit - Clear a bit and return its old value
+  * @nr: Bit to clear
+  * @addr: Address to count from
+@@ -292,19 +166,6 @@ static __always_inline int __test_and_change_bit(long nr, volatile unsigned long
+ 	return oldbit;
+ }
+ 
+-/**
+- * test_and_change_bit - Change a bit and return its old value
+- * @nr: Bit to change
+- * @addr: Address to count from
+- *
+- * This operation is atomic and cannot be reordered.
+- * It also implies a memory barrier.
+- */
+-static __always_inline int test_and_change_bit(long nr, volatile unsigned long *addr)
+-{
+-	GEN_BINARY_RMWcc(LOCK_PREFIX "btc", *addr, "Ir", nr, "%0", "c");
+-}
+-
+ static __always_inline int constant_test_bit(long nr, const volatile unsigned long *addr)
+ {
+ 	return ((1UL << (nr & (BITS_PER_LONG-1))) &
