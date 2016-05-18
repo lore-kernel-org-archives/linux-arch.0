@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51087 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:58727 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753577AbcERPLd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 May 2016 11:11:33 -0400
-Subject: [RFC PATCH 07/15] Provide cmpxchg(), xchg(),
- xadd() and __add() based on ISO C++11 intrinsics
+	id S1752721AbcERPLS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2016 11:11:18 -0400
+Subject: [RFC PATCH 05/15] Provide atomic64_t and atomic_long_t using ISO
+ atomics
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 18 May 2016 16:11:30 +0100
-Message-ID: <146358429016.8596.3381723959064491676.stgit@warthog.procyon.org.uk>
+Date: Wed, 18 May 2016 16:11:15 +0100
+Message-ID: <146358427535.8596.8108992009596880343.stgit@warthog.procyon.org.uk>
 In-Reply-To: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -17,106 +17,28 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
-Message-ID: <20160518151130.l1e00mjgdDUhHsLuShLZ8ScK_VwxouVCG9hnJsluJ4c@z>
+Message-ID: <20160518151115.8RL0dq0pJMm9yx-j9CRSpwWzIHdAG6gq3cKd7mqCjSY@z>
 
-Provide implementations of cmpxchg(), xchg(), xadd() and __add() using ISO
-C++11 intrinsics.  Also provide variants with less strong ordering.
-
-The __atomic_compare_exchange_n() function returns a bool indicating
-whether or not the exchange took place.  On x86, for example, the CMPXCHG
-instruction sticks this value into the Z flag and using the bool return
-allows the compiler to use this value directly.  I've added two new macros
-for this:
-
- (1) bool cmpxchg_return(TYPE *ptr, TYPE old, TYPE new, TYPE *_orig)
-
-     This is like cmpxchg() except that the current value is returned in
-     *_orig and true is returned if the exchange happens, false otherwise.
-
- (2) bool try_cmpxchg(TYPE *ptr, TYPE old, TYPE new)
-
-     Like cmpxchg_return() except that the current value is discarded.
-
-I've marked cmpxchg() as deprecated as the compiler generates better code
-if it is allowed to use the extra bit of information rather than comparing
-old with the current value.
-
-To illustrate the differences on x86_64, I compiled the following with -Os
-and -fomit-frame-pointer:
-
-	const char *kernel_cmpxchg(long *ptr, long old, long new)
-	{
-		long cur;
-		cur = cmpxchg(ptr, old, new);
-		return cur == old ? "foo" : "bar";
-	}
-
-	#define ISO__try_cmpxchg(ptr, old, new, mem)			\
-	({								\
-		__typeof__((ptr)) __ptr = (ptr);			\
-		__typeof__(*__ptr) __orig;				\
-		__atomic_compare_exchange_n(__ptr,			\
-					    &__orig, (new),		\
-					    false,			\
-					    mem,			\
-					    __ATOMIC_RELAXED);		\
-	})
-	#define ISO_try_cmpxchg(ptr, old, new) \
-		ISO__try_cmpxchg((ptr), (old), (new), __ATOMIC_SEQ_CST)
-	const char *iso_try_cmpxchg(long *ptr, long old, long new)
-	{
-		return ISO_try_cmpxchg(ptr, old, new) ? "foo" : "bar";
-	}
-
-which gives:
-
-	kernel_cmpxchg:
-		mov    %rsi,%rax
-		lock cmpxchg %rdx,(%rdi)
-		mov    $.LC1,%edx
-		cmp    %rax,%rsi		<--- Redundant instruction
-		mov    $.LC0,%eax
-		cmovne %rdx,%rax
-		retq
-
-	iso_cmpxchg_return:
-		mov    %rsi,%rax
-		mov    %rsi,-0x8(%rsp)		<--- Unoptimisation
-		lock cmpxchg %rdx,(%rdi)
-		mov    $.LC1,%edx
-		mov    $.LC0,%eax
-		cmovne %rdx,%rax
-		retq
-
-As can be seen, barring an unoptimisation, the ISO try_cmpxchg() code can
-dispense with the CMP instruction required for the kernel inline asm and
-use the Z flag resulting from the CMPXCHG directly.
-
-This unoptimisation is an issus in gcc's __atomic_compare_exchange[_n]() on
-several arches, including x86, arm64 and powerpc64, whereby it tries to use
-the stack to pass the old value rather than bunging this into a register.
-
-This appears to be because __atomic_compare_exchange[_n]() returns a bool
-indicating whether the exchange happened or not and passes back the current
-value read from the memory variable through a pointer in the argument list.
-
-	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70825
+Provide an implemention of atomic64_t and atomic_long_t using the ISO
+atomic template previously added.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/iso-cmpxchg.h |  180 +++++++++++++++++++++++++++++++++++++
- include/linux/atomic.h            |    3 +
- 2 files changed, 183 insertions(+)
- create mode 100644 include/asm-generic/iso-cmpxchg.h
+ include/asm-generic/iso-atomic-long.h |   32 ++++++++++++++++++++++++++++++++
+ include/asm-generic/iso-atomic64.h    |   28 ++++++++++++++++++++++++++++
+ include/linux/atomic.h                |   13 +++++++++++--
+ 3 files changed, 71 insertions(+), 2 deletions(-)
+ create mode 100644 include/asm-generic/iso-atomic-long.h
+ create mode 100644 include/asm-generic/iso-atomic64.h
 
-diff --git a/include/asm-generic/iso-cmpxchg.h b/include/asm-generic/iso-cmpxchg.h
+diff --git a/include/asm-generic/iso-atomic-long.h b/include/asm-generic/iso-atomic-long.h
 new file mode 100644
-index 000000000000..c84e213c0b6b
+index 000000000000..1340ae346e94
 --- /dev/null
-+++ b/include/asm-generic/iso-cmpxchg.h
-@@ -0,0 +1,180 @@
-+/* Use ISO C++11 intrinsics to implement cmpxchg() and xchg().
++++ b/include/asm-generic/iso-atomic-long.h
+@@ -0,0 +1,32 @@
++/* Use ISO C++11 intrinsics to implement long atomic ops.
 + *
 + * Copyright (C) 2016 Red Hat, Inc. All Rights Reserved.
 + * Written by David Howells (dhowells@redhat.com)
@@ -127,194 +49,105 @@ index 000000000000..c84e213c0b6b
 + * 2 of the Licence, or (at your option) any later version.
 + */
 +
-+#ifndef _ASM_GENERIC_ISO_CMPXCHG_H
-+#define _ASM_GENERIC_ISO_CMPXCHG_H
++#ifndef _ASM_GENERIC_ISO_ATOMIC_LONG_H
++#define _ASM_GENERIC_ISO_ATOMIC_LONG_H
 +
-+/**
-+ * cmpxchg_return - Check variable and replace if expected value.
-+ * @ptr: Pointer to target variable
-+ * @old: The value to check for
-+ * @new: The value to replace with
-+ * @_orig: A pointer to a variable in which to place the current value
++#include <linux/compiler.h>
++#include <linux/types.h>
++
++typedef struct {
++	long counter;
++} atomic_long_t;
++
++#define ATOMIC_LONG_INIT(i)	{ (i) }
++
++#define atomic_val long
++#define atomic_prefix(x) atomic_long##x
++#define __atomic_prefix(x) __atomic_long##x
++#include <asm-generic/iso-atomic-template.h>
++#undef atomic_val
++#undef atomic_prefix
++#undef __atomic_prefix
++
++#endif /* _ASM_GENERIC_ISO_ATOMIC_LONG_H */
+diff --git a/include/asm-generic/iso-atomic64.h b/include/asm-generic/iso-atomic64.h
+new file mode 100644
+index 000000000000..6624a69e2bad
+--- /dev/null
++++ b/include/asm-generic/iso-atomic64.h
+@@ -0,0 +1,28 @@
++/* Use ISO C++11 intrinsics to implement 64-bit atomic ops.
 + *
-+ * Atomically checks the contents of *@ptr, and if the same as @old, replaces
-+ * it with @new.  Return true if the exchange happened, false if it didn't.
-+ * The original value read from *@ptr is stored in *@_orig.
++ * Copyright (C) 2016 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
 + *
-+ * gcc can generate better code if it gets to use the result of the intrinsic
-+ * to decide what to do, so this and try_cmpxchg() are preferred to cmpxchg().
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
 + */
-+#define iso_cmpxchg_return(ptr, old, new, _orig, mem)			\
-+	({								\
-+		__typeof__((_orig)) __orig = (_orig);			\
-+		*__orig = (old);					\
-+		__atomic_compare_exchange_n((ptr),			\
-+					    __orig, (new),		\
-+					    false,			\
-+					    mem,			\
-+					    __ATOMIC_RELAXED);		\
-+	})
 +
-+#define cmpxchg_return(ptr, old, new, _orig) \
-+	iso_cmpxchg_return((ptr), (old), (new), (_orig), __ATOMIC_SEQ_CST)
++#ifndef _ASM_GENERIC_ISO_ATOMIC64_H
++#define _ASM_GENERIC_ISO_ATOMIC64_H
 +
-+#define cmpxchg_return_relaxed(ptr, old, new, _orig) \
-+	iso_cmpxchg_return((ptr), (old), (new), (_orig), __ATOMIC_RELAXED)
++#include <linux/compiler.h>
++#include <linux/types.h>
 +
-+#define cmpxchg_return_acquire(ptr, old, new, _orig) \
-+	iso_cmpxchg_return((ptr), (old), (new), (_orig), __ATOMIC_ACQUIRE)
++#define ATOMIC64_INIT(i)	{ (i) }
 +
-+#define cmpxchg_return_release(ptr, old, new, _orig) \
-+	iso_cmpxchg_return((ptr), (old), (new), (_orig), __ATOMIC_RELEASE)
++#define atomic_val long long
++#define atomic_prefix(x) atomic64##x
++#define __atomic_prefix(x) __atomic64##x
++#include <asm-generic/iso-atomic-template.h>
++#undef atomic_val
++#undef atomic_prefix
++#undef __atomic_prefix
 +
-+/**
-+ * try_cmpxchg - Check variable and replace if expected value.
-+ * @ptr: Pointer to variable
-+ * @old: The value to check for
-+ * @new: The value to replace with
-+ *
-+ * Atomically checks the contents of *@ptr and, if the same as @old, replaces
-+ * it with @new.  Return true if the exchange happened, false if it didn't.
-+ * The value read from *@ptr is discarded.
-+ */
-+#define iso_try_cmpxchg(ptr, old, new, mem)				\
-+	({								\
-+		__typeof__((ptr)) __ptr = (ptr);			\
-+		__typeof__(*__ptr) __orig;				\
-+		__atomic_compare_exchange_n(__ptr,			\
-+					    &__orig, (new),		\
-+					    false,			\
-+					    mem,			\
-+					    __ATOMIC_RELAXED);		\
-+	})
-+
-+#define try_cmpxchg(ptr, old, new) \
-+	iso_try_cmpxchg((ptr), (old), (new), __ATOMIC_SEQ_CST)
-+
-+#define try_cmpxchg_relaxed(ptr, old, new) \
-+	iso_try_cmpxchg((ptr), (old), (new), __ATOMIC_RELAXED)
-+
-+#define try_cmpxchg_acquire(ptr, old, new) \
-+	iso_try_cmpxchg((ptr), (old), (new), __ATOMIC_ACQUIRE)
-+
-+#define try_cmpxchg_release(ptr, old, new) \
-+	iso_try_cmpxchg((ptr), (old), (new), __ATOMIC_RELEASE)
-+
-+/**
-+ * cmpxchg - Check variable and replace if expected value.
-+ * @ptr: Pointer to target variable
-+ * @old: The value to check for
-+ * @new: The value to replace with
-+ *
-+ * Atomically checks the contents of *@ptr and, if the same as @old, replaces
-+ * it with @new.  The value read from *@ptr is returned.
-+ *
-+ * try_cmpxchg() and cmpxchg_return() are preferred to this function as they
-+ * can make better use of the knowledge as to whether a write took place or not
-+ * that is provided by some CPUs (e.g. x86's CMPXCHG instruction stores this in
-+ * the Z flag).
-+ */
-+static inline __deprecated void cmpxchg__use_cmpxchg_return_instead(void) { }
-+
-+#define iso_cmpxchg(ptr, old, new, mem)					\
-+	({								\
-+		__typeof__((ptr)) __ptr = (ptr);			\
-+		__typeof__(*__ptr) __old = (old);			\
-+		__typeof__(*__ptr) __orig = __old;			\
-+		cmpxchg__use_cmpxchg_return_instead();			\
-+		__atomic_compare_exchange_n(__ptr,			\
-+					    &__orig, (new),		\
-+					    false,			\
-+					    mem,			\
-+					    __ATOMIC_RELAXED) ?		\
-+			__old : __orig;					\
-+	})
-+
-+#define cmpxchg(ptr, old, new)		iso_cmpxchg((ptr), (old), (new), __ATOMIC_SEQ_CST)
-+#define cmpxchg_relaxed(ptr, old, new)	iso_cmpxchg((ptr), (old), (new), __ATOMIC_RELAXED)
-+#define cmpxchg_acquire(ptr, old, new)	iso_cmpxchg((ptr), (old), (new), __ATOMIC_ACQUIRE)
-+#define cmpxchg_release(ptr, old, new)	iso_cmpxchg((ptr), (old), (new), __ATOMIC_RELEASE)
-+
-+#define cmpxchg64(ptr, old, new)	 cmpxchg((ptr), (old), (new))
-+#define cmpxchg64_relaxed(ptr, old, new) cmpxchg_relaxed((ptr), (old), (new))
-+#define cmpxchg64_acquire(ptr, old, new) cmpxchg_acquire((ptr), (old), (new))
-+#define cmpxchg64_release(ptr, old, new) cmpxchg_release((ptr), (old), (new))
-+
-+/**
-+ * xchg - Exchange the contents of a variable for a new value
-+ * @ptr: Pointer to target variable
-+ * @new: The new value to place in @ptr
-+ *
-+ * Atomically read the contents of *@ptr and then replace those contents with
-+ * @new.  The value initially read from *@ptr is returned.
-+ */
-+#define iso_xchg(ptr, new, mem)						\
-+	({								\
-+		__atomic_exchange_n((ptr), (new), mem);			\
-+	})
-+
-+#define xchg(ptr, new)		iso_xchg((ptr), (new), __ATOMIC_SEQ_CST)
-+#define xchg_relaxed(ptr, new)	iso_xchg((ptr), (new), __ATOMIC_RELAXED)
-+#define xchg_acquire(ptr, new)	iso_xchg((ptr), (new), __ATOMIC_ACQUIRE)
-+#define xchg_release(ptr, new)	iso_xchg((ptr), (new), __ATOMIC_RELEASE)
-+
-+/**
-+ * xadd - Exchange the contents of a variable for a those contents plus a value
-+ * @ptr: Pointer to target variable
-+ * @addend: The value to add to *@ptr
-+ *
-+ * Atomically read the contents of *@ptr and then replace those contents with
-+ * that value plus @addend.  The value initially read from *@ptr is returned.
-+ */
-+#define iso_xadd(ptr, addend, mem)					\
-+	({								\
-+		__atomic_fetch_add((ptr), (addend), mem);		\
-+	})
-+
-+#define xadd(ptr, new)		iso_xadd((ptr), (new), __ATOMIC_SEQ_CST)
-+#define xadd_relaxed(ptr, new)	iso_xadd((ptr), (new), __ATOMIC_RELAXED)
-+#define xadd_acquire(ptr, new)	iso_xadd((ptr), (new), __ATOMIC_ACQUIRE)
-+#define xadd_release(ptr, new)	iso_xadd((ptr), (new), __ATOMIC_RELEASE)
-+
-+/**
-+ * add_smp - Atomically add a value to a variable
-+ * @ptr: Pointer to target variable
-+ * @addend: The value to add to *@ptr
-+ *
-+ * Atomically add the @addend to the contents of *@ptr.
-+ *
-+ * Note that the zeroness and sign of the result can be returned free of charge
-+ * on some arches by comparing against zero.
-+ */
-+#define iso_add(ptr, addend, mem)					\
-+	({								\
-+		__atomic_fetch_add((ptr), (addend), mem);		\
-+	})
-+
-+#define __add(ptr, new)		iso_add((ptr), (new), __ATOMIC_SEQ_CST)
-+#define add_release(ptr, new)	iso_add((ptr), (new), __ATOMIC_RELEASE)
-+#define add_smp(ptr, new)	iso_add((ptr), (new), __ATOMIC_SEQ_CST)
-+
-+#endif /* _ASM_GENERIC_ISO_CMPXCHG_H */
++#endif /* _ASM_GENERIC_ISO_ATOMIC64_H */
 diff --git a/include/linux/atomic.h b/include/linux/atomic.h
-index 18709106065a..711ad161a9a2 100644
+index 64d2b7492ad6..18709106065a 100644
 --- a/include/linux/atomic.h
 +++ b/include/linux/atomic.h
-@@ -372,6 +372,8 @@
+@@ -213,8 +213,9 @@
+ #endif
+ #endif /* atomic_cmpxchg_relaxed */
  
- #endif /* !_ASM_GENERIC_ISO_ATOMIC64_H */
+-#endif /* _ASM_GENERIC_ISO_ATOMIC_H */
++#endif /* !_ASM_GENERIC_ISO_ATOMIC_H */
  
-+#ifndef _ASM_GENERIC_ISO_CMPXCHG_H
++#ifndef _ASM_GENERIC_ISO_ATOMIC64_H
+ 
+ #ifndef atomic64_read_acquire
+ #define  atomic64_read_acquire(v)	smp_load_acquire(&(v)->counter)
+@@ -369,6 +370,8 @@
+ #endif
+ #endif /* atomic64_cmpxchg_relaxed */
+ 
++#endif /* !_ASM_GENERIC_ISO_ATOMIC64_H */
 +
  /* cmpxchg_relaxed */
  #ifndef cmpxchg_relaxed
  #define  cmpxchg_relaxed		cmpxchg
-@@ -441,6 +443,7 @@
+@@ -587,7 +590,9 @@ static inline int atomic_fetch_or(atomic_t *p, int mask)
+ }
  #endif
- #endif /* xchg_relaxed */
  
-+#endif /* !_ASM_GENERIC_ISO_CMPXCHG_H */
+-#endif /* _ASM_GENERIC_ISO_ATOMIC_H */
++#endif /* !_ASM_GENERIC_ISO_ATOMIC_H */
++
++#ifndef _ASM_GENERIC_ISO_ATOMIC64_H
  
- #ifndef _ASM_GENERIC_ISO_ATOMIC_H
+ #ifdef CONFIG_GENERIC_ATOMIC64
+ #include <asm-generic/atomic64.h>
+@@ -600,6 +605,10 @@ static inline void atomic64_andnot(long long i, atomic64_t *v)
+ }
+ #endif
  
++#endif /* !_ASM_GENERIC_ISO_ATOMIC64_H */
++
++#ifndef _ASM_GENERIC_ISO_ATOMIC_LONG_H
+ #include <asm-generic/atomic-long.h>
++#endif /* !_ASM_GENERIC_ISO_ATOMIC_LONG_H */
+ 
+ #endif /* _LINUX_ATOMIC_H */
 
