@@ -1,8 +1,8 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-Date: Wed, 18 May 2016 16:10:59 +0100
-Message-ID: <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
+Subject: [RFC PATCH 08/15] Provide an implementation of bitops using C++11
+ atomics
+Date: Wed, 18 May 2016 16:11:37 +0100
+Message-ID: <146358429784.8596.1502798073172535624.stgit@warthog.procyon.org.uk>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -14,222 +14,199 @@ To: linux-arch@vger.kernel.org
 Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Provide an implementation of the atomic_t functions implemented with
-ISO-C++11 atomics.  This has some advantages over using inline assembly:
+Provide an implementation of various atomic bit functions using the
+__atomic_fetch_{and,or,xor}() C++11 atomics.  This involves creating a mask
+and adjusting the address in each function as the bit number can be greater
+than the number of bits in a word and can also be negative.
 
- (1) The compiler has a much better idea of what is going on and can
-     optimise appropriately, whereas with inline assembly, the content is
-     an indivisible black box as far as the compiler is concerned.
+On some arches, such as those that use LL/SC type constructs or CMPXCHG,
+AND/OR/XOR are normally used anyway so this is not a problem.  On
+powerpc64, for example:
 
-     For example, with powerpc64, the compiler can put the barrier in a
-     potentially more favourable position.  Take the inline-asm variant of
-     test_and_set_bit() - this has to (a) generate a mask and an address
-     and (b) interpolate a memory barrier before doing the atomic ops.
-
-     Here's a disassembly of the current inline-asm variant and then the
-     ISO variant:
-
-	.current_test_and_set_bit:
-		clrlwi  r10,r3,26	}
-		rldicl  r3,r3,58,6	} Fiddling with regs to make
-		rldicr  r3,r3,3,60	} mask and address
-		li      r9,1		}
-		sld     r9,r9,r10	}
-		add     r4,r4,r3	}
-		hwsync			<--- Release barrier
-	retry:	ldarx   r3,0,r4			}
-		or      r10,r3,r9		} Atomic region
-		stdcx.  r10,0,r4		}
-		bne-    retry			}
-		hwsync			<--- Acquire barrier
+	.test_and_set_bit:
+		clrlwi  r10,r3,26
+		rldicl  r3,r3,58,6
+		rldicr  r3,r3,3,60
+		li      r9,1
+		sld     r9,r9,r10
+		add     r4,r4,r3
+		hwsync
+	retry:	ldarx   r3,0,r4
+		or      r10,r3,r9	<--- OR is used here
+		stdcx.  r10,0,r4
+		bne-    retry
+		hwsync
 		and     r9,r9,r3
 		addic   r3,r9,-1
 		subfe   r3,r3,r9
 		blr
 
-	.iso_test_and_set_bit:
-		hwsync			<--- Release barrier
-		clrlwi  r10,r3,26	}
-		sradi   r3,r3,6		} Fiddling with regs to make
-		li      r9,1		} mask and address
-		rldicr  r3,r3,3,60	}
-		sld     r9,r9,r10	}
-		add     r4,r4,r3	}
-	retry:	ldarx   r3,0,r4			}
-		or      r10,r3,r9		} Atomic region
-		stdcx.  r10,0,r4		}
-		bne     retry			}
-		isync			<--- Acquire barrier
-		and     r9,r9,r3
-		addic   r3,r9,-1
-		subfe   r3,r3,r9
-		blr
+However, on some arches such as x86, there are bit wangling instructions
+that take a bit number and may even correctly handle bit numbers outside
+the range 0...BITS_PER_LONG-1.  Even on x86, if the result isn't of
+interest, it is apparently faster to use LOCKed AND/OR/XOR than to use
+LOCKed BTR/BTS/BTC.
 
-     Moving the barrier up in the ISO case would seem to give the CPU a
-     better chance of doing the barrier simultaneously with the register
-     fiddling.
+However, the current gcc implementation always uses a CMPXCHG loop rather
+than using BTR/BTS/BTC, though it will still use AND/OR/XOR if it can:
 
-     Things to note here:
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244
 
-     (a) A BNE rather than a BNE- is emitted after the STDCX instruction.
-     	 I've logged this as:
+With this fixed,
 
-	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71162
-
-     (b) An ISYNC instruction is emitted as the Acquire barrier with
-     	 __ATOMIC_SEQ_CST, but I'm not sure this is strong enough.
-
-     (c) An LWSYNC instruction is emitted as the Release barrier with
-     	 __ATOMIC_ACQ_REL or __ATOMIC_RELEASE.  Is this strong enough that
-     	 we could use these memorders instead?
-
-
- (2) The compiler can pick the appropriate instruction to use, depending on
-     the size of the memory location, the operation being applied, the
-     value of the operand being applied (if applicable), whether the return
-     value is used and whether any condition flags resulting from the
-     atomic op are used.
-
-     For instance, on x86_64, atomic_add() can use any of ADDL, SUBL, INCL,
-     DECL, XADDL or CMPXCHGL.  atomic_add_return() can use ADDL, SUBL, INCL
-     or DECL if we only about the representation of the return value
-     encoded in the flags (zero, carry, sign).  If we actually want the
-     return value, atomic_add_return() will use XADDL.
-
-     So with __atomic_fetch_add(), if the return value isn't being used and
-     if the operand is 1, INCL will be used; if >1, ADDL will be used; if
-     -1, DECL will be used; and if <-1, SUBL will be used.
-
-     Things to note here:
-
-     (a) If unpatched, gcc will emit an XADDL instruction rather than a
-     	 DECL instruction if it is told to subtract 1.
-
-		https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70821
-
-     (b) The x86 arch keeps a list of LOCK prefixes and NOP's them out when
-     	 only one CPU is online, but gcc doesn't do this yet.
-
-		https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70973
-
-
- (3) The compiler can make use of extra information provided by the atomic
-     instructions involved that can't otherwise be passed out of inline
-     assembly - such as the condition flag values.
-
-     Take atomic_dec_and_test(), for example.  I can call it as follows:
-
-	const char *xxx_atomic_dec_and_test(atomic_t *counter)
+	bool try_test_and_change_bit(unsigned long *p)
 	{
-		if (atomic_dec_and_test(counter))
-			return "foo";
-		return "bar";
+		return test_and_change_bit(83, p);
 	}
 
-     For original, non-asm-goto code, I see:
+becomes:
 
-	nogoto_atomic_dec_and_test:
-		lock decl (%rdi)
-		sete   %al
-		mov    $.LC1,%edx
-		test   %al,%al
-		mov    $.LC0,%eax
-		cmove  %rdx,%rax
+	foo_test_and_change_bit:
+		lock btcq $0x13,0x8(%rdi)
+		setb   %al
 		retq
 
-     This has a SETE instruction inside the inline assembly to save the
-     condition flag value and a TEST outside to move it the state back to
-     the condition flag.
+There are three things to note here:
 
-     For the newer asm-goto code, I see:
+ (1) The SETB instruction is generated by the compiler.
 
-	goto_atomic_dec_and_test:
-		lock decl (%rdi)
-		je     b <goto_atomic_dec_and_test+0xb>
-		mov    $.LC1,%eax
+ (2) Because the memory variable is a long, BTCQ is used - which uses an
+     extra byte of opcode.  We could use BTCL instead as the inline asm
+     does... except that that generates technically broken code since the
+     bit number is a *64-bit* number and BTCL only takes a 32-bit bit
+     number.  I'm not sure that that is worth worrying about, however.
+
+ (3) The compiler divided the constant bit number between the immediate
+     value to the BTCQ instruction and the displacement on the memory
+     address.  The immediate value is, however, an imm8 so this is
+     unnecessary outside the range 127..-128 I think.
+
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c20
+
+Next there's:
+
+	const char *foo(unsigned long *p);
+	const char *foo_test_and_change_bit_2(unsigned long *p)
+	{
+		return test_and_change_bit(83, p) ? foo(p) : "bar";
+	}
+
+becomes:
+
+	foo_test_and_change_bit_2:
+		lock btcq $0x13,0x8(%rdi)
+		jae    .L5
+		jmpq   foo
+	.L5	mov    $.LC0,%eax
 		retq
-		mov    $.LC0,%eax
+
+with the compiler generating a conditional jump around a tail-call to
+foo().
+
+Next, we can use a variable as the bit number rather than a constant.
+
+	bool foo_test_and_change_bit_3(unsigned long *p, long n)
+	{
+		return test_and_change_bit(n, p);
+	}
+
+becomes:
+
+	foo_test_and_change_bit_3:
+		mov    %rsi,%rax		}
+		and    $0x3f,%esi		} Splitting the bit number
+		sar    $0x6,%rax		}
+		lock btc %rsi,(%rdi,%rax,8)
+		setb   %al
 		retq
 
-     This has a conditional jump in it inside the inline assembly and
-     leaves the inline assembly through one of two different paths.
+As can be seen, the compiler again splits the bit number up unnecessarily
+since the CPU will do that.
 
-     Using ISO intrinsics, I see:
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c13
 
-	iso_atomic_dec_and_test:
-		lock decl (%rdi)
-		mov    $.LC1,%edx
-		mov    $.LC0,%eax
-		cmove  %rdx,%rax
+
+Finally, if we ignore the result:
+
+	void foo_test_and_change_bit_4(unsigned long *p)
+	{
+		test_and_change_bit(83, p);
+	}
+	void foo_test_and_change_bit_5(unsigned long *p, long n)
+	{
+		test_and_change_bit(n, p);
+	}
+
+the compiler will use XOR instead of BTC:
+
+	foo_test_and_change_bit_4:
+		lock xorq $0x80000,0x8(%rdi)
+		retq
+	foo_test_and_change_bit_5:
+		mov    %rsi,%rdx
+		mov    %esi,%ecx
+		mov    $0x1,%eax
+		sar    $0x6,%rdx
+		shl    %cl,%rax
+		lock xor %rax,(%rdi,%rdx,8)
 		retq
 
-     Here the compiler can use the condition code in what it deems the best
-     way possible - in this case through the use of a CMOVE instruction,
-     hopefully thereby making more efficient code.
+Also, the compiler won't optimise __atomic_load[_n]() to either a TEST or a
+BT instruction:
 
-     At some point gcc might acquire the ability to pass values out of
-     inline assembly as condition flags.
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c13
 
 
- (4) The __atomic_*() intrinsic functions act like a C++ template function
-     in that they don't have specific types for the arguments, rather the
-     types are determined on a case-by-case basis, presumably from the type
-     of the memory variable.
+For arm64, if compiled with -march=armv8-a+lse this will generate LDCLR,
+LDSET and LDEOR instructions for __atomic_fetch_{and,or,xor}() with
+appropriate {,A,L,AL} suffixes.  However, because LSCLR is actually an
+AND-NOT not an AND, the operand is negated by the compiler to undo the
+negation by the CPU.  This combined with the ~ operator in the code to
+generate the mask:
 
-     This means that the compiler will automatically switch, say, for
-     __atomic_fetch_add() on x86 between INCB, INCW, INCL, INCQ, ADDB,
-     ADDW, ADDL, ADDQ, XADDB, XADDW, XADDL, XADDQ, CMPXCHG8 and CMPXCHG16.
+	static __always_inline
+	bool iso_test_and_clear_bit(long bit, volatile unsigned long *addr,
+				    int memorder)
+	{
+		unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
+		unsigned long old;
 
+		addr += bit >> _BITOPS_LONG_SHIFT;
+  --->		old = __atomic_fetch_and(addr, ~mask, memorder);
+		return old & mask;
+	}
 
-However, using the ISO C++ intrinsics has drawbacks too: most importantly,
-the memory model ordering is weaker than that implied by the kernel's
-memory-barriers.txt as the C++11 standard limits the effect of an atomic
-intrinsic with a release barrier followed by one with an acquire barrier to
-only being applicable to each other *if* the associated memory location is
-the same in both cases.
+means that the mask gets effectively negated three times:
 
-This could mean that, if spinlocks were implemented with C++11 atomics, then:
+	foo_clear_bit_unlock:
+		and     w3, w0, #0x3f
+		asr     x2, x0, #6
+		mov     x0, #0x1
+		add     x1, x1, x2, lsl #3
+		lsl     x0, x0, x3
+		mvn     x0, x0			<--- Negate from my code
+		mvn     x2, x0			<--- Negate from atomic
+		ldclrl  x2, x2, [x1]		<--- Negate from CPU
+		ret
 
-	spin_lock(a);
-	spin_unlock(a);
-	// <---- X
-	spin_lock(b);
-	spin_unlock(b);
+including two redundant instructions.
 
-would not get an implicit full memory barrier at point X in C++11, but does
-in the kernel through the interaction of the unlock and lock either side of
-it.
-
-Now, the practical side of this is very much arch-dependent.  On x86, for
-example, this probably doesn't matter because the LOCK'd instructions imply
-full memory barriers, so it should be possible to switch x86, for example,
-over to using this.
-
-However, on something like arm64 with LSE instructions, this is a more
-ticklish prospect since the LSE instructions take specifiers as to whether
-they imply acquire, release, neither or both barriers *and* an address,
-thereby permitting the CPU to conform to the C++11 model.
-
-Another issue with acquire/release barriers is that not all arches
-implement them.  arm64 does, as does ia64; but some other arches - arm32
-for example - implement load/store barriers instead which aren't the same
-thing.
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71153
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/iso-atomic.h |  401 ++++++++++++++++++++++++++++++++++++++
- include/linux/atomic.h           |   14 +
- 2 files changed, 413 insertions(+), 2 deletions(-)
- create mode 100644 include/asm-generic/iso-atomic.h
+ include/asm-generic/iso-bitops.h |  181 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 181 insertions(+)
+ create mode 100644 include/asm-generic/iso-bitops.h
 
-diff --git a/include/asm-generic/iso-atomic.h b/include/asm-generic/iso-atomic.h
+diff --git a/include/asm-generic/iso-bitops.h b/include/asm-generic/iso-bitops.h
 new file mode 100644
-index 000000000000..dfb1f2b188f9
+index 000000000000..64d5067e3a67
 --- /dev/null
-+++ b/include/asm-generic/iso-atomic.h
-@@ -0,0 +1,401 @@
-+/* Use ISO C++11 intrinsics to implement 32-bit atomic ops.
++++ b/include/asm-generic/iso-bitops.h
+@@ -0,0 +1,181 @@
++/* Use ISO C++11 intrinsics to implement bitops.
 + *
 + * Copyright (C) 2016 Red Hat, Inc. All Rights Reserved.
 + * Written by David Howells (dhowells@redhat.com)
@@ -240,447 +217,173 @@ index 000000000000..dfb1f2b188f9
 + * 2 of the Licence, or (at your option) any later version.
 + */
 +
-+#ifndef _ASM_GENERIC_ISO_ATOMIC_H
-+#define _ASM_GENERIC_ISO_ATOMIC_H
++#ifndef _ASM_GENERIC_ISO_BITOPS_H
++#define _ASM_GENERIC_ISO_BITOPS_H
 +
 +#include <linux/compiler.h>
 +#include <linux/types.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/barrier.h>
 +
-+#define ATOMIC_INIT(i)	{ (i) }
-+
-+/**
-+ * atomic_read - read atomic variable
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically reads the value of @v.
-+ */
-+static __always_inline int __atomic_read(const atomic_t *v, int memorder)
++static __always_inline
++bool test_bit(long bit, const volatile unsigned long *addr)
 +{
-+	return __atomic_load_n(&v->counter, memorder);
-+}
-+#define atomic_read(v)		(__atomic_read((v), __ATOMIC_RELAXED))
-+#define atomic_read_acquire(v)	(__atomic_read((v), __ATOMIC_ACQUIRE))
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
 +
-+/**
-+ * atomic_set - set atomic variable
-+ * @v: pointer of type atomic_t
-+ * @i: required value
-+ *
-+ * Atomically sets the value of @v to @i.
-+ */
-+static __always_inline void __atomic_set(atomic_t *v, int i, int memorder)
-+{
-+	__atomic_store_n(&v->counter, i, memorder);
-+}
-+#define atomic_set(v, i)	 __atomic_set((v), (i), __ATOMIC_RELAXED)
-+#define atomic_set_release(v, i) __atomic_set((v), (i), __ATOMIC_RELEASE)
-+
-+/**
-+ * atomic_add - add integer to atomic variable
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically adds @i to @v.
-+ */
-+static __always_inline void atomic_add(int i, atomic_t *v)
-+{
-+	__atomic_add_fetch(&v->counter, i, __ATOMIC_RELAXED);
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_load_n(addr, __ATOMIC_RELAXED);
++	return old & mask;
 +}
 +
-+#define atomic_inc(v) atomic_add(1, (v))
-+
 +/**
-+ * atomic_sub - subtract integer from atomic variable
-+ * @i: integer value to subtract
-+ * @v: pointer of type atomic_t
++ * set_bit - Atomically set a bit in memory
++ * @bit: the bit to set
++ * @addr: the address to start counting from
 + *
-+ * Atomically subtracts @i from @v.
-+ */
-+static __always_inline void atomic_sub(int i, atomic_t *v)
-+{
-+	__atomic_sub_fetch(&v->counter, i, __ATOMIC_RELAXED);
-+}
-+
-+#define atomic_dec(v) atomic_add(-1, (v))
-+
-+/**
-+ * atomic_add_return - add integer and return
-+ * @i: integer value to add
-+ * @v: pointer of type atomic_t
++ * This function is atomic and may not be reordered.  See __set_bit() if you do
++ * not require the atomic guarantees.
 + *
-+ * Atomically adds @i to @v and returns @i + @v.
-+ */
-+static __always_inline int __atomic_add_return(int i, atomic_t *v, int memorder)
-+{
-+	return __atomic_add_fetch(&v->counter, i, memorder);
-+}
-+
-+#define atomic_add_return(i, v)		(__atomic_add_return((i), (v), __ATOMIC_SEQ_CST))
-+#define atomic_add_negative(i, v)	(atomic_add_return((i), (v)) < 0)
-+#define atomic_inc_return(v)		(atomic_add_return(1, (v)))
-+#define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
-+
-+#define atomic_add_return_relaxed(i, v)	(__atomic_add_return((i), (v), __ATOMIC_RELAXED))
-+#define atomic_inc_return_relaxed(v)	(atomic_add_return_relaxed(1, (v)))
-+
-+#define atomic_add_return_acquire(i, v)	(__atomic_add_return((i), (v), __ATOMIC_ACQUIRE))
-+#define atomic_inc_return_acquire(v)	(atomic_add_return_acquire(1, (v)))
-+
-+#define atomic_add_return_release(i, v)	(__atomic_add_return((i), (v), __ATOMIC_RELEASE))
-+#define atomic_inc_return_release(v)	(atomic_add_return_release(1, (v)))
-+
-+/**
-+ * atomic_sub_return - subtract integer and return
-+ * @v: pointer of type atomic_t
-+ * @i: integer value to subtract
++ * Note: there are no guarantees that this function will not be reordered on
++ * non x86 architectures, so if you are writing portable code, make sure not to
++ * rely on its reordering guarantees.
 + *
-+ * Atomically subtracts @i from @v and returns @v - @i
-+ */
-+static __always_inline int __atomic_sub_return(int i, atomic_t *v, int memorder)
-+{
-+	return __atomic_sub_fetch(&v->counter, i, memorder);
-+}
-+
-+#define atomic_sub_return(i, v)		(__atomic_sub_return((i), (v), __ATOMIC_SEQ_CST))
-+#define atomic_sub_and_test(i, v)	(atomic_sub_return((i), (v)) == 0)
-+#define atomic_dec_return(v)		(atomic_sub_return(1, (v)))
-+#define atomic_dec_and_test(v)		(atomic_dec_return((v)) == 0)
-+
-+#define atomic_sub_return_relaxed(i, v)	(__atomic_sub_return((i), (v), __ATOMIC_RELAXED))
-+#define atomic_dec_return_relaxed(v)	(atomic_sub_return_relaxed(1, (v)))
-+
-+#define atomic_sub_return_acquire(i, v)	(__atomic_sub_return((i), (v), __ATOMIC_ACQUIRE))
-+#define atomic_dec_return_acquire(v)	(atomic_sub_return_acquire(1, (v)))
-+
-+#define atomic_sub_return_release(i, v)	(__atomic_sub_return((i), (v), __ATOMIC_RELEASE))
-+#define atomic_dec_return_release(v)	(atomic_sub_return_release(1, (v)))
-+
-+/**
-+ * atomic_try_cmpxchg - Compare value to memory and exchange if same
-+ * @v: Pointer of type atomic_t
-+ * @old: The value to be replaced
-+ * @new: The value to replace with
-+ *
-+ * Atomically read the original value of *@v compare it against @old.  If *@v
-+ * == @old, write the value of @new to *@v.  If the write takes place, true is
-+ * returned otherwise false is returned.  The original value is discarded - if
-+ * that is required, use atomic_cmpxchg_return() instead.
++ * Note that @bit may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
 + */
 +static __always_inline
-+bool __atomic_try_cmpxchg(atomic_t *v, int old, int new, int memorder)
++void iso_set_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	int cur = old;
-+	return __atomic_compare_exchange_n(&v->counter, &cur, new, false,
-+					   memorder, __ATOMIC_RELAXED);
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_or(addr, mask, memorder);
 +}
 +
-+#define atomic_try_cmpxchg(v, o, n) \
-+	(__atomic_try_cmpxchg((v), (o), (n), __ATOMIC_SEQ_CST))
-+#define atomic_try_cmpxchg_relaxed(v, o, n) \
-+	(__atomic_try_cmpxchg((v), (o), (n), __ATOMIC_RELAXED))
-+#define atomic_try_cmpxchg_acquire(v, o, n) \
-+	(__atomic_try_cmpxchg((v), (o), (n), __ATOMIC_ACQUIRE))
-+#define atomic_try_cmpxchg_release(v, o, n) \
-+	(__atomic_try_cmpxchg((v), (o), (n), __ATOMIC_RELEASE))
++#define set_bit(b, a) iso_set_bit((b), (a), __ATOMIC_ACQ_REL)
 +
 +/**
-+ * atomic_cmpxchg_return - Compare value to memory and exchange if same
-+ * @v: Pointer of type atomic_t
-+ * @old: The value to be replaced
-+ * @new: The value to replace with
-+ * @_orig: Where to place the original value of *@v
++ * set_bit_unlock - Sets a bit in memory with release semantics
++ * @bit: Bit to set
++ * @addr: Address to start counting from
 + *
-+ * Atomically read the original value of *@v and compare it against @old.  If
-+ * *@v == @old, write the value of @new to *@v.  If the write takes place, true
-+ * is returned otherwise false is returned.  The original value of *@v is saved
-+ * to *@_orig.
++ * This function is atomic and implies release semantics before the memory
++ * operation. It can be used for an unlock.
++ */
++#define set_bit_unlock(b, a) iso_set_bit((b), (a), __ATOMIC_RELEASE)
++
++/**
++ * clear_bit - Sets a bit in memory
++ * @bit: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * clear_bit() is atomic and may not be reordered.  However, it does not
++ * contain a memory barrier, so if it is used for locking purposes, you should
++ * call smp_mb__before_atomic() and/or smp_mb__after_atomic() in order to
++ * ensure changes are visible on other processors.
 + */
 +static __always_inline
-+bool __atomic_cmpxchg_return(atomic_t *v, int old, int new, int *_orig, int memorder)
++void iso_clear_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	*_orig = old;
-+	return __atomic_compare_exchange_n(&v->counter, _orig, new, false,
-+					   memorder, __ATOMIC_RELAXED);
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_and(addr, ~mask, memorder);
 +}
 +
-+#define atomic_cmpxchg_return(v, o, n, _o) \
-+	(__atomic_cmpxchg_return((v), (o), (n), (_o), __ATOMIC_SEQ_CST))
-+#define atomic_cmpxchg_return_relaxed(v, o, n, _o) \
-+	(__atomic_cmpxchg_return((v), (o), (n), (_o), __ATOMIC_RELAXED))
-+#define atomic_cmpxchg_return_acquire(v, o, n, _o) \
-+	(__atomic_cmpxchg_return((v), (o), (n), (_o), __ATOMIC_ACQUIRE))
-+#define atomic_cmpxchg_return_release(v, o, n, _o) \
-+	(__atomic_cmpxchg_return((v), (o), (n), (_o), __ATOMIC_RELEASE))
++#define clear_bit(b, a) iso_clear_bit((b), (a), __ATOMIC_ACQ_REL)
 +
 +/**
-+ * atomic_cmpxchg - Compare value to memory and exchange if same
-+ * @v: Pointer of type atomic_t
-+ * @old: The value to be replaced
-+ * @new: The value to replace with
++ * clear_bit_unlock - Clears a bit in memory with release semantics
++ * @bit: Bit to clear
++ * @addr: Address to start counting from
 + *
-+ * Atomically read the original value of *@v and compare it against @old.  If
-+ * *@v == @old, write the value of @new to *@v.  The original value is
-+ * returned.
-+ *
-+ * atomic_try_cmpxchg() and atomic_cmpxchg_return_release() are preferred to
-+ * this function as they can make better use of the knowledge as to whether a
-+ * write took place or not that is provided by some CPUs (e.g. x86's CMPXCHG
-+ * instruction stores this in the Z flag).
++ * This function is atomic and implies release semantics before the memory
++ * operation. It can be used for an unlock.
 + */
-+static __always_inline int __atomic_cmpxchg(atomic_t *v, int old, int new,
-+					    int memorder)
-+{
-+	int cur = old;
-+	if (__atomic_compare_exchange_n(&v->counter, &cur, new, false,
-+					memorder, __ATOMIC_RELAXED))
-+		return old;
-+	return cur;
-+}
-+
-+#define atomic_cmpxchg(v, o, n)		(__atomic_cmpxchg((v), (o), (n), __ATOMIC_SEQ_CST))
-+#define atomic_cmpxchg_relaxed(v, o, n)	(__atomic_cmpxchg((v), (o), (n), __ATOMIC_RELAXED))
-+#define atomic_cmpxchg_acquire(v, o, n)	(__atomic_cmpxchg((v), (o), (n), __ATOMIC_ACQUIRE))
-+#define atomic_cmpxchg_release(v, o, n)	(__atomic_cmpxchg((v), (o), (n), __ATOMIC_RELEASE))
-+
-+static __always_inline int __atomic_xchg(atomic_t *v, int new, int memorder)
-+{
-+	return __atomic_exchange_n(&v->counter, new, memorder);
-+}
-+
-+#define atomic_xchg(v, new)		(__atomic_xchg((v), (new), __ATOMIC_SEQ_CST))
-+#define atomic_xchg_relaxed(v, new)	(__atomic_xchg((v), (new), __ATOMIC_RELAXED))
-+#define atomic_xchg_acquire(v, new)	(__atomic_xchg((v), (new), __ATOMIC_ACQUIRE))
-+#define atomic_xchg_release(v, new)	(__atomic_xchg((v), (new), __ATOMIC_RELEASE))
-+
-+static __always_inline void atomic_and(int i, atomic_t *v)
-+{
-+	__atomic_and_fetch(&v->counter, i, __ATOMIC_RELAXED);
-+}
-+
-+static __always_inline void atomic_andnot(int i, atomic_t *v)
-+{
-+	__atomic_and_fetch(&v->counter, ~i, __ATOMIC_RELAXED);
-+}
-+
-+static __always_inline void atomic_or(int i, atomic_t *v)
-+{
-+	__atomic_or_fetch(&v->counter, i, __ATOMIC_RELAXED);
-+}
-+
-+static __always_inline void atomic_xor(int i, atomic_t *v)
-+{
-+	__atomic_xor_fetch(&v->counter, i, __ATOMIC_RELAXED);
-+}
++#define clear_bit_unlock(b, a) iso_clear_bit((b), (a), __ATOMIC_RELEASE)
 +
 +/**
-+ * __atomic_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
++ * change_bit - Toggle a bit in memory
++ * @bit: Bit to change
++ * @addr: Address to start counting from
 + *
-+ * Atomically adds @a to @v, so long as @v was not already @u.
-+ * Returns the old value of @v.
++ * change_bit() is atomic and may not be reordered.  Note that @bit may be
++ * almost arbitrarily large; this function is not restricted to acting on a
++ * single-word quantity.
 + */
-+static __always_inline int __atomic_add_unless(atomic_t *v,
-+					       int addend, int unless)
++static __always_inline
++void iso_change_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	int c = atomic_read(v);
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
 +
-+	while (likely(c != unless)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c + addend,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			break;
-+	}
-+	return c;
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_xor(addr, mask, memorder);
 +}
++
++#define change_bit(b, a) iso_change_bit((b), (a), __ATOMIC_ACQ_REL)
 +
 +/**
-+ * atomic_add_unless - add unless the number is already a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
++ * test_and_set_bit - Set a bit and return its old value
++ * @bit: Bit to set
++ * @addr: Address to count from
 + *
-+ * Atomically adds @a to @v, so long as @v was not already @u.
-+ * Returns true if @v was not @u, and false otherwise.
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
 + */
-+static __always_inline bool atomic_add_unless(atomic_t *v,
-+					      int addend, int unless)
++static __always_inline
++bool iso_test_and_set_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	int c = atomic_read(v);
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
 +
-+	while (likely(c != unless)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c + addend,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			return true;
-+	}
-+	return false;
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_or(addr, mask, memorder);
++	return old & mask;
 +}
 +
-+#define atomic_inc_not_zero(v)		atomic_add_unless((v), 1, 0)
++#define test_and_set_bit(b, a)      iso_test_and_set_bit((b), (a), __ATOMIC_ACQ_REL)
++#define test_and_set_bit_lock(b, a) iso_test_and_set_bit((b), (a), __ATOMIC_ACQUIRE)
 +
 +/**
-+ * atomic_add_unless_hint - add unless the number is already a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ * @hint: probable value of the atomic before the increment
++ * test_and_clear_bit - Clear a bit and return its old value
++ * @bit: Bit to clear
++ * @addr: Address to count from
 + *
-+ * Atomically adds @a to @v, so long as @v was not already @u.
-+ * Returns the old value of @v.
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
 + */
-+static __always_inline int __atomic_add_unless_hint(atomic_t *v,
-+						    int addend, int unless,
-+						    int hint)
++static __always_inline
++bool iso_test_and_clear_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	int c = hint;
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
 +
-+	while (likely(c != unless)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c + addend,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			break;
-+	}
-+	return c;
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_and(addr, ~mask, memorder);
++	return old & mask;
 +}
 +
-+#define atomic_inc_not_zero_hint(v, h)	(__atomic_add_unless_hint((v), 1, 0, (h)) != 0)
-+
-+static inline bool atomic_inc_unless_negative(atomic_t *v)
-+{
-+	int c = 0;
-+
-+	while (likely(c >= 0)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c + 1,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			return true;
-+	}
-+	return false;
-+}
-+
-+static inline bool atomic_dec_unless_positive(atomic_t *v)
-+{
-+	int c = 0;
-+
-+	while (likely(c <= 0)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c - 1,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			return true;
-+	}
-+	return false;
-+}
-+
-+/*
-+ * atomic_dec_if_positive - decrement by 1 if old value positive
-+ * @v: pointer of type atomic_t
-+ *
-+ * The function returns the old value of *v minus 1, even if
-+ * the atomic variable, v, was not decremented.
-+ */
-+static inline bool atomic_dec_if_positive(atomic_t *v)
-+{
-+	int c = atomic_read(v);
-+
-+	while (likely(c > 0)) {
-+		if (__atomic_compare_exchange_n(&v->counter,
-+						&c, c - 1,
-+						false,
-+						__ATOMIC_SEQ_CST,
-+						__ATOMIC_RELAXED))
-+			return true;
-+	}
-+	return false;
-+}
++#define test_and_clear_bit(b, a)      iso_test_and_clear_bit((b), (a), __ATOMIC_ACQ_REL)
++#define test_and_clear_bit_lock(b, a) iso_test_and_clear_bit((b), (a), __ATOMIC_ACQUIRE)
 +
 +/**
-+ * atomic_fetch_or - perform *v |= mask and return old value of *v
-+ * @v: pointer to atomic_t
-+ * @mask: mask to OR on the atomic_t
-+ */
-+static inline int atomic_fetch_or(atomic_t *v, int mask)
-+{
-+	return __atomic_fetch_or(&v->counter, mask, __ATOMIC_SEQ_CST);
-+}
-+
-+/**
-+ * atomic_inc_short - increment of a short integer
-+ * @v: pointer to type int
++ * test_and_change_bit - Toggle a bit and return its old value
++ * @bit: Bit to toggle
++ * @addr: Address to count from
 + *
-+ * Atomically adds 1 to @v
-+ * Returns the new value of @v
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
 + */
-+static __always_inline short int atomic_inc_short(short int *v)
++static __always_inline
++bool iso_test_and_change_bit(long bit, volatile unsigned long *addr, int memorder)
 +{
-+	return __atomic_add_fetch(v, 1, __ATOMIC_SEQ_CST);
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_xor(addr, mask, memorder);
++	return old & mask;
 +}
 +
-+#endif /* _ASM_GENERIC_ISO_ATOMIC_H */
-diff --git a/include/linux/atomic.h b/include/linux/atomic.h
-index 506c3531832e..64d2b7492ad6 100644
---- a/include/linux/atomic.h
-+++ b/include/linux/atomic.h
-@@ -4,6 +4,8 @@
- #include <asm/atomic.h>
- #include <asm/barrier.h>
- 
-+#ifndef _ASM_GENERIC_ISO_ATOMIC_H
++#define test_and_change_bit(b, a)     iso_test_and_change_bit((b), (a), __ATOMIC_ACQ_REL)
 +
- /*
-  * Relaxed variants of xchg, cmpxchg and some atomic operations.
-  *
-@@ -211,6 +213,9 @@
- #endif
- #endif /* atomic_cmpxchg_relaxed */
- 
-+#endif /* _ASM_GENERIC_ISO_ATOMIC_H */
-+
-+
- #ifndef atomic64_read_acquire
- #define  atomic64_read_acquire(v)	smp_load_acquire(&(v)->counter)
- #endif
-@@ -433,6 +438,9 @@
- #endif
- #endif /* xchg_relaxed */
- 
-+
-+#ifndef _ASM_GENERIC_ISO_ATOMIC_H
-+
- /**
-  * atomic_add_unless - add unless the number is already a given value
-  * @v: pointer of type atomic_t
-@@ -440,9 +448,9 @@
-  * @u: ...unless v is equal to u.
-  *
-  * Atomically adds @a to @v, so long as @v was not already @u.
-- * Returns non-zero if @v was not @u, and zero otherwise.
-+ * Returns true if @v was not @u, and false otherwise.
-  */
--static inline int atomic_add_unless(atomic_t *v, int a, int u)
-+static inline bool atomic_add_unless(atomic_t *v, int a, int u)
- {
- 	return __atomic_add_unless(v, a, u) != u;
- }
-@@ -579,6 +587,8 @@ static inline int atomic_fetch_or(atomic_t *p, int mask)
- }
- #endif
- 
-+#endif /* _ASM_GENERIC_ISO_ATOMIC_H */
-+
- #ifdef CONFIG_GENERIC_ATOMIC64
- #include <asm-generic/atomic64.h>
- #endif
++#endif /* _ASM_GENERIC_ISO_BITOPS_H */
