@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42761 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:41183 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752868AbcERPMS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 May 2016 11:12:18 -0400
-Subject: [RFC PATCH 13/15] x86: Improve spinlocks using ISO C++11 intrinsic
- atomics
+	id S1753660AbcERPMK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2016 11:12:10 -0400
+Subject: [RFC PATCH 12/15] x86: Use ISO xchg(), cmpxchg() and friends
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 18 May 2016 16:12:15 +0100
-Message-ID: <146358433517.8596.492761570975545534.stgit@warthog.procyon.org.uk>
+Date: Wed, 18 May 2016 16:12:07 +0100
+Message-ID: <146358432774.8596.8004304272934835091.stgit@warthog.procyon.org.uk>
 In-Reply-To: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -17,105 +16,211 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
-Message-ID: <20160518151215.ldB0hlZdrImnibZUswqdz-NV-_z9VygKNMyoaZPBixY@z>
+Message-ID: <20160518151207.vw72HHMDDkdOge5wpMYtu9cN0IakS3n6PnB320jeFtY@z>
 
-Make some improvements to the x86 spinlock implementation using the ISO
-C++11 intrinsic atomic wrappers.  Note that since the spinlocks use
-cmpxchg(), xadd() and __add(), it already makes some use of this.
+Make x86 use the ISO intrinsic xchg(), cmpxchg() and similar functions.
 
- (1) Use acquire variants in spin_lock() and spin_trylock() paths.  On x86
-     this shouldn't actually make a difference.
+This boots fine, however it can't NOP out the LOCK prefixes if the number
+of online CPUs is 1.
 
- (2) Use try_cmpxchg*() rather than cmpxchg*().  This should produce
-     slightly more efficient code as a comparison can be discarded in
-     favour of using the value in the Z flag.
+Without this patch, according to size -A, .text for my test kernel is:
 
-Note as mentioned before, the LOCK prefix is currently mandatory, but a gcc
-ticket is open to try and get these listed for suppression.
+	.text                     6273589   18446744071578845184
+
+with this patch:
+
+	.text                     6273013   18446744071578845184
+
+There are still some underoptimisations to be dealt with.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/x86/include/asm/qspinlock.h |    2 +-
- arch/x86/include/asm/spinlock.h  |   18 ++++++++++--------
- 2 files changed, 11 insertions(+), 9 deletions(-)
+ arch/x86/include/asm/cmpxchg.h    |   99 -------------------------------------
+ arch/x86/include/asm/cmpxchg_32.h |    3 -
+ arch/x86/include/asm/cmpxchg_64.h |    6 --
+ 3 files changed, 1 insertion(+), 107 deletions(-)
 
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index eaba08076030..b56b8c2a9ed2 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -55,7 +55,7 @@ static inline bool virt_spin_lock(struct qspinlock *lock)
- 	do {
- 		while (atomic_read(&lock->val) != 0)
- 			cpu_relax();
--	} while (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) != 0);
-+	} while (!atomic_try_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL));
+diff --git a/arch/x86/include/asm/cmpxchg.h b/arch/x86/include/asm/cmpxchg.h
+index 9733361fed6f..cde270af1b94 100644
+--- a/arch/x86/include/asm/cmpxchg.h
++++ b/arch/x86/include/asm/cmpxchg.h
+@@ -2,6 +2,7 @@
+ #define ASM_X86_CMPXCHG_H
  
- 	return true;
+ #include <linux/compiler.h>
++#include <asm-generic/iso-cmpxchg.h>
+ #include <asm/cpufeatures.h>
+ #include <asm/alternative.h> /* Provides LOCK_PREFIX */
+ 
+@@ -9,12 +10,8 @@
+  * Non-existant functions to indicate usage errors at link time
+  * (or compile-time if the compiler implements __compiletime_error().
+  */
+-extern void __xchg_wrong_size(void)
+-	__compiletime_error("Bad argument size for xchg");
+ extern void __cmpxchg_wrong_size(void)
+ 	__compiletime_error("Bad argument size for cmpxchg");
+-extern void __xadd_wrong_size(void)
+-	__compiletime_error("Bad argument size for xadd");
+ extern void __add_wrong_size(void)
+ 	__compiletime_error("Bad argument size for add");
+ 
+@@ -34,48 +31,6 @@ extern void __add_wrong_size(void)
+ #define	__X86_CASE_Q	-1		/* sizeof will never return -1 */
+ #endif
+ 
+-/* 
+- * An exchange-type operation, which takes a value and a pointer, and
+- * returns the old value.
+- */
+-#define __xchg_op(ptr, arg, op, lock)					\
+-	({								\
+-	        __typeof__ (*(ptr)) __ret = (arg);			\
+-		switch (sizeof(*(ptr))) {				\
+-		case __X86_CASE_B:					\
+-			asm volatile (lock #op "b %b0, %1\n"		\
+-				      : "+q" (__ret), "+m" (*(ptr))	\
+-				      : : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_W:					\
+-			asm volatile (lock #op "w %w0, %1\n"		\
+-				      : "+r" (__ret), "+m" (*(ptr))	\
+-				      : : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_L:					\
+-			asm volatile (lock #op "l %0, %1\n"		\
+-				      : "+r" (__ret), "+m" (*(ptr))	\
+-				      : : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_Q:					\
+-			asm volatile (lock #op "q %q0, %1\n"		\
+-				      : "+r" (__ret), "+m" (*(ptr))	\
+-				      : : "memory", "cc");		\
+-			break;						\
+-		default:						\
+-			__ ## op ## _wrong_size();			\
+-		}							\
+-		__ret;							\
+-	})
+-
+-/*
+- * Note: no "lock" prefix even on SMP: xchg always implies lock anyway.
+- * Since this is generally used to protect other memory information, we
+- * use "asm volatile" and "memory" clobbers to prevent gcc from moving
+- * information around.
+- */
+-#define xchg(ptr, v)	__xchg_op((ptr), (v), xchg, "")
+-
+ /*
+  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
+  * store NEW in MEM.  Return the initial value in MEM.  Success is
+@@ -129,9 +84,6 @@ extern void __add_wrong_size(void)
+ 	__ret;								\
+ })
+ 
+-#define __cmpxchg(ptr, old, new, size)					\
+-	__raw_cmpxchg((ptr), (old), (new), (size), LOCK_PREFIX)
+-
+ #define __sync_cmpxchg(ptr, old, new, size)				\
+ 	__raw_cmpxchg((ptr), (old), (new), (size), "lock; ")
+ 
+@@ -144,9 +96,6 @@ extern void __add_wrong_size(void)
+ # include <asm/cmpxchg_64.h>
+ #endif
+ 
+-#define cmpxchg(ptr, old, new)						\
+-	__cmpxchg(ptr, old, new, sizeof(*(ptr)))
+-
+ #define sync_cmpxchg(ptr, old, new)					\
+ 	__sync_cmpxchg(ptr, old, new, sizeof(*(ptr)))
+ 
+@@ -154,56 +103,10 @@ extern void __add_wrong_size(void)
+ 	__cmpxchg_local(ptr, old, new, sizeof(*(ptr)))
+ 
+ /*
+- * xadd() adds "inc" to "*ptr" and atomically returns the previous
+- * value of "*ptr".
+- *
+- * xadd() is locked when multiple CPUs are online
+- * xadd_sync() is always locked
+- * xadd_local() is never locked
+- */
+-#define __xadd(ptr, inc, lock)	__xchg_op((ptr), (inc), xadd, lock)
+-#define xadd(ptr, inc)		__xadd((ptr), (inc), LOCK_PREFIX)
+-#define xadd_sync(ptr, inc)	__xadd((ptr), (inc), "lock; ")
+-#define xadd_local(ptr, inc)	__xadd((ptr), (inc), "")
+-
+-#define __add(ptr, inc, lock)						\
+-	({								\
+-	        __typeof__ (*(ptr)) __ret = (inc);			\
+-		switch (sizeof(*(ptr))) {				\
+-		case __X86_CASE_B:					\
+-			asm volatile (lock "addb %b1, %0\n"		\
+-				      : "+m" (*(ptr)) : "qi" (inc)	\
+-				      : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_W:					\
+-			asm volatile (lock "addw %w1, %0\n"		\
+-				      : "+m" (*(ptr)) : "ri" (inc)	\
+-				      : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_L:					\
+-			asm volatile (lock "addl %1, %0\n"		\
+-				      : "+m" (*(ptr)) : "ri" (inc)	\
+-				      : "memory", "cc");		\
+-			break;						\
+-		case __X86_CASE_Q:					\
+-			asm volatile (lock "addq %1, %0\n"		\
+-				      : "+m" (*(ptr)) : "ri" (inc)	\
+-				      : "memory", "cc");		\
+-			break;						\
+-		default:						\
+-			__add_wrong_size();				\
+-		}							\
+-		__ret;							\
+-	})
+-
+-/*
+  * add_*() adds "inc" to "*ptr"
+  *
+- * __add() takes a lock prefix
+- * add_smp() is locked when multiple CPUs are online
+  * add_sync() is always locked
+  */
+-#define add_smp(ptr, inc)	__add((ptr), (inc), LOCK_PREFIX)
+ #define add_sync(ptr, inc)	__add((ptr), (inc), "lock; ")
+ 
+ #define __cmpxchg_double(pfx, p1, p2, o1, o2, n1, n2)			\
+diff --git a/arch/x86/include/asm/cmpxchg_32.h b/arch/x86/include/asm/cmpxchg_32.h
+index e4959d023af8..959908c06569 100644
+--- a/arch/x86/include/asm/cmpxchg_32.h
++++ b/arch/x86/include/asm/cmpxchg_32.h
+@@ -35,9 +35,6 @@ static inline void set_64bit(volatile u64 *ptr, u64 value)
  }
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index be0a05913b91..1cbddef2b3f3 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -81,7 +81,7 @@ static inline void __ticket_check_and_clear_slowpath(arch_spinlock_t *lock,
- 		new.tickets.tail = old.tickets.tail;
  
- 		/* try to clear slowpath flag when there are no contenders */
--		cmpxchg(&lock->head_tail, old.head_tail, new.head_tail);
-+		try_cmpxchg_acquire(&lock->head_tail, old.head_tail, new.head_tail);
- 	}
+ #ifdef CONFIG_X86_CMPXCHG64
+-#define cmpxchg64(ptr, o, n)						\
+-	((__typeof__(*(ptr)))__cmpxchg64((ptr), (unsigned long long)(o), \
+-					 (unsigned long long)(n)))
+ #define cmpxchg64_local(ptr, o, n)					\
+ 	((__typeof__(*(ptr)))__cmpxchg64_local((ptr), (unsigned long long)(o), \
+ 					       (unsigned long long)(n)))
+diff --git a/arch/x86/include/asm/cmpxchg_64.h b/arch/x86/include/asm/cmpxchg_64.h
+index caa23a34c963..3f86acb1f6d2 100644
+--- a/arch/x86/include/asm/cmpxchg_64.h
++++ b/arch/x86/include/asm/cmpxchg_64.h
+@@ -6,12 +6,6 @@ static inline void set_64bit(volatile u64 *ptr, u64 val)
+ 	*ptr = val;
  }
  
-@@ -107,7 +107,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
- {
- 	register struct __raw_tickets inc = { .tail = TICKET_LOCK_INC };
- 
--	inc = xadd(&lock->tickets, inc);
-+	inc = xadd_acquire(&lock->tickets, inc);
- 	if (likely(inc.head == inc.tail))
- 		goto out;
- 
-@@ -128,19 +128,21 @@ out:
- 	barrier();	/* make sure nothing creeps before the lock is taken */
- }
- 
--static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
-+static __always_inline bool arch_spin_trylock(arch_spinlock_t *lock)
- {
- 	arch_spinlock_t old, new;
- 
- 	old.tickets = READ_ONCE(lock->tickets);
- 	if (!__tickets_equal(old.tickets.head, old.tickets.tail))
--		return 0;
-+		return false;
- 
- 	new.head_tail = old.head_tail + (TICKET_LOCK_INC << TICKET_SHIFT);
- 	new.head_tail &= ~TICKET_SLOWPATH_FLAG;
- 
--	/* cmpxchg is a full barrier, so nothing can move before it */
--	return cmpxchg(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
-+	/* Insert an acquire barrier with the cmpxchg so that nothing
-+	 * can move before it.
-+	 */
-+	return try_cmpxchg_acquire(&lock->head_tail, old.head_tail, new.head_tail);
- }
- 
- static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
-@@ -151,14 +153,14 @@ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
- 
- 		BUILD_BUG_ON(((__ticket_t)NR_CPUS) != NR_CPUS);
- 
--		head = xadd(&lock->tickets.head, TICKET_LOCK_INC);
-+		head = xadd_release(&lock->tickets.head, TICKET_LOCK_INC);
- 
- 		if (unlikely(head & TICKET_SLOWPATH_FLAG)) {
- 			head &= ~TICKET_SLOWPATH_FLAG;
- 			__ticket_unlock_kick(lock, (head + TICKET_LOCK_INC));
- 		}
- 	} else
--		__add(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
-+		add_release(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
- }
- 
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+-#define cmpxchg64(ptr, o, n)						\
+-({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg((ptr), (o), (n));					\
+-})
+-
+ #define cmpxchg64_local(ptr, o, n)					\
+ ({									\
+ 	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
 
