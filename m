@@ -1,54 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO12.lge.com ([156.147.23.52]:57600 "EHLO
-	lgeamrelo12.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751911AbcERBm0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 May 2016 21:42:26 -0400
-Date: Wed, 18 May 2016 10:42:29 +0900
-From: Minchan Kim <minchan@kernel.org>
-Subject: [PATCH] mm: disable fault around on emulated access bit architecture
-Message-ID: <20160518014229.GB21538@bbox>
+Received: from mga03.intel.com ([134.134.136.65]:45520 "EHLO mga03.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752263AbcERHYy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2016 03:24:54 -0400
+Date: Wed, 18 May 2016 10:24:24 +0300
+From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Message-ID: <20160518072424.GU4329@intel.com>
+References: <20160511101920.GZ4329@intel.com>
+ <57332171.8070403@linutronix.de>
+ <20160511122116.GA4329@intel.com>
+ <20160511084445.00030b49@gandalf.local.home>
+ <20160511133406.GC4329@intel.com>
+ <20160516193910.GL4329@intel.com>
+ <573BA5E2.5040506@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <573BA5E2.5040506@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vinayak Menon <vinmenon@codeaurora.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, dan.j.williams@intel.com, mgorman@suse.de, vbabka@suse.cz, kirill.shutemov@linux.intel.com, dave.hansen@linux.intel.com, hughd@google.com, linux-arch@vger.kernel.org
-Message-ID: <20160518014229.W0w2J4WSmw6QQ6Qx4o_0JapKnJJokNvp-1zP2MOcM4w@z>
+To: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, linux-kernel@vger.kernel.org, rui.zhang@intel.com, len.brown@intel.com, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20160518072424.Av3OW0GSQeNzXUR5D-CY5HNMn5iUmCWqRNzp5ZiAl_c@z>
 
-On Tue, May 17, 2016 at 03:34:23PM +0300, Kirill A. Shutemov wrote:
-> On Mon, May 16, 2016 at 11:56:32PM +0900, Minchan Kim wrote:
-> > On Mon, May 16, 2016 at 05:29:00PM +0300, Kirill A. Shutemov wrote:
-> > > > Kirill,
-> > > > You wanted to test non-HW access bit system and I did.
-> > > > What's your opinion?
-> > > 
-> > > Sorry, for late response.
-> > > 
-> > > My patch is incomlete: we need to find a way to not mark pte as old if we
-> > > handle page fault for the address the pte represents.
-> > 
-> > I'm sure you can handle it but my point is there wouldn't be a big gain
-> > although you can handle it in non-HW access bit system. Okay, let's be
-> > more clear because I don't have every non-HW access bit architecture.
-> > At least, current mobile workload in ARM which I have wouldn't be huge
-> > benefit.
-> > I will say one more.
-> > I tested the workload on quad-core system and core speed is not so slow
-> > compared to recent other mobile phone SoC. Even when I tested the benchmark
-> > without pte_mkold, the benefit is within noise because storage is really
-> > slow so major fault is dominant factor. So, I decide test storage from eMMC
-> > to eSATA. And then finally, I manage to see the a little beneift with
-> > fault_around without pte_mkold.
-> > 
-> > However, let's consider side-effect aspect from fault_around.
-> > 
-> > 1. Increase slab shrinking compard to old
-> > 2. high level vmpressure compared to old
-> > 
-> > With considering that regressions on my system, it's really not worth to
-> > try at the moment.
-> > That's why I wanted to disable fault_around as default in non-HW access
-> > bit system.
+On Wed, May 18, 2016 at 01:14:42AM +0200, Rafael J. Wysocki wrote:
+> On 5/16/2016 9:39 PM, Ville Syrjälä wrote:
+> > On Wed, May 11, 2016 at 04:34:06PM +0300, Ville Syrjälä wrote:
+> >> On Wed, May 11, 2016 at 08:44:45AM -0400, Steven Rostedt wrote:
+> >>> On Wed, 11 May 2016 15:21:16 +0300
+> >>> Ville Syrjälä <ville.syrjala@linux.intel.com> wrote:
+> >>>
+> >>>> Yeah can't get anything from the machine at that point. netconsole
+> >>>> didn't help either, and no serial on this machine. And IIRC I've
+> >>>> tried ramoops on this thing in the past but unfortunately the memory
+> >>>> got cleared on reboot.
+> >>>>
+> >>> Can you look at the documentation in the kernel code at
+> >>>
+> >>> Documentation/power/basic-pm-debugging.txt And follow the procedures
+> >>> for testing suspend to RAM (although it requires mostly running the
+> >>> same tests as for hibernation suspending).
+> >>>
+> >>> You can also use the tool s2ram for this as well.
+> >>>
+> >>> See Documentation/power/s2ram.txt
+> >>>
+> >>> Perhaps this can give us a bit more light onto the problem.
+> >>>
+> >>> Basically the above does partial suspend and resume, and can pinpoint
+> >>> problem areas down to a more select location.
+> >> All the pm_test modes work fine. The only difference between them was
+> >> that 'platform' required me to manually wake up the machine (hitting a
+> >> key was sufficient), whereas the others woke up without help.
+> >>
+> >> pm_trace gave me
+> >> [    1.306633]   Magic number: 0:185:178
+> >> [    1.322880]   hash matches ../drivers/base/power/main.c:1070
+> >> [    1.339270] acpi device:0e: hash matches
+> >> [    1.355414]  platform: hash matches
+> >>
+> >> which is the TRACE_SUSPEND in __device_suspend_noirq(), so no help
+> >> there.
+> >>
+> >> I guess I could try to sprinkle more TRACE_RESUMEs around into some
+> >> early resume code. If anyone has good ideas where to put them it
+> >> might speed things up a bit.
+> > So I did a bunch of that and found that it gets stuck somewhere
+> > around executing the _WAK method:
+> > platform_resume_noirq
+> >   acpi_pm_finish
+> >    acpi_leave_sleep_state
+> >     acpi_hw_sleep_dispatch
+> >      acpi_hw_legacy_wake
+> >       acpi_hw_execute_sleep_method
+> >        acpi_evaluate_object
+> >         acpi_ns_evaluate
+> >          acpi_ps_execute_method
+> >           acpi_ps_parse_aml
+> >
+> > It also seesm that adding a few TRACE_RESUME()s or an msleep() right
+> > after enable_nonboot_cpus() can avoid the hang, sometimes.
+> >
+> > I've attached the DSDT in case anyone is interested in looking at it.
+> >
 > 
-> Feel free to post such patch. I guess it's reasonable.
+> What if you comment out the execution of _WAK (line 318 of 
+> drivers/acpi/acpica/hwsleep.c in 4.6)?  Does that make any difference?
+
+Indeed it does. Tried with acpi_idle and intel_idle, and both appear to
+resume just fine with that hack.
+
+-       acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
++       //acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
++       printk(KERN_CRIT "skipping _WAK\n");
+
+-- 
+Ville Syrjälä
+Intel OTC
