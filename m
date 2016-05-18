@@ -1,110 +1,95 @@
-From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-Date: Wed, 18 May 2016 10:24:24 +0300
-Message-ID: <20160518072424.GU4329@intel.com>
-References: <20160511101920.GZ4329@intel.com>
- <57332171.8070403@linutronix.de>
- <20160511122116.GA4329@intel.com>
- <20160511084445.00030b49@gandalf.local.home>
- <20160511133406.GC4329@intel.com>
- <20160516193910.GL4329@intel.com>
- <573BA5E2.5040506@intel.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Date: Wed, 18 May 2016 12:21:46 +0100
+Message-ID: <20160518112145.GD22378@e104818-lin.cambridge.arm.com>
+References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
+ <1459894127-17698-21-git-send-email-ynorov@caviumnetworks.com>
+ <20160514150352.GA30533@yury-N73SV>
+ <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
+ <20160517190526.GA3731@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <573BA5E2.5040506@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, linux-kernel@vger.kernel.org, rui.zhang@intel.com, len.brown@intel.com, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+In-Reply-To: <20160517190526.GA3731@yury-N73SV>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwab@suse.de, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 18, 2016 at 01:14:42AM +0200, Rafael J. Wysocki wrote:
-> On 5/16/2016 9:39 PM, Ville Syrj=E4l=E4 wrote:
-> > On Wed, May 11, 2016 at 04:34:06PM +0300, Ville Syrj=E4l=E4 wrote:
-> >> On Wed, May 11, 2016 at 08:44:45AM -0400, Steven Rostedt wrote:
-> >>> On Wed, 11 May 2016 15:21:16 +0300
-> >>> Ville Syrj=E4l=E4 <ville.syrjala@linux.intel.com> wrote:
-> >>>
-> >>>> Yeah can't get anything from the machine at that point. netconso=
-le
-> >>>> didn't help either, and no serial on this machine. And IIRC I've
-> >>>> tried ramoops on this thing in the past but unfortunately the me=
-mory
-> >>>> got cleared on reboot.
-> >>>>
-> >>> Can you look at the documentation in the kernel code at
-> >>>
-> >>> Documentation/power/basic-pm-debugging.txt And follow the procedu=
-res
-> >>> for testing suspend to RAM (although it requires mostly running t=
-he
-> >>> same tests as for hibernation suspending).
-> >>>
-> >>> You can also use the tool s2ram for this as well.
-> >>>
-> >>> See Documentation/power/s2ram.txt
-> >>>
-> >>> Perhaps this can give us a bit more light onto the problem.
-> >>>
-> >>> Basically the above does partial suspend and resume, and can pinp=
-oint
-> >>> problem areas down to a more select location.
-> >> All the pm_test modes work fine. The only difference between them =
-was
-> >> that 'platform' required me to manually wake up the machine (hitti=
-ng a
-> >> key was sufficient), whereas the others woke up without help.
-> >>
-> >> pm_trace gave me
-> >> [    1.306633]   Magic number: 0:185:178
-> >> [    1.322880]   hash matches ../drivers/base/power/main.c:1070
-> >> [    1.339270] acpi device:0e: hash matches
-> >> [    1.355414]  platform: hash matches
-> >>
-> >> which is the TRACE_SUSPEND in __device_suspend_noirq(), so no help
-> >> there.
-> >>
-> >> I guess I could try to sprinkle more TRACE_RESUMEs around into som=
-e
-> >> early resume code. If anyone has good ideas where to put them it
-> >> might speed things up a bit.
-> > So I did a bunch of that and found that it gets stuck somewhere
-> > around executing the _WAK method:
-> > platform_resume_noirq
-> >   acpi_pm_finish
-> >    acpi_leave_sleep_state
-> >     acpi_hw_sleep_dispatch
-> >      acpi_hw_legacy_wake
-> >       acpi_hw_execute_sleep_method
-> >        acpi_evaluate_object
-> >         acpi_ns_evaluate
-> >          acpi_ps_execute_method
-> >           acpi_ps_parse_aml
-> >
-> > It also seesm that adding a few TRACE_RESUME()s or an msleep() righ=
-t
-> > after enable_nonboot_cpus() can avoid the hang, sometimes.
-> >
-> > I've attached the DSDT in case anyone is interested in looking at i=
-t.
-> >
->=20
-> What if you comment out the execution of _WAK (line 318 of=20
-> drivers/acpi/acpica/hwsleep.c in 4.6)?  Does that make any difference=
-?
+On Tue, May 17, 2016 at 10:05:26PM +0300, Yury Norov wrote:
+> On Mon, May 16, 2016 at 06:06:05PM +0100, Catalin Marinas wrote:
+> > On Sat, May 14, 2016 at 06:03:52PM +0300, Yury Norov wrote:
+> > > +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+> > > +       unsigned long, prot, unsigned long, flags, unsigned long, fd,
+> > > +       unsigned long, pgoff)
+> > 
+> > To avoid the types confusion we could add __SC_WRAP to mmap2 in unistd.h
+> > and use COMPAT_SYSCALL_DEFINE6 here (together with compat_ptr_t etc.).
+> > 
+> > > +{
+> > > +       if (pgoff & (~PAGE_MASK >> 12))
+> > > +               return -EINVAL;
+> > > +
+> > > +       return sys_mmap_pgoff((compat_uptr_t) addr, (compat_size_t) len,
+> > > +		       (int) prot, (int) flags, (int) fd,
+> > > +		       pgoff >> (PAGE_SHIFT-12));
+> > 
+> > Then we wouldn't need the explicit casting here.
+> 
+> See below
+> 
+> > > +}
+> > > +
+> > > +COMPAT_SYSCALL_DEFINE4(pread64, unsigned int, fd, compat_uptr_t __user *, ubuf,
+> > > +		       compat_size_t, count, off_t, offset)
+> > > +{
+> > > +	return sys_pread64(fd, (char *) ubuf, count, offset);
+> > > +}
+> > > +
+> > > +COMPAT_SYSCALL_DEFINE4(pwrite64, unsigned int, fd, compat_uptr_t __user *, ubuf,
+> > > +		       compat_size_t, count, off_t, offset)
+> > > +{
+> > > +	return sys_pwrite64(fd, (char *) ubuf, count, offset);
+> > 
+> > Nitpick: no space between cast type and variable name: (char *)ubuf, ...
+> 
+> I think it's really a matter of taste. I prefer to have a space, and
+> there's no solid rule in coding style.
+> 
+> And there are 13032 insertions of my version vs 35030 of yours:
+> ~/work/linux$ git grep ' \*)[a-zA-Z]'|wc -l
+> 35030
+> ~/work/linux$ git grep ' \*) [a-zA-Z]'|wc -l
+> 13032
+> 
+> Of course, I will change it if you insist.
 
-Indeed it does. Tried with acpi_idle and intel_idle, and both appear to
-resume just fine with that hack.
+Not really, I thought it's covered by CodingStyle but it doesn't seem
+to.
 
--       acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state)=
-;
-+       //acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_stat=
-e);
-+       printk(KERN_CRIT "skipping _WAK\n");
+> > We can also make these functions static as they are not used outside
+> > this file.
+> 
+> If it's OK, we can use just compat_sys_xxx() instead of
+> COMPAT_SYSCALL_DEFINEx(xxx),
 
---=20
-Ville Syrj=E4l=E4
-Intel OTC
+I got lost in macros, what difference would COMPAT_SYSCALL_DEFINE vs
+compat_sys_*() make? Is this the delouse stuff?
+
+> and for mmap2 we'll not need to change _SYSCALL to _SC_WRAP in
+> unistd.h that way.
+
+Looking at the generic unistd.h, adding _SC_WRAP for sys_mmap2 is
+indeed not easy:
+
+#define __NR3264_mmap 222
+__SC_3264(__NR3264_mmap, sys_mmap2, sys_mmap)
+
+So defining a compat_sys_mmap2() would work but I think you'd also need:
+
+#define sys_mmap2	compat_sys_mmap2()
+
+-- 
+Catalin
