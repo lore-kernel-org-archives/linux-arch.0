@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41158 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:42761 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753006AbcERPMD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 May 2016 11:12:03 -0400
-Subject: [RFC PATCH 11/15] x86: Use ISO bitops
+	id S1752868AbcERPMS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2016 11:12:18 -0400
+Subject: [RFC PATCH 13/15] x86: Improve spinlocks using ISO C++11 intrinsic
+ atomics
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 18 May 2016 16:12:00 +0100
-Message-ID: <146358432028.8596.7926127062587912916.stgit@warthog.procyon.org.uk>
+Date: Wed, 18 May 2016 16:12:15 +0100
+Message-ID: <146358433517.8596.492761570975545534.stgit@warthog.procyon.org.uk>
 In-Reply-To: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,216 +17,105 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
-Message-ID: <20160518151200.HjzqXrhJega98BtZskW4YSDL2VGCef2ZbiP3Ho3IQ4c@z>
+Message-ID: <20160518151215.ldB0hlZdrImnibZUswqdz-NV-_z9VygKNMyoaZPBixY@z>
 
-Make x86 use the ISO intrinsic bitops.
+Make some improvements to the x86 spinlock implementation using the ISO
+C++11 intrinsic atomic wrappers.  Note that since the spinlocks use
+cmpxchg(), xadd() and __add(), it already makes some use of this.
 
-This boots fine, however it can't NOP out the LOCK prefixes if the number
-of online CPUs is 1.
+ (1) Use acquire variants in spin_lock() and spin_trylock() paths.  On x86
+     this shouldn't actually make a difference.
 
-Without this patch, according to size -A, .text for my test kernel is:
+ (2) Use try_cmpxchg*() rather than cmpxchg*().  This should produce
+     slightly more efficient code as a comparison can be discarded in
+     favour of using the value in the Z flag.
 
-	.text                     6268277   18446744071578845184
-
-with this patch:
-
-	.text                     6273589   18446744071578845184
-
-There are still some underoptimisations to be dealt with.
+Note as mentioned before, the LOCK prefix is currently mandatory, but a gcc
+ticket is open to try and get these listed for suppression.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/x86/include/asm/bitops.h |  143 +----------------------------------------
- 1 file changed, 2 insertions(+), 141 deletions(-)
+ arch/x86/include/asm/qspinlock.h |    2 +-
+ arch/x86/include/asm/spinlock.h  |   18 ++++++++++--------
+ 2 files changed, 11 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-index 7766d1cf096e..f89aec3a41d2 100644
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -25,6 +25,8 @@
- # error "Unexpected BITS_PER_LONG"
- #endif
+diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+index eaba08076030..b56b8c2a9ed2 100644
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -55,7 +55,7 @@ static inline bool virt_spin_lock(struct qspinlock *lock)
+ 	do {
+ 		while (atomic_read(&lock->val) != 0)
+ 			cpu_relax();
+-	} while (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) != 0);
++	} while (!atomic_try_cmpxchg_acquire(&lock->val, 0, _Q_LOCKED_VAL));
  
-+#include <asm-generic/iso-bitops.h>
-+
- #define BIT_64(n)			(U64_C(1) << (n))
+ 	return true;
+ }
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index be0a05913b91..1cbddef2b3f3 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -81,7 +81,7 @@ static inline void __ticket_check_and_clear_slowpath(arch_spinlock_t *lock,
+ 		new.tickets.tail = old.tickets.tail;
  
- /*
-@@ -54,35 +56,6 @@
- #define CONST_MASK(nr)			(1 << ((nr) & 7))
- 
- /**
-- * set_bit - Atomically set a bit in memory
-- * @nr: the bit to set
-- * @addr: the address to start counting from
-- *
-- * This function is atomic and may not be reordered.  See __set_bit()
-- * if you do not require the atomic guarantees.
-- *
-- * Note: there are no guarantees that this function will not be reordered
-- * on non x86 architectures, so if you are writing portable code,
-- * make sure not to rely on its reordering guarantees.
-- *
-- * Note that @nr may be almost arbitrarily large; this function is not
-- * restricted to acting on a single-word quantity.
-- */
--static __always_inline void
--set_bit(long nr, volatile unsigned long *addr)
--{
--	if (IS_IMMEDIATE(nr)) {
--		asm volatile(LOCK_PREFIX "orb %1,%0"
--			: CONST_MASK_ADDR(nr, addr)
--			: "iq" ((u8)CONST_MASK(nr))
--			: "memory");
--	} else {
--		asm volatile(LOCK_PREFIX "bts %1,%0"
--			: BITOP_ADDR(addr) : "Ir" (nr) : "memory");
--	}
--}
--
--/**
-  * __set_bit - Set a bit in memory
-  * @nr: the bit to set
-  * @addr: the address to start counting from
-@@ -96,44 +69,6 @@ static __always_inline void __set_bit(long nr, volatile unsigned long *addr)
- 	asm volatile("bts %1,%0" : ADDR : "Ir" (nr) : "memory");
+ 		/* try to clear slowpath flag when there are no contenders */
+-		cmpxchg(&lock->head_tail, old.head_tail, new.head_tail);
++		try_cmpxchg_acquire(&lock->head_tail, old.head_tail, new.head_tail);
+ 	}
  }
  
--/**
-- * clear_bit - Clears a bit in memory
-- * @nr: Bit to clear
-- * @addr: Address to start counting from
-- *
-- * clear_bit() is atomic and may not be reordered.  However, it does
-- * not contain a memory barrier, so if it is used for locking purposes,
-- * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-- * in order to ensure changes are visible on other processors.
-- */
--static __always_inline void
--clear_bit(long nr, volatile unsigned long *addr)
--{
--	if (IS_IMMEDIATE(nr)) {
--		asm volatile(LOCK_PREFIX "andb %1,%0"
--			: CONST_MASK_ADDR(nr, addr)
--			: "iq" ((u8)~CONST_MASK(nr)));
--	} else {
--		asm volatile(LOCK_PREFIX "btr %1,%0"
--			: BITOP_ADDR(addr)
--			: "Ir" (nr));
--	}
--}
--
--/*
-- * clear_bit_unlock - Clears a bit in memory
-- * @nr: Bit to clear
-- * @addr: Address to start counting from
-- *
-- * clear_bit() is atomic and implies release semantics before the memory
-- * operation. It can be used for an unlock.
-- */
--static __always_inline void clear_bit_unlock(long nr, volatile unsigned long *addr)
--{
--	barrier();
--	clear_bit(nr, addr);
--}
--
- static __always_inline void __clear_bit(long nr, volatile unsigned long *addr)
+@@ -107,7 +107,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
  {
- 	asm volatile("btr %1,%0" : ADDR : "Ir" (nr));
-@@ -172,54 +107,6 @@ static __always_inline void __change_bit(long nr, volatile unsigned long *addr)
+ 	register struct __raw_tickets inc = { .tail = TICKET_LOCK_INC };
+ 
+-	inc = xadd(&lock->tickets, inc);
++	inc = xadd_acquire(&lock->tickets, inc);
+ 	if (likely(inc.head == inc.tail))
+ 		goto out;
+ 
+@@ -128,19 +128,21 @@ out:
+ 	barrier();	/* make sure nothing creeps before the lock is taken */
  }
  
- /**
-- * change_bit - Toggle a bit in memory
-- * @nr: Bit to change
-- * @addr: Address to start counting from
-- *
-- * change_bit() is atomic and may not be reordered.
-- * Note that @nr may be almost arbitrarily large; this function is not
-- * restricted to acting on a single-word quantity.
-- */
--static __always_inline void change_bit(long nr, volatile unsigned long *addr)
--{
--	if (IS_IMMEDIATE(nr)) {
--		asm volatile(LOCK_PREFIX "xorb %1,%0"
--			: CONST_MASK_ADDR(nr, addr)
--			: "iq" ((u8)CONST_MASK(nr)));
--	} else {
--		asm volatile(LOCK_PREFIX "btc %1,%0"
--			: BITOP_ADDR(addr)
--			: "Ir" (nr));
--	}
--}
--
--/**
-- * test_and_set_bit - Set a bit and return its old value
-- * @nr: Bit to set
-- * @addr: Address to count from
-- *
-- * This operation is atomic and cannot be reordered.
-- * It also implies a memory barrier.
-- */
--static __always_inline int test_and_set_bit(long nr, volatile unsigned long *addr)
--{
--	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", *addr, "Ir", nr, "%0", "c");
--}
--
--/**
-- * test_and_set_bit_lock - Set a bit and return its old value for lock
-- * @nr: Bit to set
-- * @addr: Address to count from
-- *
-- * This is the same as test_and_set_bit on x86.
-- */
--static __always_inline int
--test_and_set_bit_lock(long nr, volatile unsigned long *addr)
--{
--	return test_and_set_bit(nr, addr);
--}
--
--/**
-  * __test_and_set_bit - Set a bit and return its old value
-  * @nr: Bit to set
-  * @addr: Address to count from
-@@ -240,19 +127,6 @@ static __always_inline int __test_and_set_bit(long nr, volatile unsigned long *a
- }
- 
- /**
-- * test_and_clear_bit - Clear a bit and return its old value
-- * @nr: Bit to clear
-- * @addr: Address to count from
-- *
-- * This operation is atomic and cannot be reordered.
-- * It also implies a memory barrier.
-- */
--static __always_inline int test_and_clear_bit(long nr, volatile unsigned long *addr)
--{
--	GEN_BINARY_RMWcc(LOCK_PREFIX "btr", *addr, "Ir", nr, "%0", "c");
--}
--
--/**
-  * __test_and_clear_bit - Clear a bit and return its old value
-  * @nr: Bit to clear
-  * @addr: Address to count from
-@@ -292,19 +166,6 @@ static __always_inline int __test_and_change_bit(long nr, volatile unsigned long
- 	return oldbit;
- }
- 
--/**
-- * test_and_change_bit - Change a bit and return its old value
-- * @nr: Bit to change
-- * @addr: Address to count from
-- *
-- * This operation is atomic and cannot be reordered.
-- * It also implies a memory barrier.
-- */
--static __always_inline int test_and_change_bit(long nr, volatile unsigned long *addr)
--{
--	GEN_BINARY_RMWcc(LOCK_PREFIX "btc", *addr, "Ir", nr, "%0", "c");
--}
--
- static __always_inline int constant_test_bit(long nr, const volatile unsigned long *addr)
+-static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
++static __always_inline bool arch_spin_trylock(arch_spinlock_t *lock)
  {
- 	return ((1UL << (nr & (BITS_PER_LONG-1))) &
+ 	arch_spinlock_t old, new;
+ 
+ 	old.tickets = READ_ONCE(lock->tickets);
+ 	if (!__tickets_equal(old.tickets.head, old.tickets.tail))
+-		return 0;
++		return false;
+ 
+ 	new.head_tail = old.head_tail + (TICKET_LOCK_INC << TICKET_SHIFT);
+ 	new.head_tail &= ~TICKET_SLOWPATH_FLAG;
+ 
+-	/* cmpxchg is a full barrier, so nothing can move before it */
+-	return cmpxchg(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
++	/* Insert an acquire barrier with the cmpxchg so that nothing
++	 * can move before it.
++	 */
++	return try_cmpxchg_acquire(&lock->head_tail, old.head_tail, new.head_tail);
+ }
+ 
+ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
+@@ -151,14 +153,14 @@ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
+ 
+ 		BUILD_BUG_ON(((__ticket_t)NR_CPUS) != NR_CPUS);
+ 
+-		head = xadd(&lock->tickets.head, TICKET_LOCK_INC);
++		head = xadd_release(&lock->tickets.head, TICKET_LOCK_INC);
+ 
+ 		if (unlikely(head & TICKET_SLOWPATH_FLAG)) {
+ 			head &= ~TICKET_SLOWPATH_FLAG;
+ 			__ticket_unlock_kick(lock, (head + TICKET_LOCK_INC));
+ 		}
+ 	} else
+-		__add(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
++		add_release(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
+ }
+ 
+ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
 
