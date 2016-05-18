@@ -1,100 +1,395 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56376 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:52452 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751112AbcERLVx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 May 2016 07:21:53 -0400
-Date: Wed, 18 May 2016 12:21:46 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
- (in entry.S) to use it
-Message-ID: <20160518112145.GD22378@e104818-lin.cambridge.arm.com>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-21-git-send-email-ynorov@caviumnetworks.com>
- <20160514150352.GA30533@yury-N73SV>
- <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
- <20160517190526.GA3731@yury-N73SV>
+	id S1753609AbcERPLk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2016 11:11:40 -0400
+Subject: [RFC PATCH 08/15] Provide an implementation of bitops using C++11
+ atomics
+From: David Howells <dhowells@redhat.com>
+Date: Wed, 18 May 2016 16:11:37 +0100
+Message-ID: <146358429784.8596.1502798073172535624.stgit@warthog.procyon.org.uk>
+In-Reply-To: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
+References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160517190526.GA3731@yury-N73SV>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwab@suse.de, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-Message-ID: <20160518112146.0hk3MGH3LZ34okk--yoVSk6fu_fCfX153ygDdt3fg4E@z>
+To: linux-arch@vger.kernel.org
+Cc: x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, dhowells@redhat.com, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
+Message-ID: <20160518151137.g9qakIonLvz_0HPTOi2pnGBoScNNJD0GxF6MzJb1R50@z>
 
-On Tue, May 17, 2016 at 10:05:26PM +0300, Yury Norov wrote:
-> On Mon, May 16, 2016 at 06:06:05PM +0100, Catalin Marinas wrote:
-> > On Sat, May 14, 2016 at 06:03:52PM +0300, Yury Norov wrote:
-> > > +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-> > > +       unsigned long, prot, unsigned long, flags, unsigned long, fd,
-> > > +       unsigned long, pgoff)
-> > 
-> > To avoid the types confusion we could add __SC_WRAP to mmap2 in unistd.h
-> > and use COMPAT_SYSCALL_DEFINE6 here (together with compat_ptr_t etc.).
-> > 
-> > > +{
-> > > +       if (pgoff & (~PAGE_MASK >> 12))
-> > > +               return -EINVAL;
-> > > +
-> > > +       return sys_mmap_pgoff((compat_uptr_t) addr, (compat_size_t) len,
-> > > +		       (int) prot, (int) flags, (int) fd,
-> > > +		       pgoff >> (PAGE_SHIFT-12));
-> > 
-> > Then we wouldn't need the explicit casting here.
-> 
-> See below
-> 
-> > > +}
-> > > +
-> > > +COMPAT_SYSCALL_DEFINE4(pread64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> > > +		       compat_size_t, count, off_t, offset)
-> > > +{
-> > > +	return sys_pread64(fd, (char *) ubuf, count, offset);
-> > > +}
-> > > +
-> > > +COMPAT_SYSCALL_DEFINE4(pwrite64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> > > +		       compat_size_t, count, off_t, offset)
-> > > +{
-> > > +	return sys_pwrite64(fd, (char *) ubuf, count, offset);
-> > 
-> > Nitpick: no space between cast type and variable name: (char *)ubuf, ...
-> 
-> I think it's really a matter of taste. I prefer to have a space, and
-> there's no solid rule in coding style.
-> 
-> And there are 13032 insertions of my version vs 35030 of yours:
-> ~/work/linux$ git grep ' \*)[a-zA-Z]'|wc -l
-> 35030
-> ~/work/linux$ git grep ' \*) [a-zA-Z]'|wc -l
-> 13032
-> 
-> Of course, I will change it if you insist.
+Provide an implementation of various atomic bit functions using the
+__atomic_fetch_{and,or,xor}() C++11 atomics.  This involves creating a mask
+and adjusting the address in each function as the bit number can be greater
+than the number of bits in a word and can also be negative.
 
-Not really, I thought it's covered by CodingStyle but it doesn't seem
-to.
+On some arches, such as those that use LL/SC type constructs or CMPXCHG,
+AND/OR/XOR are normally used anyway so this is not a problem.  On
+powerpc64, for example:
 
-> > We can also make these functions static as they are not used outside
-> > this file.
-> 
-> If it's OK, we can use just compat_sys_xxx() instead of
-> COMPAT_SYSCALL_DEFINEx(xxx),
+	.test_and_set_bit:
+		clrlwi  r10,r3,26
+		rldicl  r3,r3,58,6
+		rldicr  r3,r3,3,60
+		li      r9,1
+		sld     r9,r9,r10
+		add     r4,r4,r3
+		hwsync
+	retry:	ldarx   r3,0,r4
+		or      r10,r3,r9	<--- OR is used here
+		stdcx.  r10,0,r4
+		bne-    retry
+		hwsync
+		and     r9,r9,r3
+		addic   r3,r9,-1
+		subfe   r3,r3,r9
+		blr
 
-I got lost in macros, what difference would COMPAT_SYSCALL_DEFINE vs
-compat_sys_*() make? Is this the delouse stuff?
+However, on some arches such as x86, there are bit wangling instructions
+that take a bit number and may even correctly handle bit numbers outside
+the range 0...BITS_PER_LONG-1.  Even on x86, if the result isn't of
+interest, it is apparently faster to use LOCKed AND/OR/XOR than to use
+LOCKed BTR/BTS/BTC.
 
-> and for mmap2 we'll not need to change _SYSCALL to _SC_WRAP in
-> unistd.h that way.
+However, the current gcc implementation always uses a CMPXCHG loop rather
+than using BTR/BTS/BTC, though it will still use AND/OR/XOR if it can:
 
-Looking at the generic unistd.h, adding _SC_WRAP for sys_mmap2 is
-indeed not easy:
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244
 
-#define __NR3264_mmap 222
-__SC_3264(__NR3264_mmap, sys_mmap2, sys_mmap)
+With this fixed,
 
-So defining a compat_sys_mmap2() would work but I think you'd also need:
+	bool try_test_and_change_bit(unsigned long *p)
+	{
+		return test_and_change_bit(83, p);
+	}
 
-#define sys_mmap2	compat_sys_mmap2()
+becomes:
 
--- 
-Catalin
+	foo_test_and_change_bit:
+		lock btcq $0x13,0x8(%rdi)
+		setb   %al
+		retq
+
+There are three things to note here:
+
+ (1) The SETB instruction is generated by the compiler.
+
+ (2) Because the memory variable is a long, BTCQ is used - which uses an
+     extra byte of opcode.  We could use BTCL instead as the inline asm
+     does... except that that generates technically broken code since the
+     bit number is a *64-bit* number and BTCL only takes a 32-bit bit
+     number.  I'm not sure that that is worth worrying about, however.
+
+ (3) The compiler divided the constant bit number between the immediate
+     value to the BTCQ instruction and the displacement on the memory
+     address.  The immediate value is, however, an imm8 so this is
+     unnecessary outside the range 127..-128 I think.
+
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c20
+
+Next there's:
+
+	const char *foo(unsigned long *p);
+	const char *foo_test_and_change_bit_2(unsigned long *p)
+	{
+		return test_and_change_bit(83, p) ? foo(p) : "bar";
+	}
+
+becomes:
+
+	foo_test_and_change_bit_2:
+		lock btcq $0x13,0x8(%rdi)
+		jae    .L5
+		jmpq   foo
+	.L5	mov    $.LC0,%eax
+		retq
+
+with the compiler generating a conditional jump around a tail-call to
+foo().
+
+Next, we can use a variable as the bit number rather than a constant.
+
+	bool foo_test_and_change_bit_3(unsigned long *p, long n)
+	{
+		return test_and_change_bit(n, p);
+	}
+
+becomes:
+
+	foo_test_and_change_bit_3:
+		mov    %rsi,%rax		}
+		and    $0x3f,%esi		} Splitting the bit number
+		sar    $0x6,%rax		}
+		lock btc %rsi,(%rdi,%rax,8)
+		setb   %al
+		retq
+
+As can be seen, the compiler again splits the bit number up unnecessarily
+since the CPU will do that.
+
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c13
+
+
+Finally, if we ignore the result:
+
+	void foo_test_and_change_bit_4(unsigned long *p)
+	{
+		test_and_change_bit(83, p);
+	}
+	void foo_test_and_change_bit_5(unsigned long *p, long n)
+	{
+		test_and_change_bit(n, p);
+	}
+
+the compiler will use XOR instead of BTC:
+
+	foo_test_and_change_bit_4:
+		lock xorq $0x80000,0x8(%rdi)
+		retq
+	foo_test_and_change_bit_5:
+		mov    %rsi,%rdx
+		mov    %esi,%ecx
+		mov    $0x1,%eax
+		sar    $0x6,%rdx
+		shl    %cl,%rax
+		lock xor %rax,(%rdi,%rdx,8)
+		retq
+
+Also, the compiler won't optimise __atomic_load[_n]() to either a TEST or a
+BT instruction:
+
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244#c13
+
+
+For arm64, if compiled with -march=armv8-a+lse this will generate LDCLR,
+LDSET and LDEOR instructions for __atomic_fetch_{and,or,xor}() with
+appropriate {,A,L,AL} suffixes.  However, because LSCLR is actually an
+AND-NOT not an AND, the operand is negated by the compiler to undo the
+negation by the CPU.  This combined with the ~ operator in the code to
+generate the mask:
+
+	static __always_inline
+	bool iso_test_and_clear_bit(long bit, volatile unsigned long *addr,
+				    int memorder)
+	{
+		unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
+		unsigned long old;
+
+		addr += bit >> _BITOPS_LONG_SHIFT;
+  --->		old = __atomic_fetch_and(addr, ~mask, memorder);
+		return old & mask;
+	}
+
+means that the mask gets effectively negated three times:
+
+	foo_clear_bit_unlock:
+		and     w3, w0, #0x3f
+		asr     x2, x0, #6
+		mov     x0, #0x1
+		add     x1, x1, x2, lsl #3
+		lsl     x0, x0, x3
+		mvn     x0, x0			<--- Negate from my code
+		mvn     x2, x0			<--- Negate from atomic
+		ldclrl  x2, x2, [x1]		<--- Negate from CPU
+		ret
+
+including two redundant instructions.
+
+	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71153
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
+
+ include/asm-generic/iso-bitops.h |  181 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 181 insertions(+)
+ create mode 100644 include/asm-generic/iso-bitops.h
+
+diff --git a/include/asm-generic/iso-bitops.h b/include/asm-generic/iso-bitops.h
+new file mode 100644
+index 000000000000..64d5067e3a67
+--- /dev/null
++++ b/include/asm-generic/iso-bitops.h
+@@ -0,0 +1,181 @@
++/* Use ISO C++11 intrinsics to implement bitops.
++ *
++ * Copyright (C) 2016 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
++ */
++
++#ifndef _ASM_GENERIC_ISO_BITOPS_H
++#define _ASM_GENERIC_ISO_BITOPS_H
++
++#include <linux/compiler.h>
++#include <linux/types.h>
++
++static __always_inline
++bool test_bit(long bit, const volatile unsigned long *addr)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_load_n(addr, __ATOMIC_RELAXED);
++	return old & mask;
++}
++
++/**
++ * set_bit - Atomically set a bit in memory
++ * @bit: the bit to set
++ * @addr: the address to start counting from
++ *
++ * This function is atomic and may not be reordered.  See __set_bit() if you do
++ * not require the atomic guarantees.
++ *
++ * Note: there are no guarantees that this function will not be reordered on
++ * non x86 architectures, so if you are writing portable code, make sure not to
++ * rely on its reordering guarantees.
++ *
++ * Note that @bit may be almost arbitrarily large; this function is not
++ * restricted to acting on a single-word quantity.
++ */
++static __always_inline
++void iso_set_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_or(addr, mask, memorder);
++}
++
++#define set_bit(b, a) iso_set_bit((b), (a), __ATOMIC_ACQ_REL)
++
++/**
++ * set_bit_unlock - Sets a bit in memory with release semantics
++ * @bit: Bit to set
++ * @addr: Address to start counting from
++ *
++ * This function is atomic and implies release semantics before the memory
++ * operation. It can be used for an unlock.
++ */
++#define set_bit_unlock(b, a) iso_set_bit((b), (a), __ATOMIC_RELEASE)
++
++/**
++ * clear_bit - Sets a bit in memory
++ * @bit: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * clear_bit() is atomic and may not be reordered.  However, it does not
++ * contain a memory barrier, so if it is used for locking purposes, you should
++ * call smp_mb__before_atomic() and/or smp_mb__after_atomic() in order to
++ * ensure changes are visible on other processors.
++ */
++static __always_inline
++void iso_clear_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_and(addr, ~mask, memorder);
++}
++
++#define clear_bit(b, a) iso_clear_bit((b), (a), __ATOMIC_ACQ_REL)
++
++/**
++ * clear_bit_unlock - Clears a bit in memory with release semantics
++ * @bit: Bit to clear
++ * @addr: Address to start counting from
++ *
++ * This function is atomic and implies release semantics before the memory
++ * operation. It can be used for an unlock.
++ */
++#define clear_bit_unlock(b, a) iso_clear_bit((b), (a), __ATOMIC_RELEASE)
++
++/**
++ * change_bit - Toggle a bit in memory
++ * @bit: Bit to change
++ * @addr: Address to start counting from
++ *
++ * change_bit() is atomic and may not be reordered.  Note that @bit may be
++ * almost arbitrarily large; this function is not restricted to acting on a
++ * single-word quantity.
++ */
++static __always_inline
++void iso_change_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	__atomic_fetch_xor(addr, mask, memorder);
++}
++
++#define change_bit(b, a) iso_change_bit((b), (a), __ATOMIC_ACQ_REL)
++
++/**
++ * test_and_set_bit - Set a bit and return its old value
++ * @bit: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
++ */
++static __always_inline
++bool iso_test_and_set_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_or(addr, mask, memorder);
++	return old & mask;
++}
++
++#define test_and_set_bit(b, a)      iso_test_and_set_bit((b), (a), __ATOMIC_ACQ_REL)
++#define test_and_set_bit_lock(b, a) iso_test_and_set_bit((b), (a), __ATOMIC_ACQUIRE)
++
++/**
++ * test_and_clear_bit - Clear a bit and return its old value
++ * @bit: Bit to clear
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
++ */
++static __always_inline
++bool iso_test_and_clear_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_and(addr, ~mask, memorder);
++	return old & mask;
++}
++
++#define test_and_clear_bit(b, a)      iso_test_and_clear_bit((b), (a), __ATOMIC_ACQ_REL)
++#define test_and_clear_bit_lock(b, a) iso_test_and_clear_bit((b), (a), __ATOMIC_ACQUIRE)
++
++/**
++ * test_and_change_bit - Toggle a bit and return its old value
++ * @bit: Bit to toggle
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.  It also implies memory
++ * barriers both sides.
++ */
++static __always_inline
++bool iso_test_and_change_bit(long bit, volatile unsigned long *addr, int memorder)
++{
++	unsigned long mask = 1UL << (bit & (BITS_PER_LONG - 1));
++	unsigned long old;
++
++	addr += bit >> _BITOPS_LONG_SHIFT;
++	old = __atomic_fetch_xor(addr, mask, memorder);
++	return old & mask;
++}
++
++#define test_and_change_bit(b, a)     iso_test_and_change_bit((b), (a), __ATOMIC_ACQ_REL)
++
++#endif /* _ASM_GENERIC_ISO_BITOPS_H */
+
