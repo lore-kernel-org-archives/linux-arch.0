@@ -1,54 +1,84 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-Date: Thu, 19 May 2016 08:00:27 -0700
-Message-ID: <20160519150027.GT3528@linux.vnet.ibm.com>
-References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
- <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
- <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
- <10546.1463651539@warthog.procyon.org.uk>
- <20160519105000.GV3193@twins.programming.kicks-ass.net>
- <20160519142252.GR3528@linux.vnet.ibm.com>
- <20160519144117.GX3193@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>
+Subject: [PATCH v3 1/8] asm-generic/io.h: allow barriers in io{read,write}{16,32}be
+Date: Thu, 19 May 2016 18:10:43 +0300
+Message-ID: <1463670643-2527-1-git-send-email-horia.geanta@nxp.com>
+References: <1463670405-1059-1-git-send-email-horia.geanta@nxp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:58286 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754019AbcESPA1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 11:00:27 -0400
-Received: from localhost
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 19 May 2016 09:00:25 -0600
-Content-Disposition: inline
-In-Reply-To: <20160519144117.GX3193@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1463670405-1059-1-git-send-email-horia.geanta@nxp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Herbert Xu <herbert@gondor.apana.org.au>
+Cc: linux-crypto@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 19, 2016 at 04:41:17PM +0200, Peter Zijlstra wrote:
-> On Thu, May 19, 2016 at 07:22:52AM -0700, Paul E. McKenney wrote:
-> > Agreed, these sorts of instruction sequences make a lot of sense.
-> > Of course, if you stuff too many intructions and cache misses between
-> > the LL and the SC, the SC success probability starts dropping, but short
-> > seqeunces of non-memory-reference instructions like the above should be
-> > just fine.
-> 
-> In fact, pretty much every single LL/SC arch I've looked at doesn't
-> allow _any_ loads or stores inside and will guarantee SC failure (or
-> worse) if you do.
+While reviewing the addition of io{read,write}64be accessors, Arnd
 
-Last I know, PowerPC allowed memory-reference instructions inside, but
-the more of them you have, the less likely your reservation is to survive.
-But perhaps I missed some fine print somewhere.  And in any case,
-omitting them is certainly better.
+-finds a potential problem:
+"If an architecture overrides readq/writeq to have barriers but does
+not override ioread64be/iowrite64be, this will lack the barriers and
+behave differently from the little-endian version. I think the only
+affected architecture is ARC, since ARM and ARM64 both override the
+big-endian accessors to have the correct barriers, and all others
+don't use barriers at all."
 
-> This immediately disqualifies things like calls/traps/etc.. because
-> those implicitly issue stores.
+-suggests a fix for the same problem in existing code (16/32-bit
+accessors); the fix leads "to a double-swap on architectures that
+don't override the io{read,write}{16,32}be accessors, but it will
+work correctly on all architectures without them having to override
+these accessors."
 
-Traps for sure.  Not so sure about calls on PowerPC.
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Horia Geant=C4=83 <horia.geanta@nxp.com>
+---
+ include/asm-generic/io.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-							Thanx, Paul
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index eed3bbe88c8a..b79fb2c248a1 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -613,7 +613,7 @@ static inline void iowrite32(u32 value, volatile vo=
+id __iomem *addr)
+ #define ioread16be ioread16be
+ static inline u16 ioread16be(const volatile void __iomem *addr)
+ {
+-	return __be16_to_cpu(__raw_readw(addr));
++	return swab16(readw(addr));
+ }
+ #endif
+=20
+@@ -621,7 +621,7 @@ static inline u16 ioread16be(const volatile void __=
+iomem *addr)
+ #define ioread32be ioread32be
+ static inline u32 ioread32be(const volatile void __iomem *addr)
+ {
+-	return __be32_to_cpu(__raw_readl(addr));
++	return swab32(readl(addr));
+ }
+ #endif
+=20
+@@ -629,7 +629,7 @@ static inline u32 ioread32be(const volatile void __=
+iomem *addr)
+ #define iowrite16be iowrite16be
+ static inline void iowrite16be(u16 value, void volatile __iomem *addr)
+ {
+-	__raw_writew(__cpu_to_be16(value), addr);
++	writew(swab16(value), addr);
+ }
+ #endif
+=20
+@@ -637,7 +637,7 @@ static inline void iowrite16be(u16 value, void vola=
+tile __iomem *addr)
+ #define iowrite32be iowrite32be
+ static inline void iowrite32be(u32 value, volatile void __iomem *addr)
+ {
+-	__raw_writel(__cpu_to_be32(value), addr);
++	writel(swab32(value), addr);
+ }
+ #endif
+=20
+--=20
+2.4.4
