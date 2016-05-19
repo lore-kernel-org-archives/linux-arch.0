@@ -1,125 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0055.outbound.protection.outlook.com ([207.46.100.55]:52576
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751992AbcERR7J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 May 2016 13:59:09 -0400
-Date: Wed, 18 May 2016 20:58:59 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 20/25] arm64:ilp32: add sys_ilp32.c and a separate table
- (in entry.S) to use it
-Message-ID: <20160518175859.GA2560@yury-N73SV>
-References: <1459894127-17698-1-git-send-email-ynorov@caviumnetworks.com>
- <1459894127-17698-21-git-send-email-ynorov@caviumnetworks.com>
- <20160514150352.GA30533@yury-N73SV>
- <20160516170605.GB19290@e104818-lin.cambridge.arm.com>
- <20160517190526.GA3731@yury-N73SV>
- <20160518112145.GD22378@e104818-lin.cambridge.arm.com>
+Received: from mail-lf0-f53.google.com ([209.85.215.53]:33958 "EHLO
+	mail-lf0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753711AbcESL33 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 07:29:29 -0400
+Received: by mail-lf0-f53.google.com with SMTP id m64so34802966lfd.1
+        for <linux-arch@vger.kernel.org>; Thu, 19 May 2016 04:29:28 -0700 (PDT)
+From: "Niklas =?iso-8859-1?Q?S=F6derlund?=" <niklas.soderlund@ragnatech.se>
+Date: Thu, 19 May 2016 13:29:26 +0200
+Subject: Re: [PATCHv6 3/8] dma-mapping: add dma_{map,unmap}_resource
+Message-ID: <20160519112926.GO29375@bigcity.dyn.berto.se>
+References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160517145445.GE4074@char.us.oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20160518112145.GD22378@e104818-lin.cambridge.arm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20160517145445.GE4074@char.us.oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, Nathan_Lynch@mentor.com, joseph@codesourcery.com, linux-doc@vger.kernel.org, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, schwab@suse.de, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-Message-ID: <20160518175859.OQavMAdabNgcJ_vnu_EUH3fguWRFXuYtCjB-NmT-pmE@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
+Message-ID: <20160519112926.izxvuDse2uwd0wGWR2C0TjCyRd2sdbb9RkpKFk5-O4Q@z>
 
-On Wed, May 18, 2016 at 12:21:46PM +0100, Catalin Marinas wrote:
-> On Tue, May 17, 2016 at 10:05:26PM +0300, Yury Norov wrote:
-> > On Mon, May 16, 2016 at 06:06:05PM +0100, Catalin Marinas wrote:
-> > > On Sat, May 14, 2016 at 06:03:52PM +0300, Yury Norov wrote:
-> > > > +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
-> > > > +       unsigned long, prot, unsigned long, flags, unsigned long, fd,
-> > > > +       unsigned long, pgoff)
-> > > 
-> > > To avoid the types confusion we could add __SC_WRAP to mmap2 in unistd.h
-> > > and use COMPAT_SYSCALL_DEFINE6 here (together with compat_ptr_t etc.).
-> > > 
-> > > > +{
-> > > > +       if (pgoff & (~PAGE_MASK >> 12))
-> > > > +               return -EINVAL;
-> > > > +
-> > > > +       return sys_mmap_pgoff((compat_uptr_t) addr, (compat_size_t) len,
-> > > > +		       (int) prot, (int) flags, (int) fd,
-> > > > +		       pgoff >> (PAGE_SHIFT-12));
-> > > 
-> > > Then we wouldn't need the explicit casting here.
-> > 
-> > See below
-> > 
-> > > > +}
-> > > > +
-> > > > +COMPAT_SYSCALL_DEFINE4(pread64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> > > > +		       compat_size_t, count, off_t, offset)
-> > > > +{
-> > > > +	return sys_pread64(fd, (char *) ubuf, count, offset);
-> > > > +}
-> > > > +
-> > > > +COMPAT_SYSCALL_DEFINE4(pwrite64, unsigned int, fd, compat_uptr_t __user *, ubuf,
-> > > > +		       compat_size_t, count, off_t, offset)
-> > > > +{
-> > > > +	return sys_pwrite64(fd, (char *) ubuf, count, offset);
-> > > 
-> > > Nitpick: no space between cast type and variable name: (char *)ubuf, ...
-> > 
-> > I think it's really a matter of taste. I prefer to have a space, and
-> > there's no solid rule in coding style.
-> > 
-> > And there are 13032 insertions of my version vs 35030 of yours:
-> > ~/work/linux$ git grep ' \*)[a-zA-Z]'|wc -l
-> > 35030
-> > ~/work/linux$ git grep ' \*) [a-zA-Z]'|wc -l
-> > 13032
-> > 
-> > Of course, I will change it if you insist.
-> 
-> Not really, I thought it's covered by CodingStyle but it doesn't seem
-> to.
-> 
-> > > We can also make these functions static as they are not used outside
-> > > this file.
-> > 
-> > If it's OK, we can use just compat_sys_xxx() instead of
-> > COMPAT_SYSCALL_DEFINEx(xxx),
-> 
-> I got lost in macros, what difference would COMPAT_SYSCALL_DEFINE vs
-> compat_sys_*() make? Is this the delouse stuff?
-> 
+Hi Konrad,
 
-Hmm... I looked again. It seems that COMPAT delouses all arguments,
-including off_t, and that's what we try to avoid. So we *should* use
-naked functions. 
+Thanks for your feedback.
 
-include/linux/compat.h:
-53 #define COMPAT_SYSCALL_DEFINEx(x, name, ...) \
-54         asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
-55              __attribute__((alias(__stringify(compat_SyS##name))));  \
-56         static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-57         asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
-58         asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
-59         { \
-60                 return C_SYSC##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__)); \
-61         } \
-62         static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-
-
-> > and for mmap2 we'll not need to change _SYSCALL to _SC_WRAP in
-> > unistd.h that way.
+On 2016-05-17 10:54:45 -0400, Konrad Rzeszutek Wilk wrote:
+> >  
+> > -In some circumstances dma_map_single() and dma_map_page() will fail to create
+> > -a mapping. A driver can check for these errors by testing the returned
+> > -DMA address with dma_mapping_error(). A non-zero return value means the mapping
+> > -could not be created and the driver should take appropriate action (e.g.
+> > -reduce current DMA mapping usage or delay and try again later).
+> > +In some circumstances dma_map_single(), dma_map_page() and dma_map_resource()
+> > +will fail to create a mapping. A driver can check for these errors by testing
+> > +the returned DMA address with dma_mapping_error(). A non-zero return value
+> > +means the mapping could not be created and the driver should take appropriate
+> > +action (e.g. reduce current DMA mapping usage or delay and try again later).
 > 
-> Looking at the generic unistd.h, adding _SC_WRAP for sys_mmap2 is
-> indeed not easy:
-> 
-> #define __NR3264_mmap 222
-> __SC_3264(__NR3264_mmap, sys_mmap2, sys_mmap)
-> 
-> So defining a compat_sys_mmap2() would work but I think you'd also need:
-> 
+> This looks like it belongs to another patch?
 
-> #define sys_mmap2	compat_sys_mmap2()
+No it is correct (at least intended to be in this patch). All it really 
+do is inject dma_map_resource() (which is added in this patch) as one of 
+the calls which return dma_addr_t should be checked for error using 
+dma_mapping_error().  But yes the change effect all lines in the 
+paragraph due to line wrapping.
 
-OK.
+Hum or maybe I'm misunderstanding your question.
 
-> 
-> -- 
-> Catalin
+-- 
+Regards,
+Niklas Söderlund
