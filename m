@@ -1,58 +1,79 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-Date: Thu, 19 May 2016 12:50:00 +0200
-Message-ID: <20160519105000.GV3193@twins.programming.kicks-ass.net>
-References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
- <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
- <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
- <10546.1463651539@warthog.procyon.org.uk>
+From: "Niklas =?iso-8859-1?Q?S=F6derlund?=" <niklas.soderlund@ragnatech.se>
+Subject: Re: [PATCHv6 2/8] dma-debug: add support for resource mappings
+Date: Thu, 19 May 2016 13:21:22 +0200
+Message-ID: <20160519112122.GN29375@bigcity.dyn.berto.se>
+References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1462812247-3414-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160517145002.GD4074@char.us.oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39004 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754181AbcESKuJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 06:50:09 -0400
+Received: from mail-lf0-f49.google.com ([209.85.215.49]:34781 "EHLO
+	mail-lf0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753995AbcESLV0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 07:21:26 -0400
+Received: by mail-lf0-f49.google.com with SMTP id m64so34655155lfd.1
+        for <linux-arch@vger.kernel.org>; Thu, 19 May 2016 04:21:25 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <10546.1463651539@warthog.procyon.org.uk>
+In-Reply-To: <20160517145002.GD4074@char.us.oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com, dwmw2@infradead.org
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
 
-On Thu, May 19, 2016 at 10:52:19AM +0100, David Howells wrote:
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > Does this generate 'sane' code for LL/SC archs? That is, a single LL/SC
-> > loop and not a loop around an LL/SC cmpxchg.
+Hi Konrad,
 
-> I think the code it generates should look something like:
-> 
-> 	test_atomic_add_unless:
-> 	.L7:
-> 		ldaxr	w1, [x0]		# __atomic_load_n()
-> 		cmp	w1, 35			# } if (cur == unless)
-> 		beq	.L4			# }     break
-> 		add	w2, w1, 86		# new = cur + addend
-> 		stlxr	w4, w2, [x0]
-> 		cbnz	w4, .L7
-> 	.L4:
-> 		mov	w1, w0
-> 		ret
-> 
-> but that requires the compiler to split up the LDAXR and STLXR instructions
-> and render arbitrary code between.
+Thanks for your feedback.
 
-Exactly.
+On 2016-05-17 10:50:02 -0400, Konrad Rzeszutek Wilk wrote:
+> > +void debug_dma_map_resource(struct device *dev, phys_addr_t addr, =
+size_t size,
+> > +			    int direction, dma_addr_t dma_addr)
+> > +{
+> > +	struct dma_debug_entry *entry;
+> > +
+> > +	if (unlikely(dma_debug_disabled()))
+> > +		return;
+> > +
+> > +	entry =3D dma_entry_alloc();
+> > +	if (!entry)
+> > +		return;
+> > +
+> > +	entry->type		=3D dma_debug_resource;
+> > +	entry->dev		=3D dev;
+> > +	entry->pfn		=3D __phys_to_pfn(addr);
+> > +	entry->offset		=3D addr - PHYS_PFN(entry->pfn);
+>=20
+> Is that right?=20
 
-> I suspect that might be quite a stretch.
-> 
-> I've opened:
-> 
-> 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71191
-> 
-> to cover this.
+You are correct that should be:
 
-Thanks; until such time as this stretch has been made I don't see this
-intrinsic stuff being much use on any of the LL/SC archs.
+   entry->offset =3D addr - PFN_PHYS(entry->pfn);
+
+Or even better:
+
+   entry->offset =3D addr - __pfn_to_phys(entry->pfn);
+
+I will address this and resend late next week, still hoping for some=20
+more feedback.
+
+>=20
+> __phys_to_pfn(addr) is PHYS_PFN(addr), so what you get here is
+>=20
+> addr - PHYS_PFN(PHYS_PFN(addr)) ?
+>=20
+>=20
+> > +	entry->size		=3D size;
+> > +	entry->dev_addr		=3D dma_addr;
+> > +	entry->direction	=3D direction;
+> > +	entry->map_err_type	=3D MAP_ERR_NOT_CHECKED;
+> > +
+> > +	add_dma_entry(entry);
+> > +}
+> > +EXPORT_SYMBOL(debug_dma_map_resource);
+> > +
+
+--=20
+Regards,
+Niklas S=F6derlund
