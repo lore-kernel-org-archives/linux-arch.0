@@ -1,242 +1,150 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 00/15] Provide atomics and bitops implemented with
- ISO C++11 atomics
-Date: Wed, 18 May 2016 17:23:44 -0700
-Message-ID: <20160519002344.GF3528@linux.vnet.ibm.com>
+From: David Woodhouse <dwmw2@infradead.org>
+Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
+ ISO-C++11 atomics
+Date: Thu, 19 May 2016 08:36:49 +0100
+Message-ID: <1463643409.6885.5.camel@infradead.org>
 References: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
-Reply-To: paulmck@linux.vnet.ibm.com
+	 <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
+	 <20160518173218.GE3206@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg="sha-256";
+	protocol="application/x-pkcs7-signature";
+	boundary="=-18gpzD5MWqmeoERBciCw"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:36706 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751142AbcESAXt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 May 2016 20:23:49 -0400
-Received: from localhost
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 18 May 2016 18:23:48 -0600
-Content-Disposition: inline
-In-Reply-To: <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
+Received: from bombadil.infradead.org ([198.137.202.9]:37719 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753711AbcESHg4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 03:36:56 -0400
+In-Reply-To: <20160518173218.GE3206@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
+To: Peter Zijlstra <peterz@infradead.org>, David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, paulmck@linux.vnet.ibm.com
 
-On Wed, May 18, 2016 at 04:10:37PM +0100, David Howells wrote:
-> 
-> Here's a set of patches to provide kernel atomics and bitops implemented
-> with ISO C++11 atomic intrinsics.  The second part of the set makes the x86
-> arch use the implementation.
-> 
-> Note that the x86 patches are very rough.  It would need to be made
-> compile-time conditional in some way and the old code can't really be
-> thrown away that easily - but it's a good way to make sure I'm not using
-> that code any more.
 
-Good to see this!!!
+--=-18gpzD5MWqmeoERBciCw
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-[ . . . ]
+On Wed, 2016-05-18 at 19:32 +0200, Peter Zijlstra wrote:
+>=20
+> Does this generate 'sane' code for LL/SC archs? That is, a single LL/SC
+> loop and not a loop around an LL/SC cmpxchg.
 
-> There are some disadvantages also:
-> 
->  (1) It's not available in gcc before gcc-4.7 and there will be some
->      seriously suboptimal code production before gcc-7.1.
+The whole point of using compiler intrinsics and letting the compiler
+actually see what's going on... is that it bloody well should :)
 
-Probably need to keep the old stuff around for quite some time.
-But it would be good to test the C11 stuff out in any case.
+--=20
+dwmw2
 
->  (2) The compiler might misoptimise - for example, it might generate a
->      CMPXCHG loop rather than a BTR instruction to clear a bit.
 
-Which is one reason it would be very good to test it out.  ;-)
+--=-18gpzD5MWqmeoERBciCw
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Disposition: attachment; filename="smime.p7s"
+Content-Transfer-Encoding: base64
 
->  (3) The C++11 memory model permits atomic instructions to be merged if
->      appropriate - for example, two adjacent __atomic_read() calls might
->      get merged if the return value of the first isn't examined.  Making
->      the pointers volatile alleviates this.  Note that gcc doesn't do this
->      yet.
+MIAGCSqGSIb3DQEHAqCAMIACAQExDzANBglghkgBZQMEAgEFADCABgkqhkiG9w0BBwEAAKCCEeAw
+ggXiMIIDyqADAgECAhBrp4p9CteI1lEK+Vnk57ThMA0GCSqGSIb3DQEBCwUAMH0xCzAJBgNVBAYT
+AklMMRYwFAYDVQQKEw1TdGFydENvbSBMdGQuMSswKQYDVQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0
+aWZpY2F0ZSBTaWduaW5nMSkwJwYDVQQDEyBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0
+eTAeFw0xNTEyMTYwMTAwMDVaFw0zMDEyMTYwMTAwMDVaMHUxCzAJBgNVBAYTAklMMRYwFAYDVQQK
+Ew1TdGFydENvbSBMdGQuMSkwJwYDVQQLEyBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0
+eTEjMCEGA1UEAxMaU3RhcnRDb20gQ2xhc3MgMSBDbGllbnQgQ0EwggEiMA0GCSqGSIb3DQEBAQUA
+A4IBDwAwggEKAoIBAQC9fdr3w6J9g/Zbgv3bW1+uHht1wLUZr5gkrLtXedg17AkefMyUGwrQdvwO
+bhajcVmnKVxhrUwkZPXRAwZZosRHfEIi5FH7x6SV/8Sp5lZEuiMnvMFG2MzLA84J6Ws5T4NfXZ0q
+n4TPgnr3X2vPVS51M7Ua9nIJgn8jvTra4eyyQzxvuA/GZwKg7VQfDCmCS+kICslYYWgXOMt2xlsS
+slxLce0CGWRsT8EpMyt1iDflSjXZIsE7m1uTyHaKZspMLyIyz6mySu8j8BWWHpChNNeTrFuhVfrO
+AyDPFJVUvKZCLKBhibTLloyy+LatoWELrjdI4a8StZY8+dIR9t4APXGzAgMBAAGjggFkMIIBYDAO
+BgNVHQ8BAf8EBAMCAQYwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMEMBIGA1UdEwEB/wQI
+MAYBAf8CAQAwMgYDVR0fBCswKTAnoCWgI4YhaHR0cDovL2NybC5zdGFydHNzbC5jb20vc2ZzY2Eu
+Y3JsMGYGCCsGAQUFBwEBBFowWDAkBggrBgEFBQcwAYYYaHR0cDovL29jc3Auc3RhcnRzc2wuY29t
+MDAGCCsGAQUFBzAChiRodHRwOi8vYWlhLnN0YXJ0c3NsLmNvbS9jZXJ0cy9jYS5jcnQwHQYDVR0O
+BBYEFCSBbDlhvkkPj7cbRivJKLUnSG1oMB8GA1UdIwQYMBaAFE4L7xqkQFulF2mHMMo0aEPQQa7y
+MD8GA1UdIAQ4MDYwNAYEVR0gADAsMCoGCCsGAQUFBwIBFh5odHRwOi8vd3d3LnN0YXJ0c3NsLmNv
+bS9wb2xpY3kwDQYJKoZIhvcNAQELBQADggIBAIvj94fsAYuErQ8BAluc4SMnIwS9NPBwAm5SH9uh
+2NCXTq7im61g7F1LIiNI/+wq37fUuaMbz4g7VarKQTgf8ubs0p7NZWcIe7Bvem2AWaXBsxsaRTYw
+5kG3DN8pd1hSEUuFoTa7DmNeFe8tiK1BrL3rbA/m48jp4AiFXgvxprJrW7izsyetOrRHPbkW4Y07
+v29MdhaPv3u1JELyszXqOzjIYo4sWlC8iDQXwgSW/ntvWy2n4LuiaozlCfXl149tKeqvwlvrla2Y
+klue/quWp9j9ou4T/OY0CXMuY+B8wNK0ohd2D4ShgFlMSjzAFRoHGKF81snTr2d1A7Ew02oF6UQy
+CkC2aNNsK5cWOojBar5c7HplX9aHYUCZouxIeU28SONJAxnATgR4cJ2jrpmYSz/kliUJ46S6UpVD
+o/ebn9c6PaM/XtDYCCaM/7XX6wc3s++sbQ7CtCn1Ax7df6ufQbwyO0V+oFa9H0KAsjHMzcwk3EV2
+B2NLatidKE/m7G+rB9m+FlVgIiSp0mGlg43QO9Kh1+JqvTCIzv2bJJkmPMLQJNuKKwHNL8F4GGp6
+jbAV+WL+LDeGfVcq8DHS3LrD+xyYEXQBiqZEdiPVOMxLDSUCXsDO0uCWpaNQ8j6y6S9p0xE/Ga0p
+eVLadVHhqf9nXqKaxnr358VgfrxzUIrvOaOjMIIF+TCCBOGgAwIBAgIQaRjuleoVgt0XsPAUByve
+JDANBgkqhkiG9w0BAQsFADB1MQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjEp
+MCcGA1UECxMgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxIzAhBgNVBAMTGlN0YXJ0
+Q29tIENsYXNzIDEgQ2xpZW50IENBMB4XDTE2MDMxMjE2MjEyNVoXDTE3MDMxMjE2MjEyNVowQjEc
+MBoGA1UEAwwTZHdtdzJAaW5mcmFkZWFkLm9yZzEiMCAGCSqGSIb3DQEJARYTZHdtdzJAaW5mcmFk
+ZWFkLm9yZzCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBANBDAiGnoeOIQJ/Aolutct4z
+x6Yt3dOUI5d0YnydAMNOiyVLXzHuuuVjUpk/6nRxg1FN3e0i3TWe5MjSTD98760qWoAuF2g5BGU+
+tN/GUsyws26ZWOt82w7xhn4dcI8EhmASUtwDTZs5ZXPQzSkuNs6uX5SY0eKPlBNHkAtMf39hNc4m
+liy6WRDKApZxA1vCbiHsJQZdNEBYO35022bu8PZBe6LSAFKoncoGMHl1xNEkN6kfOJFYnLqBYeXO
+2mDA8KZ4h15EnQyyHGSghN92OUTc9stAWEt9a+q6TCtyW5zNgYTaaOtE41t5x2xDAgsnNU7sVM8f
+wSR3tYeW9IqTgU6eDUllb1a9FK7es3+j9UDg7OxNv9rnXIda6TdXlGWYfFltujF7FMwTofq3UG7t
+w68Ugk0MMfpZadhPhjYLI/qXiEDgQi8Xr+eWSo5P0ygaLvAz8OPcWAt8RG5Y8Id9hpb5neW1HTAR
+Q+k8lbpkx2wDPHZEft0ITROOupf76f9CNF4jYcyCKZNnjSsKeJv69VX1TsVaeqT1LJUEudXLa/BK
+FSb7x5M1KF4z46yImJrnagI19Nk/ufWn1usBXqXh8pY8cVN/I7C+TDPBY5SqIceTq7DaHZp19JQU
+IIWlyRsm2d4UoVcgIdTjX57Odap4Pjzrfp2RmC6hvkW2hQ5EreIPAgMBAAGjggG2MIIBsjAOBgNV
+HQ8BAf8EBAMCBLAwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMEMAkGA1UdEwQCMAAwHQYD
+VR0OBBYEFBDmK2IjZJ7MKmBK0A7J/tKaSIdoMB8GA1UdIwQYMBaAFCSBbDlhvkkPj7cbRivJKLUn
+SG1oMG8GCCsGAQUFBwEBBGMwYTAkBggrBgEFBQcwAYYYaHR0cDovL29jc3Auc3RhcnRzc2wuY29t
+MDkGCCsGAQUFBzAChi1odHRwOi8vYWlhLnN0YXJ0c3NsLmNvbS9jZXJ0cy9zY2EuY2xpZW50MS5j
+cnQwOAYDVR0fBDEwLzAtoCugKYYnaHR0cDovL2NybC5zdGFydHNzbC5jb20vc2NhLWNsaWVudDEu
+Y3JsMB4GA1UdEQQXMBWBE2R3bXcyQGluZnJhZGVhZC5vcmcwIwYDVR0SBBwwGoYYaHR0cDovL3d3
+dy5zdGFydHNzbC5jb20vMEYGA1UdIAQ/MD0wOwYLKwYBBAGBtTcBAgQwLDAqBggrBgEFBQcCARYe
+aHR0cDovL3d3dy5zdGFydHNzbC5jb20vcG9saWN5MA0GCSqGSIb3DQEBCwUAA4IBAQAn5wvdgC0V
+kS226sFKAbqPnmVhc9jgrbsiXUcpdtYEzv6EZonARIeRC1UlIzK7jzZFRe95W5y4/qlcPQDoAeZL
+cSsbpW3AYPFFWdRgVp/eIR3iy9C5KEcAbkJES2lRUZWyRqAceW1Gur9kfvjM5H0kM6BBwJfCtoqo
+WragTXfsIXGNsF0F+60mUYYsKFPZzPmyz9J0Dr0xx9Lcp4fbD6UckDWCNJt2AJAiEPt/vPiiBzU8
+edaRzkYhzxd9f3pZAzhlzIf2CgTrGtKSL2X1bS/b3siREjQLhVrlGw4qxqllqER3APrDzyijLFuc
+CWpS8hxjTmYcNZSibv+3Oy6uU+wqMIIF+TCCBOGgAwIBAgIQaRjuleoVgt0XsPAUByveJDANBgkq
+hkiG9w0BAQsFADB1MQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjEpMCcGA1UE
+CxMgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxIzAhBgNVBAMTGlN0YXJ0Q29tIENs
+YXNzIDEgQ2xpZW50IENBMB4XDTE2MDMxMjE2MjEyNVoXDTE3MDMxMjE2MjEyNVowQjEcMBoGA1UE
+AwwTZHdtdzJAaW5mcmFkZWFkLm9yZzEiMCAGCSqGSIb3DQEJARYTZHdtdzJAaW5mcmFkZWFkLm9y
+ZzCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBANBDAiGnoeOIQJ/Aolutct4zx6Yt3dOU
+I5d0YnydAMNOiyVLXzHuuuVjUpk/6nRxg1FN3e0i3TWe5MjSTD98760qWoAuF2g5BGU+tN/GUsyw
+s26ZWOt82w7xhn4dcI8EhmASUtwDTZs5ZXPQzSkuNs6uX5SY0eKPlBNHkAtMf39hNc4mliy6WRDK
+ApZxA1vCbiHsJQZdNEBYO35022bu8PZBe6LSAFKoncoGMHl1xNEkN6kfOJFYnLqBYeXO2mDA8KZ4
+h15EnQyyHGSghN92OUTc9stAWEt9a+q6TCtyW5zNgYTaaOtE41t5x2xDAgsnNU7sVM8fwSR3tYeW
+9IqTgU6eDUllb1a9FK7es3+j9UDg7OxNv9rnXIda6TdXlGWYfFltujF7FMwTofq3UG7tw68Ugk0M
+MfpZadhPhjYLI/qXiEDgQi8Xr+eWSo5P0ygaLvAz8OPcWAt8RG5Y8Id9hpb5neW1HTARQ+k8lbpk
+x2wDPHZEft0ITROOupf76f9CNF4jYcyCKZNnjSsKeJv69VX1TsVaeqT1LJUEudXLa/BKFSb7x5M1
+KF4z46yImJrnagI19Nk/ufWn1usBXqXh8pY8cVN/I7C+TDPBY5SqIceTq7DaHZp19JQUIIWlyRsm
+2d4UoVcgIdTjX57Odap4Pjzrfp2RmC6hvkW2hQ5EreIPAgMBAAGjggG2MIIBsjAOBgNVHQ8BAf8E
+BAMCBLAwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMEMAkGA1UdEwQCMAAwHQYDVR0OBBYE
+FBDmK2IjZJ7MKmBK0A7J/tKaSIdoMB8GA1UdIwQYMBaAFCSBbDlhvkkPj7cbRivJKLUnSG1oMG8G
+CCsGAQUFBwEBBGMwYTAkBggrBgEFBQcwAYYYaHR0cDovL29jc3Auc3RhcnRzc2wuY29tMDkGCCsG
+AQUFBzAChi1odHRwOi8vYWlhLnN0YXJ0c3NsLmNvbS9jZXJ0cy9zY2EuY2xpZW50MS5jcnQwOAYD
+VR0fBDEwLzAtoCugKYYnaHR0cDovL2NybC5zdGFydHNzbC5jb20vc2NhLWNsaWVudDEuY3JsMB4G
+A1UdEQQXMBWBE2R3bXcyQGluZnJhZGVhZC5vcmcwIwYDVR0SBBwwGoYYaHR0cDovL3d3dy5zdGFy
+dHNzbC5jb20vMEYGA1UdIAQ/MD0wOwYLKwYBBAGBtTcBAgQwLDAqBggrBgEFBQcCARYeaHR0cDov
+L3d3dy5zdGFydHNzbC5jb20vcG9saWN5MA0GCSqGSIb3DQEBCwUAA4IBAQAn5wvdgC0VkS226sFK
+AbqPnmVhc9jgrbsiXUcpdtYEzv6EZonARIeRC1UlIzK7jzZFRe95W5y4/qlcPQDoAeZLcSsbpW3A
+YPFFWdRgVp/eIR3iy9C5KEcAbkJES2lRUZWyRqAceW1Gur9kfvjM5H0kM6BBwJfCtoqoWragTXfs
+IXGNsF0F+60mUYYsKFPZzPmyz9J0Dr0xx9Lcp4fbD6UckDWCNJt2AJAiEPt/vPiiBzU8edaRzkYh
+zxd9f3pZAzhlzIf2CgTrGtKSL2X1bS/b3siREjQLhVrlGw4qxqllqER3APrDzyijLFucCWpS8hxj
+TmYcNZSibv+3Oy6uU+wqMYIEXjCCBFoCAQEwgYkwdTELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0
+YXJ0Q29tIEx0ZC4xKTAnBgNVBAsTIFN0YXJ0Q29tIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MSMw
+IQYDVQQDExpTdGFydENvbSBDbGFzcyAxIENsaWVudCBDQQIQaRjuleoVgt0XsPAUByveJDANBglg
+hkgBZQMEAgEFAKCCAaUwGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcN
+MTYwNTE5MDczNjQ5WjAvBgkqhkiG9w0BCQQxIgQgpzGHtPogNpb3i2L50qUhjvXpu9W05tV3OgCd
+5myDAVYwgZoGCSsGAQQBgjcQBDGBjDCBiTB1MQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRD
+b20gTHRkLjEpMCcGA1UECxMgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxIzAhBgNV
+BAMTGlN0YXJ0Q29tIENsYXNzIDEgQ2xpZW50IENBAhBpGO6V6hWC3Rew8BQHK94kMIGcBgsqhkiG
+9w0BCRACCzGBjKCBiTB1MQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjEpMCcG
+A1UECxMgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxIzAhBgNVBAMTGlN0YXJ0Q29t
+IENsYXNzIDEgQ2xpZW50IENBAhBpGO6V6hWC3Rew8BQHK94kMA0GCSqGSIb3DQEBAQUABIICAHfl
+ugCjIVE0CIQiyHTwLe3L3vAmwEBaVUQRjk7mtMsf/A6exCdF8Y076NwHgmVS7yY91dXd9lGt2M3v
+D0RlpqV+1HPxu06PFdTijpUUMQ7YlpHyO7Be/yBWKFyDIJLjnVbwL6gPs/ABTsJDsxRGeF0vmaae
+c/LPVOZnsI8XneYBIh5TGSNI8RHZwbHlkoxjtLfn0JzeAyDbTOA+1e6Ft634g7ntLskuOFj9rgfC
+UuUqejEsUt41SSq7LXjpSQ8j3IIGKkD/bE2Z/4sK2bcyrx7Sm/yoaEbeudOJoyHLRIA8z//cPdH5
+cXuivV06ZGIYmimoeU5c8jm2sWQsI0hGogO5DzKe4w9q+E9PWVqvMl7QS+67QgT48VmPM8x0yUsF
+X2cFT0xdzsWwRNUgKaRqBXDqA457X2lNhOVy0iTi8x9jXWctdX4aYMg10EC/w5GW+95QEeDqW+P2
+tCvm8krDidIlDzEB+3tTACwsJi1XevaFTF3eoS7MAK6snMaf2BGeb++m0/veuo/sLtkkvtSGM3bu
+U8b708vgmcB44mgdXJGBRjpU9MyM6y2Pgy7H17e1G6Va9sy0w5xU1e5SA1J+Cpp42Ma8eAaahUL2
+XdU+DSPC+DRMckTdzWskuvBf6B87MWaZmm2gzx3v3cucPUmMKBRwvJ2zT5i2Bcc0JnU6cfzPAAAA
+AAAA
 
-I could imagine a few situations where merging would be a good thing.  But
-I can also imagine a great number where it would be very bad.
 
->  (4) The C++11 memory barriers are, in general, weaker than the kernel's
->      memory barriers are defined to be.  Whether this actually matters is
->      arch dependent.  Further, the C++11 memory barriers are
->      acquire/release, but some arches actually have load/store instead -
->      which may be a problem.
-
-C++11 does have memory_order_seq_cst barriers via atomic_thread_fence(),
-and on many architectures they are strong enough for the Linux kernel.
-However, the standard does not guarantee this.  (But it is difficult
-on x86, ARM, and PowerPC to produce C++11 semantics without also producing
-Linux-kernel semantics.)
-
-C++11 has acquire/release barriers as well as acquire loads and release
-stores.  Some of this will need case-by-case analysis.  Here is a (dated)
-attempt:
-
-http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0124r1.html
-
->  (5) On x86, the compiler doesn't tell you where the LOCK prefixes are so
->      they cannot be suppressed if only one CPU is online.
-> 
-> 
-> Things to be considered:
-> 
->  (1) We could weaken the kernel memory model to for the benefit of arches
->      that have instructions that employ explicit acquire/release barriers -
->      but that may cause data races to occur based on assumptions we've
->      already made.  Note, however, that powerpc already seems to have a
->      weaker memory model.
-
-PowerPC has relatively weak ordering for lock and unlock, and also for
-load-acquire and store-release.  However, last I checked, it had full
-ordering for value-returning read-modify-write atomic operations.  As
-you say, C11 could potentially produce weaker results.  However, it
-should be possible to fix this where necessary.
-
->  (2) There are three sets of atomics (atomic_t, atomic64_t and
->      atomic_long_t).  I can either put each in a separate file all nicely
->      laid out (see patch 3) or I can make a template header (see patch 4)
->      and use #defines with it to make all three atomics from one piece of
->      code.  Which is best?  The first is definitely easier to read, but the
->      second might be easier to maintain.
-
-The template-header approach is more compatible with the ftrace
-macros.  ;-)
-
->  (3) I've added cmpxchg_return() and try_cmpxchg() to replace cmpxchg().
->      I've also provided atomicX_t variants of these.  These return the
->      boolean return value from the __atomic_compare_exchange_n() function
->      (which is carried in the Z flag on x86).  Should this be rolled out
->      even without the ISO atomic implementation?
-> 
->  (4) The current x86_64 bitops (set_bit() and co.) are technically broken.
->      The set_bit() function, for example, takes a 64-bit signed bit number
->      but implements this with BTSL, presumably because it's a shorter
->      instruction.
-> 
->      The BTS instruction's bit number operand, however, is sized according
->      to the memory operand, so the upper 32 bits of the bit number are
->      discarded by BTSL.  We should really be using BTSQ to implement this
->      correctly (and gcc does just that).  In practice, though, it would
->      seem unlikely that this will ever be a problem as I think we're
->      unlikely to have a bitset with more than ~2 billion bits in it within
->      the kernel (it would be >256MiB in size).
-> 
->      Patch 9 casts the pointers internally in the bitops functions to
->      persuade the kernel to use 32-bit bitops - but this only really
->      matters on x86.  Should set_bit() and co. take int rather than long
->      bit number arguments to make the point?
-
-No real opinion on #3 and #4.
-
-> I've opened a number of gcc bugzillas to improve the code generated by the
-> atomics:
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=49244
-> 
->      __atomic_fetch_{and,or,xor}() don't generate locked BTR/BTS/BTC on x86
->      and __atomic_load() doesn't generate TEST or BT.  There is a patch for
->      this, but it leaves some cases not fully optimised.
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70821
-> 
->      __atomic_fetch_{add,sub}() generates XADD rather than DECL when
->      subtracting 1 on x86.  There is a patch for this.
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70825
-> 
->      __atomic_compare_exchange_n() accesses the stack unnecessarily,
->      leading to extraneous stores being added when everything could be done
->      entirely within registers (on x86, powerpc64, aarch64).
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70973
-> 
->      Can the __atomic*() ops on x86 generate a list of LOCK prefixes?
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71153
-> 
->      aarch64 __atomic_fetch_and() generates a double inversion for the
->      LDSET instructions.  There is a patch for this.
-> 
->  (*) https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71162
-> 
->      powerpc64 should probably emit BNE- not BNE to retry the STDCX.
-> 
-> 
-> The patches can be found here also:
-> 
-> 	http://git.kernel.org/cgit/linux/kernel/git/dhowells/linux-fs.git/log/?h=iso-atomic
-> 
-> I have fixed up an x86_64 cross-compiler with the patches that I've been
-> given for the above and have booted the resulting kernel.
-
-Nice!!!
-
-							Thanx, Paul
-
-> David
-> ---
-> David Howells (15):
->       cmpxchg_local() is not signed-value safe, so fix generic atomics
->       tty: ldsem_cmpxchg() should use cmpxchg() not atomic_long_cmpxchg()
->       Provide atomic_t functions implemented with ISO-C++11 atomics
->       Convert 32-bit ISO atomics into a template
->       Provide atomic64_t and atomic_long_t using ISO atomics
->       Provide 16-bit ISO atomics
->       Provide cmpxchg(), xchg(), xadd() and __add() based on ISO C++11 intrinsics
->       Provide an implementation of bitops using C++11 atomics
->       Make the ISO bitops use 32-bit values internally
->       x86: Use ISO atomics
->       x86: Use ISO bitops
->       x86: Use ISO xchg(), cmpxchg() and friends
->       x86: Improve spinlocks using ISO C++11 intrinsic atomics
->       x86: Make the mutex implementation use ISO atomic ops
->       x86: Fix misc cmpxchg() and atomic_cmpxchg() calls to use try/return variants
-> 
-> 
->  arch/x86/events/amd/core.c                |    6 
->  arch/x86/events/amd/uncore.c              |    4 
->  arch/x86/include/asm/atomic.h             |  224 -----------
->  arch/x86/include/asm/bitops.h             |  143 -------
->  arch/x86/include/asm/cmpxchg.h            |   99 -----
->  arch/x86/include/asm/cmpxchg_32.h         |    3 
->  arch/x86/include/asm/cmpxchg_64.h         |    6 
->  arch/x86/include/asm/mutex.h              |    6 
->  arch/x86/include/asm/mutex_iso.h          |   73 ++++
->  arch/x86/include/asm/qspinlock.h          |    2 
->  arch/x86/include/asm/spinlock.h           |   18 +
->  arch/x86/kernel/acpi/boot.c               |   12 -
->  arch/x86/kernel/apic/apic.c               |    3 
->  arch/x86/kernel/cpu/mcheck/mce.c          |    7 
->  arch/x86/kernel/kvm.c                     |    5 
->  arch/x86/kernel/smp.c                     |    2 
->  arch/x86/kvm/mmu.c                        |    2 
->  arch/x86/kvm/paging_tmpl.h                |   11 -
->  arch/x86/kvm/vmx.c                        |   21 +
->  arch/x86/kvm/x86.c                        |   19 -
->  arch/x86/mm/pat.c                         |    2 
->  arch/x86/xen/p2m.c                        |    3 
->  arch/x86/xen/spinlock.c                   |    6 
->  drivers/tty/tty_ldsem.c                   |    2 
->  include/asm-generic/atomic.h              |   17 +
->  include/asm-generic/iso-atomic-long.h     |   32 ++
->  include/asm-generic/iso-atomic-template.h |  572 +++++++++++++++++++++++++++++
->  include/asm-generic/iso-atomic.h          |   28 +
->  include/asm-generic/iso-atomic16.h        |   27 +
->  include/asm-generic/iso-atomic64.h        |   28 +
->  include/asm-generic/iso-bitops.h          |  188 ++++++++++
->  include/asm-generic/iso-cmpxchg.h         |  180 +++++++++
->  include/linux/atomic.h                    |   26 +
->  33 files changed, 1225 insertions(+), 552 deletions(-)
->  create mode 100644 arch/x86/include/asm/mutex_iso.h
->  create mode 100644 include/asm-generic/iso-atomic-long.h
->  create mode 100644 include/asm-generic/iso-atomic-template.h
->  create mode 100644 include/asm-generic/iso-atomic.h
->  create mode 100644 include/asm-generic/iso-atomic16.h
->  create mode 100644 include/asm-generic/iso-atomic64.h
->  create mode 100644 include/asm-generic/iso-bitops.h
->  create mode 100644 include/asm-generic/iso-cmpxchg.h
-> 
+--=-18gpzD5MWqmeoERBciCw--
