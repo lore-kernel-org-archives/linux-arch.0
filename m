@@ -1,75 +1,75 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCHv6 2/8] dma-debug: add support for resource mappings
-Date: Thu, 19 May 2016 12:42:04 +0100
-Message-ID: <573DA68C.3060304@arm.com>
-References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1462812247-3414-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160517145002.GD4074@char.us.oracle.com>
- <20160519112122.GN29375@bigcity.dyn.berto.se>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
+ ISO-C++11 atomics
+Date: Thu, 19 May 2016 07:22:52 -0700
+Message-ID: <20160519142252.GR3528@linux.vnet.ibm.com>
+References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
+ <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
+ <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
+ <10546.1463651539@warthog.procyon.org.uk>
+ <20160519105000.GV3193@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-In-Reply-To: <20160519112122.GN29375@bigcity.dyn.berto.se>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e18.ny.us.ibm.com ([129.33.205.208]:35412 "EHLO
+	e18.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932686AbcESOWz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 10:22:55 -0400
+Received: from localhost
+	by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 19 May 2016 10:22:54 -0400
+Content-Disposition: inline
+In-Reply-To: <20160519105000.GV3193@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
 
-On 19/05/16 12:21, Niklas S=F6derlund wrote:
-> Hi Konrad,
->
-> Thanks for your feedback.
->
-> On 2016-05-17 10:50:02 -0400, Konrad Rzeszutek Wilk wrote:
->>> +void debug_dma_map_resource(struct device *dev, phys_addr_t addr, =
-size_t size,
->>> +			    int direction, dma_addr_t dma_addr)
->>> +{
->>> +	struct dma_debug_entry *entry;
->>> +
->>> +	if (unlikely(dma_debug_disabled()))
->>> +		return;
->>> +
->>> +	entry =3D dma_entry_alloc();
->>> +	if (!entry)
->>> +		return;
->>> +
->>> +	entry->type		=3D dma_debug_resource;
->>> +	entry->dev		=3D dev;
->>> +	entry->pfn		=3D __phys_to_pfn(addr);
->>> +	entry->offset		=3D addr - PHYS_PFN(entry->pfn);
->>
->> Is that right?
->
-> You are correct that should be:
->
->     entry->offset =3D addr - PFN_PHYS(entry->pfn);
->
-> Or even better:
->
->     entry->offset =3D addr - __pfn_to_phys(entry->pfn);
+On Thu, May 19, 2016 at 12:50:00PM +0200, Peter Zijlstra wrote:
+> On Thu, May 19, 2016 at 10:52:19AM +0100, David Howells wrote:
+> > Peter Zijlstra <peterz@infradead.org> wrote:
+> > 
+> > > Does this generate 'sane' code for LL/SC archs? That is, a single LL/SC
+> > > loop and not a loop around an LL/SC cmpxchg.
+> 
+> > I think the code it generates should look something like:
+> > 
+> > 	test_atomic_add_unless:
+> > 	.L7:
+> > 		ldaxr	w1, [x0]		# __atomic_load_n()
+> > 		cmp	w1, 35			# } if (cur == unless)
+> > 		beq	.L4			# }     break
+> > 		add	w2, w1, 86		# new = cur + addend
+> > 		stlxr	w4, w2, [x0]
+> > 		cbnz	w4, .L7
+> > 	.L4:
+> > 		mov	w1, w0
+> > 		ret
+> > 
+> > but that requires the compiler to split up the LDAXR and STLXR instructions
+> > and render arbitrary code between.
+> 
+> Exactly.
+> 
+> > I suspect that might be quite a stretch.
+> > 
+> > I've opened:
+> > 
+> > 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71191
+> > 
+> > to cover this.
 
-Better still, simply offset_in_page(addr) (as per dma_map_single()).
+Thank you!
 
-Robin.
+> Thanks; until such time as this stretch has been made I don't see this
+> intrinsic stuff being much use on any of the LL/SC archs.
 
-> I will address this and resend late next week, still hoping for some
-> more feedback.
->
->>
->> __phys_to_pfn(addr) is PHYS_PFN(addr), so what you get here is
->>
->> addr - PHYS_PFN(PHYS_PFN(addr)) ?
->>
->>
->>> +	entry->size		=3D size;
->>> +	entry->dev_addr		=3D dma_addr;
->>> +	entry->direction	=3D direction;
->>> +	entry->map_err_type	=3D MAP_ERR_NOT_CHECKED;
->>> +
->>> +	add_dma_entry(entry);
->>> +}
->>> +EXPORT_SYMBOL(debug_dma_map_resource);
->>> +
->
+Agreed, these sorts of instruction sequences make a lot of sense.
+Of course, if you stuff too many intructions and cache misses between
+the LL and the SC, the SC success probability starts dropping, but short
+seqeunces of non-memory-reference instructions like the above should be
+just fine.
+
+							Thanx, Paul
