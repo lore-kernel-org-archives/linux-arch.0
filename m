@@ -1,65 +1,38 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCHv6 3/8] dma-mapping: add dma_{map,unmap}_resource
-Date: Thu, 19 May 2016 10:22:48 -0400
-Message-ID: <20160519142248.GB21691@localhost.localdomain>
-References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160517145445.GE4074@char.us.oracle.com>
- <20160519112926.GO29375@bigcity.dyn.berto.se>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
+ ISO-C++11 atomics
+Date: Thu, 19 May 2016 16:41:17 +0200
+Message-ID: <20160519144117.GX3193@twins.programming.kicks-ass.net>
+References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
+ <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
+ <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
+ <10546.1463651539@warthog.procyon.org.uk>
+ <20160519105000.GV3193@twins.programming.kicks-ass.net>
+ <20160519142252.GR3528@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-renesas-soc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:39251 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754283AbcESOlZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 10:41:25 -0400
 Content-Disposition: inline
-In-Reply-To: <20160519112926.GO29375@bigcity.dyn.berto.se>
-Sender: linux-renesas-soc-owner@vger.kernel.org
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20160519142252.GR3528@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
 
-On Thu, May 19, 2016 at 01:29:26PM +0200, Niklas S=F6derlund wrote:
-> Hi Konrad,
->=20
-> Thanks for your feedback.
->=20
-> On 2016-05-17 10:54:45 -0400, Konrad Rzeszutek Wilk wrote:
-> > > =20
-> > > -In some circumstances dma_map_single() and dma_map_page() will f=
-ail to create
-> > > -a mapping. A driver can check for these errors by testing the re=
-turned
-> > > -DMA address with dma_mapping_error(). A non-zero return value me=
-ans the mapping
-> > > -could not be created and the driver should take appropriate acti=
-on (e.g.
-> > > -reduce current DMA mapping usage or delay and try again later).
-> > > +In some circumstances dma_map_single(), dma_map_page() and dma_m=
-ap_resource()
-> > > +will fail to create a mapping. A driver can check for these erro=
-rs by testing
-> > > +the returned DMA address with dma_mapping_error(). A non-zero re=
-turn value
-> > > +means the mapping could not be created and the driver should tak=
-e appropriate
-> > > +action (e.g. reduce current DMA mapping usage or delay and try a=
-gain later).
-> >=20
-> > This looks like it belongs to another patch?
->=20
-> No it is correct (at least intended to be in this patch). All it real=
-ly=20
-> do is inject dma_map_resource() (which is added in this patch) as one=
- of=20
-> the calls which return dma_addr_t should be checked for error using=20
-> dma_mapping_error().  But yes the change effect all lines in the=20
-> paragraph due to line wrapping.
->=20
-> Hum or maybe I'm misunderstanding your question.
+On Thu, May 19, 2016 at 07:22:52AM -0700, Paul E. McKenney wrote:
+> Agreed, these sorts of instruction sequences make a lot of sense.
+> Of course, if you stuff too many intructions and cache misses between
+> the LL and the SC, the SC success probability starts dropping, but short
+> seqeunces of non-memory-reference instructions like the above should be
+> just fine.
 
-I totally missed the 'dma_map_resource' in there and just read
-'dma_mapping_error'!
+In fact, pretty much every single LL/SC arch I've looked at doesn't
+allow _any_ loads or stores inside and will guarantee SC failure (or
+worse) if you do.
 
-<sigh> Thanks.
->=20
-> --=20
-> Regards,
-> Niklas S=F6derlund
+This immediately disqualifies things like calls/traps/etc.. because
+those implicitly issue stores.
