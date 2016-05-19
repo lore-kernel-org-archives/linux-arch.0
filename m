@@ -1,75 +1,65 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-Date: Thu, 19 May 2016 07:22:52 -0700
-Message-ID: <20160519142252.GR3528@linux.vnet.ibm.com>
-References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
- <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
- <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
- <10546.1463651539@warthog.procyon.org.uk>
- <20160519105000.GV3193@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCHv6 3/8] dma-mapping: add dma_{map,unmap}_resource
+Date: Thu, 19 May 2016 10:22:48 -0400
+Message-ID: <20160519142248.GB21691@localhost.localdomain>
+References: <1462812247-3414-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1462812247-3414-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <20160517145445.GE4074@char.us.oracle.com>
+ <20160519112926.GO29375@bigcity.dyn.berto.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e18.ny.us.ibm.com ([129.33.205.208]:35412 "EHLO
-	e18.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932686AbcESOWz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2016 10:22:55 -0400
-Received: from localhost
-	by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 19 May 2016 10:22:54 -0400
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-renesas-soc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160519105000.GV3193@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
+In-Reply-To: <20160519112926.GO29375@bigcity.dyn.berto.se>
+Sender: linux-renesas-soc-owner@vger.kernel.org
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, hch@infradead.org, linux-arch@vger.kernel.org, geert+renesas@glider.be, arnd@arndb.de, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 19, 2016 at 12:50:00PM +0200, Peter Zijlstra wrote:
-> On Thu, May 19, 2016 at 10:52:19AM +0100, David Howells wrote:
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > Does this generate 'sane' code for LL/SC archs? That is, a single LL/SC
-> > > loop and not a loop around an LL/SC cmpxchg.
-> 
-> > I think the code it generates should look something like:
-> > 
-> > 	test_atomic_add_unless:
-> > 	.L7:
-> > 		ldaxr	w1, [x0]		# __atomic_load_n()
-> > 		cmp	w1, 35			# } if (cur == unless)
-> > 		beq	.L4			# }     break
-> > 		add	w2, w1, 86		# new = cur + addend
-> > 		stlxr	w4, w2, [x0]
-> > 		cbnz	w4, .L7
-> > 	.L4:
-> > 		mov	w1, w0
-> > 		ret
-> > 
-> > but that requires the compiler to split up the LDAXR and STLXR instructions
-> > and render arbitrary code between.
-> 
-> Exactly.
-> 
-> > I suspect that might be quite a stretch.
-> > 
-> > I've opened:
-> > 
-> > 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71191
-> > 
-> > to cover this.
+On Thu, May 19, 2016 at 01:29:26PM +0200, Niklas S=F6derlund wrote:
+> Hi Konrad,
+>=20
+> Thanks for your feedback.
+>=20
+> On 2016-05-17 10:54:45 -0400, Konrad Rzeszutek Wilk wrote:
+> > > =20
+> > > -In some circumstances dma_map_single() and dma_map_page() will f=
+ail to create
+> > > -a mapping. A driver can check for these errors by testing the re=
+turned
+> > > -DMA address with dma_mapping_error(). A non-zero return value me=
+ans the mapping
+> > > -could not be created and the driver should take appropriate acti=
+on (e.g.
+> > > -reduce current DMA mapping usage or delay and try again later).
+> > > +In some circumstances dma_map_single(), dma_map_page() and dma_m=
+ap_resource()
+> > > +will fail to create a mapping. A driver can check for these erro=
+rs by testing
+> > > +the returned DMA address with dma_mapping_error(). A non-zero re=
+turn value
+> > > +means the mapping could not be created and the driver should tak=
+e appropriate
+> > > +action (e.g. reduce current DMA mapping usage or delay and try a=
+gain later).
+> >=20
+> > This looks like it belongs to another patch?
+>=20
+> No it is correct (at least intended to be in this patch). All it real=
+ly=20
+> do is inject dma_map_resource() (which is added in this patch) as one=
+ of=20
+> the calls which return dma_addr_t should be checked for error using=20
+> dma_mapping_error().  But yes the change effect all lines in the=20
+> paragraph due to line wrapping.
+>=20
+> Hum or maybe I'm misunderstanding your question.
 
-Thank you!
+I totally missed the 'dma_map_resource' in there and just read
+'dma_mapping_error'!
 
-> Thanks; until such time as this stretch has been made I don't see this
-> intrinsic stuff being much use on any of the LL/SC archs.
-
-Agreed, these sorts of instruction sequences make a lot of sense.
-Of course, if you stuff too many intructions and cache misses between
-the LL and the SC, the SC success probability starts dropping, but short
-seqeunces of non-memory-reference instructions like the above should be
-just fine.
-
-							Thanx, Paul
+<sigh> Thanks.
+>=20
+> --=20
+> Regards,
+> Niklas S=F6derlund
