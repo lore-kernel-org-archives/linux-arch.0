@@ -1,63 +1,43 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-Date: Fri, 20 May 2016 19:32:09 +1000
-Message-ID: <1463736729.23394.3.camel@ellerman.id.au>
-References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
-	 <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
-	 <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
-	 <10546.1463651539@warthog.procyon.org.uk>
-	 <20160519105000.GV3193@twins.programming.kicks-ass.net>
-	 <20160519142252.GR3528@linux.vnet.ibm.com>
-	 <20160519144117.GX3193@twins.programming.kicks-ass.net>
-	 <20160519150027.GT3528@linux.vnet.ibm.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [RFC v2 4/7] asm/sections: add a generic push_section_tbl()
+Date: Fri, 20 May 2016 21:53:20 +0200
+Message-ID: <20160520195320.GO11948@wotan.suse.de>
+References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
+ <1455889559-9428-5-git-send-email-mcgrof@kernel.org>
+ <56C77A8B.7080800@zytor.com>
+ <20160219210609.GU25240@wotan.suse.de>
+ <56CA7889.60000@zytor.com>
+ <20160226145603.GA3964@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160519150027.GT3528@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:55256 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751527AbcETTxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 May 2016 15:53:33 -0400
+Content-Disposition: inline
+In-Reply-To: <20160226145603.GA3964@osiris>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>, schwidefsky@de.ibm.com, linux-s390@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com, torvalds@linux-foundation.org
 
-On Thu, 2016-05-19 at 08:00 -0700, Paul E. McKenney wrote:
-> On Thu, May 19, 2016 at 04:41:17PM +0200, Peter Zijlstra wrote:
-> > On Thu, May 19, 2016 at 07:22:52AM -0700, Paul E. McKenney wrote:
-> > > Agreed, these sorts of instruction sequences make a lot of sense.
-> > > Of course, if you stuff too many intructions and cache misses between
-> > > the LL and the SC, the SC success probability starts dropping, but short
-> > > seqeunces of non-memory-reference instructions like the above should be
-> > > just fine.
+On Fri, Feb 26, 2016 at 03:56:04PM +0100, Heiko Carstens wrote:
+> On Sun, Feb 21, 2016 at 06:55:05PM -0800, H. Peter Anvin wrote:
+> > On 02/19/16 13:06, Luis R. Rodriguez wrote:
+> > >>
+> > >> I think the \n\t is unnecessary.
+> > > 
+> > > Super! I wonder if we we can just use this on s390 as well without it pooping?
+> > > I ask as this would set a precedent.
+> > > 
 > > 
-> > In fact, pretty much every single LL/SC arch I've looked at doesn't
-> > allow _any_ loads or stores inside and will guarantee SC failure (or
-> > worse) if you do.
+> > Ask Heike, but I think just ; or \n ought be be fine.  I do not know of
+> > *any* case where \t at the end of a string would ever be necessary, and
+> > it would *always* be possible to replace it with a space in a pinch.
 > 
-> Last I know, PowerPC allowed memory-reference instructions inside, but
-> the more of them you have, the less likely your reservation is to survive.
-> But perhaps I missed some fine print somewhere.  And in any case,
-> omitting them is certainly better.
+> \n should be fine on s390.
 
-There's nothing in the architecture AFAIK.
+Great, thanks, I'll move forward with just \n in v3.
 
-Also I don't see anything to indicate that doing more unrelated accesses makes
-the reservation more likely to be lost. Other than it causes you to hold the
-reservation for longer, which increases the chance of some other CPU accessing
-the variable.
-
-Having said that, the architecture is written to provide maximum wiggle room
-for implementations. So the list of things that may cause the reservation to be
-lost includes "Implementation-specific characteristics of the coherence
-mechanism", ie. anything.
-
-> > This immediately disqualifies things like calls/traps/etc.. because
-> > those implicitly issue stores.
-> 
-> Traps for sure.  Not so sure about calls on PowerPC.
-
-Actually no, exceptions (aka interrupts/traps) are explicitly defined to *not*
-clear the reservation. And function calls are just branches so should also be
-fine.
-
-cheers
+  Luis
