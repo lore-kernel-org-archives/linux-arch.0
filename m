@@ -1,43 +1,65 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [RFC v2 4/7] asm/sections: add a generic push_section_tbl()
-Date: Fri, 20 May 2016 21:53:20 +0200
-Message-ID: <20160520195320.GO11948@wotan.suse.de>
-References: <1455889559-9428-1-git-send-email-mcgrof@kernel.org>
- <1455889559-9428-5-git-send-email-mcgrof@kernel.org>
- <56C77A8B.7080800@zytor.com>
- <20160219210609.GU25240@wotan.suse.de>
- <56CA7889.60000@zytor.com>
- <20160226145603.GA3964@osiris>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v3 0/2] kbuild: Remove stale asm-generic wrappers
+Date: Mon, 23 May 2016 09:21:19 +0100
+Message-ID: <1463991681-3531-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:55256 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751527AbcETTxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 May 2016 15:53:33 -0400
-Content-Disposition: inline
-In-Reply-To: <20160226145603.GA3964@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>, schwidefsky@de.ibm.com, linux-s390@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org, linux-kernel@vger.kernel.org, luto@amacapital.net, boris.ostrovsky@oracle.com, rusty@rustcorp.com.au, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, ming.lei@canonical.com, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, benh@kernel.crashing.org, jbaron@akamai.com, ananth@in.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, masami.hiramatsu.pt@hitachi.com, andriy.shevchenko@linux.intel.com, dwmw2@infradead.org, xen-devel@lists.xensource.com, torvalds@linux-foundation.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 26, 2016 at 03:56:04PM +0100, Heiko Carstens wrote:
-> On Sun, Feb 21, 2016 at 06:55:05PM -0800, H. Peter Anvin wrote:
-> > On 02/19/16 13:06, Luis R. Rodriguez wrote:
-> > >>
-> > >> I think the \n\t is unnecessary.
-> > > 
-> > > Super! I wonder if we we can just use this on s390 as well without it pooping?
-> > > I ask as this would set a precedent.
-> > > 
-> > 
-> > Ask Heike, but I think just ; or \n ought be be fine.  I do not know of
-> > *any* case where \t at the end of a string would ever be necessary, and
-> > it would *always* be possible to replace it with a space in a pinch.
-> 
-> \n should be fine on s390.
+This patchset attempts to fix kbuild to automatically remove stale
+asm-generic wrappers, i.e. when files are removed from generic-y and
+added directly into arch/*/include/uapi/asm/, but where the existing
+wrapper in arch/*/include/generated/asm/ continues to be used.
 
-Great, thanks, I'll move forward with just \n in v3.
+MIPS was recently burned by this in v4.3 (see patch 2), with continuing
+reports of build failures when people upgrade their trees, which go away
+after arch/mips/include/generated is removed (or reportedly make
+mrproper/distclean). It is particularly irritating during bisection.
 
-  Luis
+Since v2 I've seen other cases of this breaking MIPS build, and testing
+on x86_64, starting a build first on v4.0 and then on mainline with this
+patchset shows one stale generated header:
+  REMOVE  arch/x86/include/generated/asm/scatterlist.h
+
+Changes in v3:
+- Ensure FORCE actually gets marked .PHONY.
+
+Changes in v2:
+- New patch 1 to add tracking of generated headers that aren't generic-y
+  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
+  robot).
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+
+James Hogan (2):
+  kbuild, x86: Track generated headers with generated-y
+  kbuild: Remove stale asm-generic wrappers
+
+ Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
+ arch/x86/include/asm/Kbuild        |  6 ++++++
+ scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
+ 3 files changed, 36 insertions(+), 1 deletion(-)
+
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Cc: linux-kbuild@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+-- 
+2.4.10
+
