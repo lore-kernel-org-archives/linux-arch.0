@@ -1,69 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:42352 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932150AbcETJcS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 May 2016 05:32:18 -0400
-Message-ID: <1463736729.23394.3.camel@ellerman.id.au>
-Subject: Re: [RFC PATCH 03/15] Provide atomic_t functions implemented with
- ISO-C++11 atomics
-From: Michael Ellerman <mpe@ellerman.id.au>
-Date: Fri, 20 May 2016 19:32:09 +1000
-In-Reply-To: <20160519150027.GT3528@linux.vnet.ibm.com>
-References: <20160518173218.GE3206@twins.programming.kicks-ass.net>
-	 <146358423711.8596.9104061348359986393.stgit@warthog.procyon.org.uk>
-	 <146358425972.8596.7418861336334796772.stgit@warthog.procyon.org.uk>
-	 <10546.1463651539@warthog.procyon.org.uk>
-	 <20160519105000.GV3193@twins.programming.kicks-ass.net>
-	 <20160519142252.GR3528@linux.vnet.ibm.com>
-	 <20160519144117.GX3193@twins.programming.kicks-ass.net>
-	 <20160519150027.GT3528@linux.vnet.ibm.com>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:47801 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753028AbcEWIVq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 May 2016 04:21:46 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v3 0/2] kbuild: Remove stale asm-generic wrappers
+Date: Mon, 23 May 2016 09:21:19 +0100
+Message-ID: <1463991681-3531-1-git-send-email-james.hogan@imgtec.com>
+MIME-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, will.deacon@arm.com, linux-kernel@vger.kernel.org, ramana.radhakrishnan@arm.com, dwmw2@infradead.org
-Message-ID: <20160520093209.v_Xs_ZeEYQXaZVSbNoPisLTpV6EiKuZC3j8Ky7pKOGA@z>
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20160523082119.H2_Z5xMxPoJHX4Y5ZG7z0DGK6P3g244Y2S1O6Nc_BaY@z>
 
-On Thu, 2016-05-19 at 08:00 -0700, Paul E. McKenney wrote:
-> On Thu, May 19, 2016 at 04:41:17PM +0200, Peter Zijlstra wrote:
-> > On Thu, May 19, 2016 at 07:22:52AM -0700, Paul E. McKenney wrote:
-> > > Agreed, these sorts of instruction sequences make a lot of sense.
-> > > Of course, if you stuff too many intructions and cache misses between
-> > > the LL and the SC, the SC success probability starts dropping, but short
-> > > seqeunces of non-memory-reference instructions like the above should be
-> > > just fine.
-> > 
-> > In fact, pretty much every single LL/SC arch I've looked at doesn't
-> > allow _any_ loads or stores inside and will guarantee SC failure (or
-> > worse) if you do.
-> 
-> Last I know, PowerPC allowed memory-reference instructions inside, but
-> the more of them you have, the less likely your reservation is to survive.
-> But perhaps I missed some fine print somewhere.  And in any case,
-> omitting them is certainly better.
+This patchset attempts to fix kbuild to automatically remove stale
+asm-generic wrappers, i.e. when files are removed from generic-y and
+added directly into arch/*/include/uapi/asm/, but where the existing
+wrapper in arch/*/include/generated/asm/ continues to be used.
 
-There's nothing in the architecture AFAIK.
+MIPS was recently burned by this in v4.3 (see patch 2), with continuing
+reports of build failures when people upgrade their trees, which go away
+after arch/mips/include/generated is removed (or reportedly make
+mrproper/distclean). It is particularly irritating during bisection.
 
-Also I don't see anything to indicate that doing more unrelated accesses makes
-the reservation more likely to be lost. Other than it causes you to hold the
-reservation for longer, which increases the chance of some other CPU accessing
-the variable.
+Since v2 I've seen other cases of this breaking MIPS build, and testing
+on x86_64, starting a build first on v4.0 and then on mainline with this
+patchset shows one stale generated header:
+  REMOVE  arch/x86/include/generated/asm/scatterlist.h
 
-Having said that, the architecture is written to provide maximum wiggle room
-for implementations. So the list of things that may cause the reservation to be
-lost includes "Implementation-specific characteristics of the coherence
-mechanism", ie. anything.
+Changes in v3:
+- Ensure FORCE actually gets marked .PHONY.
 
-> > This immediately disqualifies things like calls/traps/etc.. because
-> > those implicitly issue stores.
-> 
-> Traps for sure.  Not so sure about calls on PowerPC.
+Changes in v2:
+- New patch 1 to add tracking of generated headers that aren't generic-y
+  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
+  robot).
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
 
-Actually no, exceptions (aka interrupts/traps) are explicitly defined to *not*
-clear the reservation. And function calls are just branches so should also be
-fine.
+James Hogan (2):
+  kbuild, x86: Track generated headers with generated-y
+  kbuild: Remove stale asm-generic wrappers
 
-cheers
+ Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
+ arch/x86/include/asm/Kbuild        |  6 ++++++
+ scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
+ 3 files changed, 36 insertions(+), 1 deletion(-)
+
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Cc: linux-kbuild@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+-- 
+2.4.10
 
