@@ -1,65 +1,96 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 0/2] kbuild: Remove stale asm-generic wrappers
-Date: Mon, 23 May 2016 09:21:19 +0100
-Message-ID: <1463991681-3531-1-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 1/2] kbuild, x86: Track generated headers with generated-y
+Date: Mon, 23 May 2016 09:21:20 +0100
+Message-ID: <1463991681-3531-2-git-send-email-james.hogan@imgtec.com>
+References: <1463991681-3531-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Sender: linux-kbuild-owner@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:13834 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753324AbcEWIVr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 May 2016 04:21:47 -0400
+In-Reply-To: <1463991681-3531-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Jonathan Corbet <corbet@lwn.net>, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org
 
-This patchset attempts to fix kbuild to automatically remove stale
-asm-generic wrappers, i.e. when files are removed from generic-y and
-added directly into arch/*/include/uapi/asm/, but where the existing
-wrapper in arch/*/include/generated/asm/ continues to be used.
+Track generated header files which aren't already in genhdr-y, alongside
+generic-y wrappers in the */include/generated/[uapi/]asm/ directories.
+Currently only x86 generates extra headers in these directories, for the
+purposes of enumerating system calls for different ABIs, and xen
+hypercalls.
 
-MIPS was recently burned by this in v4.3 (see patch 2), with continuing
-reports of build failures when people upgrade their trees, which go away
-after arch/mips/include/generated is removed (or reportedly make
-mrproper/distclean). It is particularly irritating during bisection.
+This will allow the asm-generic wrapper handling code to remove stale
+wrappers when files are removed from generic-y, without also removing
+these headers which are generated separately.
 
-Since v2 I've seen other cases of this breaking MIPS build, and testing
-on x86_64, starting a build first on v4.0 and then on mainline with this
-patchset shows one stale generated header:
-  REMOVE  arch/x86/include/generated/asm/scatterlist.h
-
-Changes in v3:
-- Ensure FORCE actually gets marked .PHONY.
-
-Changes in v2:
-- New patch 1 to add tracking of generated headers that aren't generic-y
-  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
-  robot).
-- Rewrite a bit, drawing inspiration from Makefile.headersinst.
-- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
-
-James Hogan (2):
-  kbuild, x86: Track generated headers with generated-y
-  kbuild: Remove stale asm-generic wrappers
-
- Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
- arch/x86/include/asm/Kbuild        |  6 ++++++
- scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
- 3 files changed, 36 insertions(+), 1 deletion(-)
-
+Reported-by: kbuild test robot <fengguang.wu@intel.com>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
 Cc: Michal Marek <mmarek@suse.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@imgtec.com>
-Cc: Florian Fainelli <f.fainelli@gmail.com>
-Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Cc: linux-kbuild@vger.kernel.org
 Cc: x86@kernel.org
 Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
+---
+Changes in v2:
+- New patch (thanks to kbuild test robot).
+---
+ Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
+ arch/x86/include/asm/Kbuild        |  6 ++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 13f888a02a3d..385a5ef41c17 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -47,6 +47,7 @@ This document describes the Linux kernel Makefiles.
+ 		--- 7.2 genhdr-y
+ 		--- 7.3 destination-y
+ 		--- 7.4 generic-y
++		--- 7.5 generated-y
+ 
+ 	=== 8 Kbuild Variables
+ 	=== 9 Makefile language
+@@ -1319,6 +1320,19 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 		Example: termios.h
+ 			#include <asm-generic/termios.h>
+ 
++	--- 7.5 generated-y
++
++	If an architecture generates other header files alongside generic-y
++	wrappers, and not included in genhdr-y, then generated-y specifies
++	them.
++
++	This prevents them being treated as stale asm-generic wrappers and
++	removed.
++
++		Example:
++			#arch/x86/include/asm/Kbuild
++			generated-y += syscalls_32.h
++
+ === 8 Kbuild Variables
+ 
+ The top Makefile exports the following variables:
+diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
+index aeac434c9feb..2cfed174e3c9 100644
+--- a/arch/x86/include/asm/Kbuild
++++ b/arch/x86/include/asm/Kbuild
+@@ -1,5 +1,11 @@
+ 
+ 
++generated-y += syscalls_32.h
++generated-y += syscalls_64.h
++generated-y += unistd_32_ia32.h
++generated-y += unistd_64_x32.h
++generated-y += xen-hypercalls.h
++
+ genhdr-y += unistd_32.h
+ genhdr-y += unistd_64.h
+ genhdr-y += unistd_x32.h
 -- 
 2.4.10
-
