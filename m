@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0097.outbound.protection.outlook.com ([65.55.169.97]:11385
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0076.outbound.protection.outlook.com ([207.46.100.76]:17680
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752200AbcEXAFH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2016 20:05:07 -0400
+	id S1752441AbcEXAFL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 May 2016 20:05:11 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 01/23] all: syscall wrappers: add documentation
-Date: Tue, 24 May 2016 03:04:30 +0300
-Message-ID: <1464048292-30136-2-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 02/23] all: introduce COMPAT_WRAPPER option and enable it for s390
+Date: Tue, 24 May 2016 03:04:31 +0300
+Message-ID: <1464048292-30136-3-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,56 +16,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-Message-ID: <20160524000430.eiIlVS75qD1FU8r1qBYk29e97rRyQiFiEnPwpCSfBfQ@z>
+Message-ID: <20160524000431.gNcJY15BbePW-LUFQiQ34Pgba83-iH--YmAWRwlANoM@z>
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- Documentation/adding-syscalls.txt | 32 ++++++++++++++++++++++++++++++++
- 1 file changed, 32 insertions(+)
+ arch/Kconfig      | 4 ++++
+ arch/s390/Kconfig | 1 +
+ 2 files changed, 5 insertions(+)
 
-diff --git a/Documentation/adding-syscalls.txt b/Documentation/adding-syscalls.txt
-index cc2d4ac..d02a6bd 100644
---- a/Documentation/adding-syscalls.txt
-+++ b/Documentation/adding-syscalls.txt
-@@ -341,6 +341,38 @@ To summarize, you need:
-  - instance of __SC_COMP not __SYSCALL in include/uapi/asm-generic/unistd.h
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 81869a5..92fcbd4 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -589,6 +589,10 @@ config HAVE_STACK_VALIDATION
+ 	  Architecture supports the 'objtool check' host tool command, which
+ 	  performs compile-time stack metadata validation.
  
- 
-+Compatibility System Calls Wrappers
-+--------------------------------
++config COMPAT_WRAPPER
++	bool
++	depends on COMPAT
 +
-+Some architectures prevent 32-bit userspace from access to top halves of 64-bit
-+registers, but some not. It's not a problem if specific argument is the same
-+size in kernel and userspace. It also is not a problem if system call is already
-+handled by compatible routine. Otherwise we'd take care of it. Usually, glibc
-+and compiler handles register's top halve, but from kernel side, we cannot rely
-+on it, as malicious code may cause incorrect behaviour and/or security
-+vulnerabilities.
-+
-+For now, only s390 and arm64/ilp32 are affected.
-+
-+To clear that top halves, automatic wrappers are introduced. They clear all
-+required registers before passing control to regular syscall handler.
-+
-+If your architecture allows userspace code to access top halves of register,
-+you need to:
-+ - enable COMPAT_WRAPPER in configuration file;
-+ - declare: "#define __SC_WRAP(nr, sym) [nr] = compat_##sym,", just before
-+   compatible syscall table declaration, if you use generic unistd; or
-+ - declare compat wrappers manually, if you use non-generic syscall table.
-+   The list of unsafe syscalls is in kernel/compat_wrapper.
-+
-+If you write new syscall, make sure, its arguments are the same size in both
-+64- and 32-bits modes. If no, and if there's no explicit compat version for
-+syscall handler, you need to:
-+ - declare compat version prototype in 'include/linux/compat.h';
-+ - in 'include/uapi/asm-generic/unistd.h' declare syscall with macro '__SC_WRAP'
-+   instead of '__SYSCALL';
-+ - add corresponding line to 'kernel/compat_wrapper.c' to let it generate wrapper.
-+
- Compatibility System Calls (x86)
- --------------------------------
- 
+ #
+ # ABI hall of shame
+ #
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index bf24ab1..6d643b3 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -340,6 +340,7 @@ config COMPAT
+ 	select COMPAT_BINFMT_ELF if BINFMT_ELF
+ 	select ARCH_WANT_OLD_COMPAT_IPC
+ 	select COMPAT_OLD_SIGACTION
++	select COMPAT_WRAPPER
+ 	depends on MULTIUSER
+ 	help
+ 	  Select this option if you want to enable your system kernel to
 -- 
 2.5.0
 
