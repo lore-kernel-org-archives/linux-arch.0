@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0059.outbound.protection.outlook.com ([65.55.169.59]:65053
+Received: from mail-bl2on0070.outbound.protection.outlook.com ([65.55.169.70]:43488
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753102AbcEXAFm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2016 20:05:42 -0400
+	id S1753093AbcEXAFz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 May 2016 20:05:55 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 09/23] arm64: ensure the kernel is compiled for LP64
-Date: Tue, 24 May 2016 03:04:38 +0300
-Message-ID: <1464048292-30136-10-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 11/23] arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
+Date: Tue, 24 May 2016 03:04:40 +0300
+Message-ID: <1464048292-30136-12-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,49 +15,44 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Message-ID: <20160524000438.4YGexETr_PklLrroi2feNVsYur_14ElM7cEz0nIFs_E@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Andrew Pinski <apinski@cavium.com>
+Message-ID: <20160524000440.v2WNqgd66f1BVZAk-N1nP1Cm_wKdSHXL5pNmjuuB24s@z>
 
 From: Andrew Pinski <apinski@cavium.com>
 
-The kernel needs to be compiled as a LP64 binary for ARM64, even when
-using a compiler that defaults to code-generation for the ILP32 ABI.
-Consequently, we need to explicitly pass '-mabi=lp64' (supported on
-gcc-4.9 and newer).
+Define __BITS_PER_LONG depending on the ABI used (i.e. check whether
+__ILP32__ or __LP64__ is defined).  This is necessary for glibc to
+determine the appropriate type definitions for the system call interface.
 
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Signed-off-by: Andrew Pinski <apinski@cavium.com>
 Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
 Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/Makefile | 5 +++++
- 1 file changed, 5 insertions(+)
+ arch/arm64/include/uapi/asm/bitsperlong.h | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 354d754..29ebf23 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -35,14 +35,19 @@ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
- KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
- KBUILD_AFLAGS	+= $(lseinstr)
+diff --git a/arch/arm64/include/uapi/asm/bitsperlong.h b/arch/arm64/include/uapi/asm/bitsperlong.h
+index fce9c29..4265243 100644
+--- a/arch/arm64/include/uapi/asm/bitsperlong.h
++++ b/arch/arm64/include/uapi/asm/bitsperlong.h
+@@ -16,7 +16,14 @@
+ #ifndef __ASM_BITSPERLONG_H
+ #define __ASM_BITSPERLONG_H
  
-+KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
-+KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
-+
- ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
- KBUILD_CPPFLAGS	+= -mbig-endian
- AS		+= -EB
- LD		+= -EB
-+LDFLAGS		+= -maarch64linuxb
- else
- KBUILD_CPPFLAGS	+= -mlittle-endian
- AS		+= -EL
- LD		+= -EL
-+LDFLAGS		+= -maarch64linux
- endif
+-#define __BITS_PER_LONG 64
++#if defined(__LP64__)
++/* Assuming __LP64__ will be defined for native ELF64's and not for ILP32. */
++#  define __BITS_PER_LONG 64
++#elif defined(__ILP32__)
++#  define __BITS_PER_LONG 32
++#else
++#  error "Neither LP64 nor ILP32: unsupported ABI in asm/bitsperlong.h"
++#endif
  
- CHECKFLAGS	+= -D__aarch64__
+ #include <asm-generic/bitsperlong.h>
+ 
 -- 
 2.5.0
 
