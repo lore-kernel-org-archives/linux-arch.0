@@ -1,7 +1,7 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 08/23] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
-Date: Tue, 24 May 2016 03:04:37 +0300
-Message-ID: <1464048292-30136-9-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 06/23] compat ABI: use non-compat openat and open_by_handle_at variants
+Date: Tue, 24 May 2016 03:04:35 +0300
+Message-ID: <1464048292-30136-7-git-send-email-ynorov@caviumnetworks.com>
 References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,44 +12,31 @@ To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-Based on Andrew Pinski's patch-series.
+The only difference is that non-compat version forces O_LARGEFILE,
+and it should be the default behaviour for all architectures, as
+we don't support 32-bit off_t. The only exception is tile32, that
+continues with compat version of syscalls.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
 ---
- Documentation/arm64/ilp32.txt | 25 +++++++++++++++++++++++++
- 1 file changed, 25 insertions(+)
- create mode 100644 Documentation/arm64/ilp32.txt
+ arch/tile/kernel/compat.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
-new file mode 100644
-index 0000000..8e74d67
---- /dev/null
-+++ b/Documentation/arm64/ilp32.txt
-@@ -0,0 +1,25 @@
-+ILP32 AARCH64 SYSCALL ABI
-+=========================
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 4912084..489ae19 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+ #define compat_sys_readahead sys32_readahead
+ #define sys_llseek compat_sys_llseek
+ 
++#define sys_openat		compat_sys_openat
++#define sys_open_by_handle_at	compat_sys_open_by_handle_at
 +
-+This document describes the ILP32 syscall ABI and where it differs
-+from the generic compat linux syscall interface.
-+
-+Syscalls which normally would pass 64bit values as two arguments;
-+now pass the 64bit value as one argument. Next syscalls are affected:
-+fadvise64_64,
-+fallocate,
-+ftruncate,
-+lookup_dcookie,
-+pread64,
-+pwrite64,
-+readahead,
-+shmat,
-+sync_file_range,
-+truncate,
-+lseek,
-+mmap
-+
-+struct rt_sigframe is redefined and contains struct compat_siginfo,
-+as compat syscalls expects, and struct ilp32_sigframe, to handle
-+AARCH64 register set and 32-bit userspace register representation.
-+
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
 -- 
 2.5.0
