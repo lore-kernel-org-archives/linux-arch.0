@@ -1,65 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0056.outbound.protection.outlook.com ([157.56.111.56]:9536
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754796AbcEXOyn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 May 2016 10:54:43 -0400
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160510134358.GR2839@codeblueprint.co.uk> <20160510135758.GA16783@pd.tnic>
- <5734C97D.8060803@amd.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <57446B27.20406@amd.com>
-Date: Tue, 24 May 2016 09:54:31 -0500
+Received: from mx2.suse.de ([195.135.220.15]:60619 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753725AbcEXXdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 May 2016 19:33:23 -0400
+Date: Wed, 25 May 2016 01:33:18 +0200
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH] x86/mm: Add warning to ioremap() for conflicting cache
+ type
+Message-ID: <20160524233318.GC11948@wotan.suse.de>
+References: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
 MIME-Version: 1.0
-In-Reply-To: <5734C97D.8060803@amd.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, Matt Fleming <matt@codeblueprint.co.uk>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160524145431.uOo-i9QdcjGZuMT3bQH9vN1rSpxVZhgSlzYCNgkAm64@z>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: mingo@kernel.org, bp@suse.de, hpa@zytor.com, tglx@linutronix.de, x86@kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Dan Williams <dan.j.williams@intel.com>, Julia Lawall <julia.lawall@lip6.fr>, Christoph Hellwig <hch@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, mcgrof@kernel.org
+Message-ID: <20160524233318.mz5uzp3dGZBsflpkuMkY7btyCagdnAhrKH_M_OIUNLM@z>
 
-On 05/12/2016 01:20 PM, Tom Lendacky wrote:
-> On 05/10/2016 08:57 AM, Borislav Petkov wrote:
->> On Tue, May 10, 2016 at 02:43:58PM +0100, Matt Fleming wrote:
->>> Is it not possible to maintain some kind of kernel virtual address
->>> mapping so memremap*() and friends can figure out when to twiddle the
->>> mapping attributes and map with/without encryption?
->>
->> I guess we can move the sme_* specific stuff one indirection layer
->> below, i.e., in the *memremap() routines so that callers don't have to
->> care... That should keep the churn down...
->>
-> 
-> We could do that, but we'll have to generate that list of addresses so
-> that it can be checked against the range being mapped.  Since this is
-> part of early memmap support searching that list every time might not be
-> too bad. I'll have to look into that and see what that looks like.
+On Wed, Apr 27, 2016 at 09:25:57AM -0600, Toshi Kani wrote:
+> On x86, ioremap() and remap_pfn_range() fail on conflicting cache
+> type of an alias mapping request only if the case is not allowed
+> by the rule set in is_new_memtype_allowed(). While this exemption
+> is necessary for remap_pfn_range() called for /dev/mem mappings,
+> it is not necessary for ioremap().
 
-I looked into this and this would be a large change also to parse tables
-and build lists.  It occurred to me that this could all be taken care of
-if the early_memremap calls were changed to early_ioremap calls. Looking
-in the git log I see that they were originally early_ioremap calls but
-were changed to early_memremap calls with this commit:
+The wording here is a bit unclear. How about:
 
-commit abc93f8eb6e4 ("efi: Use early_mem*() instead of early_io*()")
+Currently we allow for conflicting cache requests to account for
+reading out /dev/mem, however /dev/mem uses remap_pfn_range(). An
+explicit exception is not currently known to exist for conflicting
+cache type requests for ioremap(), however we are not certain if
+such conflicting use type currently does exist.
 
-Looking at the early_memremap code and the early_ioremap code they both
-call __early_ioremap so I don't see how this change makes any
-difference (especially since FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are
-identical in this case).
+> Drivers should never call
+> ioremap() with a conflicting cache type. This exemption handling
+> may hide possible bugs in drivers.
 
-Is it safe to change these back to early_ioremap calls (at least on
-x86)?
+And this to:
 
-Thanks,
-Tom
+Upon review, we've determined that at least device drivers have
+no business in calling ioremap() with a conflicting cache type.
+
+> Add a warning message to ioremap() when a conflicting cache type
+> is allowed by is_new_memtype_allowed(). This 
+
+will help us
+
+> helps us identify
+> such usages in drivers.
+
+such valid uses in device drivers
 
 > 
-> Thanks,
-> Tom
+> There is no change in the behavior.
+
+There are no functional changes introduced by this commit other than
+the addition of the new warning.
+
+> Link: https://lkml.org/lkml/2016/4/16/54
+
+lkml.org references should be avoided, we have no control over
+that domain. Please instead use:
+
+http://lkml.kernel.org/r/20160416092018.GA8453@gmail.com
+
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: Borislav Petkov <bp@suse.de>
+> Cc: Luis R. Rodriguez <mcgrof@suse.com>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  arch/x86/mm/ioremap.c |   10 ++++++----
+>  1 file changed, 6 insertions(+), 4 deletions(-)
 > 
+> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+> index 0d8d53d..16c5887 100644
+> --- a/arch/x86/mm/ioremap.c
+> +++ b/arch/x86/mm/ioremap.c
+> @@ -138,14 +138,16 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
+>  	}
+>  
+>  	if (pcm != new_pcm) {
+> -		if (!is_new_memtype_allowed(phys_addr, size, pcm, new_pcm)) {
+> -			printk(KERN_ERR
+> -		"ioremap error for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
+> +		retval = is_new_memtype_allowed(phys_addr, size, pcm, new_pcm);
+> +		pr_err(
+> +		    "ioremap %s for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
+> +				retval ? "warning" : "error",
+>  				(unsigned long long)phys_addr,
+>  				(unsigned long long)(phys_addr + size),
+>  				pcm, new_pcm);
+
+This doesn't really make it humanly consumable, a pcm_to_str may help,
+such use already exists but not generalized see pat_get_cache_mode().
+
+> +		if (!retval)
+>  			goto err_free_memtype;
+> -		}
+> +
+>  		pcm = new_pcm;
+>  	}
+
+In the future we may be able to proactively hunt for these invalid uses
+semantically but to do so we need first a demo driver with all known possible
+bugs we can think of.
+
+  Luis
