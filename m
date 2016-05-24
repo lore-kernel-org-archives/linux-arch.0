@@ -1,109 +1,47 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] x86/mm: Add warning to ioremap() for conflicting cache
- type
-Date: Wed, 25 May 2016 01:33:18 +0200
-Message-ID: <20160524233318.GC11948@wotan.suse.de>
-References: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
+Subject: Enhancing semantics with memremap() - aliasing with memremap()
+Date: Tue, 24 May 2016 16:36:42 -0700
+Message-ID: <CAB=NE6Wy=V17uwc3GNMYaWk4cOx1a1TtHBgMYii-M5FDuPn_Gw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: mingo@kernel.org, bp@suse.de, hpa@zytor.com, tglx@linutronix.de, x86@kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Dan Williams <dan.j.williams@intel.com>, Julia Lawall <julia.lawall@lip6.fr>, Christoph Hellwig <hch@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, mcgrof@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:38130 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753725AbcEXXhH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 May 2016 19:37:07 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hp.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Julia Lawall <julia.lawall@lip6.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Borislav Petkov <bp@alien8.de>
 
-On Wed, Apr 27, 2016 at 09:25:57AM -0600, Toshi Kani wrote:
-> On x86, ioremap() and remap_pfn_range() fail on conflicting cache
-> type of an alias mapping request only if the case is not allowed
-> by the rule set in is_new_memtype_allowed(). While this exemption
-> is necessary for remap_pfn_range() called for /dev/mem mappings,
-> it is not necessary for ioremap().
+Dan, Toshi, Christoph,
 
-The wording here is a bit unclear. How about:
+I recall a while ago while memremap() was being introduced we
+discussed making stronger semantics for memremap() a desirable future
+goal [0], along with removal cleanups of ioremap_cache(). This was
+when only 2 types were being considered, WB and WT. I see we now have
+WC as well for the memremap() family.
 
-Currently we allow for conflicting cache requests to account for
-reading out /dev/mem, however /dev/mem uses remap_pfn_range(). An
-explicit exception is not currently known to exist for conflicting
-cache type requests for ioremap(), however we are not certain if
-such conflicting use type currently does exist.
+Among one of the semantic topics, on the x86 side of things we seem to
+have at least concluded we want to at the very least start by
+completely discouraging and warning alias uses for different
+conflicting types. A recent patch by Toshi helps to find these at run
+time, however it may be possible to do this proactively semantically
+with Coccinelle as well, but we first need an example test driver with
+all known invalid uses cases to write up some grammar rules for the
+hunt.
 
-> Drivers should never call
-> ioremap() with a conflicting cache type. This exemption handling
-> may hide possible bugs in drivers.
+A much much longer term goal would be properly identify only those
+valid uses for aliasing, and have a special API for them. This will
+take time for the above reaons. During the memremap() review we seemed
+to have agreed that making stronger semantics for memremap() was also
+desirable, more aimed towards addressing this as a future goal.
 
-And this to:
+Is it a good time for that now? I would hope identifying proper
+aliasing uses for memremap() might be a bit easier now than for
+ioremap() given its not used as widely. It may be an easier target to
+also write some grammar rules for it as well.
 
-Upon review, we've determined that at least device drivers have
-no business in calling ioremap() with a conflicting cache type.
-
-> Add a warning message to ioremap() when a conflicting cache type
-> is allowed by is_new_memtype_allowed(). This 
-
-will help us
-
-> helps us identify
-> such usages in drivers.
-
-such valid uses in device drivers
-
-> 
-> There is no change in the behavior.
-
-There are no functional changes introduced by this commit other than
-the addition of the new warning.
-
-> Link: https://lkml.org/lkml/2016/4/16/54
-
-lkml.org references should be avoided, we have no control over
-that domain. Please instead use:
-
-http://lkml.kernel.org/r/20160416092018.GA8453@gmail.com
-
-> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Luis R. Rodriguez <mcgrof@suse.com>
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/x86/mm/ioremap.c |   10 ++++++----
->  1 file changed, 6 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-> index 0d8d53d..16c5887 100644
-> --- a/arch/x86/mm/ioremap.c
-> +++ b/arch/x86/mm/ioremap.c
-> @@ -138,14 +138,16 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
->  	}
->  
->  	if (pcm != new_pcm) {
-> -		if (!is_new_memtype_allowed(phys_addr, size, pcm, new_pcm)) {
-> -			printk(KERN_ERR
-> -		"ioremap error for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
-> +		retval = is_new_memtype_allowed(phys_addr, size, pcm, new_pcm);
-> +		pr_err(
-> +		    "ioremap %s for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
-> +				retval ? "warning" : "error",
->  				(unsigned long long)phys_addr,
->  				(unsigned long long)(phys_addr + size),
->  				pcm, new_pcm);
-
-This doesn't really make it humanly consumable, a pcm_to_str may help,
-such use already exists but not generalized see pat_get_cache_mode().
-
-> +		if (!retval)
->  			goto err_free_memtype;
-> -		}
-> +
->  		pcm = new_pcm;
->  	}
-
-In the future we may be able to proactively hunt for these invalid uses
-semantically but to do so we need first a demo driver with all known possible
-bugs we can think of.
+[0] http://lkml.kernel.org/r/CAPcyv4g0-CcFRCWPBdKB7h0zZEO5qzT-N9YLYJw9sb=_HYnXiA@mail.gmail.com>
 
   Luis
