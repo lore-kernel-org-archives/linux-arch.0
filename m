@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0061.outbound.protection.outlook.com ([207.46.100.61]:34354
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0097.outbound.protection.outlook.com ([157.56.110.97]:29080
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752293AbcEXAFV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2016 20:05:21 -0400
+	id S1752216AbcEXAFd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 May 2016 20:05:33 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 04/23] all: s390: move compat_wrappers.c from arch/s390/kernel to kernel/
-Date: Tue, 24 May 2016 03:04:33 +0300
-Message-ID: <1464048292-30136-5-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 07/23] 32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+Date: Tue, 24 May 2016 03:04:36 +0300
+Message-ID: <1464048292-30136-8-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,378 +16,376 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-Message-ID: <20160524000433.RVStZ8DcZq-rBqV0fr1Jksqw4dP6gm0fUHhbJVLOpco@z>
+Message-ID: <20160524000436.C6O4Q3Zfim7Zq-HFmqXFsGFkzUibIUgU1njrD9E1-28@z>
 
-Some syscalls are declared conditionally, so corresponding wrappers
-are conditional accordingly.
+All new 32-bit architectures should have 64-bit off_t type, but existing
+architectures has 32-bit ones.
+
+To handle it, new config option is added to arch/Kconfig that defaults
+ARCH_32BIT_OFF_T to be disabled for non-64 bit architectures. All existing
+32-bit architectures enable it explicitly here.
+
+New option affects force_o_largefile() behaviour. Namely, if off_t is
+64-bits long, we have no reason to reject user to open big files.
+
+Note that even if architectures has only 64-bit off_t in the kernel
+(arc, c6x, h8300, hexagon, metag, nios2, openrisc, tile32 and unicore32),
+a libc may use 32-bit off_t, and therefore want to limit the file size
+to 4GB unless specified differently in the open flags.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/s390/kernel/Makefile         |   2 +-
- arch/s390/kernel/compat_linux.c   |   4 +
- arch/s390/kernel/compat_wrapper.c | 129 ----------------------------
- kernel/Makefile                   |   1 +
- kernel/compat_wrapper.c           | 175 ++++++++++++++++++++++++++++++++++++++
- 5 files changed, 181 insertions(+), 130 deletions(-)
- delete mode 100644 arch/s390/kernel/compat_wrapper.c
- create mode 100644 kernel/compat_wrapper.c
+ arch/Kconfig            | 4 ++++
+ arch/arc/Kconfig        | 1 +
+ arch/arm/Kconfig        | 1 +
+ arch/blackfin/Kconfig   | 1 +
+ arch/cris/Kconfig       | 1 +
+ arch/frv/Kconfig        | 1 +
+ arch/h8300/Kconfig      | 1 +
+ arch/hexagon/Kconfig    | 1 +
+ arch/m32r/Kconfig       | 1 +
+ arch/m68k/Kconfig       | 1 +
+ arch/metag/Kconfig      | 1 +
+ arch/microblaze/Kconfig | 1 +
+ arch/mips/Kconfig       | 1 +
+ arch/mn10300/Kconfig    | 1 +
+ arch/nios2/Kconfig      | 1 +
+ arch/openrisc/Kconfig   | 1 +
+ arch/parisc/Kconfig     | 1 +
+ arch/powerpc/Kconfig    | 1 +
+ arch/score/Kconfig      | 1 +
+ arch/sh/Kconfig         | 1 +
+ arch/sparc/Kconfig      | 1 +
+ arch/tile/Kconfig       | 1 +
+ arch/unicore32/Kconfig  | 1 +
+ arch/x86/Kconfig        | 1 +
+ arch/x86/um/Kconfig     | 1 +
+ arch/xtensa/Kconfig     | 1 +
+ include/linux/fcntl.h   | 2 +-
+ 27 files changed, 30 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/kernel/Makefile b/arch/s390/kernel/Makefile
-index 2f5586a..145d3d8 100644
---- a/arch/s390/kernel/Makefile
-+++ b/arch/s390/kernel/Makefile
-@@ -57,7 +57,7 @@ obj-$(CONFIG_HIBERNATION)	+= suspend.o swsusp.o
- obj-$(CONFIG_AUDIT)		+= audit.o
- compat-obj-$(CONFIG_AUDIT)	+= compat_audit.o
- obj-$(CONFIG_COMPAT)		+= compat_linux.o compat_signal.o
--obj-$(CONFIG_COMPAT)		+= compat_wrapper.o $(compat-obj-y)
-+obj-$(CONFIG_COMPAT)		+= $(compat-obj-y)
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 92fcbd4..a2b7cf3 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -230,6 +230,10 @@ config ARCH_THREAD_INFO_ALLOCATOR
+ config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+ 	bool
  
- obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
- obj-$(CONFIG_KPROBES)		+= kprobes.o
-diff --git a/arch/s390/kernel/compat_linux.c b/arch/s390/kernel/compat_linux.c
-index 437e611..783c208 100644
---- a/arch/s390/kernel/compat_linux.c
-+++ b/arch/s390/kernel/compat_linux.c
-@@ -86,6 +86,10 @@
- #define SET_STAT_UID(stat, uid)		(stat).st_uid = high2lowuid(uid)
- #define SET_STAT_GID(stat, gid)		(stat).st_gid = high2lowgid(gid)
++config ARCH_32BIT_OFF_T
++	bool
++	depends on !64BIT
++
+ config HAVE_REGS_AND_STACK_ACCESS_API
+ 	bool
+ 	help
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index a876743..13f66cc 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -9,6 +9,7 @@
+ config ARC
+ 	def_bool y
+ 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
++	select ARCH_32BIT_OFF_T
+ 	select BUILDTIME_EXTABLE_SORT
+ 	select COMMON_CLK
+ 	select CLONE_BACKWARDS
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index cdfa6c2..efe3ca2 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1,6 +1,7 @@
+ config ARM
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index a63c122..ef4368e 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -12,6 +12,7 @@ config RWSEM_XCHGADD_ALGORITHM
  
-+COMPAT_SYSCALL_WRAP3(s390_pci_mmio_write, const unsigned long, mmio_addr, const void __user *, user_buffer, const size_t, length);
-+
-+COMPAT_SYSCALL_WRAP3(s390_pci_mmio_read, const unsigned long, mmio_addr, void __user *, user_buffer, const size_t, length);
-+
- COMPAT_SYSCALL_DEFINE3(s390_chown16, const char __user *, filename,
- 		       u16, user, u16, group)
- {
-diff --git a/arch/s390/kernel/compat_wrapper.c b/arch/s390/kernel/compat_wrapper.c
-deleted file mode 100644
-index 1614e15..0000000
---- a/arch/s390/kernel/compat_wrapper.c
-+++ /dev/null
-@@ -1,129 +0,0 @@
--/*
-- *  Compat system call wrappers.
-- *
-- *    Copyright IBM Corp. 2014
-- */
--
--#include <linux/syscalls.h>
--#include <linux/compat.h>
--#include "entry.h"
--
--COMPAT_SYSCALL_WRAP2(creat, const char __user *, pathname, umode_t, mode);
--COMPAT_SYSCALL_WRAP2(link, const char __user *, oldname, const char __user *, newname);
--COMPAT_SYSCALL_WRAP1(unlink, const char __user *, pathname);
--COMPAT_SYSCALL_WRAP1(chdir, const char __user *, filename);
--COMPAT_SYSCALL_WRAP3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev);
--COMPAT_SYSCALL_WRAP2(chmod, const char __user *, filename, umode_t, mode);
--COMPAT_SYSCALL_WRAP1(oldumount, char __user *, name);
--COMPAT_SYSCALL_WRAP2(access, const char __user *, filename, int, mode);
--COMPAT_SYSCALL_WRAP2(rename, const char __user *, oldname, const char __user *, newname);
--COMPAT_SYSCALL_WRAP2(mkdir, const char __user *, pathname, umode_t, mode);
--COMPAT_SYSCALL_WRAP1(rmdir, const char __user *, pathname);
--COMPAT_SYSCALL_WRAP1(pipe, int __user *, fildes);
--COMPAT_SYSCALL_WRAP1(brk, unsigned long, brk);
--COMPAT_SYSCALL_WRAP2(signal, int, sig, __sighandler_t, handler);
--COMPAT_SYSCALL_WRAP1(acct, const char __user *, name);
--COMPAT_SYSCALL_WRAP2(umount, char __user *, name, int, flags);
--COMPAT_SYSCALL_WRAP1(chroot, const char __user *, filename);
--COMPAT_SYSCALL_WRAP3(sigsuspend, int, unused1, int, unused2, old_sigset_t, mask);
--COMPAT_SYSCALL_WRAP2(sethostname, char __user *, name, int, len);
--COMPAT_SYSCALL_WRAP2(symlink, const char __user *, old, const char __user *, new);
--COMPAT_SYSCALL_WRAP3(readlink, const char __user *, path, char __user *, buf, int, bufsiz);
--COMPAT_SYSCALL_WRAP1(uselib, const char __user *, library);
--COMPAT_SYSCALL_WRAP2(swapon, const char __user *, specialfile, int, swap_flags);
--COMPAT_SYSCALL_WRAP4(reboot, int, magic1, int, magic2, unsigned int, cmd, void __user *, arg);
--COMPAT_SYSCALL_WRAP2(munmap, unsigned long, addr, size_t, len);
--COMPAT_SYSCALL_WRAP3(syslog, int, type, char __user *, buf, int, len);
--COMPAT_SYSCALL_WRAP1(swapoff, const char __user *, specialfile);
--COMPAT_SYSCALL_WRAP2(setdomainname, char __user *, name, int, len);
--COMPAT_SYSCALL_WRAP1(newuname, struct new_utsname __user *, name);
--COMPAT_SYSCALL_WRAP3(mprotect, unsigned long, start, size_t, len, unsigned long, prot);
--COMPAT_SYSCALL_WRAP3(init_module, void __user *, umod, unsigned long, len, const char __user *, uargs);
--COMPAT_SYSCALL_WRAP2(delete_module, const char __user *, name_user, unsigned int, flags);
--COMPAT_SYSCALL_WRAP4(quotactl, unsigned int, cmd, const char __user *, special, qid_t, id, void __user *, addr);
--COMPAT_SYSCALL_WRAP2(bdflush, int, func, long, data);
--COMPAT_SYSCALL_WRAP3(sysfs, int, option, unsigned long, arg1, unsigned long, arg2);
--COMPAT_SYSCALL_WRAP5(llseek, unsigned int, fd, unsigned long, high, unsigned long, low, loff_t __user *, result, unsigned int, whence);
--COMPAT_SYSCALL_WRAP3(msync, unsigned long, start, size_t, len, int, flags);
--COMPAT_SYSCALL_WRAP2(mlock, unsigned long, start, size_t, len);
--COMPAT_SYSCALL_WRAP2(munlock, unsigned long, start, size_t, len);
--COMPAT_SYSCALL_WRAP2(sched_setparam, pid_t, pid, struct sched_param __user *, param);
--COMPAT_SYSCALL_WRAP2(sched_getparam, pid_t, pid, struct sched_param __user *, param);
--COMPAT_SYSCALL_WRAP3(sched_setscheduler, pid_t, pid, int, policy, struct sched_param __user *, param);
--COMPAT_SYSCALL_WRAP5(mremap, unsigned long, addr, unsigned long, old_len, unsigned long, new_len, unsigned long, flags, unsigned long, new_addr);
--COMPAT_SYSCALL_WRAP3(poll, struct pollfd __user *, ufds, unsigned int, nfds, int, timeout);
--COMPAT_SYSCALL_WRAP5(prctl, int, option, unsigned long, arg2, unsigned long, arg3, unsigned long, arg4, unsigned long, arg5);
--COMPAT_SYSCALL_WRAP2(getcwd, char __user *, buf, unsigned long, size);
--COMPAT_SYSCALL_WRAP2(capget, cap_user_header_t, header, cap_user_data_t, dataptr);
--COMPAT_SYSCALL_WRAP2(capset, cap_user_header_t, header, const cap_user_data_t, data);
--COMPAT_SYSCALL_WRAP3(lchown, const char __user *, filename, uid_t, user, gid_t, group);
--COMPAT_SYSCALL_WRAP2(getgroups, int, gidsetsize, gid_t __user *, grouplist);
--COMPAT_SYSCALL_WRAP2(setgroups, int, gidsetsize, gid_t __user *, grouplist);
--COMPAT_SYSCALL_WRAP3(getresuid, uid_t __user *, ruid, uid_t __user *, euid, uid_t __user *, suid);
--COMPAT_SYSCALL_WRAP3(getresgid, gid_t __user *, rgid, gid_t __user *, egid, gid_t __user *, sgid);
--COMPAT_SYSCALL_WRAP3(chown, const char __user *, filename, uid_t, user, gid_t, group);
--COMPAT_SYSCALL_WRAP2(pivot_root, const char __user *, new_root, const char __user *, put_old);
--COMPAT_SYSCALL_WRAP3(mincore, unsigned long, start, size_t, len, unsigned char __user *, vec);
--COMPAT_SYSCALL_WRAP3(madvise, unsigned long, start, size_t, len, int, behavior);
--COMPAT_SYSCALL_WRAP5(setxattr, const char __user *, path, const char __user *, name, const void __user *, value, size_t, size, int, flags);
--COMPAT_SYSCALL_WRAP5(lsetxattr, const char __user *, path, const char __user *, name, const void __user *, value, size_t, size, int, flags);
--COMPAT_SYSCALL_WRAP5(fsetxattr, int, fd, const char __user *, name, const void __user *, value, size_t, size, int, flags);
--COMPAT_SYSCALL_WRAP3(getdents64, unsigned int, fd, struct linux_dirent64 __user *, dirent, unsigned int, count);
--COMPAT_SYSCALL_WRAP4(getxattr, const char __user *, path, const char __user *, name, void __user *, value, size_t, size);
--COMPAT_SYSCALL_WRAP4(lgetxattr, const char __user *, path, const char __user *, name, void __user *, value, size_t, size);
--COMPAT_SYSCALL_WRAP4(fgetxattr, int, fd, const char __user *, name, void __user *, value, size_t, size);
--COMPAT_SYSCALL_WRAP3(listxattr, const char __user *, path, char __user *, list, size_t, size);
--COMPAT_SYSCALL_WRAP3(llistxattr, const char __user *, path, char __user *, list, size_t, size);
--COMPAT_SYSCALL_WRAP3(flistxattr, int, fd, char __user *, list, size_t, size);
--COMPAT_SYSCALL_WRAP2(removexattr, const char __user *, path, const char __user *, name);
--COMPAT_SYSCALL_WRAP2(lremovexattr, const char __user *, path, const char __user *, name);
--COMPAT_SYSCALL_WRAP2(fremovexattr, int, fd, const char __user *, name);
--COMPAT_SYSCALL_WRAP1(set_tid_address, int __user *, tidptr);
--COMPAT_SYSCALL_WRAP4(epoll_ctl, int, epfd, int, op, int, fd, struct epoll_event __user *, event);
--COMPAT_SYSCALL_WRAP4(epoll_wait, int, epfd, struct epoll_event __user *, events, int, maxevents, int, timeout);
--COMPAT_SYSCALL_WRAP1(io_destroy, aio_context_t, ctx);
--COMPAT_SYSCALL_WRAP3(io_cancel, aio_context_t, ctx_id, struct iocb __user *, iocb, struct io_event __user *, result);
--COMPAT_SYSCALL_WRAP1(mq_unlink, const char __user *, name);
--COMPAT_SYSCALL_WRAP5(add_key, const char __user *, tp, const char __user *, dsc, const void __user *, pld, size_t, len, key_serial_t, id);
--COMPAT_SYSCALL_WRAP4(request_key, const char __user *, tp, const char __user *, dsc, const char __user *, info, key_serial_t, id);
--COMPAT_SYSCALL_WRAP5(remap_file_pages, unsigned long, start, unsigned long, size, unsigned long, prot, unsigned long, pgoff, unsigned long, flags);
--COMPAT_SYSCALL_WRAP3(inotify_add_watch, int, fd, const char __user *, path, u32, mask);
--COMPAT_SYSCALL_WRAP3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode);
--COMPAT_SYSCALL_WRAP4(mknodat, int, dfd, const char __user *, filename, umode_t, mode, unsigned, dev);
--COMPAT_SYSCALL_WRAP5(fchownat, int, dfd, const char __user *, filename, uid_t, user, gid_t, group, int, flag);
--COMPAT_SYSCALL_WRAP3(unlinkat, int, dfd, const char __user *, pathname, int, flag);
--COMPAT_SYSCALL_WRAP4(renameat, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname);
--COMPAT_SYSCALL_WRAP5(linkat, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname, int, flags);
--COMPAT_SYSCALL_WRAP3(symlinkat, const char __user *, oldname, int, newdfd, const char __user *, newname);
--COMPAT_SYSCALL_WRAP4(readlinkat, int, dfd, const char __user *, path, char __user *, buf, int, bufsiz);
--COMPAT_SYSCALL_WRAP3(fchmodat, int, dfd, const char __user *, filename, umode_t, mode);
--COMPAT_SYSCALL_WRAP3(faccessat, int, dfd, const char __user *, filename, int, mode);
--COMPAT_SYSCALL_WRAP1(unshare, unsigned long, unshare_flags);
--COMPAT_SYSCALL_WRAP6(splice, int, fd_in, loff_t __user *, off_in, int, fd_out, loff_t __user *, off_out, size_t, len, unsigned int, flags);
--COMPAT_SYSCALL_WRAP4(tee, int, fdin, int, fdout, size_t, len, unsigned int, flags);
--COMPAT_SYSCALL_WRAP3(getcpu, unsigned __user *, cpu, unsigned __user *, node, struct getcpu_cache __user *, cache);
--COMPAT_SYSCALL_WRAP2(pipe2, int __user *, fildes, int, flags);
--COMPAT_SYSCALL_WRAP5(perf_event_open, struct perf_event_attr __user *, attr_uptr, pid_t, pid, int, cpu, int, group_fd, unsigned long, flags);
--COMPAT_SYSCALL_WRAP5(clone, unsigned long, newsp, unsigned long, clone_flags, int __user *, parent_tidptr, int __user *, child_tidptr, unsigned long, tls);
--COMPAT_SYSCALL_WRAP4(prlimit64, pid_t, pid, unsigned int, resource, const struct rlimit64 __user *, new_rlim, struct rlimit64 __user *, old_rlim);
--COMPAT_SYSCALL_WRAP5(name_to_handle_at, int, dfd, const char __user *, name, struct file_handle __user *, handle, int __user *, mnt_id, int, flag);
--COMPAT_SYSCALL_WRAP5(kcmp, pid_t, pid1, pid_t, pid2, int, type, unsigned long, idx1, unsigned long, idx2);
--COMPAT_SYSCALL_WRAP3(finit_module, int, fd, const char __user *, uargs, int, flags);
--COMPAT_SYSCALL_WRAP3(sched_setattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, flags);
--COMPAT_SYSCALL_WRAP4(sched_getattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, size, unsigned int, flags);
--COMPAT_SYSCALL_WRAP5(renameat2, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname, unsigned int, flags);
--COMPAT_SYSCALL_WRAP3(seccomp, unsigned int, op, unsigned int, flags, const char __user *, uargs)
--COMPAT_SYSCALL_WRAP3(getrandom, char __user *, buf, size_t, count, unsigned int, flags)
--COMPAT_SYSCALL_WRAP2(memfd_create, const char __user *, uname, unsigned int, flags)
--COMPAT_SYSCALL_WRAP3(bpf, int, cmd, union bpf_attr *, attr, unsigned int, size);
--COMPAT_SYSCALL_WRAP3(s390_pci_mmio_write, const unsigned long, mmio_addr, const void __user *, user_buffer, const size_t, length);
--COMPAT_SYSCALL_WRAP3(s390_pci_mmio_read, const unsigned long, mmio_addr, void __user *, user_buffer, const size_t, length);
--COMPAT_SYSCALL_WRAP4(socketpair, int, family, int, type, int, protocol, int __user *, usockvec);
--COMPAT_SYSCALL_WRAP3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen);
--COMPAT_SYSCALL_WRAP3(connect, int, fd, struct sockaddr __user *, uservaddr, int, addrlen);
--COMPAT_SYSCALL_WRAP4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr, int __user *, upeer_addrlen, int, flags);
--COMPAT_SYSCALL_WRAP3(getsockname, int, fd, struct sockaddr __user *, usockaddr, int __user *, usockaddr_len);
--COMPAT_SYSCALL_WRAP3(getpeername, int, fd, struct sockaddr __user *, usockaddr, int __user *, usockaddr_len);
--COMPAT_SYSCALL_WRAP6(sendto, int, fd, void __user *, buff, size_t, len, unsigned int, flags, struct sockaddr __user *, addr, int, addr_len);
--COMPAT_SYSCALL_WRAP3(mlock2, unsigned long, start, size_t, len, int, flags);
--COMPAT_SYSCALL_WRAP6(copy_file_range, int, fd_in, loff_t __user *, off_in, int, fd_out, loff_t __user *, off_out, size_t, len, unsigned int, flags);
-diff --git a/kernel/Makefile b/kernel/Makefile
-index f0c40bf..882eec03 100644
---- a/kernel/Makefile
-+++ b/kernel/Makefile
-@@ -64,6 +64,7 @@ obj-$(CONFIG_KEXEC) += kexec.o
- obj-$(CONFIG_KEXEC_FILE) += kexec_file.o
- obj-$(CONFIG_BACKTRACE_SELF_TEST) += backtracetest.o
- obj-$(CONFIG_COMPAT) += compat.o
-+obj-$(CONFIG_COMPAT_WRAPPER) += compat_wrapper.o
- obj-$(CONFIG_CGROUPS) += cgroup.o
- obj-$(CONFIG_CGROUP_FREEZER) += cgroup_freezer.o
- obj-$(CONFIG_CGROUP_PIDS) += cgroup_pids.o
-diff --git a/kernel/compat_wrapper.c b/kernel/compat_wrapper.c
-new file mode 100644
-index 0000000..b6c050e
---- /dev/null
-+++ b/kernel/compat_wrapper.c
-@@ -0,0 +1,175 @@
-+/*
-+ *  Compat system call wrappers.
-+ *
-+ *    Copyright IBM Corp. 2014
-+ */
-+
-+#include <linux/syscalls.h>
-+#include <linux/compat.h>
-+
-+COMPAT_SYSCALL_WRAP2(creat, const char __user *, pathname, umode_t, mode);
-+COMPAT_SYSCALL_WRAP2(link, const char __user *, oldname, const char __user *, newname);
-+COMPAT_SYSCALL_WRAP1(unlink, const char __user *, pathname);
-+COMPAT_SYSCALL_WRAP1(chdir, const char __user *, filename);
-+COMPAT_SYSCALL_WRAP3(mknod, const char __user *, filename, umode_t, mode, unsigned, dev);
-+COMPAT_SYSCALL_WRAP2(chmod, const char __user *, filename, umode_t, mode);
-+
-+#ifdef __ARCH_WANT_SYS_OLDUMOUNT
-+COMPAT_SYSCALL_WRAP1(oldumount, char __user *, name);
-+#endif
-+
-+COMPAT_SYSCALL_WRAP2(access, const char __user *, filename, int, mode);
-+COMPAT_SYSCALL_WRAP2(rename, const char __user *, oldname, const char __user *, newname);
-+COMPAT_SYSCALL_WRAP2(mkdir, const char __user *, pathname, umode_t, mode);
-+COMPAT_SYSCALL_WRAP1(rmdir, const char __user *, pathname);
-+COMPAT_SYSCALL_WRAP1(pipe, int __user *, fildes);
-+COMPAT_SYSCALL_WRAP1(brk, unsigned long, brk);
-+
-+#ifdef __ARCH_WANT_SYS_SIGNAL
-+COMPAT_SYSCALL_WRAP2(signal, int, sig, __sighandler_t, handler);
-+#endif
-+
-+COMPAT_SYSCALL_WRAP1(acct, const char __user *, name);
-+COMPAT_SYSCALL_WRAP2(umount, char __user *, name, int, flags);
-+COMPAT_SYSCALL_WRAP1(chroot, const char __user *, filename);
-+
-+#ifdef CONFIG_OLD_SIGSUSPEND
-+SYSCALL_DEFINE1(sigsuspend, old_sigset_t, mask);
-+#endif
-+
-+#ifdef CONFIG_OLD_SIGSUSPEND3
-+COMPAT_SYSCALL_WRAP3(sigsuspend, int, unused1, int, unused2, old_sigset_t, mask);
-+#endif
-+
-+COMPAT_SYSCALL_WRAP2(sethostname, char __user *, name, int, len);
-+COMPAT_SYSCALL_WRAP2(symlink, const char __user *, old, const char __user *, new);
-+COMPAT_SYSCALL_WRAP3(readlink, const char __user *, path, char __user *, buf, int, bufsiz);
-+COMPAT_SYSCALL_WRAP1(uselib, const char __user *, library);
-+COMPAT_SYSCALL_WRAP2(swapon, const char __user *, specialfile, int, swap_flags);
-+COMPAT_SYSCALL_WRAP4(reboot, int, magic1, int, magic2, unsigned int, cmd, void __user *, arg);
-+COMPAT_SYSCALL_WRAP2(munmap, unsigned long, addr, size_t, len);
-+COMPAT_SYSCALL_WRAP3(syslog, int, type, char __user *, buf, int, len);
-+COMPAT_SYSCALL_WRAP1(swapoff, const char __user *, specialfile);
-+COMPAT_SYSCALL_WRAP2(setdomainname, char __user *, name, int, len);
-+COMPAT_SYSCALL_WRAP1(newuname, struct new_utsname __user *, name);
-+COMPAT_SYSCALL_WRAP3(mprotect, unsigned long, start, size_t, len, unsigned long, prot);
-+COMPAT_SYSCALL_WRAP3(init_module, void __user *, umod, unsigned long, len, const char __user *, uargs);
-+COMPAT_SYSCALL_WRAP2(delete_module, const char __user *, name_user, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP4(quotactl, unsigned int, cmd, const char __user *, special, qid_t, id, void __user *, addr);
-+COMPAT_SYSCALL_WRAP2(bdflush, int, func, long, data);
-+COMPAT_SYSCALL_WRAP3(sysfs, int, option, unsigned long, arg1, unsigned long, arg2);
-+
-+#ifdef __ARCH_WANT_SYS_LLSEEK
-+COMPAT_SYSCALL_WRAP5(llseek, unsigned int, fd, unsigned long, high, unsigned long, low, loff_t __user *, result, unsigned int, whence);
-+#endif
-+
-+COMPAT_SYSCALL_WRAP3(msync, unsigned long, start, size_t, len, int, flags);
-+COMPAT_SYSCALL_WRAP2(mlock, unsigned long, start, size_t, len);
-+COMPAT_SYSCALL_WRAP2(munlock, unsigned long, start, size_t, len);
-+COMPAT_SYSCALL_WRAP2(sched_setparam, pid_t, pid, struct sched_param __user *, param);
-+COMPAT_SYSCALL_WRAP2(sched_getparam, pid_t, pid, struct sched_param __user *, param);
-+COMPAT_SYSCALL_WRAP3(sched_setscheduler, pid_t, pid, int, policy, struct sched_param __user *, param);
-+COMPAT_SYSCALL_WRAP5(mremap, unsigned long, addr, unsigned long, old_len, unsigned long, new_len, unsigned long, flags, unsigned long, new_addr);
-+COMPAT_SYSCALL_WRAP3(poll, struct pollfd __user *, ufds, unsigned int, nfds, int, timeout);
-+COMPAT_SYSCALL_WRAP5(prctl, int, option, unsigned long, arg2, unsigned long, arg3, unsigned long, arg4, unsigned long, arg5);
-+COMPAT_SYSCALL_WRAP2(getcwd, char __user *, buf, unsigned long, size);
-+COMPAT_SYSCALL_WRAP2(capget, cap_user_header_t, header, cap_user_data_t, dataptr);
-+COMPAT_SYSCALL_WRAP2(capset, cap_user_header_t, header, const cap_user_data_t, data);
-+COMPAT_SYSCALL_WRAP3(lchown, const char __user *, filename, uid_t, user, gid_t, group);
-+COMPAT_SYSCALL_WRAP2(getgroups, int, gidsetsize, gid_t __user *, grouplist);
-+COMPAT_SYSCALL_WRAP2(setgroups, int, gidsetsize, gid_t __user *, grouplist);
-+COMPAT_SYSCALL_WRAP3(getresuid, uid_t __user *, ruid, uid_t __user *, euid, uid_t __user *, suid);
-+COMPAT_SYSCALL_WRAP3(getresgid, gid_t __user *, rgid, gid_t __user *, egid, gid_t __user *, sgid);
-+COMPAT_SYSCALL_WRAP3(chown, const char __user *, filename, uid_t, user, gid_t, group);
-+COMPAT_SYSCALL_WRAP2(pivot_root, const char __user *, new_root, const char __user *, put_old);
-+COMPAT_SYSCALL_WRAP3(mincore, unsigned long, start, size_t, len, unsigned char __user *, vec);
-+COMPAT_SYSCALL_WRAP3(madvise, unsigned long, start, size_t, len, int, behavior);
-+COMPAT_SYSCALL_WRAP5(setxattr, const char __user *, path, const char __user *, name, const void __user *, value, size_t, size, int, flags);
-+COMPAT_SYSCALL_WRAP5(lsetxattr, const char __user *, path, const char __user *, name, const void __user *, value, size_t, size, int, flags);
-+COMPAT_SYSCALL_WRAP5(fsetxattr, int, fd, const char __user *, name, const void __user *, value, size_t, size, int, flags);
-+
-+#ifndef __ARCH_WANT_COMPAT_SYS_GETDENTS64
-+COMPAT_SYSCALL_WRAP3(getdents64, unsigned int, fd, struct linux_dirent64 __user *, dirent, unsigned int, count);
-+#endif
-+
-+COMPAT_SYSCALL_WRAP4(getxattr, const char __user *, path, const char __user *, name, void __user *, value, size_t, size);
-+COMPAT_SYSCALL_WRAP4(lgetxattr, const char __user *, path, const char __user *, name, void __user *, value, size_t, size);
-+COMPAT_SYSCALL_WRAP4(fgetxattr, int, fd, const char __user *, name, void __user *, value, size_t, size);
-+COMPAT_SYSCALL_WRAP3(listxattr, const char __user *, path, char __user *, list, size_t, size);
-+COMPAT_SYSCALL_WRAP3(llistxattr, const char __user *, path, char __user *, list, size_t, size);
-+COMPAT_SYSCALL_WRAP3(flistxattr, int, fd, char __user *, list, size_t, size);
-+COMPAT_SYSCALL_WRAP2(removexattr, const char __user *, path, const char __user *, name);
-+COMPAT_SYSCALL_WRAP2(lremovexattr, const char __user *, path, const char __user *, name);
-+COMPAT_SYSCALL_WRAP2(fremovexattr, int, fd, const char __user *, name);
-+COMPAT_SYSCALL_WRAP1(set_tid_address, int __user *, tidptr);
-+COMPAT_SYSCALL_WRAP4(epoll_ctl, int, epfd, int, op, int, fd, struct epoll_event __user *, event);
-+COMPAT_SYSCALL_WRAP4(epoll_wait, int, epfd, struct epoll_event __user *, events, int, maxevents, int, timeout);
-+COMPAT_SYSCALL_WRAP1(io_destroy, aio_context_t, ctx);
-+COMPAT_SYSCALL_WRAP3(io_cancel, aio_context_t, ctx_id, struct iocb __user *, iocb, struct io_event __user *, result);
-+COMPAT_SYSCALL_WRAP1(mq_unlink, const char __user *, name);
-+COMPAT_SYSCALL_WRAP5(add_key, const char __user *, tp, const char __user *, dsc, const void __user *, pld, size_t, len, key_serial_t, id);
-+COMPAT_SYSCALL_WRAP4(request_key, const char __user *, tp, const char __user *, dsc, const char __user *, info, key_serial_t, id);
-+COMPAT_SYSCALL_WRAP5(remap_file_pages, unsigned long, start, unsigned long, size, unsigned long, prot, unsigned long, pgoff, unsigned long, flags);
-+COMPAT_SYSCALL_WRAP3(inotify_add_watch, int, fd, const char __user *, path, u32, mask);
-+COMPAT_SYSCALL_WRAP3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode);
-+COMPAT_SYSCALL_WRAP4(mknodat, int, dfd, const char __user *, filename, umode_t, mode, unsigned, dev);
-+COMPAT_SYSCALL_WRAP5(fchownat, int, dfd, const char __user *, filename, uid_t, user, gid_t, group, int, flag);
-+COMPAT_SYSCALL_WRAP3(unlinkat, int, dfd, const char __user *, pathname, int, flag);
-+COMPAT_SYSCALL_WRAP4(renameat, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname);
-+COMPAT_SYSCALL_WRAP5(linkat, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname, int, flags);
-+COMPAT_SYSCALL_WRAP3(symlinkat, const char __user *, oldname, int, newdfd, const char __user *, newname);
-+COMPAT_SYSCALL_WRAP4(readlinkat, int, dfd, const char __user *, path, char __user *, buf, int, bufsiz);
-+COMPAT_SYSCALL_WRAP3(fchmodat, int, dfd, const char __user *, filename, umode_t, mode);
-+COMPAT_SYSCALL_WRAP3(faccessat, int, dfd, const char __user *, filename, int, mode);
-+COMPAT_SYSCALL_WRAP1(unshare, unsigned long, unshare_flags);
-+COMPAT_SYSCALL_WRAP6(splice, int, fd_in, loff_t __user *, off_in, int, fd_out, loff_t __user *, off_out, size_t, len, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP4(tee, int, fdin, int, fdout, size_t, len, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP3(getcpu, unsigned __user *, cpu, unsigned __user *, node, struct getcpu_cache __user *, cache);
-+COMPAT_SYSCALL_WRAP2(pipe2, int __user *, fildes, int, flags);
-+COMPAT_SYSCALL_WRAP5(perf_event_open, struct perf_event_attr __user *, attr_uptr, pid_t, pid, int, cpu, int, group_fd, unsigned long, flags);
-+
-+#ifdef __ARCH_WANT_SYS_CLONE
-+#ifdef CONFIG_CLONE_BACKWARDS
-+COMPAT_SYSCALL_WRAP5(clone, unsigned long, clone_flags, unsigned long, newsp,
-+                int __user *, parent_tidptr,
-+                unsigned long, tls,
-+                int __user *, child_tidptr);
-+#elif defined(CONFIG_CLONE_BACKWARDS2)
-+       COMPAT_SYSCALL_WRAP5(clone, unsigned long, newsp, unsigned long, clone_flags,
-+               int __user *, parent_tidptr,
-+               int __user *, child_tidptr,
-+               unsigned long, tls);
-+#elif defined(CONFIG_CLONE_BACKWARDS3)
-+       COMPAT_SYSCALL_WRAP6(clone, unsigned long, clone_flags, unsigned long, newsp,
-+              int, stack_size,
-+              int __user *, parent_tidptr,
-+              int __user *, child_tidptr,
-+               unsigned long, tls);
-+#else
-+COMPAT_SYSCALL_WRAP5(clone, unsigned long, clone_flags, unsigned long, newsp,
-+       int __user *, parent_tidptr,
-+       int __user *, child_tidptr,
-+       unsigned long, tls);
-+#endif
-+#endif
-+
-+COMPAT_SYSCALL_WRAP4(prlimit64, pid_t, pid, unsigned int, resource, const struct rlimit64 __user *, new_rlim, struct rlimit64 __user *, old_rlim);
-+COMPAT_SYSCALL_WRAP5(name_to_handle_at, int, dfd, const char __user *, name, struct file_handle __user *, handle, int __user *, mnt_id, int, flag);
-+COMPAT_SYSCALL_WRAP5(kcmp, pid_t, pid1, pid_t, pid2, int, type, unsigned long, idx1, unsigned long, idx2);
-+COMPAT_SYSCALL_WRAP3(finit_module, int, fd, const char __user *, uargs, int, flags);
-+COMPAT_SYSCALL_WRAP3(sched_setattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP4(sched_getattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, size, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP5(renameat2, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP3(seccomp, unsigned int, op, unsigned int, flags, const char __user *, uargs)
-+COMPAT_SYSCALL_WRAP3(getrandom, char __user *, buf, size_t, count, unsigned int, flags)
-+COMPAT_SYSCALL_WRAP2(memfd_create, const char __user *, uname, unsigned int, flags)
-+COMPAT_SYSCALL_WRAP3(bpf, int, cmd, union bpf_attr *, attr, unsigned int, size);
-+COMPAT_SYSCALL_WRAP4(socketpair, int, family, int, type, int, protocol, int __user *, usockvec);
-+COMPAT_SYSCALL_WRAP3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen);
-+COMPAT_SYSCALL_WRAP3(connect, int, fd, struct sockaddr __user *, uservaddr, int, addrlen);
-+COMPAT_SYSCALL_WRAP4(accept4, int, fd, struct sockaddr __user *, upeer_sockaddr, int __user *, upeer_addrlen, int, flags);
-+COMPAT_SYSCALL_WRAP3(getsockname, int, fd, struct sockaddr __user *, usockaddr, int __user *, usockaddr_len);
-+COMPAT_SYSCALL_WRAP3(getpeername, int, fd, struct sockaddr __user *, usockaddr, int __user *, usockaddr_len);
-+COMPAT_SYSCALL_WRAP6(sendto, int, fd, void __user *, buff, size_t, len, unsigned int, flags, struct sockaddr __user *, addr, int, addr_len);
-+COMPAT_SYSCALL_WRAP3(mlock2, unsigned long, start, size_t, len, int, flags);
-+COMPAT_SYSCALL_WRAP6(copy_file_range, int, fd_in, loff_t __user *, off_in, int, fd_out, loff_t __user *, off_out, size_t, len, unsigned int, flags);
+ config BLACKFIN
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_DYNAMIC_FTRACE
+diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
+index e086f9e..5bc9203 100644
+--- a/arch/cris/Kconfig
++++ b/arch/cris/Kconfig
+@@ -50,6 +50,7 @@ config LOCKDEP_SUPPORT
+ config CRIS
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
+diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
+index eefd9a4..2f14904 100644
+--- a/arch/frv/Kconfig
++++ b/arch/frv/Kconfig
+@@ -1,6 +1,7 @@
+ config FRV
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_PERF_EVENTS
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index 986ea84..8c221f1 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -1,5 +1,6 @@
+ config H8300
+         def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
+ 	select VIRT_TO_BUS
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 57298e7..df84602 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -3,6 +3,7 @@ comment "Linux Kernel Configuration for Hexagon"
+ 
+ config HEXAGON
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_OPROFILE
+ 	# Other pending projects/to-do items.
+ 	# select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index c82b292..7866bca 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -1,6 +1,7 @@
+ config M32R
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	select INIT_ALL_POSSIBLE
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 498b567..e9897e4 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -1,6 +1,7 @@
+ config M68K
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
+ 	select HAVE_IDE
+ 	select HAVE_AOUT if MMU
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index a0fa88d..5b7620a 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -1,5 +1,6 @@
+ config METAG
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select EMBEDDED
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 3d793b5..bdb0f83 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -1,5 +1,6 @@
+ config MICROBLAZE
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 2018c2b..079a6d2 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -1,6 +1,7 @@
+ config MIPS
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select ARCH_SUPPORTS_UPROBES
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index 06ddb55..bc1aae5 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -1,5 +1,6 @@
+ config MN10300
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_OPROFILE
+ 	select HAVE_UID16
+ 	select GENERIC_IRQ_SHOW
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index 4375554..a38fc38 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -1,5 +1,6 @@
+ config NIOS2
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select CLKSRC_OF
+ 	select GENERIC_ATOMIC64
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index e118c02..0271714 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -5,6 +5,7 @@
+ 
+ config OPENRISC
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select OF
+ 	select OF_EARLY_FLATTREE
+ 	select IRQ_DOMAIN
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 88cfaa8..affad75 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -1,5 +1,6 @@
+ config PARISC
+ 	def_bool y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select HAVE_IDE
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 7cd32c0..2c7a795 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -85,6 +85,7 @@ config ARCH_HAS_DMA_SET_COHERENT_MASK
+ config PPC
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T if PPC32
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select BINFMT_ELF
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index 366e1b5..bc7bc7a 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -2,6 +2,7 @@ menu "Machine selection"
+ 
+ config SCORE
+        def_bool y
++       select ARCH_32BIT_OFF_T
+        select GENERIC_IRQ_SHOW
+        select GENERIC_IOMAP
+        select GENERIC_ATOMIC64
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 7ed20fc..2438390 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -52,6 +52,7 @@ config SUPERH
+ 
+ config SUPERH32
+ 	def_bool ARCH = "sh"
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_IOREMAP_PROT if MMU && !X2TLB
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 57ffaf2..c88b82d 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -45,6 +45,7 @@ config SPARC
+ 
+ config SPARC32
+ 	def_bool !64BIT
++	select ARCH_32BIT_OFF_T
+ 	select GENERIC_ATOMIC64
+ 	select CLZ_TAB
+ 	select HAVE_UID16
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 8171930..f9d61e7 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -3,6 +3,7 @@
+ 
+ config TILE
+ 	def_bool y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select HAVE_PERF_EVENTS
+ 	select USE_PMC if PERF_EVENTS
+ 	select HAVE_DMA_API_DEBUG
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index e5602ee..b995104 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -1,6 +1,7 @@
+ config UNICORE32
+ 	def_bool y
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_MEMBLOCK
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 2dc18605..3628b14 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -20,6 +20,7 @@ config X86
+ 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ 	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+ 	select ANON_INODES
++	select ARCH_32BIT_OFF_T			if X86_32
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+diff --git a/arch/x86/um/Kconfig b/arch/x86/um/Kconfig
+index ed56a1c..8436bcd 100644
+--- a/arch/x86/um/Kconfig
++++ b/arch/x86/um/Kconfig
+@@ -21,6 +21,7 @@ config 64BIT
+ config X86_32
+ 	def_bool !64BIT
+ 	select HAVE_AOUT
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select MODULES_USE_ELF_REL
+ 	select CLONE_BACKWARDS
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index e832d3e..b68de31 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -3,6 +3,7 @@ config ZONE_DMA
+ 
+ config XTENSA
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index 76ce329..46960a1 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -5,7 +5,7 @@
+ 
+ 
+ #ifndef force_o_largefile
+-#define force_o_largefile() (BITS_PER_LONG != 32)
++#define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
+ #endif
+ 
+ #if BITS_PER_LONG == 32
 -- 
 2.5.0
 
