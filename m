@@ -1,114 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:60619 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753725AbcEXXdX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 May 2016 19:33:23 -0400
-Date: Wed, 25 May 2016 01:33:18 +0200
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] x86/mm: Add warning to ioremap() for conflicting cache
- type
-Message-ID: <20160524233318.GC11948@wotan.suse.de>
-References: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
+Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:52622 "EHLO
+	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750857AbcEYKmR convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 May 2016 06:42:17 -0400
+Message-ID: <5745817C.1070406@arm.com>
+Date: Wed, 25 May 2016 11:42:04 +0100
+From: Szabolcs Nagy <szabolcs.nagy@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
+Subject: Re: [PATCH v6 00/21] ILP32 for ARM64
+References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: mingo@kernel.org, bp@suse.de, hpa@zytor.com, tglx@linutronix.de, x86@kernel.org, linux-kernel@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Dan Williams <dan.j.williams@intel.com>, Julia Lawall <julia.lawall@lip6.fr>, Christoph Hellwig <hch@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch <linux-arch@vger.kernel.org>, mcgrof@kernel.org
-Message-ID: <20160524233318.mz5uzp3dGZBsflpkuMkY7btyCagdnAhrKH_M_OIUNLM@z>
+To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
+Cc: nd@arm.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
+Message-ID: <20160525104204.BWyY_0R-v2zD96_NbKYL5reNiVk-Pp18pEBjyy86r6A@z>
 
-On Wed, Apr 27, 2016 at 09:25:57AM -0600, Toshi Kani wrote:
-> On x86, ioremap() and remap_pfn_range() fail on conflicting cache
-> type of an alias mapping request only if the case is not allowed
-> by the rule set in is_new_memtype_allowed(). While this exemption
-> is necessary for remap_pfn_range() called for /dev/mem mappings,
-> it is not necessary for ioremap().
-
-The wording here is a bit unclear. How about:
-
-Currently we allow for conflicting cache requests to account for
-reading out /dev/mem, however /dev/mem uses remap_pfn_range(). An
-explicit exception is not currently known to exist for conflicting
-cache type requests for ioremap(), however we are not certain if
-such conflicting use type currently does exist.
-
-> Drivers should never call
-> ioremap() with a conflicting cache type. This exemption handling
-> may hide possible bugs in drivers.
-
-And this to:
-
-Upon review, we've determined that at least device drivers have
-no business in calling ioremap() with a conflicting cache type.
-
-> Add a warning message to ioremap() when a conflicting cache type
-> is allowed by is_new_memtype_allowed(). This 
-
-will help us
-
-> helps us identify
-> such usages in drivers.
-
-such valid uses in device drivers
-
+On 24/05/16 01:04, Yury Norov wrote:
+> This version is based on kernel v4.6.
+> It works with glibc-2.23, and tested with LTP.
 > 
-> There is no change in the behavior.
-
-There are no functional changes introduced by this commit other than
-the addition of the new warning.
-
-> Link: https://lkml.org/lkml/2016/4/16/54
-
-lkml.org references should be avoided, we have no control over
-that domain. Please instead use:
-
-http://lkml.kernel.org/r/20160416092018.GA8453@gmail.com
-
-> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Luis R. Rodriguez <mcgrof@suse.com>
-> Cc: Andy Lutomirski <luto@kernel.org>
-> Cc: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/x86/mm/ioremap.c |   10 ++++++----
->  1 file changed, 6 insertions(+), 4 deletions(-)
+...
+> ILP32 glibc branch is available here:
+> https://github.com/norov/glibc/tree/ilp32-2.23
 > 
-> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-> index 0d8d53d..16c5887 100644
-> --- a/arch/x86/mm/ioremap.c
-> +++ b/arch/x86/mm/ioremap.c
-> @@ -138,14 +138,16 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
->  	}
->  
->  	if (pcm != new_pcm) {
-> -		if (!is_new_memtype_allowed(phys_addr, size, pcm, new_pcm)) {
-> -			printk(KERN_ERR
-> -		"ioremap error for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
-> +		retval = is_new_memtype_allowed(phys_addr, size, pcm, new_pcm);
-> +		pr_err(
-> +		    "ioremap %s for 0x%llx-0x%llx, requested 0x%x, got 0x%x\n",
-> +				retval ? "warning" : "error",
->  				(unsigned long long)phys_addr,
->  				(unsigned long long)(phys_addr + size),
->  				pcm, new_pcm);
+> It is tested with this series with no major downsides. I will send it to 
+> glibc-alpha soon, after final revise. Please review and comment it as well.
 
-This doesn't really make it humanly consumable, a pcm_to_str may help,
-such use already exists but not generalized see pat_get_cache_mode().
+i spotted one __ilp32__ vs __ILP32__ typo in the glibc code,
+i can review it in detail when there is a cleaned up patch set.
 
-> +		if (!retval)
->  			goto err_free_memtype;
-> -		}
-> +
->  		pcm = new_pcm;
->  	}
+in general the approach seems ok, the ugly part is when lp64
+and ilp32 share code, but ilp32 needs some tweaks compared to
+the current code (e.g. x vs w regs in asm, long changed to
+long long in syscalls, different relocations etc) those will
+be hard to review. the naming is sometimes _be_ilp32 sometimes
+ilp32_be, but let's hope there will be no new abi variant to
+confuse this further.
 
-In the future we may be able to proactively hunt for these invalid uses
-semantically but to do so we need first a demo driver with all known possible
-bugs we can think of.
-
-  Luis
