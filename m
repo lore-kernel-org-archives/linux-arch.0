@@ -1,57 +1,35 @@
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-Date: Wed, 25 May 2016 20:30:11 +0100
-Message-ID: <20160525193011.GC2984@codeblueprint.co.uk>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160510134358.GR2839@codeblueprint.co.uk>
- <20160510135758.GA16783@pd.tnic>
- <5734C97D.8060803@amd.com>
- <57446B27.20406@amd.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
+Date: Wed, 25 May 2016 12:30:17 -0700 (PDT)
+Message-ID: <20160525.123017.1597296248000772613.davem@davemloft.net>
+References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+	<1464048292-30136-2-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <57446B27.20406@amd.com>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.or>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <libc-alpha-return-69880-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <1464048292-30136-2-git-send-email-ynorov@caviumnetworks.com>
+To: ynorov@caviumnetworks.com
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 24 May, at 09:54:31AM, Tom Lendacky wrote:
-> 
-> I looked into this and this would be a large change also to parse tables
-> and build lists.  It occurred to me that this could all be taken care of
-> if the early_memremap calls were changed to early_ioremap calls. Looking
-> in the git log I see that they were originally early_ioremap calls but
-> were changed to early_memremap calls with this commit:
-> 
-> commit abc93f8eb6e4 ("efi: Use early_mem*() instead of early_io*()")
-> 
-> Looking at the early_memremap code and the early_ioremap code they both
-> call __early_ioremap so I don't see how this change makes any
-> difference (especially since FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are
-> identical in this case).
-> 
-> Is it safe to change these back to early_ioremap calls (at least on
-> x86)?
+From: Yury Norov <ynorov@caviumnetworks.com>
+Date: Tue, 24 May 2016 03:04:30 +0300
 
-I really don't want to begin mixing early_ioremap() calls and
-early_memremap() calls for any of the EFI code if it can be avoided.
+> +To clear that top halves, automatic wrappers are introduced. They clear all
+> +required registers before passing control to regular syscall handler.
 
-There is slow but steady progress to move more and more of the
-architecture specific EFI code out into generic code. Swapping
-early_memremap() for early_ioremap() would be a step backwards,
-because FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are not identical on
-ARM/arm64.
+Why have one of these for every single compat system call, rather than
+simply clearing the top half of all of these registers unconditionally
+in the 32-bit system call trap before the system call is invoked?
 
-Could you point me at the patch that in this series that fixes up
-early_ioremap() to work with mem encrypt/decrypt? I took another
-(quick) look through but couldn't find it.
+That's what we do on sparc64.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+And with that, you only need wrappers for the case where there needs
+to be proper sign extention of a 32-bit signed argument.
