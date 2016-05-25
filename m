@@ -1,37 +1,67 @@
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Subject: Re: [PATCH v6 00/21] ILP32 for ARM64
-Date: Wed, 25 May 2016 11:42:04 +0100
-Message-ID: <5745817C.1070406@arm.com>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+From: Daniel Kiper <daniel.kiper@oracle.com>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Date: Wed, 25 May 2016 18:09:30 +0200
+Message-ID: <20160525160930.GJ5490@olila.local.net-space.pl>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160510134358.GR2839@codeblueprint.co.uk>
+ <20160510135758.GA16783@pd.tnic>
+ <5734C97D.8060803@amd.com>
+ <57446B27.20406@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: nd@arm.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <57446B27.20406@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Borislav Petkov <bp@alien8.de>, Matt Fleming <matt@codeblueprint.co.uk>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas
 List-Id: linux-arch.vger.kernel.org
 
-On 24/05/16 01:04, Yury Norov wrote:
-> This version is based on kernel v4.6.
-> It works with glibc-2.23, and tested with LTP.
-> 
-...
-> ILP32 glibc branch is available here:
-> https://github.com/norov/glibc/tree/ilp32-2.23
-> 
-> It is tested with this series with no major downsides. I will send it to 
-> glibc-alpha soon, after final revise. Please review and comment it as well.
+On Tue, May 24, 2016 at 09:54:31AM -0500, Tom Lendacky wrote:
+> On 05/12/2016 01:20 PM, Tom Lendacky wrote:
+> > On 05/10/2016 08:57 AM, Borislav Petkov wrote:
+> >> On Tue, May 10, 2016 at 02:43:58PM +0100, Matt Fleming wrote:
+> >>> Is it not possible to maintain some kind of kernel virtual address
+> >>> mapping so memremap*() and friends can figure out when to twiddle the
+> >>> mapping attributes and map with/without encryption?
+> >>
+> >> I guess we can move the sme_* specific stuff one indirection layer
+> >> below, i.e., in the *memremap() routines so that callers don't have to
+> >> care... That should keep the churn down...
+> >>
+> >
+> > We could do that, but we'll have to generate that list of addresses so
+> > that it can be checked against the range being mapped.  Since this is
+> > part of early memmap support searching that list every time might not be
+> > too bad. I'll have to look into that and see what that looks like.
+>
+> I looked into this and this would be a large change also to parse tables
+> and build lists.  It occurred to me that this could all be taken care of
+> if the early_memremap calls were changed to early_ioremap calls. Looking
+> in the git log I see that they were originally early_ioremap calls but
+> were changed to early_memremap calls with this commit:
+>
+> commit abc93f8eb6e4 ("efi: Use early_mem*() instead of early_io*()")
+>
+> Looking at the early_memremap code and the early_ioremap code they both
+> call __early_ioremap so I don't see how this change makes any
+> difference (especially since FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are
+> identical in this case).
+>
+> Is it safe to change these back to early_ioremap calls (at least on
+> x86)?
 
-i spotted one __ilp32__ vs __ILP32__ typo in the glibc code,
-i can review it in detail when there is a cleaned up patch set.
+Commit f955371ca9d3986bca100666041fcfa9b6d21962 (x86: remove the Xen-specific
+_PAGE_IOMAP PTE flag) made commit abc93f8eb6e4 unnecessary. Though, IMO, it
+is still valid code cleanup. So, if it is not very strongly needed I would
+not revert this change.
 
-in general the approach seems ok, the ugly part is when lp64
-and ilp32 share code, but ilp32 needs some tweaks compared to
-the current code (e.g. x vs w regs in asm, long changed to
-long long in syscalls, different relocations etc) those will
-be hard to review. the naming is sometimes _be_ilp32 sometimes
-ilp32_be, but let's hope there will be no new abi variant to
-confuse this further.
+Daniel
 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
