@@ -1,99 +1,57 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v6 00/21] ILP32 for ARM64
-Date: Wed, 25 May 2016 19:41:32 +0300
-Message-ID: <20160525164132.GB4595@yury-N73SV>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <5745817C.1070406@arm.com>
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Date: Wed, 25 May 2016 20:30:11 +0100
+Message-ID: <20160525193011.GC2984@codeblueprint.co.uk>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160510134358.GR2839@codeblueprint.co.uk>
+ <20160510135758.GA16783@pd.tnic>
+ <5734C97D.8060803@amd.com>
+ <57446B27.20406@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <5745817C.1070406@arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Szabolcs Nagy <szabolcs.nagy@arm.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, nd@arm.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
+In-Reply-To: <57446B27.20406@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.or>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 25, 2016 at 11:42:04AM +0100, Szabolcs Nagy wrote:
-> On 24/05/16 01:04, Yury Norov wrote:
-> > This version is based on kernel v4.6.
-> > It works with glibc-2.23, and tested with LTP.
-> > 
-> ...
-> > ILP32 glibc branch is available here:
-> > https://github.com/norov/glibc/tree/ilp32-2.23
-> > 
-> > It is tested with this series with no major downsides. I will send it to 
-> > glibc-alpha soon, after final revise. Please review and comment it as well.
+On Tue, 24 May, at 09:54:31AM, Tom Lendacky wrote:
 > 
-> i spotted one __ilp32__ vs __ILP32__ typo in the glibc code,
-
-Yes, I also found it. Thank you.
-
-> i can review it in detail when there is a cleaned up patch set.
+> I looked into this and this would be a large change also to parse tables
+> and build lists.  It occurred to me that this could all be taken care of
+> if the early_memremap calls were changed to early_ioremap calls. Looking
+> in the git log I see that they were originally early_ioremap calls but
+> were changed to early_memremap calls with this commit:
 > 
-> in general the approach seems ok, the ugly part is when lp64
-> and ilp32 share code, but ilp32 needs some tweaks compared to
-> the current code (e.g. x vs w regs in asm, long changed to
-> long long in syscalls, different relocations etc) those will
-> be hard to review. the naming is sometimes _be_ilp32 sometimes
-> ilp32_be, but let's hope there will be no new abi variant to
-> confuse this further.
+> commit abc93f8eb6e4 ("efi: Use early_mem*() instead of early_io*()")
+> 
+> Looking at the early_memremap code and the early_ioremap code they both
+> call __early_ioremap so I don't see how this change makes any
+> difference (especially since FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are
+> identical in this case).
+> 
+> Is it safe to change these back to early_ioremap calls (at least on
+> x86)?
 
-I think I shared the link too soon, and patches should be revised 
-again. So I continue the work on it. If you curious, find it here.
-https://github.com/norov/glibc/tree/ilp32-dev
-(I don't promise I'll keep it stable, or will avoid using things like
-fast-forward. It's just a branch for my experiments.)
+I really don't want to begin mixing early_ioremap() calls and
+early_memremap() calls for any of the EFI code if it can be avoided.
 
-For now, it has fixed:
- - __ilp32__ mess (by introducing DELOUSE() macro);
- - few unneeded patches dropped;
- - 32-bit off_t turned to 64-bit.
+There is slow but steady progress to move more and more of the
+architecture specific EFI code out into generic code. Swapping
+early_memremap() for early_ioremap() would be a step backwards,
+because FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are not identical on
+ARM/arm64.
 
-With all changes, LPT fail list grows:
-peio_3                       FAIL       5    
-pipeio_6                       FAIL       1    
-abort01                        FAIL       2    
-clone02                        FAIL       4    
-fcntl11                        FAIL       1    
-fcntl14                        FAIL       1    
-fcntl17                        FAIL       1    
-fcntl19                        FAIL       1    
-fcntl20                        FAIL       1    
-fcntl21                        FAIL       1    
-fpathconf01                    FAIL       1    
-ftruncate04                    FAIL       1    
-kill11                         FAIL       2    
-mmap16                         FAIL       6    
-open12                         FAIL       2    
-pread01                        FAIL       2    
-pread02                        FAIL       2    
-pread03                        FAIL       2    
-preadv01                       FAIL       6    
-preadv02                       FAIL       6    
-pwrite01                       FAIL       2    
-pwrite02                       FAIL       2    
-pwrite04                       FAIL       6    
-pwrite02_64                    FAIL       1    
-pwritev01                      FAIL       2    
-pwritev02                      FAIL       2    
-rename11                       FAIL       2    
-rmdir02                        FAIL       2    
-umount2_01                     FAIL       2    
-umount2_02                     FAIL       2    
-umount2_03                     FAIL       2    
-utime06                        FAIL       2    
-mtest01                        FAIL       1    
-mtest01w                       FAIL       1    
-mtest06                        FAIL       11   
-gf01                           FAIL       1    
-gf02                           FAIL       1    
-gf07                           FAIL       1    
-gf10                           FAIL       1    
-gf11                           FAIL       1    
-gf15                           FAIL       1    
-gf18                           FAIL       1    
-gf19                           FAIL       1    
+Could you point me at the patch that in this series that fixes up
+early_ioremap() to work with mem encrypt/decrypt? I took another
+(quick) look through but couldn't find it.
 
-Yury
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
