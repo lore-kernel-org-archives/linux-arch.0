@@ -1,38 +1,70 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
-Date: Wed, 25 May 2016 23:03:27 +0300
-Message-ID: <20160525200327.GA22395@yury-N73SV>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-2-git-send-email-ynorov@caviumnetworks.com>
- <20160525.123017.1597296248000772613.davem@davemloft.net>
+From: "Kani, Toshimitsu" <toshi.kani@hpe.com>
+Subject: Re: [PATCH] x86/mm: Add warning to ioremap() for conflicting cache
+ type
+Date: Wed, 25 May 2016 19:34:27 +0000
+Message-ID: <1464204282.3504.70.camel@hpe.com>
+References: <1461770757-26817-1-git-send-email-toshi.kani@hpe.com>
+	 <20160524233318.GC11948@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160525.123017.1597296248000772613.davem@davemloft.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn1bon0140.outbound.protection.outlook.com ([157.56.111.140]:46317
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751017AbcEYUGS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 May 2016 16:06:18 -0400
+In-Reply-To: <20160524233318.GC11948@wotan.suse.de>
+Content-Language: en-US
+Content-ID: <7A0BA46F7D346840869B9ABEB05AE871@NAMPRD84.PROD.OUTLOOK.COM>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "mcgrof@kernel.org" <mcgrof@kernel.org>
+Cc: "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "hch@infradead.org" <hch@infradead.org>, "bp@suse.de" <bp@suse.de>, "tglx@linutronix.de" <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, "dan.j.williams@intel.com" <dan.j.williams@intel.com>, "hpa@zytor.com" <hpa@zytor.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "luto@kernel.org" <luto@kernel.org>, "julia.lawall@lip6.fr" <julia.lawall@lip6.fr>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>
 
-On Wed, May 25, 2016 at 12:30:17PM -0700, David Miller wrote:
-> From: Yury Norov <ynorov@caviumnetworks.com>
-> Date: Tue, 24 May 2016 03:04:30 +0300
-> 
-> > +To clear that top halves, automatic wrappers are introduced. They clear all
-> > +required registers before passing control to regular syscall handler.
-> 
-> Why have one of these for every single compat system call, rather than
-> simply clearing the top half of all of these registers unconditionally
-> in the 32-bit system call trap before the system call is invoked?
-> 
-> That's what we do on sparc64.
-> 
-> And with that, you only need wrappers for the case where there needs
-> to be proper sign extention of a 32-bit signed argument.
-
-It was discussed as one of possible solutions. The downside of it is
-that we cannot pass 64-bit types (like off_t) in single register.
-The other downside is that we clear top halves for every single
-syscall, and it looks excessive. So, from spark64 and s390 approaches
-we choosed second.
+T24gV2VkLCAyMDE2LTA1LTI1IGF0IDAxOjMzICswMjAwLCBMdWlzIFIuIFJvZHJpZ3VleiB3cm90
+ZToNCj4gT24gV2VkLCBBcHIgMjcsIDIwMTYgYXQgMDk6MjU6NTdBTSAtMDYwMCwgVG9zaGkgS2Fu
+aSB3cm90ZToNCj4gPiANCj4gPiBPbiB4ODYsIGlvcmVtYXAoKSBhbmQgcmVtYXBfcGZuX3Jhbmdl
+KCkgZmFpbCBvbiBjb25mbGljdGluZyBjYWNoZQ0KPiA+IHR5cGUgb2YgYW4gYWxpYXMgbWFwcGlu
+ZyByZXF1ZXN0IG9ubHkgaWYgdGhlIGNhc2UgaXMgbm90IGFsbG93ZWQNCj4gPiBieSB0aGUgcnVs
+ZSBzZXQgaW4gaXNfbmV3X21lbXR5cGVfYWxsb3dlZCgpLiBXaGlsZSB0aGlzIGV4ZW1wdGlvbg0K
+PiA+IGlzIG5lY2Vzc2FyeSBmb3IgcmVtYXBfcGZuX3JhbmdlKCkgY2FsbGVkIGZvciAvZGV2L21l
+bSBtYXBwaW5ncywNCj4gPiBpdCBpcyBub3QgbmVjZXNzYXJ5IGZvciBpb3JlbWFwKCkuDQo+DQo+
+IFRoZSB3b3JkaW5nIGhlcmUgaXMgYSBiaXQgdW5jbGVhci4gSG93IGFib3V0Og0KDQpJIHdpbGwg
+dXBkYXRlIHRoZSBjaGFuZ2UgbG9nIGFjY29yZGluZyB0byB5b3VyIHN1Z2dlc3Rpb25zLg0KDQoN
+Cj4gPiBMaW5rOiBodHRwczovL2xrbWwub3JnL2xrbWwvMjAxNi80LzE2LzU0DQo+DQo+IGxrbWwu
+b3JnIHJlZmVyZW5jZXMgc2hvdWxkIGJlIGF2b2lkZWQsIHdlIGhhdmUgbm8gY29udHJvbCBvdmVy
+DQo+IHRoYXQgZG9tYWluLiBQbGVhc2UgaW5zdGVhZCB1c2U6DQo+IA0KPiBodHRwOi8vbGttbC5r
+ZXJuZWwub3JnL3IvMjAxNjA0MTYwOTIwMTguR0E4NDUzQGdtYWlsLmNvbQ0KDQpXaWxsIGRvLg0K
+DQo+ID4gDQo+ID4gU2lnbmVkLW9mZi1ieTogVG9zaGkgS2FuaSA8dG9zaGkua2FuaUBocGUuY29t
+Pg0KPiA+IENjOiBJbmdvIE1vbG5hciA8bWluZ29Aa2VybmVsLm9yZz4NCj4gPiBDYzogVGhvbWFz
+IEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+DQo+ID4gQ2M6ICJILiBQZXRlciBBbnZpbiIg
+PGhwYUB6eXRvci5jb20+DQo+ID4gQ2M6IEJvcmlzbGF2IFBldGtvdiA8YnBAc3VzZS5kZT4NCj4g
+PiBDYzogTHVpcyBSLiBSb2RyaWd1ZXogPG1jZ3JvZkBzdXNlLmNvbT4NCj4gPiBDYzogQW5keSBM
+dXRvbWlyc2tpIDxsdXRvQGtlcm5lbC5vcmc+DQo+ID4gQ2M6IERhbiBXaWxsaWFtcyA8ZGFuLmou
+d2lsbGlhbXNAaW50ZWwuY29tPg0KPiA+IC0tLQ0KPiA+IMKgYXJjaC94ODYvbW0vaW9yZW1hcC5j
+IHzCoMKgwqAxMCArKysrKystLS0tDQo+ID4gwqAxIGZpbGUgY2hhbmdlZCwgNiBpbnNlcnRpb25z
+KCspLCA0IGRlbGV0aW9ucygtKQ0KPiA+IA0KPiA+IGRpZmYgLS1naXQgYS9hcmNoL3g4Ni9tbS9p
+b3JlbWFwLmMgYi9hcmNoL3g4Ni9tbS9pb3JlbWFwLmMNCj4gPiBpbmRleCAwZDhkNTNkLi4xNmM1
+ODg3IDEwMDY0NA0KPiA+IC0tLSBhL2FyY2gveDg2L21tL2lvcmVtYXAuYw0KPiA+ICsrKyBiL2Fy
+Y2gveDg2L21tL2lvcmVtYXAuYw0KPiA+IEBAIC0xMzgsMTQgKzEzOCwxNiBAQCBzdGF0aWMgdm9p
+ZCBfX2lvbWVtDQo+ID4gKl9faW9yZW1hcF9jYWxsZXIocmVzb3VyY2Vfc2l6ZV90IHBoeXNfYWRk
+ciwNCj4gPiDCoAl9DQo+ID4gwqANCj4gPiDCoAlpZiAocGNtICE9IG5ld19wY20pIHsNCj4gPiAt
+CQlpZiAoIWlzX25ld19tZW10eXBlX2FsbG93ZWQocGh5c19hZGRyLCBzaXplLCBwY20sDQo+ID4g
+bmV3X3BjbSkpIHsNCj4gPiAtCQkJcHJpbnRrKEtFUk5fRVJSDQo+ID4gLQkJImlvcmVtYXAgZXJy
+b3IgZm9yIDB4JWxseC0weCVsbHgsIHJlcXVlc3RlZCAweCV4LCBnb3QNCj4gPiAweCV4XG4iLA0K
+PiA+ICsJCXJldHZhbCA9IGlzX25ld19tZW10eXBlX2FsbG93ZWQocGh5c19hZGRyLCBzaXplLCBw
+Y20sDQo+ID4gbmV3X3BjbSk7DQo+ID4gKwkJcHJfZXJyKA0KPiA+ICsJCcKgwqDCoMKgImlvcmVt
+YXAgJXMgZm9yIDB4JWxseC0weCVsbHgsIHJlcXVlc3RlZCAweCV4LCBnb3QNCj4gPiAweCV4XG4i
+LA0KPiA+ICsJCQkJcmV0dmFsID8gIndhcm5pbmciIDogImVycm9yIiwNCj4gPiDCoAkJCQkodW5z
+aWduZWQgbG9uZyBsb25nKXBoeXNfYWRkciwNCj4gPiDCoAkJCQkodW5zaWduZWQgbG9uZyBsb25n
+KShwaHlzX2FkZHIgKw0KPiA+IHNpemUpLA0KPiA+IMKgCQkJCXBjbSwgbmV3X3BjbSk7DQo+DQo+
+IFRoaXMgZG9lc24ndCByZWFsbHkgbWFrZSBpdCBodW1hbmx5IGNvbnN1bWFibGUsIGEgcGNtX3Rv
+X3N0ciBtYXkgaGVscCwNCj4gc3VjaCB1c2UgYWxyZWFkeSBleGlzdHMgYnV0IG5vdCBnZW5lcmFs
+aXplZCBzZWUgcGF0X2dldF9jYWNoZV9tb2RlKCkuDQoNCk9LLCBJIHdpbGwgYWRkIGEgcGNtX3Rv
+X3N0ci4NCg0KPiA+IA0KPiA+ICsJCWlmICghcmV0dmFsKQ0KPiA+IMKgCQkJZ290byBlcnJfZnJl
+ZV9tZW10eXBlOw0KPiA+IC0JCX0NCj4gPiArDQo+ID4gwqAJCXBjbSA9IG5ld19wY207DQo+ID4g
+wqAJfQ0KPg0KPiBJbiB0aGUgZnV0dXJlIHdlIG1heSBiZSBhYmxlIHRvIHByb2FjdGl2ZWx5IGh1
+bnQgZm9yIHRoZXNlIGludmFsaWQgdXNlcw0KPiBzZW1hbnRpY2FsbHkgYnV0IHRvIGRvIHNvIHdl
+IG5lZWQgZmlyc3QgYSBkZW1vIGRyaXZlciB3aXRoIGFsbCBrbm93bg0KPiBwb3NzaWJsZSBidWdz
+IHdlIGNhbiB0aGluayBvZi4NCg0KUmlnaHQuDQoNClRoYW5rcywNCi1Ub3NoaQ==
