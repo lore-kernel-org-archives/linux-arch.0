@@ -1,45 +1,74 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
-Date: Wed, 25 May 2016 14:28:21 -0700 (PDT)
-Message-ID: <20160525.142821.1719403997976778673.davem@davemloft.net>
-References: <6293194.tGy03QJ9ME@wuerfel>
-	<20160525.135039.244098606649448826.davem@davemloft.net>
-	<6407614.fdv5XFSBue@wuerfel>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Date: Thu, 26 May 2016 08:45:58 -0500
+Message-ID: <5746FE16.9070408@amd.com>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160510134358.GR2839@codeblueprint.co.uk> <20160510135758.GA16783@pd.tnic>
+ <5734C97D.8060803@amd.com> <57446B27.20406@amd.com>
+ <20160525193011.GC2984@codeblueprint.co.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <6407614.fdv5XFSBue@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: ynorov@caviumnetworks.com, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn1on0054.outbound.protection.outlook.com ([157.56.110.54]:32279
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753643AbcEZNqR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 May 2016 09:46:17 -0400
+In-Reply-To: <20160525193011.GC2984@codeblueprint.co.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>Ard Biesheuvel <a>
 
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 25 May 2016 23:01:06 +0200
-
-> On Wednesday, May 25, 2016 1:50:39 PM CEST David Miller wrote:
->> From: Arnd Bergmann <arnd@arndb.de>
->> Date: Wed, 25 May 2016 22:47:33 +0200
->> 
->> > If we use the normal calling conventions, we could remove these overrides
->> > along with the respective special-case handling in glibc. None of them
->> > look particularly performance-sensitive, but I could be wrong there.
->> 
->> You could set the lowest bit in the system call entry pointer to indicate
->> the upper-half clears should be elided.
+On 05/25/2016 02:30 PM, Matt Fleming wrote:
+> On Tue, 24 May, at 09:54:31AM, Tom Lendacky wrote:
+>>
+>> I looked into this and this would be a large change also to parse tables
+>> and build lists.  It occurred to me that this could all be taken care of
+>> if the early_memremap calls were changed to early_ioremap calls. Looking
+>> in the git log I see that they were originally early_ioremap calls but
+>> were changed to early_memremap calls with this commit:
+>>
+>> commit abc93f8eb6e4 ("efi: Use early_mem*() instead of early_io*()")
+>>
+>> Looking at the early_memremap code and the early_ioremap code they both
+>> call __early_ioremap so I don't see how this change makes any
+>> difference (especially since FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are
+>> identical in this case).
+>>
+>> Is it safe to change these back to early_ioremap calls (at least on
+>> x86)?
 > 
-> Right, but that would introduce an extra conditional branch in the syscall
-> hotpath, and likely eliminate the gains from passing the loff_t arguments
-> in a single register instead of a pair.
+> I really don't want to begin mixing early_ioremap() calls and
+> early_memremap() calls for any of the EFI code if it can be avoided.
 
-Ok, then, how much are you really gaining from avoiding a 'shift' and
-an 'or' to build the full 64-bit value?  3 cycles?  Maybe 4?
+I definitely wouldn't mix them, it would be all or nothing.
 
-And the executing the wrappers, those have a non-trivial cost too.
+> 
+> There is slow but steady progress to move more and more of the
+> architecture specific EFI code out into generic code. Swapping
+> early_memremap() for early_ioremap() would be a step backwards,
+> because FIXMAP_PAGE_NORMAL and FIXMAP_PAGE_IO are not identical on
+> ARM/arm64.
 
-Cost wise, this seems like it all cancels out in the end, but what
-do I know?
+Maybe adding something similar to __acpi_map_table would be more
+appropriate?
 
+> 
+> Could you point me at the patch that in this series that fixes up
+> early_ioremap() to work with mem encrypt/decrypt? I took another
+> (quick) look through but couldn't find it.
 
+The patch in question is patch 6/18 where PAGE_KERNEL is changed to
+include the _PAGE_ENC attribute (the encryption mask). This now
+makes FIXMAP_PAGE_NORMAL contain the encryption mask while
+FIXMAP_PAGE_IO does not. In this way, anything mapped using the
+early_ioremap call won't be mapped encrypted.
 
+Thanks,
+Tom
+
+> 
