@@ -1,70 +1,100 @@
 From: Paul Burton <paul.burton@imgtec.com>
-Subject: [PATCH 1/2] compiler-gcc: Allow arch-specific override of unreachable
-Date: Fri, 27 May 2016 16:35:49 +0100
-Message-ID: <20160527153550.27303-1-paul.burton@imgtec.com>
+Subject: [PATCH 2/2] MIPS: Workaround GCC __builtin_unreachable reordering bug
+Date: Fri, 27 May 2016 16:35:50 +0100
+Message-ID: <20160527153550.27303-2-paul.burton@imgtec.com>
+References: <20160527153550.27303-1-paul.burton@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <20160527153550.27303-1-paul.burton@imgtec.com>
 Sender: stable-owner@vger.kernel.org
 To: linux-mips@linux-mips.org
-Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Paul Burton <paul.burton@imgtec.com>, "# v4 . 4+" <stable@vger.kernel.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Paul Burton <paul.burton@imgtec.com>, "# v4 . 4+" <stable@vger.kernel.org>, Matthew Fortune <matthew.fortune@imgtec.com>, Robert Suchanek <robert.suchanek@imgtec.com>
 List-Id: linux-arch.vger.kernel.org
 
-Include an arch-specific asm/compiler-gcc.h and allow for it to define a
-custom version of unreachable(), which is needed to workaround a bug in
-current versions of GCC for the MIPS architecture. This patch includes
-an effectively empty asm-generic implementation of asm/compiler-gcc.h &
-leaves the architecture specifics to a further patch.
+Current versions of GCC for the MIPS architecture suffer from a bug
+which can lead to instructions from beyond an unreachable statement
+being incorrectly reordered into earlier branch delay slots if the
+unreachable statement is the only content of a case in a switch
+statement. This can lead to seemingly random behaviour, such as invalid
+memory accesses from incorrectly reordered loads or stores.
 
-Marked for stable as far back as v4.4 such that the MIPS patch depending
-upon it can be backported too.
+See this potential GCC fix for details:
+
+    https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
+
+Work around this bug by placing a volatile asm statement, which GCC is
+prevented from reordering past, prior to the __builtin_unreachable call.
+
+This bug affects at least a maltasmvp_defconfig kernel built from the
+v4.4 tag using GCC 4.9.2 (from a Codescape SDK 2015.06-05 toolchain),
+with the result being an address exception taken after log messages
+about the L1 caches (during probe of the L2 cache):
+
+    Initmem setup node 0 [mem 0x0000000080000000-0x000000009fffffff]
+    VPE topology {2,2} total 4
+    Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
+    Primary data cache 64kB, 4-way, PIPT, no aliases, linesize 32 bytes
+    <AdEL exception here>
+
+This is early enough that the kernel exception vectors are not in use,
+so any further output depends upon the bootloader. This is reproducible
+in QEMU where no further output occurs - ie. the system hangs here.
+Given the affected v4.4 configuration this patch is marked for stable
+backport to v4.4, however I cannot test every configuration so it's
+entirely possible that this bug hits other platforms in earlier kernel
+versions. Given the nature of the bug it may potentially be hit with
+differing symptoms.
 
 Signed-off-by: Paul Burton <paul.burton@imgtec.com>
 Cc: <stable@vger.kernel.org> # v4.4+
+Cc: Matthew Fortune <matthew.fortune@imgtec.com>
+Cc: Robert Suchanek <robert.suchanek@imgtec.com>
 ---
- include/asm-generic/compiler-gcc.h | 8 ++++++++
- include/linux/compiler-gcc.h       | 7 ++++++-
- 2 files changed, 14 insertions(+), 1 deletion(-)
- create mode 100644 include/asm-generic/compiler-gcc.h
+This is an alternative approach to this earlier patch which seems to
+have been rejected:
 
-diff --git a/include/asm-generic/compiler-gcc.h b/include/asm-generic/compiler-gcc.h
+    https://patchwork.linux-mips.org/patch/12556/
+    https://marc.info/?l=linux-mips&m=145555921408274&w=2
+---
+ arch/mips/include/asm/compiler-gcc.h | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+ create mode 100644 arch/mips/include/asm/compiler-gcc.h
+
+diff --git a/arch/mips/include/asm/compiler-gcc.h b/arch/mips/include/asm/compiler-gcc.h
 new file mode 100644
-index 0000000..e8ba230
+index 0000000..565be9b
 --- /dev/null
-+++ b/include/asm-generic/compiler-gcc.h
-@@ -0,0 +1,8 @@
-+#ifndef __LINUX_COMPILER_H
-+#error "Please don't include <asm/compiler.gcc.h> directly, include <linux/compiler.h> instead."
-+#endif
-+
++++ b/arch/mips/include/asm/compiler-gcc.h
+@@ -0,0 +1,29 @@
 +/*
-+ * We have nothing architecture-specific to do here, simply leave everything to
-+ * the generic linux/compiler-gcc.h.
++ * With GCC v4.5 onwards can use __builtin_unreachable to indicate to the
++ * compiler that a particular code path will never be hit. This allows it to be
++ * optimised out of the generated binary.
++ *
++ * Unfortunately GCC from at least v4.9.2 to current head of tree as of May
++ * 2016 suffer from a bug that can lead to instructions from beyond an
++ * unreachable statement being incorrectly reordered into earlier delay slots
++ * if the unreachable statement is the only content of a case in a switch
++ * statement. This can lead to seemingly random behaviour, such as invalid
++ * memory accesses from incorrectly reordered loads or stores. See this
++ * potential GCC fix for details:
++ *
++ *   https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
++ *
++ * We work around this by placing a volatile asm statement, which GCC is
++ * prevented from reordering past, prior to the __builtin_unreachable call. The
++ * .insn statement is required to ensure that any branches to the statement,
++ * which sadly must be kept due to the asm statement, are known to be branches
++ * to code and satisfy linker requirements for microMIPS kernels.
 + */
-diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
-index 3d5202e..e556cb8 100644
---- a/include/linux/compiler-gcc.h
-+++ b/include/linux/compiler-gcc.h
-@@ -9,6 +9,9 @@
- 		     + __GNUC_MINOR__ * 100	\
- 		     + __GNUC_PATCHLEVEL__)
- 
-+/* Allow architectures to override some definitions where necessary */
-+#include <asm/compiler-gcc.h>
-+
- /* Optimization barrier */
- 
- /* The "volatile" is due to gcc bugs */
-@@ -196,7 +199,9 @@
-  * this in the preprocessor, but we can live with this because they're
-  * unreleased.  Really, we need to have autoconf for the kernel.
-  */
--#define unreachable() __builtin_unreachable()
-+#ifndef unreachable
-+# define unreachable() __builtin_unreachable()
++#if GCC_VERSION >= 40500
++# define unreachable() do {			\
++	asm volatile(".insn");			\
++	__builtin_unreachable();		\
++} while (0)
 +#endif
- 
- /* Mark a function definition as prohibited from being cloned. */
- #define __noclone	__attribute__((__noclone__, __optimize__("no-tracer")))
++
++#include <asm-generic/compiler-gcc.h>
 -- 
 2.8.3
