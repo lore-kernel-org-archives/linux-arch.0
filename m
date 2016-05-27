@@ -1,115 +1,105 @@
-From: Paul Burton <paul.burton@imgtec.com>
-Subject: [PATCH v2 2/2] MIPS: Workaround GCC __builtin_unreachable reordering bug
-Date: Fri, 27 May 2016 16:45:27 +0100
-Message-ID: <20160527154527.6806-2-paul.burton@imgtec.com>
-References: <20160527154527.6806-1-paul.burton@imgtec.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
+Date: Fri, 27 May 2016 19:58:06 +0300
+Message-ID: <20160527165806.GA20966@yury-N73SV>
+References: <6293194.tGy03QJ9ME@wuerfel>
+ <13240365.okADkKsTBJ@wuerfel>
+ <20160527093052.GB7865@e104818-lin.cambridge.arm.com>
+ <5422652.7gdoDlB8u0@wuerfel>
+ <20160527130446.GD7865@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20160527154527.6806-1-paul.burton@imgtec.com>
-Sender: stable-owner@vger.kernel.org
-To: linux-mips@linux-mips.org
-Cc: Ralf Baechle <ralf@linux-mips.org>, linux-arch@vger.kernel.org, Paul Burton <paul.burton@imgtec.com>, "# v4 . 4+" <stable@vger.kernel.org>, Matthew Fortune <matthew.fortune@imgtec.com>, Robert Suchanek <robert.suchanek@imgtec.com>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160527130446.GD7865@e104818-lin.cambridge.arm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, David Miller <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-Current versions of GCC for the MIPS architecture suffer from a bug
-which can lead to instructions from beyond an unreachable statement
-being incorrectly reordered into earlier branch delay slots if the
-unreachable statement is the only content of a case in a switch
-statement. This can lead to seemingly random behaviour, such as invalid
-memory accesses from incorrectly reordered loads or stores.
+On Fri, May 27, 2016 at 02:04:47PM +0100, Catalin Marinas wrote:
+> On Fri, May 27, 2016 at 12:49:11PM +0200, Arnd Bergmann wrote:
+> > On Friday, May 27, 2016 10:30:52 AM CEST Catalin Marinas wrote:
+> > > On Fri, May 27, 2016 at 10:42:59AM +0200, Arnd Bergmann wrote:
+> > > > On Friday, May 27, 2016 8:03:57 AM CEST Heiko Carstens wrote:
+> > > > > > > > > Cost wise, this seems like it all cancels out in the end, but what
+> > > > > > > > > do I know?
+> > > > > > > > 
+> > > > > > > > I think you know something, and I also think Heiko and other s390 guys
+> > > > > > > > know something as well. So I'd like to listen their arguments here.
+> > > > > 
+> > > > > If it comes to 64 bit arguments for compat system calls: s390 also has an
+> > > > > x32-like ABI extension which allows user space to use full 64 bit
+> > > > > registers. As far as I know hardly anybody ever made use of that.
+> > > > > 
+> > > > > However even if that would be widely used, to me it wouldn't make sense to
+> > > > > add new compat system calls which allow 64 bit arguments, simply because
+> > > > > something like
+> > > > > 
+> > > > > c = (u32)a | (u64)b << 32;
+> > > > > 
+> > > > > can be done with a single 1-cycle instruction. It's just not worth the
+> > > > > extra effort to maintain additional system call variants.
+> > > > 
+> > > > For reference, both tile and mips also have separate 32-bit ABIs that are
+> > > > only used on 64-bit kernels (aside from the normal 32-bit ABI). Tile
+> > > > does it like s390 and passes 64-bit arguments as pairs, while MIPS
+> > > > and x86 and pass them as single registers.
+> > > 
+> > > AFAIK, x32 also requires that the upper half of a 64-bit reg is zeroed
+> > > by the user when a 32-bit value is passed. We could require the same on
+> > > AArch64/ILP32 but I'm a bit uneasy on trusting a multitude of C
+> > > libraries on this.
+> > 
+> > It's not about trusting a C library, it's about ensuring malicious code
+> > cannot pass argumentst that the kernel code assumes will never happen.
+> 
+> At least for pointers and sizes, we have additional checks in place
+> already, like __access_ok(). Most of the syscalls should be safe since
+> they either go through some compat functions taking 32-bit arguments or
+> are routed to native functions which already need to cope with a full
+> random 64-bit value.
 
-See this potential GCC fix for details:
+It's not a good idea to rely on current implementation. Implementation
+may be changed and it's impossible to check each and every patch
+against register top-halves correctness.
 
-    https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
+> 
+> On arm64, I think the only risk comes from syscall handlers expecting
+> 32-bit arguments but using 64-bit types. Apart from pointer types, I
+> don't expect this to happen but we could enforce it via a
+> BUILD_BUG_ON(sizeof(t) > 4 && !__TYPE_IS_PTR(t)) in __SC_DELOUSE as per
+> the s390 implementation. With ILP32 if we go for 64-bit off_t, those
+> syscalls would be routed directly to the native layer.
+> 
 
-Work around this bug by placing a volatile asm statement, which GCC is
-prevented from reordering past, prior to the __builtin_unreachable call.
+64-bit off_t doesn't imply we'd rout it directly. At first glance it's
+looking reasonable but there are other considerations like simplicity and
+unification with aarch32 that may become more important. That's what
+David pointed out.
 
-This bug affects at least a maltasmvp_defconfig kernel built from the
-v4.4 tag using GCC 4.9.2 (from a Codescape SDK 2015.06-05 toolchain),
-with the result being an address exception taken after log messages
-about the L1 caches (during probe of the L2 cache):
+So, we have 3 options for now:
+1. Clear top halves in entry.S which means we pass off_t as a pair.
+   The cost is performance (didn't measure it yet and doubt about it
+   makes serious impact). The advantage is simplicity and unification with
+   aarch32, as I mentioned above. And David likes it. And it mininizes
+   the amount of changes on glibc side.
+2. Clear top halves in in separated file hosted wrappers.
+3. Clear top halves in I-cache and tail optimization friendly in-site wrappers.
 
-    Initmem setup node 0 [mem 0x0000000080000000-0x000000009fffffff]
-    VPE topology {2,2} total 4
-    Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
-    Primary data cache 64kB, 4-way, PIPT, no aliases, linesize 32 bytes
-    <AdEL exception here>
+2 and 3 are the same from ABI point of view.
 
-This is early enough that the kernel exception vectors are not in use,
-so any further output depends upon the bootloader. This is reproducible
-in QEMU where no further output occurs - ie. the system hangs here.
-Given the affected v4.4 configuration this patch is marked for stable
-backport to v4.4, however I cannot test every configuration so it's
-entirely possible that this bug hits other platforms in earlier kernel
-versions. Given the nature of the bug it may potentially be hit with
-differing symptoms.
+2 is the worst for me as it is the most complex in implementation and 
+I-cache and tail optimization non-friendly. But Heiko likes it.
+ 
+3 is what Catalin is talking about, and it was my initial approach.
+Though I didn't made compiler to do tail optimization, I think we can
+do it.
 
-Signed-off-by: Paul Burton <paul.burton@imgtec.com>
-Cc: <stable@vger.kernel.org> # v4.4+
-Cc: Matthew Fortune <matthew.fortune@imgtec.com>
-Cc: Robert Suchanek <robert.suchanek@imgtec.com>
----
-This is an alternative approach to this earlier patch which seems to
-have been rejected:
+But 2 is what we have now. And I'd choose it. We'll never get ilp32 done
+if will roll back previously agreed decisions again and again.
 
-    https://patchwork.linux-mips.org/patch/12556/
-    https://marc.info/?l=linux-mips&m=145555921408274&w=2
+Yury.
 
-Changes in v2:
-- Remove generic-y entry.
----
- arch/mips/include/asm/Kbuild         |  1 -
- arch/mips/include/asm/compiler-gcc.h | 29 +++++++++++++++++++++++++++++
- 2 files changed, 29 insertions(+), 1 deletion(-)
- create mode 100644 arch/mips/include/asm/compiler-gcc.h
-
-diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
-index 9ccb519..c7fe4d0 100644
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -1,6 +1,5 @@
- # MIPS headers
- generic-(CONFIG_GENERIC_CSUM) += checksum.h
--generic-y += compiler-gcc.h
- generic-y += cputime.h
- generic-y += current.h
- generic-y += dma-contiguous.h
-diff --git a/arch/mips/include/asm/compiler-gcc.h b/arch/mips/include/asm/compiler-gcc.h
-new file mode 100644
-index 0000000..565be9b
---- /dev/null
-+++ b/arch/mips/include/asm/compiler-gcc.h
-@@ -0,0 +1,29 @@
-+/*
-+ * With GCC v4.5 onwards can use __builtin_unreachable to indicate to the
-+ * compiler that a particular code path will never be hit. This allows it to be
-+ * optimised out of the generated binary.
-+ *
-+ * Unfortunately GCC from at least v4.9.2 to current head of tree as of May
-+ * 2016 suffer from a bug that can lead to instructions from beyond an
-+ * unreachable statement being incorrectly reordered into earlier delay slots
-+ * if the unreachable statement is the only content of a case in a switch
-+ * statement. This can lead to seemingly random behaviour, such as invalid
-+ * memory accesses from incorrectly reordered loads or stores. See this
-+ * potential GCC fix for details:
-+ *
-+ *   https://gcc.gnu.org/ml/gcc-patches/2015-09/msg00360.html
-+ *
-+ * We work around this by placing a volatile asm statement, which GCC is
-+ * prevented from reordering past, prior to the __builtin_unreachable call. The
-+ * .insn statement is required to ensure that any branches to the statement,
-+ * which sadly must be kept due to the asm statement, are known to be branches
-+ * to code and satisfy linker requirements for microMIPS kernels.
-+ */
-+#if GCC_VERSION >= 40500
-+# define unreachable() do {			\
-+	asm volatile(".insn");			\
-+	__builtin_unreachable();		\
-+} while (0)
-+#endif
-+
-+#include <asm-generic/compiler-gcc.h>
--- 
-2.8.3
+> -- 
+> Catalin
