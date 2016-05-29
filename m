@@ -1,111 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0069.outbound.protection.outlook.com ([157.56.111.69]:3866
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754539AbcE0Q6U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 May 2016 12:58:20 -0400
-Date: Fri, 27 May 2016 19:58:06 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
-Message-ID: <20160527165806.GA20966@yury-N73SV>
-References: <6293194.tGy03QJ9ME@wuerfel>
- <13240365.okADkKsTBJ@wuerfel>
- <20160527093052.GB7865@e104818-lin.cambridge.arm.com>
- <5422652.7gdoDlB8u0@wuerfel>
- <20160527130446.GD7865@e104818-lin.cambridge.arm.com>
+Received: from down.free-electrons.com ([37.187.137.238]:53715 "EHLO
+	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752025AbcE2Xhc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 May 2016 19:37:32 -0400
+Date: Mon, 30 May 2016 01:37:28 +0200
+From: Alexandre Belloni <alexandre.belloni@free-electrons.com>
+Subject: Re: [PATCH v3 00/16] genrtc removal
+Message-ID: <20160529233728.GP3451@piout.net>
+References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
+ <20160503072418.GA2335@piout.net>
+ <3351574.jQ0612lD2O@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160527130446.GD7865@e104818-lin.cambridge.arm.com>
+In-Reply-To: <3351574.jQ0612lD2O@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, David Miller <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-Message-ID: <20160527165806.ZK2mEGcmJJjx-xuuKy2atm2CIY_hhv3CyuCE3vFqyT4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
+Message-ID: <20160529233728.4DXLZEtIUKNDRLJ-ILe7YpawjXyscaBQwFd2q4kBvYU@z>
 
-On Fri, May 27, 2016 at 02:04:47PM +0100, Catalin Marinas wrote:
-> On Fri, May 27, 2016 at 12:49:11PM +0200, Arnd Bergmann wrote:
-> > On Friday, May 27, 2016 10:30:52 AM CEST Catalin Marinas wrote:
-> > > On Fri, May 27, 2016 at 10:42:59AM +0200, Arnd Bergmann wrote:
-> > > > On Friday, May 27, 2016 8:03:57 AM CEST Heiko Carstens wrote:
-> > > > > > > > > Cost wise, this seems like it all cancels out in the end, but what
-> > > > > > > > > do I know?
-> > > > > > > > 
-> > > > > > > > I think you know something, and I also think Heiko and other s390 guys
-> > > > > > > > know something as well. So I'd like to listen their arguments here.
-> > > > > 
-> > > > > If it comes to 64 bit arguments for compat system calls: s390 also has an
-> > > > > x32-like ABI extension which allows user space to use full 64 bit
-> > > > > registers. As far as I know hardly anybody ever made use of that.
-> > > > > 
-> > > > > However even if that would be widely used, to me it wouldn't make sense to
-> > > > > add new compat system calls which allow 64 bit arguments, simply because
-> > > > > something like
-> > > > > 
-> > > > > c = (u32)a | (u64)b << 32;
-> > > > > 
-> > > > > can be done with a single 1-cycle instruction. It's just not worth the
-> > > > > extra effort to maintain additional system call variants.
-> > > > 
-> > > > For reference, both tile and mips also have separate 32-bit ABIs that are
-> > > > only used on 64-bit kernels (aside from the normal 32-bit ABI). Tile
-> > > > does it like s390 and passes 64-bit arguments as pairs, while MIPS
-> > > > and x86 and pass them as single registers.
-> > > 
-> > > AFAIK, x32 also requires that the upper half of a 64-bit reg is zeroed
-> > > by the user when a 32-bit value is passed. We could require the same on
-> > > AArch64/ILP32 but I'm a bit uneasy on trusting a multitude of C
-> > > libraries on this.
+Hi,
+
+On 03/05/2016 at 12:05:34 +0200, Arnd Bergmann wrote :
+> On Tuesday 03 May 2016 09:24:18 Alexandre Belloni wrote:
+> > Hi Arnd,
 > > 
-> > It's not about trusting a C library, it's about ensuring malicious code
-> > cannot pass argumentst that the kernel code assumes will never happen.
+> > I see you didn't copy Greg on that series (that may explain his
+> > confusion on the previous patch), do you expect me to take it
+> > through the RTC tree? That is fine but I'd like some acks from him.
 > 
-> At least for pointers and sizes, we have additional checks in place
-> already, like __access_ok(). Most of the syscalls should be safe since
-> they either go through some compat functions taking 32-bit arguments or
-> are routed to native functions which already need to cope with a full
-> random 64-bit value.
-
-It's not a good idea to rely on current implementation. Implementation
-may be changed and it's impossible to check each and every patch
-against register top-halves correctness.
-
+> Yes, that was a mistake. I dropped Greg from one Cc list in v2 when
+> I split up the RTC changes into the part that was for drivers/rtc
+> and the other one for Greg's char-misc tree. Then I reused the first
+> Cc list when I sent a combined series for v3 again. I'll fix that
+> when I post v4. There are only very small changes in there that
+> I still need to pick up, so hopefully that will be the last version.
 > 
-> On arm64, I think the only risk comes from syscall handlers expecting
-> 32-bit arguments but using 64-bit types. Apart from pointer types, I
-> don't expect this to happen but we could enforce it via a
-> BUILD_BUG_ON(sizeof(t) > 4 && !__TYPE_IS_PTR(t)) in __SC_DELOUSE as per
-> the s390 implementation. With ILP32 if we go for 64-bit off_t, those
-> syscalls would be routed directly to the native layer.
+> It would be nice if you could take it through your tree then.
 > 
 
-64-bit off_t doesn't imply we'd rout it directly. At first glance it's
-looking reasonable but there are other considerations like simplicity and
-unification with aarch32 that may become more important. That's what
-David pointed out.
+We are now at 4.7-rc1. Can you send v4 soon so that I can apply that
+series  and get it in linux-next?
 
-So, we have 3 options for now:
-1. Clear top halves in entry.S which means we pass off_t as a pair.
-   The cost is performance (didn't measure it yet and doubt about it
-   makes serious impact). The advantage is simplicity and unification with
-   aarch32, as I mentioned above. And David likes it. And it mininizes
-   the amount of changes on glibc side.
-2. Clear top halves in in separated file hosted wrappers.
-3. Clear top halves in I-cache and tail optimization friendly in-site wrappers.
+There is a small rebase to do on patch v3.
 
-2 and 3 are the same from ABI point of view.
+Thanks!
 
-2 is the worst for me as it is the most complex in implementation and 
-I-cache and tail optimization non-friendly. But Heiko likes it.
- 
-3 is what Catalin is talking about, and it was my initial approach.
-Though I didn't made compiler to do tail optimization, I think we can
-do it.
-
-But 2 is what we have now. And I'd choose it. We'll never get ilp32 done
-if will roll back previously agreed decisions again and again.
-
-Yury.
-
-> -- 
-> Catalin
+-- 
+Alexandre Belloni, Free Electrons
+Embedded Linux, Kernel and Android engineering
+http://free-electrons.com
