@@ -1,74 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:60208 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:59219 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161855AbcE3S6Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 14:58:25 -0400
+	with ESMTP id S1161879AbcE3S61 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 14:58:27 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v4 10/16] rtc: m68k: provide ioctl for q40
-Date: Mon, 30 May 2016 20:57:58 +0200
-Message-ID: <1464634684-1248135-11-git-send-email-arnd@arndb.de>
+Subject: [PATCH v4 04/16] rtc: sh: provide rtc_class_ops directly
+Date: Mon, 30 May 2016 20:57:52 +0200
+Message-ID: <1464634684-1248135-5-git-send-email-arnd@arndb.de>
 In-Reply-To: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, gregkh@linuxfoundation.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
-Message-ID: <20160530185758.ZEdwM9teYAyMZjQPovqmQ0K0kUjB38IiFtwOaTzHxgk@z>
+Message-ID: <20160530185752.lxn3Z-jXPBYjRwUzFkthzN9q91wUxlCb2MKNyGvb9jk@z>
 
-The q40 platform is the only machine in the kernel that provides
-RTC_PLL_GET/RTC_PLL_SET ioctl commands in its rtc through the
-mach_get_rtc_pll/mach_set_rtc_pll callbacks.
+The rtc-generic driver provides an architecture specific
+wrapper on top of the generic rtc_class_ops abstraction,
+and on sh, that goes through another indirection using
+the rtc_sh_get_time/rtc_sh_set_time functions.
 
-However, this currenctly works only in the old-style genrtc
-driver, not the (somewhat) modern rtc-generic driver replacing
-it. This adds an ioctl implementation to the m68k generic_rtc_ops
-in order to let both drivers provide the same API.
-
-After this, we should be able to remove support for genrtc
-from the m68k architecture.
+This changes the sh rtc-generic device to provide its
+rtc_class_ops directly, skipping one of the abstraction
+levels.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/m68k/kernel/time.c | 25 +++++++++++++++++++++++++
- 1 file changed, 25 insertions(+)
+ arch/sh/include/asm/rtc.h | 11 -----------
+ arch/sh/kernel/time.c     | 33 ++++++++++++++++++++-------------
+ drivers/rtc/rtc-generic.c |  2 +-
+ 3 files changed, 21 insertions(+), 25 deletions(-)
 
-diff --git a/arch/m68k/kernel/time.c b/arch/m68k/kernel/time.c
-index bd6417d38d5a..4e5aa2f4f522 100644
---- a/arch/m68k/kernel/time.c
-+++ b/arch/m68k/kernel/time.c
-@@ -100,7 +100,32 @@ static int rtc_generic_set_time(struct device *dev, struct rtc_time *tm)
- 	return 0;
- }
+diff --git a/arch/sh/include/asm/rtc.h b/arch/sh/include/asm/rtc.h
+index 52b0c2dba979..f7b010d48af7 100644
+--- a/arch/sh/include/asm/rtc.h
++++ b/arch/sh/include/asm/rtc.h
+@@ -6,17 +6,6 @@ extern void (*board_time_init)(void);
+ extern void (*rtc_sh_get_time)(struct timespec *);
+ extern int (*rtc_sh_set_time)(const time_t);
  
-+static int rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long arg)
-+{
-+	struct rtc_pll_info pll;
-+	struct rtc_pll_info __user *argp = (void __user *)arg;
+-/* some dummy definitions */
+-#define RTC_BATT_BAD 0x100	/* battery bad */
+-#define RTC_SQWE 0x08		/* enable square-wave output */
+-#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
+-#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
+-#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
+-
+-struct rtc_time;
+-unsigned int get_rtc_time(struct rtc_time *);
+-int set_rtc_time(struct rtc_time *);
+-
+ #define RTC_CAP_4_DIGIT_YEAR	(1 << 0)
+ 
+ struct sh_rtc_platform_info {
+diff --git a/arch/sh/kernel/time.c b/arch/sh/kernel/time.c
+index d6d0a986c6e9..a4a7862b489a 100644
+--- a/arch/sh/kernel/time.c
++++ b/arch/sh/kernel/time.c
+@@ -50,27 +50,31 @@ int update_persistent_clock(struct timespec now)
+ }
+ #endif
+ 
+-unsigned int get_rtc_time(struct rtc_time *tm)
++static int rtc_generic_get_time(struct device *dev, struct rtc_time *tm)
+ {
+-	if (rtc_sh_get_time != null_rtc_get_time) {
+-		struct timespec tv;
++	struct timespec tv;
+ 
+-		rtc_sh_get_time(&tv);
+-		rtc_time_to_tm(tv.tv_sec, tm);
+-	}
+-
+-	return RTC_24H;
++	rtc_sh_get_time(&tv);
++	rtc_time_to_tm(tv.tv_sec, tm);
++	return 0;
+ }
+-EXPORT_SYMBOL(get_rtc_time);
+ 
+-int set_rtc_time(struct rtc_time *tm)
++static int rtc_generic_set_time(struct device *dev, struct rtc_time *tm)
+ {
+ 	unsigned long secs;
+ 
+ 	rtc_tm_to_time(tm, &secs);
+-	return rtc_sh_set_time(secs);
++	if ((rtc_sh_set_time == null_rtc_set_time) ||
++	    (rtc_sh_set_time(secs) < 0))
++		return -EOPNOTSUPP;
 +
-+	switch (cmd) {
-+	case RTC_PLL_GET:
-+		if (!mach_get_rtc_pll || mach_get_rtc_pll(&pll))
-+			return -EINVAL;
-+		return copy_to_user(argp, &pll, sizeof pll) ? -EFAULT : 0;
++	return 0;
+ }
+-EXPORT_SYMBOL(set_rtc_time);
 +
-+	case RTC_PLL_SET:
-+		if (!mach_set_rtc_pll)
-+			return -EINVAL;
-+		if (!capable(CAP_SYS_TIME))
-+			return -EACCES;
-+		if (copy_from_user(&pll, argp, sizeof(pll)))
-+			return -EFAULT;
-+		return mach_set_rtc_pll(&pll);
-+	}
++static const struct rtc_class_ops rtc_generic_ops = {
++	.read_time = rtc_generic_get_time,
++	.set_time = rtc_generic_set_time,
++};
+ 
+ static int __init rtc_generic_init(void)
+ {
+@@ -79,7 +83,10 @@ static int __init rtc_generic_init(void)
+ 	if (rtc_sh_get_time == null_rtc_get_time)
+ 		return -ENODEV;
+ 
+-	pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
++	pdev = platform_device_register_data(NULL, "rtc-generic", -1,
++					     &rtc_generic_ops,
++					     sizeof(rtc_generic_ops));
 +
-+	return -ENOIOCTLCMD;
-+}
-+
- static const struct rtc_class_ops generic_rtc_ops = {
-+	.ioctl = rtc_ioctl,
- 	.read_time = rtc_generic_get_time,
- 	.set_time = rtc_generic_set_time,
- };
+ 
+ 	return PTR_ERR_OR_ZERO(pdev);
+ }
+diff --git a/drivers/rtc/rtc-generic.c b/drivers/rtc/rtc-generic.c
+index d726c6aa96a8..3958e87a05fa 100644
+--- a/drivers/rtc/rtc-generic.c
++++ b/drivers/rtc/rtc-generic.c
+@@ -10,7 +10,7 @@
+ #include <linux/rtc.h>
+ 
+ #if defined(CONFIG_M68K) || defined(CONFIG_PARISC) || \
+-    defined(CONFIG_PPC) || defined(CONFIG_SUPERH32)
++    defined(CONFIG_PPC)
+ #include <asm/rtc.h>
+ 
+ static int generic_get_time(struct device *dev, struct rtc_time *tm)
 -- 
 2.7.0
 
