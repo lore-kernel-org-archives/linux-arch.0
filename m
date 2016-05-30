@@ -1,122 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:59611 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.74]:61309 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161683AbcE3S6Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 14:58:25 -0400
+	with ESMTP id S1161855AbcE3S6h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 14:58:37 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH v4 01/16] rtc: cmos: remove empty asm/mc146818rtc.h files
-Date: Mon, 30 May 2016 20:57:49 +0200
-Message-ID: <1464634684-1248135-2-git-send-email-arnd@arndb.de>
+Subject: [PATCH v4 13/16] char/genrtc: remove powerpc support
+Date: Mon, 30 May 2016 20:58:01 +0200
+Message-ID: <1464634684-1248135-14-git-send-email-arnd@arndb.de>
 In-Reply-To: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, geert@linux-m68k.org, gregkh@linuxfoundation.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
-Message-ID: <20160530185749.JWjGPITVC_u3HOugnVYUWy5suRooEWrq_1mDEbYyqOI@z>
+Message-ID: <20160530185801.Xrs-a5Ji7g_4lCuAaDXwTZwPD6LBixdpTAwUuYhJAT0@z>
 
-Nothing on these architectures ever includes the asm/mc146818rtc.h
-file, the drivers that used to do this have been fixed long ago,
-and the remaining users are all PC-specific.
+PowerPC is the last architecture using the GEN_RTC driver on some
+machines, but we can migrate them all to using the RTC_DRV_GENERIC
+driver instead now.
 
-This removes the files for good.
+This moves over the CONFIG_GEN_RTC option from drivers/char into
+arch/powerpc/platforms/Kconfig and makes it just select the
+replacement driver instead, for the only reason of not breaking
+existing defconfig and .config files that users may have.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Alexandre Belloni <alexandre.belloni@free-electrons.com>
 ---
- arch/frv/include/asm/mc146818rtc.h    | 16 ----------------
- arch/h8300/include/asm/mc146818rtc.h  |  9 ---------
- arch/ia64/include/asm/mc146818rtc.h   | 10 ----------
- arch/parisc/include/asm/mc146818rtc.h |  9 ---------
- arch/sh/include/asm/mc146818rtc.h     |  7 -------
- 5 files changed, 51 deletions(-)
- delete mode 100644 arch/frv/include/asm/mc146818rtc.h
- delete mode 100644 arch/h8300/include/asm/mc146818rtc.h
- delete mode 100644 arch/ia64/include/asm/mc146818rtc.h
- delete mode 100644 arch/parisc/include/asm/mc146818rtc.h
- delete mode 100644 arch/sh/include/asm/mc146818rtc.h
+ arch/powerpc/include/asm/rtc.h    | 78 ---------------------------------------
+ arch/powerpc/platforms/Kconfig    | 11 ++++++
+ arch/powerpc/platforms/ps3/time.c |  2 +-
+ drivers/char/Kconfig              |  4 +-
+ drivers/char/Makefile             |  2 +-
+ 5 files changed, 15 insertions(+), 82 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/rtc.h
 
-diff --git a/arch/frv/include/asm/mc146818rtc.h b/arch/frv/include/asm/mc146818rtc.h
+diff --git a/arch/powerpc/include/asm/rtc.h b/arch/powerpc/include/asm/rtc.h
 deleted file mode 100644
-index 90dfb7a633d1..000000000000
---- a/arch/frv/include/asm/mc146818rtc.h
+index f5802926b6c0..000000000000
+--- a/arch/powerpc/include/asm/rtc.h
 +++ /dev/null
-@@ -1,16 +0,0 @@
--/* mc146818rtc.h: RTC defs
+@@ -1,78 +0,0 @@
+-/*
+- * Real-time clock definitions and interfaces
 - *
-- * Copyright (C) 2005 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
+- * Author: Tom Rini <trini@mvista.com>
 - *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
+- * 2002 (c) MontaVista, Software, Inc.  This file is licensed under
+- * the terms of the GNU General Public License version 2.  This program
+- * is licensed "as is" without any warranty of any kind, whether express
+- * or implied.
+- *
+- * Based on:
+- * include/asm-m68k/rtc.h
+- *
+- * Copyright Richard Zidlicky
+- * implementation details for genrtc/q40rtc driver
+- *
+- * And the old drivers/macintosh/rtc.c which was heavily based on:
+- * Linux/SPARC Real Time Clock Driver
+- * Copyright (C) 1996 Thomas K. Dyas (tdyas@eden.rutgers.edu)
+- *
+- * With additional work by Paul Mackerras and Franz Sirl.
 - */
 -
--#ifndef _ASM_MC146818RTC_H
--#define _ASM_MC146818RTC_H
+-#ifndef __ASM_POWERPC_RTC_H__
+-#define __ASM_POWERPC_RTC_H__
 -
+-#ifdef __KERNEL__
 -
--#endif /* _ASM_MC146818RTC_H */
-diff --git a/arch/h8300/include/asm/mc146818rtc.h b/arch/h8300/include/asm/mc146818rtc.h
-deleted file mode 100644
-index ab9d9646d241..000000000000
---- a/arch/h8300/include/asm/mc146818rtc.h
-+++ /dev/null
-@@ -1,9 +0,0 @@
--/*
-- * Machine dependent access functions for RTC registers.
-- */
--#ifndef _H8300_MC146818RTC_H
--#define _H8300_MC146818RTC_H
+-#include <linux/rtc.h>
 -
--/* empty include file to satisfy the include in genrtc.c/ide-geometry.c */
+-#include <asm/machdep.h>
+-#include <asm/time.h>
 -
--#endif /* _H8300_MC146818RTC_H */
-diff --git a/arch/ia64/include/asm/mc146818rtc.h b/arch/ia64/include/asm/mc146818rtc.h
-deleted file mode 100644
-index 407787a237ba..000000000000
---- a/arch/ia64/include/asm/mc146818rtc.h
-+++ /dev/null
-@@ -1,10 +0,0 @@
--#ifndef _ASM_IA64_MC146818RTC_H
--#define _ASM_IA64_MC146818RTC_H
+-#define RTC_PIE 0x40		/* periodic interrupt enable */
+-#define RTC_AIE 0x20		/* alarm interrupt enable */
+-#define RTC_UIE 0x10		/* update-finished interrupt enable */
 -
--/*
-- * Machine dependent access functions for RTC registers.
-- */
+-/* some dummy definitions */
+-#define RTC_BATT_BAD 0x100	/* battery bad */
+-#define RTC_SQWE 0x08		/* enable square-wave output */
+-#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
+-#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
+-#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
 -
--/* empty include file to satisfy the include in genrtc.c */
+-static inline unsigned int get_rtc_time(struct rtc_time *time)
+-{
+-	if (ppc_md.get_rtc_time)
+-		ppc_md.get_rtc_time(time);
+-	return RTC_24H;
+-}
 -
--#endif /* _ASM_IA64_MC146818RTC_H */
-diff --git a/arch/parisc/include/asm/mc146818rtc.h b/arch/parisc/include/asm/mc146818rtc.h
-deleted file mode 100644
-index adf41631449f..000000000000
---- a/arch/parisc/include/asm/mc146818rtc.h
-+++ /dev/null
-@@ -1,9 +0,0 @@
--/*
-- * Machine dependent access functions for RTC registers.
-- */
--#ifndef _ASM_MC146818RTC_H
--#define _ASM_MC146818RTC_H
+-/* Set the current date and time in the real time clock. */
+-static inline int set_rtc_time(struct rtc_time *time)
+-{
+-	if (ppc_md.set_rtc_time)
+-		return ppc_md.set_rtc_time(time);
+-	return -EINVAL;
+-}
 -
--/* empty include file to satisfy the include in genrtc.c */
+-static inline unsigned int get_rtc_ss(void)
+-{
+-	struct rtc_time h;
 -
--#endif /* _ASM_MC146818RTC_H */
-diff --git a/arch/sh/include/asm/mc146818rtc.h b/arch/sh/include/asm/mc146818rtc.h
-deleted file mode 100644
-index 0aee96a97330..000000000000
---- a/arch/sh/include/asm/mc146818rtc.h
-+++ /dev/null
-@@ -1,7 +0,0 @@
--/*
-- * Machine dependent access functions for RTC registers.
-- */
--#ifndef _ASM_MC146818RTC_H
--#define _ASM_MC146818RTC_H
+-	get_rtc_time(&h);
+-	return h.tm_sec;
+-}
 -
--#endif /* _ASM_MC146818RTC_H */
+-static inline int get_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	return -EINVAL;
+-}
+-static inline int set_rtc_pll(struct rtc_pll_info *pll)
+-{
+-	return -EINVAL;
+-}
+-
+-#endif /* __KERNEL__ */
+-#endif /* __ASM_POWERPC_RTC_H__ */
+diff --git a/arch/powerpc/platforms/Kconfig b/arch/powerpc/platforms/Kconfig
+index 46a3533d3acb..863aa4341390 100644
+--- a/arch/powerpc/platforms/Kconfig
++++ b/arch/powerpc/platforms/Kconfig
+@@ -321,6 +321,17 @@ config OF_RTC
+ 	  Uses information from the OF or flattened device tree to instantiate
+ 	  platform devices for direct mapped RTC chips like the DS1742 or DS1743.
+ 
++config GEN_RTC
++	bool "Use the platform RTC operations from user space"
++	select RTC_CLASS
++	select RTC_DRV_GENERIC
++	help
++	  This option provides backwards compatibility with the old gen_rtc.ko
++	  module that was traditionally used for old PowerPC machines.
++	  Platforms should migrate to enabling the RTC_DRV_GENERIC by hand
++	  replacing their get_rtc_time/set_rtc_time callbacks with
++	  a proper RTC device driver.
++
+ config SIMPLE_GPIO
+ 	bool "Support for simple, memory-mapped GPIO controllers"
+ 	depends on PPC
+diff --git a/arch/powerpc/platforms/ps3/time.c b/arch/powerpc/platforms/ps3/time.c
+index 791c6142c4a7..11b45b58c81b 100644
+--- a/arch/powerpc/platforms/ps3/time.c
++++ b/arch/powerpc/platforms/ps3/time.c
+@@ -20,9 +20,9 @@
+ 
+ #include <linux/kernel.h>
+ #include <linux/platform_device.h>
++#include <linux/rtc.h>
+ 
+ #include <asm/firmware.h>
+-#include <asm/rtc.h>
+ #include <asm/lv1call.h>
+ #include <asm/ps3.h>
+ 
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index fccac76257c9..153e90f8a445 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -325,10 +325,10 @@ config JS_RTC
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called js-rtc.
+ 
+-config GEN_RTC
++config OLD_GEN_RTC
+ 	tristate "Generic /dev/rtc emulation"
+ 	depends on RTC!=y
+-	depends on PPC
++	depends on BROKEN
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+diff --git a/drivers/char/Makefile b/drivers/char/Makefile
+index d8a7579300d2..fc0905aa7373 100644
+--- a/drivers/char/Makefile
++++ b/drivers/char/Makefile
+@@ -25,7 +25,7 @@ obj-$(CONFIG_APPLICOM)		+= applicom.o
+ obj-$(CONFIG_SONYPI)		+= sonypi.o
+ obj-$(CONFIG_RTC)		+= rtc.o
+ obj-$(CONFIG_HPET)		+= hpet.o
+-obj-$(CONFIG_GEN_RTC)		+= genrtc.o
++obj-$(CONFIG_OLD_GEN_RTC)	+= genrtc.o
+ obj-$(CONFIG_EFI_RTC)		+= efirtc.o
+ obj-$(CONFIG_DS1302)		+= ds1302.o
+ obj-$(CONFIG_XILINX_HWICAP)	+= xilinx_hwicap/
 -- 
 2.7.0
 
