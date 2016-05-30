@@ -1,12 +1,12 @@
 From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: [PATCH v4 08/16] char/genrtc: remove parisc support
-Date: Mon, 30 May 2016 20:57:56 +0200
-Message-ID: <1464634684-1248135-9-git-send-email-arnd@arndb.de>
+Subject: [PATCH v4 12/16] rtc: powerpc: provide rtc_class_ops directly
+Date: Mon, 30 May 2016 20:58:00 +0200
+Message-ID: <1464634684-1248135-13-git-send-email-arnd@arndb.de>
 References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 Reply-To: rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <rtc-linux+bncBDEKVJM7XAHRBPM2WK5AKGQE3ON4ABA-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+Return-path: <rtc-linux+bncBDEKVJM7XAHRBPU2WK5AKGQEYDMY6AY-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
 Sender: rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org
 In-Reply-To: <1464634684-1248135-1-git-send-email-arnd-r2nGTMty4D4@public.gmane.org>
 List-Post: <https://groups.google.com/group/rtc-linux/post>, <mailto:rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
@@ -19,169 +19,90 @@ To: Alexandre Belloni <alexandre.belloni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public
 Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, deller-Mmb7MZpHnFY@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org, mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org, dalias-8zAoT0mYgF4@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, a.zummo-BfzFCNDTiLLj+vYz1yj4TQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-This architecture selects RTC_CLASS unconditionally, so the GEN_RTC
-has not worked here for a long time.
+The rtc-generic driver provides an architecture specific
+wrapper on top of the generic rtc_class_ops abstraction,
+and powerpc has another abstraction on top, which is a bit
+silly.
 
-Now we can remove both the asm/rtc.h header and the Kconfig dependency
-for CONFIG_GEN_RTC.
+This changes the powerpc rtc-generic device to provide its
+rtc_class_ops directly, to reduce the number of layers
+by one.
 
 Signed-off-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
 ---
- arch/parisc/include/asm/rtc.h | 131 ------------------------------------------
- drivers/char/Kconfig          |   2 +-
- 2 files changed, 1 insertion(+), 132 deletions(-)
- delete mode 100644 arch/parisc/include/asm/rtc.h
+ arch/powerpc/kernel/time.c | 29 ++++++++++++++++++++++++++++-
+ drivers/rtc/rtc-generic.c  |  2 +-
+ 2 files changed, 29 insertions(+), 2 deletions(-)
 
-diff --git a/arch/parisc/include/asm/rtc.h b/arch/parisc/include/asm/rtc.h
-deleted file mode 100644
-index 099d641a42c2..000000000000
---- a/arch/parisc/include/asm/rtc.h
-+++ /dev/null
-@@ -1,131 +0,0 @@
--/* 
-- * include/asm-parisc/rtc.h
-- *
-- * Copyright 2002 Randolph CHung <tausq-8fiUuRrzOP0dnm+yROfE0A@public.gmane.org>
-- *
-- * Based on: include/asm-ppc/rtc.h and the genrtc driver in the
-- * 2.4 parisc linux tree
-- */
--
--#ifndef __ASM_RTC_H__
--#define __ASM_RTC_H__
--
--#ifdef __KERNEL__
--
--#include <linux/rtc.h>
--
--#include <asm/pdc.h>
--
--#define SECS_PER_HOUR   (60 * 60)
--#define SECS_PER_DAY    (SECS_PER_HOUR * 24)
--
--
--#define RTC_PIE 0x40		/* periodic interrupt enable */
--#define RTC_AIE 0x20		/* alarm interrupt enable */
--#define RTC_UIE 0x10		/* update-finished interrupt enable */
--
--#define RTC_BATT_BAD 0x100	/* battery bad */
--
--/* some dummy definitions */
--#define RTC_SQWE 0x08		/* enable square-wave output */
--#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
--#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
--#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
--
--# define __isleap(year) \
--  ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
--
--/* How many days come before each month (0-12).  */
--static const unsigned short int __mon_yday[2][13] =
--{
--	/* Normal years.  */
--	{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
--	/* Leap years.  */
--	{ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
--};
--
--static inline unsigned int get_rtc_time(struct rtc_time *wtime)
--{
--	struct pdc_tod tod_data;
--	long int days, rem, y;
--	const unsigned short int *ip;
--
--	memset(wtime, 0, sizeof(*wtime));
--	if (pdc_tod_read(&tod_data) < 0)
--		return RTC_24H | RTC_BATT_BAD;
--
--	// most of the remainder of this function is:
--//	Copyright (C) 1991, 1993, 1997, 1998 Free Software Foundation, Inc.
--//	This was originally a part of the GNU C Library.
--//      It is distributed under the GPL, and was swiped from offtime.c
--
--
--	days = tod_data.tod_sec / SECS_PER_DAY;
--	rem = tod_data.tod_sec % SECS_PER_DAY;
--
--	wtime->tm_hour = rem / SECS_PER_HOUR;
--	rem %= SECS_PER_HOUR;
--	wtime->tm_min = rem / 60;
--	wtime->tm_sec = rem % 60;
--
--	y = 1970;
--
--#define DIV(a, b) ((a) / (b) - ((a) % (b) < 0))
--#define LEAPS_THRU_END_OF(y) (DIV (y, 4) - DIV (y, 100) + DIV (y, 400))
--
--	while (days < 0 || days >= (__isleap (y) ? 366 : 365))
--	{
--		/* Guess a corrected year, assuming 365 days per year.  */
--		long int yg = y + days / 365 - (days % 365 < 0);
--
--		/* Adjust DAYS and Y to match the guessed year.  */
--		days -= ((yg - y) * 365
--			 + LEAPS_THRU_END_OF (yg - 1)
--			 - LEAPS_THRU_END_OF (y - 1));
--		y = yg;
--	}
--	wtime->tm_year = y - 1900;
--
--	ip = __mon_yday[__isleap(y)];
--	for (y = 11; days < (long int) ip[y]; --y)
--		continue;
--	days -= ip[y];
--	wtime->tm_mon = y;
--	wtime->tm_mday = days + 1;
--
--	return RTC_24H;
--}
--
--static int set_rtc_time(struct rtc_time *wtime)
--{
--	u_int32_t secs;
--
--	secs = mktime(wtime->tm_year + 1900, wtime->tm_mon + 1, wtime->tm_mday, 
--		      wtime->tm_hour, wtime->tm_min, wtime->tm_sec);
--
--	if(pdc_tod_set(secs, 0) < 0)
--		return -1;
--	else
--		return 0;
--
--}
--
--static inline unsigned int get_rtc_ss(void)
--{
--	struct rtc_time h;
--
--	get_rtc_time(&h);
--	return h.tm_sec;
--}
--
--static inline int get_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--static inline int set_rtc_pll(struct rtc_pll_info *pll)
--{
--	return -EINVAL;
--}
--
--#endif /* __KERNEL__ */
--#endif /* __ASM_RTC_H__ */
-diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
-index 1d9e3063373b..074bc394e31b 100644
---- a/drivers/char/Kconfig
-+++ b/drivers/char/Kconfig
-@@ -328,7 +328,7 @@ config JS_RTC
- config GEN_RTC
- 	tristate "Generic /dev/rtc emulation"
- 	depends on RTC!=y
--	depends on M68K || PARISC || PPC
-+	depends on M68K || PPC
- 	---help---
- 	  If you say Y here and create a character special file /dev/rtc with
- 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+diff --git a/arch/powerpc/kernel/time.c b/arch/powerpc/kernel/time.c
+index 3ed9a5a21d77..7a482a7f4d8d 100644
+--- a/arch/powerpc/kernel/time.c
++++ b/arch/powerpc/kernel/time.c
+@@ -56,6 +56,7 @@
+ #include <linux/irq_work.h>
+ #include <linux/clk-provider.h>
+ #include <linux/suspend.h>
++#include <linux/rtc.h>
+ #include <asm/trace.h>
+ 
+ #include <asm/io.h>
+@@ -1081,6 +1082,29 @@ void calibrate_delay(void)
+ 	loops_per_jiffy = tb_ticks_per_jiffy;
+ }
+ 
++#if IS_ENABLED(CONFIG_RTC_DRV_GENERIC)
++static int rtc_generic_get_time(struct device *dev, struct rtc_time *tm)
++{
++	ppc_md.get_rtc_time(tm);
++	return rtc_valid_tm(tm);
++}
++
++static int rtc_generic_set_time(struct device *dev, struct rtc_time *tm)
++{
++	if (!ppc_md.set_rtc_time)
++		return -EOPNOTSUPP;
++
++	if (ppc_md.set_rtc_time(tm) < 0)
++		return -EOPNOTSUPP;
++
++	return 0;
++}
++
++static const struct rtc_class_ops rtc_generic_ops = {
++	.read_time = rtc_generic_get_time,
++	.set_time = rtc_generic_set_time,
++};
++
+ static int __init rtc_init(void)
+ {
+ 	struct platform_device *pdev;
+@@ -1088,9 +1112,12 @@ static int __init rtc_init(void)
+ 	if (!ppc_md.get_rtc_time)
+ 		return -ENODEV;
+ 
+-	pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
++	pdev = platform_device_register_data(NULL, "rtc-generic", -1,
++					     &rtc_generic_ops,
++					     sizeof(rtc_generic_ops));
+ 
+ 	return PTR_ERR_OR_ZERO(pdev);
+ }
+ 
+ device_initcall(rtc_init);
++#endif
+diff --git a/drivers/rtc/rtc-generic.c b/drivers/rtc/rtc-generic.c
+index 5c82bae73b9c..efcb9833cac8 100644
+--- a/drivers/rtc/rtc-generic.c
++++ b/drivers/rtc/rtc-generic.c
+@@ -9,7 +9,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/rtc.h>
+ 
+-#if defined(CONFIG_PPC)
++#if 0
+ #include <asm/rtc.h>
+ 
+ static int generic_get_time(struct device *dev, struct rtc_time *tm)
 -- 
 2.7.0
 
