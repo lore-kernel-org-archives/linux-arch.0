@@ -1,193 +1,115 @@
-From: "Rafael J. Wysocki" <rafael@kernel.org>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-Date: Mon, 30 May 2016 22:43:51 +0200
-Message-ID: <CAJZ5v0in8YwMBgLd6=KgGVc-f2yVvutOJG_u05OKLK7_EzN0yQ@mail.gmail.com>
-References: <20160511101920.GZ4329@intel.com>
-	<57332171.8070403@linutronix.de>
-	<20160511122116.GA4329@intel.com>
-	<20160511084445.00030b49@gandalf.local.home>
-	<20160511133406.GC4329@intel.com>
-	<20160516193910.GL4329@intel.com>
-	<573BA5E2.5040506@intel.com>
-	<20160518072424.GU4329@intel.com>
-	<20160526183207.GX4329@intel.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.4 80/86] SIGNAL: Move generic copy_siginfo() to signal.h
+Date: Mon, 30 May 2016 13:50:09 -0700
+Message-ID: <20160530204940.052347962@linuxfoundation.org>
+References: <20160530204937.379068148@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:34215 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752176AbcE3Uny convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 16:43:54 -0400
-In-Reply-To: <20160526183207.GX4329@intel.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52418 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1162286AbcE3Uup (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 16:50:45 -0400
+In-Reply-To: <20160530204937.379068148@linuxfoundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <ville.syrjala@linux.intel.com>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org
 
-On Thu, May 26, 2016 at 8:32 PM, Ville Syrj=C3=A4l=C3=A4
-<ville.syrjala@linux.intel.com> wrote:
-> On Wed, May 18, 2016 at 10:24:24AM +0300, Ville Syrj=C3=A4l=C3=A4 wro=
-te:
->> On Wed, May 18, 2016 at 01:14:42AM +0200, Rafael J. Wysocki wrote:
->> > On 5/16/2016 9:39 PM, Ville Syrj=C3=A4l=C3=A4 wrote:
->> > > On Wed, May 11, 2016 at 04:34:06PM +0300, Ville Syrj=C3=A4l=C3=A4=
- wrote:
->> > >> On Wed, May 11, 2016 at 08:44:45AM -0400, Steven Rostedt wrote:
->> > >>> On Wed, 11 May 2016 15:21:16 +0300
->> > >>> Ville Syrj=C3=A4l=C3=A4 <ville.syrjala@linux.intel.com> wrote:
->> > >>>
->> > >>>> Yeah can't get anything from the machine at that point. netco=
-nsole
->> > >>>> didn't help either, and no serial on this machine. And IIRC I=
-'ve
->> > >>>> tried ramoops on this thing in the past but unfortunately the=
- memory
->> > >>>> got cleared on reboot.
->> > >>>>
->> > >>> Can you look at the documentation in the kernel code at
->> > >>>
->> > >>> Documentation/power/basic-pm-debugging.txt And follow the proc=
-edures
->> > >>> for testing suspend to RAM (although it requires mostly runnin=
-g the
->> > >>> same tests as for hibernation suspending).
->> > >>>
->> > >>> You can also use the tool s2ram for this as well.
->> > >>>
->> > >>> See Documentation/power/s2ram.txt
->> > >>>
->> > >>> Perhaps this can give us a bit more light onto the problem.
->> > >>>
->> > >>> Basically the above does partial suspend and resume, and can p=
-inpoint
->> > >>> problem areas down to a more select location.
->> > >> All the pm_test modes work fine. The only difference between th=
-em was
->> > >> that 'platform' required me to manually wake up the machine (hi=
-tting a
->> > >> key was sufficient), whereas the others woke up without help.
->> > >>
->> > >> pm_trace gave me
->> > >> [    1.306633]   Magic number: 0:185:178
->> > >> [    1.322880]   hash matches ../drivers/base/power/main.c:1070
->> > >> [    1.339270] acpi device:0e: hash matches
->> > >> [    1.355414]  platform: hash matches
->> > >>
->> > >> which is the TRACE_SUSPEND in __device_suspend_noirq(), so no h=
-elp
->> > >> there.
->> > >>
->> > >> I guess I could try to sprinkle more TRACE_RESUMEs around into =
-some
->> > >> early resume code. If anyone has good ideas where to put them i=
-t
->> > >> might speed things up a bit.
->> > > So I did a bunch of that and found that it gets stuck somewhere
->> > > around executing the _WAK method:
->> > > platform_resume_noirq
->> > >   acpi_pm_finish
->> > >    acpi_leave_sleep_state
->> > >     acpi_hw_sleep_dispatch
->> > >      acpi_hw_legacy_wake
->> > >       acpi_hw_execute_sleep_method
->> > >        acpi_evaluate_object
->> > >         acpi_ns_evaluate
->> > >          acpi_ps_execute_method
->> > >           acpi_ps_parse_aml
->> > >
->> > > It also seesm that adding a few TRACE_RESUME()s or an msleep() r=
-ight
->> > > after enable_nonboot_cpus() can avoid the hang, sometimes.
->> > >
->> > > I've attached the DSDT in case anyone is interested in looking a=
-t it.
->> > >
->> >
->> > What if you comment out the execution of _WAK (line 318 of
->> > drivers/acpi/acpica/hwsleep.c in 4.6)?  Does that make any differe=
-nce?
->>
->> Indeed it does. Tried with acpi_idle and intel_idle, and both appear=
- to
->> resume just fine with that hack.
->>
->> -       acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_sta=
-te);
->> +       //acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_s=
-tate);
->> +       printk(KERN_CRIT "skipping _WAK\n");
->
-> Continuing with my detective work a bit, I decided to hack the DSDT a
-> bit to see if I can narrow the it down further, and looks like I foun=
-d
-> it on the first guess. The following change stops it from hanging.
->
-> @ -5056,7 +5056,7 @@
->          If (LEqual (Arg0, 0x03))
->          {
->              Store (0x01, \SPNF)
-> -           TRAP (0x46)
-> +           //TRAP (0x46)
->              P8XH (0x00, 0x03)
->          }
->
-> So what does that do? Let's see:
->
->     OperationRegion (IO_T, SystemIO, 0x0800, 0x10)
->     Field (IO_T, ByteAcc, NoLock, Preserve)
->     {
->         Offset (0x08),
->         TRP0,   8
->     }
->
->     OperationRegion (GNVS, SystemMemory, 0x3F5E0C7C, 0x0200)
->     Field (GNVS, AnyAcc, Lock, Preserve)
->     {
->         OSYS,   16,
->         SMIF,   8,
->     ...
->
->     Method (TRAP, 1, Serialized)
->     {
->         Store (Arg0, SMIF) /* \SMIF */
->         Store (0x00, TRP0) /* \TRP0 */
->         Return (SMIF) /* \SMIF */
->     }
->
-> and a dump of the IOTR registers shows:
->
-> 0x1e80: 0x0000fe01
-> 0x1e84: 0x00020001
-> 0x1e98: 0x000c0801
-> 0x1e9c: 0x000200f0
->
-> which seems to be telling me that ports 0x800-0x80f and
-> 0xfe00-0xfe03 would trigger an SMI.
+4.4-stable review patch.  If anyone has any objections, please let me know.
 
-Well, the name of the method kind of suggests that it triggers an SMM t=
-rap. :-)
+------------------
 
-> So the next question is how do the idle drivers and cpu hotplug
-> fit into this picture. Do we need to force the second HT into
-> a specific C state before the SMI or something?
+From: James Hogan <james.hogan@imgtec.com>
 
-Or you can ask why exactly someone put that SMM trap into _WAK.
+commit ca9eb49aa9562eaadf3cea071ec7018ad6800425 upstream.
 
-Apparently, it was regarded as necessary or no one would have
-bothered.  The only reason I can see why it might be regarded as
-necessary was that Windows did something Linux doesn't do on that
-platform, or, which to me is far more interesting, that Windows didn't
-do something actually done by Linux.
+The generic copy_siginfo() is currently defined in
+asm-generic/siginfo.h, after including uapi/asm-generic/siginfo.h which
+defines the generic struct siginfo. However this makes it awkward for an
+architecture to use it if it has to define its own struct siginfo (e.g.
+MIPS and potentially IA64), since it means that asm-generic/siginfo.h
+can only be included after defining the arch-specific siginfo, which may
+be problematic if the arch-specific definition needs definitions from
+uapi/asm-generic/siginfo.h.
 
-My theory would be that Windows didn't reinitialize the second HT
-properly during resume and the trap was added to let SMM do that.  If
-that's the case, the trap may trigger by the time the second HT
-already executes code in Linux and then it will mess up with it and
-crash.
+It is possible to work around this by first including
+uapi/asm-generic/siginfo.h to get the constants before defining the
+arch-specific siginfo, and include asm-generic/siginfo.h after. However
+uapi headers can't be included by other uapi headers, so that first
+include has to be in an ifdef __kernel__, with the non __kernel__ case
+including the non-UAPI header instead.
 
-Now, what do idles states have to do with that?  IIRC, Windows puts
-nonboot CPUs into idle states before suspend, so the SMM code
-triggered by the trap may make assumptions about the CPU being in such
-a state or similar.
+Instead of that mess, move the generic copy_siginfo() definition into
+linux/signal.h, which allows an arch-specific uapi/asm/siginfo.h to
+include asm-generic/siginfo.h and define the arch-specific siginfo, and
+for the generic copy_siginfo() to see that arch-specific definition.
+
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Petr Malat <oss@malat.biz>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Christopher Ferris <cferris@google.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Patchwork: https://patchwork.linux-mips.org/patch/12478/
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ include/asm-generic/siginfo.h |   15 ---------------
+ include/linux/signal.h        |   15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 15 deletions(-)
+
+--- a/include/asm-generic/siginfo.h
++++ b/include/asm-generic/siginfo.h
+@@ -17,21 +17,6 @@
+ struct siginfo;
+ void do_schedule_next_timer(struct siginfo *info);
+ 
+-#ifndef HAVE_ARCH_COPY_SIGINFO
+-
+-#include <linux/string.h>
+-
+-static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
+-{
+-	if (from->si_code < 0)
+-		memcpy(to, from, sizeof(*to));
+-	else
+-		/* _sigchld is currently the largest know union member */
+-		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
+-}
+-
+-#endif
+-
+ extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
+ 
+ #endif
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -28,6 +28,21 @@ struct sigpending {
+ 	sigset_t signal;
+ };
+ 
++#ifndef HAVE_ARCH_COPY_SIGINFO
++
++#include <linux/string.h>
++
++static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
++{
++	if (from->si_code < 0)
++		memcpy(to, from, sizeof(*to));
++	else
++		/* _sigchld is currently the largest know union member */
++		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
++}
++
++#endif
++
+ /*
+  * Define some primitives to manipulate sigset_t.
+  */
