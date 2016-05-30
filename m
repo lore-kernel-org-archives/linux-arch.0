@@ -1,77 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:33551 "EHLO
-	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754141AbcE3JPM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:12 -0400
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 05/17] arm64: get rid of superfluous __GFP_REPEAT
-Date: Mon, 30 May 2016 11:14:47 +0200
-Message-ID: <1464599699-30131-6-git-send-email-mhocko@kernel.org>
-In-Reply-To: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:54152 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161330AbcE3SXk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 14:23:40 -0400
+Date: Mon, 30 May 2016 11:23:35 -0700 (PDT)
+Message-ID: <20160530.112335.1376503927443399332.davem@davemloft.net>
+Subject: Re: [PATCH 12/17] sparc: get rid of superfluous __GFP_REPEAT
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1464599699-30131-13-git-send-email-mhocko@kernel.org>
 References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
+	<1464599699-30131-13-git-send-email-mhocko@kernel.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org
-Message-ID: <20160530091447.IYa7HdhxTuVusNFlJrTX6oMlkDhUjBLku_2eGRBP_xI@z>
+To: mhocko@kernel.org
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, mhocko@suse.com, linux-arch@vger.kernel.org
+Message-ID: <20160530182335.im-QFCClnC9-380ZKtZk7gknUxAPQiyZzVovCNEqcRo@z>
 
-From: Michal Hocko <mhocko@suse.com>
+From: Michal Hocko <mhocko@kernel.org>
+Date: Mon, 30 May 2016 11:14:54 +0200
 
-__GFP_REPEAT has a rather weak semantic but since it has been introduced
-around 2.6.12 it has been ignored for low order allocations.
+> From: Michal Hocko <mhocko@suse.com>
+> 
+> __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> around 2.6.12 it has been ignored for low order allocations.
+> 
+> {pud,pmd}_alloc_one is using __GFP_REPEAT but it always allocates from
+> pgtable_cache which is initialzed to PAGE_SIZE objects. This means that
+> this flag has never been actually useful here because it has always been
+> used only for PAGE_ALLOC_COSTLY requests.
+> 
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
 
-{pte,pmd,pud}_alloc_one{_kernel}, late_pgtable_alloc use PGALLOC_GFP for
-__get_free_page (aka order-0).
-
-pgd_alloc is slightly more complex because it allocates from pgd_cache
-if PGD_SIZE != PAGE_SIZE and PGD_SIZE depends on the configuration
-(CONFIG_ARM64_VA_BITS, PAGE_SHIFT and CONFIG_PGTABLE_LEVELS).
-
-As per
-config PGTABLE_LEVELS
-	int
-	default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
-	default 2 if ARM64_64K_PAGES && ARM64_VA_BITS_42
-	default 3 if ARM64_64K_PAGES && ARM64_VA_BITS_48
-	default 3 if ARM64_4K_PAGES && ARM64_VA_BITS_39
-	default 3 if ARM64_16K_PAGES && ARM64_VA_BITS_47
-	default 4 if !ARM64_64K_PAGES && ARM64_VA_BITS_48
-
-we should have the following options
-
-CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:4 PAGE_SIZE:4k size:4096 pages:1
-CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:4 PAGE_SIZE:16k size:16 pages:1
-CONFIG_ARM64_VA_BITS:48 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:64k size:512 pages:1
-CONFIG_ARM64_VA_BITS:47 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:16k size:16384 pages:1
-CONFIG_ARM64_VA_BITS:42 CONFIG_PGTABLE_LEVELS:2 PAGE_SIZE:64k size:65536 pages:1
-CONFIG_ARM64_VA_BITS:39 CONFIG_PGTABLE_LEVELS:3 PAGE_SIZE:4k size:4096 pages:1
-CONFIG_ARM64_VA_BITS:36 CONFIG_PGTABLE_LEVELS:2 PAGE_SIZE:16k size:16384 pages:1
-
-All of them fit into a single page (aka order-0). This means that this
-flag has never been actually useful here because it has always been used
-only for PAGE_ALLOC_COSTLY requests.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org
-Acked-by: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/arm64/include/asm/pgalloc.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
-index ff98585d085a..d25f4f137c2a 100644
---- a/arch/arm64/include/asm/pgalloc.h
-+++ b/arch/arm64/include/asm/pgalloc.h
-@@ -26,7 +26,7 @@
- 
- #define check_pgt_cache()		do { } while (0)
- 
--#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
-+#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
- #define PGD_SIZE	(PTRS_PER_PGD * sizeof(pgd_t))
- 
- #if CONFIG_PGTABLE_LEVELS > 2
--- 
-2.8.1
-
+Acked-by: David S. Miller <davem@davemloft.net>
