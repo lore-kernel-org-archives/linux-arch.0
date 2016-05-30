@@ -1,62 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from down.free-electrons.com ([37.187.137.238]:49634 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1161996AbcE3UcM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 16:32:12 -0400
-Date: Mon, 30 May 2016 22:32:07 +0200
-From: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Subject: Re: [PATCH v4 00/16] genrtc removal
-Message-ID: <20160530203207.GY3451@piout.net>
-References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52993 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161715AbcE3VAn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 17:00:43 -0400
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [PATCH 4.5 81/87] SIGNAL: Move generic copy_siginfo() to signal.h
+Date: Mon, 30 May 2016 13:50:19 -0700
+Message-ID: <20160530204936.512475694@linuxfoundation.org>
+In-Reply-To: <20160530204933.149873142@linuxfoundation.org>
+References: <20160530204933.149873142@linuxfoundation.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, gregkh@linuxfoundation.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
-Message-ID: <20160530203207.AzchmqRN2TVQDwvrIaL1CXb0I7XFhXaZoeTgHaRZz4Q@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org
+Message-ID: <20160530205019.-VxaB7l3hgn9a1wKTY7dDKo14kBaXKWCLqrjTPUh9w0@z>
 
-Hi,
+4.5-stable review patch.  If anyone has any objections, please let me know.
 
-On 30/05/2016 at 20:57:48 +0200, Arnd Bergmann wrote :
-> This is the promised resend of the removal of the genrtc driver and some
-> related code, now that we are at a good time to merge this for the coming
-> merge window.
-> 
+------------------
 
-Thanks a lot!
+From: James Hogan <james.hogan@imgtec.com>
 
-I'm applying the series right now so it sits in linux-next for a while
-before the next merge window.
+commit ca9eb49aa9562eaadf3cea071ec7018ad6800425 upstream.
 
-I would still happily take any acks, Reviewed-by or Tested-by tags.
+The generic copy_siginfo() is currently defined in
+asm-generic/siginfo.h, after including uapi/asm-generic/siginfo.h which
+defines the generic struct siginfo. However this makes it awkward for an
+architecture to use it if it has to define its own struct siginfo (e.g.
+MIPS and potentially IA64), since it means that asm-generic/siginfo.h
+can only be included after defining the arch-specific siginfo, which may
+be problematic if the arch-specific definition needs definitions from
+uapi/asm-generic/siginfo.h.
+
+It is possible to work around this by first including
+uapi/asm-generic/siginfo.h to get the constants before defining the
+arch-specific siginfo, and include asm-generic/siginfo.h after. However
+uapi headers can't be included by other uapi headers, so that first
+include has to be in an ifdef __kernel__, with the non __kernel__ case
+including the non-UAPI header instead.
+
+Instead of that mess, move the generic copy_siginfo() definition into
+linux/signal.h, which allows an arch-specific uapi/asm/siginfo.h to
+include asm-generic/siginfo.h and define the arch-specific siginfo, and
+for the generic copy_siginfo() to see that arch-specific definition.
+
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Petr Malat <oss@malat.biz>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Christopher Ferris <cferris@google.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Patchwork: https://patchwork.linux-mips.org/patch/12478/
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+---
+ include/asm-generic/siginfo.h |   15 ---------------
+ include/linux/signal.h        |   15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 15 deletions(-)
+
+--- a/include/asm-generic/siginfo.h
++++ b/include/asm-generic/siginfo.h
+@@ -17,21 +17,6 @@
+ struct siginfo;
+ void do_schedule_next_timer(struct siginfo *info);
+ 
+-#ifndef HAVE_ARCH_COPY_SIGINFO
+-
+-#include <linux/string.h>
+-
+-static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
+-{
+-	if (from->si_code < 0)
+-		memcpy(to, from, sizeof(*to));
+-	else
+-		/* _sigchld is currently the largest know union member */
+-		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
+-}
+-
+-#endif
+-
+ extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
+ 
+ #endif
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -28,6 +28,21 @@ struct sigpending {
+ 	sigset_t signal;
+ };
+ 
++#ifndef HAVE_ARCH_COPY_SIGINFO
++
++#include <linux/string.h>
++
++static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
++{
++	if (from->si_code < 0)
++		memcpy(to, from, sizeof(*to));
++	else
++		/* _sigchld is currently the largest know union member */
++		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
++}
++
++#endif
++
+ /*
+  * Define some primitives to manipulate sigset_t.
+  */
 
 
-> - CONFIG_EFI_RTC is actively used on all six Itanium configurations,
->   though the CONFIG_RTC_DRV_EFI replacement driver is also available
->   there (and has been Itanium-only until ARM64 support for EFI was
->   merged). I suspect it's just a matter of getting an Ack from the
->   Itanium maintainers to remove it and change the defconfigs.
-> 
-
-I have that one on my radar. There was an impressive number of separate
-drivers for EFI and CMOS...
-
-> - the last remaining legacy RTC driver after those is CONFIG_DS1302,
->   which has a slightly nonstandard ioctl interface and is only used
->   on arch/m32r. I have experimented with this a bit and think it
->   can be converted in a backward-compatible way as well.
-> 
-
-That one has been converted to a standard SPI driver in v4.6. Following
-some discussion, driving it using gpios will be added. m32r will have to
-use one of those two interfaces. It is broken on that architecture for
-now but we never got any reply from maintainers.
-
-
--- 
-Alexandre Belloni, Free Electrons
-Embedded Linux, Kernel and Android engineering
-http://free-electrons.com
