@@ -1,60 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:35479 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932777AbcE3JPQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:16 -0400
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:36390 "EHLO
+	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932360AbcE3JPP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:15 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 10/17] score: get rid of superfluous __GFP_REPEAT
-Date: Mon, 30 May 2016 11:14:52 +0200
-Message-ID: <1464599699-30131-11-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 09/17] parisc: get rid of superfluous __GFP_REPEAT
+Date: Mon, 30 May 2016 11:14:51 +0200
+Message-ID: <1464599699-30131-10-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20160530091452.tBd1vfrA1L1bYnmwUA6Eul_q00aWszEGPpjuX5yDrLQ@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-arch@vger.kernel.org
+Message-ID: <20160530091451.7q4qKsWUztzuRsWuay8AGMoixPbfHIoc1jNC6hgka1Y@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pte_alloc_one{_kernel} allocate PTE_ORDER which is 0. This means that
-this flag has never been actually useful here because it has always been
-used only for PAGE_ALLOC_COSTLY requests.
+pmd_alloc_one allocate PMD_ORDER which is 1. This means that this flag
+has never been actually useful here because it has always been used only
+for PAGE_ALLOC_COSTLY requests.
 
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/score/include/asm/pgalloc.h | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ arch/parisc/include/asm/pgalloc.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/score/include/asm/pgalloc.h b/arch/score/include/asm/pgalloc.h
-index 2e067657db98..49b012d78c1a 100644
---- a/arch/score/include/asm/pgalloc.h
-+++ b/arch/score/include/asm/pgalloc.h
-@@ -42,8 +42,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
+index 52c3defb40c9..f08dda3f0995 100644
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -63,8 +63,7 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
  {
- 	pte_t *pte;
- 
--	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
--					PTE_ORDER);
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
- 
- 	return pte;
- }
-@@ -53,7 +52,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
- {
- 	struct page *pte;
- 
--	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
-+	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
- 	if (!pte)
- 		return NULL;
- 	clear_highpage(pte);
+-	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL|__GFP_REPEAT,
+-					       PMD_ORDER);
++	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL, PMD_ORDER);
+ 	if (pmd)
+ 		memset(pmd, 0, PAGE_SIZE<<PMD_ORDER);
+ 	return pmd;
 -- 
 2.8.1
 
