@@ -1,50 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:34105 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932868AbcE3JPS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:18 -0400
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36409 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932868AbcE3JPW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:22 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 13/17] s390: get rid of superfluous __GFP_REPEAT
-Date: Mon, 30 May 2016 11:14:55 +0200
-Message-ID: <1464599699-30131-14-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 11/17] powerpc: get rid of superfluous __GFP_REPEAT
+Date: Mon, 30 May 2016 11:14:53 +0200
+Message-ID: <1464599699-30131-12-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
-Message-ID: <20160530091455.FbATkmhvsA8FNWr3anwZ09tMdEVxPQzHPYvtt9fumJo@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
+Message-ID: <20160530091453.HWt3ywion6o_Fu9Z-D216zPA33-RUxHEbYcocxleJwI@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-page_table_alloc then uses the flag for a single page allocation. This
-means that this flag has never been actually useful here because it has
-always been used only for PAGE_ALLOC_COSTLY requests.
+{pud,pmd}_alloc_one are allocating from {PGT,PUD}_CACHE initialized in
+pgtable_cache_init which doesn't have larger than sizeof(void *) << 12
+size and that fits into !costly allocation request size.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+PGALLOC_GFP is used only in radix__pgd_alloc which uses either order-0
+or order-4 requests. The first one doesn't need the flag while the
+second does. Drop __GFP_REPEAT from PGALLOC_GFP and add it for the
+order-4 one.
+
+This means that this flag has never been actually useful here because it
+has always been used only for PAGE_ALLOC_COSTLY requests.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: linux-arch@vger.kernel.org
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/s390/mm/pgalloc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/powerpc/include/asm/book3s/64/pgalloc.h | 10 ++++------
+ arch/powerpc/include/asm/nohash/64/pgalloc.h |  6 ++----
+ arch/powerpc/mm/hugetlbpage.c                |  2 +-
+ 3 files changed, 7 insertions(+), 11 deletions(-)
 
-diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
-index e8b5962ac12a..e2565d2d0c32 100644
---- a/arch/s390/mm/pgalloc.c
-+++ b/arch/s390/mm/pgalloc.c
-@@ -169,7 +169,7 @@ unsigned long *page_table_alloc(struct mm_struct *mm)
- 			return table;
- 	}
- 	/* Allocate a fresh page */
--	page = alloc_page(GFP_KERNEL|__GFP_REPEAT);
-+	page = alloc_page(GFP_KERNEL);
+diff --git a/arch/powerpc/include/asm/book3s/64/pgalloc.h b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+index 049b80359db6..d14fcf82c00c 100644
+--- a/arch/powerpc/include/asm/book3s/64/pgalloc.h
++++ b/arch/powerpc/include/asm/book3s/64/pgalloc.h
+@@ -41,7 +41,7 @@ extern struct kmem_cache *pgtable_cache[];
+ 			pgtable_cache[(shift) - 1];	\
+ 		})
+ 
+-#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO
++#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO
+ 
+ extern pte_t *pte_fragment_alloc(struct mm_struct *, unsigned long, int);
+ extern void pte_fragment_free(unsigned long *, int);
+@@ -56,7 +56,7 @@ static inline pgd_t *radix__pgd_alloc(struct mm_struct *mm)
+ 	return (pgd_t *)__get_free_page(PGALLOC_GFP);
+ #else
+ 	struct page *page;
+-	page = alloc_pages(PGALLOC_GFP, 4);
++	page = alloc_pages(PGALLOC_GFP | __GFP_REPEAT, 4);
  	if (!page)
  		return NULL;
- 	if (!pgtable_page_ctor(page)) {
+ 	return (pgd_t *) page_address(page);
+@@ -93,8 +93,7 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
+ 
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE),
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE), GFP_KERNEL);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -115,8 +114,7 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(PGT_CACHE(PMD_CACHE_INDEX),
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(PGT_CACHE(PMD_CACHE_INDEX), GFP_KERNEL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+diff --git a/arch/powerpc/include/asm/nohash/64/pgalloc.h b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+index a50981293d06..f4f72b7e676a 100644
+--- a/arch/powerpc/include/asm/nohash/64/pgalloc.h
++++ b/arch/powerpc/include/asm/nohash/64/pgalloc.h
+@@ -57,8 +57,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE),
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE), GFP_KERNEL);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -190,8 +189,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t table,
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(PGT_CACHE(PMD_CACHE_INDEX),
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(PGT_CACHE(PMD_CACHE_INDEX), GFP_KERNEL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
+index 5aac1a3f86cd..119d18611500 100644
+--- a/arch/powerpc/mm/hugetlbpage.c
++++ b/arch/powerpc/mm/hugetlbpage.c
+@@ -73,7 +73,7 @@ static int __hugepte_alloc(struct mm_struct *mm, hugepd_t *hpdp,
+ 	cachep = PGT_CACHE(pdshift - pshift);
+ #endif
+ 
+-	new = kmem_cache_zalloc(cachep, GFP_KERNEL|__GFP_REPEAT);
++	new = kmem_cache_zalloc(cachep, GFP_KERNEL);
+ 
+ 	BUG_ON(pshift > HUGEPD_SHIFT_MASK);
+ 	BUG_ON((unsigned long)new & HUGEPD_SHIFT_MASK);
 -- 
 2.8.1
 
