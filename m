@@ -1,53 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from down.free-electrons.com ([37.187.137.238]:53715 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752025AbcE2Xhc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 May 2016 19:37:32 -0400
-Date: Mon, 30 May 2016 01:37:28 +0200
-From: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Subject: Re: [PATCH v3 00/16] genrtc removal
-Message-ID: <20160529233728.GP3451@piout.net>
-References: <1461796470-1291527-1-git-send-email-arnd@arndb.de>
- <20160503072418.GA2335@piout.net>
- <3351574.jQ0612lD2O@wuerfel>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3351574.jQ0612lD2O@wuerfel>
+Received: from e19.ny.us.ibm.com ([129.33.205.209]:42922 "EHLO
+	e19.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932114AbcE3Foj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 01:44:39 -0400
+Received: from localhost
+	by e19.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+	Mon, 30 May 2016 01:44:38 -0400
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: [RFC PATCH 1/4] mm/hugetlb: Simplify hugetlb unmap
+Date: Mon, 30 May 2016 11:14:19 +0530
+Message-ID: <1464587062-17745-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: geert@linux-m68k.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dalias@libc.org, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org, gregkh@linuxfoundation.org
-Message-ID: <20160529233728.4DXLZEtIUKNDRLJ-ILe7YpawjXyscaBQwFd2q4kBvYU@z>
+To: akpm@linux-foundation.org, linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Message-ID: <20160530054419.tEKR3_ftQ4y1e7SMAqbA-Bw3gZZPz6EbiEOARTadfvk@z>
 
-Hi,
+For hugetlb like THP (and unlike regular page), we do tlb flush after
+dropping ptl. Because of the above, we don't need to track force_flush
+like we do now. Instead we can simply call tlb_remove_page() which
+will do the flush if needed.
 
-On 03/05/2016 at 12:05:34 +0200, Arnd Bergmann wrote :
-> On Tuesday 03 May 2016 09:24:18 Alexandre Belloni wrote:
-> > Hi Arnd,
-> > 
-> > I see you didn't copy Greg on that series (that may explain his
-> > confusion on the previous patch), do you expect me to take it
-> > through the RTC tree? That is fine but I'd like some acks from him.
-> 
-> Yes, that was a mistake. I dropped Greg from one Cc list in v2 when
-> I split up the RTC changes into the part that was for drivers/rtc
-> and the other one for Greg's char-misc tree. Then I reused the first
-> Cc list when I sent a combined series for v3 again. I'll fix that
-> when I post v4. There are only very small changes in there that
-> I still need to pick up, so hopefully that will be the last version.
-> 
-> It would be nice if you could take it through your tree then.
-> 
+No functionality change in this patch.
 
-We are now at 4.7-rc1. Can you send v4 soon so that I can apply that
-series  and get it in linux-next?
+Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+---
+ mm/hugetlb.c | 54 +++++++++++++++++++++---------------------------------
+ 1 file changed, 21 insertions(+), 33 deletions(-)
 
-There is a small rebase to do on patch v3.
-
-Thanks!
-
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index e4168484f249..8dd91cd5571c 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -3138,7 +3138,6 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 			    unsigned long start, unsigned long end,
+ 			    struct page *ref_page)
+ {
+-	int force_flush = 0;
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	unsigned long address;
+ 	pte_t *ptep;
+@@ -3157,19 +3156,22 @@ void __unmap_hugepage_range(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 	tlb_start_vma(tlb, vma);
+ 	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
+ 	address = start;
+-again:
+ 	for (; address < end; address += sz) {
+ 		ptep = huge_pte_offset(mm, address);
+ 		if (!ptep)
+ 			continue;
+ 
+ 		ptl = huge_pte_lock(h, mm, ptep);
+-		if (huge_pmd_unshare(mm, &address, ptep))
+-			goto unlock;
++		if (huge_pmd_unshare(mm, &address, ptep)) {
++			spin_unlock(ptl);
++			continue;
++		}
+ 
+ 		pte = huge_ptep_get(ptep);
+-		if (huge_pte_none(pte))
+-			goto unlock;
++		if (huge_pte_none(pte)) {
++			spin_unlock(ptl);
++			continue;
++		}
+ 
+ 		/*
+ 		 * Migrating hugepage or HWPoisoned hugepage is already
+@@ -3177,7 +3179,8 @@ again:
+ 		 */
+ 		if (unlikely(!pte_present(pte))) {
+ 			huge_pte_clear(mm, address, ptep);
+-			goto unlock;
++			spin_unlock(ptl);
++			continue;
+ 		}
+ 
+ 		page = pte_page(pte);
+@@ -3187,9 +3190,10 @@ again:
+ 		 * are about to unmap is the actual page of interest.
+ 		 */
+ 		if (ref_page) {
+-			if (page != ref_page)
+-				goto unlock;
+-
++			if (page != ref_page) {
++				spin_unlock(ptl);
++				continue;
++			}
+ 			/*
+ 			 * Mark the VMA as having unmapped its page so that
+ 			 * future faults in this VMA will fail rather than
+@@ -3205,30 +3209,14 @@ again:
+ 
+ 		hugetlb_count_sub(pages_per_huge_page(h), mm);
+ 		page_remove_rmap(page, true);
+-		force_flush = !__tlb_remove_page(tlb, page);
+-		if (force_flush) {
+-			address += sz;
+-			spin_unlock(ptl);
+-			break;
+-		}
+-		/* Bail out after unmapping reference page if supplied */
+-		if (ref_page) {
+-			spin_unlock(ptl);
+-			break;
+-		}
+-unlock:
++
+ 		spin_unlock(ptl);
+-	}
+-	/*
+-	 * mmu_gather ran out of room to batch pages, we break out of
+-	 * the PTE lock to avoid doing the potential expensive TLB invalidate
+-	 * and page-free while holding it.
+-	 */
+-	if (force_flush) {
+-		force_flush = 0;
+-		tlb_flush_mmu(tlb);
+-		if (address < end && !ref_page)
+-			goto again;
++		tlb_remove_page(tlb, page);
++		/*
++		 * Bail out after unmapping reference page if supplied
++		 */
++		if (ref_page)
++			break;
+ 	}
+ 	mmu_notifier_invalidate_range_end(mm, mmun_start, mmun_end);
+ 	tlb_end_vma(tlb, vma);
 -- 
-Alexandre Belloni, Free Electrons
-Embedded Linux, Kernel and Android engineering
-http://free-electrons.com
+2.7.4
+
