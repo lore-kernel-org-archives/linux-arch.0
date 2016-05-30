@@ -1,13 +1,14 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: [PATCH v4 05/16] char/genrtc: remove alpha support
-Date: Mon, 30 May 2016 20:57:53 +0200
-Message-ID: <1464634684-1248135-6-git-send-email-arnd@arndb.de>
+From: Alexandre Belloni <alexandre.belloni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH v4 00/16] genrtc removal
+Date: Mon, 30 May 2016 22:32:07 +0200
+Message-ID: <20160530203207.GY3451@piout.net>
 References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
 Reply-To: rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <rtc-linux+bncBDEKVJM7XAHRBPU2WK5AKGQEYDMY6AY-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+Return-path: <rtc-linux+bncBDS7HNEFSALRBSWGWK5AKGQE7WUJBSQ-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
 Sender: rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org
+Content-Disposition: inline
 In-Reply-To: <1464634684-1248135-1-git-send-email-arnd-r2nGTMty4D4@public.gmane.org>
 List-Post: <https://groups.google.com/group/rtc-linux/post>, <mailto:rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
 List-Help: <https://groups.google.com/support/>, <mailto:rtc-linux+help-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
@@ -15,62 +16,52 @@ List-Archive: <https://groups.google.com/group/rtc-linux
 List-Subscribe: <https://groups.google.com/group/rtc-linux/subscribe>, <mailto:rtc-linux+subscribe-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
 List-Unsubscribe: <mailto:googlegroups-manage+712029733259+unsubscribe-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>,
  <https://groups.google.com/group/rtc-linux/subscribe>
-To: Alexandre Belloni <alexandre.belloni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, deller-Mmb7MZpHnFY@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org, mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org, dalias-8zAoT0mYgF4@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, a.zummo-BfzFCNDTiLLj+vYz1yj4TQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, deller-Mmb7MZpHnFY@public.gmane.org, benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org, mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org, dalias-8zAoT0mYgF4@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, a.zummo-BfzFCNDTiLLj+vYz1yj4TQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org, rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-The genrtc driver serves no purpose on Alpha because it drives the
-same hardware as the original rtc.c driver, and the newer rtc-generic.c
-or rtc-cmos.c drivers on architectures that use the asm-generic/rtc.h
-header.
+Hi,
 
-The defconfig uses CONFIG_RTC=y, so this driver is not used by default.
-At one point it was used to abstract a quirk for the "Marvel" platform,
-but it does not do this any more after the code was moved into yet
-another driver in arch/alpha/kernel/rtc.c.
+On 30/05/2016 at 20:57:48 +0200, Arnd Bergmann wrote :
+> This is the promised resend of the removal of the genrtc driver and some
+> related code, now that we are at a good time to merge this for the coming
+> merge window.
+> 
 
-Signed-off-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
----
- arch/alpha/include/asm/rtc.h    | 1 -
- arch/alpha/kernel/core_marvel.c | 1 -
- drivers/char/Kconfig            | 2 +-
- 3 files changed, 1 insertion(+), 3 deletions(-)
- delete mode 100644 arch/alpha/include/asm/rtc.h
+Thanks a lot!
 
-diff --git a/arch/alpha/include/asm/rtc.h b/arch/alpha/include/asm/rtc.h
-deleted file mode 100644
-index f71c3b0ed360..000000000000
---- a/arch/alpha/include/asm/rtc.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/rtc.h>
-diff --git a/arch/alpha/kernel/core_marvel.c b/arch/alpha/kernel/core_marvel.c
-index 53dd2f1a53aa..d5f0580746a5 100644
---- a/arch/alpha/kernel/core_marvel.c
-+++ b/arch/alpha/kernel/core_marvel.c
-@@ -24,7 +24,6 @@
- #include <asm/gct.h>
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
--#include <asm/rtc.h>
- #include <asm/vga.h>
- 
- #include "proto.h"
-diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
-index 31b5861649ee..e3f2f3e293e5 100644
---- a/drivers/char/Kconfig
-+++ b/drivers/char/Kconfig
-@@ -328,7 +328,7 @@ config JS_RTC
- config GEN_RTC
- 	tristate "Generic /dev/rtc emulation"
- 	depends on RTC!=y
--	depends on ALPHA || M68K || MN10300 || PARISC || PPC
-+	depends on M68K || MN10300 || PARISC || PPC
- 	---help---
- 	  If you say Y here and create a character special file /dev/rtc with
- 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+I'm applying the series right now so it sits in linux-next for a while
+before the next merge window.
+
+I would still happily take any acks, Reviewed-by or Tested-by tags.
+
+
+> - CONFIG_EFI_RTC is actively used on all six Itanium configurations,
+>   though the CONFIG_RTC_DRV_EFI replacement driver is also available
+>   there (and has been Itanium-only until ARM64 support for EFI was
+>   merged). I suspect it's just a matter of getting an Ack from the
+>   Itanium maintainers to remove it and change the defconfigs.
+> 
+
+I have that one on my radar. There was an impressive number of separate
+drivers for EFI and CMOS...
+
+> - the last remaining legacy RTC driver after those is CONFIG_DS1302,
+>   which has a slightly nonstandard ioctl interface and is only used
+>   on arch/m32r. I have experimented with this a bit and think it
+>   can be converted in a backward-compatible way as well.
+> 
+
+That one has been converted to a standard SPI driver in v4.6. Following
+some discussion, driving it using gpios will be added. m32r will have to
+use one of those two interfaces. It is broken on that architecture for
+now but we never got any reply from maintainers.
+
+
 -- 
-2.7.0
+Alexandre Belloni, Free Electrons
+Embedded Linux, Kernel and Android engineering
+http://free-electrons.com
 
 -- 
 You received this message because you are subscribed to "rtc-linux".
