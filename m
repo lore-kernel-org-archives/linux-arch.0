@@ -1,50 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:33665 "EHLO
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:33629 "EHLO
 	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932898AbcE3JPU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:20 -0400
+	with ESMTP id S932970AbcE3JPW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:22 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 15/17] tile: get rid of superfluous __GFP_REPEAT
-Date: Mon, 30 May 2016 11:14:57 +0200
-Message-ID: <1464599699-30131-16-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 12/17] sparc: get rid of superfluous __GFP_REPEAT
+Date: Mon, 30 May 2016 11:14:54 +0200
+Message-ID: <1464599699-30131-13-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
-Message-ID: <20160530091457.wLFKifCVYsnYZKwTCt_75mx9KL96F-Gpr9GdQEdW6Nk@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org
+Message-ID: <20160530091454.3rUHbFjRbdL5-sdmNOhFRVgpeKLC8BKuiruE6PmQVhk@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pgtable_alloc_one uses __GFP_REPEAT flag for L2_USER_PGTABLE_ORDER but
-the order is either 0 or 3 if L2_KERNEL_PGTABLE_SHIFT for HPAGE_SHIFT.
-This means that this flag has never been actually useful here because it
-has always been used only for PAGE_ALLOC_COSTLY requests.
+{pud,pmd}_alloc_one is using __GFP_REPEAT but it always allocates from
+pgtable_cache which is initialzed to PAGE_SIZE objects. This means that
+this flag has never been actually useful here because it has always been
+used only for PAGE_ALLOC_COSTLY requests.
 
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: linux-arch@vger.kernel.org
-Acked-by: Chris Metcalf <cmetcalf@mellanox.com> [for tile]
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/tile/mm/pgtable.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/sparc/include/asm/pgalloc_64.h | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
-index 7bf2491a9c1f..c4d5bf841a7f 100644
---- a/arch/tile/mm/pgtable.c
-+++ b/arch/tile/mm/pgtable.c
-@@ -231,7 +231,7 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
- struct page *pgtable_alloc_one(struct mm_struct *mm, unsigned long address,
- 			       int order)
- {
--	gfp_t flags = GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO;
-+	gfp_t flags = GFP_KERNEL|__GFP_ZERO;
- 	struct page *p;
- 	int i;
+diff --git a/arch/sparc/include/asm/pgalloc_64.h b/arch/sparc/include/asm/pgalloc_64.h
+index 5e3187185b4a..3529f1378cd8 100644
+--- a/arch/sparc/include/asm/pgalloc_64.h
++++ b/arch/sparc/include/asm/pgalloc_64.h
+@@ -41,8 +41,7 @@ static inline void __pud_populate(pud_t *pud, pmd_t *pmd)
  
+ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(pgtable_cache,
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
+ }
+ 
+ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+@@ -52,8 +51,7 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return kmem_cache_alloc(pgtable_cache,
+-				GFP_KERNEL|__GFP_REPEAT);
++	return kmem_cache_alloc(pgtable_cache, GFP_KERNEL);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 -- 
 2.8.1
 
