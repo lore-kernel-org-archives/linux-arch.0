@@ -1,50 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:36390 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932360AbcE3JPP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:15 -0400
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:34044 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754510AbcE3JPO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 05:15:14 -0400
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [PATCH 09/17] parisc: get rid of superfluous __GFP_REPEAT
-Date: Mon, 30 May 2016 11:14:51 +0200
-Message-ID: <1464599699-30131-10-git-send-email-mhocko@kernel.org>
+Subject: [PATCH 07/17] mips: get rid of superfluous __GFP_REPEAT
+Date: Mon, 30 May 2016 11:14:49 +0200
+Message-ID: <1464599699-30131-8-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-arch@vger.kernel.org
-Message-ID: <20160530091451.7q4qKsWUztzuRsWuay8AGMoixPbfHIoc1jNC6hgka1Y@z>
+Cc: linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, John Crispin <blogic@openwrt.org>, linux-arch@vger.kernel.org
+Message-ID: <20160530091449.7e0jFtzVYAQlmBPuhf79iwR2Pq6HneBEEkMKXIgihwA@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
 __GFP_REPEAT has a rather weak semantic but since it has been introduced
 around 2.6.12 it has been ignored for low order allocations.
 
-pmd_alloc_one allocate PMD_ORDER which is 1. This means that this flag
-has never been actually useful here because it has always been used only
-for PAGE_ALLOC_COSTLY requests.
+pte_alloc_one{_kernel}, pmd_alloc_one allocate PTE_ORDER resp. PMD_ORDER
+but both are not larger than 1. This means that this flag has never
+been actually useful here because it has always been used only for
+PAGE_ALLOC_COSTLY requests.
 
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
+Cc: John Crispin <blogic@openwrt.org>
 Cc: linux-arch@vger.kernel.org
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/parisc/include/asm/pgalloc.h | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ arch/mips/include/asm/pgalloc.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
-index 52c3defb40c9..f08dda3f0995 100644
---- a/arch/parisc/include/asm/pgalloc.h
-+++ b/arch/parisc/include/asm/pgalloc.h
-@@ -63,8 +63,7 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+diff --git a/arch/mips/include/asm/pgalloc.h b/arch/mips/include/asm/pgalloc.h
+index b336037e8768..93c079a1cfc8 100644
+--- a/arch/mips/include/asm/pgalloc.h
++++ b/arch/mips/include/asm/pgalloc.h
+@@ -69,7 +69,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
  {
--	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL|__GFP_REPEAT,
--					       PMD_ORDER);
-+	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL, PMD_ORDER);
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, PTE_ORDER);
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+ 
+ 	return pte;
+ }
+@@ -79,7 +79,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
+ 	if (!pte)
+ 		return NULL;
+ 	clear_highpage(pte);
+@@ -113,7 +113,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+ 	pmd_t *pmd;
+ 
+-	pmd = (pmd_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT, PMD_ORDER);
++	pmd = (pmd_t *) __get_free_pages(GFP_KERNEL, PMD_ORDER);
  	if (pmd)
- 		memset(pmd, 0, PAGE_SIZE<<PMD_ORDER);
+ 		pmd_init((unsigned long)pmd, (unsigned long)invalid_pte_table);
  	return pmd;
 -- 
 2.8.1
