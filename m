@@ -1,12 +1,12 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.5 81/87] SIGNAL: Move generic copy_siginfo() to signal.h
-Date: Mon, 30 May 2016 13:50:19 -0700
-Message-ID: <20160530204936.512475694@linuxfoundation.org>
-References: <20160530204933.149873142@linuxfoundation.org>
+Subject: [PATCH 4.6 092/100] SIGNAL: Move generic copy_siginfo() to signal.h
+Date: Mon, 30 May 2016 13:50:27 -0700
+Message-ID: <20160530204911.401732344@linuxfoundation.org>
+References: <20160530204908.422037419@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <20160530204933.149873142@linuxfoundation.org>
+In-Reply-To: <20160530204908.422037419@linuxfoundation.org>
 Sender: linux-mips-bounce@linux-mips.org
 Errors-to: linux-mips-bounce@linux-mips.org
 List-help: <mailto:ecartis@linux-mips.org?Subject=help>
@@ -20,7 +20,7 @@ To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-4.5-stable review patch.  If anyone has any objections, please let me know.
+4.6-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
