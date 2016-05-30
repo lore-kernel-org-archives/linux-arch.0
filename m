@@ -1,22 +1,26 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 4.4 80/86] SIGNAL: Move generic copy_siginfo() to signal.h
-Date: Mon, 30 May 2016 13:50:09 -0700
-Message-ID: <20160530204940.052347962@linuxfoundation.org>
-References: <20160530204937.379068148@linuxfoundation.org>
+Subject: [PATCH 4.5 81/87] SIGNAL: Move generic copy_siginfo() to signal.h
+Date: Mon, 30 May 2016 13:50:19 -0700
+Message-ID: <20160530204936.512475694@linuxfoundation.org>
+References: <20160530204933.149873142@linuxfoundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52418 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1162286AbcE3Uup (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2016 16:50:45 -0400
-In-Reply-To: <20160530204937.379068148@linuxfoundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <20160530204933.149873142@linuxfoundation.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-4.4-stable review patch.  If anyone has any objections, please let me know.
+4.5-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
