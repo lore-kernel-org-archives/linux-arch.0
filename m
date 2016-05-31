@@ -1,38 +1,35 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: Enhancing semantics with memremap() - aliasing with memremap()
-Date: Tue, 31 May 2016 19:27:05 +0200
-Message-ID: <20160531172705.GJ11948@wotan.suse.de>
-References: <CAB=NE6Wy=V17uwc3GNMYaWk4cOx1a1TtHBgMYii-M5FDuPn_Gw@mail.gmail.com>
- <20160531165828.GA25366@infradead.org>
- <20160531172514.GI11948@wotan.suse.de>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH -v2 22/33] locking,sparc: Implement
+ atomic{,64}_fetch_{add,sub,and,or,xor}()
+Date: Tue, 31 May 2016 10:50:57 -0700 (PDT)
+Message-ID: <20160531.105057.1994007943543248986.davem@davemloft.net>
+References: <20160531101925.702692792@infradead.org>
+	<20160531102642.832054317@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:42520 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755681AbcEaR1I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 May 2016 13:27:08 -0400
-Content-Disposition: inline
-In-Reply-To: <20160531172514.GI11948@wotan.suse.de>
+Received: from shards.monkeyblade.net ([149.20.54.216]:35972 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752552AbcEaRvA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 13:51:00 -0400
+In-Reply-To: <20160531102642.832054317@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hp.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Julia Lawall <julia.lawall@lip6.fr>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Borislav Petkov <bp@alien8.de>
+To: peterz@infradead.org
+Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
 
-On Tue, May 31, 2016 at 07:25:14PM +0200, Luis R. Rodriguez wrote:
-> On Tue, May 31, 2016 at 09:58:28AM -0700, Christoph Hellwig wrote:
-> > On Tue, May 24, 2016 at 04:36:42PM -0700, Luis R. Rodriguez wrote:
-> > > Is it a good time for that now? I would hope identifying proper
-> > > aliasing uses for memremap() might be a bit easier now than for
-> > > ioremap() given its not used as widely. It may be an easier target to
-> > > also write some grammar rules for it as well.
-> > 
-> > So you want an explicit opt-in flag to allow aliasing?  Sounds fine to
-> > me.
->   
-> Yup! Can the default then safely already be no-aliasing then?
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Tue, 31 May 2016 12:19:47 +0200
 
-Or if aliasing is truly not needed as often a different API, this
-maybe useful later if we pick up again module namespace stuff.
+> Implement FETCH-OP atomic primitives, these are very similar to the
+> existing OP-RETURN primitives we already have, except they return the
+> value of the atomic variable _before_ modification.
+> 
+> This is especially useful for irreversible operations -- such as
+> bitops (because it becomes impossible to reconstruct the state prior
+> to modification).
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-  Luis
+Acked-by: David S. Miller <davem@davemloft.net>
