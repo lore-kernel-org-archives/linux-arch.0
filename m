@@ -1,177 +1,295 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43362 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:43392 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751340AbcEaK3z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:55 -0400
-Message-ID: <20160531102641.765871260@infradead.org>
-Date: Tue, 31 May 2016 12:19:30 +0200
+	with ESMTP id S1751894AbcEaK3y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:54 -0400
+Message-ID: <20160531102642.832054317@infradead.org>
+Date: Tue, 31 May 2016 12:19:47 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 05/33] arm64: atomic: generate LSE non-return cases using common macros
+Subject: [PATCH -v2 22/33] locking,sparc: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()
 References: <20160531101925.702692792@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=will_deacon-arm64-atomic__generate_lse_non-return_cases_using_common_macros.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-sparc.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160531101930.GVp3OXsUlASh2xpkmFQm9t7Iw7fg9gt_ZXwcGZulXsM@z>
+Message-ID: <20160531101947.wj2jLDMPq4Tfjb_fgsLrl-pMNGjDkVYKhJthvVKMPzw@z>
 
-From: Will Deacon <will.deacon@arm.com>
+Implement FETCH-OP atomic primitives, these are very similar to the
+existing OP-RETURN primitives we already have, except they return the
+value of the atomic variable _before_ modification.
 
-atomic[64]_{add,and,andnot,or,xor} all follow the same patterns, so
-generate them using macros, like we do for the LL/SC case already.
+This is especially useful for irreversible operations -- such as
+bitops (because it becomes impossible to reconstruct the state prior
+to modification).
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Link: http://lkml.kernel.org/r/1461344493-8262-1-git-send-email-will.deacon@arm.com
 ---
- arch/arm64/include/asm/atomic_lse.h |  122 +++++++++---------------------------
- 1 file changed, 32 insertions(+), 90 deletions(-)
+ arch/sparc/include/asm/atomic.h    |    1 
+ arch/sparc/include/asm/atomic_32.h |   15 +++++++--
+ arch/sparc/include/asm/atomic_64.h |   16 +++++++--
+ arch/sparc/lib/atomic32.c          |   29 ++++++++++-------
+ arch/sparc/lib/atomic_64.S         |   61 ++++++++++++++++++++++++++++++-------
+ arch/sparc/lib/ksyms.c             |   17 +++++++---
+ 6 files changed, 105 insertions(+), 34 deletions(-)
 
---- a/arch/arm64/include/asm/atomic_lse.h
-+++ b/arch/arm64/include/asm/atomic_lse.h
-@@ -26,54 +26,25 @@
+--- a/arch/sparc/include/asm/atomic.h
++++ b/arch/sparc/include/asm/atomic.h
+@@ -5,4 +5,5 @@
+ #else
+ #include <asm/atomic_32.h>
  #endif
++#define atomic_fetch_or atomic_fetch_or
+ #endif
+--- a/arch/sparc/include/asm/atomic_32.h
++++ b/arch/sparc/include/asm/atomic_32.h
+@@ -20,9 +20,10 @@
+ #define ATOMIC_INIT(i)  { (i) }
  
- #define __LL_SC_ATOMIC(op)	__LL_SC_CALL(atomic_##op)
--
--static inline void atomic_andnot(int i, atomic_t *v)
--{
--	register int w0 asm ("w0") = i;
--	register atomic_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC(andnot),
--	"	stclr	%w[i], %[v]\n")
--	: [i] "+r" (w0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
--
--static inline void atomic_or(int i, atomic_t *v)
--{
--	register int w0 asm ("w0") = i;
--	register atomic_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC(or),
--	"	stset	%w[i], %[v]\n")
--	: [i] "+r" (w0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
-+#define ATOMIC_OP(op, asm_op)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	register int w0 asm ("w0") = i;					\
-+	register atomic_t *x1 asm ("x1") = v;				\
-+									\
-+	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC(op),		\
-+"	" #asm_op "	%w[i], %[v]\n")					\
-+	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
-+	: "r" (x1)							\
-+	: __LL_SC_CLOBBERS);						\
- }
+ int atomic_add_return(int, atomic_t *);
+-void atomic_and(int, atomic_t *);
+-void atomic_or(int, atomic_t *);
+-void atomic_xor(int, atomic_t *);
++int atomic_fetch_add(int, atomic_t *);
++int atomic_fetch_and(int, atomic_t *);
++int atomic_fetch_or(int, atomic_t *);
++int atomic_fetch_xor(int, atomic_t *);
+ int atomic_cmpxchg(atomic_t *, int, int);
+ int atomic_xchg(atomic_t *, int);
+ int __atomic_add_unless(atomic_t *, int, int);
+@@ -35,7 +36,15 @@ void atomic_set(atomic_t *, int);
+ #define atomic_inc(v)		((void)atomic_add_return(        1, (v)))
+ #define atomic_dec(v)		((void)atomic_add_return(       -1, (v)))
  
--static inline void atomic_xor(int i, atomic_t *v)
--{
--	register int w0 asm ("w0") = i;
--	register atomic_t *x1 asm ("x1") = v;
-+ATOMIC_OP(andnot, stclr)
-+ATOMIC_OP(or, stset)
-+ATOMIC_OP(xor, steor)
-+ATOMIC_OP(add, stadd)
++#define atomic_fetch_or	atomic_fetch_or
++
++#define atomic_and(i, v)	((void)atomic_fetch_and((i), (v)))
++#define atomic_or(i, v)		((void)atomic_fetch_or((i), (v)))
++#define atomic_xor(i, v)	((void)atomic_fetch_xor((i), (v)))
++
+ #define atomic_sub_return(i, v)	(atomic_add_return(-(int)(i), (v)))
++#define atomic_fetch_sub(i, v)  (atomic_fetch_add (-(int)(i), (v)))
++
+ #define atomic_inc_return(v)	(atomic_add_return(        1, (v)))
+ #define atomic_dec_return(v)	(atomic_add_return(       -1, (v)))
  
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC(xor),
--	"	steor	%w[i], %[v]\n")
--	: [i] "+r" (w0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
--
--static inline void atomic_add(int i, atomic_t *v)
--{
--	register int w0 asm ("w0") = i;
--	register atomic_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC(add),
--	"	stadd	%w[i], %[v]\n")
--	: [i] "+r" (w0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
-+#undef ATOMIC_OP
+--- a/arch/sparc/include/asm/atomic_64.h
++++ b/arch/sparc/include/asm/atomic_64.h
+@@ -28,16 +28,24 @@ void atomic64_##op(long, atomic64_t *);
+ int atomic_##op##_return(int, atomic_t *);				\
+ long atomic64_##op##_return(long, atomic64_t *);
  
- #define ATOMIC_OP_ADD_RETURN(name, mb, cl...)				\
- static inline int atomic_add_return##name(int i, atomic_t *v)		\
-@@ -167,54 +138,25 @@ ATOMIC_OP_SUB_RETURN(        , al, "memo
- #undef __LL_SC_ATOMIC
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_FETCH_OP(op)						\
++int atomic_fetch_##op(int, atomic_t *);					\
++long atomic64_fetch_##op(long, atomic64_t *);
++
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
  
- #define __LL_SC_ATOMIC64(op)	__LL_SC_CALL(atomic64_##op)
--
--static inline void atomic64_andnot(long i, atomic64_t *v)
--{
--	register long x0 asm ("x0") = i;
--	register atomic64_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC64(andnot),
--	"	stclr	%[i], %[v]\n")
--	: [i] "+r" (x0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
--
--static inline void atomic64_or(long i, atomic64_t *v)
--{
--	register long x0 asm ("x0") = i;
--	register atomic64_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC64(or),
--	"	stset	%[i], %[v]\n")
--	: [i] "+r" (x0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
--
--static inline void atomic64_xor(long i, atomic64_t *v)
--{
--	register long x0 asm ("x0") = i;
--	register atomic64_t *x1 asm ("x1") = v;
--
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC64(xor),
--	"	steor	%[i], %[v]\n")
--	: [i] "+r" (x0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
-+#define ATOMIC64_OP(op, asm_op)						\
-+static inline void atomic64_##op(long i, atomic64_t *v)			\
-+{									\
-+	register long x0 asm ("x0") = i;				\
-+	register atomic64_t *x1 asm ("x1") = v;				\
-+									\
-+	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC64(op),	\
-+"	" #asm_op "	%[i], %[v]\n")					\
-+	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
-+	: "r" (x1)							\
-+	: __LL_SC_CLOBBERS);						\
- }
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
  
--static inline void atomic64_add(long i, atomic64_t *v)
--{
--	register long x0 asm ("x0") = i;
--	register atomic64_t *x1 asm ("x1") = v;
-+ATOMIC64_OP(andnot, stclr)
-+ATOMIC64_OP(or, stset)
-+ATOMIC64_OP(xor, steor)
-+ATOMIC64_OP(add, stadd)
+-ATOMIC_OP(and)
+-ATOMIC_OP(or)
+-ATOMIC_OP(xor)
++#undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
++
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
  
--	asm volatile(ARM64_LSE_ATOMIC_INSN(__LL_SC_ATOMIC64(add),
--	"	stadd	%[i], %[v]\n")
--	: [i] "+r" (x0), [v] "+Q" (v->counter)
--	: "r" (x1)
--	: __LL_SC_CLOBBERS);
--}
-+#undef ATOMIC64_OP
+ #undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
  
- #define ATOMIC64_OP_ADD_RETURN(name, mb, cl...)				\
- static inline long atomic64_add_return##name(long i, atomic64_t *v)	\
+--- a/arch/sparc/lib/atomic32.c
++++ b/arch/sparc/lib/atomic32.c
+@@ -27,39 +27,44 @@ static DEFINE_SPINLOCK(dummy);
+ 
+ #endif /* SMP */
+ 
+-#define ATOMIC_OP_RETURN(op, c_op)					\
+-int atomic_##op##_return(int i, atomic_t *v)				\
++#define ATOMIC_FETCH_OP(op, c_op)					\
++int atomic_fetch_##op(int i, atomic_t *v)				\
+ {									\
+ 	int ret;							\
+ 	unsigned long flags;						\
+ 	spin_lock_irqsave(ATOMIC_HASH(v), flags);			\
+ 									\
+-	ret = (v->counter c_op i);					\
++	ret = v->counter;						\
++	v->counter c_op i;						\
+ 									\
+ 	spin_unlock_irqrestore(ATOMIC_HASH(v), flags);			\
+ 	return ret;							\
+ }									\
+-EXPORT_SYMBOL(atomic_##op##_return);
++EXPORT_SYMBOL(atomic_fetch_##op);
+ 
+-#define ATOMIC_OP(op, c_op)						\
+-void atomic_##op(int i, atomic_t *v)					\
++#define ATOMIC_OP_RETURN(op, c_op)					\
++int atomic_##op##_return(int i, atomic_t *v)				\
+ {									\
++	int ret;							\
+ 	unsigned long flags;						\
+ 	spin_lock_irqsave(ATOMIC_HASH(v), flags);			\
+ 									\
+-	v->counter c_op i;						\
++	ret = (v->counter c_op i);					\
+ 									\
+ 	spin_unlock_irqrestore(ATOMIC_HASH(v), flags);			\
++	return ret;							\
+ }									\
+-EXPORT_SYMBOL(atomic_##op);
++EXPORT_SYMBOL(atomic_##op##_return);
+ 
+ ATOMIC_OP_RETURN(add, +=)
+-ATOMIC_OP(and, &=)
+-ATOMIC_OP(or, |=)
+-ATOMIC_OP(xor, ^=)
+ 
++ATOMIC_FETCH_OP(add, +=)
++ATOMIC_FETCH_OP(and, &=)
++ATOMIC_FETCH_OP(or, |=)
++ATOMIC_FETCH_OP(xor, ^=)
++
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+-#undef ATOMIC_OP
+ 
+ int atomic_xchg(atomic_t *v, int new)
+ {
+--- a/arch/sparc/lib/atomic_64.S
++++ b/arch/sparc/lib/atomic_64.S
+@@ -9,10 +9,11 @@
+ 
+ 	.text
+ 
+-	/* Two versions of the atomic routines, one that
++	/* Three versions of the atomic routines, one that
+ 	 * does not return a value and does not perform
+-	 * memory barriers, and a second which returns
+-	 * a value and does the barriers.
++	 * memory barriers, and a two which return
++	 * a value, the new and old value resp. and does the
++	 * barriers.
+ 	 */
+ 
+ #define ATOMIC_OP(op)							\
+@@ -43,15 +44,34 @@ ENTRY(atomic_##op##_return) /* %o0 = inc
+ 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
+ ENDPROC(atomic_##op##_return);
+ 
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_FETCH_OP(op)						\
++ENTRY(atomic_fetch_##op) /* %o0 = increment, %o1 = atomic_ptr */	\
++	BACKOFF_SETUP(%o2);						\
++1:	lduw	[%o1], %g1;						\
++	op	%g1, %o0, %g7;						\
++	cas	[%o1], %g1, %g7;					\
++	cmp	%g1, %g7;						\
++	bne,pn	%icc, BACKOFF_LABEL(2f, 1b);				\
++	 nop;								\
++	retl;								\
++	 sra	%g1, 0, %o0;						\
++2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
++ENDPROC(atomic_fetch_##op);
++
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
+ 
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
+-ATOMIC_OP(and)
+-ATOMIC_OP(or)
+-ATOMIC_OP(xor)
+ 
+ #undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
++
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
++
++#undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
+@@ -83,15 +103,34 @@ ENTRY(atomic64_##op##_return) /* %o0 = i
+ 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
+ ENDPROC(atomic64_##op##_return);
+ 
+-#define ATOMIC64_OPS(op) ATOMIC64_OP(op) ATOMIC64_OP_RETURN(op)
++#define ATOMIC64_FETCH_OP(op)						\
++ENTRY(atomic64_fetch_##op) /* %o0 = increment, %o1 = atomic_ptr */	\
++	BACKOFF_SETUP(%o2);						\
++1:	ldx	[%o1], %g1;						\
++	op	%g1, %o0, %g7;						\
++	casx	[%o1], %g1, %g7;					\
++	cmp	%g1, %g7;						\
++	bne,pn	%xcc, BACKOFF_LABEL(2f, 1b);				\
++	 nop;								\
++	retl;								\
++	 mov	%g1, %o0;						\
++2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
++ENDPROC(atomic64_fetch_##op);
++
++#define ATOMIC64_OPS(op) ATOMIC64_OP(op) ATOMIC64_OP_RETURN(op) ATOMIC64_FETCH_OP(op)
+ 
+ ATOMIC64_OPS(add)
+ ATOMIC64_OPS(sub)
+-ATOMIC64_OP(and)
+-ATOMIC64_OP(or)
+-ATOMIC64_OP(xor)
+ 
+ #undef ATOMIC64_OPS
++#define ATOMIC64_OPS(op) ATOMIC64_OP(op) ATOMIC64_FETCH_OP(op)
++
++ATOMIC64_OPS(and)
++ATOMIC64_OPS(or)
++ATOMIC64_OPS(xor)
++
++#undef ATOMIC64_OPS
++#undef ATOMIC64_FETCH_OP
+ #undef ATOMIC64_OP_RETURN
+ #undef ATOMIC64_OP
+ 
+--- a/arch/sparc/lib/ksyms.c
++++ b/arch/sparc/lib/ksyms.c
+@@ -107,15 +107,24 @@ EXPORT_SYMBOL(atomic64_##op);
+ EXPORT_SYMBOL(atomic_##op##_return);					\
+ EXPORT_SYMBOL(atomic64_##op##_return);
+ 
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_FETCH_OP(op)						\
++EXPORT_SYMBOL(atomic_fetch_##op);					\
++EXPORT_SYMBOL(atomic64_fetch_##op);
++
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
+ 
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
+-ATOMIC_OP(and)
+-ATOMIC_OP(or)
+-ATOMIC_OP(xor)
+ 
+ #undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
++
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
++
++#undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
 
 
