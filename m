@@ -1,85 +1,66 @@
-From: Chen Yu <yu.c.chen@intel.com>
-Subject: Re: [PATCH][RFC] PCI: Workaround to enable poweroff on Mac Pro 11
-Date: Tue, 31 May 2016 11:29:39 +0800
-Message-ID: <574D0523.3020009@intel.com>
-References: <1464604404-11257-1-git-send-email-yu.c.chen@intel.com>
- <20160530213305.GA21322@localhost> <20160530221123.GA13535@wunner.de>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: Re: [PATCH v4 00/16] genrtc removal
+Date: Tue, 31 May 2016 08:56:05 +0200
+Message-ID: <CAMuHMdV5mcKZcBz=v7Pn2pbDiuwMpQYs-70e6NmH6CZ88=JNzA@mail.gmail.com>
+References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
+	<20160530203207.GY3451@piout.net>
+Reply-To: rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:60286 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752703AbcEaDWe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 May 2016 23:22:34 -0400
-In-Reply-To: <20160530221123.GA13535@wunner.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Lukas Wunner <lukas@wunner.de>, Bjorn Helgaas <helgaas@kernel.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, "Rafael J . Wysocki" <rafael@kernel.org>, Len Brown <lenb@kernel.org>, Mika Westerberg <mika.westerberg@linux.intel.com>, Yinghai Lu <yinghai@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <rtc-linux+bncBCQJP74GSUDRBBPLWS5AKGQEEMCYSKI-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+Sender: geert.uytterhoeven-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
+In-Reply-To: <20160530203207.GY3451-m++hUPXGwpdeoWH0uzbU5w@public.gmane.org>
+List-Post: <https://groups.google.com/group/rtc-linux/post>, <mailto:rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+List-Help: <https://groups.google.com/support/>, <mailto:rtc-linux+help-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+List-Archive: <https://groups.google.com/group/rtc-linux
+List-Subscribe: <https://groups.google.com/group/rtc-linux/subscribe>, <mailto:rtc-linux+subscribe-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>
+List-Unsubscribe: <mailto:googlegroups-manage+712029733259+unsubscribe-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>,
+ <https://groups.google.com/group/rtc-linux/subscribe>
+To: Alexandre Belloni <alexandre.belloni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, Rich Felker <dalias-8zAoT0mYgF4@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, alpha <linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Alessandro Zummo <a.zummo-BfzFCNDTiLLj+vYz1yj4TQ@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Parisc List <linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org" <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, Linux-sh list <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-m68k <linux-m68k-cunTk1MwBs8S/qaLPR03pWD2FQJk+8+b@public.gmane.org>, RTCLINUX <rtc-linux-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Lukas,
+Allo Alexandre,
 
-On 2016=E5=B9=B405=E6=9C=8831=E6=97=A5 06:11, Lukas Wunner wrote:
-> On Mon, May 30, 2016 at 04:33:05PM -0500, Bjorn Helgaas wrote:
->> On Mon, May 30, 2016 at 06:33:24PM +0800, Chen Yu wrote:
->>> Currently there are many people reported that they can not
->>> do a poweroff nor a suspend to memory on their Mac Pro 11.
->>> After some investigations it was found that, once the PCI bridge
->>> 0000:00:1c.0 reassigns its mm windows([mem 0x7fa00000-0x7fbfffff]
->>> and [mem 0x7fc00000-0x7fdfffff 64bit pref]), the region of ACPI
->>> io resource 0x1804 becomes unaccessible immediately, where the
->>> ACPI Sleep register is located, as a result neither poweroff(S5)
->>> nor suspend to memory(S3) works.
->>>
->>> I don't know why setting the base/limit of PCI bridge mem resource
->>> would affect another io resource region, so this quirk just simply
->>> bypass the assignment of these mm resources on 0000:00:1c.0, by
->>> resetting the resource flag to 0 before updating the base/limit reg=
-isters.
->>> This patch also introduces a new pci fixup phase before the actual =
-bridge
->>> resource assignment.
->> Split the new fixup phase into a separate patch.
+On Mon, May 30, 2016 at 10:32 PM, Alexandre Belloni
+<alexandre.belloni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org> wrote:
+> On 30/05/2016 at 20:57:48 +0200, Arnd Bergmann wrote :
+>> This is the promised resend of the removal of the genrtc driver and some
+>> related code, now that we are at a good time to merge this for the coming
+>> merge window.
 >>
->> I'm doubtful about this because we don't understand the root cause.
-> Agreed.
 >
+> Thanks a lot!
 >
->>> +}
->>> +DECLARE_PCI_FIXUP_ASSIGN(PCI_VENDOR_ID_INTEL, 0x8c10, quirk_mac_di=
-sable_mmio_bar);
->> Is this device *only* used on the Mac Pro 11?  http://pci-ids.ucs.cz
->> says "8 Series/C220 Series Chipset Family PCI Express Root Port #1",
->> which sounds pretty generic.
-> It's a root port of a standard Haswell chipset.
+> I'm applying the series right now so it sits in linux-next for a while
+> before the next merge window.
 >
-> This concerns the Mac*Book*Pro11 (not MacPro11), and apparently only
-> the two models introduced 2015, MacBookPro11,4 and MacBookPro11,5
-> (can be queried with DMI). I've never heard of issues like this on th=
-e
-> 2013/2014 models (MacBookPro11,1 to 11,3).
->
-> Looking at the lspci output of the MacBookPro11,4 I notice that the
-> root port in question, 00:1c.0, has secondary bus 02 below it, but
-> there are no devices listed on that bus:
-> https://bugzilla.kernel.org/attachment.cgi?id=3D218181
->
-> On the MacBookPro11,5, there's bus 03 below that port, but likewise
-> without any devices:
-> https://launchpadlibrarian.net/222477783/Lspci.txt
->
-> It looks like this root port is unused, so perhaps the best option
-> is to disable it as if it were an appendix. I.e., don't scan it at al=
-l,
-> put it into D3 and leave it alone.
+> I would still happily take any acks, Reviewed-by or Tested-by tags.
 
-I used to bypass the probe for this pci bridge:
-https://bugzilla.kernel.org/attachment.cgi?id=3D216661
-, but it looks like although poweroff works however
-the wifi and facetime are broken:
-https://bugzilla.kernel.org/show_bug.cgi?id=3D103211#c109
+Looks like Arnd forgot to include these when reposting:
 
-Thanks,
-Yu
+Acked-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+
+For the m68k bits:
+Tested-by: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
+
+-- 
+You received this message because you are subscribed to "rtc-linux".
+Membership options at http://groups.google.com/group/rtc-linux .
+Please read http://groups.google.com/group/rtc-linux/web/checklist
+before submitting a driver.
+--- 
+You received this message because you are subscribed to the Google Groups "rtc-linux" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to rtc-linux+unsubscribe-/JYPxA39Uh5TLH3MbocFF+G/Ez6ZCGd0@public.gmane.org
+For more options, visit https://groups.google.com/d/optout.
