@@ -1,12 +1,12 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 10/33] locking,h8300: Implement atomic_fetch_{add,sub,and,or,xor}()
-Date: Tue, 31 May 2016 12:19:35 +0200
-Message-ID: <20160531102642.090322196@infradead.org>
+Subject: [PATCH -v2 13/33] locking,m32r: Implement atomic_fetch_{add,sub,and,or,xor}()
+Date: Tue, 31 May 2016 12:19:38 +0200
+Message-ID: <20160531102642.272816115@infradead.org>
 References: <20160531101925.702692792@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-atomic-fetch-h8300.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-m32r.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
@@ -22,58 +22,59 @@ to modification).
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/h8300/include/asm/atomic.h |   31 +++++++++++++++++++++++++------
- 1 file changed, 25 insertions(+), 6 deletions(-)
+ arch/m32r/include/asm/atomic.h |   38 ++++++++++++++++++++++++++++++++++----
+ 1 file changed, 34 insertions(+), 4 deletions(-)
 
---- a/arch/h8300/include/asm/atomic.h
-+++ b/arch/h8300/include/asm/atomic.h
-@@ -28,6 +28,19 @@ static inline int atomic_##op##_return(i
- 	return ret;						\
+--- a/arch/m32r/include/asm/atomic.h
++++ b/arch/m32r/include/asm/atomic.h
+@@ -89,16 +89,46 @@ static __inline__ int atomic_##op##_retu
+ 	return result;							\
  }
  
-+#define ATOMIC_FETCH_OP(op, c_op)				\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)		\
-+{								\
-+	h8300flags flags;					\
-+	int ret;						\
-+								\
-+	flags = arch_local_irq_save();				\
-+	ret = v->counter;					\
-+	v->counter c_op i;					\
-+	arch_local_irq_restore(flags);				\
-+	return ret;						\
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_FETCH_OP(op)						\
++static __inline__ int atomic_fetch_##op(int i, atomic_t *v)		\
++{									\
++	unsigned long flags;						\
++	int result, val;						\
++									\
++	local_irq_save(flags);						\
++	__asm__ __volatile__ (						\
++		"# atomic_fetch_" #op "		\n\t"			\
++		DCACHE_CLEAR("%0", "r4", "%2")				\
++		M32R_LOCK" %1, @%2;		\n\t"			\
++		"mv %0, %1			\n\t" 			\
++		#op " %1, %3;			\n\t"			\
++		M32R_UNLOCK" %1, @%2;		\n\t"			\
++		: "=&r" (result), "=&r" (val)				\
++		: "r" (&v->counter), "r" (i)				\
++		: "memory"						\
++		__ATOMIC_CLOBBER					\
++	);								\
++	local_irq_restore(flags);					\
++									\
++	return result;							\
 +}
 +
- #define ATOMIC_OP(op, c_op)					\
- static inline void atomic_##op(int i, atomic_t *v)		\
- {								\
-@@ -41,17 +54,23 @@ static inline void atomic_##op(int i, at
- ATOMIC_OP_RETURN(add, +=)
- ATOMIC_OP_RETURN(sub, -=)
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
  
--ATOMIC_OP(and, &=)
--ATOMIC_OP(or,  |=)
--ATOMIC_OP(xor, ^=)
-+#define atomic_fetch_or atomic_fetch_or
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
  
-+#define ATOMIC_OPS(op, c_op)					\
-+	ATOMIC_OP(op, c_op)					\
-+	ATOMIC_FETCH_OP(op, c_op)
-+
-+ATOMIC_OPS(and, &=)
-+ATOMIC_OPS(or,  |=)
-+ATOMIC_OPS(xor, ^=)
-+ATOMIC_OPS(add, +=)
-+ATOMIC_OPS(sub, -=)
-+
+-ATOMIC_OP(and)
+-ATOMIC_OP(or)
+-ATOMIC_OP(xor)
 +#undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
++
++#define atomic_fetch_or atomic_fetch_or
++
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
+ 
+ #undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
  #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
  
--#define atomic_add(i, v)		(void)atomic_add_return(i, v)
- #define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
--
--#define atomic_sub(i, v)		(void)atomic_sub_return(i, v)
- #define atomic_sub_and_test(i, v)	(atomic_sub_return(i, v) == 0)
- 
- #define atomic_inc_return(v)		atomic_add_return(1, v)
