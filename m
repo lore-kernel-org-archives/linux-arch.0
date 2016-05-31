@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:48581 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751552AbcEaK3u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:50 -0400
-Message-ID: <20160531102641.947942866@infradead.org>
-Date: Tue, 31 May 2016 12:19:33 +0200
+Received: from bombadil.infradead.org ([198.137.202.9]:43371 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751657AbcEaK3v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:51 -0400
+Message-ID: <20160531102642.526865975@infradead.org>
+Date: Tue, 31 May 2016 12:19:42 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 08/33] locking,blackfin: Implement atomic_fetch_{add,sub,and,or,xor}()
+Subject: [PATCH -v2 17/33] locking,mn10300: Implement atomic_fetch_{add,sub,and,or,xor}()
 References: <20160531101925.702692792@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch-blackfin.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-mn10300.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160531101933.BrDDgJOTZ4t50wnKiIswEwAT2fROHigDFjBOcsDKcZA@z>
+Message-ID: <20160531101942.Ory9buJGLiocNtOBEc3D0yzlfrnA0Tc5XN12aZYiyOY@z>
 
 Implement FETCH-OP atomic primitives, these are very similar to the
 existing OP-RETURN primitives we already have, except they return the
@@ -27,121 +27,58 @@ to modification).
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/blackfin/include/asm/atomic.h |    8 ++++++
- arch/blackfin/kernel/bfin_ksyms.c  |    1 
- arch/blackfin/mach-bf561/atomic.S  |   43 ++++++++++++++++++++++++++-----------
- 3 files changed, 40 insertions(+), 12 deletions(-)
+ arch/mn10300/include/asm/atomic.h |   35 +++++++++++++++++++++++++++++++----
+ 1 file changed, 31 insertions(+), 4 deletions(-)
 
---- a/arch/blackfin/include/asm/atomic.h
-+++ b/arch/blackfin/include/asm/atomic.h
-@@ -17,6 +17,7 @@
+--- a/arch/mn10300/include/asm/atomic.h
++++ b/arch/mn10300/include/asm/atomic.h
+@@ -84,16 +84,43 @@ static inline int atomic_##op##_return(i
+ 	return retval;							\
+ }
  
- asmlinkage int __raw_uncached_fetch_asm(const volatile int *ptr);
- asmlinkage int __raw_atomic_add_asm(volatile int *ptr, int value);
-+asmlinkage int __raw_atomic_xadd_asm(volatile int *ptr, int value);
- 
- asmlinkage int __raw_atomic_and_asm(volatile int *ptr, int value);
- asmlinkage int __raw_atomic_or_asm(volatile int *ptr, int value);
-@@ -28,10 +29,17 @@ asmlinkage int __raw_atomic_test_asm(con
- #define atomic_add_return(i, v) __raw_atomic_add_asm(&(v)->counter, i)
- #define atomic_sub_return(i, v) __raw_atomic_add_asm(&(v)->counter, -(i))
- 
-+#define atomic_fetch_add(i, v) __raw_atomic_xadd_asm(&(v)->counter, i)
-+#define atomic_fetch_sub(i, v) __raw_atomic_xadd_asm(&(v)->counter, -(i))
+-#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
++#define ATOMIC_FETCH_OP(op)						\
++static inline int atomic_fetch_##op(int i, atomic_t *v)			\
++{									\
++	int retval, status;						\
++									\
++	asm volatile(							\
++		"1:	mov	%4,(_AAR,%3)	\n"			\
++		"	mov	(_ADR,%3),%1	\n"			\
++		"	mov	%1,%0		\n"			\
++		"	" #op "	%5,%0		\n"			\
++		"	mov	%0,(_ADR,%3)	\n"			\
++		"	mov	(_ADR,%3),%0	\n"	/* flush */	\
++		"	mov	(_ASR,%3),%0	\n"			\
++		"	or	%0,%0		\n"			\
++		"	bne	1b		\n"			\
++		: "=&r"(status), "=&r"(retval), "=m"(v->counter)	\
++		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(&v->counter), "r"(i)	\
++		: "memory", "cc");					\
++	return retval;							\
++}
 +
- #define atomic_or(i, v)  (void)__raw_atomic_or_asm(&(v)->counter, i)
- #define atomic_and(i, v) (void)__raw_atomic_and_asm(&(v)->counter, i)
- #define atomic_xor(i, v) (void)__raw_atomic_xor_asm(&(v)->counter, i)
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
  
-+#define atomic_fetch_or(i, v)  __raw_atomic_or_asm(&(v)->counter, i)
-+#define atomic_fetch_and(i, v) __raw_atomic_and_asm(&(v)->counter, i)
-+#define atomic_fetch_xor(i, v) __raw_atomic_xor_asm(&(v)->counter, i)
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
+ 
+-ATOMIC_OP(and)
+-ATOMIC_OP(or)
+-ATOMIC_OP(xor)
++#undef ATOMIC_OPS
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
 +
- #endif
- 
- #include <asm-generic/atomic.h>
---- a/arch/blackfin/kernel/bfin_ksyms.c
-+++ b/arch/blackfin/kernel/bfin_ksyms.c
-@@ -84,6 +84,7 @@ EXPORT_SYMBOL(insl_16);
- 
- #ifdef CONFIG_SMP
- EXPORT_SYMBOL(__raw_atomic_add_asm);
-+EXPORT_SYMBOL(__raw_atomic_xadd_asm);
- EXPORT_SYMBOL(__raw_atomic_and_asm);
- EXPORT_SYMBOL(__raw_atomic_or_asm);
- EXPORT_SYMBOL(__raw_atomic_xor_asm);
---- a/arch/blackfin/mach-bf561/atomic.S
-+++ b/arch/blackfin/mach-bf561/atomic.S
-@@ -607,6 +607,28 @@ ENDPROC(___raw_atomic_add_asm)
- 
- /*
-  * r0 = ptr
-+ * r1 = value
-+ *
-+ * ADD a signed value to a 32bit word and return the old value atomically.
-+ * Clobbers: r3:0, p1:0
-+ */
-+ENTRY(___raw_atomic_xadd_asm)
-+	p1 = r0;
-+	r3 = r1;
-+	[--sp] = rets;
-+	call _get_core_lock;
-+	r3 = [p1];
-+	r2 = r3 + r2;
-+	[p1] = r2;
-+	r1 = p1;
-+	call _put_core_lock;
-+	r0 = r3;
-+	rets = [sp++];
-+	rts;
-+ENDPROC(___raw_atomic_add_asm)
++#define atomic_fetch_or atomic_fetch_or
 +
-+/*
-+ * r0 = ptr
-  * r1 = mask
-  *
-  * AND the mask bits from a 32bit word and return the old 32bit value
-@@ -618,10 +640,9 @@ ENTRY(___raw_atomic_and_asm)
- 	r3 = r1;
- 	[--sp] = rets;
- 	call _get_core_lock;
--	r2 = [p1];
--	r3 = r2 & r3;
--	[p1] = r3;
--	r3 = r2;
-+	r3 = [p1];
-+	r2 = r2 & r3;
-+	[p1] = r2;
- 	r1 = p1;
- 	call _put_core_lock;
- 	r0 = r3;
-@@ -642,10 +663,9 @@ ENTRY(___raw_atomic_or_asm)
- 	r3 = r1;
- 	[--sp] = rets;
- 	call _get_core_lock;
--	r2 = [p1];
--	r3 = r2 | r3;
--	[p1] = r3;
--	r3 = r2;
-+	r3 = [p1];
-+	r2 = r2 | r3;
-+	[p1] = r2;
- 	r1 = p1;
- 	call _put_core_lock;
- 	r0 = r3;
-@@ -666,10 +686,9 @@ ENTRY(___raw_atomic_xor_asm)
- 	r3 = r1;
- 	[--sp] = rets;
- 	call _get_core_lock;
--	r2 = [p1];
--	r3 = r2 ^ r3;
--	[p1] = r3;
--	r3 = r2;
-+	r3 = [p1];
-+	r2 = r2 ^ r3;
-+	[p1] = r2;
- 	r1 = p1;
- 	call _put_core_lock;
- 	r0 = r3;
++ATOMIC_OPS(and)
++ATOMIC_OPS(or)
++ATOMIC_OPS(xor)
+ 
+ #undef ATOMIC_OPS
++#undef ATOMIC_FETCH_OP
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
 
 
