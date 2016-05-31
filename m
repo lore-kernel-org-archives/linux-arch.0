@@ -1,54 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f195.google.com ([209.85.223.195]:35325 "EHLO
-	mail-io0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752345AbcEaG4H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 02:56:07 -0400
+Received: from mga11.intel.com ([192.55.52.93]:59116 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751283AbcEaHK4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 May 2016 03:10:56 -0400
+From: Chen Yu <yu.c.chen@intel.com>
+Subject: Re: [PATCH][RFC] PCI: Workaround to enable poweroff on Mac Pro 11
+References: <1464604404-11257-1-git-send-email-yu.c.chen@intel.com>
+ <20160530213305.GA21322@localhost> <574D03F9.6050201@intel.com>
+ <CAE9FiQV_Mc9VuyBvCB7hL_0pgj+-wW1_jupzhbTHij+VQeLF-A@mail.gmail.com>
+Message-ID: <574D3AAA.6090503@intel.com>
+Date: Tue, 31 May 2016 15:18:02 +0800
 MIME-Version: 1.0
-In-Reply-To: <20160530203207.GY3451@piout.net>
-References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
-	<20160530203207.GY3451@piout.net>
-Date: Tue, 31 May 2016 08:56:05 +0200
-Message-ID: <CAMuHMdV5mcKZcBz=v7Pn2pbDiuwMpQYs-70e6NmH6CZ88=JNzA@mail.gmail.com>
-Subject: Re: [PATCH v4 00/16] genrtc removal
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <CAE9FiQV_Mc9VuyBvCB7hL_0pgj+-wW1_jupzhbTHij+VQeLF-A@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg KH <gregkh@linuxfoundation.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Rich Felker <dalias@libc.org>, David Howells <dhowells@redhat.com>, alpha <linux-alpha@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Linux-sh list <linux-sh@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, RTCLINUX <rtc-linux@googlegroups.com>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20160531065605.PCyxASaSfu6b2i7Tzrn7RmgWWfZfq4JZpArvGA4jRoY@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <helgaas@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, "Rafael J . Wysocki" <rafael@kernel.org>, Len Brown <lenb@kernel.org>, Mika Westerberg <mika.westerberg@linux.intel.com>
+Message-ID: <20160531071802.4xRQIWDkgWJxzj2OOZ2aT2kZsD405ie18GJNGo51b6g@z>
 
-Allo Alexandre,
 
-On Mon, May 30, 2016 at 10:32 PM, Alexandre Belloni
-<alexandre.belloni@free-electrons.com> wrote:
-> On 30/05/2016 at 20:57:48 +0200, Arnd Bergmann wrote :
->> This is the promised resend of the removal of the genrtc driver and some
->> related code, now that we are at a good time to merge this for the coming
->> merge window.
+
+On 2016年05月31日 15:00, Yinghai Lu wrote:
+> On Mon, May 30, 2016 at 8:24 PM, Chen Yu <yu.c.chen@intel.com> wrote:
+>
+>> and then in pcibios_assign_resources, 0000:00:1c.0 tries to allocate minimal
+>> resource window and then update related base/limit registers:
 >>
+>> [    0.865342] pci 0000:00:1c.0: bridge window [io  0x1000-0x0fff] to [bus
+>> 02] add_size 1000
+>> [    0.865343] pci 0000:00:1c.0: bridge window [mem 0x00100000-0x000fffff
+>> 64bit pref] to [bus 02] add_size 200000 add_align 100000
+>> [    0.865344] pci 0000:00:1c.0: bridge window [mem 0x00100000-0x000fffff]
+>> to [bus 02] add_size 200000 add_align 100000
+>>
+> That is for hotplug bridge, then we could use following instead.
 >
-> Thanks a lot!
+> diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+> index ee72ebe..d3ec833 100644
+> --- a/drivers/pci/quirks.c
+> +++ b/drivers/pci/quirks.c
+> @@ -2775,6 +2775,13 @@ static void quirk_hotplug_bridge(struct pci_dev *dev)
 >
-> I'm applying the series right now so it sits in linux-next for a while
-> before the next merge window.
+>   DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_HINT, 0x0020, quirk_hotplug_bridge);
 >
-> I would still happily take any acks, Reviewed-by or Tested-by tags.
+> +static void quirk_hotplug_bridge_skip(struct pci_dev *dev)
+> +{
+> +       dev->is_hotplug_bridge = 0;
+> +}
+> +
+> +DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL, 0x8c10,
+> quirk_hotplug_bridge_skip);
+> +
+>   /*
+>    * This is a quirk for the Ricoh MMC controller found as a part of
+>    * some mulifunction chips.
+Good idea, but in this way we might not have io window allocated for 
+it?I'm not sure
+if this would break wifi,etc, I'll suggest reporters to have a try.
 
-Looks like Arnd forgot to include these when reposting:
-
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-For the m68k bits:
-Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+thanks,
+Yu
