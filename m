@@ -1,35 +1,45 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH -v2 22/33] locking,sparc: Implement
- atomic{,64}_fetch_{add,sub,and,or,xor}()
-Date: Tue, 31 May 2016 10:50:57 -0700 (PDT)
-Message-ID: <20160531.105057.1994007943543248986.davem@davemloft.net>
-References: <20160531101925.702692792@infradead.org>
-	<20160531102642.832054317@infradead.org>
+From: "Kani, Toshimitsu" <toshi.kani@hpe.com>
+Subject: Re: Enhancing semantics with memremap() - aliasing with memremap()
+Date: Tue, 31 May 2016 23:31:54 +0000
+Message-ID: <1464736922.3504.85.camel@hpe.com>
+References: <CAB=NE6Wy=V17uwc3GNMYaWk4cOx1a1TtHBgMYii-M5FDuPn_Gw@mail.gmail.com>
+	 <20160531165828.GA25366@infradead.org>
+	 <20160531172514.GI11948@wotan.suse.de>
+	 <20160531172705.GJ11948@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:35972 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752552AbcEaRvA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 13:51:00 -0400
-In-Reply-To: <20160531102642.832054317@infradead.org>
+Received: from mail-bl2on0120.outbound.protection.outlook.com ([65.55.169.120]:13408
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750884AbcFAADn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 May 2016 20:03:43 -0400
+In-Reply-To: <20160531172705.GJ11948@wotan.suse.de>
+Content-Language: en-US
+Content-ID: <73FAE9D6A5530548A204EB6AD2ADD190@NAMPRD84.PROD.OUTLOOK.COM>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
+To: "mcgrof@kernel.org" <mcgrof@kernel.org>
+Cc: "toshi.kani@hp.com" <toshi.kani@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "hch@infradead.org" <hch@infradead.org>, "dan.j.williams@intel.com" <dan.j.williams@intel.com>, "x86@kernel.org" <x86@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "bp@alien8.de" <bp@alien8.de>, "julia.lawall@lip6.fr" <julia.lawall@lip6.fr>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Tue, 31 May 2016 12:19:47 +0200
-
-> Implement FETCH-OP atomic primitives, these are very similar to the
-> existing OP-RETURN primitives we already have, except they return the
-> value of the atomic variable _before_ modification.
-> 
-> This is especially useful for irreversible operations -- such as
-> bitops (because it becomes impossible to reconstruct the state prior
-> to modification).
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-
-Acked-by: David S. Miller <davem@davemloft.net>
+T24gVHVlLCAyMDE2LTA1LTMxIGF0IDE5OjI3ICswMjAwLCBMdWlzIFIuIFJvZHJpZ3VleiB3cm90
+ZToNCj4gT24gVHVlLCBNYXkgMzEsIDIwMTYgYXQgMDc6MjU6MTRQTSArMDIwMCwgTHVpcyBSLiBS
+b2RyaWd1ZXogd3JvdGU6DQo+ID4gDQo+ID4gT24gVHVlLCBNYXkgMzEsIDIwMTYgYXQgMDk6NTg6
+MjhBTSAtMDcwMCwgQ2hyaXN0b3BoIEhlbGx3aWcgd3JvdGU6DQo+ID4gPiANCj4gPiA+IE9uIFR1
+ZSwgTWF5IDI0LCAyMDE2IGF0IDA0OjM2OjQyUE0gLTA3MDAsIEx1aXMgUi4gUm9kcmlndWV6IHdy
+b3RlOg0KPiA+ID4gPiANCj4gPiA+ID4gSXMgaXQgYSBnb29kIHRpbWUgZm9yIHRoYXQgbm93PyBJ
+IHdvdWxkIGhvcGUgaWRlbnRpZnlpbmcgcHJvcGVyDQo+ID4gPiA+IGFsaWFzaW5nIHVzZXMgZm9y
+IG1lbXJlbWFwKCkgbWlnaHQgYmUgYSBiaXQgZWFzaWVyIG5vdyB0aGFuIGZvcg0KPiA+ID4gPiBp
+b3JlbWFwKCkgZ2l2ZW4gaXRzIG5vdCB1c2VkIGFzIHdpZGVseS4gSXQgbWF5IGJlIGFuIGVhc2ll
+ciB0YXJnZXQNCj4gPiA+ID4gdG8gYWxzbyB3cml0ZSBzb21lIGdyYW1tYXIgcnVsZXMgZm9yIGl0
+IGFzIHdlbGwuDQo+ID4gPsKgDQo+ID4gPiBTbyB5b3Ugd2FudCBhbiBleHBsaWNpdCBvcHQtaW4g
+ZmxhZyB0byBhbGxvdyBhbGlhc2luZz/CoMKgU291bmRzIGZpbmUgdG8NCj4gPiA+IG1lLg0KPiA+
+IMKgwqANCj4gPiBZdXAhIENhbiB0aGUgZGVmYXVsdCB0aGVuIHNhZmVseSBhbHJlYWR5IGJlIG5v
+LWFsaWFzaW5nIHRoZW4/DQo+DQo+IE9yIGlmIGFsaWFzaW5nIGlzIHRydWx5IG5vdCBuZWVkZWQg
+YXMgb2Z0ZW4gYSBkaWZmZXJlbnQgQVBJLCB0aGlzDQo+IG1heWJlIHVzZWZ1bCBsYXRlciBpZiB3
+ZSBwaWNrIHVwIGFnYWluIG1vZHVsZSBuYW1lc3BhY2Ugc3R1ZmYuDQoNCkkgYWdyZWUgdGhhdCB3
+ZSBzaG91bGQgYmUgYWJsZSB0byBjaGFuZ2UgbWVtcmVtYXAoKSB0byBmYWlsIGFuIGFsaWFzaW5n
+DQpyZXF1ZXN0IHNpbmNlIGl0J3MgYSByZWxhdGl2ZWx5IG5ldyBpbnRlcmZhY2UuIMKgaW9yZW1h
+cCgpIG5lZWRzIHRvIHN0YXJ0DQpmcm9tIGFkZGluZyBhIHdhcm5pbmcgbWVzc2FnZS4NCg0KVGhh
+bmtzLA0KLVRvc2hpwqA=
