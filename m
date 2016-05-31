@@ -1,12 +1,12 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 21/33] locking,sh: Implement atomic_fetch_{add,sub,and,or,xor}()
-Date: Tue, 31 May 2016 12:19:46 +0200
-Message-ID: <20160531102642.771601362@infradead.org>
+Subject: [PATCH -v2 15/33] locking,metag: Implement atomic_fetch_{add,sub,and,or,xor}()
+Date: Tue, 31 May 2016 12:19:40 +0200
+Message-ID: <20160531102642.394089087@infradead.org>
 References: <20160531101925.702692792@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-atomic-fetch-sh.patch
+Content-Disposition: inline; filename=peterz-atomic-fetch-metag.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
@@ -20,41 +20,54 @@ This is especially useful for irreversible operations -- such as
 bitops (because it becomes impossible to reconstruct the state prior
 to modification).
 
+Acked-by: James Hogan <james.hogan@imgtec.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/sh/include/asm/atomic-grb.h  |   34 ++++++++++++++++++++++++++++++----
- arch/sh/include/asm/atomic-irq.h  |   31 +++++++++++++++++++++++++++----
- arch/sh/include/asm/atomic-llsc.h |   32 ++++++++++++++++++++++++++++----
- arch/sh/include/asm/atomic.h      |    2 ++
- 4 files changed, 87 insertions(+), 12 deletions(-)
+ arch/metag/include/asm/atomic.h        |    2 +
+ arch/metag/include/asm/atomic_lnkget.h |   36 +++++++++++++++++++++++++++++----
+ arch/metag/include/asm/atomic_lock1.h  |   33 ++++++++++++++++++++++++++----
+ 3 files changed, 63 insertions(+), 8 deletions(-)
 
---- a/arch/sh/include/asm/atomic-grb.h
-+++ b/arch/sh/include/asm/atomic-grb.h
-@@ -43,16 +43,42 @@ static inline int atomic_##op##_return(i
- 	return tmp;							\
+--- a/arch/metag/include/asm/atomic.h
++++ b/arch/metag/include/asm/atomic.h
+@@ -17,6 +17,8 @@
+ #include <asm/atomic_lnkget.h>
+ #endif
+ 
++#define atomic_fetch_or atomic_fetch_or
++
+ #define atomic_add_negative(a, v)       (atomic_add_return((a), (v)) < 0)
+ 
+ #define atomic_dec_return(v) atomic_sub_return(1, (v))
+--- a/arch/metag/include/asm/atomic_lnkget.h
++++ b/arch/metag/include/asm/atomic_lnkget.h
+@@ -69,16 +69,44 @@ static inline int atomic_##op##_return(i
+ 	return result;							\
  }
  
 -#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
 +#define ATOMIC_FETCH_OP(op)						\
 +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 +{									\
-+	int res, tmp;							\
++	int result, temp;						\
 +									\
-+	__asm__ __volatile__ (						\
-+		"   .align 2              \n\t"				\
-+		"   mova    1f,   r0      \n\t" /* r0 = end point */	\
-+		"   mov    r15,   r1      \n\t" /* r1 = saved sp */	\
-+		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */	\
-+		"   mov.l  @%2,   %0      \n\t" /* load old value */	\
-+		"   mov     %0,   %1      \n\t" /* save old value */	\
-+		" " #op "   %3,   %0      \n\t" /* $op */		\
-+		"   mov.l   %0,   @%2     \n\t" /* store new value */	\
-+		"1: mov     r1,   r15     \n\t" /* LOGOUT */		\
-+		: "=&r" (tmp), "=&r" (res), "+r"  (v)			\
-+		: "r"   (i)						\
-+		: "memory" , "r0", "r1");				\
++	smp_mb();							\
 +									\
-+	return res;							\
++	asm volatile (							\
++		"1:	LNKGETD %1, [%2]\n"				\
++		"	" #op "	%0, %1, %3\n"				\
++		"	LNKSETD [%2], %0\n"				\
++		"	DEFR	%0, TXSTAT\n"				\
++		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
++		"	CMPT	%0, #HI(0x02000000)\n"			\
++		"	BNZ 1b\n"					\
++		: "=&d" (temp), "=&d" (result)				\
++		: "da" (&v->counter), "bd" (i)				\
++		: "cc");						\
++									\
++	smp_mb();							\
++									\
++	return result;							\
 +}
 +
 +#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
@@ -77,24 +90,26 @@ Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
  #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
  
---- a/arch/sh/include/asm/atomic-irq.h
-+++ b/arch/sh/include/asm/atomic-irq.h
-@@ -33,15 +33,38 @@ static inline int atomic_##op##_return(i
- 	return temp;							\
+--- a/arch/metag/include/asm/atomic_lock1.h
++++ b/arch/metag/include/asm/atomic_lock1.h
+@@ -64,15 +64,40 @@ static inline int atomic_##op##_return(i
+ 	return result;							\
  }
  
 -#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_op)
 +#define ATOMIC_FETCH_OP(op, c_op)					\
 +static inline int atomic_fetch_##op(int i, atomic_t *v)			\
 +{									\
-+	unsigned long temp, flags;					\
++	unsigned long result;						\
++	unsigned long flags;						\
 +									\
-+	raw_local_irq_save(flags);					\
-+	temp = v->counter;						\
++	__global_lock1(flags);						\
++	result = v->counter;						\
++	fence();							\
 +	v->counter c_op i;						\
-+	raw_local_irq_restore(flags);					\
++	__global_unlock1(flags);					\
 +									\
-+	return temp;							\
++	return result;							\
 +}
 +
 +#define ATOMIC_OPS(op, c_op)						\
@@ -122,60 +137,3 @@ Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
  #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
  
---- a/arch/sh/include/asm/atomic-llsc.h
-+++ b/arch/sh/include/asm/atomic-llsc.h
-@@ -48,15 +48,39 @@ static inline int atomic_##op##_return(i
- 	return temp;							\
- }
- 
--#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
-+#define ATOMIC_FETCH_OP(op)						\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long res, temp;					\
-+									\
-+	__asm__ __volatile__ (						\
-+"1:	movli.l @%3, %0		! atomic_fetch_" #op "	\n"		\
-+"	mov %0, %1					\n"		\
-+"	" #op "	%2, %0					\n"		\
-+"	movco.l	%0, @%3					\n"		\
-+"	bf	1b					\n"		\
-+"	synco						\n"		\
-+	: "=&z" (temp), "=&z" (res)					\
-+	: "r" (i), "r" (&v->counter)					\
-+	: "t");								\
-+									\
-+	return res;							\
-+}
-+
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
- 
- ATOMIC_OPS(add)
- ATOMIC_OPS(sub)
--ATOMIC_OP(and)
--ATOMIC_OP(or)
--ATOMIC_OP(xor)
- 
- #undef ATOMIC_OPS
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
-+
-+ATOMIC_OPS(and)
-+ATOMIC_OPS(or)
-+ATOMIC_OPS(xor)
-+
-+#undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
---- a/arch/sh/include/asm/atomic.h
-+++ b/arch/sh/include/asm/atomic.h
-@@ -25,6 +25,8 @@
- #include <asm/atomic-irq.h>
- #endif
- 
-+#define atomic_fetch_or atomic_fetch_or
-+
- #define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
- #define atomic_dec_return(v)		atomic_sub_return(1, (v))
- #define atomic_inc_return(v)		atomic_add_return(1, (v))
