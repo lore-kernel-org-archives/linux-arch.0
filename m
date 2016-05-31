@@ -1,89 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43374 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751680AbcEaK3v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:51 -0400
-Message-ID: <20160531102642.152411631@infradead.org>
-Date: Tue, 31 May 2016 12:19:36 +0200
+Received: from merlin.infradead.org ([205.233.59.134]:48563 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751746AbcEaK3w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:52 -0400
+Message-ID: <20160531101925.702692792@infradead.org>
+Date: Tue, 31 May 2016 12:19:25 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 11/33] locking,hexagon: Implement atomic_fetch_{add,sub,and,or,xor}()
-References: <20160531101925.702692792@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch-hexagon.patch
+Subject: [PATCH -v2 00/33] implement atomic_fetch_$op
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160531101936.4zivsG4HxPB01gmgt7llVdSW1c-_ejewXgB_QuPQY4I@z>
+Message-ID: <20160531101925.r3vXzenC9bMDwK383_kt1JeSEEVrWmVJuc5H5xWOrQ4@z>
 
-Implement FETCH-OP atomic primitives, these are very similar to the
-existing OP-RETURN primitives we already have, except they return the
-value of the atomic variable _before_ modification.
+As there have been a few requests for atomic_fetch_$op primitives and recently
+by Linus, I figured I'd go and implement the lot.
 
-This is especially useful for irreversible operations -- such as
-bitops (because it becomes impossible to reconstruct the state prior
-to modification).
+The atomic_fetch_$op differs from the existing atomic_$op_return we already
+have by returning the old value instead of the new value. This is especially
+useful when the operation is irreversible (like bitops), and allows for things
+like test-and-set.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/hexagon/include/asm/atomic.h |   33 ++++++++++++++++++++++++++++-----
- 1 file changed, 28 insertions(+), 5 deletions(-)
+This version incorporates all feedback from last time and is now complete thanks
+to Will implementing ARMv8.1-LSE versions.
 
---- a/arch/hexagon/include/asm/atomic.h
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -110,7 +110,7 @@ static inline void atomic_##op(int i, at
- 	);								\
- }									\
- 
--#define ATOMIC_OP_RETURN(op)							\
-+#define ATOMIC_OP_RETURN(op)						\
- static inline int atomic_##op##_return(int i, atomic_t *v)		\
- {									\
- 	int output;							\
-@@ -127,16 +127,39 @@ static inline int atomic_##op##_return(i
- 	return output;							\
- }
- 
--#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
-+#define ATOMIC_FETCH_OP(op)						\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	int output, val;						\
-+									\
-+	__asm__ __volatile__ (						\
-+		"1:	%0 = memw_locked(%2);\n"			\
-+		"	%1 = "#op "(%0,%3);\n"				\
-+		"	memw_locked(%2,P3)=%1;\n"			\
-+		"	if !P3 jump 1b;\n"				\
-+		: "=&r" (output), "=&r" (val)				\
-+		: "r" (&v->counter), "r" (i)				\
-+		: "memory", "p3"					\
-+	);								\
-+	return output;							\
-+}
-+
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
- 
- ATOMIC_OPS(add)
- ATOMIC_OPS(sub)
- 
--ATOMIC_OP(and)
--ATOMIC_OP(or)
--ATOMIC_OP(xor)
-+#undef ATOMIC_OPS
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
-+
-+#define atomic_fetch_or atomic_fetch_or
-+
-+ATOMIC_OPS(and)
-+ATOMIC_OPS(or)
-+ATOMIC_OPS(xor)
- 
- #undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
+No known build breakage from the build-bot.
 
+Notes:
+ - arc asm/atomic.h is a bit of a mess after the eznps merge, I would
+   recommend a restructure or split of that file, but could not find
+   the will to do it.
+ - arc, metag and tile could convert to _relaxed.
+
+I'm aiming to merge this for v4.8 which should get this a fair few weeks in -next.
 
