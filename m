@@ -1,320 +1,256 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43395 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:43365 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751950AbcEaK3y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:54 -0400
-Message-ID: <20160531102643.200865260@infradead.org>
-Date: Tue, 31 May 2016 12:19:53 +0200
+	with ESMTP id S1751606AbcEaK3u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:50 -0400
+Message-ID: <20160531102641.825770912@infradead.org>
+Date: Tue, 31 May 2016 12:19:31 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 28/33] locking: Remove linux/atomic.h:atomic_fetch_or
+Subject: [PATCH -v2 06/33] locking,arm64: Implement atomic{,64}_fetch_{add,sub,and,andnot,or,xor}{,_relaxed,_acquire,_release}() for LSE instructions
 References: <20160531101925.702692792@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch_or-kill.patch
+Content-Disposition: inline; filename=will_deacon-lockingarm64-implement_atomic64_fetch_addsubandandnotorxor_relaxed_acquire_release_for_lse_instructions.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160531101953.uLnuc7BkAHG0gIL1LLqy0nwXMgcOgJKr5tIfDTNynnc@z>
+Message-ID: <20160531101931.QH0Dpqo-j1BQHq4AmAeXPjQHMVfkMDI-TDfQjtLzlz8@z>
 
-Since all architectures have this implemented natively, remove this
-now dead code.
+From: Will Deacon <will.deacon@arm.com>
 
+Implement FETCH-OP atomic primitives, these are very similar to the
+existing OP-RETURN primitives we already have, except they return the
+value of the atomic variable _before_ modification.
+
+This is especially useful for irreversible operations -- such as
+bitops (because it becomes impossible to reconstruct the state prior
+to modification).
+
+This patch implements the LSE variants.
+
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: http://lkml.kernel.org/r/1461344493-8262-2-git-send-email-will.deacon@arm.com
 ---
- arch/alpha/include/asm/atomic.h    |    2 --
- arch/arc/include/asm/atomic.h      |    2 --
- arch/arm/include/asm/atomic.h      |    2 --
- arch/arm64/include/asm/atomic.h    |    2 --
- arch/avr32/include/asm/atomic.h    |    2 --
- arch/frv/include/asm/atomic.h      |    2 --
- arch/h8300/include/asm/atomic.h    |    2 --
- arch/hexagon/include/asm/atomic.h  |    2 --
- arch/m32r/include/asm/atomic.h     |    2 --
- arch/m68k/include/asm/atomic.h     |    2 --
- arch/metag/include/asm/atomic.h    |    2 --
- arch/mips/include/asm/atomic.h     |    2 --
- arch/mn10300/include/asm/atomic.h  |    2 --
- arch/parisc/include/asm/atomic.h   |    2 --
- arch/s390/include/asm/atomic.h     |    2 --
- arch/sh/include/asm/atomic.h       |    2 --
- arch/sparc/include/asm/atomic.h    |    1 -
- arch/sparc/include/asm/atomic_32.h |    2 --
- arch/tile/include/asm/atomic.h     |    2 --
- arch/x86/include/asm/atomic.h      |    2 --
- arch/xtensa/include/asm/atomic.h   |    2 --
- include/asm-generic/atomic.h       |    2 --
- include/linux/atomic.h             |   21 ---------------------
- 23 files changed, 64 deletions(-)
+ arch/arm64/include/asm/atomic_lse.h |  172 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 172 insertions(+)
 
---- a/arch/alpha/include/asm/atomic.h
-+++ b/arch/alpha/include/asm/atomic.h
-@@ -153,8 +153,6 @@ ATOMIC_OPS(sub)
- #define atomic_andnot atomic_andnot
- #define atomic64_andnot atomic64_andnot
+--- a/arch/arm64/include/asm/atomic_lse.h
++++ b/arch/arm64/include/asm/atomic_lse.h
+@@ -46,6 +46,38 @@ ATOMIC_OP(add, stadd)
  
--#define atomic_fetch_or atomic_fetch_or
--
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op, asm)						\
- 	ATOMIC_OP(op, asm)						\
---- a/arch/arc/include/asm/atomic.h
-+++ b/arch/arc/include/asm/atomic.h
-@@ -224,8 +224,6 @@ ATOMIC_OPS(sub, -=, sub)
+ #undef ATOMIC_OP
  
- #define atomic_andnot atomic_andnot
- 
--#define atomic_fetch_or atomic_fetch_or
--
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op, c_op, asm_op)					\
- 	ATOMIC_OP(op, c_op, asm_op)					\
---- a/arch/arm/include/asm/atomic.h
-+++ b/arch/arm/include/asm/atomic.h
-@@ -201,8 +201,6 @@ static inline int atomic_fetch_##op(int
- 	return val;							\
++#define ATOMIC_FETCH_OP(name, mb, op, asm_op, cl...)			\
++static inline int atomic_fetch_##op##name(int i, atomic_t *v)		\
++{									\
++	register int w0 asm ("w0") = i;					\
++	register atomic_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	__LL_SC_ATOMIC(fetch_##op##name),				\
++	/* LSE atomics */						\
++"	" #asm_op #mb "	%w[i], %w[i], %[v]")				\
++	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return w0;							\
++}
++
++#define ATOMIC_FETCH_OPS(op, asm_op)					\
++	ATOMIC_FETCH_OP(_relaxed,   , op, asm_op)			\
++	ATOMIC_FETCH_OP(_acquire,  a, op, asm_op, "memory")		\
++	ATOMIC_FETCH_OP(_release,  l, op, asm_op, "memory")		\
++	ATOMIC_FETCH_OP(        , al, op, asm_op, "memory")
++
++ATOMIC_FETCH_OPS(andnot, ldclr)
++ATOMIC_FETCH_OPS(or, ldset)
++ATOMIC_FETCH_OPS(xor, ldeor)
++ATOMIC_FETCH_OPS(add, ldadd)
++
++#undef ATOMIC_FETCH_OP
++#undef ATOMIC_FETCH_OPS
++
+ #define ATOMIC_OP_ADD_RETURN(name, mb, cl...)				\
+ static inline int atomic_add_return##name(int i, atomic_t *v)		\
+ {									\
+@@ -90,6 +122,33 @@ static inline void atomic_and(int i, ato
+ 	: __LL_SC_CLOBBERS);
  }
  
--#define atomic_fetch_or atomic_fetch_or
--
- static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
++#define ATOMIC_FETCH_OP_AND(name, mb, cl...)				\
++static inline int atomic_fetch_and##name(int i, atomic_t *v)		\
++{									\
++	register int w0 asm ("w0") = i;					\
++	register atomic_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	"	nop\n"							\
++	__LL_SC_ATOMIC(fetch_and##name),				\
++	/* LSE atomics */						\
++	"	mvn	%w[i], %w[i]\n"					\
++	"	ldclr" #mb "	%w[i], %w[i], %[v]")			\
++	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return w0;							\
++}
++
++ATOMIC_FETCH_OP_AND(_relaxed,   )
++ATOMIC_FETCH_OP_AND(_acquire,  a, "memory")
++ATOMIC_FETCH_OP_AND(_release,  l, "memory")
++ATOMIC_FETCH_OP_AND(        , al, "memory")
++
++#undef ATOMIC_FETCH_OP_AND
++
+ static inline void atomic_sub(int i, atomic_t *v)
  {
- 	int ret;
---- a/arch/arm64/include/asm/atomic.h
-+++ b/arch/arm64/include/asm/atomic.h
-@@ -128,8 +128,6 @@
- #define __atomic_add_unless(v, a, u)	___atomic_add_unless(v, a, u,)
- #define atomic_andnot			atomic_andnot
+ 	register int w0 asm ("w0") = i;
+@@ -135,6 +194,33 @@ ATOMIC_OP_SUB_RETURN(_release,  l, "memo
+ ATOMIC_OP_SUB_RETURN(        , al, "memory")
  
--#define atomic_fetch_or atomic_fetch_or
--
- /*
-  * 64-bit atomic operations.
-  */
---- a/arch/avr32/include/asm/atomic.h
-+++ b/arch/avr32/include/asm/atomic.h
-@@ -66,8 +66,6 @@ ATOMIC_OP_RETURN(add, add, r)
- ATOMIC_FETCH_OP (sub, sub, rKs21)
- ATOMIC_FETCH_OP (add, add, r)
+ #undef ATOMIC_OP_SUB_RETURN
++
++#define ATOMIC_FETCH_OP_SUB(name, mb, cl...)				\
++static inline int atomic_fetch_sub##name(int i, atomic_t *v)		\
++{									\
++	register int w0 asm ("w0") = i;					\
++	register atomic_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	"	nop\n"							\
++	__LL_SC_ATOMIC(fetch_sub##name),				\
++	/* LSE atomics */						\
++	"	neg	%w[i], %w[i]\n"					\
++	"	ldadd" #mb "	%w[i], %w[i], %[v]")			\
++	: [i] "+r" (w0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return w0;							\
++}
++
++ATOMIC_FETCH_OP_SUB(_relaxed,   )
++ATOMIC_FETCH_OP_SUB(_acquire,  a, "memory")
++ATOMIC_FETCH_OP_SUB(_release,  l, "memory")
++ATOMIC_FETCH_OP_SUB(        , al, "memory")
++
++#undef ATOMIC_FETCH_OP_SUB
+ #undef __LL_SC_ATOMIC
  
--#define atomic_fetch_or atomic_fetch_or
--
- #define ATOMIC_OPS(op, asm_op)						\
- ATOMIC_OP_RETURN(op, asm_op, r)						\
- static inline void atomic_##op(int i, atomic_t *v)			\
---- a/arch/frv/include/asm/atomic.h
-+++ b/arch/frv/include/asm/atomic.h
-@@ -74,8 +74,6 @@ static inline void atomic_dec(atomic_t *
- #define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
- #define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
+ #define __LL_SC_ATOMIC64(op)	__LL_SC_CALL(atomic64_##op)
+@@ -158,6 +244,38 @@ ATOMIC64_OP(add, stadd)
  
--#define atomic_fetch_or atomic_fetch_or
--
- /*
-  * 64-bit atomic ops
-  */
---- a/arch/h8300/include/asm/atomic.h
-+++ b/arch/h8300/include/asm/atomic.h
-@@ -54,8 +54,6 @@ static inline void atomic_##op(int i, at
- ATOMIC_OP_RETURN(add, +=)
- ATOMIC_OP_RETURN(sub, -=)
+ #undef ATOMIC64_OP
  
--#define atomic_fetch_or atomic_fetch_or
--
- #define ATOMIC_OPS(op, c_op)					\
- 	ATOMIC_OP(op, c_op)					\
- 	ATOMIC_FETCH_OP(op, c_op)
---- a/arch/hexagon/include/asm/atomic.h
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -152,8 +152,6 @@ ATOMIC_OPS(sub)
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and)
- ATOMIC_OPS(or)
- ATOMIC_OPS(xor)
---- a/arch/m32r/include/asm/atomic.h
-+++ b/arch/m32r/include/asm/atomic.h
-@@ -121,8 +121,6 @@ ATOMIC_OPS(sub)
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and)
- ATOMIC_OPS(or)
- ATOMIC_OPS(xor)
---- a/arch/m68k/include/asm/atomic.h
-+++ b/arch/m68k/include/asm/atomic.h
-@@ -119,8 +119,6 @@ ATOMIC_OPS(sub, -=, sub)
- 	ATOMIC_OP(op, c_op, asm_op)					\
- 	ATOMIC_FETCH_OP(op, c_op, asm_op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and, &=, and)
- ATOMIC_OPS(or, |=, or)
- ATOMIC_OPS(xor, ^=, eor)
---- a/arch/metag/include/asm/atomic.h
-+++ b/arch/metag/include/asm/atomic.h
-@@ -17,8 +17,6 @@
- #include <asm/atomic_lnkget.h>
- #endif
- 
--#define atomic_fetch_or atomic_fetch_or
--
- #define atomic_add_negative(a, v)       (atomic_add_return((a), (v)) < 0)
- 
- #define atomic_dec_return(v) atomic_sub_return(1, (v))
---- a/arch/mips/include/asm/atomic.h
-+++ b/arch/mips/include/asm/atomic.h
-@@ -194,8 +194,6 @@ ATOMIC_OPS(sub, -=, subu)
- 	ATOMIC_OP(op, c_op, asm_op)					      \
- 	ATOMIC_FETCH_OP(op, c_op, asm_op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and, &=, and)
- ATOMIC_OPS(or, |=, or)
- ATOMIC_OPS(xor, ^=, xor)
---- a/arch/mn10300/include/asm/atomic.h
-+++ b/arch/mn10300/include/asm/atomic.h
-@@ -113,8 +113,6 @@ ATOMIC_OPS(sub)
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and)
- ATOMIC_OPS(or)
- ATOMIC_OPS(xor)
---- a/arch/parisc/include/asm/atomic.h
-+++ b/arch/parisc/include/asm/atomic.h
-@@ -148,8 +148,6 @@ ATOMIC_OPS(sub, -=)
- 	ATOMIC_OP(op, c_op)						\
- 	ATOMIC_FETCH_OP(op, c_op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and, &=)
- ATOMIC_OPS(or, |=)
- ATOMIC_OPS(xor, ^=)
---- a/arch/s390/include/asm/atomic.h
-+++ b/arch/s390/include/asm/atomic.h
-@@ -135,8 +135,6 @@ static inline int atomic_fetch_##op(int
- 	return __ATOMIC_LOOP(v, i, __ATOMIC_##OP, __ATOMIC_BARRIER);	\
++#define ATOMIC64_FETCH_OP(name, mb, op, asm_op, cl...)			\
++static inline long atomic64_fetch_##op##name(long i, atomic64_t *v)	\
++{									\
++	register long x0 asm ("x0") = i;				\
++	register atomic64_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	__LL_SC_ATOMIC64(fetch_##op##name),				\
++	/* LSE atomics */						\
++"	" #asm_op #mb "	%[i], %[i], %[v]")				\
++	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return x0;							\
++}
++
++#define ATOMIC64_FETCH_OPS(op, asm_op)					\
++	ATOMIC64_FETCH_OP(_relaxed,   , op, asm_op)			\
++	ATOMIC64_FETCH_OP(_acquire,  a, op, asm_op, "memory")		\
++	ATOMIC64_FETCH_OP(_release,  l, op, asm_op, "memory")		\
++	ATOMIC64_FETCH_OP(        , al, op, asm_op, "memory")
++
++ATOMIC64_FETCH_OPS(andnot, ldclr)
++ATOMIC64_FETCH_OPS(or, ldset)
++ATOMIC64_FETCH_OPS(xor, ldeor)
++ATOMIC64_FETCH_OPS(add, ldadd)
++
++#undef ATOMIC64_FETCH_OP
++#undef ATOMIC64_FETCH_OPS
++
+ #define ATOMIC64_OP_ADD_RETURN(name, mb, cl...)				\
+ static inline long atomic64_add_return##name(long i, atomic64_t *v)	\
+ {									\
+@@ -202,6 +320,33 @@ static inline void atomic64_and(long i,
+ 	: __LL_SC_CLOBBERS);
  }
  
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and, AND)
- ATOMIC_OPS(or, OR)
- ATOMIC_OPS(xor, XOR)
---- a/arch/sh/include/asm/atomic.h
-+++ b/arch/sh/include/asm/atomic.h
-@@ -25,8 +25,6 @@
- #include <asm/atomic-irq.h>
- #endif
++#define ATOMIC64_FETCH_OP_AND(name, mb, cl...)				\
++static inline long atomic64_fetch_and##name(long i, atomic64_t *v)	\
++{									\
++	register long x0 asm ("w0") = i;				\
++	register atomic64_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	"	nop\n"							\
++	__LL_SC_ATOMIC64(fetch_and##name),				\
++	/* LSE atomics */						\
++	"	mvn	%[i], %[i]\n"					\
++	"	ldclr" #mb "	%[i], %[i], %[v]")			\
++	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return x0;							\
++}
++
++ATOMIC64_FETCH_OP_AND(_relaxed,   )
++ATOMIC64_FETCH_OP_AND(_acquire,  a, "memory")
++ATOMIC64_FETCH_OP_AND(_release,  l, "memory")
++ATOMIC64_FETCH_OP_AND(        , al, "memory")
++
++#undef ATOMIC64_FETCH_OP_AND
++
+ static inline void atomic64_sub(long i, atomic64_t *v)
+ {
+ 	register long x0 asm ("x0") = i;
+@@ -248,6 +393,33 @@ ATOMIC64_OP_SUB_RETURN(        , al, "me
  
--#define atomic_fetch_or atomic_fetch_or
--
- #define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
- #define atomic_dec_return(v)		atomic_sub_return(1, (v))
- #define atomic_inc_return(v)		atomic_add_return(1, (v))
---- a/arch/sparc/include/asm/atomic.h
-+++ b/arch/sparc/include/asm/atomic.h
-@@ -5,5 +5,4 @@
- #else
- #include <asm/atomic_32.h>
- #endif
--#define atomic_fetch_or atomic_fetch_or
- #endif
---- a/arch/sparc/include/asm/atomic_32.h
-+++ b/arch/sparc/include/asm/atomic_32.h
-@@ -36,8 +36,6 @@ void atomic_set(atomic_t *, int);
- #define atomic_inc(v)		((void)atomic_add_return(        1, (v)))
- #define atomic_dec(v)		((void)atomic_add_return(       -1, (v)))
+ #undef ATOMIC64_OP_SUB_RETURN
  
--#define atomic_fetch_or	atomic_fetch_or
--
- #define atomic_and(i, v)	((void)atomic_fetch_and((i), (v)))
- #define atomic_or(i, v)		((void)atomic_fetch_or((i), (v)))
- #define atomic_xor(i, v)	((void)atomic_fetch_xor((i), (v)))
---- a/arch/tile/include/asm/atomic.h
-+++ b/arch/tile/include/asm/atomic.h
-@@ -48,8 +48,6 @@ static inline int atomic_read(const atom
- 
- #define atomic_fetch_sub(i, v)		atomic_fetch_add(-(int)(i), (v))
- 
--#define atomic_fetch_or atomic_fetch_or
--
- /**
-  * atomic_sub - subtract integer from atomic variable
-  * @i: integer value to subtract
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -217,8 +217,6 @@ static inline int atomic_fetch_##op(int
- 	ATOMIC_OP(op)							\
- 	ATOMIC_FETCH_OP(op, c_op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and, &)
- ATOMIC_OPS(or , |)
- ATOMIC_OPS(xor, ^)
---- a/arch/xtensa/include/asm/atomic.h
-+++ b/arch/xtensa/include/asm/atomic.h
-@@ -188,8 +188,6 @@ ATOMIC_OPS(sub)
- #undef ATOMIC_OPS
- #define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
- 
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_OPS(and)
- ATOMIC_OPS(or)
- ATOMIC_OPS(xor)
---- a/include/asm-generic/atomic.h
-+++ b/include/asm-generic/atomic.h
-@@ -137,8 +137,6 @@ ATOMIC_FETCH_OP(and, &)
- #endif
- 
- #ifndef atomic_fetch_or
--#define atomic_fetch_or atomic_fetch_or
--
- ATOMIC_FETCH_OP(or, |)
- #endif
- 
---- a/include/linux/atomic.h
-+++ b/include/linux/atomic.h
-@@ -620,27 +620,6 @@ static inline int atomic_dec_if_positive
- }
- #endif
- 
--/**
-- * atomic_fetch_or - perform *p |= mask and return old value of *p
-- * @mask: mask to OR on the atomic_t
-- * @p: pointer to atomic_t
-- */
--#ifndef atomic_fetch_or
--static inline int atomic_fetch_or(int mask, atomic_t *p)
--{
--	int old, val = atomic_read(p);
--
--	for (;;) {
--		old = atomic_cmpxchg(p, val, val | mask);
--		if (old == val)
--			break;
--		val = old;
--	}
--
--	return old;
--}
--#endif
--
- #ifdef CONFIG_GENERIC_ATOMIC64
- #include <asm-generic/atomic64.h>
- #endif
++#define ATOMIC64_FETCH_OP_SUB(name, mb, cl...)				\
++static inline long atomic64_fetch_sub##name(long i, atomic64_t *v)	\
++{									\
++	register long x0 asm ("w0") = i;				\
++	register atomic64_t *x1 asm ("x1") = v;				\
++									\
++	asm volatile(ARM64_LSE_ATOMIC_INSN(				\
++	/* LL/SC */							\
++	"	nop\n"							\
++	__LL_SC_ATOMIC64(fetch_sub##name),				\
++	/* LSE atomics */						\
++	"	neg	%[i], %[i]\n"					\
++	"	ldadd" #mb "	%[i], %[i], %[v]")			\
++	: [i] "+r" (x0), [v] "+Q" (v->counter)				\
++	: "r" (x1)							\
++	: __LL_SC_CLOBBERS, ##cl);					\
++									\
++	return x0;							\
++}
++
++ATOMIC64_FETCH_OP_SUB(_relaxed,   )
++ATOMIC64_FETCH_OP_SUB(_acquire,  a, "memory")
++ATOMIC64_FETCH_OP_SUB(_release,  l, "memory")
++ATOMIC64_FETCH_OP_SUB(        , al, "memory")
++
++#undef ATOMIC64_FETCH_OP_SUB
++
+ static inline long atomic64_dec_if_positive(atomic64_t *v)
+ {
+ 	register long x0 asm ("x0") = (long)v;
 
 
