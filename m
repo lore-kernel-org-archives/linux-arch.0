@@ -1,84 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43371 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751657AbcEaK3v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 May 2016 06:29:51 -0400
-Message-ID: <20160531102642.526865975@infradead.org>
-Date: Tue, 31 May 2016 12:19:42 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH -v2 17/33] locking,mn10300: Implement atomic_fetch_{add,sub,and,or,xor}()
-References: <20160531101925.702692792@infradead.org>
+Received: from mail.kernel.org ([198.145.29.136]:39887 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752878AbcEaNRD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 May 2016 09:17:03 -0400
+Date: Tue, 31 May 2016 08:16:58 -0500
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH][RFC] PCI: Workaround to enable poweroff on Mac Pro 11
+Message-ID: <20160531131658.GA23837@localhost>
+References: <1464604404-11257-1-git-send-email-yu.c.chen@intel.com>
+ <20160530213305.GA21322@localhost>
+ <574D03F9.6050201@intel.com>
+ <CAE9FiQV_Mc9VuyBvCB7hL_0pgj+-wW1_jupzhbTHij+VQeLF-A@mail.gmail.com>
+ <574D3AAA.6090503@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-fetch-mn10300.patch
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <574D3AAA.6090503@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, boqun.feng@gmail.com, waiman.long@hpe.com, fweisbec@gmail.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, peterz@infradead.org, dbueso@suse.de, fengguang.wu@intel.com
-Message-ID: <20160531101942.Ory9buJGLiocNtOBEc3D0yzlfrnA0Tc5XN12aZYiyOY@z>
+To: Chen Yu <yu.c.chen@intel.com>
+Cc: Yinghai Lu <yinghai@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, "Rafael J . Wysocki" <rafael@kernel.org>, Len Brown <lenb@kernel.org>, Mika Westerberg <mika.westerberg@linux.intel.com>
+Message-ID: <20160531131658.Q8e4eKU0Q45yXPJ-uPWhSlKT7_kB3OvCdqDoT_WqKAQ@z>
 
-Implement FETCH-OP atomic primitives, these are very similar to the
-existing OP-RETURN primitives we already have, except they return the
-value of the atomic variable _before_ modification.
+On Tue, May 31, 2016 at 03:18:02PM +0800, Chen Yu wrote:
+> On 2016年05月31日 15:00, Yinghai Lu wrote:
+> >On Mon, May 30, 2016 at 8:24 PM, Chen Yu <yu.c.chen@intel.com> wrote:
+> >
+> >>and then in pcibios_assign_resources, 0000:00:1c.0 tries to allocate minimal
+> >>resource window and then update related base/limit registers:
+> >>
+> >>[    0.865342] pci 0000:00:1c.0: bridge window [io  0x1000-0x0fff] to [bus
+> >>02] add_size 1000
+> >>[    0.865343] pci 0000:00:1c.0: bridge window [mem 0x00100000-0x000fffff
+> >>64bit pref] to [bus 02] add_size 200000 add_align 100000
+> >>[    0.865344] pci 0000:00:1c.0: bridge window [mem 0x00100000-0x000fffff]
+> >>to [bus 02] add_size 200000 add_align 100000
+> >>
+> >That is for hotplug bridge, then we could use following instead.
+> >
+> >diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+> >index ee72ebe..d3ec833 100644
+> >--- a/drivers/pci/quirks.c
+> >+++ b/drivers/pci/quirks.c
+> >@@ -2775,6 +2775,13 @@ static void quirk_hotplug_bridge(struct pci_dev *dev)
+> >
+> >  DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_HINT, 0x0020, quirk_hotplug_bridge);
+> >
+> >+static void quirk_hotplug_bridge_skip(struct pci_dev *dev)
+> >+{
+> >+       dev->is_hotplug_bridge = 0;
+> >+}
+> >+
+> >+DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL, 0x8c10,
+> >quirk_hotplug_bridge_skip);
+> >+
+> >  /*
+> >   * This is a quirk for the Ricoh MMC controller found as a part of
+> >   * some mulifunction chips.
+> Good idea, but in this way we might not have io window allocated for
+> it?I'm not sure
+> if this would break wifi,etc, I'll suggest reporters to have a try.
 
-This is especially useful for irreversible operations -- such as
-bitops (because it becomes impossible to reconstruct the state prior
-to modification).
+Let's figure out the root cause before trying more random fixes.  I
+have the same objection to the patch above.  No doubt there are many
+ways we could "fix" this, but unless we know the root cause, we're
+likely to make a change that's not a complete fix or will cause other
+issues in the future.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/mn10300/include/asm/atomic.h |   35 +++++++++++++++++++++++++++++++----
- 1 file changed, 31 insertions(+), 4 deletions(-)
-
---- a/arch/mn10300/include/asm/atomic.h
-+++ b/arch/mn10300/include/asm/atomic.h
-@@ -84,16 +84,43 @@ static inline int atomic_##op##_return(i
- 	return retval;							\
- }
- 
--#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
-+#define ATOMIC_FETCH_OP(op)						\
-+static inline int atomic_fetch_##op(int i, atomic_t *v)			\
-+{									\
-+	int retval, status;						\
-+									\
-+	asm volatile(							\
-+		"1:	mov	%4,(_AAR,%3)	\n"			\
-+		"	mov	(_ADR,%3),%1	\n"			\
-+		"	mov	%1,%0		\n"			\
-+		"	" #op "	%5,%0		\n"			\
-+		"	mov	%0,(_ADR,%3)	\n"			\
-+		"	mov	(_ADR,%3),%0	\n"	/* flush */	\
-+		"	mov	(_ASR,%3),%0	\n"			\
-+		"	or	%0,%0		\n"			\
-+		"	bne	1b		\n"			\
-+		: "=&r"(status), "=&r"(retval), "=m"(v->counter)	\
-+		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(&v->counter), "r"(i)	\
-+		: "memory", "cc");					\
-+	return retval;							\
-+}
-+
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op) ATOMIC_FETCH_OP(op)
- 
- ATOMIC_OPS(add)
- ATOMIC_OPS(sub)
- 
--ATOMIC_OP(and)
--ATOMIC_OP(or)
--ATOMIC_OP(xor)
-+#undef ATOMIC_OPS
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_FETCH_OP(op)
-+
-+#define atomic_fetch_or atomic_fetch_or
-+
-+ATOMIC_OPS(and)
-+ATOMIC_OPS(or)
-+ATOMIC_OPS(xor)
- 
- #undef ATOMIC_OPS
-+#undef ATOMIC_FETCH_OP
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
-
-
+Bjorn
