@@ -1,35 +1,115 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 19/33] locking,powerpc: Implement
- atomic{,64}_fetch_{add,sub,and,or,xor}{,_relaxed,_acquire,_release}()
-Date: Wed, 1 Jun 2016 10:46:23 +0200
-Message-ID: <20160601084623.GM3190@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <20160531102642.648971209@infradead.org>
- <20160601031138.GA30064@insomnia>
- <20160601061045.GB30064@insomnia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: [PATCH 2/9] clocksource/drivers/clksrc-probe: Introduce init functions with return code
+Date: Wed,  1 Jun 2016 10:34:45 +0200
+Message-ID: <1464770093-12667-3-git-send-email-daniel.lezcano@linaro.org>
+References: <1464770093-12667-1-git-send-email-daniel.lezcano@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160601061045.GB30064@insomnia>
+In-Reply-To: <1464770093-12667-1-git-send-email-daniel.lezcano@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, waiman.long@hpe.com, fweisbec@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, jejb@parisc-linux.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, jcmvbkbc@gmail.com, arnd@arndb.de, dbueso@suse.de, fengguang.wu@intel.com
+To: daniel.lezcano@linaro.org, tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 01, 2016 at 02:10:45PM +0800, Boqun Feng wrote:
-> On Wed, Jun 01, 2016 at 11:11:38AM +0800, Boqun Feng wrote:
+Currently, the clksrc-probe is not able to handle any error from the init
+functions. There are different issues with the current code:
+ - the code is duplicated in the init functions by writing error
+ - every driver tends to panic in its own init function
+ - counting the number of clocksources is not reliable
 
-> > Looks like I missed this one in v1, it should be
-> > 	
-> > 	return res;
+This patch adds another table to store the functions returning an error.
+The table is temporary while we convert all the drivers to return an error
+and will disappear.
 
-Indeed.
+Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+---
+ drivers/clocksource/clksrc-probe.c | 22 ++++++++++++++++++++++
+ include/asm-generic/vmlinux.lds.h  |  2 ++
+ include/linux/clocksource.h        |  3 +++
+ 3 files changed, 27 insertions(+)
 
-> > because the primitives will return the values before modified by the
-> > operations.
-> > 
-> 
-> FWIW, I tested on ppc with ATOMIC64_SELFTEST=y for the following branch:
-
-Thanks, I'll add a tested-by tag with your name on ;-)
+diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
+index 7cb6c92..5fa6a55 100644
+--- a/drivers/clocksource/clksrc-probe.c
++++ b/drivers/clocksource/clksrc-probe.c
+@@ -20,16 +20,22 @@
+ #include <linux/clocksource.h>
+ 
+ extern struct of_device_id __clksrc_of_table[];
++extern struct of_device_id __clksrc_ret_of_table[];
+ 
+ static const struct of_device_id __clksrc_of_table_sentinel
+ 	__used __section(__clksrc_of_table_end);
+ 
++static const struct of_device_id __clksrc_ret_of_table_sentinel
++	__used __section(__clksrc_ret_of_table_end);
++
+ void __init clocksource_probe(void)
+ {
+ 	struct device_node *np;
+ 	const struct of_device_id *match;
+ 	of_init_fn_1 init_func;
++	of_init_fn_1_ret init_func_ret;
+ 	unsigned clocksources = 0;
++	int ret;
+ 
+ 	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
+ 		if (!of_device_is_available(np))
+@@ -40,6 +46,22 @@ void __init clocksource_probe(void)
+ 		clocksources++;
+ 	}
+ 
++	for_each_matching_node_and_match(np, __clksrc_ret_of_table, &match) {
++		if (!of_device_is_available(np))
++			continue;
++
++		init_func_ret = match->data;
++
++		ret = init_func_ret(np);
++		if (ret) {
++			pr_err("Failed to initialize '%s': %d",
++			       of_node_full_name(np), ret);
++			continue;
++		}
++
++		clocksources++;
++	}
++
+ 	clocksources += acpi_probe_device_table(clksrc);
+ 
+ 	if (!clocksources)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 339125b..1c655c4 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -173,6 +173,7 @@
+ 	*(__##name##_of_table_end)
+ 
+ #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
++#define CLKSRC_RET_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc_ret)
+ #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
+ #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
+ #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
+@@ -529,6 +530,7 @@
+ 	CLK_OF_TABLES()							\
+ 	RESERVEDMEM_OF_TABLES()						\
+ 	CLKSRC_OF_TABLES()						\
++	CLKSRC_RET_OF_TABLES()						\
+ 	IOMMU_OF_TABLES()						\
+ 	CPU_METHOD_OF_TABLES()						\
+ 	CPUIDLE_METHOD_OF_TABLES()					\
+diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
+index 44a1aff..15c3839 100644
+--- a/include/linux/clocksource.h
++++ b/include/linux/clocksource.h
+@@ -246,6 +246,9 @@ extern int clocksource_i8253_init(void);
+ #define CLOCKSOURCE_OF_DECLARE(name, compat, fn) \
+ 	OF_DECLARE_1(clksrc, name, compat, fn)
+ 
++#define CLOCKSOURCE_OF_DECLARE_RET(name, compat, fn) \
++	OF_DECLARE_1_RET(clksrc_ret, name, compat, fn)
++
+ #ifdef CONFIG_CLKSRC_PROBE
+ extern void clocksource_probe(void);
+ #else
+-- 
+1.9.1
