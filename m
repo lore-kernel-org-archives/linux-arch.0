@@ -1,49 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tex.lwn.net ([70.33.254.29]:37124 "EHLO vena.lwn.net"
+Received: from www.sr71.net ([198.145.64.142]:43899 "EHLO blackbird.sr71.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750742AbcFAShI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2016 14:37:08 -0400
-Date: Wed, 1 Jun 2016 12:37:05 -0600
-From: Jonathan Corbet <corbet@lwn.net>
+	id S1750824AbcFATdE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2016 15:33:04 -0400
 Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-Message-ID: <20160601123705.72a606e7@lwn.net>
-In-Reply-To: <20160531152822.FE8D405E@viggo.jf.intel.com>
 References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
-	<20160531152822.FE8D405E@viggo.jf.intel.com>
+ <20160531152822.FE8D405E@viggo.jf.intel.com>
+ <20160601123705.72a606e7@lwn.net>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <574F386A.8070106@sr71.net>
+Date: Wed, 1 Jun 2016 12:32:58 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20160601123705.72a606e7@lwn.net>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
+To: Jonathan Corbet <corbet@lwn.net>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com
-Message-ID: <20160601183705.Vx2t-RjDwUC4N2lOmuLJrd-JRo3BuYoiqy9KqGPqrME@z>
+Message-ID: <20160601193258.tGQQuB2ArFNRiTNf-6HpH4JJviIpPFlW3mRwExRaWz8@z>
 
-Sorry, I have one more obnoxious question...
+On 06/01/2016 11:37 AM, Jonathan Corbet wrote:
+>> +static inline
+>> +int mm_pkey_free(struct mm_struct *mm, int pkey)
+>> +{
+>> +	/*
+>> +	 * pkey 0 is special, always allocated and can never
+>> +	 * be freed.
+>> +	 */
+>> +	if (!pkey || !validate_pkey(pkey))
+>> +		return -EINVAL;
+>> +	if (!mm_pkey_is_allocated(mm, pkey))
+>> +		return -EINVAL;
+>> +
+>> +	mm_set_pkey_free(mm, pkey);
+>> +
+>> +	return 0;
+>> +}
+> 
+> If I read this right, it doesn't actually remove any pkey restrictions
+> that may have been applied while the key was allocated.  So there could be
+> pages with that key assigned that might do surprising things if the key is
+> reallocated for another use later, right?  Is that how the API is intended
+> to work?
 
-> +static inline
-> +int mm_pkey_free(struct mm_struct *mm, int pkey)
-> +{
-> +	/*
-> +	 * pkey 0 is special, always allocated and can never
-> +	 * be freed.
-> +	 */
-> +	if (!pkey || !validate_pkey(pkey))
-> +		return -EINVAL;
-> +	if (!mm_pkey_is_allocated(mm, pkey))
-> +		return -EINVAL;
-> +
-> +	mm_set_pkey_free(mm, pkey);
-> +
-> +	return 0;
-> +}
+Yeah, that's how it works.
 
-If I read this right, it doesn't actually remove any pkey restrictions
-that may have been applied while the key was allocated.  So there could be
-pages with that key assigned that might do surprising things if the key is
-reallocated for another use later, right?  Is that how the API is intended
-to work?
+It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
+ensured that no VMAs under that mm have that vma_pkey() set.  But, that
+search would be potentially expensive (a walk over all VMAs), or would
+force us to keep a data structure with a count of all the VMAs with a
+given key.
 
-Thanks,
-
-jon
+I should probably discuss this behavior in the manpages and address it
+more directly in the changelog for this patch.
