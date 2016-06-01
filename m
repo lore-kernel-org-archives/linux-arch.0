@@ -1,56 +1,38 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 04/17] arm: get rid of superfluous __GFP_REPEAT
-Date: Wed, 1 Jun 2016 17:24:24 +0100
-Message-ID: <20160601162424.GD19428@n2100.arm.linux.org.uk>
-References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
- <1464599699-30131-5-git-send-email-mhocko@kernel.org>
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [PATCH 7/8] pkeys: add details of system call use to
+ Documentation/
+Date: Wed, 1 Jun 2016 10:43:33 -0600
+Message-ID: <20160601104333.7c2014fa@lwn.net>
+References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
+	<20160531152824.2B18E890@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1464599699-30131-5-git-send-email-mhocko@kernel.org>
+In-Reply-To: <20160531152824.2B18E890@viggo.jf.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 30, 2016 at 11:14:46AM +0200, Michal Hocko wrote:
-> From: Michal Hocko <mhocko@suse.com>
-> 
-> __GFP_REPEAT has a rather weak semantic but since it has been introduced
-> around 2.6.12 it has been ignored for low order allocations.
-> 
-> PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-> this flag is for more than order-2. This means that this flag has never
-> been actually useful here because it has always been used only for
-> PAGE_ALLOC_COSTLY requests.
+On Tue, 31 May 2016 08:28:24 -0700
+Dave Hansen <dave@sr71.net> wrote:
 
-I hear what you say, but...
+> +There are 5 system calls which directly interact with pkeys:
+> +
+> +	int pkey_alloc(unsigned long flags, unsigned long init_access_rights)
+> +	int pkey_free(int pkey);
+> +	int sys_pkey_mprotect(unsigned long start, size_t len,
+> +			      unsigned long prot, int pkey);
+> +	unsigned long pkey_get(int pkey);
+> +	int pkey_set(int pkey, unsigned long access_rights);
 
-commit 8c65da6dc89ccb605d73773b1dd617e72982d971
-Author: Russell King <rmk+kernel@arm.linux.org.uk>
-Date:   Sat Nov 30 12:52:31 2013 +0000
+sys_pkey_mprotect() should just be pkey_mprotect(), right?
 
-    ARM: pgd allocation: retry on failure
-
-    Make pgd allocation retry on failure; we really need this to succeed
-    otherwise fork() can trigger OOMs.
-
-    Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-
-and that's the change which introduced this, and it did solve a problem
-for me.  So I'm not happy to give an ack for this change unless someone
-can tell me why adding __GFP_REPEAT back then had a beneficial effect.
-Maybe there was some other bug in the MM layer in 2013 which this change
-happened to solve?
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+jon
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
 the body to majordomo@kvack.org.  For more info on Linux MM,
 see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
