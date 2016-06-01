@@ -1,56 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:43899 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750824AbcFATdE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2016 15:33:04 -0400
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <574F386A.8070106@sr71.net>
-Date: Wed, 1 Jun 2016 12:32:58 -0700
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:58464 "EHLO
+	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751708AbcFAV6p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jun 2016 17:58:45 -0400
+Date: Wed, 1 Jun 2016 17:58:14 -0400
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH v4 04/16] rtc: sh: provide rtc_class_ops directly
+Message-ID: <20160601215814.GE10893@brightrain.aerifal.cx>
+References: <1464634684-1248135-1-git-send-email-arnd@arndb.de>
+ <1464634684-1248135-5-git-send-email-arnd@arndb.de>
 MIME-Version: 1.0
-In-Reply-To: <20160601123705.72a606e7@lwn.net>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1464634684-1248135-5-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com
-Message-ID: <20160601193258.tGQQuB2ArFNRiTNf-6HpH4JJviIpPFlW3mRwExRaWz8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Alexandre Belloni <alexandre.belloni@free-electrons.com>, geert@linux-m68k.org, gregkh@linuxfoundation.org, deller@gmx.de, benh@kernel.crashing.org, mpe@ellerman.id.au, dhowells@redhat.com, linux-alpha@vger.kernel.org, a.zummo@towertech.it, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-m68k@lists.linux-m68k.org, rtc-linux@googlegroups.com, linux-arch@vger.kernel.org
+Message-ID: <20160601215814.SmVwetfUwacnOcOh2bZcMeM0TnT33PMQYk62Sdkpvhc@z>
 
-On 06/01/2016 11:37 AM, Jonathan Corbet wrote:
->> +static inline
->> +int mm_pkey_free(struct mm_struct *mm, int pkey)
->> +{
->> +	/*
->> +	 * pkey 0 is special, always allocated and can never
->> +	 * be freed.
->> +	 */
->> +	if (!pkey || !validate_pkey(pkey))
->> +		return -EINVAL;
->> +	if (!mm_pkey_is_allocated(mm, pkey))
->> +		return -EINVAL;
->> +
->> +	mm_set_pkey_free(mm, pkey);
->> +
->> +	return 0;
->> +}
+On Mon, May 30, 2016 at 08:57:52PM +0200, Arnd Bergmann wrote:
+> The rtc-generic driver provides an architecture specific
+> wrapper on top of the generic rtc_class_ops abstraction,
+> and on sh, that goes through another indirection using
+> the rtc_sh_get_time/rtc_sh_set_time functions.
 > 
-> If I read this right, it doesn't actually remove any pkey restrictions
-> that may have been applied while the key was allocated.  So there could be
-> pages with that key assigned that might do surprising things if the key is
-> reallocated for another use later, right?  Is that how the API is intended
-> to work?
+> This changes the sh rtc-generic device to provide its
+> rtc_class_ops directly, skipping one of the abstraction
+> levels.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Yeah, that's how it works.
+I haven't tested any of this, but based on our discussion of the
+previous version, I'm satisfied that it makes sense.
 
-It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
-ensured that no VMAs under that mm have that vma_pkey() set.  But, that
-search would be potentially expensive (a walk over all VMAs), or would
-force us to keep a data structure with a count of all the VMAs with a
-given key.
+Acked-by: Rich Felker <dalias@libc.org>
 
-I should probably discuss this behavior in the manpages and address it
-more directly in the changelog for this patch.
+> ---
+>  arch/sh/include/asm/rtc.h | 11 -----------
+>  arch/sh/kernel/time.c     | 33 ++++++++++++++++++++-------------
+>  drivers/rtc/rtc-generic.c |  2 +-
+>  3 files changed, 21 insertions(+), 25 deletions(-)
+> 
+> diff --git a/arch/sh/include/asm/rtc.h b/arch/sh/include/asm/rtc.h
+> index 52b0c2dba979..f7b010d48af7 100644
+> --- a/arch/sh/include/asm/rtc.h
+> +++ b/arch/sh/include/asm/rtc.h
+> @@ -6,17 +6,6 @@ extern void (*board_time_init)(void);
+>  extern void (*rtc_sh_get_time)(struct timespec *);
+>  extern int (*rtc_sh_set_time)(const time_t);
+>  
+> -/* some dummy definitions */
+> -#define RTC_BATT_BAD 0x100	/* battery bad */
+> -#define RTC_SQWE 0x08		/* enable square-wave output */
+> -#define RTC_DM_BINARY 0x04	/* all time/date values are BCD if clear */
+> -#define RTC_24H 0x02		/* 24 hour mode - else hours bit 7 means pm */
+> -#define RTC_DST_EN 0x01	        /* auto switch DST - works f. USA only */
+> -
+> -struct rtc_time;
+> -unsigned int get_rtc_time(struct rtc_time *);
+> -int set_rtc_time(struct rtc_time *);
+> -
+>  #define RTC_CAP_4_DIGIT_YEAR	(1 << 0)
+>  
+>  struct sh_rtc_platform_info {
+> diff --git a/arch/sh/kernel/time.c b/arch/sh/kernel/time.c
+> index d6d0a986c6e9..a4a7862b489a 100644
+> --- a/arch/sh/kernel/time.c
+> +++ b/arch/sh/kernel/time.c
+> @@ -50,27 +50,31 @@ int update_persistent_clock(struct timespec now)
+>  }
+>  #endif
+>  
+> -unsigned int get_rtc_time(struct rtc_time *tm)
+> +static int rtc_generic_get_time(struct device *dev, struct rtc_time *tm)
+>  {
+> -	if (rtc_sh_get_time != null_rtc_get_time) {
+> -		struct timespec tv;
+> +	struct timespec tv;
+>  
+> -		rtc_sh_get_time(&tv);
+> -		rtc_time_to_tm(tv.tv_sec, tm);
+> -	}
+> -
+> -	return RTC_24H;
+> +	rtc_sh_get_time(&tv);
+> +	rtc_time_to_tm(tv.tv_sec, tm);
+> +	return 0;
+>  }
+> -EXPORT_SYMBOL(get_rtc_time);
+>  
+> -int set_rtc_time(struct rtc_time *tm)
+> +static int rtc_generic_set_time(struct device *dev, struct rtc_time *tm)
+>  {
+>  	unsigned long secs;
+>  
+>  	rtc_tm_to_time(tm, &secs);
+> -	return rtc_sh_set_time(secs);
+> +	if ((rtc_sh_set_time == null_rtc_set_time) ||
+> +	    (rtc_sh_set_time(secs) < 0))
+> +		return -EOPNOTSUPP;
+> +
+> +	return 0;
+>  }
+> -EXPORT_SYMBOL(set_rtc_time);
+> +
+> +static const struct rtc_class_ops rtc_generic_ops = {
+> +	.read_time = rtc_generic_get_time,
+> +	.set_time = rtc_generic_set_time,
+> +};
+>  
+>  static int __init rtc_generic_init(void)
+>  {
+> @@ -79,7 +83,10 @@ static int __init rtc_generic_init(void)
+>  	if (rtc_sh_get_time == null_rtc_get_time)
+>  		return -ENODEV;
+>  
+> -	pdev = platform_device_register_simple("rtc-generic", -1, NULL, 0);
+> +	pdev = platform_device_register_data(NULL, "rtc-generic", -1,
+> +					     &rtc_generic_ops,
+> +					     sizeof(rtc_generic_ops));
+> +
+>  
+>  	return PTR_ERR_OR_ZERO(pdev);
+>  }
+> diff --git a/drivers/rtc/rtc-generic.c b/drivers/rtc/rtc-generic.c
+> index d726c6aa96a8..3958e87a05fa 100644
+> --- a/drivers/rtc/rtc-generic.c
+> +++ b/drivers/rtc/rtc-generic.c
+> @@ -10,7 +10,7 @@
+>  #include <linux/rtc.h>
+>  
+>  #if defined(CONFIG_M68K) || defined(CONFIG_PARISC) || \
+> -    defined(CONFIG_PPC) || defined(CONFIG_SUPERH32)
+> +    defined(CONFIG_PPC)
+>  #include <asm/rtc.h>
+>  
+>  static int generic_get_time(struct device *dev, struct rtc_time *tm)
+> -- 
+> 2.7.0
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-sh" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
