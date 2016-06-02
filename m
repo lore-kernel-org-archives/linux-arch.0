@@ -1,43 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:49964 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932152AbcFBIVs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 04:21:48 -0400
-Received: from localhost
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-	Thu, 2 Jun 2016 02:21:47 -0600
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH 1/4] mm/hugetlb: Simplify hugetlb unmap
-In-Reply-To: <20160601153442.229f0747c97d1bbf21f1a935@linux-foundation.org>
-References: <1464587062-17745-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com> <20160601153442.229f0747c97d1bbf21f1a935@linux-foundation.org>
-Date: Thu, 02 Jun 2016 13:51:41 +0530
-Message-ID: <87twhcvw4q.fsf@skywalker.in.ibm.com>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:39351 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932421AbcFBJ1v convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 05:27:51 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH -v2 00/33] implement atomic_fetch_$op
+Date: Thu, 2 Jun 2016 09:27:36 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
+References: <20160531101925.702692792@infradead.org>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20160602082141.RT3pQISSNf4qQpU9lKjXwBJ4ShGDTHTZOiwm7H8yxQA@z>
+To: Peter Zijlstra <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "dalias@libc.org" <dalias@libc.org>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@mellanox.com" <cmetcalf@mellanox.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>
+Message-ID: <20160602092736.zhUkmeEXMwN2UJLXgppaJ_H5BVVzcgZ0HVu8BKQhZlg@z>
 
-Andrew Morton <akpm@linux-foundation.org> writes:
+On Tuesday 31 May 2016 03:59 PM, Peter Zijlstra wrote:
+> Notes:
+>  - arc asm/atomic.h is a bit of a mess after the eznps merge, I would
+>    recommend a restructure or split of that file, but could not find
+>    the will to do it.
+>  - arc, metag and tile could convert to _relaxed.
 
-> On Mon, 30 May 2016 11:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
->
->> For hugetlb like THP (and unlike regular page), we do tlb flush after
->> dropping ptl. Because of the above, we don't need to track force_flush
->> like we do now. Instead we can simply call tlb_remove_page() which
->> will do the flush if needed.
->> 
->> No functionality change in this patch.
->
-> This all looks fairly non-horrifying.  Will a non-RFC version be
-> forthcoming?
+Yes that was bothering me too. The split is indeed in order. However good news is
+even w/o it I have decent cleanup as all the backoff retry code can now be
+removed. The hardware guys did their foo and production RTL with latest h/w
+release doesn't suffer from the scond livelock problem. I'd disabled the config
+option for some time and now the code can be removed as well.
 
-Yes. I will send an updated version of the series. Patch 4 may need to go through
-powerpc tree because of other dependent patches. I will continue to include
-that in the series to show the arch related changes.
- 
--aneesh
+What's ur merge plan - are u going to rebase/respin once more so I can push those
+updates to Linus for 4.7-rc2. Or you could carry those ARC patches in ur tree -
+ahead of ur series. I'd much rather prefer the revert / cleanup before adding new
+code which extends the back off code only to be deleted later.
 
+What say you ?
+
+-Vineet
