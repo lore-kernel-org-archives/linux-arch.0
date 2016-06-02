@@ -1,41 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 00/33] implement atomic_fetch_$op
-Date: Thu, 2 Jun 2016 11:33:04 +0200
-Message-ID: <20160602093304.GX3190@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Subject: [PATCH] locking/qrwlock: fix write unlock issue in big endian
+Date: Thu,  2 Jun 2016 18:09:08 +0800
+Message-ID: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:50699 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752103AbcFBJds (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 05:33:48 -0400
-Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
+Received: from e38.co.us.ibm.com ([32.97.110.159]:60067 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932078AbcFBKJq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 06:09:46 -0400
+Received: from localhost
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <xinhui.pan@linux.vnet.ibm.com>;
+	Thu, 2 Jun 2016 04:09:45 -0600
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, waiman.long@hp.com, peterz@infradead.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-On Thu, Jun 02, 2016 at 09:27:36AM +0000, Vineet Gupta wrote:
-> On Tuesday 31 May 2016 03:59 PM, Peter Zijlstra wrote:
-> > Notes:
-> >  - arc asm/atomic.h is a bit of a mess after the eznps merge, I would
-> >    recommend a restructure or split of that file, but could not find
-> >    the will to do it.
-> >  - arc, metag and tile could convert to _relaxed.
-> 
-> Yes that was bothering me too. The split is indeed in order. However good news is
-> even w/o it I have decent cleanup as all the backoff retry code can now be
-> removed. The hardware guys did their foo and production RTL with latest h/w
-> release doesn't suffer from the scond livelock problem. I'd disabled the config
-> option for some time and now the code can be removed as well.
-> 
-> What's ur merge plan - are u going to rebase/respin once more so I can push those
-> updates to Linus for 4.7-rc2. Or you could carry those ARC patches in ur tree -
-> ahead of ur series. I'd much rather prefer the revert / cleanup before adding new
-> code which extends the back off code only to be deleted later.
+strcut __qrwlock has different layout in big endian machine. we need set
+the __qrwlock->wmode to NULL, and the address is not &lock->cnts in big
+endian machine.
 
-I was hoping to get these into tip for v4.8, I can rebase on whatever
-changes you make in v4.7 no problem.
+Do as what read unlock does. we are lucky that the __qrwlock->wmode's
+val is _QW_LOCKED.
+
+Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+---
+ include/asm-generic/qrwlock.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 54a8e65..eadd7a3 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -139,7 +139,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+  */
+ static inline void queued_write_unlock(struct qrwlock *lock)
+ {
+-	smp_store_release((u8 *)&lock->cnts, 0);
++	(void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+ }
+ 
+ /*
+-- 
+1.9.1
