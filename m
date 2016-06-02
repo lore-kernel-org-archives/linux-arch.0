@@ -1,63 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:35932 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751235AbcFBGce (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 02:32:34 -0400
-Date: Thu, 2 Jun 2016 08:32:31 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH 04/17] arm: get rid of superfluous __GFP_REPEAT
-Message-ID: <20160602063231.GB1995@dhcp22.suse.cz>
-References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
- <1464599699-30131-5-git-send-email-mhocko@kernel.org>
- <20160601162424.GD19428@n2100.arm.linux.org.uk>
+Received: from e38.co.us.ibm.com ([32.97.110.159]:49964 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932152AbcFBIVs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 04:21:48 -0400
+Received: from localhost
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+	Thu, 2 Jun 2016 02:21:47 -0600
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH 1/4] mm/hugetlb: Simplify hugetlb unmap
+In-Reply-To: <20160601153442.229f0747c97d1bbf21f1a935@linux-foundation.org>
+References: <1464587062-17745-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com> <20160601153442.229f0747c97d1bbf21f1a935@linux-foundation.org>
+Date: Thu, 02 Jun 2016 13:51:41 +0530
+Message-ID: <87twhcvw4q.fsf@skywalker.in.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160601162424.GD19428@n2100.arm.linux.org.uk>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20160602063231.uYLm1roEx4VeKSjYOR7id78Ri2O5xBlkyfV39CD_uVI@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20160602082141.RT3pQISSNf4qQpU9lKjXwBJ4ShGDTHTZOiwm7H8yxQA@z>
 
-On Wed 01-06-16 17:24:24, Russell King - ARM Linux wrote:
-> On Mon, May 30, 2016 at 11:14:46AM +0200, Michal Hocko wrote:
-> > From: Michal Hocko <mhocko@suse.com>
-> > 
-> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
-> > around 2.6.12 it has been ignored for low order allocations.
-> > 
-> > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
-> > this flag is for more than order-2. This means that this flag has never
-> > been actually useful here because it has always been used only for
-> > PAGE_ALLOC_COSTLY requests.
-> 
-> I hear what you say, but...
-> 
-> commit 8c65da6dc89ccb605d73773b1dd617e72982d971
-> Author: Russell King <rmk+kernel@arm.linux.org.uk>
-> Date:   Sat Nov 30 12:52:31 2013 +0000
-> 
->     ARM: pgd allocation: retry on failure
-> 
->     Make pgd allocation retry on failure; we really need this to succeed
->     otherwise fork() can trigger OOMs.
-> 
->     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> 
-> and that's the change which introduced this, and it did solve a problem
-> for me.  So I'm not happy to give an ack for this change unless someone
-> can tell me why adding __GFP_REPEAT back then had a beneficial effect.
-> Maybe there was some other bug in the MM layer in 2013 which this change
-> happened to solve?
+Andrew Morton <akpm@linux-foundation.org> writes:
 
-This is hard to tell but from the code snippet I have referenced it
-should be pretty clear that the low order really had a nofail semantic.
+> On Mon, 30 May 2016 11:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
+>
+>> For hugetlb like THP (and unlike regular page), we do tlb flush after
+>> dropping ptl. Because of the above, we don't need to track force_flush
+>> like we do now. Instead we can simply call tlb_remove_page() which
+>> will do the flush if needed.
+>> 
+>> No functionality change in this patch.
+>
+> This all looks fairly non-horrifying.  Will a non-RFC version be
+> forthcoming?
 
-git grep GFP_REPEAT 8c65da6dc89ccb605d73773b1dd617e72982d971 -- mm
-confirms the story.
+Yes. I will send an updated version of the series. Patch 4 may need to go through
+powerpc tree because of other dependent patches. I will continue to include
+that in the series to show the arch related changes.
+ 
+-aneesh
 
-Do you remember your reproducer?
--- 
-Michal Hocko
-SUSE Labs
