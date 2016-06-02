@@ -1,42 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:50699 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752103AbcFBJds (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 05:33:48 -0400
-Date: Thu, 2 Jun 2016 11:33:04 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 00/33] implement atomic_fetch_$op
-Message-ID: <20160602093304.GX3190@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
+Received: from mout.kundenserver.de ([217.72.192.74]:61764 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751326AbcFBKoo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 06:44:44 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
+Date: Thu, 02 Jun 2016 12:44:51 +0200
+Message-ID: <4399273.0kije2Qdx5@wuerfel>
+In-Reply-To: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
+Content-Type: multipart/mixed; boundary="nextPart5489986.skLWY62fJ9"
+Content-Transfer-Encoding: 7Bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "dalias@libc.org" <dalias@libc.org>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@mellanox.com" <cmetcalf@mellanox.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>
-Message-ID: <20160602093304.aS0yKWZ6OwNXYJ-Su_2ELqvyalfsA-bHaR3zoxwxVqM@z>
+To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, waiman.long@hp.com, peterz@infradead.org
+Message-ID: <20160602104451.tXkV0dQo6cIG4ymSGIo3oXsn18smazRskJuaueG__vc@z>
 
-On Thu, Jun 02, 2016 at 09:27:36AM +0000, Vineet Gupta wrote:
-> On Tuesday 31 May 2016 03:59 PM, Peter Zijlstra wrote:
-> > Notes:
-> >  - arc asm/atomic.h is a bit of a mess after the eznps merge, I would
-> >    recommend a restructure or split of that file, but could not find
-> >    the will to do it.
-> >  - arc, metag and tile could convert to _relaxed.
-> 
-> Yes that was bothering me too. The split is indeed in order. However good news is
-> even w/o it I have decent cleanup as all the backoff retry code can now be
-> removed. The hardware guys did their foo and production RTL with latest h/w
-> release doesn't suffer from the scond livelock problem. I'd disabled the config
-> option for some time and now the code can be removed as well.
-> 
-> What's ur merge plan - are u going to rebase/respin once more so I can push those
-> updates to Linus for 4.7-rc2. Or you could carry those ARC patches in ur tree -
-> ahead of ur series. I'd much rather prefer the revert / cleanup before adding new
-> code which extends the back off code only to be deleted later.
+This is a multi-part message in MIME format.
 
-I was hoping to get these into tip for v4.8, I can rebase on whatever
-changes you make in v4.7 no problem.
+--nextPart5489986.skLWY62fJ9
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
+
+On Thursday, June 2, 2016 6:09:08 PM CEST Pan Xinhui wrote:
+> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> index 54a8e65..eadd7a3 100644
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -139,7 +139,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+>   */
+>  static inline void queued_write_unlock(struct qrwlock *lock)
+>  {
+> -       smp_store_release((u8 *)&lock->cnts, 0);
+> +       (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+>  }
+
+Isn't this more expensive than the existing version?
+
+	Arnd
+--nextPart5489986.skLWY62fJ9
+Content-Disposition: attachment; filename="org.kde.konsole.desktop"
+Content-Transfer-Encoding: base64
+Content-Type: application/x-desktop; name="org.kde.konsole.desktop"
+
+W0Rlc2t0b3AgRW50cnldClR5cGU9QXBwbGljYXRpb24KVHJ5RXhlYz1rb25zb2xlCkV4ZWM9a29u
+c29sZQpJY29uPXV0aWxpdGllcy10ZXJtaW5hbApUZXJtaW5hbD1mYWxzZQpDYXRlZ29yaWVzPVF0
+O0tERTtTeXN0ZW07VGVybWluYWxFbXVsYXRvcjsKQWN0aW9ucz1OZXdXaW5kb3c7ClgtRG9jUGF0
+aD1rb25zb2xlL2luZGV4Lmh0bWwKWC1EQlVTLVN0YXJ0dXBUeXBlPVVuaXF1ZQpTdGFydHVwTm90
+aWZ5PXRydWUKWC1LREUtQXV0aG9yaXplQWN0aW9uPXNoZWxsX2FjY2VzcwoKTmFtZT1Lb25zb2xl
+Ck5hbWVbYWZdPUtvbnNvbGUKTmFtZVthcl092YPZiNmG2LPZiNmECk5hbWVbYXNdPUtvbnNvbGUK
+TmFtZVthc3RdPUtvbnNvbGUKTmFtZVtiZV09S29uc29sZQpOYW1lW2JlQGxhdGluXT1Lb25zb2xl
+Ck5hbWVbYmddPUtvbnNvbGUKTmFtZVtibl094KaV4Kao4Ka44KeL4KayCk5hbWVbYm5fSU5dPUtv
+bnNvbGUKTmFtZVticl09S29uc29sZQpOYW1lW2JzXT1Lb256b2xhCk5hbWVbY2FdPUtvbnNvbGUK
+TmFtZVtjYUB2YWxlbmNpYV09S29uc29sZQpOYW1lW2NzXT1Lb25zb2xlCk5hbWVbY3NiXT1Lw7Ju
+c29sYQpOYW1lW2N5XT1Lb25zb2xlCk5hbWVbZGFdPUtvbnNvbGUKTmFtZVtkZV09S29uc29sZQpO
+YW1lW2VsXT3Oms6/zr3Pg8+MzrvOsQpOYW1lW2VuX0dCXT1Lb25zb2xlCk5hbWVbZW9dPUtvbnNv
+bGUKTmFtZVtlc109S29uc29sZQpOYW1lW2V0XT1Lb25zb29sCk5hbWVbZXVdPUtvbnRzb2xhCk5h
+bWVbZmldPUtvbnNvbGUKTmFtZVtmcl09S29uc29sZQpOYW1lW2Z5XT1Lb25zb2xlCk5hbWVbZ2Fd
+PUtvbnNvbGUKTmFtZVtnbF09S29uc29sZQpOYW1lW2d1XT3gqpXgq4vgqqjgq43gqrjgq4vgqrIK
+TmFtZVtoZV09S29uc29sZQpOYW1lW2hpXT3gpJXgpILgpLjgpYvgpLIKTmFtZVtobmVdPeCkleCk
+guCkuOCli+CksgpOYW1lW2hyXT1Lb25zb2xlCk5hbWVbaHNiXT1Lb25zb2xhCk5hbWVbaHVdPUtv
+bnNvbGUKTmFtZVtpYV09S29uc29sZQpOYW1lW2lkXT1Lb25zb2xlCk5hbWVbaXNdPUtvbnNvbGUK
+TmFtZVtpdF09S29uc29sZQpOYW1lW2phXT1Lb25zb2xlCk5hbWVba2FdPeGDmeGDneGDnOGDoeGD
+neGDmuGDmApOYW1lW2trXT1Lb25zb2xlCk5hbWVba21dPeGegOGeu+GehOGen+GevOGemwpOYW1l
+W2tuXT3gspXgsqjgs43gsrjgs4vgsrLgs40KTmFtZVtrb109S29uc29sZQpOYW1lW2t1XT1Lb25z
+b2wKTmFtZVtsdF09S29uc29sZQpOYW1lW2x2XT1Lb25zb2xlCk5hbWVbbWFpXT3gpJXgpILgpLjg
+pYvgpLIKTmFtZVtta1090JrQvtC90LfQvtC70LAKTmFtZVttbF094LSV4LSj4LWN4oCN4LS44LWL
+4LSz4LWN4oCNCk5hbWVbbXJdPeCkleCkguCkuOCli+CksgpOYW1lW21zXT1Lb25zb2xlCk5hbWVb
+bmJdPUtvbnNvbGUKTmFtZVtuZHNdPUtvbnNvbGUKTmFtZVtuZV094KSV4KSo4KWN4KS44KWL4KSy
+Ck5hbWVbbmxdPUtvbnNvbGUKTmFtZVtubl09S29uc29sbApOYW1lW29yXT3grJXgrYvgrLLgrLjg
+rYvgrLIKTmFtZVtwYV094KiV4Kio4Ki44KmL4KiyCk5hbWVbcGxdPUtvbnNvbGEKTmFtZVtwdF09
+S29uc29sZQpOYW1lW3B0X0JSXT1Lb25zb2xlCk5hbWVbcm9dPUtvbnNvbMSDCk5hbWVbcnVdPUtv
+bnNvbGUKTmFtZVtzZV09S29uc29sbGEKTmFtZVtzaV094Laa4Lax4LeK4LeD4Led4La94LeKCk5h
+bWVbc2tdPUtvbnNvbGUKTmFtZVtzbF09S29uc29sZQpOYW1lW3NyXT3QmtC+0L3Qt9C+0LvQsApO
+YW1lW3NyQGlqZWthdmlhbl090JrQvtC90LfQvtC70LAKTmFtZVtzckBpamVrYXZpYW5sYXRpbl09
+S29uc29sZQpOYW1lW3NyQGxhdGluXT1Lb25zb2xlCk5hbWVbc3ZdPVRlcm1pbmFsCk5hbWVbdGFd
+PeCuleCuvuCuqeCvjeCumuCvi+CusuCvjQpOYW1lW3RlXT3gsJXgsL7gsKjgsY3gsLjgsYvgsLLg
+sY0KTmFtZVt0Z1090JrQvtC90YHQvtC7Ck5hbWVbdGhdPeC4hOC4reC4meC5guC4i+C4pS1LCk5h
+bWVbdHJdPUtvbnNvbApOYW1lW3VnXT1Lb25zb2xlCk5hbWVbdWtdPUtvbnNvbGUKTmFtZVt1el09
+S29uc29sZQpOYW1lW3V6QGN5cmlsbGljXT1Lb25zb2xlCk5hbWVbdmldPUtvbnNvbGUKTmFtZVt3
+YV09S29uc29sZQpOYW1lW3hoXT1Lb25zb2xlCk5hbWVbeC10ZXN0XT14eEtvbnNvbGV4eApOYW1l
+W3poX0NOXT1Lb25zb2xlCk5hbWVbemhfVFddPUtvbnNvbGUKCkdlbmVyaWNOYW1lPVRlcm1pbmFs
+CkdlbmVyaWNOYW1lW2FmXT1UZXJtaW5hYWwKR2VuZXJpY05hbWVbYXJdPdi32LHZgdmK2ZHYqQpH
+ZW5lcmljTmFtZVthc1094Kaf4Ka+4Kew4KeN4Kau4Ka/4Kao4KeH4KayCkdlbmVyaWNOYW1lW2Fz
+dF09VGVybWluYWwKR2VuZXJpY05hbWVbYmVAbGF0aW5dPVRlcm1pbmHFggpHZW5lcmljTmFtZVti
+Z1090KLQtdGA0LzQuNC90LDQuwpHZW5lcmljTmFtZVtibl094Kaf4Ka+4Kaw4KeN4Kau4Ka/4Kao
+4Ka+4KayCkdlbmVyaWNOYW1lW2JuX0lOXT3gpp/gpr7gprDgp43gpq7gpr/gpqjgp43gpq/gpr7g
+prIKR2VuZXJpY05hbWVbYnNdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2NhXT1UZXJtaW5hbApHZW5l
+cmljTmFtZVtjYUB2YWxlbmNpYV09VGVybWluYWwKR2VuZXJpY05hbWVbY3NdPVRlcm1pbsOhbApH
+ZW5lcmljTmFtZVtjc2JdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2RhXT1UZXJtaW5hbApHZW5lcmlj
+TmFtZVtkZV09VGVybWluYWwKR2VuZXJpY05hbWVbZWxdPc6kzrXPgc68zrHPhM65zrrPjApHZW5l
+cmljTmFtZVtlbl9HQl09VGVybWluYWwKR2VuZXJpY05hbWVbZW9dPVRlcm1pbmFsbwpHZW5lcmlj
+TmFtZVtlc109VGVybWluYWwKR2VuZXJpY05hbWVbZXRdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2V1
+XT1UZXJtaW5hbGEKR2VuZXJpY05hbWVbZmldPVDDpMOkdGVpa2t1bmEKR2VuZXJpY05hbWVbZnJd
+PVRlcm1pbmFsCkdlbmVyaWNOYW1lW2Z5XT1UZXJtaW5hbApHZW5lcmljTmFtZVtnYV09VGVpcm1p
+bsOpYWwKR2VuZXJpY05hbWVbZ2xdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2d1XT3gqp/gqrDgq43g
+qq7gqr/gqqjgqrIKR2VuZXJpY05hbWVbaGVdPdee16HXldejCkdlbmVyaWNOYW1lW2hpXT3gpJ/g
+pLDgpY3gpK7gpL/gpKjgpLIKR2VuZXJpY05hbWVbaG5lXT3gpJ/gpLDgpY3gpK7gpL/gpKjgpLIK
+R2VuZXJpY05hbWVbaHJdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2hzYl09VGVybWluYWwKR2VuZXJp
+Y05hbWVbaHVdPVRlcm1pbsOhbApHZW5lcmljTmFtZVtpYV09VGVybWluYWwKR2VuZXJpY05hbWVb
+aWRdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW2lzXT1Ta2rDoWhlcm1pcgpHZW5lcmljTmFtZVtpdF09
+VGVybWluYWxlCkdlbmVyaWNOYW1lW2phXT3jgr/jg7zjg5/jg4rjg6sKR2VuZXJpY05hbWVba2Fd
+PeGDouGDlOGDoOGDm+GDmOGDnOGDkOGDmuGDmApHZW5lcmljTmFtZVtra1090KLQtdGA0LzQuNC9
+0LDQuwpHZW5lcmljTmFtZVtrbV094Z6f4Z+S4Z6Q4Z624Z6T4Z644Z6ZCkdlbmVyaWNOYW1lW2tu
+XT3gsobgsqbgs4fgsrbgsqTgs4bgsrDgs4YgKOCyn+CysOCzjeCyruCyv+CyqOCysuCzjSkKR2Vu
+ZXJpY05hbWVba29dPe2EsOuvuOuEkApHZW5lcmljTmFtZVtrdV09VGVybcOubmFsCkdlbmVyaWNO
+YW1lW2x0XT1UZXJtaW5hbGFzCkdlbmVyaWNOYW1lW2x2XT1UZXJtaW7EgWxpcwpHZW5lcmljTmFt
+ZVttYWldPeCkn+CksOCljeCkruCkv+CkqOCksgpHZW5lcmljTmFtZVtta1090KLQtdGA0LzQuNC9
+0LDQuwpHZW5lcmljTmFtZVttbF094LSf4LWG4LSw4LWN4oCN4LSu4LS/4LSo4LSy4LWN4oCNCkdl
+bmVyaWNOYW1lW21yXT3gpJ/gpLDgpY3gpK7gpL/gpKjgpLIKR2VuZXJpY05hbWVbbmJdPVRlcm1p
+bmFsCkdlbmVyaWNOYW1lW25kc109S29uc29vbApHZW5lcmljTmFtZVtubF09VGVybWluYWwKR2Vu
+ZXJpY05hbWVbbm5dPVRlcm1pbmFsCkdlbmVyaWNOYW1lW29yXT3grJ/grLDgrY3grK7grL/grKjg
+rL7grLIKR2VuZXJpY05hbWVbcGFdPeCon+CosOCoruCpgOCoqOCosgpHZW5lcmljTmFtZVtwbF09
+VGVybWluYWwKR2VuZXJpY05hbWVbcHRdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW3B0X0JSXT1UZXJt
+aW5hbApHZW5lcmljTmFtZVtyb109VGVybWluYWwKR2VuZXJpY05hbWVbcnVdPdCi0LXRgNC80LjQ
+vdCw0LsKR2VuZXJpY05hbWVbc2VdPVRlcm1pbmFsCkdlbmVyaWNOYW1lW3NpXT3gtoXgtpzgt4ri
+gI3gtrvgtroKR2VuZXJpY05hbWVbc2tdPVRlcm1pbsOhbApHZW5lcmljTmFtZVtzbF09VGVybWlu
+YWwKR2VuZXJpY05hbWVbc3JdPdCi0LXRgNC80LjQvdCw0LsKR2VuZXJpY05hbWVbc3JAaWpla2F2
+aWFuXT3QotC10YDQvNC40L3QsNC7CkdlbmVyaWNOYW1lW3NyQGlqZWthdmlhbmxhdGluXT1UZXJt
+aW5hbApHZW5lcmljTmFtZVtzckBsYXRpbl09VGVybWluYWwKR2VuZXJpY05hbWVbc3ZdPVRlcm1p
+bmFsCkdlbmVyaWNOYW1lW3RhXT3grq7gr4Hgrqngr4jgrq/grq7gr40KR2VuZXJpY05hbWVbdGVd
+PeCwn+CxhuCwsOCxjeCwruCwv+CwqOCwsuCxjQpHZW5lcmljTmFtZVt0Z1090KLQtdGA0LzQuNC9
+0LDQuwpHZW5lcmljTmFtZVt0aF094LmA4LiX4Lit4Lij4LmM4Lih4Li04LiZ4Lix4LilCkdlbmVy
+aWNOYW1lW3RyXT1Vw6diaXJpbQpHZW5lcmljTmFtZVt1Z1092KrbkNix2YXZidmG2KfZhApHZW5l
+cmljTmFtZVt1a1090KLQtdGA0LzRltC90LDQuwpHZW5lcmljTmFtZVt1el09VGVybWluYWwKR2Vu
+ZXJpY05hbWVbdXpAY3lyaWxsaWNdPdCi0LXRgNC80LjQvdCw0LsKR2VuZXJpY05hbWVbd2FdPVRl
+cm1pbsOlCkdlbmVyaWNOYW1lW3gtdGVzdF09eHhUZXJtaW5hbHh4CkdlbmVyaWNOYW1lW3poX0NO
+XT3nu4jnq68KR2VuZXJpY05hbWVbemhfVFddPee1guerr+apnwoKW0Rlc2t0b3AgQWN0aW9uIE5l
+d1dpbmRvd10KTmFtZT1PcGVuIGEgTmV3IFdpbmRvdwpOYW1lW2FyXT3Yp9mB2KrYrSDZhtin2YHY
+sNipINis2K/Zitiv2KkKTmFtZVthc3RdPUFicmlyIHVuYSB2ZW50YW5hIG51ZXZhCk5hbWVbYnNd
+PU90dm9yaSB1IG5vdm9tIHByb3pvcnUKTmFtZVtjYV09T2JyZSB1bmEgZmluZXN0cmEgbm92YQpO
+YW1lW2NhQHZhbGVuY2lhXT1PYnJpIHVuYSBmaW5lc3RyYSBub3ZhCk5hbWVbY3NdPU90ZXbFmcOt
+dCBub3bDqSBva25vCk5hbWVbZGFdPcOFYm4gZXQgbnl0IHZpbmR1ZQpOYW1lW2RlXT1FaW4gbmV1
+ZXMgRmVuc3RlciDDtmZmbmVuCk5hbWVbZWxdPc6Gzr3Ov865zrPOvM6xIM69zq3Ov8+FIM+AzrHP
+gc6xzrjPjc+Bzr/PhQpOYW1lW2VuX0dCXT1PcGVuIGEgTmV3IFdpbmRvdwpOYW1lW2VzXT1BYnJp
+ciB1bmEgbnVldmEgdmVudGFuYQpOYW1lW2V0XT1BdmEgdXVlcyBha25hcwpOYW1lW2ZpXT1BdmFh
+IHV1c2kgaWtrdW5hCk5hbWVbZnJdPU91dnJpciBkYW5zIHVuZSBub3V2ZWxsZSBmZW7DqnRyZQpO
+YW1lW2dsXT1BYnJpciB1bmhhIHhhbmVsYSBub3ZhCk5hbWVbaGVdPdek16rXlyDXl9ec15XXnyDX
+l9eT16kKTmFtZVtodV09w5pqIGFibGFrIG1lZ255aXTDoXNhCk5hbWVbaWFdPUFwZXJpIHVuIG5v
+dmUgZmVuZXN0cmEKTmFtZVtpZF09QnVrYSBKZW5kZWxhIEJhcnUKTmFtZVtpc109T3BuYSBuw71q
+YW4gZ2x1Z2dhCk5hbWVbaXRdPUFwcmkgaW4gdW5hIG51b3ZhIGZpbmVzdHJhCk5hbWVba29dPeyD
+iCDssL0g7Je06riwCk5hbWVbbHRdPUF0dmVydGkgbmF1amFtZSBsYW5nZQpOYW1lW25iXT3DhXBu
+ZSBldCBueXR0IHZpbmR1Ck5hbWVbbmRzXT1FbiBuaWVnIEZpbnN0ZXIgb3BtYWtlbgpOYW1lW25s
+XT1FZW4gbmlldXcgdmVuc3RlciBvcGVuZW4KTmFtZVtubl09T3BuYSBpIG55dHQgdmluZGF1Z2UK
+TmFtZVtwYV094Kio4Ki14KmA4KiCIOCoteCov+CpsOCooeCpiyDgqJbgqYvgqLLgqY3gqLngqYsK
+TmFtZVtwbF09T3R3w7NyeiBub3dlIG9rbm8KTmFtZVtwdF09QWJyaXIgdW1hIE5vdmEgSmFuZWxh
+Ck5hbWVbcHRfQlJdPUFicmUgdW1hIG5vdmEgamFuZWxhCk5hbWVbcm9dPURlc2NoaWRlIG8gZmVy
+ZWFzdHLEgyBub3XEgwpOYW1lW3J1XT3QntGC0LrRgNGL0YLRjCDQvdC+0LLQvtC1INC+0LrQvdC+
+Ck5hbWVbc2tdPU90dm9yacWlIG5vdsOpIG9rbm8KTmFtZVtzbF09T2Rwcmkgbm92byBva25vCk5h
+bWVbc3JdPdCe0YLQstC+0YDQuCDQvdC+0LLQuCDQv9GA0L7Qt9C+0YAKTmFtZVtzckBpamVrYXZp
+YW5dPdCe0YLQstC+0YDQuCDQvdC+0LLQuCDQv9GA0L7Qt9C+0YAKTmFtZVtzckBpamVrYXZpYW5s
+YXRpbl09T3R2b3JpIG5vdmkgcHJvem9yCk5hbWVbc3JAbGF0aW5dPU90dm9yaSBub3ZpIHByb3pv
+cgpOYW1lW3N2XT3DlnBwbmEgZXR0IG55dHQgZsO2bnN0ZXIKTmFtZVt0cl09WWVuaSBQZW5jZXJl
+IEHDpwpOYW1lW3VrXT3QktGW0LTQutGA0LjRgtC4INC90L7QstC1INCy0ZbQutC90L4KTmFtZVt4
+LXRlc3RdPXh4T3BlbiBhIE5ldyBXaW5kb3d4eApOYW1lW3poX0NOXT3miZPlvIDmlrDnqpflj6MK
+TmFtZVt6aF9UV1096ZaL5ZWf5paw6KaW56qXCkV4ZWM9a29uc29sZQo=
+
+
+--nextPart5489986.skLWY62fJ9--
+
