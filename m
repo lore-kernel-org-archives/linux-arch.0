@@ -1,48 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:46618 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752010AbcFBARc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2016 20:17:32 -0400
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
- <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <574F7B16.4080906@sr71.net>
-Date: Wed, 1 Jun 2016 17:17:26 -0700
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:35932 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751235AbcFBGce (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2016 02:32:34 -0400
+Date: Thu, 2 Jun 2016 08:32:31 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH 04/17] arm: get rid of superfluous __GFP_REPEAT
+Message-ID: <20160602063231.GB1995@dhcp22.suse.cz>
+References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
+ <1464599699-30131-5-git-send-email-mhocko@kernel.org>
+ <20160601162424.GD19428@n2100.arm.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160601162424.GD19428@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mtk.manpages@gmail.com
-Cc: Jonathan Corbet <corbet@lwn.net>, lkml <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <20160602001726.9N0bKltb9WI-VZRgdj2Zhht2Gv0WkYRyATGI25qy78s@z>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160602063231.uYLm1roEx4VeKSjYOR7id78Ri2O5xBlkyfV39CD_uVI@z>
 
-On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
->>> >>
->>> >> If I read this right, it doesn't actually remove any pkey restrictions
->>> >> that may have been applied while the key was allocated.  So there could be
->>> >> pages with that key assigned that might do surprising things if the key is
->>> >> reallocated for another use later, right?  Is that how the API is intended
->>> >> to work?
->> >
->> > Yeah, that's how it works.
->> >
->> > It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->> > ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->> > search would be potentially expensive (a walk over all VMAs), or would
->> > force us to keep a data structure with a count of all the VMAs with a
->> > given key.
->> >
->> > I should probably discuss this behavior in the manpages and address it
-> s/probably//
+On Wed 01-06-16 17:24:24, Russell King - ARM Linux wrote:
+> On Mon, May 30, 2016 at 11:14:46AM +0200, Michal Hocko wrote:
+> > From: Michal Hocko <mhocko@suse.com>
+> > 
+> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > around 2.6.12 it has been ignored for low order allocations.
+> > 
+> > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
+> > this flag is for more than order-2. This means that this flag has never
+> > been actually useful here because it has always been used only for
+> > PAGE_ALLOC_COSTLY requests.
 > 
-> And, did I miss it. Was there an updated man-pages patch in the latest
-> series? I did not notice it.
+> I hear what you say, but...
+> 
+> commit 8c65da6dc89ccb605d73773b1dd617e72982d971
+> Author: Russell King <rmk+kernel@arm.linux.org.uk>
+> Date:   Sat Nov 30 12:52:31 2013 +0000
+> 
+>     ARM: pgd allocation: retry on failure
+> 
+>     Make pgd allocation retry on failure; we really need this to succeed
+>     otherwise fork() can trigger OOMs.
+> 
+>     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+> 
+> and that's the change which introduced this, and it did solve a problem
+> for me.  So I'm not happy to give an ack for this change unless someone
+> can tell me why adding __GFP_REPEAT back then had a beneficial effect.
+> Maybe there was some other bug in the MM layer in 2013 which this change
+> happened to solve?
 
-There have been to changes to the patches that warranted updating the
-manpages until now.  I'll send the update immediately.
+This is hard to tell but from the code snippet I have referenced it
+should be pretty clear that the low order really had a nofail semantic.
 
+git grep GFP_REPEAT 8c65da6dc89ccb605d73773b1dd617e72982d971 -- mm
+confirms the story.
+
+Do you remember your reproducer?
+-- 
+Michal Hocko
+SUSE Labs
