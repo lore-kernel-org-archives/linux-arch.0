@@ -1,104 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:41396 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751814AbcFCR2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jun 2016 13:28:25 -0400
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
- <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
- <574F7B16.4080906@sr71.net> <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <5751BE37.1060704@sr71.net>
-Date: Fri, 3 Jun 2016 10:28:23 -0700
-MIME-Version: 1.0
-In-Reply-To: <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Received: from mail-pf0-f179.google.com ([209.85.192.179]:34476 "EHLO
+	mail-pf0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932433AbcFCSkq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2016 14:40:46 -0400
+Received: by mail-pf0-f179.google.com with SMTP id 62so46166293pfd.1
+        for <linux-arch@vger.kernel.org>; Fri, 03 Jun 2016 11:40:46 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Fri,  3 Jun 2016 11:40:24 -0700
+Message-ID: <1464979224-2085-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1464979224-2085-1-git-send-email-keescook@chromium.org>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, lkml <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <20160603172823.H7nE4Zn6Jdx7zTWCBckl2aB-VRgzV3R0x1A4Ev_kotY@z>
+To: kernel-hardening@lists.openwall.com
+Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mathias Krause <minipli@googlemail.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20160603184024.K5Mw2DAyStTBRpevUgqhhRXVe5Eh7jwCz3RxxKThcAI@z>
 
-On 06/02/2016 05:26 PM, Michael Kerrisk (man-pages) wrote:
-> On 06/01/2016 07:17 PM, Dave Hansen wrote:
->> On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
->>>>>>>
->>>>>>> If I read this right, it doesn't actually remove any pkey restrictions
->>>>>>> that may have been applied while the key was allocated.  So there could be
->>>>>>> pages with that key assigned that might do surprising things if the key is
->>>>>>> reallocated for another use later, right?  Is that how the API is intended
->>>>>>> to work?
->>>>>
->>>>> Yeah, that's how it works.
->>>>>
->>>>> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->>>>> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->>>>> search would be potentially expensive (a walk over all VMAs), or would
->>>>> force us to keep a data structure with a count of all the VMAs with a
->>>>> given key.
->>>>>
->>>>> I should probably discuss this behavior in the manpages and address it
->>> s/probably//
->>>
->>> And, did I miss it. Was there an updated man-pages patch in the latest
->>> series? I did not notice it.
->>
->> There have been to changes to the patches that warranted updating the
->> manpages until now.  I'll send the update immediately.
-> 
-> Do those updated pages include discussion of the point noted above?
-> I could not see it mentioned there.
+Guided by grsecurity's analogous __read_only markings in arch/arm,
+this applies several uses of __ro_after_init to structures that are
+only updated during __init.
 
-I added the following text to pkey_alloc.2.  I somehow neglected to send
-it out in the v3 update of the manpages RFC:
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/kernel/cpuidle.c |  2 +-
+ arch/arm/kernel/setup.c   | 10 +++++-----
+ arch/arm/kernel/smp.c     |  2 +-
+ arch/arm/lib/delay.c      |  2 +-
+ arch/arm/mm/mmu.c         |  9 ++-------
+ arch/x86/mm/ioremap.c     |  3 +--
+ 6 files changed, 11 insertions(+), 17 deletions(-)
 
-An application should not call
-.BR pkey_free ()
-on any protection key which has been assigned to an address
-range by
-.BR pkey_mprotect ()
-and which is still in use.  The behavior in this case is
-undefined and may result in an error.
+diff --git a/arch/arm/kernel/cpuidle.c b/arch/arm/kernel/cpuidle.c
+index a44b268e12e1..d574708ea20c 100644
+--- a/arch/arm/kernel/cpuidle.c
++++ b/arch/arm/kernel/cpuidle.c
+@@ -19,7 +19,7 @@ extern struct of_cpuidle_method __cpuidle_method_of_table[];
+ static const struct of_cpuidle_method __cpuidle_method_of_table_sentinel
+ 	__used __section(__cpuidle_method_of_table_end);
+ 
+-static struct cpuidle_ops cpuidle_ops[NR_CPUS];
++static struct cpuidle_ops cpuidle_ops[NR_CPUS] __ro_after_init;
+ 
+ /**
+  * arm_cpuidle_simple_enter() - a wrapper to cpu_do_idle()
+diff --git a/arch/arm/kernel/setup.c b/arch/arm/kernel/setup.c
+index 7b5350060612..38196e581d0a 100644
+--- a/arch/arm/kernel/setup.c
++++ b/arch/arm/kernel/setup.c
+@@ -115,19 +115,19 @@ EXPORT_SYMBOL(elf_hwcap2);
+ 
+ 
+ #ifdef MULTI_CPU
+-struct processor processor __read_mostly;
++struct processor processor __ro_after_init;
+ #endif
+ #ifdef MULTI_TLB
+-struct cpu_tlb_fns cpu_tlb __read_mostly;
++struct cpu_tlb_fns cpu_tlb __ro_after_init;
+ #endif
+ #ifdef MULTI_USER
+-struct cpu_user_fns cpu_user __read_mostly;
++struct cpu_user_fns cpu_user __ro_after_init;
+ #endif
+ #ifdef MULTI_CACHE
+-struct cpu_cache_fns cpu_cache __read_mostly;
++struct cpu_cache_fns cpu_cache __ro_after_init;
+ #endif
+ #ifdef CONFIG_OUTER_CACHE
+-struct outer_cache_fns outer_cache __read_mostly;
++struct outer_cache_fns outer_cache __ro_after_init;
+ EXPORT_SYMBOL(outer_cache);
+ #endif
+ 
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index df90bc59bfce..9902e76fce0d 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -82,7 +82,7 @@ enum ipi_msg_type {
+ 
+ static DECLARE_COMPLETION(cpu_running);
+ 
+-static struct smp_operations smp_ops;
++static struct smp_operations smp_ops __ro_after_init;
+ 
+ void __init smp_set_ops(const struct smp_operations *ops)
+ {
+diff --git a/arch/arm/lib/delay.c b/arch/arm/lib/delay.c
+index 8044591dca72..2cef11884857 100644
+--- a/arch/arm/lib/delay.c
++++ b/arch/arm/lib/delay.c
+@@ -29,7 +29,7 @@
+ /*
+  * Default to the loop-based delay implementation.
+  */
+-struct arm_delay_ops arm_delay_ops = {
++struct arm_delay_ops arm_delay_ops __ro_after_init = {
+ 	.delay		= __loop_delay,
+ 	.const_udelay	= __loop_const_udelay,
+ 	.udelay		= __loop_udelay,
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index 62f4d01941f7..5e2acc78175e 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -243,7 +243,7 @@ __setup("noalign", noalign_setup);
+ #define PROT_PTE_S2_DEVICE	PROT_PTE_DEVICE
+ #define PROT_SECT_DEVICE	PMD_TYPE_SECT|PMD_SECT_AP_WRITE
+ 
+-static struct mem_type mem_types[] = {
++static struct mem_type mem_types[] __ro_after_init = {
+ 	[MT_DEVICE] = {		  /* Strongly ordered / ARMv6 shared device */
+ 		.prot_pte	= PROT_PTE_DEVICE | L_PTE_MT_DEV_SHARED |
+ 				  L_PTE_SHARED,
+@@ -1309,16 +1309,11 @@ void __init arm_mm_memblock_reserve(void)
+  * Any other function or debugging method which may touch any device _will_
+  * crash the kernel.
+  */
++static char vectors[PAGE_SIZE * 2] __ro_after_init __aligned(PAGE_SIZE);
+ static void __init devicemaps_init(const struct machine_desc *mdesc)
+ {
+ 	struct map_desc map;
+ 	unsigned long addr;
+-	void *vectors;
+-
+-	/*
+-	 * Allocate the vector page early.
+-	 */
+-	vectors = early_alloc(PAGE_SIZE * 2);
+ 
+ 	early_trap_init(vectors);
+ 
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 4e5821896eec..f0894910bdd7 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -419,8 +419,7 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+ }
+ 
+-static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __ro_after_init
+-					     __aligned(PAGE_SIZE);
++static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
+ 
+ static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
+ {
+-- 
+2.7.4
 
-I'll add that in the version (v4) I send out shortly.
-
-> Just by the way, the above behavior seems to offer possibilities
-> for users to shoot themselves in the foot, in a way that has security
-> implications. (Or do I misunderstand?)
-
-Protection keys has the potential to add a layer of security and
-reliability to applications.  But, it has not been primarily designed as
-a security feature.  For instance, WRPKRU is a completely unprivileged
-instruction, so pkeys are useless in any case that an attacker controls
-the PKRU register or can execute arbitrary instructions.
-
-That said, this mechanism does, indeed, allow a user to shoot themselves
-in the foot and in a way that could have security implications.
-
-For instance, say the following happened:
-1. A sensitive bit of data in memory was marked with a pkey
-2. That pkey was set as PKEY_DISABLE_ACCESS
-3. The application called pkey_free() on the pkey, without freeing
-   the sensitive data
-4. Application calls pkey_alloc() and then clears PKEY_DISABLE_ACCESS
-5. Applocation can now read the sensitive data
-
-The application has to have basically "leaked" a reference to the pkey.
- It forgot that it had sensitive data marked with that key.
-
-The kernel _could_ enforce that no in-use pkey may have pkey_free()
-called on it.  But, doing that has tradeoffs which could make
-pkey_free() extremely slow:
-
-> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
-> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
-> search would be potentially expensive (a walk over all VMAs), or would
-> force us to keep a data structure with a count of all the VMAs with a
-> given key.
-
-In addition, that checking _could_ be implemented in an application by
-inspecting /proc/$pid/smaps for "ProtectionKey: $foo" before calling
-pkey_free($foo).
