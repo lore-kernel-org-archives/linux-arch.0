@@ -1,120 +1,75 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-Date: Fri, 3 Jun 2016 14:27:01 -0500
-Message-ID: <d4f9b224-2ce2-8e45-516c-5dddcfd95724@gmail.com>
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
- <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
- <574F7B16.4080906@sr71.net> <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
- <5751BE37.1060704@sr71.net>
+From: Waiman Long <waiman.long@hpe.com>
+Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
+Date: Fri, 3 Jun 2016 16:57:55 -0400
+Message-ID: <5751EF53.3080205@hpe.com>
+References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <4399273.0kije2Qdx5@wuerfel> <20160602110200.GZ3190@twins.programming.kicks-ass.net> <201606030718.u537FQg0009963@mx0a-001b2d01.pphosted.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <5751BE37.1060704@sr71.net>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave@sr71.net>
-Cc: mtk.manpages@gmail.com, Jonathan Corbet <corbet@lwn.net>, lkml <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201606030718.u537FQg0009963@mx0a-001b2d01.pphosted.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, waiman.long@hp.com
 List-Id: linux-arch.vger.kernel.org
 
-On 06/03/2016 12:28 PM, Dave Hansen wrote:
-> On 06/02/2016 05:26 PM, Michael Kerrisk (man-pages) wrote:
->> On 06/01/2016 07:17 PM, Dave Hansen wrote:
->>> On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
->>>>>>>>
->>>>>>>> If I read this right, it doesn't actually remove any pkey restrictions
->>>>>>>> that may have been applied while the key was allocated.  So there could be
->>>>>>>> pages with that key assigned that might do surprising things if the key is
->>>>>>>> reallocated for another use later, right?  Is that how the API is intended
->>>>>>>> to work?
->>>>>>
->>>>>> Yeah, that's how it works.
->>>>>>
->>>>>> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->>>>>> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->>>>>> search would be potentially expensive (a walk over all VMAs), or would
->>>>>> force us to keep a data structure with a count of all the VMAs with a
->>>>>> given key.
->>>>>>
->>>>>> I should probably discuss this behavior in the manpages and address it
->>>> s/probably//
->>>>
->>>> And, did I miss it. Was there an updated man-pages patch in the latest
->>>> series? I did not notice it.
+On 06/03/2016 03:17 AM, xinhui wrote:
+>
+> On 2016=E5=B9=B406=E6=9C=8802=E6=97=A5 19:02, Peter Zijlstra wrote:
+>> On Thu, Jun 02, 2016 at 12:44:51PM +0200, Arnd Bergmann wrote:
+>>> On Thursday, June 2, 2016 6:09:08 PM CEST Pan Xinhui wrote:
+>>>> diff --git a/include/asm-generic/qrwlock.h=20
+>>>> b/include/asm-generic/qrwlock.h
+>>>> index 54a8e65..eadd7a3 100644
+>>>> --- a/include/asm-generic/qrwlock.h
+>>>> +++ b/include/asm-generic/qrwlock.h
+>>>> @@ -139,7 +139,7 @@ static inline void queued_read_unlock(struct=20
+>>>> qrwlock *lock)
+>>>>    */
+>>>>   static inline void queued_write_unlock(struct qrwlock *lock)
+>>>>   {
+>>>> -       smp_store_release((u8 *)&lock->cnts, 0);
+>>>> +       (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+>>>>   }
 >>>
->>> There have been to changes to the patches that warranted updating the
->>> manpages until now.  I'll send the update immediately.
+>>> Isn't this more expensive than the existing version?
 >>
->> Do those updated pages include discussion of the point noted above?
->> I could not see it mentioned there.
-> 
-> I added the following text to pkey_alloc.2.  I somehow neglected to send
-> it out in the v3 update of the manpages RFC:
-> 
-> An application should not call
-> .BR pkey_free ()
-> on any protection key which has been assigned to an address
-> range by
-> .BR pkey_mprotect ()
-> and which is still in use.  The behavior in this case is
-> undefined and may result in an error.
-> 
-> I'll add that in the version (v4) I send out shortly.
-> 
->> Just by the way, the above behavior seems to offer possibilities
->> for users to shoot themselves in the foot, in a way that has security
->> implications. (Or do I misunderstand?)
-> 
-> Protection keys has the potential to add a layer of security and
-> reliability to applications.  But, it has not been primarily designed as
-> a security feature.  For instance, WRPKRU is a completely unprivileged
-> instruction, so pkeys are useless in any case that an attacker controls
-> the PKRU register or can execute arbitrary instructions.
-> 
-> That said, this mechanism does, indeed, allow a user to shoot themselves
-> in the foot and in a way that could have security implications.
-> 
-> For instance, say the following happened:
-> 1. A sensitive bit of data in memory was marked with a pkey
-> 2. That pkey was set as PKEY_DISABLE_ACCESS
-> 3. The application called pkey_free() on the pkey, without freeing
->    the sensitive data
-> 4. Application calls pkey_alloc() and then clears PKEY_DISABLE_ACCESS
-> 5. Applocation can now read the sensitive data
-> 
-> The application has to have basically "leaked" a reference to the pkey.
->  It forgot that it had sensitive data marked with that key.
-> 
-> The kernel _could_ enforce that no in-use pkey may have pkey_free()
-> called on it.  But, doing that has tradeoffs which could make
-> pkey_free() extremely slow:
-> 
->> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->> search would be potentially expensive (a walk over all VMAs), or would
->> force us to keep a data structure with a count of all the VMAs with a
->> given key.
-> 
-> In addition, that checking _could_ be implemented in an application by
-> inspecting /proc/$pid/smaps for "ProtectionKey: $foo" before calling
-> pkey_free($foo).
+>> Yes, loads. And while this might be a suitable fix for asm-generic, =
+it
+>> will introduce a fairly large regression on x86 (which is currently =
+the
+>> only user of this).
+>>
+> well, to show respect to struct __qrwlock private field.
+> We can keep smp_store_release((u8 *)&lock->cnts, 0) in little_endian=20
+> machine.
+> as this should be quick and no performance issue to all other=20
+> archs(although there is only 1 now)
+>
+> BUT, We need use (void)atomic_sub_return_release(_QW_LOCKED,=20
+> &lock->cnts) in big_endian machine.
+> because it's bad to export struct __qrwlock and set its private field=
+=20
+> to NULL.
+>
+> How about code like below.
+>
+> static inline void queued_write_unlock(struct qrwlock *lock)
+> {
+> #ifdef __BIG_ENDIAN
+>         (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+> #else
+>     smp_store_release((u8 *)&lock->cnts, 0);
+> #endif
+> }
+>
+> BUT I think that would make thing a little complex to understand. :(
+> So at last, in my opinion, I suggest my patch :)
+> any thoughts?
 
-So, I think all of the above needs to be made abundantly clear in 
-pkeys(7).
+Another alternative is to make queued_write_unlock() overrideable from=20
+asm/qrwlock.h, just like what we did with queued_spin_unlock().
 
-Thanks,
-
-Michael
-
-
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers,
+Longman
