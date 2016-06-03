@@ -1,119 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f194.google.com ([209.85.216.194]:35196 "EHLO
-	mail-qt0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932230AbcFCTky (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2016 15:40:54 -0400
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
- <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
- <574F7B16.4080906@sr71.net> <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
- <5751BE37.1060704@sr71.net>
-From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
-Message-ID: <d4f9b224-2ce2-8e45-516c-5dddcfd95724@gmail.com>
-Date: Fri, 3 Jun 2016 14:27:01 -0500
+Received: from mail-wm0-f42.google.com ([74.125.82.42]:37701 "EHLO
+	mail-wm0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932548AbcFCV05 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2016 17:26:57 -0400
+Received: by mail-wm0-f42.google.com with SMTP id z87so10797681wmh.0
+        for <linux-arch@vger.kernel.org>; Fri, 03 Jun 2016 14:26:56 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <5751BE37.1060704@sr71.net>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20160603185106.GB17076@kroah.com>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
+ <1464979224-2085-3-git-send-email-keescook@chromium.org> <20160603185106.GB17076@kroah.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Fri, 3 Jun 2016 14:26:54 -0700
+Message-ID: <CAGXu5jJr2UzsdkSv2ogkoBEx2iFNY7N4QpvX5sLzM+Vb97a=zg@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH 2/2] arm: apply more __ro_after_init
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
-Cc: mtk.manpages@gmail.com, Jonathan Corbet <corbet@lwn.net>, lkml <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <20160603192701.HSdpvtlsSDguoGnHebJ3e-oicyee5SugSbi7ANoG4Ow@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "x86@kernel.org" <x86@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mathias Krause <minipli@googlemail.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20160603212654.SffXfMvC2mfz3uZ_fjCHPEvUPtBQZTDhQSBockGz3ZU@z>
 
-On 06/03/2016 12:28 PM, Dave Hansen wrote:
-> On 06/02/2016 05:26 PM, Michael Kerrisk (man-pages) wrote:
->> On 06/01/2016 07:17 PM, Dave Hansen wrote:
->>> On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
->>>>>>>>
->>>>>>>> If I read this right, it doesn't actually remove any pkey restrictions
->>>>>>>> that may have been applied while the key was allocated.  So there could be
->>>>>>>> pages with that key assigned that might do surprising things if the key is
->>>>>>>> reallocated for another use later, right?  Is that how the API is intended
->>>>>>>> to work?
->>>>>>
->>>>>> Yeah, that's how it works.
->>>>>>
->>>>>> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->>>>>> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->>>>>> search would be potentially expensive (a walk over all VMAs), or would
->>>>>> force us to keep a data structure with a count of all the VMAs with a
->>>>>> given key.
->>>>>>
->>>>>> I should probably discuss this behavior in the manpages and address it
->>>> s/probably//
->>>>
->>>> And, did I miss it. Was there an updated man-pages patch in the latest
->>>> series? I did not notice it.
->>>
->>> There have been to changes to the patches that warranted updating the
->>> manpages until now.  I'll send the update immediately.
+On Fri, Jun 3, 2016 at 11:51 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
+>> Guided by grsecurity's analogous __read_only markings in arch/arm,
+>> this applies several uses of __ro_after_init to structures that are
+>> only updated during __init.
 >>
->> Do those updated pages include discussion of the point noted above?
->> I could not see it mentioned there.
-> 
-> I added the following text to pkey_alloc.2.  I somehow neglected to send
-> it out in the v3 update of the manpages RFC:
-> 
-> An application should not call
-> .BR pkey_free ()
-> on any protection key which has been assigned to an address
-> range by
-> .BR pkey_mprotect ()
-> and which is still in use.  The behavior in this case is
-> undefined and may result in an error.
-> 
-> I'll add that in the version (v4) I send out shortly.
-> 
->> Just by the way, the above behavior seems to offer possibilities
->> for users to shoot themselves in the foot, in a way that has security
->> implications. (Or do I misunderstand?)
-> 
-> Protection keys has the potential to add a layer of security and
-> reliability to applications.  But, it has not been primarily designed as
-> a security feature.  For instance, WRPKRU is a completely unprivileged
-> instruction, so pkeys are useless in any case that an attacker controls
-> the PKRU register or can execute arbitrary instructions.
-> 
-> That said, this mechanism does, indeed, allow a user to shoot themselves
-> in the foot and in a way that could have security implications.
-> 
-> For instance, say the following happened:
-> 1. A sensitive bit of data in memory was marked with a pkey
-> 2. That pkey was set as PKEY_DISABLE_ACCESS
-> 3. The application called pkey_free() on the pkey, without freeing
->    the sensitive data
-> 4. Application calls pkey_alloc() and then clears PKEY_DISABLE_ACCESS
-> 5. Applocation can now read the sensitive data
-> 
-> The application has to have basically "leaked" a reference to the pkey.
->  It forgot that it had sensitive data marked with that key.
-> 
-> The kernel _could_ enforce that no in-use pkey may have pkey_free()
-> called on it.  But, doing that has tradeoffs which could make
-> pkey_free() extremely slow:
-> 
->> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->> search would be potentially expensive (a walk over all VMAs), or would
->> force us to keep a data structure with a count of all the VMAs with a
->> given key.
-> 
-> In addition, that checking _could_ be implemented in an application by
-> inspecting /proc/$pid/smaps for "ProtectionKey: $foo" before calling
-> pkey_free($foo).
+>> Signed-off-by: Kees Cook <keescook@chromium.org>
+>> ---
+>>  arch/arm/kernel/cpuidle.c |  2 +-
+>>  arch/arm/kernel/setup.c   | 10 +++++-----
+>>  arch/arm/kernel/smp.c     |  2 +-
+>>  arch/arm/lib/delay.c      |  2 +-
+>>  arch/arm/mm/mmu.c         |  9 ++-------
+>>  arch/x86/mm/ioremap.c     |  3 +--
+>
+> I don't think this x86 file is an arm-specific one :)
 
-So, I think all of the above needs to be made abundantly clear in 
-pkeys(7).
+Hah, whooops. :)
 
-Thanks,
+> That minor nit aside, these patches are a great step forward, are you
+> going to take them and work to push them upstream, or do you want/need
+> others to do this?
 
-Michael
+I'll collect more like these and carry a tree for -next and push them for v4.8.
 
+-Kees
 
 -- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+Kees Cook
+Chrome OS & Brillo Security
