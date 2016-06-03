@@ -1,31 +1,43 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 0/2] expand use of __ro_after_init
-Date: Fri,  3 Jun 2016 11:40:22 -0700
-Message-ID: <1464979224-2085-1-git-send-email-keescook@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3334-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [kernel-hardening] [PATCH 2/2] arm: apply more __ro_after_init
+Date: Fri, 3 Jun 2016 11:51:06 -0700
+Message-ID: <20160603185106.GB17076@kroah.com>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
+ <1464979224-2085-3-git-send-email-keescook@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:49267 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932296AbcFCSvH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2016 14:51:07 -0400
+Content-Disposition: inline
+In-Reply-To: <1464979224-2085-3-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: kernel-hardening@lists.openwall.com
 Cc: Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, x86@kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mathias Krause <minipli@googlemail.com>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
 
-After v4.6 released, a number of people complained that Linux's use of
-__ro_after_init was extremely limited, but they did not send patches. In
-the interest of showing how to make progress in this area, this is a
-set of two patches for x86 and arm, extracted from the grsecurity/PaX
-patchset in about an hour. I invite others to continue this work, as it
-is relatively easy to accomplish.
+On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
+> Guided by grsecurity's analogous __read_only markings in arch/arm,
+> this applies several uses of __ro_after_init to structures that are
+> only updated during __init.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm/kernel/cpuidle.c |  2 +-
+>  arch/arm/kernel/setup.c   | 10 +++++-----
+>  arch/arm/kernel/smp.c     |  2 +-
+>  arch/arm/lib/delay.c      |  2 +-
+>  arch/arm/mm/mmu.c         |  9 ++-------
+>  arch/x86/mm/ioremap.c     |  3 +--
 
-Since __ro_after_init doesn't yet support modules (assistence here is
-welcome too), markings can only be used on variables that are built
-in. And since PaX mixes variables that are read-only after init with
-those that are protected with pax_open_kernel() and pax_close_kernel(),
-it does take a bit of analysis to make sure the variables aren't used
-in those cases.
+I don't think this x86 file is an arm-specific one :)
 
-Thanks,
+That minor nit aside, these patches are a great step forward, are you
+going to take them and work to push them upstream, or do you want/need
+others to do this?
 
--Kees
+thanks,
+
+greg k-h
