@@ -1,61 +1,74 @@
-From: "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
-Date: Thu, 2 Jun 2016 19:26:03 -0500
-Message-ID: <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
-References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
- <20160531152822.FE8D405E@viggo.jf.intel.com>
- <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
- <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
- <574F7B16.4080906@sr71.net>
+From: xinhui <xinhui.pan@linux.vnet.ibm.com>
+Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
+Date: Fri, 03 Jun 2016 15:17:51 +0800
+Message-ID: <201606030718.u537FRan010002@mx0a-001b2d01.pphosted.com>
+References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <4399273.0kije2Qdx5@wuerfel> <20160602110200.GZ3190@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <574F7B16.4080906-gkUM19QKKo4@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
-Cc: mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, lkml <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160602110200.GZ3190@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, waiman.long@hp.com
 List-Id: linux-arch.vger.kernel.org
 
-On 06/01/2016 07:17 PM, Dave Hansen wrote:
-> On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
->>>>>>
->>>>>> If I read this right, it doesn't actually remove any pkey restrictions
->>>>>> that may have been applied while the key was allocated.  So there could be
->>>>>> pages with that key assigned that might do surprising things if the key is
->>>>>> reallocated for another use later, right?  Is that how the API is intended
->>>>>> to work?
->>>>
->>>> Yeah, that's how it works.
->>>>
->>>> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
->>>> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
->>>> search would be potentially expensive (a walk over all VMAs), or would
->>>> force us to keep a data structure with a count of all the VMAs with a
->>>> given key.
->>>>
->>>> I should probably discuss this behavior in the manpages and address it
->> s/probably//
+
+On 2016=E5=B9=B406=E6=9C=8802=E6=97=A5 19:02, Peter Zijlstra wrote:
+> On Thu, Jun 02, 2016 at 12:44:51PM +0200, Arnd Bergmann wrote:
+>> On Thursday, June 2, 2016 6:09:08 PM CEST Pan Xinhui wrote:
+>>> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qr=
+wlock.h
+>>> index 54a8e65..eadd7a3 100644
+>>> --- a/include/asm-generic/qrwlock.h
+>>> +++ b/include/asm-generic/qrwlock.h
+>>> @@ -139,7 +139,7 @@ static inline void queued_read_unlock(struct qr=
+wlock *lock)
+>>>    */
+>>>   static inline void queued_write_unlock(struct qrwlock *lock)
+>>>   {
+>>> -       smp_store_release((u8 *)&lock->cnts, 0);
+>>> +       (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+>>>   }
 >>
->> And, did I miss it. Was there an updated man-pages patch in the latest
->> series? I did not notice it.
-> 
-> There have been to changes to the patches that warranted updating the
-> manpages until now.  I'll send the update immediately.
+>> Isn't this more expensive than the existing version?
+>
+> Yes, loads. And while this might be a suitable fix for asm-generic, i=
+t
+> will introduce a fairly large regression on x86 (which is currently t=
+he
+> only user of this).
+>
+well, to show respect to struct __qrwlock private field.
+We can keep smp_store_release((u8 *)&lock->cnts, 0) in little_endian ma=
+chine.
+as this should be quick and no performance issue to all other archs(alt=
+hough there is only 1 now)
 
-Do those updated pages include discussion of the point noted above?
-I could not see it mentioned there.
+BUT, We need use (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnt=
+s) in big_endian machine.
+because it's bad to export struct __qrwlock and set its private field t=
+o NULL.
 
-Just by the way, the above behavior seems to offer possibilities
-for users to shoot themselves in the foot, in a way that has security
-implications. (Or do I misunderstand?)
+How about code like below.
 
-Thanks,
+static inline void queued_write_unlock(struct qrwlock *lock)
+{
+#ifdef __BIG_ENDIAN
+         (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+#else
+	smp_store_release((u8 *)&lock->cnts, 0);
+#endif
+}
 
-Michael
+BUT I think that would make thing a little complex to understand. :(
+So at last, in my opinion, I suggest my patch :)
+any thoughts?
+
+thanks
+xinhui
 
 
--- 
-Michael Kerrisk
-Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
-Linux/UNIX System Programming Training: http://man7.org/training/
+
+ =20
