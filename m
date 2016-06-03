@@ -1,67 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-143.mimecast.com ([207.82.80.143]:26027 "EHLO
-	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932783AbcFCLDC convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jun 2016 07:03:02 -0400
-Message-ID: <575163DA.3060502@arm.com>
-Date: Fri, 3 Jun 2016 12:02:50 +0100
-From: Szabolcs Nagy <szabolcs.nagy@arm.com>
+Received: from www.sr71.net ([198.145.64.142]:41396 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751814AbcFCR2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Jun 2016 13:28:25 -0400
+Subject: Re: [PATCH 5/8] x86, pkeys: allocation/free syscalls
+References: <20160531152814.36E0B9EE@viggo.jf.intel.com>
+ <20160531152822.FE8D405E@viggo.jf.intel.com>
+ <20160601123705.72a606e7@lwn.net> <574F386A.8070106@sr71.net>
+ <CAKgNAkiyD_2tAxrBxirxViViMUsfLRRqQp5HowM58dG21LAa7Q@mail.gmail.com>
+ <574F7B16.4080906@sr71.net> <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <5751BE37.1060704@sr71.net>
+Date: Fri, 3 Jun 2016 10:28:23 -0700
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 00/21] ILP32 for ARM64
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com> <20160602190344.GA24533@yury-N73SV>
-In-Reply-To: <20160602190344.GA24533@yury-N73SV>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <5499ff55-ae0f-e54c-05fd-b1e76dc05a89@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: nd@arm.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-Message-ID: <20160603110250.BMoLLrCpcK6CmiZH4Ygmtix8VvjqQoWwGuMhBg-K6uo@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, lkml <linux-kernel@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <20160603172823.H7nE4Zn6Jdx7zTWCBckl2aB-VRgzV3R0x1A4Ev_kotY@z>
 
-On 02/06/16 20:03, Yury Norov wrote:
-> On Tue, May 24, 2016 at 03:04:29AM +0300, Yury Norov wrote:
->> ILP32 glibc branch is available here:
->> https://github.com/norov/glibc/tree/ilp32-2.23
+On 06/02/2016 05:26 PM, Michael Kerrisk (man-pages) wrote:
+> On 06/01/2016 07:17 PM, Dave Hansen wrote:
+>> On 06/01/2016 05:11 PM, Michael Kerrisk (man-pages) wrote:
+>>>>>>>
+>>>>>>> If I read this right, it doesn't actually remove any pkey restrictions
+>>>>>>> that may have been applied while the key was allocated.  So there could be
+>>>>>>> pages with that key assigned that might do surprising things if the key is
+>>>>>>> reallocated for another use later, right?  Is that how the API is intended
+>>>>>>> to work?
+>>>>>
+>>>>> Yeah, that's how it works.
+>>>>>
+>>>>> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
+>>>>> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
+>>>>> search would be potentially expensive (a walk over all VMAs), or would
+>>>>> force us to keep a data structure with a count of all the VMAs with a
+>>>>> given key.
+>>>>>
+>>>>> I should probably discuss this behavior in the manpages and address it
+>>> s/probably//
+>>>
+>>> And, did I miss it. Was there an updated man-pages patch in the latest
+>>> series? I did not notice it.
 >>
+>> There have been to changes to the patches that warranted updating the
+>> manpages until now.  I'll send the update immediately.
 > 
-> So for AARCH64/ILP32 we turn next types to 64-bit in glibc:
-> #define __INO_T_TYPE            __UQUAD_TYPE
-> #define __OFF_T_TYPE            __SQUAD_TYPE
-> #define __BLKCNT_T_TYPE         __SQUAD_TYPE
-> #define __FSBLKCNT_T_TYPE       __UQUAD_TYPE
-> #define __FSFILCNT_T_TYPE       __UQUAD_TYPE
-> 
-> And define:
-> # define __INO_T_MATCHES_INO64_T                1
-> # define __OFF_T_MATCHES_OFF64_T                1
-> # define __BLKCNT_T_MATCHES_BLKCNT64_T          1
-> # define __FSBLKCNT_T_MATCHES_FSBLKCNT64_T      1
-> # define __FSFILCNT_T_MATCHES_FSFILCNT_T        1
-> 
-> If so, stat and statfs  structures for ilp32 are turning the same as
-> for lp64. And so we'd handle related syscalls with native lp64
-> handlers (wrapped, to zero top halves) in kernel. 
-> 
-> And we don't need stat64 for ilp32.
-> 
-> Did I miss something? Is everything correct?
-> 
-> OFF_T is turned to 64-bit quite smoothly, others make applications
-> crash with segfault. Now I'm in deep debugging.
-> 
+> Do those updated pages include discussion of the point noted above?
+> I could not see it mentioned there.
 
-based on previous discussions, non-trivial glibc changes may
-be needed to make 64bit fs apis the default on a 32bit abi.
-http://sourceware.org/ml/libc-alpha/2016-05/msg00337.html
-http://sourceware.org/ml/libc-alpha/2016-05/msg00356.html
+I added the following text to pkey_alloc.2.  I somehow neglected to send
+it out in the v3 update of the manpages RFC:
 
-but i guess if you consistently fix the 32bit assumptions
-then it should work.
+An application should not call
+.BR pkey_free ()
+on any protection key which has been assigned to an address
+range by
+.BR pkey_mprotect ()
+and which is still in use.  The behavior in this case is
+undefined and may result in an error.
 
-> https://github.com/norov/glibc/commits/ilp32-dev
-> https://github.com/norov/linux/commits/ilp32
-> 
-> Yury.
-> 
+I'll add that in the version (v4) I send out shortly.
 
+> Just by the way, the above behavior seems to offer possibilities
+> for users to shoot themselves in the foot, in a way that has security
+> implications. (Or do I misunderstand?)
+
+Protection keys has the potential to add a layer of security and
+reliability to applications.  But, it has not been primarily designed as
+a security feature.  For instance, WRPKRU is a completely unprivileged
+instruction, so pkeys are useless in any case that an attacker controls
+the PKRU register or can execute arbitrary instructions.
+
+That said, this mechanism does, indeed, allow a user to shoot themselves
+in the foot and in a way that could have security implications.
+
+For instance, say the following happened:
+1. A sensitive bit of data in memory was marked with a pkey
+2. That pkey was set as PKEY_DISABLE_ACCESS
+3. The application called pkey_free() on the pkey, without freeing
+   the sensitive data
+4. Application calls pkey_alloc() and then clears PKEY_DISABLE_ACCESS
+5. Applocation can now read the sensitive data
+
+The application has to have basically "leaked" a reference to the pkey.
+ It forgot that it had sensitive data marked with that key.
+
+The kernel _could_ enforce that no in-use pkey may have pkey_free()
+called on it.  But, doing that has tradeoffs which could make
+pkey_free() extremely slow:
+
+> It's not ideal.  It would be _best_ if we during mm_pkey_free(), we
+> ensured that no VMAs under that mm have that vma_pkey() set.  But, that
+> search would be potentially expensive (a walk over all VMAs), or would
+> force us to keep a data structure with a count of all the VMAs with a
+> given key.
+
+In addition, that checking _could_ be implemented in an application by
+inspecting /proc/$pid/smaps for "ProtectionKey: $foo" before calling
+pkey_free($foo).
