@@ -1,35 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52454 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751727AbcFCWeg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2016 18:34:36 -0400
-Date: Sat, 4 Jun 2016 00:34:17 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
-Message-ID: <20160603223417.GB3892@twins.programming.kicks-ass.net>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
- <1454444369-2146-11-git-send-email-mhocko@kernel.org>
- <20160203081016.GD32652@gmail.com>
- <20160603161339.GC3693@twins.programming.kicks-ass.net>
+Received: from mail-bn1on0143.outbound.protection.outlook.com ([157.56.110.143]:2158
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750726AbcFDAdS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Jun 2016 20:33:18 -0400
+Message-ID: <5751EF53.3080205@hpe.com>
+Date: Fri, 3 Jun 2016 16:57:55 -0400
+From: Waiman Long <waiman.long@hpe.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160603161339.GC3693@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
+References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <4399273.0kije2Qdx5@wuerfel> <20160602110200.GZ3190@twins.programming.kicks-ass.net> <201606030718.u537FQg0009963@mx0a-001b2d01.pphosted.com>
+In-Reply-To: <201606030718.u537FQg0009963@mx0a-001b2d01.pphosted.com>
+Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@us.ibm.com>, Jason Low <jason.low2@hpe.com>
-Message-ID: <20160603223417.HZCUMRggqBCUD4O_VqYwYVAltMA6q-DqnN0hT32JXm8@z>
+To: xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, waiman.long@hp.com
+Message-ID: <20160603205755.jjT4CA4VCf9kRgGcGw5qq5T6QXgxU_bREZqSIXLb7eQ@z>
 
-On Fri, Jun 03, 2016 at 06:13:39PM +0200, Peter Zijlstra wrote:
-> So I've been playing with this again because Jason's atomic_long_t
-> patches made a mess of things.
-> 
-> (similar findings for both ia64 and s390, suggesting killing all
-> arch/*/include/asm/rwsem.h might actuyally be an option).
-> 
+On 06/03/2016 03:17 AM, xinhui wrote:
+>
+> On 2016年06月02日 19:02, Peter Zijlstra wrote:
+>> On Thu, Jun 02, 2016 at 12:44:51PM +0200, Arnd Bergmann wrote:
+>>> On Thursday, June 2, 2016 6:09:08 PM CEST Pan Xinhui wrote:
+>>>> diff --git a/include/asm-generic/qrwlock.h 
+>>>> b/include/asm-generic/qrwlock.h
+>>>> index 54a8e65..eadd7a3 100644
+>>>> --- a/include/asm-generic/qrwlock.h
+>>>> +++ b/include/asm-generic/qrwlock.h
+>>>> @@ -139,7 +139,7 @@ static inline void queued_read_unlock(struct 
+>>>> qrwlock *lock)
+>>>>    */
+>>>>   static inline void queued_write_unlock(struct qrwlock *lock)
+>>>>   {
+>>>> -       smp_store_release((u8 *)&lock->cnts, 0);
+>>>> +       (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+>>>>   }
+>>>
+>>> Isn't this more expensive than the existing version?
+>>
+>> Yes, loads. And while this might be a suitable fix for asm-generic, it
+>> will introduce a fairly large regression on x86 (which is currently the
+>> only user of this).
+>>
+> well, to show respect to struct __qrwlock private field.
+> We can keep smp_store_release((u8 *)&lock->cnts, 0) in little_endian 
+> machine.
+> as this should be quick and no performance issue to all other 
+> archs(although there is only 1 now)
+>
+> BUT, We need use (void)atomic_sub_return_release(_QW_LOCKED, 
+> &lock->cnts) in big_endian machine.
+> because it's bad to export struct __qrwlock and set its private field 
+> to NULL.
+>
+> How about code like below.
+>
+> static inline void queued_write_unlock(struct qrwlock *lock)
+> {
+> #ifdef __BIG_ENDIAN
+>         (void)atomic_sub_return_release(_QW_LOCKED, &lock->cnts);
+> #else
+>     smp_store_release((u8 *)&lock->cnts, 0);
+> #endif
+> }
+>
+> BUT I think that would make thing a little complex to understand. :(
+> So at last, in my opinion, I suggest my patch :)
+> any thoughts?
 
-Blergh; so looking at more asm there's still a few tricks we cannot do.
-So while overall size is down, some paths do end up more expensive. (It
-typically boils down to creative use of condition flags, which is very
-hard in C)
+Another alternative is to make queued_write_unlock() overrideable from 
+asm/qrwlock.h, just like what we did with queued_spin_unlock().
+
+Cheers,
+Longman
