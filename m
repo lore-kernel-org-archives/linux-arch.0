@@ -1,44 +1,109 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] bitmap: bitmap_equal memcmp optimization
-Date: Tue,  7 Jun 2016 10:37:41 +0200
-Message-ID: <201606070837.u578YJKt047781@mx0a-001b2d01.pphosted.com>
-References: <1465288661-3273-1-git-send-email-schwidefsky@de.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1465288661-3273-1-git-send-email-schwidefsky@de.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Subject: [PATCH 0/9] [v2] System Calls for Memory Protection Keys
+Date: Tue, 07 Jun 2016 13:47:12 -0700
+Message-ID: <20160607204712.594DE00A@viggo.jf.intel.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>, arnd-r2nGTMty4D4@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-The bitmap_equal function has optimized code for small bitmaps with less
-than BITS_PER_LONG bits. For larger bitmaps the out-of-line function
-__bitmap_equal is called.
+Are there any concerns with merging these into the x86 tree so
+that they go upstream for 4.8?  The updates here are pretty
+minor.
 
-For a constant number of bits divisible by BITS_PER_LONG the memcmp
-function can be used. For s390 gcc knows how to optimize this function,
-memcmp calls with up to 256 bytes / 2048 bits are translated into a
-single instruction.
+Changes from v1:
+ * updates to alloc/free patch description calling out that
+   "in-use" pkeys may still be pkey_free()'d successfully.
+ * Fixed a bug in the selftest where the 'flags' argument was
+   not passed to pkey_get().
+ * Added all syscalls to generic syscalls header
+ * Added extra checking to selftests so it doesn't fall over
+   when 1G pages are made the hugetlbfs default.
 
-Reviewed-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- include/linux/bitmap.h | 4 ++++
- 1 file changed, 4 insertions(+)
+--
 
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index e9b0b9a..27bfc0b 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -267,6 +267,10 @@ static inline int bitmap_equal(const unsigned long *src1,
- {
- 	if (small_const_nbits(nbits))
- 		return ! ((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
-+#ifdef CONFIG_S390
-+	else if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
-+		return !memcmp(src1, src2, nbits / 8);
-+#endif
- 	else
- 		return __bitmap_equal(src1, src2, nbits);
- }
--- 
-2.6.6
+Memory Protection Keys for User pages (pkeys) is a CPU feature
+which will first appear on Skylake Servers, but will also be
+supported on future non-server parts.  It provides a mechanism
+for enforcing page-based protections, but without requiring
+modification of the page tables when an application changes
+wishes to change permissions.
+
+Patches to implement execute-only mapping support using pkeys
+were merged in to 4.6.  But, to do anything else useful with
+pkeys, an application needs to be able to set the pkey field in
+the PTE (obviously has to be done in-kernel) and make changes to
+the "rights" register (using unprivileged instructions).
+
+An application also needs to have an an allocator for the keys
+themselves.  If two different parts of an application both want
+to protect their data with pkeys, they first need to know which
+key to use for their individual purposes.
+
+This set introduces 5 system calls, in 3 logical groups:
+
+1. PTE pkey setting (sys_pkey_mprotect(), patches #1-3)
+2. Key allocation (sys_pkey_alloc() / sys_pkey_free(), patch #4)
+3. Rights register manipulation (sys_pkey_set/get(), patch #5)
+
+These patches build on top of "core" pkeys support already in
+4.6.
+
+I have manpages written for some of these syscalls, and have
+had multiple rounds of reviews on the manpages list.
+
+This set is also available here:
+
+	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v037
+
+I've written a set of unit tests for these interfaces, which is
+available as the last patch in the series and integrated in to
+kselftests.
+
+Note: this is based on a plain 4.6 kernel and will have a minor
+merge conflict in the x86 selftests makefile with the new
+MPX selftest if those get merged first.
+
+=== diffstat ===
+
+Dave Hansen (9):
+      x86, pkeys: add fault handling for PF_PK page fault bit
+      mm: implement new pkey_mprotect() system call
+      x86, pkeys: make mprotect_key() mask off additional vm_flags
+      x86: wire up mprotect_key() system call
+      x86, pkeys: allocation/free syscalls
+      x86, pkeys: add pkey set/get syscalls
+      generic syscalls: wire up memory protection keys syscalls
+      pkeys: add details of system call use to Documentation/
+      x86, pkeys: add self-tests
+
+ Documentation/x86/protection-keys.txt         |   63 +
+ arch/alpha/include/uapi/asm/mman.h            |    5 +
+ arch/mips/include/uapi/asm/mman.h             |    5 +
+ arch/parisc/include/uapi/asm/mman.h           |    5 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |    5 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |    5 +
+ arch/x86/include/asm/mmu.h                    |    8 +
+ arch/x86/include/asm/mmu_context.h            |   25 +-
+ arch/x86/include/asm/pkeys.h                  |   80 +-
+ arch/x86/kernel/fpu/xstate.c                  |   73 +-
+ arch/x86/mm/fault.c                           |    9 +
+ arch/x86/mm/pkeys.c                           |   38 +-
+ arch/xtensa/include/uapi/asm/mman.h           |    5 +
+ include/linux/pkeys.h                         |   39 +-
+ include/uapi/asm-generic/mman-common.h        |    5 +
+ include/uapi/asm-generic/unistd.h             |   12 +-
+ mm/mprotect.c                                 |  134 +-
+ tools/testing/selftests/x86/Makefile          |    3 +-
+ tools/testing/selftests/x86/pkey-helpers.h    |  187 +++
+ tools/testing/selftests/x86/protection_keys.c | 1283 +++++++++++++++++
+ 20 files changed, 1958 insertions(+), 31 deletions(-)
+
+Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org
+Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+Cc: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
