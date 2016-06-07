@@ -1,215 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga05-in.huawei.com ([119.145.14.199]:30826 "EHLO
-	szxga05-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750829AbcFDLfj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Jun 2016 07:35:39 -0400
-Subject: Re: [PATCH 21/23] arm64: ilp32: introduce ilp32-specific handlers for
- sigframe and ucontext
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-22-git-send-email-ynorov@caviumnetworks.com>
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <5752BCC8.7080205@huawei.com>
-Date: Sat, 4 Jun 2016 19:34:32 +0800
-MIME-Version: 1.0
-In-Reply-To: <1464048292-30136-22-git-send-email-ynorov@caviumnetworks.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mga02.intel.com ([134.134.136.20]:48396 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1162225AbcFGUrS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Jun 2016 16:47:18 -0400
+Subject: [PATCH 1/9] x86, pkeys: add fault handling for PF_PK page fault bit
+From: Dave Hansen <dave@sr71.net>
+Date: Tue, 07 Jun 2016 13:47:14 -0700
+References: <20160607204712.594DE00A@viggo.jf.intel.com>
+In-Reply-To: <20160607204712.594DE00A@viggo.jf.intel.com>
+Message-ID: <20160607204714.DBBB24D2@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <20160604113432.HALrHLCwsmY_xoKcS8xN5KY5uTzZHhg_RB9UDc_Fv5g@z>
-
-Hi,
-
-I found an issue of unwind with the following code. The correct backtrace
-should be:
-(gdb) where
-#0 0x004004d0 in my_sig (sig=11) at test_force3.c:16
-#1 <signal handler called>
-#2 func2 (num=0) at test_force3.c:22
-#3 0x00400540 in func1 (num=1) at test_force3.c:28
-#4 0x00400574 in main (argc=1, argv=0xffd7bc04) at test_force3.c:33
-
-Without my patch, the backtrace is:
-(gdb) where
-#0 0x00400490 in my_sig (sig=11) at test_force3.c:16
-#1 <signal handler called>
-#2 0x004004e4 in main (argc=1, argv=0xffe6f8f4) at test_force3.c:33
-
-With my patch which fix the wrong frame pointer(setup_return calculate the offset
-of fp through ilp32_sigframe instead of sigfreame), the backtrace is:
-(gdb) where
-#0 0x00400490 in my_sig (sig=11) at test_force3.c:16
-#1 <signal handler called>
-#2 func1 () at test_force3.c:28
-#3 0x004004e4 in main (argc=1, argv=0xffe6f8f4) at test_force3.c:33
-
-I am not sure there is still some issue in kernel. But it seem that the gdb of ilp32
-does not work correctly when unwind without framepointer.
-
-The test code is:
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-
-void my_sig(int sig)
-{
-	printf("sig=%d\n", sig);
-	*(int *)0 = 0x0;
-}
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com
+Message-ID: <20160607204714.Ver_Sydkzw3aIrKca0A9liR6wqOlnIFejwXiCPw4MTo@z>
 
 
-void func2()
-{
-	*(int *)0 = 0x0;
-}
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-void func1()
-{
-	func2();
-}
+PF_PK means that a memory access violated the protection key
+access restrictions.  It is unconditionally an access_error()
+because the permissions set on the VMA don't matter (the PKRU
+value overrides it), and we never "resolve" PK faults (like
+how a COW can "resolve write fault).
 
-int main(int argc, char **argv)
-{
-	signal(11, my_sig);
-	func1();
-	return 0;
-}
-
-
-The full patch is as follows:
-
- From 7e364a765097f57aed2d73f94c1688c2e7343e79 Mon Sep 17 00:00:00 2001
-From: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
-Date: Sat, 4 Jun 2016 14:30:05 +0800
-Subject: [PATCH] arm64: ilp32: fix for wrong fp offset when calculate the
-  new fp
-
-ILP32 define its own sigframe(ilp32_sigframe) because of the
-difference uc_context. setup_return do not use ilp32 specific
-sigframe to calculate the new offset of fp which lead to wrong
-fp in signal handler. At this circumstance, gdb backtrace will miss
-one item:
-(gdb) where
-
-It should be:
-(gdb) where
-
-The test code is as follows:
-
-void my_sig(int sig)
-{
-         printf("sig=%d\n", sig);
-         *(int *)0 = 0x0;
-}
-
-void func2(int num)
-{
-         printf("%s: %d\n", __FUNCTION__, num);
-         *(int *)0 = 0x0;
-         func2(num-1);
-}
-
-void func1(int num)
-{
-         printf("%s\n", __FUNCTION__);
-         func2(num - 1);
-}
-
-int main(int argc, char **argv)
-{
-         signal(11, my_sig);
-         func1(argc);
-         return 0;
-}
-
-This patch fix this by passing the correct offset of fp to
-setup_return.
-Test pass on both ILP32 and LP64 in aarch64 EE.
-
-Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
 ---
-  arch/arm64/include/asm/signal_common.h | 3 ++-
-  arch/arm64/kernel/signal.c             | 9 +++++----
-  arch/arm64/kernel/signal_ilp32.c       | 4 ++--
-  3 files changed, 9 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/signal_common.h b/arch/arm64/include/asm/signal_common.h
-index de93c71..a5d7b63 100644
---- a/arch/arm64/include/asm/signal_common.h
-+++ b/arch/arm64/include/asm/signal_common.h
-@@ -29,6 +29,7 @@ int setup_sigcontex(struct sigcontext __user *uc_mcontext,
-  		    struct pt_regs *regs);
-  int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sf);
-  void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
--			void __user *frame, off_t sigframe_off, int usig);
-+			void __user *frame, off_t sigframe_off, off_t fp_off,
-+			int usig);
+ b/arch/x86/mm/fault.c |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-  #endif /* __ASM_SIGNAL_COMMON_H */
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 038bebe..e66a6e9 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -256,14 +256,14 @@ static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
-  }
-
-  void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
--			 void __user *frame, off_t sigframe_off, int usig)
-+			 void __user *frame, off_t sigframe_off, off_t fp_off,
-+			 int usig)
-  {
-  	__sigrestore_t sigtramp;
-
-  	regs->regs[0] = usig;
-  	regs->sp = (unsigned long)frame;
--	regs->regs[29] = regs->sp + sigframe_off +
--		offsetof(struct sigframe, fp);
-+	regs->regs[29] = regs->sp + sigframe_off + fp_off;
-  	regs->pc = (unsigned long)ka->sa.sa_handler;
-
-  	if (ka->sa.sa_flags & SA_RESTORER)
-@@ -294,7 +294,8 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-  	err |= setup_sigframe(&frame->sig, regs, set);
-  	if (err == 0) {
-  		setup_return(regs, &ksig->ka, frame,
--			offsetof(struct rt_sigframe, sig), usig);
-+			offsetof(struct rt_sigframe, sig),
-+			offsetof(struct sigframe, fp), usig);
-  		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
-  			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
-  			regs->regs[1] = (unsigned long)&frame->info;
-diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
-index a8ea73e..9030f14 100644
---- a/arch/arm64/kernel/signal_ilp32.c
-+++ b/arch/arm64/kernel/signal_ilp32.c
-@@ -147,7 +147,6 @@ static struct ilp32_rt_sigframe __user *ilp32_get_sigframe(struct ksignal *ksig,
-  	struct ilp32_rt_sigframe __user *frame;
-
-  	sp = sp_top = sigsp(regs->sp, ksig);
--
-  	sp = (sp - sizeof(struct ilp32_rt_sigframe)) & ~15;
-  	frame = (struct ilp32_rt_sigframe __user *)sp;
-
-@@ -183,7 +182,8 @@ int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
-  	err |= setup_ilp32_sigframe(&frame->sig, regs, set);
-  	if (err == 0) {
-  		setup_return(regs, &ksig->ka, frame,
--			     offsetof(struct ilp32_rt_sigframe, sig), usig);
-+			     offsetof(struct ilp32_rt_sigframe, sig),
-+			     offsetof(struct ilp32_sigframe, fp), usig);
-  		regs->regs[1] = (unsigned long)&frame->info;
-  		regs->regs[2] = (unsigned long)&frame->sig.uc;
-  	}
--- 
-1.8.4.5
-
-Regards
-
-Bamvor
-
-
-
+diff -puN arch/x86/mm/fault.c~pkeys-105-add-pk-to-fault arch/x86/mm/fault.c
+--- a/arch/x86/mm/fault.c~pkeys-105-add-pk-to-fault	2016-06-07 13:22:18.529937509 -0700
++++ b/arch/x86/mm/fault.c	2016-06-07 13:22:18.534937739 -0700
+@@ -1112,6 +1112,15 @@ access_error(unsigned long error_code, s
+ {
+ 	/* This is only called for the current mm, so: */
+ 	bool foreign = false;
++
++	/*
++	 * Read or write was blocked by protection keys.  This is
++	 * always an unconditional error and can never result in
++	 * a follow-up action to resolve the fault, like a COW.
++	 */
++	if (error_code & PF_PK)
++		return 1;
++
+ 	/*
+ 	 * Make sure to check the VMA so that we do not perform
+ 	 * faults just to hit a PF_PK as soon as we fill in a
+_
