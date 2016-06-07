@@ -1,64 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:3220 "EHLO mga03.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:33176 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423181AbcFGUr1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Jun 2016 16:47:27 -0400
-Subject: [PATCH 7/9] generic syscalls: wire up memory protection keys syscalls
+	id S1423148AbcFGUrU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Jun 2016 16:47:20 -0400
+Subject: [PATCH 3/9] x86, pkeys: make mprotect_key() mask off additional vm_flags
 From: Dave Hansen <dave@sr71.net>
-Date: Tue, 07 Jun 2016 13:47:25 -0700
+Date: Tue, 07 Jun 2016 13:47:19 -0700
 References: <20160607204712.594DE00A@viggo.jf.intel.com>
 In-Reply-To: <20160607204712.594DE00A@viggo.jf.intel.com>
-Message-ID: <20160607204725.A731CB1E@viggo.jf.intel.com>
+Message-ID: <20160607204719.AE9B56C0@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, arnd@arndb.de
-Message-ID: <20160607204725.Ov_1gbzarEcw0GKiPelS7BCJGsZRupwU3y3f5EORLSo@z>
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com
+Message-ID: <20160607204719.yyvNjusg6LqppzGaS5KAKFpcHM2WBQ1GXYQ31y-q45c@z>
 
 
 From: Dave Hansen <dave.hansen@linux.intel.com>
 
-These new syscalls are implemented as generic code, so enable
-them for architectures like arm64 which use the generic syscall
-table.
+Today, mprotect() takes 4 bits of data: PROT_READ/WRITE/EXEC/NONE.
+Three of those bits: READ/WRITE/EXEC get translated directly in to
+vma->vm_flags by calc_vm_prot_bits().  If a bit is unset in
+mprotect()'s 'prot' argument then it must be cleared in vma->vm_flags
+during the mprotect() call.
 
-According to Arnd:
+We do this clearing today by first calculating the VMA flags we
+want set, then clearing the ones we do not want to inherit from
+the original VMA:
 
-	Even if the support is x86 specific for the forseeable
-	future, it may be good to reserve the number just in
-	case.  The other architecture specific syscall lists are
-	usually left to the individual arch maintainers, most a
-	lot of the newer architectures share this table.
+	vm_flags = calc_vm_prot_bits(prot, key);
+	...
+	newflags = vm_flags;
+	newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
+
+However, we *also* want to mask off the original VMA's vm_flags in
+which we store the protection key.
+
+To do that, this patch adds a new macro:
+
+	ARCH_VM_PKEY_FLAGS
+
+which allows the architecture to specify additional bits that it would
+like cleared.  We use that to ensure that the VM_PKEY_BIT* bits get
+cleared.
 
 Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-mm@kvack.org
+Cc: x86@kernel.org
+Cc: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org
 ---
 
- b/include/uapi/asm-generic/unistd.h |   12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
+ b/arch/x86/include/asm/pkeys.h |    2 ++
+ b/include/linux/pkeys.h        |    1 +
+ b/mm/mprotect.c                |   11 ++++++++++-
+ 3 files changed, 13 insertions(+), 1 deletion(-)
 
-diff -puN include/uapi/asm-generic/unistd.h~pkeys-119-syscalls-generic include/uapi/asm-generic/unistd.h
---- a/include/uapi/asm-generic/unistd.h~pkeys-119-syscalls-generic	2016-06-07 13:22:21.703083776 -0700
-+++ b/include/uapi/asm-generic/unistd.h	2016-06-07 13:22:21.707083961 -0700
-@@ -724,9 +724,19 @@ __SYSCALL(__NR_copy_file_range, sys_copy
- __SC_COMP(__NR_preadv2, sys_preadv2, compat_sys_preadv2)
- #define __NR_pwritev2 287
- __SC_COMP(__NR_pwritev2, sys_pwritev2, compat_sys_pwritev2)
-+#define __NR_pkey_mprotect 288
-+__SYSCALL(__NR_pkey_mprotect, sys_pkey_mprotect)
-+#define __NR_pkey_alloc 289
-+__SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
-+#define __NR_pkey_free 290
-+__SYSCALL(__NR_pkey_free,     sys_pkey_free)
-+#define __NR_pkey_get 291
-+__SYSCALL(__NR_pkey_get,      sys_pkey_get)
-+#define __NR_pkey_set 292
-+__SYSCALL(__NR_pkey_set,      sys_pkey_set)
+diff -puN arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags arch/x86/include/asm/pkeys.h
+--- a/arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-06-07 13:22:19.466980702 -0700
++++ b/arch/x86/include/asm/pkeys.h	2016-06-07 13:22:19.473981025 -0700
+@@ -38,4 +38,6 @@ static inline int arch_override_mprotect
+ extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 		unsigned long init_val);
  
- #undef __NR_syscalls
--#define __NR_syscalls 288
-+#define __NR_syscalls 293
++#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | VM_PKEY_BIT3)
++
+ #endif /*_ASM_X86_PKEYS_H */
+diff -puN include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags include/linux/pkeys.h
+--- a/include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-06-07 13:22:19.468980794 -0700
++++ b/include/linux/pkeys.h	2016-06-07 13:22:19.473981025 -0700
+@@ -16,6 +16,7 @@
+ #define execute_only_pkey(mm) (0)
+ #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
+ #define PKEY_DEDICATED_EXECUTE_ONLY 0
++#define ARCH_VM_PKEY_FLAGS 0
+ #endif /* ! CONFIG_ARCH_HAS_PKEYS */
  
  /*
-  * All syscalls below here should go away really,
+diff -puN mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags	2016-06-07 13:22:19.469980840 -0700
++++ b/mm/mprotect.c	2016-06-07 13:22:19.473981025 -0700
+@@ -411,6 +411,7 @@ static int do_mprotect_pkey(unsigned lon
+ 		prev = vma;
+ 
+ 	for (nstart = start ; ; ) {
++		unsigned long mask_off_old_flags;
+ 		unsigned long newflags;
+ 		int new_vma_pkey;
+ 
+@@ -420,9 +421,17 @@ static int do_mprotect_pkey(unsigned lon
+ 		if (rier && (vma->vm_flags & VM_MAYEXEC))
+ 			prot |= PROT_EXEC;
+ 
++		/*
++		 * Each mprotect() call explicitly passes r/w/x permissions.
++		 * If a permission is not passed to mprotect(), it must be
++		 * cleared from the VMA.
++		 */
++		mask_off_old_flags = VM_READ | VM_WRITE | VM_EXEC |
++					ARCH_VM_PKEY_FLAGS;
++
+ 		new_vma_pkey = arch_override_mprotect_pkey(vma, prot, pkey);
+ 		newflags = calc_vm_prot_bits(prot, new_vma_pkey);
+-		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
++		newflags |= (vma->vm_flags & ~mask_off_old_flags);
+ 
+ 		/* newflags >> 4 shift VM_MAY% in place of VM_% */
+ 		if ((newflags & ~(newflags >> 4)) & (VM_READ | VM_WRITE | VM_EXEC)) {
 _
