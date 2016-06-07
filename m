@@ -1,12 +1,27 @@
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Subject: [PATCH] bitmap_equal memcmp optimization for s390
 Date: Tue,  7 Jun 2016 10:37:40 +0200
-Message-ID: <201606070837.u578YGqF033970@mx0a-001b2d01.pphosted.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Message-ID: <201606070837.u578Y1R5037289@mx0a-001b2d01.pphosted.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:58681 "EHLO
+	mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754266AbcFGIh4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jun 2016 04:37:56 -0400
+Received: from pps.filterd (m0048827.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u578Y1R5037289
+	for <linux-arch@vger.kernel.org>; Tue, 7 Jun 2016 04:37:55 -0400
+Received: from e06smtp08.uk.ibm.com (e06smtp08.uk.ibm.com [195.75.94.104])
+	by mx0a-001b2d01.pphosted.com with ESMTP id 23dq0tb3gm-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Tue, 07 Jun 2016 04:37:55 -0400
+Received: from localhost
+	by e06smtp08.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Tue, 7 Jun 2016 09:37:52 +0100
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
 Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
 
 Servus,
 
