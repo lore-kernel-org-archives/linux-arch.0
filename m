@@ -1,36 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:59777 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422765AbcFHMoB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2016 08:44:01 -0400
-Date: Wed, 8 Jun 2016 14:43:12 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:37671 "EHLO
+	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161222AbcFHMzf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2016 08:55:35 -0400
+Date: Wed, 8 Jun 2016 14:55:30 +0200
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH -v2 00/33] implement atomic_fetch_$op
-Message-ID: <20160608124312.GA30927@twins.programming.kicks-ass.net>
+Message-ID: <20160608125530.GB11563@gmail.com>
 References: <20160531101925.702692792@infradead.org>
  <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
  <20160602093304.GX3190@twins.programming.kicks-ass.net>
+ <20160608124312.GA30927@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160602093304.GX3190@twins.programming.kicks-ass.net>
+In-Reply-To: <20160608124312.GA30927@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "dalias@libc.org" <dalias@libc.org>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@mellanox.com" <cmetcalf@mellanox.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>
-Message-ID: <20160608124312.mxVMZLR5TG_wADqQR_-oFd555BbYfc6zAGoBKIP5fUA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "mpe@ellerman.id.au" <mpe@ellerman.id.au>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "dalias@libc.org" <dalias@libc.org>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@mellanox.com" <cmetcalf@mellanox.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "arnd@arndb.de" <arnd@arndb.de>, "dbueso@suse.de" <dbueso@suse.de>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>
+Message-ID: <20160608125530.v_0CNrKhsoVpSs3qzv9LVNRFhdckmtqCmbGLWw8Up98@z>
 
-On Thu, Jun 02, 2016 at 11:33:04AM +0200, Peter Zijlstra wrote:
-> On Thu, Jun 02, 2016 at 09:27:36AM +0000, Vineet Gupta wrote:
 
-> > What's ur merge plan - are u going to rebase/respin once more so I can push those
-> > updates to Linus for 4.7-rc2. Or you could carry those ARC patches in ur tree -
-> > ahead of ur series. I'd much rather prefer the revert / cleanup before adding new
-> > code which extends the back off code only to be deleted later.
+* Peter Zijlstra <peterz@infradead.org> wrote:
+
+> On Thu, Jun 02, 2016 at 11:33:04AM +0200, Peter Zijlstra wrote:
+> > On Thu, Jun 02, 2016 at 09:27:36AM +0000, Vineet Gupta wrote:
 > 
-> I was hoping to get these into tip for v4.8, I can rebase on whatever
-> changes you make in v4.7 no problem.
+> > > What's ur merge plan - are u going to rebase/respin once more so I can push those
+> > > updates to Linus for 4.7-rc2. Or you could carry those ARC patches in ur tree -
+> > > ahead of ur series. I'd much rather prefer the revert / cleanup before adding new
+> > > code which extends the back off code only to be deleted later.
+> > 
+> > I was hoping to get these into tip for v4.8, I can rebase on whatever
+> > changes you make in v4.7 no problem.
+> 
+> -rc2 seems to have happened and I cannot seem to find changes to
+> arc/atomic.h, will you still be pushing those patches this window or
+> should I queue my patches?
 
--rc2 seems to have happened and I cannot seem to find changes to
-arc/atomic.h, will you still be pushing those patches this window or
-should I queue my patches?
+I'd much prefer to have all of these in the locking tree (i.e. tip:locking/core), 
+to make it less painful all around.
+
+Thanks,
+
+	Ingo
