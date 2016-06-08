@@ -1,42 +1,84 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 00/33] implement atomic_fetch_$op
-Date: Wed, 8 Jun 2016 16:38:26 +0200
-Message-ID: <20160608143826.GN30909@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <C2D7FE5348E1B147BCA15975FBA23075F4EAF393@us01wembx1.internal.synopsys.com>
- <20160602093304.GX3190@twins.programming.kicks-ass.net>
- <20160608124312.GA30927@twins.programming.kicks-ass.net>
- <20160608125530.GB11563@gmail.com>
- <20160608133242.GS30154@twins.programming.kicks-ass.net>
- <57582A9F.2060307@synopsys.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 17/23] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Wed, 8 Jun 2016 20:00:48 +0300
+Message-ID: <20160608170048.GA24482@yury-N73SV>
+References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+ <1464048292-30136-18-git-send-email-ynorov@caviumnetworks.com>
+ <57577611.9000607@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:33609 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423826AbcFHOil (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2016 10:38:41 -0400
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <libc-alpha-return-70338-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 Content-Disposition: inline
-In-Reply-To: <57582A9F.2060307@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <vgupta@synopsys.com>
-Cc: Ingo Molnar <mingo@kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "boqun.feng@gmail.com" <boqun.feng@gmail.com>, "waiman.long@hpe.com" <waiman.long@hpe.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "egtvedt@samfundet.no" <egtvedt@samfundet.no>, "realmz6@gmail.com" <realmz6@gmail.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.o>
+In-Reply-To: <57577611.9000607@huawei.com>
+To: zhouchengming <zhouchengming1@huawei.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, kilobyte@angband.pl, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, agraf@suse.de, geert@linux-m68k.org, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, broonie@kernel.org, schwidefsky@de.ibm.com, bamvor.zhangjian@huawei.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 08, 2016 at 07:54:31PM +0530, Vineet Gupta wrote:
-> On Wednesday 08 June 2016 07:02 PM, Peter Zijlstra wrote:
-> > On Wed, Jun 08, 2016 at 02:55:30PM +0200, Ingo Molnar wrote:
-> > 
-> >> I'd much prefer to have all of these in the locking tree (i.e. tip:locking/core), 
-> >> to make it less painful all around.
-> > 
-> > All the fetch_op stuff, yes certainly. But Vineet wanted to munge
-> > arch/arc/include/asm/atomic.h a bit in 4.7, which would make applying
-> > the arc fetch_op patch tricky.
-> > 
+On Wed, Jun 08, 2016 at 09:34:09AM +0800, zhouchengming wrote:
+> On 2016/5/24 8:04, Yury Norov wrote:
+> >Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+> >detection of the task type.
+> >
+> >Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+
+[...]
+
+> Hello, I found ilp32 will use sys_ptrace, not compat_sys_ptrace. So I write
+> a little patch to see if can solve the problem correctly.
 > 
-> My patches are in linux-next already. I was hoping to squeeze in a different fix
-> before sending the pull request to Linus. But I don't want to stall you, will do
-> that first thing tomorrow morning. OK ?
+> Thanks.
+> 
+> From f6156236df578bb05c4a17e7f9776ceaf8f7afe6 Mon Sep 17 00:00:00 2001
+> From: Zhou Chengming <zhouchengming1@huawei.com>
+> Date: Wed, 8 Jun 2016 09:46:23 +0800
+> Subject: [PATCH] ilp32: use compat_sys_ptrace instead of sys_ptrace
+> 
+> When we analyze a testcase of ptrace that failed on ilp32, we found
+> the syscall that the ilp32 uses is sys_ptrace, not compat_sys_ptrace.
+> Because in include/uapi/asm-generic/unistd.h it's defined like:
+> __SYSCALL(__NR_ptrace, sys_ptrace)
+> So we change it to __SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace),
+> let compat tasks use the compat_sys_ptrace.
+> 
+> Signed-off-by: Zhou Chengming <zhouchengming1@huawei.com>
+> ---
+>  include/uapi/asm-generic/unistd.h |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/include/uapi/asm-generic/unistd.h
+> b/include/uapi/asm-generic/unistd.h
+> index 2862d2e..50ee770 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -364,7 +364,7 @@ __SC_WRAP(__NR_syslog, sys_syslog)
+> 
+>  /* kernel/ptrace.c */
+>  #define __NR_ptrace 117
+> -__SYSCALL(__NR_ptrace, sys_ptrace)
+> +__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
+> 
+>  /* kernel/sched/core.c */
+>  #define __NR_sched_setparam 118
+> -- 
+> 1.7.7
+> 
 
-Much thanks!
+Hi Zhou,
+
+Thank you for the catch.
+
+Could you also show the test that is failed for you. It should
+probably be sent to LTP maillist.
+
+I'm not sure your fix correct as it affects other architectures that
+use standard unistd.h. I think it's better to redirect the syscall in
+arch/arm64/kernel/sys_ilp32.c with corresponding definition.
+
+Yury
