@@ -1,85 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0087.outbound.protection.outlook.com ([157.56.111.87]:18144
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753464AbcFHRPf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jun 2016 13:15:35 -0400
-Date: Wed, 8 Jun 2016 20:00:48 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 17/23] arm64: ptrace: handle ptrace_request differently
- for aarch32 and ilp32
-Message-ID: <20160608170048.GA24482@yury-N73SV>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-18-git-send-email-ynorov@caviumnetworks.com>
- <57577611.9000607@huawei.com>
+Received: from www.sr71.net ([198.145.64.142]:45429 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933368AbcFHRfV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Jun 2016 13:35:21 -0400
+Subject: Re: [PATCH 0/9] [v2] System Calls for Memory Protection Keys
+References: <20160607204712.594DE00A@viggo.jf.intel.com>
+ <6eaf31c0-0c94-6248-2ace-79e7c923a569@gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <57585753.2080604@sr71.net>
+Date: Wed, 8 Jun 2016 10:35:15 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <57577611.9000607@huawei.com>
+In-Reply-To: <6eaf31c0-0c94-6248-2ace-79e7c923a569@gmail.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: zhouchengming <zhouchengming1@huawei.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, kilobyte@angband.pl, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, agraf@suse.de, geert@linux-m68k.org, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, broonie@kernel.org, schwidefsky@de.ibm.com, bamvor.zhangjian@huawei.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160608170048.54SvoE338IQioiD0SSJVbxk2BAFh7z82mBGxcdnWB2E@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, arnd@arndb.de
+Message-ID: <20160608173515.4xLdJ0lrUkoXKRXsUMsvgvBXJqUNOnykZ0UrPwEZ6nU@z>
 
-On Wed, Jun 08, 2016 at 09:34:09AM +0800, zhouchengming wrote:
-> On 2016/5/24 8:04, Yury Norov wrote:
-> >Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
-> >detection of the task type.
-> >
-> >Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+On 06/08/2016 02:23 AM, Michael Kerrisk (man-pages) wrote:
+> On 06/07/2016 10:47 PM, Dave Hansen wrote:
+>> > Are there any concerns with merging these into the x86 tree so
+>> > that they go upstream for 4.8?  
+> I believe we still don't have up-to-date man pages, right?
+> Best from my POV to send them out in parallel with the 
+> implementation.
 
-[...]
-
-> Hello, I found ilp32 will use sys_ptrace, not compat_sys_ptrace. So I write
-> a little patch to see if can solve the problem correctly.
-> 
-> Thanks.
-> 
-> From f6156236df578bb05c4a17e7f9776ceaf8f7afe6 Mon Sep 17 00:00:00 2001
-> From: Zhou Chengming <zhouchengming1@huawei.com>
-> Date: Wed, 8 Jun 2016 09:46:23 +0800
-> Subject: [PATCH] ilp32: use compat_sys_ptrace instead of sys_ptrace
-> 
-> When we analyze a testcase of ptrace that failed on ilp32, we found
-> the syscall that the ilp32 uses is sys_ptrace, not compat_sys_ptrace.
-> Because in include/uapi/asm-generic/unistd.h it's defined like:
-> __SYSCALL(__NR_ptrace, sys_ptrace)
-> So we change it to __SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace),
-> let compat tasks use the compat_sys_ptrace.
-> 
-> Signed-off-by: Zhou Chengming <zhouchengming1@huawei.com>
-> ---
->  include/uapi/asm-generic/unistd.h |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
-> 
-> diff --git a/include/uapi/asm-generic/unistd.h
-> b/include/uapi/asm-generic/unistd.h
-> index 2862d2e..50ee770 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -364,7 +364,7 @@ __SC_WRAP(__NR_syslog, sys_syslog)
-> 
->  /* kernel/ptrace.c */
->  #define __NR_ptrace 117
-> -__SYSCALL(__NR_ptrace, sys_ptrace)
-> +__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
-> 
->  /* kernel/sched/core.c */
->  #define __NR_sched_setparam 118
-> -- 
-> 1.7.7
-> 
-
-Hi Zhou,
-
-Thank you for the catch.
-
-Could you also show the test that is failed for you. It should
-probably be sent to LTP maillist.
-
-I'm not sure your fix correct as it affects other architectures that
-use standard unistd.h. I think it's better to redirect the syscall in
-arch/arm64/kernel/sys_ilp32.c with corresponding definition.
-
-Yury
+I performed all the fixups and sent two dry-runs of the emails last week
+instead of sending them out for real.  I will send them immediately.
+Sorry for the delay.
