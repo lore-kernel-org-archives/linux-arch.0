@@ -1,38 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:51347 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1161803AbcFHJWb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jun 2016 05:22:31 -0400
-Date: Wed, 8 Jun 2016 10:22:44 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
-Message-ID: <20160608092244.GA27029@arm.com>
-References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36146 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423598AbcFHJX7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2016 05:23:59 -0400
+Subject: Re: [PATCH 0/9] [v2] System Calls for Memory Protection Keys
+References: <20160607204712.594DE00A@viggo.jf.intel.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Message-ID: <6eaf31c0-0c94-6248-2ace-79e7c923a569@gmail.com>
+Date: Wed, 8 Jun 2016 11:23:48 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+In-Reply-To: <20160607204712.594DE00A@viggo.jf.intel.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, waiman.long@hp.com, peterz@infradead.org
-Message-ID: <20160608092244.GdyJr4qT8wqt5aseWZrBBm-ltuQeSeYV9r9prgEqrMQ@z>
+To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+Cc: mtk.manpages@gmail.com, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, arnd@arndb.de
+Message-ID: <20160608092348.tx6suDY3rq95FWqnLxIrT8B0cO1OXnB1eFyZXcrOj58@z>
 
-On Thu, Jun 02, 2016 at 06:09:08PM +0800, Pan Xinhui wrote:
-> strcut __qrwlock has different layout in big endian machine. we need set
-> the __qrwlock->wmode to NULL, and the address is not &lock->cnts in big
-> endian machine.
-> 
-> Do as what read unlock does. we are lucky that the __qrwlock->wmode's
-> val is _QW_LOCKED.
+On 06/07/2016 10:47 PM, Dave Hansen wrote:
+> Are there any concerns with merging these into the x86 tree so
+> that they go upstream for 4.8?  
 
-Doesn't this have wider implications for the qrwlocks, for example:
+I believe we still don't have up-to-date man pages, right?
+Best from my POV to send them out in parallel with the 
+implementation.
 
-  while ((cnts & _QW_WMASK) == _QW_LOCKED) { ... }
+Cheers,
 
-would actually end up looking at the wrong field of the lock?
+Michael
 
-Shouldn't we just remove the #ifdef __LITTLE_ENDIAN stuff from __qrwlock,
-given that all the struct members are u8?
 
-Will
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
