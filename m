@@ -1,33 +1,39 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
-Date: Wed, 8 Jun 2016 10:22:44 +0100
-Message-ID: <20160608092244.GA27029@arm.com>
-References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCH 0/9] [v2] System Calls for Memory Protection Keys
+Date: Wed, 8 Jun 2016 11:23:48 +0200
+Message-ID: <6eaf31c0-0c94-6248-2ace-79e7c923a569@gmail.com>
+References: <20160607204712.594DE00A@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, waiman.long@hp.com, peterz@infradead.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160607204712.594DE00A@viggo.jf.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+Cc: mtk.manpages@gmail.com, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 02, 2016 at 06:09:08PM +0800, Pan Xinhui wrote:
-> strcut __qrwlock has different layout in big endian machine. we need set
-> the __qrwlock->wmode to NULL, and the address is not &lock->cnts in big
-> endian machine.
-> 
-> Do as what read unlock does. we are lucky that the __qrwlock->wmode's
-> val is _QW_LOCKED.
+On 06/07/2016 10:47 PM, Dave Hansen wrote:
+> Are there any concerns with merging these into the x86 tree so
+> that they go upstream for 4.8?  
 
-Doesn't this have wider implications for the qrwlocks, for example:
+I believe we still don't have up-to-date man pages, right?
+Best from my POV to send them out in parallel with the 
+implementation.
 
-  while ((cnts & _QW_WMASK) == _QW_LOCKED) { ... }
+Cheers,
 
-would actually end up looking at the wrong field of the lock?
+Michael
 
-Shouldn't we just remove the #ifdef __LITTLE_ENDIAN stuff from __qrwlock,
-given that all the struct members are u8?
 
-Will
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
