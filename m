@@ -1,253 +1,81 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 2/9] mm: implement new pkey_mprotect() system call
-Date: Wed, 08 Jun 2016 17:01:20 -0700
-Message-ID: <20160609000120.A3DD5140@viggo.jf.intel.com>
-References: <20160609000117.71AC7623@viggo.jf.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160609000117.71AC7623@viggo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH] bitmap: bitmap_equal memcmp optimization
+Date: Thu, 9 Jun 2016 08:31:39 +0200
+Message-ID: <20160609083139.665d996b@mschwide>
+References: <1465288661-3273-1-git-send-email-schwidefsky@de.ibm.com>
+	<201606070837.u578YJKt047781@mx0a-001b2d01.pphosted.com>
+	<20160608134212.9f868a8dd494b88e402d5d31@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160608134212.9f868a8dd494b88e402d5d31@linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, 8 Jun 2016 13:42:12 -0700
+Andrew Morton <akpm@linux-foundation.org> wrote:
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+> On Tue,  7 Jun 2016 10:37:41 +0200 Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+> 
+> > The bitmap_equal function has optimized code for small bitmaps with less
+> > than BITS_PER_LONG bits. For larger bitmaps the out-of-line function
+> > __bitmap_equal is called.
+> > 
+> > For a constant number of bits divisible by BITS_PER_LONG the memcmp
+> > function can be used. For s390 gcc knows how to optimize this function,
+> > memcmp calls with up to 256 bytes / 2048 bits are translated into a
+> > single instruction.
+> 
+> Patch looks simple enough, although it would benefit from a comment
+> explaining what's special about s390.
 
-pkey_mprotect() is just like mprotect, except it also takes a
-protection key as an argument.  On systems that do not support
-protection keys, it still works, but requires that key=0.
-Otherwise it does exactly what mprotect does.
+The explanation from the git commit could be transfered into a comment.
 
-I expect it to get used like this, if you want to guarantee that
-any mapping you create can *never* be accessed without the right
-protection keys set up.
+> > --- a/include/linux/bitmap.h
+> > +++ b/include/linux/bitmap.h
+> > @@ -267,6 +267,10 @@ static inline int bitmap_equal(const unsigned long *src1,
+> >  {
+> >  	if (small_const_nbits(nbits))
+> >  		return ! ((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+> > +#ifdef CONFIG_S390
+> > +	else if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+> > +		return !memcmp(src1, src2, nbits / 8);
+> > +#endif
+> >  	else
+> >  		return __bitmap_equal(src1, src2, nbits);
+> >  }
+> 
+> Those elses are a bit daffy.  This:
+> 
+> --- a/include/linux/bitmap.h~bitmap-bitmap_equal-memcmp-optimization-fix
+> +++ a/include/linux/bitmap.h
+> @@ -266,13 +266,12 @@ static inline int bitmap_equal(const uns
+>  			const unsigned long *src2, unsigned int nbits)
+>  {
+>  	if (small_const_nbits(nbits))
+> -		return ! ((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+> +		return !((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+>  #ifdef CONFIG_S390
+> -	else if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+> +	if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+>  		return !memcmp(src1, src2, nbits / 8);
+>  #endif
+> -	else
+> -		return __bitmap_equal(src1, src2, nbits);
+> +	return __bitmap_equal(src1, src2, nbits);
+>  }
+> 
+>  static inline int bitmap_intersects(const unsigned long *src1,
+> _
+> 
 
-	int real_prot = PROT_READ|PROT_WRITE;
-	pkey = pkey_alloc(0, PKEY_DENY_ACCESS);
-	ptr = mmap(NULL, PAGE_SIZE, PROT_NONE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
-	ret = pkey_mprotect(ptr, PAGE_SIZE, real_prot, pkey);
+Yeah that looks better. Thanks for picking this up!
 
-This way, there is *no* window where the mapping is accessible
-since it was always either PROT_NONE or had a protection key set.
+-- 
+blue skies,
+   Martin.
 
-We settled on 'unsigned long' for the type of the key here.  We
-only need 4 bits on x86 today, but I figured that other
-architectures might need some more space.
-
-Semantically, we have a bit of a problem if we combine this
-syscall with our previously-introduced execute-only support:
-What do we do when we mix execute-only pkey use with
-pkey_mprotect() use?  For instance:
-
-	pkey_mprotect(ptr, PAGE_SIZE, PROT_WRITE, 6); // set pkey=6
-	mprotect(ptr, PAGE_SIZE, PROT_EXEC);  // set pkey=X_ONLY_PKEY?
-	mprotect(ptr, PAGE_SIZE, PROT_WRITE); // is pkey=6 again?
-
-To solve that, we make the plain-mprotect()-initiated execute-only
-support only apply to VMAs that have the default protection key (0)
-set on them.
-
-Proposed semantics:
-1. protection key 0 is special and represents the default,
-   unassigned protection key.  It is always allocated.
-2. mprotect() never affects a mapping's pkey_mprotect()-assigned
-   protection key. A protection key of 0 (even if set explicitly)
-   represents an unassigned protection key.
-   2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
-       key may or may not result in a mapping with execute-only
-       properties.  pkey_mprotect() plus pkey_set() on all threads
-       should be used to _guarantee_ execute-only semantics.
-3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
-   kernel will internally attempt to allocate and dedicate a
-   protection key for the purpose of execute-only mappings.  This
-   may not be possible in cases where there are no free protection
-   keys available.
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: x86@kernel.org
-Cc: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org
----
-
- b/arch/x86/include/asm/mmu_context.h |   15 ++++++++++-----
- b/arch/x86/include/asm/pkeys.h       |   11 +++++++++--
- b/arch/x86/kernel/fpu/xstate.c       |   15 ++++++++++++++-
- b/arch/x86/mm/pkeys.c                |    2 +-
- b/mm/mprotect.c                      |   27 +++++++++++++++++++++++----
- 5 files changed, 57 insertions(+), 13 deletions(-)
-
-diff -puN arch/x86/include/asm/mmu_context.h~pkeys-110-syscalls-mprotect_pkey arch/x86/include/asm/mmu_context.h
---- a/arch/x86/include/asm/mmu_context.h~pkeys-110-syscalls-mprotect_pkey	2016-06-08 16:26:33.675869430 -0700
-+++ b/arch/x86/include/asm/mmu_context.h	2016-06-08 16:26:33.686869929 -0700
-@@ -4,6 +4,7 @@
- #include <asm/desc.h>
- #include <linux/atomic.h>
- #include <linux/mm_types.h>
-+#include <linux/pkeys.h>
- 
- #include <trace/events/tlb.h>
- 
-@@ -195,16 +196,20 @@ static inline void arch_unmap(struct mm_
- 		mpx_notify_unmap(mm, vma, start, end);
- }
- 
-+#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
- static inline int vma_pkey(struct vm_area_struct *vma)
- {
--	u16 pkey = 0;
--#ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
- 	unsigned long vma_pkey_mask = VM_PKEY_BIT0 | VM_PKEY_BIT1 |
- 				      VM_PKEY_BIT2 | VM_PKEY_BIT3;
--	pkey = (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
--#endif
--	return pkey;
-+
-+	return (vma->vm_flags & vma_pkey_mask) >> VM_PKEY_SHIFT;
-+}
-+#else
-+static inline int vma_pkey(struct vm_area_struct *vma)
-+{
-+	return 0;
- }
-+#endif
- 
- static inline bool __pkru_allows_pkey(u16 pkey, bool write)
- {
-diff -puN arch/x86/include/asm/pkeys.h~pkeys-110-syscalls-mprotect_pkey arch/x86/include/asm/pkeys.h
---- a/arch/x86/include/asm/pkeys.h~pkeys-110-syscalls-mprotect_pkey	2016-06-08 16:26:33.676869475 -0700
-+++ b/arch/x86/include/asm/pkeys.h	2016-06-08 16:26:33.686869929 -0700
-@@ -1,7 +1,12 @@
- #ifndef _ASM_X86_PKEYS_H
- #define _ASM_X86_PKEYS_H
- 
--#define arch_max_pkey() (boot_cpu_has(X86_FEATURE_OSPKE) ? 16 : 1)
-+#define PKEY_DEDICATED_EXECUTE_ONLY 15
-+/*
-+ * Consider the PKEY_DEDICATED_EXECUTE_ONLY key unavailable.
-+ */
-+#define arch_max_pkey() (boot_cpu_has(X86_FEATURE_OSPKE) ? \
-+		PKEY_DEDICATED_EXECUTE_ONLY : 1)
- 
- extern int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
-@@ -10,7 +15,6 @@ extern int arch_set_user_pkey_access(str
-  * Try to dedicate one of the protection keys to be used as an
-  * execute-only protection key.
-  */
--#define PKEY_DEDICATED_EXECUTE_ONLY 15
- extern int __execute_only_pkey(struct mm_struct *mm);
- static inline int execute_only_pkey(struct mm_struct *mm)
- {
-@@ -31,4 +35,7 @@ static inline int arch_override_mprotect
- 	return __arch_override_mprotect_pkey(vma, prot, pkey);
- }
- 
-+extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val);
-+
- #endif /*_ASM_X86_PKEYS_H */
-diff -puN arch/x86/kernel/fpu/xstate.c~pkeys-110-syscalls-mprotect_pkey arch/x86/kernel/fpu/xstate.c
---- a/arch/x86/kernel/fpu/xstate.c~pkeys-110-syscalls-mprotect_pkey	2016-06-08 16:26:33.678869566 -0700
-+++ b/arch/x86/kernel/fpu/xstate.c	2016-06-08 16:26:33.687869974 -0700
-@@ -871,7 +871,7 @@ out:
-  * not modfiy PKRU *itself* here, only the XSAVE state that will
-  * be restored in to PKRU when we return back to userspace.
-  */
--int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val)
- {
- 	struct xregs_state *xsave = &tsk->thread.fpu.state.xsave;
-@@ -930,3 +930,16 @@ int arch_set_user_pkey_access(struct tas
- 
- 	return 0;
- }
-+
-+/*
-+ * When setting a userspace-provided value, we need to ensure
-+ * that it is valid.  The __ version can get used by
-+ * kernel-internal uses like the execute-only support.
-+ */
-+int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
-+		unsigned long init_val)
-+{
-+	if (!validate_pkey(pkey))
-+		return -EINVAL;
-+	return __arch_set_user_pkey_access(tsk, pkey, init_val);
-+}
-diff -puN arch/x86/mm/pkeys.c~pkeys-110-syscalls-mprotect_pkey arch/x86/mm/pkeys.c
---- a/arch/x86/mm/pkeys.c~pkeys-110-syscalls-mprotect_pkey	2016-06-08 16:26:33.680869656 -0700
-+++ b/arch/x86/mm/pkeys.c	2016-06-08 16:26:33.688870019 -0700
-@@ -38,7 +38,7 @@ int __execute_only_pkey(struct mm_struct
- 		return PKEY_DEDICATED_EXECUTE_ONLY;
- 	}
- 	preempt_enable();
--	ret = arch_set_user_pkey_access(current, PKEY_DEDICATED_EXECUTE_ONLY,
-+	ret = __arch_set_user_pkey_access(current, PKEY_DEDICATED_EXECUTE_ONLY,
- 			PKEY_DISABLE_ACCESS);
- 	/*
- 	 * If the PKRU-set operation failed somehow, just return
-diff -puN mm/mprotect.c~pkeys-110-syscalls-mprotect_pkey mm/mprotect.c
---- a/mm/mprotect.c~pkeys-110-syscalls-mprotect_pkey	2016-06-08 16:26:33.681869702 -0700
-+++ b/mm/mprotect.c	2016-06-08 16:26:33.689870065 -0700
-@@ -352,8 +352,11 @@ fail:
- 	return error;
- }
- 
--SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
--		unsigned long, prot)
-+/*
-+ * pkey==-1 when doing a legacy mprotect()
-+ */
-+static int do_mprotect_pkey(unsigned long start, size_t len,
-+		unsigned long prot, int pkey)
- {
- 	unsigned long nstart, end, tmp, reqprot;
- 	struct vm_area_struct *vma, *prev;
-@@ -409,7 +412,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
- 
- 	for (nstart = start ; ; ) {
- 		unsigned long newflags;
--		int pkey = arch_override_mprotect_pkey(vma, prot, -1);
-+		int new_vma_pkey;
- 
- 		/* Here we know that vma->vm_start <= nstart < vma->vm_end. */
- 
-@@ -417,7 +420,8 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
- 		if (rier && (vma->vm_flags & VM_MAYEXEC))
- 			prot |= PROT_EXEC;
- 
--		newflags = calc_vm_prot_bits(prot, pkey);
-+		new_vma_pkey = arch_override_mprotect_pkey(vma, prot, pkey);
-+		newflags = calc_vm_prot_bits(prot, new_vma_pkey);
- 		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
- 
- 		/* newflags >> 4 shift VM_MAY% in place of VM_% */
-@@ -454,3 +458,18 @@ out:
- 	up_write(&current->mm->mmap_sem);
- 	return error;
- }
-+
-+SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
-+		unsigned long, prot)
-+{
-+	return do_mprotect_pkey(start, len, prot, -1);
-+}
-+
-+SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
-+		unsigned long, prot, int, pkey)
-+{
-+	if (!validate_pkey(pkey))
-+		return -EINVAL;
-+
-+	return do_mprotect_pkey(start, len, prot, pkey);
-+}
-_
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+"Reality continues to ruin my life." - Calvin.
