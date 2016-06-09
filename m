@@ -1,207 +1,155 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 02/14] seccomp: Add a seccomp_data parameter secure_computing()
-Date: Thu,  9 Jun 2016 14:01:52 -0700
-Message-ID: <1465506124-21866-3-git-send-email-keescook@chromium.org>
+Subject: [PATCH 03/14] x86/entry: Get rid of two-phase syscall entry work
+Date: Thu,  9 Jun 2016 14:01:53 -0700
+Message-ID: <1465506124-21866-4-git-send-email-keescook@chromium.org>
 References: <1465506124-21866-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-mips-bounce@linux-mips.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1465506124-21866-1-git-send-email-keescook@chromium.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.or>
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Andy Lutomirski <luto@kernel.org>
 
-Currently, if arch code wants to supply seccomp_data directly to
-seccomp (which is generally much faster than having seccomp do it
-using the syscall_get_xyz() API), it has to use the two-phase
-seccomp hooks. Add it to the easy hooks, too.
+I added two-phase syscall entry work back when the entry slow path
+was very slow.  Nowadays, the entry slow path is fast and two-phase
+entry work serves no purpose.  Remove it.
 
-Cc: linux-arch@vger.kernel.org
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm/kernel/ptrace.c              | 2 +-
- arch/arm64/kernel/ptrace.c            | 2 +-
- arch/mips/kernel/ptrace.c             | 2 +-
- arch/parisc/kernel/ptrace.c           | 2 +-
- arch/powerpc/kernel/ptrace.c          | 2 +-
- arch/s390/kernel/ptrace.c             | 2 +-
- arch/tile/kernel/ptrace.c             | 2 +-
- arch/um/kernel/skas/syscall.c         | 2 +-
- arch/x86/entry/vsyscall/vsyscall_64.c | 2 +-
- include/linux/seccomp.h               | 8 ++++----
- kernel/seccomp.c                      | 4 ++--
- 11 files changed, 15 insertions(+), 15 deletions(-)
+ arch/x86/entry/common.c       | 84 +++++--------------------------------------
+ arch/x86/include/asm/ptrace.h |  6 ----
+ 2 files changed, 8 insertions(+), 82 deletions(-)
 
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index ef9119f7462e..ad5e90ab165c 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -934,7 +934,7 @@ asmlinkage int syscall_trace_enter(struct pt_regs *regs, int scno)
- 
- 	/* Do the secure computing check first; failures should be fast. */
- #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return -1;
- #else
- 	/* XXX: remove this once OABI gets fixed */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 3f6cd5c5234f..6e2cf046615d 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -1247,7 +1247,7 @@ static void tracehook_report_syscall(struct pt_regs *regs,
- asmlinkage int syscall_trace_enter(struct pt_regs *regs)
- {
- 	/* Do the secure computing check first; failures should be fast. */
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return -1;
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE))
-diff --git a/arch/mips/kernel/ptrace.c b/arch/mips/kernel/ptrace.c
-index 0dcf69194473..c50af846ecf9 100644
---- a/arch/mips/kernel/ptrace.c
-+++ b/arch/mips/kernel/ptrace.c
-@@ -893,7 +893,7 @@ asmlinkage long syscall_trace_enter(struct pt_regs *regs, long syscall)
- 
- 	current_thread_info()->syscall = syscall;
- 
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return -1;
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
-diff --git a/arch/parisc/kernel/ptrace.c b/arch/parisc/kernel/ptrace.c
-index b5458b37fc5b..8edc47c0b98e 100644
---- a/arch/parisc/kernel/ptrace.c
-+++ b/arch/parisc/kernel/ptrace.c
-@@ -312,7 +312,7 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- long do_syscall_trace_enter(struct pt_regs *regs)
- {
- 	/* Do the secure computing check first. */
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return -1;
- 
- 	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
-diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
-index 30a03c03fe73..ed799e994773 100644
---- a/arch/powerpc/kernel/ptrace.c
-+++ b/arch/powerpc/kernel/ptrace.c
-@@ -1783,7 +1783,7 @@ static int do_seccomp(struct pt_regs *regs)
- 	 * have already loaded -ENOSYS into r3, or seccomp has put
- 	 * something else in r3 (via SECCOMP_RET_ERRNO/TRACE).
- 	 */
--	if (__secure_computing())
-+	if (__secure_computing(NULL))
- 		return -1;
- 
- 	/*
-diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
-index 49b1c13bf6c9..c238e9958c2a 100644
---- a/arch/s390/kernel/ptrace.c
-+++ b/arch/s390/kernel/ptrace.c
-@@ -824,7 +824,7 @@ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
- 	long ret = 0;
- 
- 	/* Do the secure computing check first. */
--	if (secure_computing()) {
-+	if (secure_computing(NULL)) {
- 		/* seccomp failures shouldn't expose any additional code. */
- 		ret = -1;
- 		goto out;
-diff --git a/arch/tile/kernel/ptrace.c b/arch/tile/kernel/ptrace.c
-index 54e7b723db99..8c6d2f2fefa3 100644
---- a/arch/tile/kernel/ptrace.c
-+++ b/arch/tile/kernel/ptrace.c
-@@ -255,7 +255,7 @@ int do_syscall_trace_enter(struct pt_regs *regs)
- {
- 	u32 work = ACCESS_ONCE(current_thread_info()->flags);
- 
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return -1;
- 
- 	if (work & _TIF_SYSCALL_TRACE) {
-diff --git a/arch/um/kernel/skas/syscall.c b/arch/um/kernel/skas/syscall.c
-index 48b0dcbd87be..9c5570f0f397 100644
---- a/arch/um/kernel/skas/syscall.c
-+++ b/arch/um/kernel/skas/syscall.c
-@@ -21,7 +21,7 @@ void handle_syscall(struct uml_pt_regs *r)
- 	PT_REGS_SET_SYSCALL_RETURN(regs, -ENOSYS);
- 
- 	/* Do the secure computing check first; failures should be fast. */
--	if (secure_computing() == -1)
-+	if (secure_computing(NULL) == -1)
- 		return;
- 
- 	if (syscall_trace_enter(regs))
-diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
-index 174c2549939d..85acde5fa442 100644
---- a/arch/x86/entry/vsyscall/vsyscall_64.c
-+++ b/arch/x86/entry/vsyscall/vsyscall_64.c
-@@ -207,7 +207,7 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
- 	 */
- 	regs->orig_ax = syscall_nr;
- 	regs->ax = -ENOSYS;
--	tmp = secure_computing();
-+	tmp = secure_computing(NULL);
- 	if ((!tmp && regs->orig_ax != syscall_nr) || regs->ip != address) {
- 		warn_bad_vsyscall(KERN_DEBUG, regs,
- 				  "seccomp tried to change syscall nr or ip");
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index 2296e6b2f690..9eaa7b34d6da 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -28,11 +28,11 @@ struct seccomp {
- };
- 
- #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
--extern int __secure_computing(void);
--static inline int secure_computing(void)
-+extern int __secure_computing(const struct seccomp_data *sd);
-+static inline int secure_computing(const struct seccomp_data *sd)
- {
- 	if (unlikely(test_thread_flag(TIF_SECCOMP)))
--		return  __secure_computing();
-+		return  __secure_computing(sd);
- 	return 0;
+diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
+index ec138e538c44..df56ca394877 100644
+--- a/arch/x86/entry/common.c
++++ b/arch/x86/entry/common.c
+@@ -64,20 +64,13 @@ static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
  }
  
-@@ -61,7 +61,7 @@ struct seccomp { };
- struct seccomp_filter { };
+ /*
+- * We can return 0 to resume the syscall or anything else to go to phase
+- * 2.  If we resume the syscall, we need to put something appropriate in
+- * regs->orig_ax.
+- *
+- * NB: We don't have full pt_regs here, but regs->orig_ax and regs->ax
+- * are fully functional.
+- *
+- * For phase 2's benefit, our return value is:
+- * 0:			resume the syscall
+- * 1:			go to phase 2; no seccomp phase 2 needed
+- * anything else:	go to phase 2; pass return value to seccomp
++ * Returns the syscall nr to run (which should match regs->orig_ax) or -1
++ * to skip the syscall.
+  */
+-unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
++static long syscall_trace_enter(struct pt_regs *regs)
+ {
++	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
++
+ 	struct thread_info *ti = pt_regs_to_thread_info(regs);
+ 	unsigned long ret = 0;
+ 	u32 work;
+@@ -118,59 +111,9 @@ unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
+ 			sd.args[5] = regs->bp;
+ 		}
  
- #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
--static inline int secure_computing(void) { return 0; }
-+static inline int secure_computing(struct seccomp_data *sd) { return 0; }
- #else
- static inline void secure_computing_strict(int this_syscall) { return; }
+-		BUILD_BUG_ON(SECCOMP_PHASE1_OK != 0);
+-		BUILD_BUG_ON(SECCOMP_PHASE1_SKIP != 1);
+-
+-		ret = seccomp_phase1(&sd);
+-		if (ret == SECCOMP_PHASE1_SKIP) {
+-			regs->orig_ax = -1;
+-			ret = 0;
+-		} else if (ret != SECCOMP_PHASE1_OK) {
+-			return ret;  /* Go directly to phase 2 */
+-		}
+-
+-		work &= ~_TIF_SECCOMP;
+-	}
+-#endif
+-
+-	/* Do our best to finish without phase 2. */
+-	if (work == 0)
+-		return ret;  /* seccomp and/or nohz only (ret == 0 here) */
+-
+-#ifdef CONFIG_AUDITSYSCALL
+-	if (work == _TIF_SYSCALL_AUDIT) {
+-		/*
+-		 * If there is no more work to be done except auditing,
+-		 * then audit in phase 1.  Phase 2 always audits, so, if
+-		 * we audit here, then we can't go on to phase 2.
+-		 */
+-		do_audit_syscall_entry(regs, arch);
+-		return 0;
+-	}
+-#endif
+-
+-	return 1;  /* Something is enabled that we can't handle in phase 1 */
+-}
+-
+-/* Returns the syscall nr to run (which should match regs->orig_ax). */
+-long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
+-				unsigned long phase1_result)
+-{
+-	struct thread_info *ti = pt_regs_to_thread_info(regs);
+-	long ret = 0;
+-	u32 work = ACCESS_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY;
+-
+-	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
+-		BUG_ON(regs != task_pt_regs(current));
+-
+-#ifdef CONFIG_SECCOMP
+-	/*
+-	 * Call seccomp_phase2 before running the other hooks so that
+-	 * they can see any changes made by a seccomp tracer.
+-	 */
+-	if (phase1_result > 1 && seccomp_phase2(phase1_result)) {
+-		/* seccomp failures shouldn't expose any additional code. */
+-		return -1;
++		ret = __secure_computing(&sd);
++		if (ret == -1)
++			return ret;
+ 	}
  #endif
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 7002796f14a4..06816290a212 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -554,9 +554,9 @@ void secure_computing_strict(int this_syscall)
- 		BUG();
- }
- #else
--int __secure_computing(void)
-+int __secure_computing(const struct seccomp_data *sd)
- {
--	u32 phase1_result = seccomp_phase1(NULL);
-+	u32 phase1_result = seccomp_phase1(sd);
  
- 	if (likely(phase1_result == SECCOMP_PHASE1_OK))
- 		return 0;
+@@ -189,17 +132,6 @@ long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
+ 	return ret ?: regs->orig_ax;
+ }
+ 
+-long syscall_trace_enter(struct pt_regs *regs)
+-{
+-	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
+-	unsigned long phase1_result = syscall_trace_enter_phase1(regs, arch);
+-
+-	if (phase1_result == 0)
+-		return regs->orig_ax;
+-	else
+-		return syscall_trace_enter_phase2(regs, arch, phase1_result);
+-}
+-
+ #define EXIT_TO_USERMODE_LOOP_FLAGS				\
+ 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
+ 	 _TIF_NEED_RESCHED | _TIF_USER_RETURN_NOTIFY)
+diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
+index 6271281f947d..2b5d686ea9f3 100644
+--- a/arch/x86/include/asm/ptrace.h
++++ b/arch/x86/include/asm/ptrace.h
+@@ -83,12 +83,6 @@ extern void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+ 			 int error_code, int si_code);
+ 
+ 
+-extern unsigned long syscall_trace_enter_phase1(struct pt_regs *, u32 arch);
+-extern long syscall_trace_enter_phase2(struct pt_regs *, u32 arch,
+-				       unsigned long phase1_result);
+-
+-extern long syscall_trace_enter(struct pt_regs *);
+-
+ static inline unsigned long regs_return_value(struct pt_regs *regs)
+ {
+ 	return regs->ax;
 -- 
 2.7.4
