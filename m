@@ -1,111 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:44469 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932119AbcFIAB2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jun 2016 20:01:28 -0400
-Subject: [PATCH 3/9] x86, pkeys: make mprotect_key() mask off additional vm_flags
-From: Dave Hansen <dave@sr71.net>
-Date: Wed, 08 Jun 2016 17:01:26 -0700
-References: <20160609000117.71AC7623@viggo.jf.intel.com>
-In-Reply-To: <20160609000117.71AC7623@viggo.jf.intel.com>
-Message-ID: <20160609000126.0FFB9ED1@viggo.jf.intel.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:58824 "EHLO
+	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1161696AbcFIGbp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 02:31:45 -0400
+Received: from pps.filterd (m0049461.ppops.net [127.0.0.1])
+	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u596TkDG021828
+	for <linux-arch@vger.kernel.org>; Thu, 9 Jun 2016 02:31:44 -0400
+Received: from e06smtp16.uk.ibm.com (e06smtp16.uk.ibm.com [195.75.94.112])
+	by mx0b-001b2d01.pphosted.com with ESMTP id 23e9mx9nec-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Thu, 09 Jun 2016 02:31:44 -0400
+Received: from localhost
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Thu, 9 Jun 2016 07:31:43 +0100
+Date: Thu, 9 Jun 2016 08:31:39 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH] bitmap: bitmap_equal memcmp optimization
+In-Reply-To: <20160608134212.9f868a8dd494b88e402d5d31@linux-foundation.org>
+References: <1465288661-3273-1-git-send-email-schwidefsky@de.ibm.com>
+	<201606070837.u578YJKt047781@mx0a-001b2d01.pphosted.com>
+	<20160608134212.9f868a8dd494b88e402d5d31@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Message-ID: <20160609083139.665d996b@mschwide>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com
-Message-ID: <20160609000126.qaNryjstoXFt7RTRCr4luUxTrX6JC4oJk8T95bR5uIM@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20160609063139.Brw-2bjtErDxw6CnU7ABqspfz11jEjUS-kugiy7mLR0@z>
 
+On Wed, 8 Jun 2016 13:42:12 -0700
+Andrew Morton <akpm@linux-foundation.org> wrote:
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+> On Tue,  7 Jun 2016 10:37:41 +0200 Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+> 
+> > The bitmap_equal function has optimized code for small bitmaps with less
+> > than BITS_PER_LONG bits. For larger bitmaps the out-of-line function
+> > __bitmap_equal is called.
+> > 
+> > For a constant number of bits divisible by BITS_PER_LONG the memcmp
+> > function can be used. For s390 gcc knows how to optimize this function,
+> > memcmp calls with up to 256 bytes / 2048 bits are translated into a
+> > single instruction.
+> 
+> Patch looks simple enough, although it would benefit from a comment
+> explaining what's special about s390.
 
-Today, mprotect() takes 4 bits of data: PROT_READ/WRITE/EXEC/NONE.
-Three of those bits: READ/WRITE/EXEC get translated directly in to
-vma->vm_flags by calc_vm_prot_bits().  If a bit is unset in
-mprotect()'s 'prot' argument then it must be cleared in vma->vm_flags
-during the mprotect() call.
+The explanation from the git commit could be transfered into a comment.
 
-We do this clearing today by first calculating the VMA flags we
-want set, then clearing the ones we do not want to inherit from
-the original VMA:
+> > --- a/include/linux/bitmap.h
+> > +++ b/include/linux/bitmap.h
+> > @@ -267,6 +267,10 @@ static inline int bitmap_equal(const unsigned long *src1,
+> >  {
+> >  	if (small_const_nbits(nbits))
+> >  		return ! ((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+> > +#ifdef CONFIG_S390
+> > +	else if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+> > +		return !memcmp(src1, src2, nbits / 8);
+> > +#endif
+> >  	else
+> >  		return __bitmap_equal(src1, src2, nbits);
+> >  }
+> 
+> Those elses are a bit daffy.  This:
+> 
+> --- a/include/linux/bitmap.h~bitmap-bitmap_equal-memcmp-optimization-fix
+> +++ a/include/linux/bitmap.h
+> @@ -266,13 +266,12 @@ static inline int bitmap_equal(const uns
+>  			const unsigned long *src2, unsigned int nbits)
+>  {
+>  	if (small_const_nbits(nbits))
+> -		return ! ((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+> +		return !((*src1 ^ *src2) & BITMAP_LAST_WORD_MASK(nbits));
+>  #ifdef CONFIG_S390
+> -	else if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+> +	if (__builtin_constant_p(nbits) && (nbits % BITS_PER_LONG) == 0)
+>  		return !memcmp(src1, src2, nbits / 8);
+>  #endif
+> -	else
+> -		return __bitmap_equal(src1, src2, nbits);
+> +	return __bitmap_equal(src1, src2, nbits);
+>  }
+> 
+>  static inline int bitmap_intersects(const unsigned long *src1,
+> _
+> 
 
-	vm_flags = calc_vm_prot_bits(prot, key);
-	...
-	newflags = vm_flags;
-	newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
+Yeah that looks better. Thanks for picking this up!
 
-However, we *also* want to mask off the original VMA's vm_flags in
-which we store the protection key.
+-- 
+blue skies,
+   Martin.
 
-To do that, this patch adds a new macro:
+"Reality continues to ruin my life." - Calvin.
 
-	ARCH_VM_PKEY_FLAGS
-
-which allows the architecture to specify additional bits that it would
-like cleared.  We use that to ensure that the VM_PKEY_BIT* bits get
-cleared.
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-mm@kvack.org
-Cc: x86@kernel.org
-Cc: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org
----
-
- b/arch/x86/include/asm/pkeys.h |    2 ++
- b/include/linux/pkeys.h        |    1 +
- b/mm/mprotect.c                |   11 ++++++++++-
- 3 files changed, 13 insertions(+), 1 deletion(-)
-
-diff -puN arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags arch/x86/include/asm/pkeys.h
---- a/arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-06-08 16:26:34.200893245 -0700
-+++ b/arch/x86/include/asm/pkeys.h	2016-06-08 16:26:34.207893563 -0700
-@@ -38,4 +38,6 @@ static inline int arch_override_mprotect
- extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
- 		unsigned long init_val);
- 
-+#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | VM_PKEY_BIT3)
-+
- #endif /*_ASM_X86_PKEYS_H */
-diff -puN include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags include/linux/pkeys.h
---- a/include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-06-08 16:26:34.202893336 -0700
-+++ b/include/linux/pkeys.h	2016-06-08 16:26:34.207893563 -0700
-@@ -16,6 +16,7 @@
- #define execute_only_pkey(mm) (0)
- #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
- #define PKEY_DEDICATED_EXECUTE_ONLY 0
-+#define ARCH_VM_PKEY_FLAGS 0
- #endif /* ! CONFIG_ARCH_HAS_PKEYS */
- 
- /*
-diff -puN mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags mm/mprotect.c
---- a/mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags	2016-06-08 16:26:34.203893381 -0700
-+++ b/mm/mprotect.c	2016-06-08 16:26:34.207893563 -0700
-@@ -411,6 +411,7 @@ static int do_mprotect_pkey(unsigned lon
- 		prev = vma;
- 
- 	for (nstart = start ; ; ) {
-+		unsigned long mask_off_old_flags;
- 		unsigned long newflags;
- 		int new_vma_pkey;
- 
-@@ -420,9 +421,17 @@ static int do_mprotect_pkey(unsigned lon
- 		if (rier && (vma->vm_flags & VM_MAYEXEC))
- 			prot |= PROT_EXEC;
- 
-+		/*
-+		 * Each mprotect() call explicitly passes r/w/x permissions.
-+		 * If a permission is not passed to mprotect(), it must be
-+		 * cleared from the VMA.
-+		 */
-+		mask_off_old_flags = VM_READ | VM_WRITE | VM_EXEC |
-+					ARCH_VM_PKEY_FLAGS;
-+
- 		new_vma_pkey = arch_override_mprotect_pkey(vma, prot, pkey);
- 		newflags = calc_vm_prot_bits(prot, new_vma_pkey);
--		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
-+		newflags |= (vma->vm_flags & ~mask_off_old_flags);
- 
- 		/* newflags >> 4 shift VM_MAY% in place of VM_% */
- 		if ((newflags & ~(newflags >> 4)) & (VM_READ | VM_WRITE | VM_EXEC)) {
-_
