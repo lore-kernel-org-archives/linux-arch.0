@@ -1,155 +1,101 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 03/14] x86/entry: Get rid of two-phase syscall entry work
-Date: Thu,  9 Jun 2016 14:01:53 -0700
-Message-ID: <1465506124-21866-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH 12/14] powerpc/ptrace: run seccomp after ptrace
+Date: Thu,  9 Jun 2016 14:02:02 -0700
+Message-ID: <1465506124-21866-13-git-send-email-keescook@chromium.org>
 References: <1465506124-21866-1-git-send-email-keescook@chromium.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1465506124-21866-1-git-send-email-keescook@chromium.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org>
+Cc: Kees Cook <keescook@chromium.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ralf Baechle <ralf@linux-mips.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Andy Lutomirski <luto@kernel.org>
+Close the hole where ptrace can change a syscall out from under seccomp.
 
-I added two-phase syscall entry work back when the entry slow path
-was very slow.  Nowadays, the entry slow path is fast and two-phase
-entry work serves no purpose.  Remove it.
-
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
- arch/x86/entry/common.c       | 84 +++++--------------------------------------
- arch/x86/include/asm/ptrace.h |  6 ----
- 2 files changed, 8 insertions(+), 82 deletions(-)
+ arch/powerpc/kernel/ptrace.c | 44 +++++++++++++++++++++++---------------------
+ 1 file changed, 23 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index ec138e538c44..df56ca394877 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -64,20 +64,13 @@ static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
- }
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index ed799e994773..5dc47ebb3840 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -1788,7 +1788,7 @@ static int do_seccomp(struct pt_regs *regs)
  
- /*
-- * We can return 0 to resume the syscall or anything else to go to phase
-- * 2.  If we resume the syscall, we need to put something appropriate in
-- * regs->orig_ax.
-- *
-- * NB: We don't have full pt_regs here, but regs->orig_ax and regs->ax
-- * are fully functional.
-- *
-- * For phase 2's benefit, our return value is:
-- * 0:			resume the syscall
-- * 1:			go to phase 2; no seccomp phase 2 needed
-- * anything else:	go to phase 2; pass return value to seccomp
-+ * Returns the syscall nr to run (which should match regs->orig_ax) or -1
-+ * to skip the syscall.
+ 	/*
+ 	 * The syscall was allowed by seccomp, restore the register
+-	 * state to what ptrace and audit expect.
++	 * state to what audit expects.
+ 	 * Note that we use orig_gpr3, which means a seccomp tracer can
+ 	 * modify the first syscall parameter (in orig_gpr3) and also
+ 	 * allow the syscall to proceed.
+@@ -1822,22 +1822,25 @@ static inline int do_seccomp(struct pt_regs *regs) { return 0; }
   */
--unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
-+static long syscall_trace_enter(struct pt_regs *regs)
+ long do_syscall_trace_enter(struct pt_regs *regs)
  {
-+	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
+-	bool abort = false;
+-
+ 	user_exit();
+ 
++	/*
++	 * The tracer may decide to abort the syscall, if so tracehook
++	 * will return !0. Note that the tracer may also just change
++	 * regs->gpr[0] to an invalid syscall number, that is handled
++	 * below on the exit path.
++	 */
++	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
++	    tracehook_report_syscall_entry(regs))
++		goto skip;
 +
- 	struct thread_info *ti = pt_regs_to_thread_info(regs);
- 	unsigned long ret = 0;
- 	u32 work;
-@@ -118,59 +111,9 @@ unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
- 			sd.args[5] = regs->bp;
- 		}
++	/* Run seccomp after ptrace; allow it to set gpr[3]. */
+ 	if (do_seccomp(regs))
+ 		return -1;
  
--		BUILD_BUG_ON(SECCOMP_PHASE1_OK != 0);
--		BUILD_BUG_ON(SECCOMP_PHASE1_SKIP != 1);
--
--		ret = seccomp_phase1(&sd);
--		if (ret == SECCOMP_PHASE1_SKIP) {
--			regs->orig_ax = -1;
--			ret = 0;
--		} else if (ret != SECCOMP_PHASE1_OK) {
--			return ret;  /* Go directly to phase 2 */
--		}
--
--		work &= ~_TIF_SECCOMP;
--	}
--#endif
--
--	/* Do our best to finish without phase 2. */
--	if (work == 0)
--		return ret;  /* seccomp and/or nohz only (ret == 0 here) */
--
--#ifdef CONFIG_AUDITSYSCALL
--	if (work == _TIF_SYSCALL_AUDIT) {
+-	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
 -		/*
--		 * If there is no more work to be done except auditing,
--		 * then audit in phase 1.  Phase 2 always audits, so, if
--		 * we audit here, then we can't go on to phase 2.
+-		 * The tracer may decide to abort the syscall, if so tracehook
+-		 * will return !0. Note that the tracer may also just change
+-		 * regs->gpr[0] to an invalid syscall number, that is handled
+-		 * below on the exit path.
 -		 */
--		do_audit_syscall_entry(regs, arch);
--		return 0;
+-		abort = tracehook_report_syscall_entry(regs) != 0;
 -	}
--#endif
--
--	return 1;  /* Something is enabled that we can't handle in phase 1 */
--}
--
--/* Returns the syscall nr to run (which should match regs->orig_ax). */
--long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
--				unsigned long phase1_result)
--{
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
--	long ret = 0;
--	u32 work = ACCESS_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY;
--
--	if (IS_ENABLED(CONFIG_DEBUG_ENTRY))
--		BUG_ON(regs != task_pt_regs(current));
--
--#ifdef CONFIG_SECCOMP
--	/*
--	 * Call seccomp_phase2 before running the other hooks so that
--	 * they can see any changes made by a seccomp tracer.
--	 */
--	if (phase1_result > 1 && seccomp_phase2(phase1_result)) {
--		/* seccomp failures shouldn't expose any additional code. */
--		return -1;
-+		ret = __secure_computing(&sd);
-+		if (ret == -1)
-+			return ret;
- 	}
- #endif
++	/* Avoid trace and audit when syscall is invalid. */
++	if (regs->gpr[0] >= NR_syscalls)
++		goto skip;
  
-@@ -189,17 +132,6 @@ long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
- 	return ret ?: regs->orig_ax;
+ 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+ 		trace_sys_enter(regs, regs->gpr[0]);
+@@ -1854,17 +1857,16 @@ long do_syscall_trace_enter(struct pt_regs *regs)
+ 				    regs->gpr[5] & 0xffffffff,
+ 				    regs->gpr[6] & 0xffffffff);
+ 
+-	if (abort || regs->gpr[0] >= NR_syscalls) {
+-		/*
+-		 * If we are aborting explicitly, or if the syscall number is
+-		 * now invalid, set the return value to -ENOSYS.
+-		 */
+-		regs->gpr[3] = -ENOSYS;
+-		return -1;
+-	}
+-
+ 	/* Return the possibly modified but valid syscall number */
+ 	return regs->gpr[0];
++
++skip:
++	/*
++	 * If we are aborting explicitly, or if the syscall number is
++	 * now invalid, set the return value to -ENOSYS.
++	 */
++	regs->gpr[3] = -ENOSYS;
++	return -1;
  }
  
--long syscall_trace_enter(struct pt_regs *regs)
--{
--	u32 arch = in_ia32_syscall() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
--	unsigned long phase1_result = syscall_trace_enter_phase1(regs, arch);
--
--	if (phase1_result == 0)
--		return regs->orig_ax;
--	else
--		return syscall_trace_enter_phase2(regs, arch, phase1_result);
--}
--
- #define EXIT_TO_USERMODE_LOOP_FLAGS				\
- 	(_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_UPROBE |	\
- 	 _TIF_NEED_RESCHED | _TIF_USER_RETURN_NOTIFY)
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 6271281f947d..2b5d686ea9f3 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -83,12 +83,6 @@ extern void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 			 int error_code, int si_code);
- 
- 
--extern unsigned long syscall_trace_enter_phase1(struct pt_regs *, u32 arch);
--extern long syscall_trace_enter_phase2(struct pt_regs *, u32 arch,
--				       unsigned long phase1_result);
--
--extern long syscall_trace_enter(struct pt_regs *);
--
- static inline unsigned long regs_return_value(struct pt_regs *regs)
- {
- 	return regs->ax;
+ void do_syscall_trace_leave(struct pt_regs *regs)
 -- 
 2.7.4
