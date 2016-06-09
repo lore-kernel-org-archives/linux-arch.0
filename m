@@ -1,36 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:46552 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752538AbcFIOfP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 10:35:15 -0400
-From: Kamal Mostafa <kamal@canonical.com>
-Subject: [4.2.y-ckt stable] Patch "SIGNAL: Move generic copy_siginfo() to signal.h" has been added to the 4.2.y-ckt tree
-Date: Thu,  9 Jun 2016 07:35:07 -0700
-Message-ID: <1465482907-23501-1-git-send-email-kamal@canonical.com>
+Received: from mx1.redhat.com ([209.132.183.28]:48646 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932069AbcFIOlE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jun 2016 10:41:04 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20160603223417.GB3892@twins.programming.kicks-ass.net>
+References: <20160603223417.GB3892@twins.programming.kicks-ass.net> <1454444369-2146-1-git-send-email-mhocko@kernel.org> <1454444369-2146-11-git-send-email-mhocko@kernel.org> <20160203081016.GD32652@gmail.com> <20160603161339.GC3693@twins.programming.kicks-ass.net>
+Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <29354.1465483258.1@warthog.procyon.org.uk>
+Date: Thu, 09 Jun 2016 15:40:58 +0100
+Message-ID: <29355.1465483258@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, Kamal Mostafa <kamal@canonical.com>, kernel-team@lists.ubuntu.com
-Message-ID: <20160609143507.jev6BBftNIUvhFxIX_BcZJbxC7uWJNSyMXlT6U0jbxk@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: dhowells@redhat.com, Ingo Molnar <mingo@kernel.org>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@us.ibm.com>, Jason Low <jason.low2@hpe.com>
+Message-ID: <20160609144058.WuqTGWMTOv2G4chNwGrn42i2iiNPeb2SlLgraMB73fw@z>
 
-This is a note to let you know that I have just added a patch titled
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-    SIGNAL: Move generic copy_siginfo() to signal.h
+> Blergh; so looking at more asm there's still a few tricks we cannot do.
+> So while overall size is down, some paths do end up more expensive. (It
+> typically boils down to creative use of condition flags, which is very
+> hard in C)
 
-to the linux-4.2.y-queue branch of the 4.2.y-ckt extended stable tree 
-which can be found at:
+It can be done using ISO __atomic_fetch_add() and suchlike.
 
-    https://git.launchpad.net/~canonical-kernel/linux/+git/linux-stable-ckt/log/?h=linux-4.2.y-queue
-
-This patch is scheduled to be released in version 4.2.8-ckt12.
-
-If you, or anyone else, feels it should not be added to this tree, please 
-reply to this email.
-
-For more information about the 4.2.y-ckt tree, see
-https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
-
-Thanks.
--Kamal
-
----8<------------------------------------------------------------
+David
