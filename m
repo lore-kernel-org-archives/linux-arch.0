@@ -1,124 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga01.intel.com ([192.55.52.88]:32693 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933631AbcFIACL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jun 2016 20:02:11 -0400
-Subject: [PATCH 0/9] [v3] System Calls for Memory Protection Keys
+	id S933632AbcFIACM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Jun 2016 20:02:12 -0400
+Subject: [PATCH 7/9] generic syscalls: wire up memory protection keys syscalls
 From: Dave Hansen <dave@sr71.net>
-Date: Wed, 08 Jun 2016 17:01:17 -0700
-Message-ID: <20160609000117.71AC7623@viggo.jf.intel.com>
+Date: Wed, 08 Jun 2016 17:01:33 -0700
+References: <20160609000117.71AC7623@viggo.jf.intel.com>
+In-Reply-To: <20160609000117.71AC7623@viggo.jf.intel.com>
+Message-ID: <20160609000133.D83B340F@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, arnd@arndb.de
-Message-ID: <20160609000117.9kgBtQr_SVMAFfIFTvB-For5eshgRmApp_xCXPAgeXY@z>
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, arnd@arndb.de
+Message-ID: <20160609000133.EgC18eT7fgjbAXWYNpB2pyvRBAY91aWGmrO2bMTwEqo@z>
 
-Are there any concerns with merging these into the x86 tree so
-that they go upstream for 4.8?  The updates here are pretty
-minor.
 
-Changes from v2:
- * selftest updates:
-  * formatting changes like what Ingo asked for with MPX
-  * actually call WRPKRU in __wrpkru()
-  * once __wrpkru() was fixed, revealed a bug in the ptrace
-    test where we were testing against the wrong pointer during
-    the "baseline" test
- * Man-pages that match this set are here:
- 	 http://marc.info/?l=linux-man&m=146540723525616&w=2
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-Changes from v1:
- * updates to alloc/free patch description calling out that
-   "in-use" pkeys may still be pkey_free()'d successfully.
- * Fixed a bug in the selftest where the 'flags' argument was
-   not passed to pkey_get().
- * Added all syscalls to generic syscalls header
- * Added extra checking to selftests so it doesn't fall over
-   when 1G pages are made the hugetlbfs default.
+These new syscalls are implemented as generic code, so enable
+them for architectures like arm64 which use the generic syscall
+table.
 
---
+According to Arnd:
 
-Memory Protection Keys for User pages (pkeys) is a CPU feature
-which will first appear on Skylake Servers, but will also be
-supported on future non-server parts.  It provides a mechanism
-for enforcing page-based protections, but without requiring
-modification of the page tables when an application changes
-wishes to change permissions.
+	Even if the support is x86 specific for the forseeable
+	future, it may be good to reserve the number just in
+	case.  The other architecture specific syscall lists are
+	usually left to the individual arch maintainers, most a
+	lot of the newer architectures share this table.
 
-Patches to implement execute-only mapping support using pkeys
-were merged in to 4.6.  But, to do anything else useful with
-pkeys, an application needs to be able to set the pkey field in
-the PTE (obviously has to be done in-kernel) and make changes to
-the "rights" register (using unprivileged instructions).
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+---
 
-An application also needs to have an an allocator for the keys
-themselves.  If two different parts of an application both want
-to protect their data with pkeys, they first need to know which
-key to use for their individual purposes.
+ b/include/uapi/asm-generic/unistd.h |   12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
 
-This set introduces 5 system calls, in 3 logical groups:
-
-1. PTE pkey setting (sys_pkey_mprotect(), patches #1-3)
-2. Key allocation (sys_pkey_alloc() / sys_pkey_free(), patch #4)
-3. Rights register manipulation (sys_pkey_set/get(), patch #5)
-
-These patches build on top of "core" pkeys support already in
-4.6.
-
-I have manpages written for some of these syscalls, and have
-had multiple rounds of reviews on the manpages list.
-
-This set is also available here:
-
-	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v039
-
-I've written a set of unit tests for these interfaces, which is
-available as the last patch in the series and integrated in to
-kselftests.
-
-Note: this is based on a plain 4.6 kernel and will have a minor
-merge conflict in the x86 selftests makefile with the new
-MPX selftest if those get merged first.
-
-=== diffstat ===
-
-Dave Hansen (9):
-      x86, pkeys: add fault handling for PF_PK page fault bit
-      mm: implement new pkey_mprotect() system call
-      x86, pkeys: make mprotect_key() mask off additional vm_flags
-      x86: wire up mprotect_key() system call
-      x86, pkeys: allocation/free syscalls
-      x86, pkeys: add pkey set/get syscalls
-      generic syscalls: wire up memory protection keys syscalls
-      pkeys: add details of system call use to Documentation/
-      x86, pkeys: add self-tests
-
- Documentation/x86/protection-keys.txt         |   63 +
- arch/alpha/include/uapi/asm/mman.h            |    5 +
- arch/mips/include/uapi/asm/mman.h             |    5 +
- arch/parisc/include/uapi/asm/mman.h           |    5 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    5 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    5 +
- arch/x86/include/asm/mmu.h                    |    8 +
- arch/x86/include/asm/mmu_context.h            |   25 +-
- arch/x86/include/asm/pkeys.h                  |   80 +-
- arch/x86/kernel/fpu/xstate.c                  |   73 +-
- arch/x86/mm/fault.c                           |    9 +
- arch/x86/mm/pkeys.c                           |   38 +-
- arch/xtensa/include/uapi/asm/mman.h           |    5 +
- include/linux/pkeys.h                         |   39 +-
- include/uapi/asm-generic/mman-common.h        |    5 +
- include/uapi/asm-generic/unistd.h             |   12 +-
- mm/mprotect.c                                 |  134 +-
- tools/testing/selftests/x86/Makefile          |    3 +-
- tools/testing/selftests/x86/pkey-helpers.h    |  191 +++
- tools/testing/selftests/x86/protection_keys.c | 1316 +++++++++++++++++
- 20 files changed, 1995 insertions(+), 31 deletions(-)
-
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: x86@kernel.org
-Cc: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org
-Cc: Arnd Bergmann <arnd@arndb.de>
+diff -puN include/uapi/asm-generic/unistd.h~pkeys-119-syscalls-generic include/uapi/asm-generic/unistd.h
+--- a/include/uapi/asm-generic/unistd.h~pkeys-119-syscalls-generic	2016-06-08 16:26:36.450995311 -0700
++++ b/include/uapi/asm-generic/unistd.h	2016-06-08 16:26:36.455995538 -0700
+@@ -724,9 +724,19 @@ __SYSCALL(__NR_copy_file_range, sys_copy
+ __SC_COMP(__NR_preadv2, sys_preadv2, compat_sys_preadv2)
+ #define __NR_pwritev2 287
+ __SC_COMP(__NR_pwritev2, sys_pwritev2, compat_sys_pwritev2)
++#define __NR_pkey_mprotect 288
++__SYSCALL(__NR_pkey_mprotect, sys_pkey_mprotect)
++#define __NR_pkey_alloc 289
++__SYSCALL(__NR_pkey_alloc,    sys_pkey_alloc)
++#define __NR_pkey_free 290
++__SYSCALL(__NR_pkey_free,     sys_pkey_free)
++#define __NR_pkey_get 291
++__SYSCALL(__NR_pkey_get,      sys_pkey_get)
++#define __NR_pkey_set 292
++__SYSCALL(__NR_pkey_set,      sys_pkey_set)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 288
++#define __NR_syscalls 293
+ 
+ /*
+  * All syscalls below here should go away really,
+_
