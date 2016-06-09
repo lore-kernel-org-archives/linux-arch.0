@@ -1,31 +1,137 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] bitmap_equal memcmp optimization for s390
-Date: Thu, 09 Jun 2016 15:26:47 +0100
-Message-ID: <28415.1465482407@warthog.procyon.org.uk>
-References: <201606070837.u578Y1R5037289@mx0a-001b2d01.pphosted.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+From: Kamal Mostafa <kamal@canonical.com>
+Subject: [4.2.y-ckt stable] Patch "SIGNAL: Move generic copy_siginfo() to signal.h" has been added to the 4.2.y-ckt tree
+Date: Thu,  9 Jun 2016 07:35:07 -0700
+Message-ID: <1465482907-23501-1-git-send-email-kamal@canonical.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47540 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932069AbcFIO0u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jun 2016 10:26:50 -0400
-In-Reply-To: <201606070837.u578Y1R5037289@mx0a-001b2d01.pphosted.com>
-Content-ID: <28414.1465482407.1@warthog.procyon.org.uk>
+Received: from youngberry.canonical.com ([91.189.89.112]:46552 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752538AbcFIOfP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 10:35:15 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, Kamal Mostafa <kamal@canonical.com>, kernel-team@lists.ubuntu.com
 
-Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+This is a note to let you know that I have just added a patch titled
 
-> I hesitate to put another CONFIG_S390 into common code, alternatively
-> __HAVE_ARCH_MEMCMP could be used. There are 7 architectures with the
-> define: arc, arm64, blackfin, frv, powerpc, s390 and sparc.
-> Of those I guess only powerpc, s390 and sparc will have configs with
-> (NR_CPUS > BITS_PER_LONG). For (NR_CPUS <= BITS_PER_LONG) the xor
-> optimization is used.
+    SIGNAL: Move generic copy_siginfo() to signal.h
 
-FRV doesn't have __HAVE_ARCH_MEMCMP for __KERNEL__.
+to the linux-4.2.y-queue branch of the 4.2.y-ckt extended stable tree 
+which can be found at:
 
-David
+    https://git.launchpad.net/~canonical-kernel/linux/+git/linux-stable-ckt/log/?h=linux-4.2.y-queue
+
+This patch is scheduled to be released in version 4.2.8-ckt12.
+
+If you, or anyone else, feels it should not be added to this tree, please 
+reply to this email.
+
+For more information about the 4.2.y-ckt tree, see
+https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
+
+Thanks.
+-Kamal
+
+---8<------------------------------------------------------------
+
+From 236c464f5452a6bf3859334a83ad6e3124868bfd Mon Sep 17 00:00:00 2001
+From: James Hogan <james.hogan@imgtec.com>
+Date: Mon, 8 Feb 2016 18:43:50 +0000
+Subject: SIGNAL: Move generic copy_siginfo() to signal.h
+
+commit ca9eb49aa9562eaadf3cea071ec7018ad6800425 upstream.
+
+The generic copy_siginfo() is currently defined in
+asm-generic/siginfo.h, after including uapi/asm-generic/siginfo.h which
+defines the generic struct siginfo. However this makes it awkward for an
+architecture to use it if it has to define its own struct siginfo (e.g.
+MIPS and potentially IA64), since it means that asm-generic/siginfo.h
+can only be included after defining the arch-specific siginfo, which may
+be problematic if the arch-specific definition needs definitions from
+uapi/asm-generic/siginfo.h.
+
+It is possible to work around this by first including
+uapi/asm-generic/siginfo.h to get the constants before defining the
+arch-specific siginfo, and include asm-generic/siginfo.h after. However
+uapi headers can't be included by other uapi headers, so that first
+include has to be in an ifdef __kernel__, with the non __kernel__ case
+including the non-UAPI header instead.
+
+Instead of that mess, move the generic copy_siginfo() definition into
+linux/signal.h, which allows an arch-specific uapi/asm/siginfo.h to
+include asm-generic/siginfo.h and define the arch-specific siginfo, and
+for the generic copy_siginfo() to see that arch-specific definition.
+
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Petr Malat <oss@malat.biz>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Christopher Ferris <cferris@google.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Patchwork: https://patchwork.linux-mips.org/patch/12478/
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Kamal Mostafa <kamal@canonical.com>
+---
+ include/asm-generic/siginfo.h | 15 ---------------
+ include/linux/signal.h        | 15 +++++++++++++++
+ 2 files changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
+index 3d1a3af..a2508a8 100644
+--- a/include/asm-generic/siginfo.h
++++ b/include/asm-generic/siginfo.h
+@@ -17,21 +17,6 @@
+ struct siginfo;
+ void do_schedule_next_timer(struct siginfo *info);
+
+-#ifndef HAVE_ARCH_COPY_SIGINFO
+-
+-#include <linux/string.h>
+-
+-static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
+-{
+-	if (from->si_code < 0)
+-		memcpy(to, from, sizeof(*to));
+-	else
+-		/* _sigchld is currently the largest know union member */
+-		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
+-}
+-
+-#endif
+-
+ extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
+
+ #endif
+diff --git a/include/linux/signal.h b/include/linux/signal.h
+index 92557bb..d80259a 100644
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -28,6 +28,21 @@ struct sigpending {
+ 	sigset_t signal;
+ };
+
++#ifndef HAVE_ARCH_COPY_SIGINFO
++
++#include <linux/string.h>
++
++static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
++{
++	if (from->si_code < 0)
++		memcpy(to, from, sizeof(*to));
++	else
++		/* _sigchld is currently the largest know union member */
++		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
++}
++
++#endif
++
+ /*
+  * Define some primitives to manipulate sigset_t.
+  */
+--
+2.7.4
