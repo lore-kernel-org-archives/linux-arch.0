@@ -1,37 +1,49 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: [PATCH][RFC] PCI: Workaround to enable poweroff on Mac Pro 11
-Date: Thu, 9 Jun 2016 12:04:19 -0500
-Message-ID: <20160609170419.GC1109@localhost>
-References: <1464604404-11257-1-git-send-email-yu.c.chen@intel.com>
- <20160530213305.GA21322@localhost>
- <574D03F9.6050201@intel.com>
- <CAE9FiQV_Mc9VuyBvCB7hL_0pgj+-wW1_jupzhbTHij+VQeLF-A@mail.gmail.com>
- <574D3AAA.6090503@intel.com>
- <20160531131658.GA23837@localhost>
- <57579F9F.6010200@intel.com>
- <20160608124742.GA16764@localhost>
- <20160609165011.GA1109@localhost>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
+Date: Thu, 9 Jun 2016 19:36:40 +0200
+Message-ID: <20160609173640.GX30154@twins.programming.kicks-ass.net>
+References: <20160603223417.GB3892@twins.programming.kicks-ass.net>
+ <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+ <1454444369-2146-11-git-send-email-mhocko@kernel.org>
+ <20160203081016.GD32652@gmail.com>
+ <20160603161339.GC3693@twins.programming.kicks-ass.net>
+ <29355.1465483258@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:59649 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932077AbcFIRg6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 13:36:58 -0400
 Content-Disposition: inline
-In-Reply-To: <20160609165011.GA1109@localhost>
-Sender: linux-pci-owner@vger.kernel.org
-To: Chen Yu <yu.c.chen@intel.com>
-Cc: Yinghai Lu <yinghai@kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, "Rafael J . Wysocki" <rafael@kernel.org>, Len Brown <lenb@kernel.org>, Mika Westerberg <mika.westerberg@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <29355.1465483258@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@us.ibm.com>, Jason Low <jason.low2@hpe.com>
 
-On Thu, Jun 09, 2016 at 11:50:11AM -0500, Bjorn Helgaas wrote:
+On Thu, Jun 09, 2016 at 03:40:58PM +0100, David Howells wrote:
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > Blergh; so looking at more asm there's still a few tricks we cannot do.
+> > So while overall size is down, some paths do end up more expensive. (It
+> > typically boils down to creative use of condition flags, which is very
+> > hard in C)
+> 
+> It can be done using ISO __atomic_fetch_add() and suchlike.
 
-> 5) 00:1c.0 claims to have a slot that supports hotplug.  Is that
->    actually true?  Could you add a device below it?  If not, maybe the
->    problem is that the BIOS should have configured 00:1c.0 so it
->    doesn't report a slot.  If it didn't report a slot, we shouldn't
->    assign resources to it, since there is no possibility of a device
->    below it.
+(ISO-C11, ISO as such is a bad abbreviation I think)
 
-Of course, this would only be *part* of the problem, because a hot-added
-device somewhere else could still be assigned the space at 
-[mem 0x7fc00000-0x7fdfffff].
+Maybe, but we're almost there with __GCC_ASM_FLAG_OUTPUTS__.
 
-This just smells like an unreported device in there somewhere.
+atomic_long_add_negative() can be made to do inc;j(n)s for __down_read.
+
+the try_cmpxchg family you wanted to add independent from the ISO-C11
+bits can do the cmpxchg-j(n)z for __down_{read,write}_trylock.
+
+That only leaves us wanting an atomic_long_fetch_add_negative() for
+__up_{read,write}().
+
+Although I suppose, for this to be of use for our weakly ordered
+friends, we need _relaxed versions of all that (so that _acquire and
+_release variants are generated).
