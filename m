@@ -1,114 +1,42 @@
-From: Kamal Mostafa <kamal@canonical.com>
-Subject: [PATCH 4.2.y-ckt 099/206] SIGNAL: Move generic copy_siginfo() to signal.h
-Date: Thu,  9 Jun 2016 14:15:08 -0700
-Message-ID: <1465507015-23052-100-git-send-email-kamal@canonical.com>
-References: <1465507015-23052-1-git-send-email-kamal@canonical.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1465507015-23052-1-git-send-email-kamal@canonical.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
-Cc: James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Christopher Ferris <cferris@google.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, Kamal Mostafa <kamal@canonical.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 05/14] seccomp: recheck the syscall after RET_TRACE
+Date: Thu, 9 Jun 2016 15:46:10 -0700
+Message-ID: <CALCETrUsqr3YbD=5mA9mRmgYqiHeEoLpWi-teyexUo_jR1BaFA@mail.gmail.com>
+References: <1465506124-21866-1-git-send-email-keescook@chromium.org> <1465506124-21866-6-git-send-email-keescook@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1465506124-21866-6-git-send-email-keescook@chromium.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>
 List-Id: linux-arch.vger.kernel.org
 
-4.2.8-ckt12 -stable review patch.  If anyone has any objections, please let me know.
+On Thu, Jun 9, 2016 at 2:01 PM, Kees Cook <keescook@chromium.org> wrote:
+> When RET_TRACE triggers, a tracer may change a syscall into something that
+> should be filtered by seccomp. This re-runs seccomp after a trace event
+> to make sure things continue to pass.
+>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> ---
+>  kernel/seccomp.c | 21 ++++++++++++++++++---
+>  1 file changed, 18 insertions(+), 3 deletions(-)
+>
+> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+> index 14a37d71b612..54d15eb2b701 100644
+> --- a/kernel/seccomp.c
+> +++ b/kernel/seccomp.c
+> @@ -556,7 +556,8 @@ void secure_computing_strict(int this_syscall)
+>  #else
+>
+>  #ifdef CONFIG_SECCOMP_FILTER
+> -static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd)
+> +static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
+> +                           const bool recheck_after_trace)
 
----8<------------------------------------------------------------
+This patch looks good with one minor nit: I read this as "pass true if
+you want to recheck after trace", which is exactly the opposite of how
+it works.
 
-From: James Hogan <james.hogan@imgtec.com>
-
-commit ca9eb49aa9562eaadf3cea071ec7018ad6800425 upstream.
-
-The generic copy_siginfo() is currently defined in
-asm-generic/siginfo.h, after including uapi/asm-generic/siginfo.h which
-defines the generic struct siginfo. However this makes it awkward for an
-architecture to use it if it has to define its own struct siginfo (e.g.
-MIPS and potentially IA64), since it means that asm-generic/siginfo.h
-can only be included after defining the arch-specific siginfo, which may
-be problematic if the arch-specific definition needs definitions from
-uapi/asm-generic/siginfo.h.
-
-It is possible to work around this by first including
-uapi/asm-generic/siginfo.h to get the constants before defining the
-arch-specific siginfo, and include asm-generic/siginfo.h after. However
-uapi headers can't be included by other uapi headers, so that first
-include has to be in an ifdef __kernel__, with the non __kernel__ case
-including the non-UAPI header instead.
-
-Instead of that mess, move the generic copy_siginfo() definition into
-linux/signal.h, which allows an arch-specific uapi/asm/siginfo.h to
-include asm-generic/siginfo.h and define the arch-specific siginfo, and
-for the generic copy_siginfo() to see that arch-specific definition.
-
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Petr Malat <oss@malat.biz>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Christopher Ferris <cferris@google.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Patchwork: https://patchwork.linux-mips.org/patch/12478/
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-Signed-off-by: Kamal Mostafa <kamal@canonical.com>
----
- include/asm-generic/siginfo.h | 15 ---------------
- include/linux/signal.h        | 15 +++++++++++++++
- 2 files changed, 15 insertions(+), 15 deletions(-)
-
-diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
-index 3d1a3af..a2508a8 100644
---- a/include/asm-generic/siginfo.h
-+++ b/include/asm-generic/siginfo.h
-@@ -17,21 +17,6 @@
- struct siginfo;
- void do_schedule_next_timer(struct siginfo *info);
- 
--#ifndef HAVE_ARCH_COPY_SIGINFO
--
--#include <linux/string.h>
--
--static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
--{
--	if (from->si_code < 0)
--		memcpy(to, from, sizeof(*to));
--	else
--		/* _sigchld is currently the largest know union member */
--		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
--}
--
--#endif
--
- extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
- 
- #endif
-diff --git a/include/linux/signal.h b/include/linux/signal.h
-index 92557bb..d80259a 100644
---- a/include/linux/signal.h
-+++ b/include/linux/signal.h
-@@ -28,6 +28,21 @@ struct sigpending {
- 	sigset_t signal;
- };
- 
-+#ifndef HAVE_ARCH_COPY_SIGINFO
-+
-+#include <linux/string.h>
-+
-+static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
-+{
-+	if (from->si_code < 0)
-+		memcpy(to, from, sizeof(*to));
-+	else
-+		/* _sigchld is currently the largest know union member */
-+		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
-+}
-+
-+#endif
-+
- /*
-  * Define some primitives to manipulate sigset_t.
-  */
--- 
-2.7.4
+--Andy
