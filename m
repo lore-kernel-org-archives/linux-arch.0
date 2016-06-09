@@ -1,25 +1,37 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
-Date: Thu, 09 Jun 2016 15:40:58 +0100
-Message-ID: <29355.1465483258@warthog.procyon.org.uk>
-References: <20160603223417.GB3892@twins.programming.kicks-ass.net> <1454444369-2146-1-git-send-email-mhocko@kernel.org> <1454444369-2146-11-git-send-email-mhocko@kernel.org> <20160203081016.GD32652@gmail.com> <20160603161339.GC3693@twins.programming.kicks-ass.net>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH] bitmap_equal memcmp optimization for s390
+Date: Thu, 9 Jun 2016 16:45:32 +0200
+Message-ID: <20160609164532.23f05026@mschwide>
+References: <201606070837.u578Y1R5037289@mx0a-001b2d01.pphosted.com>
+	<28415.1465482407@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20160603223417.GB3892@twins.programming.kicks-ass.net>
-Content-ID: <29354.1465483258.1@warthog.procyon.org.uk>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, Ingo Molnar <mingo@kernel.org>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@us.ibm.com>, Jason Low <jason.low2@hpe.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <28415.1465482407@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Thu, 09 Jun 2016 15:26:47 +0100
+David Howells <dhowells@redhat.com> wrote:
 
-> Blergh; so looking at more asm there's still a few tricks we cannot do.
-> So while overall size is down, some paths do end up more expensive. (It
-> typically boils down to creative use of condition flags, which is very
-> hard in C)
+> Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
+> 
+> > I hesitate to put another CONFIG_S390 into common code, alternatively
+> > __HAVE_ARCH_MEMCMP could be used. There are 7 architectures with the
+> > define: arc, arm64, blackfin, frv, powerpc, s390 and sparc.
+> > Of those I guess only powerpc, s390 and sparc will have configs with
+> > (NR_CPUS > BITS_PER_LONG). For (NR_CPUS <= BITS_PER_LONG) the xor
+> > optimization is used.
+> 
+> FRV doesn't have __HAVE_ARCH_MEMCMP for __KERNEL__.
 
-It can be done using ISO __atomic_fetch_add() and suchlike.
+Yes indeed. How strange to define __HAVE_ARCH_xxx for user space only.
 
-David
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
