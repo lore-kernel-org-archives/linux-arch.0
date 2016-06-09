@@ -1,109 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:33270 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752039AbcFIVCb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 17:02:31 -0400
-Received: by mail-pa0-f54.google.com with SMTP id ec8so16603448pac.0
+Received: from mail-pf0-f178.google.com ([209.85.192.178]:35899 "EHLO
+	mail-pf0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752035AbcFIVCa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2016 17:02:30 -0400
+Received: by mail-pf0-f178.google.com with SMTP id t190so16330060pfb.3
         for <linux-arch@vger.kernel.org>; Thu, 09 Jun 2016 14:02:30 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 12/14] powerpc/ptrace: run seccomp after ptrace
-Date: Thu,  9 Jun 2016 14:02:02 -0700
-Message-ID: <1465506124-21866-13-git-send-email-keescook@chromium.org>
+Subject: [PATCH 11/14] s390/ptrace: run seccomp after ptrace
+Date: Thu,  9 Jun 2016 14:02:01 -0700
+Message-ID: <1465506124-21866-12-git-send-email-keescook@chromium.org>
 In-Reply-To: <1465506124-21866-1-git-send-email-keescook@chromium.org>
 References: <1465506124-21866-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Andy Lutomirski <luto@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ralf Baechle <ralf@linux-mips.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, Will Deacon <will.deacon@arm.com>, x86@kernel.org
-Message-ID: <20160609210202.B5BzbBxK7f4zHGjVA5R7YMb9RBk5Txc940xHfuYhPsQ@z>
+Cc: Kees Cook <keescook@chromium.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Weinberger <richard@nod.at>, Russell King <linux@armlinux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+Message-ID: <20160609210201.Hu_D_1eK9Yd13IIzyOuO-xbcqtl3euj0e-_8XojxVRA@z>
 
 Close the hole where ptrace can change a syscall out from under seccomp.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-s390@vger.kernel.org
 ---
- arch/powerpc/kernel/ptrace.c | 44 +++++++++++++++++++++++---------------------
- 1 file changed, 23 insertions(+), 21 deletions(-)
+ arch/s390/kernel/ptrace.c | 21 +++++++++------------
+ 1 file changed, 9 insertions(+), 12 deletions(-)
 
-diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
-index ed799e994773..5dc47ebb3840 100644
---- a/arch/powerpc/kernel/ptrace.c
-+++ b/arch/powerpc/kernel/ptrace.c
-@@ -1788,7 +1788,7 @@ static int do_seccomp(struct pt_regs *regs)
+diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
+index c238e9958c2a..cea17010448f 100644
+--- a/arch/s390/kernel/ptrace.c
++++ b/arch/s390/kernel/ptrace.c
+@@ -821,15 +821,6 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
  
- 	/*
- 	 * The syscall was allowed by seccomp, restore the register
--	 * state to what ptrace and audit expect.
-+	 * state to what audit expects.
- 	 * Note that we use orig_gpr3, which means a seccomp tracer can
- 	 * modify the first syscall parameter (in orig_gpr3) and also
- 	 * allow the syscall to proceed.
-@@ -1822,22 +1822,25 @@ static inline int do_seccomp(struct pt_regs *regs) { return 0; }
-  */
- long do_syscall_trace_enter(struct pt_regs *regs)
+ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
  {
--	bool abort = false;
+-	long ret = 0;
 -
- 	user_exit();
- 
-+	/*
-+	 * The tracer may decide to abort the syscall, if so tracehook
-+	 * will return !0. Note that the tracer may also just change
-+	 * regs->gpr[0] to an invalid syscall number, that is handled
-+	 * below on the exit path.
-+	 */
-+	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
-+	    tracehook_report_syscall_entry(regs))
-+		goto skip;
-+
-+	/* Run seccomp after ptrace; allow it to set gpr[3]. */
- 	if (do_seccomp(regs))
- 		return -1;
- 
--	if (test_thread_flag(TIF_SYSCALL_TRACE)) {
--		/*
--		 * The tracer may decide to abort the syscall, if so tracehook
--		 * will return !0. Note that the tracer may also just change
--		 * regs->gpr[0] to an invalid syscall number, that is handled
--		 * below on the exit path.
--		 */
--		abort = tracehook_report_syscall_entry(regs) != 0;
+-	/* Do the secure computing check first. */
+-	if (secure_computing(NULL)) {
+-		/* seccomp failures shouldn't expose any additional code. */
+-		ret = -1;
+-		goto out;
 -	}
-+	/* Avoid trace and audit when syscall is invalid. */
-+	if (regs->gpr[0] >= NR_syscalls)
-+		goto skip;
+-
+ 	/*
+ 	 * The sysc_tracesys code in entry.S stored the system
+ 	 * call number to gprs[2].
+@@ -843,7 +834,13 @@ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
+ 		 * the system call and the system call restart handling.
+ 		 */
+ 		clear_pt_regs_flag(regs, PIF_SYSCALL);
+-		ret = -1;
++		return -1;
++	}
++
++	/* Do the secure computing check after ptrace. */
++	if (secure_computing(NULL)) {
++		/* seccomp failures shouldn't expose any additional code. */
++		return -1;
+ 	}
  
  	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_sys_enter(regs, regs->gpr[0]);
-@@ -1854,17 +1857,16 @@ long do_syscall_trace_enter(struct pt_regs *regs)
- 				    regs->gpr[5] & 0xffffffff,
- 				    regs->gpr[6] & 0xffffffff);
- 
--	if (abort || regs->gpr[0] >= NR_syscalls) {
--		/*
--		 * If we are aborting explicitly, or if the syscall number is
--		 * now invalid, set the return value to -ENOSYS.
--		 */
--		regs->gpr[3] = -ENOSYS;
--		return -1;
--	}
--
- 	/* Return the possibly modified but valid syscall number */
- 	return regs->gpr[0];
+@@ -852,8 +849,8 @@ asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
+ 	audit_syscall_entry(regs->gprs[2], regs->orig_gpr2,
+ 			    regs->gprs[3], regs->gprs[4],
+ 			    regs->gprs[5]);
+-out:
+-	return ret ?: regs->gprs[2];
 +
-+skip:
-+	/*
-+	 * If we are aborting explicitly, or if the syscall number is
-+	 * now invalid, set the return value to -ENOSYS.
-+	 */
-+	regs->gpr[3] = -ENOSYS;
-+	return -1;
++	return regs->gprs[2];
  }
  
- void do_syscall_trace_leave(struct pt_regs *regs)
+ asmlinkage void do_syscall_trace_exit(struct pt_regs *regs)
 -- 
 2.7.4
 
