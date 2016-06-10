@@ -1,45 +1,56 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 11/14] s390/ptrace: run seccomp after ptrace
-Date: Fri, 10 Jun 2016 12:51:58 +0200
-Message-ID: <20160610125158.16dd5497@mschwide>
-References: <1465506124-21866-1-git-send-email-keescook@chromium.org>
-        <1465506124-21866-12-git-send-email-keescook@chromium.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
+Date: Fri, 10 Jun 2016 09:39:41 -0700
+Message-ID: <20160610163941.GC3868@linux.vnet.ibm.com>
+References: <20160603223417.GB3892@twins.programming.kicks-ass.net>
+ <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+ <1454444369-2146-11-git-send-email-mhocko@kernel.org>
+ <20160203081016.GD32652@gmail.com>
+ <20160603161339.GC3693@twins.programming.kicks-ass.net>
+ <29355.1465483258@warthog.procyon.org.uk>
+ <20160609173640.GX30154@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1465506124-21866-12-git-send-email-keescook@chromium.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, James Hogan <james.hogan@imgtec.com>, Jeff Dike <jdike@addtoit.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "Maciej W. Rozycki" <macro@imgtec.com>, Mark Rutland <mark.rutland@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Ri
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160609173640.GX30154@twins.programming.kicks-ass.net>
+Sender: sparclinux-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@kernel.org>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jason Low <jason.low2@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu,  9 Jun 2016 14:02:01 -0700
-Kees Cook <keescook@chromium.org> wrote:
-
-> Close the hole where ptrace can change a syscall out from under seccomp.
+On Thu, Jun 09, 2016 at 07:36:40PM +0200, Peter Zijlstra wrote:
+> On Thu, Jun 09, 2016 at 03:40:58PM +0100, David Howells wrote:
+> > Peter Zijlstra <peterz@infradead.org> wrote:
+> > 
+> > > Blergh; so looking at more asm there's still a few tricks we cannot do.
+> > > So while overall size is down, some paths do end up more expensive. (It
+> > > typically boils down to creative use of condition flags, which is very
+> > > hard in C)
+> > 
+> > It can be done using ISO __atomic_fetch_add() and suchlike.
 > 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: linux-s390@vger.kernel.org
-> ---
->  arch/s390/kernel/ptrace.c | 21 +++++++++------------
->  1 file changed, 9 insertions(+), 12 deletions(-)
+> (ISO-C11, ISO as such is a bad abbreviation I think)
+> 
+> Maybe, but we're almost there with __GCC_ASM_FLAG_OUTPUTS__.
+> 
+> atomic_long_add_negative() can be made to do inc;j(n)s for __down_read.
+> 
+> the try_cmpxchg family you wanted to add independent from the ISO-C11
+> bits can do the cmpxchg-j(n)z for __down_{read,write}_trylock.
+> 
+> That only leaves us wanting an atomic_long_fetch_add_negative() for
+> __up_{read,write}().
+> 
+> Although I suppose, for this to be of use for our weakly ordered
+> friends, we need _relaxed versions of all that (so that _acquire and
+> _release variants are generated).
 
-If the change in semantics in regard to the audit of skipped system calls
-is acceptable, the modified s390 arch code is ok.
+Historically, the compilers have won this sort of contest over the
+long term.  That said, there is nothing quite like raising the bar for
+them to help them generate decent code.  So, David and Peter, I am behind
+both of you 100%.  ;-)
 
--- 
-blue skies,
-   Martin.
+							Thanx, Paul
 
-"Reality continues to ruin my life." - Calvin.
