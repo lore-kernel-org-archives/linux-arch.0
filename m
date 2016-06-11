@@ -1,56 +1,36 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
-Date: Fri, 10 Jun 2016 09:39:41 -0700
-Message-ID: <20160610163941.GC3868@linux.vnet.ibm.com>
-References: <20160603223417.GB3892@twins.programming.kicks-ass.net>
- <1454444369-2146-1-git-send-email-mhocko@kernel.org>
- <1454444369-2146-11-git-send-email-mhocko@kernel.org>
- <20160203081016.GD32652@gmail.com>
- <20160603161339.GC3693@twins.programming.kicks-ass.net>
- <29355.1465483258@warthog.procyon.org.uk>
- <20160609173640.GX30154@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
+Date: Sat, 11 Jun 2016 11:47:44 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1606111147000.5839@nanos>
+References: <20160609000117.71AC7623@viggo.jf.intel.com> <20160609000120.A3DD5140@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160609173640.GX30154@twins.programming.kicks-ass.net>
-Sender: sparclinux-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Howells <dhowells@redhat.com>, Ingo Molnar <mingo@kernel.org>, Michal Hocko <mhocko@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jason Low <jason.low2@hpe.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20160609000120.A3DD5140-LXbPSdftPKxrdx17CPfAsdBPR1lH4CV8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 09, 2016 at 07:36:40PM +0200, Peter Zijlstra wrote:
-> On Thu, Jun 09, 2016 at 03:40:58PM +0100, David Howells wrote:
-> > Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > Blergh; so looking at more asm there's still a few tricks we cannot do.
-> > > So while overall size is down, some paths do end up more expensive. (It
-> > > typically boils down to creative use of condition flags, which is very
-> > > hard in C)
-> > 
-> > It can be done using ISO __atomic_fetch_add() and suchlike.
-> 
-> (ISO-C11, ISO as such is a bad abbreviation I think)
-> 
-> Maybe, but we're almost there with __GCC_ASM_FLAG_OUTPUTS__.
-> 
-> atomic_long_add_negative() can be made to do inc;j(n)s for __down_read.
-> 
-> the try_cmpxchg family you wanted to add independent from the ISO-C11
-> bits can do the cmpxchg-j(n)z for __down_{read,write}_trylock.
-> 
-> That only leaves us wanting an atomic_long_fetch_add_negative() for
-> __up_{read,write}().
-> 
-> Although I suppose, for this to be of use for our weakly ordered
-> friends, we need _relaxed versions of all that (so that _acquire and
-> _release variants are generated).
+On Wed, 8 Jun 2016, Dave Hansen wrote:
+> Proposed semantics:
+> 1. protection key 0 is special and represents the default,
+>    unassigned protection key.  It is always allocated.
+> 2. mprotect() never affects a mapping's pkey_mprotect()-assigned
+>    protection key. A protection key of 0 (even if set explicitly)
+>    represents an unassigned protection key.
+>    2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
+>        key may or may not result in a mapping with execute-only
+>        properties.  pkey_mprotect() plus pkey_set() on all threads
+>        should be used to _guarantee_ execute-only semantics.
+> 3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
+>    kernel will internally attempt to allocate and dedicate a
+>    protection key for the purpose of execute-only mappings.  This
+>    may not be possible in cases where there are no free protection
+>    keys available.
 
-Historically, the compilers have won this sort of contest over the
-long term.  That said, there is nothing quite like raising the bar for
-them to help them generate decent code.  So, David and Peter, I am behind
-both of you 100%.  ;-)
+Shouldn't we just reserve a protection key for PROT_EXEC unconditionally?
 
-							Thanx, Paul
+Thanks,
 
+	tglx
