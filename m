@@ -1,36 +1,45 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
-Date: Sat, 11 Jun 2016 11:47:44 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1606111147000.5839@nanos>
-References: <20160609000117.71AC7623@viggo.jf.intel.com> <20160609000120.A3DD5140@viggo.jf.intel.com>
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: Re: undefined reference to `printk'
+Date: Sat, 11 Jun 2016 21:38:10 -0700
+Message-ID: <20160612043810.GA1326@x>
+References: <201606121058.3CeznQLn%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20160609000120.A3DD5140-LXbPSdftPKxrdx17CPfAsdBPR1lH4CV8@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <201606121058.3CeznQLn%fengguang.wu@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: kbuild-all@01.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Linux Memory Management List <linux-mm@kvack.org>, kbuild test robot <fengguang.wu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 8 Jun 2016, Dave Hansen wrote:
-> Proposed semantics:
-> 1. protection key 0 is special and represents the default,
->    unassigned protection key.  It is always allocated.
-> 2. mprotect() never affects a mapping's pkey_mprotect()-assigned
->    protection key. A protection key of 0 (even if set explicitly)
->    represents an unassigned protection key.
->    2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
->        key may or may not result in a mapping with execute-only
->        properties.  pkey_mprotect() plus pkey_set() on all threads
->        should be used to _guarantee_ execute-only semantics.
-> 3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
->    kernel will internally attempt to allocate and dedicate a
->    protection key for the purpose of execute-only mappings.  This
->    may not be possible in cases where there are no free protection
->    keys available.
+[Adding LKML, linux-arch, and Linus.]
 
-Shouldn't we just reserve a protection key for PROT_EXEC unconditionally?
+On Sun, Jun 12, 2016 at 10:17:01AM +0800, kbuild test robot wrote:
+> All errors (new ones prefixed by >>):
+> 
+>    arch/m32r/kernel/built-in.o: In function `default_eit_handler':
+> >> (.text+0x3f8): undefined reference to `printk'
+>    arch/m32r/kernel/built-in.o: In function `default_eit_handler':
+>    (.text+0x3f8): relocation truncated to fit: R_M32R_26_PCREL_RELA against undefined symbol `printk'
 
-Thanks,
+As far as I can tell, there has been a patch available for this for
+months, and it still doesn't seem to have been applied anywhere.
 
-	tglx
+m32r is listed in MAINTAINERS as "Orphan", and has been since commit
+b4174867bee83e79dc155479cb1b67c452da6476 in 2014.  And that commit
+in turn observed no commits from the maintainer since 2009.  Looking at
+the log for arch/m32r, I don't see any activity other than random fixes
+by others, and based on the signoffs, all of those seem to go through
+miscellaneous trees.
+
+Is anyone using m32r?  Is anyone willing to maintain it?  And if not,
+should we consider removing it?
+
+- Josh Triplett
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
