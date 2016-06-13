@@ -1,77 +1,43 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-Date: Mon, 13 Jun 2016 10:16:12 -0500
-Message-ID: <575ECE3C.5030600@amd.com>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160510134358.GR2839@codeblueprint.co.uk> <20160510135758.GA16783@pd.tnic>
- <5734C97D.8060803@amd.com> <57446B27.20406@amd.com>
- <20160525193011.GC2984@codeblueprint.co.uk> <5746FE16.9070408@amd.com>
- <20160608100713.GU2658@codeblueprint.co.uk> <57599668.20000@amd.com>
- <20160613120322.GA2658@codeblueprint.co.uk>
+From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
+Date: Mon, 13 Jun 2016 09:03:36 -0700
+Message-ID: <575ED958.5060209@sr71.net>
+References: <20160609000117.71AC7623@viggo.jf.intel.com>
+ <20160609000120.A3DD5140@viggo.jf.intel.com>
+ <alpine.DEB.2.11.1606111147000.5839@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <20160613120322.GA2658@codeblueprint.co.uk>
-Sender: kvm-owner@vger.kernel.org
-To: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>Ard Biesheuvel <a>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <alpine.DEB.2.11.1606111147000.5839@nanos>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 06/13/2016 07:03 AM, Matt Fleming wrote:
-> On Thu, 09 Jun, at 11:16:40AM, Tom Lendacky wrote:
->>
->> So maybe something along the lines of an enum that would have entries
->> (initially) like KERNEL_DATA (equal to zero) and EFI_DATA. Others could
->> be added later as needed.
->  
-> Sure, that works for me, though maybe BOOT_DATA would be more
-> applicable considering the devicetree case too.
-> 
->> Would you then want to allow the protection attributes to be updated
->> by architecture specific code through something like a __weak function?
->> In the x86 case I can add this function as a non-SME specific function
->> that would initially just have the SME-related mask modification in it.
-> 
-> Would we need a new function? Couldn't we just have a new
-> FIXMAP_PAGE_* constant? e.g. would something like this work?
+On 06/11/2016 02:47 AM, Thomas Gleixner wrote:
+> On Wed, 8 Jun 2016, Dave Hansen wrote:
+>> > Proposed semantics:
+>> > 1. protection key 0 is special and represents the default,
+>> >    unassigned protection key.  It is always allocated.
+>> > 2. mprotect() never affects a mapping's pkey_mprotect()-assigned
+>> >    protection key. A protection key of 0 (even if set explicitly)
+>> >    represents an unassigned protection key.
+>> >    2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
+>> >        key may or may not result in a mapping with execute-only
+>> >        properties.  pkey_mprotect() plus pkey_set() on all threads
+>> >        should be used to _guarantee_ execute-only semantics.
+>> > 3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
+>> >    kernel will internally attempt to allocate and dedicate a
+>> >    protection key for the purpose of execute-only mappings.  This
+>> >    may not be possible in cases where there are no free protection
+>> >    keys available.
+> Shouldn't we just reserve a protection key for PROT_EXEC unconditionally?
 
-Looking forward to the virtualization support (SEV), the VM will be
-completely encrypted from the time it is started. In this case all of
-the UEFI data will be encrypted and I would need to insure that the
-mapping reflects that. When I do the SEV patches, I can change the
-FIXMAP #define to add some logic to return a value, so I think the
-FIXMAP_PAGE_ idea can work.
+Normal userspace does not do PROT_EXEC today.  So, today, we'd
+effectively lose one of our keys by reserving it.  Of the folks I've
+talked to who really want this feature, and *will* actually use it, one
+of the most common complaints is that there are too few keys.
 
-Thanks,
-Tom
-
-> 
-> ---
-> 
-> enum memremap_owner {
-> 	KERNEL_DATA = 0,
-> 	BOOT_DATA,
-> };
-> 
-> void __init *
-> early_memremap(resource_size_t phys_addr, unsigned long size,
-> 	       enum memremap_owner owner)
-> {
-> 	pgprot_t prot;
-> 
-> 	switch (owner) {
-> 	case BOOT_DATA:
-> 		prot = FIXMAP_PAGE_BOOT;
-> 		break;
-> 	case KERNEL_DATA:	/* FALLTHROUGH */
-> 	default:
-> 		prot = FIXMAP_PAGE_NORMAL;
-> 		
-> 	}
-> 
-> 	return (__force void *)__early_ioremap(phys_addr, size, prot);
-> }
-> 
+Folks who actively *want* true PROT_EXEC semantics can use the explicit
+pkey interfaces.
