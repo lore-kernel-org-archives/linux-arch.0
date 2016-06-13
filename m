@@ -1,177 +1,81 @@
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Subject: Re: [PATCH 16/23] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Mon, 13 Jun 2016 21:22:20 +0800
-Message-ID: <575EB38C.4030908@huawei.com>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-17-git-send-email-ynorov@caviumnetworks.com>
- <575E22ED.2080806@huawei.com>
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Date: Mon, 13 Jun 2016 14:51:10 +0100
+Message-ID: <20160613135110.GC2658@codeblueprint.co.uk>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160608111844.GV2658@codeblueprint.co.uk>
+ <5759B67A.4000800@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([119.145.14.52]:57309 "EHLO
-	szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1423232AbcFMNXV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2016 09:23:21 -0400
-In-Reply-To: <575E22ED.2080806@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <5759B67A.4000800@amd.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi, again
+On Thu, 09 Jun, at 01:33:30PM, Tom Lendacky wrote:
+> 
+> I was trying to play it safe here, but as you say, the firmware should
+> be using our page tables so we can get rid of this call. The problem
+> will actually be if we transition to a 32-bit efi. The encryption bit
+> will be lost in cr3 and so the pgd table will have to be un-encrypted.
+> The entries in the pgd can have the encryption bit set so I would only
+> need to worry about the pgd itself. I'll have to update the
+> efi_alloc_page_tables routine.
+ 
+Interesting, I hadn't expected 32-bit EFI to be an option for
+platforms with the SME technology. I'd assumed we could just ignore
+that.
 
-I found another issue in binfmt_ilp32.c. We are using the ELF_ET_DYN_BASE
-for ilp32 application. The default ELF_ET_DYN_BASE is calculated by
-TASK_SIZE_64. IIUC, we should define the following things in binfmt_ilp32.c
-which is the same value as aarch32:
+Are you saying that the encryption bit isn't supported in 32-bit
+compatibility mode? We don't do a "full" switch to 32-bit protected
+mode when in mixed mode, just load a 32-bit code segment descriptor.
+The page tables are not modified at all.
 
-+#undef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
+> The encryption bit in the cr3 register will indicate if the pgd table
+> is encrypted or not. Based on my comment above about the pgd having
+> to be un-encrypted in case we have to transition to 32-bit efi, this
+> can be removed.
+ 
+I'm not (yet) sure that the pgd needs to be unencrypted for 32-bit EFI
+when running a 64-bit kernel. In the AMD Programmer's Manual, Section
+7.10.3 Operating Modes seems to indicate that running encrypted should
+work fine.
 
-Note that the ilp32 library works without this patch. After read code and
-debug, the address is corrected in get_unmapped_area. I suspect find_vma
-fix this wrong address.
+> I'll look into this a bit more. From looking at it I don't want the
+> _PAGE_ENC bit set for the memmap unless it gets re-allocated (which
+> I missed in these patches). Let me see what I can do with this.
+ 
+I don't understand your comment about re-allocating the memmap.
 
-Ideas?
+The kernel builds its own EFI memory map at runtime, initially based
+on the memory map provided by the firmware. We always allocate a new
+memory map.
 
-Regards
+In efi_setup_page_tables() we're building our own page tables, which
+should be encrypted, and mapping EFI regions described by the memmap
+into those page tables.
 
-Bamvor
+So unless we're mapping an MMIO region (in which case _PAGE_PCD is set
+in @flags for kernel_map_pages_in_pgd()) I would expect _PAGE_ENC to
+be set.
 
-On 2016/6/13 11:05, Zhangjian (Bamvor) wrote:
-> Hi, Yury
->
-> On 2016/5/24 8:04, Yury Norov wrote:
->> to handle ILP32 binaries
->>
->> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
->> ---
->>   arch/arm64/kernel/Makefile       |  1 +
->>   arch/arm64/kernel/binfmt_ilp32.c | 91 ++++++++++++++++++++++++++++++++++++++++
->>   2 files changed, 92 insertions(+)
->>   create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
->>
->> diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
->> index 6bc9738..9dfdf86 100644
->> --- a/arch/arm64/kernel/Makefile
->> +++ b/arch/arm64/kernel/Makefile
->> @@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
->>   arm64-obj-$(CONFIG_AARCH32_EL0)        += sys32.o kuser32.o signal32.o     \
->>                          sys_compat.o entry32.o        \
->>                          ../../arm/kernel/opcodes.o binfmt_elf32.o
->> +arm64-obj-$(CONFIG_ARM64_ILP32)        += binfmt_ilp32.o
->>   arm64-obj-$(CONFIG_FUNCTION_TRACER)    += ftrace.o entry-ftrace.o
->>   arm64-obj-$(CONFIG_MODULES)        += arm64ksyms.o module.o
->>   arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)    += module-plts.o
->> diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
->> new file mode 100644
->> index 0000000..a934fd4
->> --- /dev/null
->> +++ b/arch/arm64/kernel/binfmt_ilp32.c
->> @@ -0,0 +1,91 @@
->> +/*
->> + * Support for ILP32 Linux/aarch64 ELF binaries.
->> + */
->> +
->> +#include <linux/elfcore-compat.h>
->> +#include <linux/time.h>
->> +
->> +#undef    ELF_CLASS
->> +#define ELF_CLASS    ELFCLASS32
->> +
->> +#undef    elfhdr
->> +#undef    elf_phdr
->> +#undef    elf_shdr
->> +#undef    elf_note
->> +#undef    elf_addr_t
->> +#define elfhdr        elf32_hdr
->> +#define elf_phdr    elf32_phdr
->> +#define elf_shdr    elf32_shdr
->> +#define elf_note    elf32_note
->> +#define elf_addr_t    Elf32_Addr
->> +
->> +/*
->> + * Some data types as stored in coredump.
->> + */
->> +#define user_long_t        compat_long_t
->> +#define user_siginfo_t        compat_siginfo_t
->> +#define copy_siginfo_to_user    copy_siginfo_to_user32
->> +
->> +/*
->> + * The machine-dependent core note format types are defined in elfcore-compat.h,
->> + * which requires asm/elf.h to define compat_elf_gregset_t et al.
->> + */
->> +#define elf_prstatus    compat_elf_prstatus
->> +#define elf_prpsinfo    compat_elf_prpsinfo
->> +
->> +/*
->> + * Compat version of cputime_to_compat_timeval, perhaps this
->> + * should be an inline in <linux/compat.h>.
->> + */
->> +static void cputime_to_compat_timeval(const cputime_t cputime,
->> +                      struct compat_timeval *value)
->> +{
->> +    struct timeval tv;
->> +    cputime_to_timeval(cputime, &tv);
->> +    value->tv_sec = tv.tv_sec;
->> +    value->tv_usec = tv.tv_usec;
->> +}
->> +
->> +#undef cputime_to_timeval
->> +#define cputime_to_timeval cputime_to_compat_timeval
->> +
->> +/* AARCH64 ILP32 EABI. */
->> +#undef elf_check_arch
->> +#define elf_check_arch(x)        (((x)->e_machine == EM_AARCH64)    \
->> +                    && (x)->e_ident[EI_CLASS] == ELFCLASS32)
->> +
->> +#undef SET_PERSONALITY
->> +#define SET_PERSONALITY(ex)                        \
->> +do {                                    \
->> +    set_thread_flag(TIF_32BIT_AARCH64);                \
->> +    clear_thread_flag(TIF_32BIT);                    \
->> +} while (0)
->> +
->> +#undef ARCH_DLINFO
->> +#define ARCH_DLINFO                            \
->> +do {                                    \
->> +    NEW_AUX_ENT(AT_SYSINFO_EHDR,                    \
->> +            (elf_addr_t)(long)current->mm->context.vdso);    \
->> +} while (0)
->> +
->> +#ifdef __AARCH64EB__
->> +#define COMPAT_ELF_PLATFORM        ("aarch64_be:ilp32")
->> +#else
->> +#define COMPAT_ELF_PLATFORM        ("aarch64:ilp32")
->> +#endif
-> fs/binfmt_elf.c use ELF_PLATFORM instead of the COMPAT one. Should we define
-> ELF_PLATFORM directly?
-> #undef ELF_PLATFORM
-> #ifdef __AARCH64EB__
-> #define ELF_PLATFORM            ("aarch64_be:ilp32")
-> #else
-> #define ELF_PLATFORM            ("aarch64:ilp32")
-> #endif
->
-> Regards
->
-> Bamvor
->> +
->> +#undef ELF_HWCAP
->> +#undef ELF_HWCAP2
->> +#define ELF_HWCAP            ((u32) elf_hwcap)
->> +#define ELF_HWCAP2            ((u32) (elf_hwcap >> 32))
->> +
->> +/*
->> + * Rename a few of the symbols that binfmt_elf.c will define.
->> + * These are all local so the names don't really matter, but it
->> + * might make some debugging less confusing not to duplicate them.
->> + */
->> +#define elf_format        compat_elf_format
->> +#define init_elf_binfmt        init_compat_elf_binfmt
->> +#define exit_elf_binfmt        exit_compat_elf_binfmt
->> +
->> +#include "../../../fs/binfmt_elf.c"
->>
->
+> I'll look further into this, but I saw that this area of virtual memory
+> was mapped un-encrypted and after freeing the boot services the
+> mappings were somehow reused as un-encrypted for DMA which assumes
+> (unless using swiotlb) encrypted. This resulted in DMA data being
+> transferred in as encrypted and then accessed un-encrypted.
+
+That the mappings were re-used isn't a surprise.
+
+efi_free_boot_services() lifts the reservation that was put in place
+during efi_reserve_boot_services() and releases the pages to the
+kernel's memory allocators.
+
+What is surprising is that they were marked unencrypted at all.
+There's nothing special about these pages as far as the __va() region
+is concerned.
