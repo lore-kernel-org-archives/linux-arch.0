@@ -1,156 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga04-in.huawei.com ([119.145.14.52]:62052 "EHLO
-	szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S933130AbcFMDGR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jun 2016 23:06:17 -0400
-Subject: Re: [PATCH 16/23] arm64: ilp32: introduce binfmt_ilp32.c
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-17-git-send-email-ynorov@caviumnetworks.com>
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <575E22ED.2080806@huawei.com>
-Date: Mon, 13 Jun 2016 11:05:17 +0800
+Received: from mail-wm0-f43.google.com ([74.125.82.43]:34990 "EHLO
+	mail-wm0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423147AbcFMMD0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2016 08:03:26 -0400
+Received: by mail-wm0-f43.google.com with SMTP id v199so75072791wmv.0
+        for <linux-arch@vger.kernel.org>; Mon, 13 Jun 2016 05:03:25 -0700 (PDT)
+Date: Mon, 13 Jun 2016 13:03:22 +0100
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Message-ID: <20160613120322.GA2658@codeblueprint.co.uk>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160510134358.GR2839@codeblueprint.co.uk>
+ <20160510135758.GA16783@pd.tnic>
+ <5734C97D.8060803@amd.com>
+ <57446B27.20406@amd.com>
+ <20160525193011.GC2984@codeblueprint.co.uk>
+ <5746FE16.9070408@amd.com>
+ <20160608100713.GU2658@codeblueprint.co.uk>
+ <57599668.20000@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <1464048292-30136-17-git-send-email-ynorov@caviumnetworks.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <57599668.20000@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <20160613030517.rmJHC09pMS5FJMBwmf5AjrNux_3-KT5b8rok--r-jXY@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20160613120322.2xtAHQi0nxqw0bihU3PuKI73FCWNu023PfUFs5QPtFE@z>
 
-Hi, Yury
+On Thu, 09 Jun, at 11:16:40AM, Tom Lendacky wrote:
+> 
+> So maybe something along the lines of an enum that would have entries
+> (initially) like KERNEL_DATA (equal to zero) and EFI_DATA. Others could
+> be added later as needed.
+ 
+Sure, that works for me, though maybe BOOT_DATA would be more
+applicable considering the devicetree case too.
 
-On 2016/5/24 8:04, Yury Norov wrote:
-> to handle ILP32 binaries
->
-> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> ---
->   arch/arm64/kernel/Makefile       |  1 +
->   arch/arm64/kernel/binfmt_ilp32.c | 91 ++++++++++++++++++++++++++++++++++++++++
->   2 files changed, 92 insertions(+)
->   create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
->
-> diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-> index 6bc9738..9dfdf86 100644
-> --- a/arch/arm64/kernel/Makefile
-> +++ b/arch/arm64/kernel/Makefile
-> @@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
->   arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
->   					   sys_compat.o entry32.o		\
->   					   ../../arm/kernel/opcodes.o binfmt_elf32.o
-> +arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
->   arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
->   arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
->   arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-> diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
-> new file mode 100644
-> index 0000000..a934fd4
-> --- /dev/null
-> +++ b/arch/arm64/kernel/binfmt_ilp32.c
-> @@ -0,0 +1,91 @@
-> +/*
-> + * Support for ILP32 Linux/aarch64 ELF binaries.
-> + */
-> +
-> +#include <linux/elfcore-compat.h>
-> +#include <linux/time.h>
-> +
-> +#undef	ELF_CLASS
-> +#define ELF_CLASS	ELFCLASS32
-> +
-> +#undef	elfhdr
-> +#undef	elf_phdr
-> +#undef	elf_shdr
-> +#undef	elf_note
-> +#undef	elf_addr_t
-> +#define elfhdr		elf32_hdr
-> +#define elf_phdr	elf32_phdr
-> +#define elf_shdr	elf32_shdr
-> +#define elf_note	elf32_note
-> +#define elf_addr_t	Elf32_Addr
-> +
-> +/*
-> + * Some data types as stored in coredump.
-> + */
-> +#define user_long_t		compat_long_t
-> +#define user_siginfo_t		compat_siginfo_t
-> +#define copy_siginfo_to_user	copy_siginfo_to_user32
-> +
-> +/*
-> + * The machine-dependent core note format types are defined in elfcore-compat.h,
-> + * which requires asm/elf.h to define compat_elf_gregset_t et al.
-> + */
-> +#define elf_prstatus	compat_elf_prstatus
-> +#define elf_prpsinfo	compat_elf_prpsinfo
-> +
-> +/*
-> + * Compat version of cputime_to_compat_timeval, perhaps this
-> + * should be an inline in <linux/compat.h>.
-> + */
-> +static void cputime_to_compat_timeval(const cputime_t cputime,
-> +				      struct compat_timeval *value)
-> +{
-> +	struct timeval tv;
-> +	cputime_to_timeval(cputime, &tv);
-> +	value->tv_sec = tv.tv_sec;
-> +	value->tv_usec = tv.tv_usec;
-> +}
-> +
-> +#undef cputime_to_timeval
-> +#define cputime_to_timeval cputime_to_compat_timeval
-> +
-> +/* AARCH64 ILP32 EABI. */
-> +#undef elf_check_arch
-> +#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
-> +					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
-> +
-> +#undef SET_PERSONALITY
-> +#define SET_PERSONALITY(ex)						\
-> +do {									\
-> +	set_thread_flag(TIF_32BIT_AARCH64);				\
-> +	clear_thread_flag(TIF_32BIT);					\
-> +} while (0)
-> +
-> +#undef ARCH_DLINFO
-> +#define ARCH_DLINFO							\
-> +do {									\
-> +	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-> +		    (elf_addr_t)(long)current->mm->context.vdso);	\
-> +} while (0)
-> +
-> +#ifdef __AARCH64EB__
-> +#define COMPAT_ELF_PLATFORM		("aarch64_be:ilp32")
-> +#else
-> +#define COMPAT_ELF_PLATFORM		("aarch64:ilp32")
-> +#endif
-fs/binfmt_elf.c use ELF_PLATFORM instead of the COMPAT one. Should we define
-ELF_PLATFORM directly?
-#undef ELF_PLATFORM
-#ifdef __AARCH64EB__
-#define ELF_PLATFORM            ("aarch64_be:ilp32")
-#else
-#define ELF_PLATFORM            ("aarch64:ilp32")
-#endif
+> Would you then want to allow the protection attributes to be updated
+> by architecture specific code through something like a __weak function?
+> In the x86 case I can add this function as a non-SME specific function
+> that would initially just have the SME-related mask modification in it.
 
-Regards
+Would we need a new function? Couldn't we just have a new
+FIXMAP_PAGE_* constant? e.g. would something like this work?
 
-Bamvor
-> +
-> +#undef ELF_HWCAP
-> +#undef ELF_HWCAP2
-> +#define ELF_HWCAP			((u32) elf_hwcap)
-> +#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
-> +
-> +/*
-> + * Rename a few of the symbols that binfmt_elf.c will define.
-> + * These are all local so the names don't really matter, but it
-> + * might make some debugging less confusing not to duplicate them.
-> + */
-> +#define elf_format		compat_elf_format
-> +#define init_elf_binfmt		init_compat_elf_binfmt
-> +#define exit_elf_binfmt		exit_compat_elf_binfmt
-> +
-> +#include "../../../fs/binfmt_elf.c"
->
+---
 
+enum memremap_owner {
+	KERNEL_DATA = 0,
+	BOOT_DATA,
+};
+
+void __init *
+early_memremap(resource_size_t phys_addr, unsigned long size,
+	       enum memremap_owner owner)
+{
+	pgprot_t prot;
+
+	switch (owner) {
+	case BOOT_DATA:
+		prot = FIXMAP_PAGE_BOOT;
+		break;
+	case KERNEL_DATA:	/* FALLTHROUGH */
+	default:
+		prot = FIXMAP_PAGE_NORMAL;
+		
+	}
+
+	return (__force void *)__early_ioremap(phys_addr, size, prot);
+}
