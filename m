@@ -1,83 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0073.outbound.protection.outlook.com ([157.56.110.73]:5440
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1423555AbcFMPQ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jun 2016 11:16:28 -0400
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160510134358.GR2839@codeblueprint.co.uk> <20160510135758.GA16783@pd.tnic>
- <5734C97D.8060803@amd.com> <57446B27.20406@amd.com>
- <20160525193011.GC2984@codeblueprint.co.uk> <5746FE16.9070408@amd.com>
- <20160608100713.GU2658@codeblueprint.co.uk> <57599668.20000@amd.com>
- <20160613120322.GA2658@codeblueprint.co.uk>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <575ECE3C.5030600@amd.com>
-Date: Mon, 13 Jun 2016 10:16:12 -0500
+Received: from www.sr71.net ([198.145.64.142]:36041 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1424288AbcFMQDj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jun 2016 12:03:39 -0400
+Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
+References: <20160609000117.71AC7623@viggo.jf.intel.com>
+ <20160609000120.A3DD5140@viggo.jf.intel.com>
+ <alpine.DEB.2.11.1606111147000.5839@nanos>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <575ED958.5060209@sr71.net>
+Date: Mon, 13 Jun 2016 09:03:36 -0700
 MIME-Version: 1.0
-In-Reply-To: <20160613120322.GA2658@codeblueprint.co.uk>
-Content-Type: text/plain; charset="windows-1252"
+In-Reply-To: <alpine.DEB.2.11.1606111147000.5839@nanos>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20160613151612.jFYg4Lxnpe89Giu3WQ-4X4zUIoEPjZr98pBwW_Psx1g@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com
+Message-ID: <20160613160336.1lCpVqZrWGBSCunL2mg2WRPQx1v9AilW8_FyTOf5mhM@z>
 
-On 06/13/2016 07:03 AM, Matt Fleming wrote:
-> On Thu, 09 Jun, at 11:16:40AM, Tom Lendacky wrote:
->>
->> So maybe something along the lines of an enum that would have entries
->> (initially) like KERNEL_DATA (equal to zero) and EFI_DATA. Others could
->> be added later as needed.
->  
-> Sure, that works for me, though maybe BOOT_DATA would be more
-> applicable considering the devicetree case too.
-> 
->> Would you then want to allow the protection attributes to be updated
->> by architecture specific code through something like a __weak function?
->> In the x86 case I can add this function as a non-SME specific function
->> that would initially just have the SME-related mask modification in it.
-> 
-> Would we need a new function? Couldn't we just have a new
-> FIXMAP_PAGE_* constant? e.g. would something like this work?
+On 06/11/2016 02:47 AM, Thomas Gleixner wrote:
+> On Wed, 8 Jun 2016, Dave Hansen wrote:
+>> > Proposed semantics:
+>> > 1. protection key 0 is special and represents the default,
+>> >    unassigned protection key.  It is always allocated.
+>> > 2. mprotect() never affects a mapping's pkey_mprotect()-assigned
+>> >    protection key. A protection key of 0 (even if set explicitly)
+>> >    represents an unassigned protection key.
+>> >    2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
+>> >        key may or may not result in a mapping with execute-only
+>> >        properties.  pkey_mprotect() plus pkey_set() on all threads
+>> >        should be used to _guarantee_ execute-only semantics.
+>> > 3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
+>> >    kernel will internally attempt to allocate and dedicate a
+>> >    protection key for the purpose of execute-only mappings.  This
+>> >    may not be possible in cases where there are no free protection
+>> >    keys available.
+> Shouldn't we just reserve a protection key for PROT_EXEC unconditionally?
 
-Looking forward to the virtualization support (SEV), the VM will be
-completely encrypted from the time it is started. In this case all of
-the UEFI data will be encrypted and I would need to insure that the
-mapping reflects that. When I do the SEV patches, I can change the
-FIXMAP #define to add some logic to return a value, so I think the
-FIXMAP_PAGE_ idea can work.
+Normal userspace does not do PROT_EXEC today.  So, today, we'd
+effectively lose one of our keys by reserving it.  Of the folks I've
+talked to who really want this feature, and *will* actually use it, one
+of the most common complaints is that there are too few keys.
 
-Thanks,
-Tom
-
-> 
-> ---
-> 
-> enum memremap_owner {
-> 	KERNEL_DATA = 0,
-> 	BOOT_DATA,
-> };
-> 
-> void __init *
-> early_memremap(resource_size_t phys_addr, unsigned long size,
-> 	       enum memremap_owner owner)
-> {
-> 	pgprot_t prot;
-> 
-> 	switch (owner) {
-> 	case BOOT_DATA:
-> 		prot = FIXMAP_PAGE_BOOT;
-> 		break;
-> 	case KERNEL_DATA:	/* FALLTHROUGH */
-> 	default:
-> 		prot = FIXMAP_PAGE_NORMAL;
-> 		
-> 	}
-> 
-> 	return (__force void *)__early_ioremap(phys_addr, size, prot);
-> }
-> 
+Folks who actively *want* true PROT_EXEC semantics can use the explicit
+pkey interfaces.
