@@ -1,69 +1,73 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH] ARM: socfpga: add PCIe to socfpga_defconfig
-Date: Mon, 13 Jun 2016 16:23:46 +0800
-Message-ID: <1465806226-4255-1-git-send-email-lftan@altera.com>
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+Date: Mon, 13 Jun 2016 13:03:22 +0100
+Message-ID: <20160613120322.GA2658@codeblueprint.co.uk>
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160510134358.GR2839@codeblueprint.co.uk>
+ <20160510135758.GA16783@pd.tnic>
+ <5734C97D.8060803@amd.com>
+ <57446B27.20406@amd.com>
+ <20160525193011.GC2984@codeblueprint.co.uk>
+ <5746FE16.9070408@amd.com>
+ <20160608100713.GU2658@codeblueprint.co.uk>
+ <57599668.20000@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0059.outbound.protection.outlook.com ([157.56.110.59]:8064
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1030182AbcFMJ46 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jun 2016 05:56:58 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ley Foon Tan <lftan.linux@gmail.com>, Ley Foon Tan <lftan@altera.com>, Tien Hock Loh <thloh@altera.com>, Dinh Nguyen <dinguyen@altera.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <57599668.20000@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: Borislav Petkov <bp@alien8.de>, Leif Lindholm <leif.lindholm@linaro.org>, Mark Salter <msalter@redhat.com>, Daniel Kiper <daniel.kiper@oracle.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.or>
+List-Id: linux-arch.vger.kernel.org
 
-Enable Altera PCIe host driver, Altera MSI driver and PCIe devices.
+On Thu, 09 Jun, at 11:16:40AM, Tom Lendacky wrote:
+> 
+> So maybe something along the lines of an enum that would have entries
+> (initially) like KERNEL_DATA (equal to zero) and EFI_DATA. Others could
+> be added later as needed.
+ 
+Sure, that works for me, though maybe BOOT_DATA would be more
+applicable considering the devicetree case too.
 
-CONFIG_PCI=y
-CONFIG_PCI_MSI=y
-CONFIG_PCIE_ALTERA=y
-CONFIG_PCIE_ALTERA_MSI=y
-CONFIG_BLK_DEV_NVME=m
-CONFIG_E1000E=m
-CONFIG_IGB=m
-CONFIG_IXGBE=m
+> Would you then want to allow the protection attributes to be updated
+> by architecture specific code through something like a __weak function?
+> In the x86 case I can add this function as a non-SME specific function
+> that would initially just have the SME-related mask modification in it.
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
-Signed-off-by: Tien Hock Loh <thloh@altera.com>
-Cc: Dinh Nguyen <dinguyen@altera.com>
+Would we need a new function? Couldn't we just have a new
+FIXMAP_PAGE_* constant? e.g. would something like this work?
+
 ---
- arch/arm/configs/socfpga_defconfig | 8 ++++++++
- 1 file changed, 8 insertions(+)
 
-diff --git a/arch/arm/configs/socfpga_defconfig b/arch/arm/configs/socfpga_defconfig
-index 753f1a5..419d758 100644
---- a/arch/arm/configs/socfpga_defconfig
-+++ b/arch/arm/configs/socfpga_defconfig
-@@ -19,6 +19,10 @@ CONFIG_MODULE_UNLOAD=y
- # CONFIG_IOSCHED_CFQ is not set
- CONFIG_ARCH_SOCFPGA=y
- CONFIG_ARM_THUMBEE=y
-+CONFIG_PCI=y
-+CONFIG_PCI_MSI=y
-+CONFIG_PCIE_ALTERA=y
-+CONFIG_PCIE_ALTERA_MSI=y
- CONFIG_SMP=y
- CONFIG_NR_CPUS=2
- CONFIG_AEABI=y
-@@ -50,12 +54,16 @@ CONFIG_DEVTMPFS_MOUNT=y
- CONFIG_BLK_DEV_RAM=y
- CONFIG_BLK_DEV_RAM_COUNT=2
- CONFIG_BLK_DEV_RAM_SIZE=8192
-+CONFIG_BLK_DEV_NVME=m
- CONFIG_SRAM=y
- CONFIG_SCSI=y
- # CONFIG_SCSI_PROC_FS is not set
- CONFIG_BLK_DEV_SD=y
- # CONFIG_SCSI_LOWLEVEL is not set
- CONFIG_NETDEVICES=y
-+CONFIG_E1000E=m
-+CONFIG_IGB=m
-+CONFIG_IXGBE=m
- CONFIG_STMMAC_ETH=y
- CONFIG_MICREL_PHY=y
- CONFIG_INPUT_EVDEV=y
--- 
-1.8.2.1
+enum memremap_owner {
+	KERNEL_DATA = 0,
+	BOOT_DATA,
+};
+
+void __init *
+early_memremap(resource_size_t phys_addr, unsigned long size,
+	       enum memremap_owner owner)
+{
+	pgprot_t prot;
+
+	switch (owner) {
+	case BOOT_DATA:
+		prot = FIXMAP_PAGE_BOOT;
+		break;
+	case KERNEL_DATA:	/* FALLTHROUGH */
+	default:
+		prot = FIXMAP_PAGE_NORMAL;
+		
+	}
+
+	return (__force void *)__early_ioremap(phys_addr, size, prot);
+}
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
