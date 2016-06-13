@@ -1,48 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:36041 "EHLO blackbird.sr71.net"
+Received: from mx2.suse.de ([195.135.220.15]:33175 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1424288AbcFMQDj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jun 2016 12:03:39 -0400
-Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
-References: <20160609000117.71AC7623@viggo.jf.intel.com>
- <20160609000120.A3DD5140@viggo.jf.intel.com>
- <alpine.DEB.2.11.1606111147000.5839@nanos>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <575ED958.5060209@sr71.net>
-Date: Mon, 13 Jun 2016 09:03:36 -0700
+	id S1753527AbcFMTpd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jun 2016 15:45:33 -0400
+Date: Mon, 13 Jun 2016 12:45:23 -0700
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [PATCH] locking/qspinlock: Use atomic_sub_return_release in
+ queued_spin_unlock
+Message-ID: <20160613194523.GA2094@linux-80c1.suse>
+References: <1464943094-3129-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.11.1606111147000.5839@nanos>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <1464943094-3129-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com
-Message-ID: <20160613160336.1lCpVqZrWGBSCunL2mg2WRPQx1v9AilW8_FyTOf5mhM@z>
+To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, peterz@infradead.org, waiman.long@hp.com
+Message-ID: <20160613194523.JsEa4WwoyZo_MgZAmPQglP4j5DkjIakGeStFH2BxuOM@z>
 
-On 06/11/2016 02:47 AM, Thomas Gleixner wrote:
-> On Wed, 8 Jun 2016, Dave Hansen wrote:
->> > Proposed semantics:
->> > 1. protection key 0 is special and represents the default,
->> >    unassigned protection key.  It is always allocated.
->> > 2. mprotect() never affects a mapping's pkey_mprotect()-assigned
->> >    protection key. A protection key of 0 (even if set explicitly)
->> >    represents an unassigned protection key.
->> >    2a. mprotect(PROT_EXEC) on a mapping with an assigned protection
->> >        key may or may not result in a mapping with execute-only
->> >        properties.  pkey_mprotect() plus pkey_set() on all threads
->> >        should be used to _guarantee_ execute-only semantics.
->> > 3. mprotect(PROT_EXEC) may result in an "execute-only" mapping. The
->> >    kernel will internally attempt to allocate and dedicate a
->> >    protection key for the purpose of execute-only mappings.  This
->> >    may not be possible in cases where there are no free protection
->> >    keys available.
-> Shouldn't we just reserve a protection key for PROT_EXEC unconditionally?
+On Fri, 03 Jun 2016, Pan Xinhui wrote:
 
-Normal userspace does not do PROT_EXEC today.  So, today, we'd
-effectively lose one of our keys by reserving it.  Of the folks I've
-talked to who really want this feature, and *will* actually use it, one
-of the most common complaints is that there are too few keys.
+>The existing version uses a heavy barrier while only release semantics
+>is required. So use atomic_sub_return_release instead.
+>
+>Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-Folks who actively *want* true PROT_EXEC semantics can use the explicit
-pkey interfaces.
+I just noticed this change in -tip and, while I know that saving a barrier
+in core spinlock paths is perhaps a worthy exception, I cannot help but
+wonder if this is the begging of the end for smp__{before,after}_atomic().
