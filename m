@@ -1,77 +1,130 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC PATCH-tip 6/6] xfs: Enable reader optimistic spinning for
- DAX inodes
-Date: Wed, 15 Jun 2016 09:06:13 +1000
-Message-ID: <20160614230613.GB26977@dastard>
-References: <1465927959-39719-1-git-send-email-Waiman.Long@hpe.com>
- <1465927959-39719-7-git-send-email-Waiman.Long@hpe.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
+Date: Wed, 15 Jun 2016 02:08:38 +0300
+Message-ID: <20160614230838.GA15130@yury-N73SV>
+References: <6293194.tGy03QJ9ME@wuerfel>
+ <20160525.135039.244098606649448826.davem@davemloft.net>
+ <6407614.fdv5XFSBue@wuerfel>
+ <20160525.142821.1719403997976778673.davem@davemloft.net>
+ <20160526204819.GA10274@yury-N73SV>
+ <20160526222943.GA16729@MBP.local>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1465927959-39719-7-git-send-email-Waiman.Long@hpe.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Waiman Long <Waiman.Long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, xfs@oss.sgi.com, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+In-Reply-To: <20160526222943.GA16729@MBP.local>
+Sender: linux-doc-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: David Miller <davem@davemloft.net>, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 14, 2016 at 02:12:39PM -0400, Waiman Long wrote:
-> This patch enables reader optimistic spinning for inodes that are
-> under a DAX-based mount point.
+Hi Catalin, David, all
+
+> COMPAT_SYSCALL_WRAP2(creat, ...):
+> 	mov	w0, w0
+> 	b	<sys_creat>
 > 
-> On a 4-socket Haswell machine running on a 4.7-rc1 tip-based kernel,
-> the fio test with multithreaded randrw and randwrite tests on the
-> same file on a XFS partition on top of a NVDIMM with DAX were run,
-> the aggregated bandwidths before and after the patch were as follows:
+> > > Cost wise, this seems like it all cancels out in the end, but what
+> > > do I know?
+> > 
+> > I think you know something, and I also think Heiko and other s390 guys
+> > know something as well. So I'd like to listen their arguments here.
+> > 
+> > For me spark64 way is looking reasonable only because it's really simple
+> > and takes less coding. I'll try it on some branch and share here what happened.
 > 
->   Test      BW before patch     BW after patch  % change
->   ----      ---------------     --------------  --------
->   randrw        1352 MB/s          2164 MB/s      +60%
->   randwrite     1710 MB/s          2550 MB/s      +49%
+> The kernel code will definitely look simpler ;). It would be good to see
+> if there actually is any performance impact. Even with 16 more cycles on
+> syscall entry, would they be lost in the noise? You don't need a full
+> implementation, just some dummy mov x0, x0 on the entry path.
 > 
-> Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
-> ---
->  fs/xfs/xfs_icache.c |    9 +++++++++
->  1 files changed, 9 insertions(+), 0 deletions(-)
-> 
-> diff --git a/fs/xfs/xfs_icache.c b/fs/xfs/xfs_icache.c
-> index 99ee6ee..09f284f 100644
-> --- a/fs/xfs/xfs_icache.c
-> +++ b/fs/xfs/xfs_icache.c
-> @@ -71,6 +71,15 @@ xfs_inode_alloc(
->  
->  	mrlock_init(&ip->i_iolock, MRLOCK_BARRIER, "xfsio", ip->i_ino);
->  
-> +	/*
-> +	 * Enable reader spinning for DAX nount point
-> +	 */
-> +	if (mp->m_flags & XFS_MOUNT_DAX) {
-> +		rwsem_set_rspin_threshold(&ip->i_iolock.mr_lock);
-> +		rwsem_set_rspin_threshold(&ip->i_mmaplock.mr_lock);
-> +		rwsem_set_rspin_threshold(&ip->i_lock.mr_lock);
-> +	}
+> -- 
+> Catalin
 
-That's wrong. DAX is a per-inode flag, not a mount wide flag. This
-needs to be done once the inode has been fully initialised and
-IS_DAX(inode) can be run.
+I wrote a simple test:
 
-Also, the benchmark doesn't show that all these locks are being
-tested by this benchmark. e.g. the i_mmaplock isn't involved in
-the benchmark's IO paths at all. It's only taken in page faults and
-truncate paths....
+        struct timeval start, end;
+        unsigned long long ut;
 
-I'd also like to see how much of the gain comes from the iolock vs
-the ilock, as the ilock is nested inside the iolock and so
-contention is much rarer....
+        int main()
+        {
+                gettimeofday(&start, NULL);
 
-As it is, I'm *extremely* paranoid when it comes to changes to core
-locking like this. Performance is secondary to correctness, and we
-need much more than just a few benchmarks to verify there aren't
-locking bugs being introduced....
+                for (int i = 1000000; i; i--)
+                        syscall(__NR_getrusage, 100 /* EINVAL */, NULL);
 
-Cheers,
+                gettimeofday(&end, NULL);
+                
+                ut = (end.tv_sec - start.tv_sec) * 1000000ULL
+                        + end.tv_usec - start.tv_usec;
 
-Dave.
--- 
-Dave Chinner
-david@fromorbit.com
+                printf("%lld\n", ut);
+
+                exit(EXIT_SUCCESS);
+        }
+
+In kernel there's minimal overhead:
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 89d5be4..003d5ad 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1634,6 +1634,17 @@ COMPAT_SYSCALL_DEFINE2(getrusage, int, who,
+struct compat_rusage __user *, ru)
+{
+        struct rusage r;
+         
++       asm volatile (
++       "       mov w0, w0      \n"
++       "       mov w1, w1      \n"
++       "       mov w2, w2      \n"
++       "       mov w3, w3      \n"
++       "       mov w4, w4      \n"
++       "       mov w5, w5      \n"
++       "       mov w6, w6      \n"
++       "       mov w7, w7      \n"
++       );
++
+        if (who != RUSAGE_SELF && who != RUSAGE_CHILDREN &&
+            who != RUSAGE_THREAD)
+                return -EINVAL;
+
+On QEMU:
+With MOVs:      W/O MOVs:
+832015          814564
+840639          803165
+830482          813116
+832895          802928
+832083          832658
+834461          802993
+829405          812465
+846677          822651
+828409          803393
+836845          821470
+828716          801044
+831620          821301
+825423          800278
+829946          821476
+
+We have 83 mS vs 81 mS, ~2.6% of performance degradation.
+And I can show bigger numbers if I'll use asm svc instead of
+syscall() wrapper which increases time as well. 
+
+It's definitely more than 0, but not so big anyway. For syscalls
+with heavy payload it will be non-measurable. So the choice
+is still there. Should we use wrappers and save 2.5% of syscall
+performance. Or clear top-halves unconditionally and win in simplicity?
+
+If QEMU is looking non-representative, I can run test on real
+hardware, but it takes a time, and I think will end up with similar
+results.
+
+Latest kernel with wrappers and library are here:
+https://github.com/norov/linux/commits/ilp32
+https://github.com/norov/glibc/commits/ilp32-dev
+
+BTW, notice the change in ABI: syscalls that take stat and statfs
+structures now routed to (wrapped) native handlers, after switching
+userspace to use 64-bit off_t, ino_t, blkcnt_t, fsblkcnt_t and
+fsfilcnt_t types.
+
+Yury.
