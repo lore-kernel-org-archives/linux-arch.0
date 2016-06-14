@@ -1,91 +1,77 @@
-From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v2 2/6] locking/rwsem: Stop active read lock ASAP
-Date: Tue, 14 Jun 2016 18:48:05 -0400
-Message-ID: <1465944489-43440-3-git-send-email-Waiman.Long@hpe.com>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [RFC PATCH-tip 6/6] xfs: Enable reader optimistic spinning for
+ DAX inodes
+Date: Wed, 15 Jun 2016 09:06:13 +1000
+Message-ID: <20160614230613.GB26977@dastard>
+References: <1465927959-39719-1-git-send-email-Waiman.Long@hpe.com>
+ <1465927959-39719-7-git-send-email-Waiman.Long@hpe.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1465927959-39719-7-git-send-email-Waiman.Long@hpe.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Waiman Long <Waiman.Long@hpe.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, xfs@oss.sgi.com, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, when down_read() fails, the active read locking isn't undone
-until the rwsem_down_read_failed() function grabs the wait_lock. If the
-wait_lock is contended, it may takes a while to get the lock. During
-that period, writer lock stealing will be disabled because of the
-active read lock.
+On Tue, Jun 14, 2016 at 02:12:39PM -0400, Waiman Long wrote:
+> This patch enables reader optimistic spinning for inodes that are
+> under a DAX-based mount point.
+> 
+> On a 4-socket Haswell machine running on a 4.7-rc1 tip-based kernel,
+> the fio test with multithreaded randrw and randwrite tests on the
+> same file on a XFS partition on top of a NVDIMM with DAX were run,
+> the aggregated bandwidths before and after the patch were as follows:
+> 
+>   Test      BW before patch     BW after patch  % change
+>   ----      ---------------     --------------  --------
+>   randrw        1352 MB/s          2164 MB/s      +60%
+>   randwrite     1710 MB/s          2550 MB/s      +49%
+> 
+> Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+> ---
+>  fs/xfs/xfs_icache.c |    9 +++++++++
+>  1 files changed, 9 insertions(+), 0 deletions(-)
+> 
+> diff --git a/fs/xfs/xfs_icache.c b/fs/xfs/xfs_icache.c
+> index 99ee6ee..09f284f 100644
+> --- a/fs/xfs/xfs_icache.c
+> +++ b/fs/xfs/xfs_icache.c
+> @@ -71,6 +71,15 @@ xfs_inode_alloc(
+>  
+>  	mrlock_init(&ip->i_iolock, MRLOCK_BARRIER, "xfsio", ip->i_ino);
+>  
+> +	/*
+> +	 * Enable reader spinning for DAX nount point
+> +	 */
+> +	if (mp->m_flags & XFS_MOUNT_DAX) {
+> +		rwsem_set_rspin_threshold(&ip->i_iolock.mr_lock);
+> +		rwsem_set_rspin_threshold(&ip->i_mmaplock.mr_lock);
+> +		rwsem_set_rspin_threshold(&ip->i_lock.mr_lock);
+> +	}
 
-This patch will release the active read lock ASAP so that writer lock
-stealing can happen sooner. The only downside is when the reader is
-the first one in the wait queue as it has to issue another atomic
-operation to update the count.
+That's wrong. DAX is a per-inode flag, not a mount wide flag. This
+needs to be done once the inode has been fully initialised and
+IS_DAX(inode) can be run.
 
-On a 4-socket Haswell machine running on a 4.7-rc1 tip-based kernel,
-the fio test with multithreaded randrw and randwrite tests on the
-same file on a XFS partition on top of a NVDIMM with DAX were run,
-the aggregated bandwidths before and after the patch were as follows:
+Also, the benchmark doesn't show that all these locks are being
+tested by this benchmark. e.g. the i_mmaplock isn't involved in
+the benchmark's IO paths at all. It's only taken in page faults and
+truncate paths....
 
-  Test      BW before patch     BW after patch  % change
-  ----      ---------------     --------------  --------
-  randrw        1210 MB/s          1352 MB/s      +12%
-  randwrite     1622 MB/s          1710 MB/s      +5.4%
+I'd also like to see how much of the gain comes from the iolock vs
+the ilock, as the ilock is nested inside the iolock and so
+contention is much rarer....
 
-The write-only microbench also showed improvement because some read
-locking was done by the XFS code.
+As it is, I'm *extremely* paranoid when it comes to changes to core
+locking like this. Performance is secondary to correctness, and we
+need much more than just a few benchmarks to verify there aren't
+locking bugs being introduced....
 
-Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
----
- kernel/locking/rwsem-xadd.c |   19 ++++++++++++++-----
- 1 files changed, 14 insertions(+), 5 deletions(-)
+Cheers,
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 2031281..29027c6 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -230,11 +230,18 @@ __rwsem_mark_wake(struct rw_semaphore *sem,
- __visible
- struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- {
--	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
-+	long count, adjustment = 0;
- 	struct rwsem_waiter waiter;
- 	struct task_struct *tsk = current;
- 	WAKE_Q(wake_q);
- 
-+	/*
-+	 * Undo read bias from down_read operation, stop active locking.
-+	 * Doing that after taking the wait_lock may block writer lock
-+	 * stealing for too long.
-+	 */
-+	atomic_long_add(-RWSEM_ACTIVE_READ_BIAS, &sem->count);
-+
- 	/* set up my own style of waitqueue */
- 	waiter.task = tsk;
- 	waiter.type = RWSEM_WAITING_FOR_READ;
-@@ -244,8 +251,11 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- 		adjustment += RWSEM_WAITING_BIAS;
- 	list_add_tail(&waiter.list, &sem->wait_list);
- 
--	/* we're now waiting on the lock, but no longer actively locking */
--	count = atomic_long_add_return(adjustment, &sem->count);
-+	/* we're now waiting on the lock */
-+	if (adjustment)
-+		count = atomic_long_add_return(adjustment, &sem->count);
-+	else
-+		count = atomic_long_read(&sem->count);
- 
- 	/* If there are no active locks, wake the front queued process(es).
- 	 *
-@@ -253,8 +263,7 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
- 	 * wake our own waiter to join the existing active readers !
- 	 */
- 	if (count == RWSEM_WAITING_BIAS ||
--	    (count > RWSEM_WAITING_BIAS &&
--	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
-+	    (count > RWSEM_WAITING_BIAS && adjustment))
- 		sem = __rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
- 
- 	raw_spin_unlock_irq(&sem->wait_lock);
+Dave.
 -- 
-1.7.1
+Dave Chinner
+david@fromorbit.com
