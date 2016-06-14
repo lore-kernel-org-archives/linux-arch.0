@@ -1,130 +1,62 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 01/23] all: syscall wrappers: add documentation
-Date: Wed, 15 Jun 2016 02:08:38 +0300
-Message-ID: <20160614230838.GA15130@yury-N73SV>
-References: <6293194.tGy03QJ9ME@wuerfel>
- <20160525.135039.244098606649448826.davem@davemloft.net>
- <6407614.fdv5XFSBue@wuerfel>
- <20160525.142821.1719403997976778673.davem@davemloft.net>
- <20160526204819.GA10274@yury-N73SV>
- <20160526222943.GA16729@MBP.local>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: cmpxchg and x86 flags output
+Date: Tue, 14 Jun 2016 16:53:00 -0700
+Message-ID: <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160526222943.GA16729@MBP.local>
-Sender: linux-doc-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: David Miller <davem@davemloft.net>, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:53218 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751339AbcFNXxL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jun 2016 19:53:11 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-Hi Catalin, David, all
+The x86 gcc now has the ability to return the value of flags output.  In
+most use cases, this has been trivial to use in the kernel.
 
-> COMPAT_SYSCALL_WRAP2(creat, ...):
-> 	mov	w0, w0
-> 	b	<sys_creat>
-> 
-> > > Cost wise, this seems like it all cancels out in the end, but what
-> > > do I know?
-> > 
-> > I think you know something, and I also think Heiko and other s390 guys
-> > know something as well. So I'd like to listen their arguments here.
-> > 
-> > For me spark64 way is looking reasonable only because it's really simple
-> > and takes less coding. I'll try it on some branch and share here what happened.
-> 
-> The kernel code will definitely look simpler ;). It would be good to see
-> if there actually is any performance impact. Even with 16 more cycles on
-> syscall entry, would they be lost in the noise? You don't need a full
-> implementation, just some dummy mov x0, x0 on the entry path.
-> 
-> -- 
-> Catalin
+However, cmpxchg() presents a problem.  The current definition of
+cmpxchg() and its variants is:
 
-I wrote a simple test:
+	out = cmpxchg(ptr, old, new);
 
-        struct timeval start, end;
-        unsigned long long ut;
+... which is then frequently followed by:
 
-        int main()
-        {
-                gettimeofday(&start, NULL);
+	if (likely(old == out))
 
-                for (int i = 1000000; i; i--)
-                        syscall(__NR_getrusage, 100 /* EINVAL */, NULL);
+... or something along those lines.
 
-                gettimeofday(&end, NULL);
-                
-                ut = (end.tv_sec - start.tv_sec) * 1000000ULL
-                        + end.tv_usec - start.tv_usec;
+This test is unnecessary and can now be elided, but this means changing
+the signature on the cmpxchg() function (macro, generally).
 
-                printf("%lld\n", ut);
+It seems to me that the sanest way to handle this is to add a new
+interface with a fourth parameter, so:
 
-                exit(EXIT_SUCCESS);
-        }
+	changed = cmpxchgx(ptr, old, new, out);
 
-In kernel there's minimal overhead:
-diff --git a/kernel/sys.c b/kernel/sys.c
-index 89d5be4..003d5ad 100644
---- a/kernel/sys.c
-+++ b/kernel/sys.c
-@@ -1634,6 +1634,17 @@ COMPAT_SYSCALL_DEFINE2(getrusage, int, who,
-struct compat_rusage __user *, ru)
-{
-        struct rusage r;
-         
-+       asm volatile (
-+       "       mov w0, w0      \n"
-+       "       mov w1, w1      \n"
-+       "       mov w2, w2      \n"
-+       "       mov w3, w3      \n"
-+       "       mov w4, w4      \n"
-+       "       mov w5, w5      \n"
-+       "       mov w6, w6      \n"
-+       "       mov w7, w7      \n"
-+       );
-+
-        if (who != RUSAGE_SELF && who != RUSAGE_CHILDREN &&
-            who != RUSAGE_THREAD)
-                return -EINVAL;
+A generic implementation of cmpxchgx() would be provided, looking like:
 
-On QEMU:
-With MOVs:      W/O MOVs:
-832015          814564
-840639          803165
-830482          813116
-832895          802928
-832083          832658
-834461          802993
-829405          812465
-846677          822651
-828409          803393
-836845          821470
-828716          801044
-831620          821301
-825423          800278
-829946          821476
+#define cmpxchgx(ptr, old, new, out) ({			\
+	__typeof__((*(ptr))) __old = (old);		\
+	__typeof__((*(ptr))) __new = (new);		\
+	__typeof__((*(ptr))) __old = (old);		\
+	__typeof__((*(ptr))) __out; 			\
+	(out) = __out = cmpxchg(ptr, __old, __new);	\
+	(__old != __out);				\
+})
 
-We have 83 mS vs 81 mS, ~2.6% of performance degradation.
-And I can show bigger numbers if I'll use asm svc instead of
-syscall() wrapper which increases time as well. 
+... and so on for all the many other variants.
 
-It's definitely more than 0, but not so big anyway. For syscalls
-with heavy payload it will be non-measurable. So the choice
-is still there. Should we use wrappers and save 2.5% of syscall
-performance. Or clear top-halves unconditionally and win in simplicity?
+However, I'm wondering how well this will fit in with other
+architectures.  Keep in mind gcc will probably gain this ability for
+other architectures with flags at some point, although that doesn't
+inherently mean that cmpxchg will be able to make use of it.
 
-If QEMU is looking non-representative, I can run test on real
-hardware, but it takes a time, and I think will end up with similar
-results.
+This means a lot of changes even to common code, so I want to make sure
+the interface is right before embarking on an implementation.
 
-Latest kernel with wrappers and library are here:
-https://github.com/norov/linux/commits/ilp32
-https://github.com/norov/glibc/commits/ilp32-dev
+Thoughts?
 
-BTW, notice the change in ABI: syscalls that take stat and statfs
-structures now routed to (wrapped) native handlers, after switching
-userspace to use 64-bit off_t, ino_t, blkcnt_t, fsblkcnt_t and
-fsfilcnt_t types.
-
-Yury.
+	-hpa
