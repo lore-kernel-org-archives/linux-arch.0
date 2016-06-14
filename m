@@ -1,79 +1,73 @@
-From: xinhui <xinhui.pan@linux.vnet.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
-Date: Tue, 14 Jun 2016 14:11:48 +0800
-Message-ID: <575FA024.7060608@linux.vnet.ibm.com>
-References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <20160608092244.GA27029@arm.com>
+Date: Tue, 14 Jun 2016 11:40:33 +0100
+Message-ID: <20160614104032.GE19407@arm.com>
+References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+ <20160608092244.GA27029@arm.com>
+ <575FA024.7060608@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33227 "EHLO
-	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751226AbcFNGMD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jun 2016 02:12:03 -0400
-Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u5E5wgKC130415
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jun 2016 02:12:03 -0400
-Received: from e23smtp08.au.ibm.com (e23smtp08.au.ibm.com [202.81.31.141])
-	by mx0a-001b2d01.pphosted.com with ESMTP id 23geqntd23-1
-	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jun 2016 02:12:02 -0400
-Received: from localhost
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <xinhui.pan@linux.vnet.ibm.com>;
-	Tue, 14 Jun 2016 16:11:57 +1000
-In-Reply-To: <20160608092244.GA27029@arm.com>
+Received: from foss.arm.com ([217.140.101.70]:57819 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750806AbcFNKkh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jun 2016 06:40:37 -0400
+Content-Disposition: inline
+In-Reply-To: <575FA024.7060608@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
+To: xinhui <xinhui.pan@linux.vnet.ibm.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, waiman.long@hp.com, peterz@infradead.org
 
+On Tue, Jun 14, 2016 at 02:11:48PM +0800, xinhui wrote:
+>=20
+> On 2016=E5=B9=B406=E6=9C=8808=E6=97=A5 17:22, Will Deacon wrote:
+> >On Thu, Jun 02, 2016 at 06:09:08PM +0800, Pan Xinhui wrote:
+> >>strcut __qrwlock has different layout in big endian machine. we nee=
+d set
+> >>the __qrwlock->wmode to NULL, and the address is not &lock->cnts in=
+ big
+> >>endian machine.
+> >>
+> >>Do as what read unlock does. we are lucky that the __qrwlock->wmode=
+'s
+> >>val is _QW_LOCKED.
+> >
+> >Doesn't this have wider implications for the qrwlocks, for example:
+> >
+> >   while ((cnts & _QW_WMASK) =3D=3D _QW_LOCKED) { ... }
+> >
+> >would actually end up looking at the wrong field of the lock?
+> >
+> I does not clearly understand your idea. :(
 
-On 2016=E5=B9=B406=E6=9C=8808=E6=97=A5 17:22, Will Deacon wrote:
-> On Thu, Jun 02, 2016 at 06:09:08PM +0800, Pan Xinhui wrote:
->> strcut __qrwlock has different layout in big endian machine. we need=
- set
->> the __qrwlock->wmode to NULL, and the address is not &lock->cnts in =
-big
->> endian machine.
->>
->> Do as what read unlock does. we are lucky that the __qrwlock->wmode'=
-s
->> val is _QW_LOCKED.
->
-> Doesn't this have wider implications for the qrwlocks, for example:
->
->    while ((cnts & _QW_WMASK) =3D=3D _QW_LOCKED) { ... }
->
-> would actually end up looking at the wrong field of the lock?
->
-I does not clearly understand your idea. :(
-the condition in the while() is always true from the view of current co=
-de.
-BUT if __qrwlock has same layout on the two endian machine, the while()=
- will end up. :)
+That's because I'm talking rubbish :) Sorry, I completely confused myse=
+lf.
+Locking is bad enough on its own, but add big-endian to the mix and I'm
+all done.
 
+> >Shouldn't we just remove the #ifdef __LITTLE_ENDIAN stuff from __qrw=
+lock,
+> >given that all the struct members are u8?
+> >
+> No. that makes codes complex. for example
+>=20
+> struct __qrwlock lock;
+>=20
+> WRITE_ONCE(lock->wmode, _QW_WAITING);
+> if (atomic_(&lock->cnts) =3D=3D _QW_WAITING) {
+> 	do_something();
+> }
+>=20
+> IF you remove the  #ifdef __LITTLE_ENDIAN stuff from __qrwlock.
+> codes above obviously will break. And we already have such code.
 
-> Shouldn't we just remove the #ifdef __LITTLE_ENDIAN stuff from __qrwl=
-ock,
-> given that all the struct members are u8?
->
-No. that makes codes complex. for example
+I was wondering more along the lines of having one definition of the da=
+ta
+structure, but then defining _QW_* differently depending on endianness
+(i.e. add a << 24 when big-endian). That way queued_write_unlock can
+stay like it is (having an arch override to handle the big-endian case
+is incredibly ugly).
 
-struct __qrwlock lock;
-
-WRITE_ONCE(lock->wmode, _QW_WAITING);
-if (atomic_(&lock->cnts) =3D=3D _QW_WAITING) {
-	do_something();
-}
-
-IF you remove the  #ifdef __LITTLE_ENDIAN stuff from __qrwlock.
-codes above obviously will break. And we already have such code.
-
-thanks
-xinhui
-
-> Will
->
+Will
