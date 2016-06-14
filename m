@@ -1,204 +1,267 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5008.houston.hpe.com ([15.241.48.72]:54899 "EHLO
-	g9t5008.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752738AbcFNWsf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jun 2016 18:48:35 -0400
+Received: from g4t3427.houston.hpe.com ([15.241.140.73]:8712 "EHLO
+	g4t3427.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751494AbcFNWsh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jun 2016 18:48:37 -0400
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v2 3/6] locking/rwsem: Enable count-based spinning on reader
-Date: Tue, 14 Jun 2016 18:48:06 -0400
-Message-ID: <1465944489-43440-4-git-send-email-Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v2 5/6] locking/rwsem: Change RWSEM_WAITING_BIAS for better disambiguation
+Date: Tue, 14 Jun 2016 18:48:08 -0400
+Message-ID: <1465944489-43440-6-git-send-email-Waiman.Long@hpe.com>
 In-Reply-To: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
 References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160614224806.ggE4lEItREowNyQNSHy-5bvPHgrQKYJ3Mn5MkvCbAc0@z>
+Message-ID: <20160614224808.NL4QAtvhOYwEvGut2jiVX33ReU0LDIadwxpg7Rv-Aac@z>
 
-When the rwsem is owned by reader, writers stop optimistic spinning
-simply because there is no easy way to figure out if all the readers
-are actively running or not. However, there are scenarios where
-the readers are unlikely to sleep and optimistic spinning can help
-performance.
+When the count value is in between 0 and RWSEM_WAITING_BIAS, there
+are 2 possibilities. Either a writer is present and there is no
+waiter or there are waiters and readers. There is no easy way to
+know which is true unless the wait_lock is taken.
 
-This patch provides an autotuning mechanism to find out if a rwsem
-can benefit from count-based reader optimistic spinning. A count
-(rspin_enabled) in the rwsem data structure is used to track if
-optimistic spinning should be enabled. Reader spinning is enabled by
-default. Each successful spin (with lock acquisition) will increment
-the count by 1 and each unsuccessful spin will decrement it by 8.
-When the count reaches 0, reader spinning is permanently disabled.
-Modification of that count is protected by the osq lock.
+This patch changes the RWSEM_WAITING_BIAS from 0xffff (32-bit) or
+0xffffffff (64-bit) to 0xc0000000 (32-bit) or 0xc000000000000000
+(64-bit). By doing so, we will be able to determine if writers
+are present by looking at the count value alone without taking the
+wait_lock.
 
-Both the spinning threshold and the default value for rspin_enabled
-can be overridden by architecture specific rwsem.h header file.
+This patch has the effect of halving the maximum number of writers
+that can attempt to take the write lock simultaneously. However,
+even the reduced maximum of about 16k (32-bit) or 1G (64-bit) should
+be more than enough for the foreseeable future.
+
+With that change, the following identity is now no longer true:
+
+  RWSEM_ACTIVE_WRITE_BIAS = RWSEM_WAITING_BIAS + RWSEM_ACTIVE_READ_BIAS
 
 Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
 ---
- include/linux/rwsem.h       |   19 ++++++++++++++-
- kernel/locking/rwsem-xadd.c |   54 +++++++++++++++++++++++++++++++++++-------
- 2 files changed, 63 insertions(+), 10 deletions(-)
+ arch/alpha/include/asm/rwsem.h |    7 ++++---
+ arch/ia64/include/asm/rwsem.h  |    6 +++---
+ arch/s390/include/asm/rwsem.h  |    6 +++---
+ arch/x86/include/asm/rwsem.h   |   13 ++++++++-----
+ include/asm-generic/rwsem.h    |    9 +++++----
+ kernel/locking/rwsem-xadd.c    |   32 ++++++++++++++++++++++++--------
+ 6 files changed, 47 insertions(+), 26 deletions(-)
 
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index dd1d142..466e744 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -32,6 +32,8 @@ struct rw_semaphore {
- 	raw_spinlock_t wait_lock;
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	struct optimistic_spin_queue osq; /* spinner MCS lock */
-+	int rspin_enabled;	/* protected by osq lock */
-+
- 	/*
- 	 * Write owner. Used as a speculative check to see
- 	 * if the owner is running on the cpu.
-@@ -69,8 +71,23 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
- # define __RWSEM_DEP_MAP_INIT(lockname)
+diff --git a/arch/alpha/include/asm/rwsem.h b/arch/alpha/include/asm/rwsem.h
+index 77873d0..0f08fad 100644
+--- a/arch/alpha/include/asm/rwsem.h
++++ b/arch/alpha/include/asm/rwsem.h
+@@ -17,9 +17,9 @@
+ #define RWSEM_UNLOCKED_VALUE		0x0000000000000000L
+ #define RWSEM_ACTIVE_BIAS		0x0000000000000001L
+ #define RWSEM_ACTIVE_MASK		0x00000000ffffffffL
+-#define RWSEM_WAITING_BIAS		(-0x0000000100000000L)
++#define RWSEM_WAITING_BIAS		0xc000000000000000L
+ #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++#define RWSEM_ACTIVE_WRITE_BIAS		(-RWSEM_ACTIVE_MASK)
+ 
+ static inline void __down_read(struct rw_semaphore *sem)
+ {
+@@ -185,7 +185,8 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+ 	"2:	br	1b\n"
+ 	".previous"
+ 	:"=&r" (oldcount), "=m" (sem->count), "=&r" (temp)
+-	:"Ir" (-RWSEM_WAITING_BIAS), "m" (sem->count) : "memory");
++	:"Ir" (-RWSEM_ACTIVE_WRITE_BIAS + RWSEM_ACTIVE_READ_BIAS),
++	 "m" (sem->count) : "memory");
+ #endif
+ 	if (unlikely(oldcount < 0))
+ 		rwsem_downgrade_wake(sem);
+diff --git a/arch/ia64/include/asm/rwsem.h b/arch/ia64/include/asm/rwsem.h
+index 8fa98dd..db3693b 100644
+--- a/arch/ia64/include/asm/rwsem.h
++++ b/arch/ia64/include/asm/rwsem.h
+@@ -30,9 +30,9 @@
+ #define RWSEM_UNLOCKED_VALUE		__IA64_UL_CONST(0x0000000000000000)
+ #define RWSEM_ACTIVE_BIAS		(1L)
+ #define RWSEM_ACTIVE_MASK		(0xffffffffL)
+-#define RWSEM_WAITING_BIAS		(-0x100000000L)
++#define RWSEM_WAITING_BIAS		(-(1L << 62))
+ #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++#define RWSEM_ACTIVE_WRITE_BIAS		(-RWSEM_ACTIVE_MASK)
+ 
+ /*
+  * lock for reading
+@@ -144,7 +144,7 @@ __downgrade_write (struct rw_semaphore *sem)
+ 
+ 	do {
+ 		old = atomic_long_read(&sem->count);
+-		new = old - RWSEM_WAITING_BIAS;
++		new = old - RWSEM_ACTIVE_WRITE_BIAS + RWSEM_ACTIVE_READ_BIAS;
+ 	} while (atomic_long_cmpxchg_release(&sem->count, old, new) != old);
+ 
+ 	if (old < 0)
+diff --git a/arch/s390/include/asm/rwsem.h b/arch/s390/include/asm/rwsem.h
+index 597e7e9..e7f50f5 100644
+--- a/arch/s390/include/asm/rwsem.h
++++ b/arch/s390/include/asm/rwsem.h
+@@ -42,9 +42,9 @@
+ #define RWSEM_UNLOCKED_VALUE	0x0000000000000000L
+ #define RWSEM_ACTIVE_BIAS	0x0000000000000001L
+ #define RWSEM_ACTIVE_MASK	0x00000000ffffffffL
+-#define RWSEM_WAITING_BIAS	(-0x0000000100000000L)
++#define RWSEM_WAITING_BIAS	0xc000000000000000L
+ #define RWSEM_ACTIVE_READ_BIAS	RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS	(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++#define RWSEM_ACTIVE_WRITE_BIAS	(-RWSEM_ACTIVE_MASK)
+ 
+ /*
+  * lock for reading
+@@ -193,7 +193,7 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+ {
+ 	signed long old, new, tmp;
+ 
+-	tmp = -RWSEM_WAITING_BIAS;
++	tmp = -RWSEM_ACTIVE_WRITE_BIAS + RWSEM_ACTIVE_READ_BIAS;
+ 	asm volatile(
+ 		"	lg	%0,%2\n"
+ 		"0:	lgr	%1,%0\n"
+diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
+index 089ced4..f1fb09f 100644
+--- a/arch/x86/include/asm/rwsem.h
++++ b/arch/x86/include/asm/rwsem.h
+@@ -41,21 +41,23 @@
+ 
+ /*
+  * The bias values and the counter type limits the number of
+- * potential readers/writers to 32767 for 32 bits and 2147483647
+- * for 64 bits.
++ * potential writers to 16383 for 32 bits and 1073741823 for 64 bits.
++ * The combined readers and writers can go up to 65534 for 32-bits and
++ * 4294967294 for 64-bits.
+  */
+ 
+ #ifdef CONFIG_X86_64
+ # define RWSEM_ACTIVE_MASK		0xffffffffL
++# define RWSEM_WAITING_BIAS		(-(1L << 62))
+ #else
+ # define RWSEM_ACTIVE_MASK		0x0000ffffL
++# define RWSEM_WAITING_BIAS		(-(1L << 30))
  #endif
  
-+/*
-+ * Each successful reader spin will increment the rspin_enabled by 1.
-+ * Each unsuccessful spin, on the other hand, will decrement it by 8.
-+ * Reader spinning will be permanently disabled when it reaches 0.
-+ */
-+#ifndef RWSEM_RSPIN_ENABLED_DEFAULT
-+# define RWSEM_RSPIN_ENABLED_DEFAULT	40
-+#endif
-+#define RWSEM_RSPIN_ENABLED_MAX		1024
-+
-+#ifndef RWSEM_RSPIN_THRESHOLD
-+# define RWSEM_RSPIN_THRESHOLD	(1 << 12)
-+#endif
-+
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
--#define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL
-+#define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, \
-+		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT
+ #define RWSEM_UNLOCKED_VALUE		0x00000000L
+ #define RWSEM_ACTIVE_BIAS		0x00000001L
+-#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
+ #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++#define RWSEM_ACTIVE_WRITE_BIAS		(-RWSEM_ACTIVE_MASK)
+ 
+ /*
+  * lock for reading
+@@ -209,7 +211,8 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+ 		     "1:\n\t"
+ 		     "# ending __downgrade_write\n"
+ 		     : "+m" (sem->count)
+-		     : "a" (sem), "er" (-RWSEM_WAITING_BIAS)
++		     : "a" (sem), "er" (-RWSEM_ACTIVE_WRITE_BIAS +
++					 RWSEM_ACTIVE_READ_BIAS)
+ 		     : "memory", "cc");
+ }
+ 
+diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
+index 5be122e..655e405 100644
+--- a/include/asm-generic/rwsem.h
++++ b/include/asm-generic/rwsem.h
+@@ -18,15 +18,16 @@
+  */
+ #ifdef CONFIG_64BIT
+ # define RWSEM_ACTIVE_MASK		0xffffffffL
++# define RWSEM_WAITING_BIAS		(-(1L << 62))
  #else
- #define __RWSEM_OPT_INIT(lockname)
+ # define RWSEM_ACTIVE_MASK		0x0000ffffL
++# define RWSEM_WAITING_BIAS		(-(1L << 30))
  #endif
+ 
+ #define RWSEM_UNLOCKED_VALUE		0x00000000L
+ #define RWSEM_ACTIVE_BIAS		0x00000001L
+-#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
+ #define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++#define RWSEM_ACTIVE_WRITE_BIAS		(-RWSEM_ACTIVE_MASK)
+ 
+ /*
+  * lock for reading
+@@ -120,8 +121,8 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+ 	 * read-locked region is ok to be re-ordered into the
+ 	 * write side. As such, rely on RELEASE semantics.
+ 	 */
+-	tmp = atomic_long_add_return_release(-RWSEM_WAITING_BIAS,
+-				     (atomic_long_t *)&sem->count);
++	tmp = atomic_long_add_return_release(-RWSEM_ACTIVE_WRITE_BIAS +
++			RWSEM_ACTIVE_READ_BIAS, (atomic_long_t *)&sem->count);
+ 	if (tmp < 0)
+ 		rwsem_downgrade_wake(sem);
+ }
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 29027c6..adc2f44 100644
+index c08c778..b1e7923 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -85,6 +85,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
- 	INIT_LIST_HEAD(&sem->wait_list);
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	sem->owner = NULL;
-+	sem->rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT;
- 	osq_lock_init(&sem->osq);
- #endif
- }
-@@ -347,9 +348,10 @@ static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
- 	owner = READ_ONCE(sem->owner);
- 	if (!rwsem_owner_is_writer(owner)) {
- 		/*
--		 * Don't spin if the rwsem is readers owned.
-+		 * Don't spin if the rwsem is readers owned and the
-+		 * reader spinning threshold isn't set.
- 		 */
--		ret = !rwsem_owner_is_reader(owner);
-+		ret = !rwsem_owner_is_reader(owner) || sem->rspin_enabled;
- 		goto done;
- 	}
- 
-@@ -398,7 +400,8 @@ out:
- 
- static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- {
--	bool taken = false;
-+	bool taken = false, can_spin;
-+	int loopcnt;
- 
- 	preempt_disable();
- 
-@@ -409,6 +412,8 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	if (!osq_lock(&sem->osq))
- 		goto done;
- 
-+	loopcnt = sem->rspin_enabled ? RWSEM_RSPIN_THRESHOLD : 0;
-+
- 	/*
- 	 * Optimistically spin on the owner field and attempt to acquire the
- 	 * lock whenever the owner changes. Spinning will be stopped when:
-@@ -416,7 +421,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	 *  2) readers own the lock as we can't determine if they are
- 	 *     actively running or not.
- 	 */
--	while (rwsem_spin_on_owner(sem)) {
-+	while ((can_spin = rwsem_spin_on_owner(sem)) || loopcnt) {
- 		/*
- 		 * Try to acquire the lock
- 		 */
-@@ -425,13 +430,16 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 			break;
- 		}
- 
-+		if (!can_spin && loopcnt)
-+			loopcnt--;
-+
- 		/*
--		 * When there's no owner, we might have preempted between the
--		 * owner acquiring the lock and setting the owner field. If
--		 * we're an RT task that will live-lock because we won't let
--		 * the owner complete.
-+		 * The need_resched() check in rwsem_spin_on_owner() won't
-+		 * break the loop anymore. So we need to check this in
-+		 * the outer loop. If we're an RT task that will live-lock
-+		 * because we won't let the owner complete.
- 		 */
--		if (!sem->owner && (need_resched() || rt_task(current)))
-+		if (need_resched() || rt_task(current))
- 			break;
- 
- 		/*
-@@ -442,6 +450,22 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		 */
- 		cpu_relax_lowlatency();
- 	}
-+	/*
-+	 * Was owner a reader?
-+	 */
-+	if (rwsem_owner_is_reader(sem->owner)) {
-+		/*
-+		 * Update rspin_enabled for reader spinning
-+		 * Increment by 1 if successfully & decrement by 8 if
-+		 * unsuccessful. The decrement amount is kind of arbitrary
-+		 * and can be adjusted if necessary.
-+		 */
-+		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX))
-+			sem->rspin_enabled++;
-+		else if (!taken)
-+			sem->rspin_enabled = (sem->rspin_enabled >= 8)
-+					   ? sem->rspin_enabled - 8 : 0;
-+	}
- 	osq_unlock(&sem->osq);
- done:
- 	preempt_enable();
-@@ -456,6 +480,13 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- 	return osq_is_locked(&sem->osq);
- }
- 
-+/*
-+ * Return true if reader optimistic spinning is enabled
-+ */
-+static inline bool reader_spinning_enabled(struct rw_semaphore *sem)
-+{
-+	return sem->rspin_enabled;
-+}
- #else
- static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- {
-@@ -466,6 +497,11 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- {
- 	return false;
- }
-+
-+static inline bool reader_spinning_enabled(struct rw_semaphore *sem)
-+{
-+	return false;
-+}
- #endif
+@@ -29,28 +29,30 @@
+  * 0x00000000	rwsem is unlocked, and no one is waiting for the lock or
+  *		attempting to read lock or write lock.
+  *
+- * 0xffff000X	(1) X readers active or attempting lock, with waiters for lock
++ * 0xc000000X	(1) X readers active or attempting lock, with waiters for lock
+  *		    X = #active readers + # readers attempting lock
+  *		    (X*ACTIVE_BIAS + WAITING_BIAS)
+- *		(2) 1 writer attempting lock, no waiters for lock
++ *
++ * 0xffff000X	(1) 1 writer attempting lock, no waiters for lock
+  *		    X-1 = #active readers + #readers attempting lock
+  *		    ((X-1)*ACTIVE_BIAS + ACTIVE_WRITE_BIAS)
+- *		(3) 1 writer active, no waiters for lock
++ *		(2) 1 writer active, no waiters for lock
+  *		    X-1 = #active readers + #readers attempting lock
+  *		    ((X-1)*ACTIVE_BIAS + ACTIVE_WRITE_BIAS)
+  *
+- * 0xffff0001	(1) 1 reader active or attempting lock, waiters for lock
++ * 0xc0000001	(1) 1 reader active or attempting lock, waiters for lock
+  *		    (WAITING_BIAS + ACTIVE_BIAS)
+- *		(2) 1 writer active or attempting lock, no waiters for lock
++ *
++ * 0xffff0001	(1) 1 writer active or attempting lock, no waiters for lock
+  *		    (ACTIVE_WRITE_BIAS)
+  *
+- * 0xffff0000	(1) There are writers or readers queued but none active
++ * 0xc0000000	(1) There are writers or readers queued but none active
+  *		    or in the process of attempting lock.
+  *		    (WAITING_BIAS)
+  *		Note: writer can attempt to steal lock for this count by adding
+  *		ACTIVE_WRITE_BIAS in cmpxchg and checking the old count
+  *
+- * 0xfffe0001	(1) 1 writer active, or attempting lock. Waiters on queue.
++ * 0xbfff0001	(1) 1 writer active, or attempting lock. Waiters on queue.
+  *		    (ACTIVE_WRITE_BIAS + WAITING_BIAS)
+  *
+  * Note: Readers attempt to lock by adding ACTIVE_BIAS in down_read and checking
+@@ -62,9 +64,23 @@
+  *	 checking the count becomes ACTIVE_WRITE_BIAS for successful lock
+  *	 acquisition (i.e. nobody else has lock or attempts lock).  If
+  *	 unsuccessful, in rwsem_down_write_failed, we'll check to see if there
+- *	 are only waiters but none active (5th case above), and attempt to
++ *	 are only waiters but none active (7th case above), and attempt to
+  *	 steal the lock.
+  *
++ *	 We can infer the reader/writer/waiter state of the lock by looking
++ *	 at the count value:
++ *	 (1) count > 0
++ *	     Only readers are present.
++ *	 (2) WAITING_BIAS - ACTIVE_WRITE_BIAS < count < 0
++ *	     Have writers, maybe readers, but no waiter
++ *	 (3) WAITING_BIAS < count <= WAITING_BIAS - ACTIVE_WRITE_BIAS
++ *	     Have readers and waiters, but no writer
++ *	 (4) count < WAITING_BIAS
++ *	     Have writers and waiters, maybe readers
++ *
++ *	 IOW, writers are present when
++ *	 (1) count < WAITING_BIAS, or
++ *	 (2) WAITING_BIAS - ACTIVE_WRITE_BIAS < count < 0
+  */
  
  /*
 -- 
