@@ -1,54 +1,47 @@
-From: Waiman Long <waiman.long@hpe.com>
-Subject: Re: [RFC PATCH-tip 2/6] locking/rwsem: Enable optional count-based
-	spinning on reader
-Date: Tue, 14 Jun 2016 15:11:23 -0400
-Message-ID: <576056DB.5050701@hpe.com>
-References: <1465927959-39719-1-git-send-email-Waiman.Long@hpe.com>
-	<1465927959-39719-3-git-send-email-Waiman.Long@hpe.com>
-	<20160614182757.GA15903@linux-80c1.suse>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <xfs-bounces@oss.sgi.com>
-In-Reply-To: <20160614182757.GA15903@linux-80c1.suse>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
-To: Davidlohr Bueso <dave@stgolabs.net>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-ia64@vger.kernel.org, Scott J Norton <scott.norton@hpe.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, linux-kernel@vger.kernel.org, xfs@oss.sgi.com, Ingo Molnar <mingo@redhat.com>, linux-alpha@vger.kernel.org, Douglas Hatch <doug.hatch@hpe.com>, Jason Low <jason.low2@hp.com>
+From: Waiman Long <Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper acquire/release barrier
+Date: Tue, 14 Jun 2016 18:48:04 -0400
+Message-ID: <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/14/2016 02:27 PM, Davidlohr Bueso wrote:
-> On Tue, 14 Jun 2016, Waiman Long wrote:
->
->> This patch provides a way for the kernel code to designate specific
->> rwsems to be more aggressive in term of optimistic spinning that the
->> writers will continue to spin for some additional count-based time to
->> see if it can get the lock before sleeping. This aggressive spinning
->> mode should only be used on rwsems where the readers are unlikely to
->> go to sleep.
->
-> Yikes, exposing this sort of thing makes me _very_ uneasy, not to mention
-> the ad-hoc nature and its easiness to mess up. I'm not really for 
-> this, even
-> if it shows extraordinary performance boosts on benchmarks.
->
-> Thanks,
-> Davidlohr
+The osq_lock() and osq_unlock() function may not provide the necessary
+acquire and release barrier in some cases. This patch makes sure
+that the proper barriers are provided when osq_lock() is successful
+or when osq_unlock() is called.
 
-I understand your concern. I will see if there is a way to autotune 
-instead of using explicit enablement.
+Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+---
+ kernel/locking/osq_lock.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-Cheers,
-Longman
+diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+index 05a3785..7dd4ee5 100644
+--- a/kernel/locking/osq_lock.c
++++ b/kernel/locking/osq_lock.c
+@@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+ 	 * cmpxchg in an attempt to undo our queueing.
+ 	 */
+ 
+-	while (!READ_ONCE(node->locked)) {
++	while (!smp_load_acquire(&node->locked)) {
+ 		/*
+ 		 * If we need to reschedule bail... so we can block.
+ 		 */
+@@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+ 	 * Second most likely case.
+ 	 */
+ 	node = this_cpu_ptr(&osq_node);
+-	next = xchg(&node->next, NULL);
++	next = xchg_release(&node->next, NULL);
+ 	if (next) {
+ 		WRITE_ONCE(next->locked, 1);
+ 		return;
+-- 
+1.7.1
 
-_______________________________________________
-xfs mailing list
-xfs@oss.sgi.com
-http://oss.sgi.com/mailman/listinfo/xfs
