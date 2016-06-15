@@ -1,95 +1,56 @@
-From: Waiman Long <waiman.long@hpe.com>
-Subject: Re: [RFC PATCH-tip 6/6] xfs: Enable reader optimistic spinning for
-	DAX inodes
-Date: Wed, 15 Jun 2016 14:55:11 -0400
-Message-ID: <5761A48F.1040304@hpe.com>
-References: <1465927959-39719-1-git-send-email-Waiman.Long@hpe.com>
-	<1465927959-39719-7-git-send-email-Waiman.Long@hpe.com>
-	<20160614230613.GB26977@dastard>
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
+ acquire/release barrier
+Date: Wed, 15 Jun 2016 11:56:11 -0700
+Message-ID: <20160615185611.GE2094@linux-80c1.suse>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+ <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+ <20160615165659.GC2094@linux-80c1.suse>
+ <20160615171250.GO30921@twins.programming.kicks-ass.net>
+ <20160615182724.GD2094@linux-80c1.suse>
+ <20160615184007.GW30921@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <xfs-bounces@oss.sgi.com>
-In-Reply-To: <20160614230613.GB26977@dastard>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
-To: Dave Chinner <david@fromorbit.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, linux-ia64@vger.kernel.org, Scott J Norton <scott.norton@hpe.com>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, linux-kernel@vger.kernel.org, xfs@oss.sgi.com, Ingo Molnar <mingo@redhat.com>, linux-alpha@vger.kernel.org, Douglas Hatch <doug.hatch@hpe.com>, Jason Low <jason.low2@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:48716 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753105AbcFOS4Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Jun 2016 14:56:24 -0400
+Content-Disposition: inline
+In-Reply-To: <20160615184007.GW30921@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hpe.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
 
-On 06/14/2016 07:06 PM, Dave Chinner wrote:
-> On Tue, Jun 14, 2016 at 02:12:39PM -0400, Waiman Long wrote:
->> This patch enables reader optimistic spinning for inodes that are
->> under a DAX-based mount point.
+On Wed, 15 Jun 2016, Peter Zijlstra wrote:
+
+>On Wed, Jun 15, 2016 at 11:27:24AM -0700, Davidlohr Bueso wrote:
+>> On Wed, 15 Jun 2016, Peter Zijlstra wrote:
 >>
->> On a 4-socket Haswell machine running on a 4.7-rc1 tip-based kernel,
->> the fio test with multithreaded randrw and randwrite tests on the
->> same file on a XFS partition on top of a NVDIMM with DAX were run,
->> the aggregated bandwidths before and after the patch were as follows:
+>> >In any case, its fairly simple to cure, just add
+>> >smp_acquire__after_ctrl_dep() at the end. If we bail because
+>> >need_resched() we don't need the acquire I think.
 >>
->>    Test      BW before patch     BW after patch  % change
->>    ----      ---------------     --------------  --------
->>    randrw        1352 MB/s          2164 MB/s      +60%
->>    randwrite     1710 MB/s          2550 MB/s      +49%
->>
->> Signed-off-by: Waiman Long<Waiman.Long@hpe.com>
->> ---
->>   fs/xfs/xfs_icache.c |    9 +++++++++
->>   1 files changed, 9 insertions(+), 0 deletions(-)
->>
->> diff --git a/fs/xfs/xfs_icache.c b/fs/xfs/xfs_icache.c
->> index 99ee6ee..09f284f 100644
->> --- a/fs/xfs/xfs_icache.c
->> +++ b/fs/xfs/xfs_icache.c
->> @@ -71,6 +71,15 @@ xfs_inode_alloc(
->>
->>   	mrlock_init(&ip->i_iolock, MRLOCK_BARRIER, "xfsio", ip->i_ino);
->>
->> +	/*
->> +	 * Enable reader spinning for DAX nount point
->> +	 */
->> +	if (mp->m_flags&  XFS_MOUNT_DAX) {
->> +		rwsem_set_rspin_threshold(&ip->i_iolock.mr_lock);
->> +		rwsem_set_rspin_threshold(&ip->i_mmaplock.mr_lock);
->> +		rwsem_set_rspin_threshold(&ip->i_lock.mr_lock);
->> +	}
-> That's wrong. DAX is a per-inode flag, not a mount wide flag. This
-> needs to be done once the inode has been fully initialised and
-> IS_DAX(inode) can be run.
+>> I was just considering this for your smp_cond_acquire/smp_cond_load_acquire
 >
-> Also, the benchmark doesn't show that all these locks are being
-> tested by this benchmark. e.g. the i_mmaplock isn't involved in
-> the benchmark's IO paths at all. It's only taken in page faults and
-> truncate paths....
+>Right, so that need_resched break makes that a bit awkward. Not to
+>mention the cpu_relaxed() vs cpu_relaxed_lowlatency() difference.
+
+Oh sure, I was merely refering to the ordering semantics, not the calls
+themselves -- although at some point, as archs begin to port locking/core
+optimizations, we _will_ need the variants for dealing with '_lowlatency'.
+
 >
-> I'd also like to see how much of the gain comes from the iolock vs
-> the ilock, as the ilock is nested inside the iolock and so
-> contention is much rarer....
+>> rework, so yeah I guess an smp_acquire__after_ctrl_dep would be a nice
+>> compromise.
+>>
+>> However, I was always under the impression that races with node->locked were
+>> rather harmless (as indicated in the mentioned commit) -- which is why ->locked
+>> are simple load/stores, with the exception of the unqueueing -- but yeah, that's
+>> not even paired.
+>
+>Yeah, see a few patches further in this series, where he guards a
+>variables with the osq_lock.
 
-This patch has now been superseded by a second one where changes to the 
-xfs code is no longer needed. The new patch will enable reader spinning 
-for all rwsem and dynamically disable it depending on past history.
-
-> As it is, I'm *extremely* paranoid when it comes to changes to core
-> locking like this. Performance is secondary to correctness, and we
-> need much more than just a few benchmarks to verify there aren't
-> locking bugs being introduced....
-
-The core rwsem locking logic hasn't been changed. There are some minor 
-changes, however, on what RWSEM_WAITING_BIAS value to use that requires 
-more eyeballs to make sure that it hasn't introduced any new bug.
-
-Cheers,
-Longman
-
-_______________________________________________
-xfs mailing list
-xfs@oss.sgi.com
-http://oss.sgi.com/mailman/listinfo/xfs
+*sigh*
