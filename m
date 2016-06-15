@@ -1,51 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38119 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:38142 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751739AbcFORSP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 13:18:15 -0400
-Date: Wed, 15 Jun 2016 19:18:00 +0200
+	with ESMTP id S1751884AbcFORin (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 13:38:43 -0400
+Date: Wed, 15 Jun 2016 19:38:30 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
- acquire/release barrier
-Message-ID: <20160615171800.GP30921@twins.programming.kicks-ass.net>
+Subject: Re: [RFC PATCH-tip v2 3/6] locking/rwsem: Enable count-based
+ spinning on reader
+Message-ID: <20160615173830.GR30921@twins.programming.kicks-ass.net>
 References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
- <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
- <20160615080446.GA28443@insomnia>
+ <1465944489-43440-4-git-send-email-Waiman.Long@hpe.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160615080446.GA28443@insomnia>
+In-Reply-To: <1465944489-43440-4-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Waiman Long <Waiman.Long@hpe.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-Message-ID: <20160615171800.X-U2U3BEwXa2x5lrmi1HqhAogM6DePbBAKjG-xJn6uM@z>
+To: Waiman Long <Waiman.Long@hpe.com>
+Cc: Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Message-ID: <20160615173830.9LWii9m4wvFA-7saDDT0wuwgZnjuBoGDhtu2Keh3UDU@z>
 
-On Wed, Jun 15, 2016 at 04:04:46PM +0800, Boqun Feng wrote:
-> On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
+On Tue, Jun 14, 2016 at 06:48:06PM -0400, Waiman Long wrote:
+>  static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+>  {
+> -	bool taken = false;
+> +	bool taken = false, can_spin;
 
-> > @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
-> >  	 * Second most likely case.
-> >  	 */
-> >  	node = this_cpu_ptr(&osq_node);
-> > -	next = xchg(&node->next, NULL);
-> > +	next = xchg_release(&node->next, NULL);
-> >  	if (next) {
-> >  		WRITE_ONCE(next->locked, 1);
-> 
-> So we still use WRITE_ONCE() rather than smp_store_release() here?
-> 
-> Though, IIUC, This is fine for all the archs but ARM64, because there
-> will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
-> carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
+I would place the variables without assignment first.
 
-Not sure. On PPC for example, you'll use lwsync() but will that not
-attach to the store to &node->next instead?
+> +	int loopcnt;
+>  
+>  	preempt_disable();
+>  
+> @@ -409,6 +412,8 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+>  	if (!osq_lock(&sem->osq))
+>  		goto done;
+>  
+> +	loopcnt = sem->rspin_enabled ? RWSEM_RSPIN_THRESHOLD : 0;
+> +
+>  	/*
+>  	 * Optimistically spin on the owner field and attempt to acquire the
+>  	 * lock whenever the owner changes. Spinning will be stopped when:
+> @@ -416,7 +421,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+>  	 *  2) readers own the lock as we can't determine if they are
+>  	 *     actively running or not.
+>  	 */
+> -	while (rwsem_spin_on_owner(sem)) {
+> +	while ((can_spin = rwsem_spin_on_owner(sem)) || loopcnt) {
+>  		/*
+>  		 * Try to acquire the lock
+>  		 */
+> @@ -425,13 +430,16 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+>  			break;
+>  		}
+>  
+> +		if (!can_spin && loopcnt)
+> +			loopcnt--;
 
-Still leaving that store and the WRITE_ONCE() unordered.
+This seems to suggest 'can_spin' is a bad name, because if we cannot
+spin, we do in fact spin anyway?
 
-Also I don't see the control dependency between xchg-load and WRITE_ONCE
-helping anything to order the two stores.
+Maybe call it write_spin or something, which makes it clear that if its
+not a write spin we'll do a read spin?
 
+Also, isn't this the wrong level to do loopcnt at?
+rwsem_spin_on_owner() can have spend any amount of cycles spinning. So
+you're not counting loops of similar unit.
 
-So yeah, subtle if not broken, definitely needs more explanation.
+> +	/*
+> +	 * Was owner a reader?
+> +	 */
+> +	if (rwsem_owner_is_reader(sem->owner)) {
+> +		/*
+> +		 * Update rspin_enabled for reader spinning
+
+full stop and newline?
+
+> +		 * Increment by 1 if successfully & decrement by 8 if
+> +		 * unsuccessful.
+
+This is bloody obvious from the code, explain why, not what the code
+does.
+
+>                                The decrement amount is kind of arbitrary
+> +		 * and can be adjusted if necessary.
+> +		 */
+> +		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX))
+> +			sem->rspin_enabled++;
+> +		else if (!taken)
+> +			sem->rspin_enabled = (sem->rspin_enabled >= 8)
+> +					   ? sem->rspin_enabled - 8 : 0;
+
+This is unreadable and against coding style.
+
+> +	}
+>  	osq_unlock(&sem->osq);
+>  done:
+>  	preempt_enable();
