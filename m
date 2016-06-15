@@ -1,110 +1,200 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
-	clear
-Date: Wed, 15 Jun 2016 08:17:21 -0500
-Message-ID: <57615561.4090502@amd.com>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
-	<20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
-	<20160608111844.GV2658@codeblueprint.co.uk> <5759B67A.4000800@amd.com>
-	<20160613135110.GC2658@codeblueprint.co.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20160613135110.GC2658-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+From: Christopher Covington <cov@codeaurora.org>
+Subject: [RFC PATCH v3 1/2] ACPI/PCI: Check platform specific ECAM quirks
+Date: Wed, 15 Jun 2016 11:34:10 -0400
+Message-ID: <1466004851-10214-1-git-send-email-cov@codeaurora.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Tomasz Nowicki <tn@semihalf.com>, Duc Dang <dhdang@apm.com>, Dongdong Liu <liudongdong3@huawei.com>
+Cc: Sinan Kaya <okaya@codeaurora.org>, Jeff Hugo <jhugo@codeaurora.org>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Jon Masters <jcm@redhat.com>, Mark Salter <msalter@redhat.com>, Suravee Suthikulpanit <Suravee.Suthikulpanit@amd.com>, Jayachandran C <jchandra@broadcom.com>, David Daney <ddaney@caviumnetworks.com>, Robert Richter <robert.richter@caviumnetworks.com>, Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>, Hanjun Guo <hanjun.guo@linaro.org>, linux-arm-kernel@lists.infradead.org, Christopher Covington <cov@codeaurora.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Bjorn Helgaas <bhelgaas@google.com>, linux-acpi@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 06/13/2016 08:51 AM, Matt Fleming wrote:
-> On Thu, 09 Jun, at 01:33:30PM, Tom Lendacky wrote:
->>
->> I was trying to play it safe here, but as you say, the firmware should
->> be using our page tables so we can get rid of this call. The problem
->> will actually be if we transition to a 32-bit efi. The encryption bit
->> will be lost in cr3 and so the pgd table will have to be un-encrypted.
->> The entries in the pgd can have the encryption bit set so I would only
->> need to worry about the pgd itself. I'll have to update the
->> efi_alloc_page_tables routine.
->  
-> Interesting, I hadn't expected 32-bit EFI to be an option for
-> platforms with the SME technology. I'd assumed we could just ignore
-> that.
+From: Tomasz Nowicki <tn@semihalf.com>
 
-We may be able to do that.
+Some platforms may not be fully compliant with the generic PCI config
+operations. For these cases we implement a way to use custom map and
+accessor functions. The algorithm traverses the available quirk list,
+matches against <oem_id, oem_table_id, oem_revision, domain, bus number>
+tuples and returns corresponding PCI config ops. oem_id, oem_table_id, and
+oem_revision come from the MCFG table standard header. All quirks can be
+defined using the DECLARE_ACPI_MCFG_FIXUP() macro and are kept self
+contained. Example:
 
-> 
-> Are you saying that the encryption bit isn't supported in 32-bit
-> compatibility mode? We don't do a "full" switch to 32-bit protected
-> mode when in mixed mode, just load a 32-bit code segment descriptor.
-> The page tables are not modified at all.
+/* Custom PCI config ops */
+static struct pci_generic_ecam_ops foo_pci_ops = {
+	.bus_shift	= 24,
+	.pci_ops = {
+		.map_bus = pci_ecam_map_bus,
+		.read = foo_ecam_config_read,
+		.write = foo_ecam_config_write,
+	}
+};
 
-The encryption bit is supported in 32-bit compatibility mode and since
-we're not doing the "full" switch the cr3 register will remain as a
-64-bit register so we can leave the pgd table encrypted.
+DECLARE_ACPI_MCFG_FIXUP(&foo_pci_ops, "OEM", "TABLE-ID", <revision>,
+			<domain_nr>, <bus_nr>);
 
-> 
->> The encryption bit in the cr3 register will indicate if the pgd table
->> is encrypted or not. Based on my comment above about the pgd having
->> to be un-encrypted in case we have to transition to 32-bit efi, this
->> can be removed.
->  
-> I'm not (yet) sure that the pgd needs to be unencrypted for 32-bit EFI
-> when running a 64-bit kernel. In the AMD Programmer's Manual, Section
-> 7.10.3 Operating Modes seems to indicate that running encrypted should
-> work fine.
-> 
->> I'll look into this a bit more. From looking at it I don't want the
->> _PAGE_ENC bit set for the memmap unless it gets re-allocated (which
->> I missed in these patches). Let me see what I can do with this.
->  
-> I don't understand your comment about re-allocating the memmap.
-> 
-> The kernel builds its own EFI memory map at runtime, initially based
-> on the memory map provided by the firmware. We always allocate a new
-> memory map.
+Signed-off-by: Tomasz Nowicki <tn@semihalf.com>
+Signed-off-by: Dongdong Liu <liudongdong3@huawei.com>
+Signed-off-by: Christopher Covington <cov@codeaurora.org>
 
-Sorry, I mis-interpreted the efi_map_regions function/loop and see
-that the memmap is always allocated by the kernel.
+---
 
-> 
-> In efi_setup_page_tables() we're building our own page tables, which
-> should be encrypted, and mapping EFI regions described by the memmap
-> into those page tables.
-> 
-> So unless we're mapping an MMIO region (in which case _PAGE_PCD is set
-> in @flags for kernel_map_pages_in_pgd()) I would expect _PAGE_ENC to
-> be set.
-> 
->> I'll look further into this, but I saw that this area of virtual memory
->> was mapped un-encrypted and after freeing the boot services the
->> mappings were somehow reused as un-encrypted for DMA which assumes
->> (unless using swiotlb) encrypted. This resulted in DMA data being
->> transferred in as encrypted and then accessed un-encrypted.
-> 
-> That the mappings were re-used isn't a surprise.
-> 
-> efi_free_boot_services() lifts the reservation that was put in place
-> during efi_reserve_boot_services() and releases the pages to the
-> kernel's memory allocators.
-> 
-> What is surprising is that they were marked unencrypted at all.
-> There's nothing special about these pages as far as the __va() region
-> is concerned.
+Changes from v2 to v3:
+* Match against all three of oem_id, oem_table_id, and oem_revision.
+* Perform substring match, so padding oem_id and oem_table_id isn't
+  required. (Using min_t() thanks to Duc Dang's suggestion.)
+* Print when quirk matched.
+* Use __UNIQUE_ID() macro to generate a valid, unique symbol name even
+  when OEM and table IDs contain characters such as dash "-".
+* Move extern declaration to header and fix spelling and formatting to
+  satisfy checkpatch/coding style.
+---
+ drivers/acpi/pci_mcfg.c           | 49 ++++++++++++++++++++++++++++++++++++---
+ include/asm-generic/vmlinux.lds.h |  7 ++++++
+ include/linux/pci-acpi.h          | 24 +++++++++++++++++++
+ 3 files changed, 77 insertions(+), 3 deletions(-)
 
-Right, let me keep looking into this to see if I can pin down what
-was (or is) happening.
-
-Thanks,
-Tom
-
-> 
+diff --git a/drivers/acpi/pci_mcfg.c b/drivers/acpi/pci_mcfg.c
+index b5b376e..2a5d3dd 100644
+--- a/drivers/acpi/pci_mcfg.c
++++ b/drivers/acpi/pci_mcfg.c
+@@ -22,6 +22,10 @@
+ #include <linux/kernel.h>
+ #include <linux/pci.h>
+ #include <linux/pci-acpi.h>
++#include <linux/pci-ecam.h>
++
++/* Root pointer to the mapped MCFG table */
++static struct acpi_table_mcfg *mcfg_table;
+ 
+ /* Structure to hold entries from the MCFG table */
+ struct mcfg_entry {
+@@ -35,6 +39,46 @@ struct mcfg_entry {
+ /* List to save MCFG entries */
+ static LIST_HEAD(pci_mcfg_list);
+ 
++static bool pci_mcfg_fixup_match(struct pci_cfg_fixup *f,
++				 struct acpi_table_header *h)
++{
++	int olen = min_t(u8, strlen(f->oem_id), ACPI_OEM_ID_SIZE);
++	int tlen = min_t(u8, strlen(f->oem_table_id), ACPI_OEM_TABLE_ID_SIZE);
++
++	return (!strncmp(f->oem_id, h->oem_id, olen) &&
++		!strncmp(f->oem_table_id, h->oem_table_id, tlen) &&
++		f->oem_revision == h->oem_revision);
++}
++
++struct pci_ecam_ops *pci_mcfg_get_ops(struct acpi_pci_root *root)
++{
++	int bus_num = root->secondary.start;
++	int domain = root->segment;
++	struct pci_cfg_fixup *f;
++
++	if (!mcfg_table)
++		return &pci_generic_ecam_ops;
++
++	/*
++	 * Match against platform specific quirks and return corresponding CAM
++	 * ops.
++	 *
++	 * First match against PCI topology <domain:bus> then use OEM ID, OEM
++	 * table ID, and OEM revision from MCFG table standard header.
++	 */
++	for (f = __start_acpi_mcfg_fixups; f < __end_acpi_mcfg_fixups; f++) {
++		if ((f->domain == domain || f->domain == PCI_MCFG_DOMAIN_ANY) &&
++		    (f->bus_num == bus_num || f->bus_num == PCI_MCFG_BUS_ANY) &&
++		    pci_mcfg_fixup_match(f, &mcfg_table->header)) {
++			pr_info("Handling %s %s r%d PCI MCFG quirks\n",
++				f->oem_id, f->oem_table_id, f->oem_revision);
++			return f->ops;
++		}
++	}
++	/* No quirks, use ECAM */
++	return &pci_generic_ecam_ops;
++}
++
+ phys_addr_t pci_mcfg_lookup(u16 seg, struct resource *bus_res)
+ {
+ 	struct mcfg_entry *e;
+@@ -54,7 +98,6 @@ phys_addr_t pci_mcfg_lookup(u16 seg, struct resource *bus_res)
+ 
+ static __init int pci_mcfg_parse(struct acpi_table_header *header)
+ {
+-	struct acpi_table_mcfg *mcfg;
+ 	struct acpi_mcfg_allocation *mptr;
+ 	struct mcfg_entry *e, *arr;
+ 	int i, n;
+@@ -64,8 +107,8 @@ static __init int pci_mcfg_parse(struct acpi_table_header *header)
+ 
+ 	n = (header->length - sizeof(struct acpi_table_mcfg)) /
+ 					sizeof(struct acpi_mcfg_allocation);
+-	mcfg = (struct acpi_table_mcfg *)header;
+-	mptr = (struct acpi_mcfg_allocation *) &mcfg[1];
++	mcfg_table = (struct acpi_table_mcfg *)header;
++	mptr = (struct acpi_mcfg_allocation *) &mcfg_table[1];
+ 
+ 	arr = kcalloc(n, sizeof(*arr), GFP_KERNEL);
+ 	if (!arr)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 6a67ab9..43604fc 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -300,6 +300,13 @@
+ 		VMLINUX_SYMBOL(__end_pci_fixups_suspend_late) = .;	\
+ 	}								\
+ 									\
++	/* ACPI MCFG quirks */						\
++	.acpi_fixup        : AT(ADDR(.acpi_fixup) - LOAD_OFFSET) {	\
++		VMLINUX_SYMBOL(__start_acpi_mcfg_fixups) = .;		\
++		*(.acpi_fixup_mcfg)					\
++		VMLINUX_SYMBOL(__end_acpi_mcfg_fixups) = .;		\
++	}								\
++									\
+ 	/* Built-in firmware blobs */					\
+ 	.builtin_fw        : AT(ADDR(.builtin_fw) - LOAD_OFFSET) {	\
+ 		VMLINUX_SYMBOL(__start_builtin_fw) = .;			\
+diff --git a/include/linux/pci-acpi.h b/include/linux/pci-acpi.h
+index 7d63a66..dac851b 100644
+--- a/include/linux/pci-acpi.h
++++ b/include/linux/pci-acpi.h
+@@ -25,6 +25,7 @@ static inline acpi_status pci_acpi_remove_pm_notifier(struct acpi_device *dev)
+ extern phys_addr_t acpi_pci_root_get_mcfg_addr(acpi_handle handle);
+ 
+ extern phys_addr_t pci_mcfg_lookup(u16 domain, struct resource *bus_res);
++extern struct pci_ecam_ops *pci_mcfg_get_ops(struct acpi_pci_root *root);
+ 
+ static inline acpi_handle acpi_find_root_bridge_handle(struct pci_dev *pdev)
+ {
+@@ -72,6 +73,29 @@ struct acpi_pci_root_ops {
+ 	int (*prepare_resources)(struct acpi_pci_root_info *info);
+ };
+ 
++struct pci_cfg_fixup {
++	struct pci_ecam_ops *ops;
++	char *oem_id;
++	char *oem_table_id;
++	u32 oem_revision;
++	int domain;
++	int bus_num;
++};
++
++extern struct pci_cfg_fixup __start_acpi_mcfg_fixups[];
++extern struct pci_cfg_fixup __end_acpi_mcfg_fixups[];
++
++#define PCI_MCFG_DOMAIN_ANY	-1
++#define PCI_MCFG_BUS_ANY	-1
++
++/* Designate a routine to fix up buggy MCFG */
++#define DECLARE_ACPI_MCFG_FIXUP(ops, oem, table, rev, dom, bus)	\
++	static const struct pci_cfg_fixup			\
++	__UNIQUE_ID(mcfg_fixup_)				\
++	__used	__attribute__((__section__(".acpi_fixup_mcfg"),	\
++				aligned((sizeof(void *))))) =	\
++	{ ops, oem, table, rev, dom, bus }
++
+ extern int acpi_pci_probe_root_resources(struct acpi_pci_root_info *info);
+ extern struct pci_bus *acpi_pci_root_create(struct acpi_pci_root *root,
+ 					    struct acpi_pci_root_ops *ops,
+-- 
+Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+a Linux Foundation Collaborative Project
