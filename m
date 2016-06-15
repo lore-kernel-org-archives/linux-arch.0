@@ -1,83 +1,98 @@
-From: xinhui <xinhui.pan@linux.vnet.ibm.com>
-Subject: Re: [PATCH] locking/qrwlock: fix write unlock issue in big endian
-Date: Wed, 15 Jun 2016 11:47:21 +0800
-Message-ID: <5760CFC9.6020006@linux.vnet.ibm.com>
-References: <1464862148-5672-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <20160608092244.GA27029@arm.com> <575FA024.7060608@linux.vnet.ibm.com> <20160614104032.GE19407@arm.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
+ acquire/release barrier
+Date: Wed, 15 Jun 2016 16:04:46 +0800
+Message-ID: <20160615080446.GA28443@insomnia>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+ <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160614104032.GE19407@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, waiman.long@hp.com, peterz@infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="pf9I7BMVVzbSWLtt"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-it0-f68.google.com ([209.85.214.68]:33171 "EHLO
+	mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750841AbcFOIBX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 04:01:23 -0400
+Content-Disposition: inline
+In-Reply-To: <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hpe.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
 
 
+--pf9I7BMVVzbSWLtt
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-On 2016=E5=B9=B406=E6=9C=8814=E6=97=A5 18:40, Will Deacon wrote:
-> On Tue, Jun 14, 2016 at 02:11:48PM +0800, xinhui wrote:
->>
->> On 2016=E5=B9=B406=E6=9C=8808=E6=97=A5 17:22, Will Deacon wrote:
->>> On Thu, Jun 02, 2016 at 06:09:08PM +0800, Pan Xinhui wrote:
->>>> strcut __qrwlock has different layout in big endian machine. we ne=
-ed set
->>>> the __qrwlock->wmode to NULL, and the address is not &lock->cnts i=
-n big
->>>> endian machine.
->>>>
->>>> Do as what read unlock does. we are lucky that the __qrwlock->wmod=
-e's
->>>> val is _QW_LOCKED.
->>>
->>> Doesn't this have wider implications for the qrwlocks, for example:
->>>
->>>    while ((cnts & _QW_WMASK) =3D=3D _QW_LOCKED) { ... }
->>>
->>> would actually end up looking at the wrong field of the lock?
->>>
->> I does not clearly understand your idea. :(
->
-> That's because I'm talking rubbish :) Sorry, I completely confused my=
-self.
-> Locking is bad enough on its own, but add big-endian to the mix and I=
-'m
-> all done.
->
->>> Shouldn't we just remove the #ifdef __LITTLE_ENDIAN stuff from __qr=
-wlock,
->>> given that all the struct members are u8?
->>>
->> No. that makes codes complex. for example
->>
->> struct __qrwlock lock;
->>
->> WRITE_ONCE(lock->wmode, _QW_WAITING);
->> if (atomic_(&lock->cnts) =3D=3D _QW_WAITING) {
->> 	do_something();
->> }
->>
->> IF you remove the  #ifdef __LITTLE_ENDIAN stuff from __qrwlock.
->> codes above obviously will break. And we already have such code.
->
-> I was wondering more along the lines of having one definition of the =
-data
-> structure, but then defining _QW_* differently depending on endiannes=
-s
-> (i.e. add a << 24 when big-endian). That way queued_write_unlock can
-make sense. And I review all the code, there is not much code to be cha=
-nged.
-I will work out one patch based on your idea :)
+Hi Waiman,
 
-> stay like it is (having an arch override to handle the big-endian cas=
-e
-> is incredibly ugly).
->
-I admit that. HOWEVER from the view of performance, having an arch over=
-ride is acceptable.
+On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
+> The osq_lock() and osq_unlock() function may not provide the necessary
+> acquire and release barrier in some cases. This patch makes sure
+> that the proper barriers are provided when osq_lock() is successful
+> or when osq_unlock() is called.
+>=20
+> Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+> ---
+>  kernel/locking/osq_lock.c |    4 ++--
+>  1 files changed, 2 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+> index 05a3785..7dd4ee5 100644
+> --- a/kernel/locking/osq_lock.c
+> +++ b/kernel/locking/osq_lock.c
+> @@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+>  	 * cmpxchg in an attempt to undo our queueing.
+>  	 */
+> =20
+> -	while (!READ_ONCE(node->locked)) {
+> +	while (!smp_load_acquire(&node->locked)) {
+>  		/*
+>  		 * If we need to reschedule bail... so we can block.
+>  		 */
+> @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+>  	 * Second most likely case.
+>  	 */
+>  	node =3D this_cpu_ptr(&osq_node);
+> -	next =3D xchg(&node->next, NULL);
+> +	next =3D xchg_release(&node->next, NULL);
+>  	if (next) {
+>  		WRITE_ONCE(next->locked, 1);
 
-thanks
-xinhui
-> Will
->
+So we still use WRITE_ONCE() rather than smp_store_release() here?
+
+Though, IIUC, This is fine for all the archs but ARM64, because there
+will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
+carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
+
+Not sure whether it's a problem on ARM64, but I think we certainly need
+to add some comments here, if we count on this trick.
+
+Am I missing something or misunderstanding you here?
+
+Regards,
+Boqun
+
+>  		return;
+> --=20
+> 1.7.1
+>=20
+
+--pf9I7BMVVzbSWLtt
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJXYQwZAAoJEEl56MO1B/q4BTEIAJfTXZU/LW00kU5SZGECAbIb
+k/lhU4XFRPM4wCMZNsAgs3aO6V/VE7+F3TMfDdVik0w9zm0wvMGl3ELRTCcDNhgv
+JVguF3wnwfkOIWIG/pPvGaKOGMc/1g6Pi21cxAOceTF5H5roeB7hqcJfZ3fr32gd
+DYko8LgQ8xhqDV0HwIuekIgc7GP+D1sdesOcesntHOEi3xYjdDAPzZHGh0iMGzpv
+cFZVTa1+dTSpJYO3LoF/zcab6yb0q2WBAYZPuLRka9Wq/yJQ230Scq3Lwy+PoJPx
+eN++9Y5oXMaMAUB1PqsNPp4MOucrnakBo8dal7qA2z7k+fEFbWDxU0f5NmQDkeY=
+=mWBt
+-----END PGP SIGNATURE-----
+
+--pf9I7BMVVzbSWLtt--
