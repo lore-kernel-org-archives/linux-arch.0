@@ -1,52 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:43246 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752153AbcFOQ5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Jun 2016 12:57:13 -0400
-Date: Wed, 15 Jun 2016 09:56:59 -0700
-From: Davidlohr Bueso <dave@stgolabs.net>
+Received: from merlin.infradead.org ([205.233.59.134]:38119 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751739AbcFORSP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 13:18:15 -0400
+Date: Wed, 15 Jun 2016 19:18:00 +0200
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
  acquire/release barrier
-Message-ID: <20160615165659.GC2094@linux-80c1.suse>
+Message-ID: <20160615171800.GP30921@twins.programming.kicks-ass.net>
 References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
  <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+ <20160615080446.GA28443@insomnia>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+In-Reply-To: <20160615080446.GA28443@insomnia>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-Message-ID: <20160615165659.CJqC-Ydu4m5Hk75ZOCkUY261Yrg0kwo0FxYvQgdyTiw@z>
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: Waiman Long <Waiman.Long@hpe.com>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Message-ID: <20160615171800.X-U2U3BEwXa2x5lrmi1HqhAogM6DePbBAKjG-xJn6uM@z>
 
-On Tue, 14 Jun 2016, Waiman Long wrote:
+On Wed, Jun 15, 2016 at 04:04:46PM +0800, Boqun Feng wrote:
+> On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
 
->The osq_lock() and osq_unlock() function may not provide the necessary
->acquire and release barrier in some cases. This patch makes sure
->that the proper barriers are provided when osq_lock() is successful
->or when osq_unlock() is called.
->
->Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
->---
-> kernel/locking/osq_lock.c |    4 ++--
-> 1 files changed, 2 insertions(+), 2 deletions(-)
->
->diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
->index 05a3785..7dd4ee5 100644
->--- a/kernel/locking/osq_lock.c
->+++ b/kernel/locking/osq_lock.c
->@@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
-> 	 * cmpxchg in an attempt to undo our queueing.
-> 	 */
->
->-	while (!READ_ONCE(node->locked)) {
->+	while (!smp_load_acquire(&node->locked)) {
+> > @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+> >  	 * Second most likely case.
+> >  	 */
+> >  	node = this_cpu_ptr(&osq_node);
+> > -	next = xchg(&node->next, NULL);
+> > +	next = xchg_release(&node->next, NULL);
+> >  	if (next) {
+> >  		WRITE_ONCE(next->locked, 1);
+> 
+> So we still use WRITE_ONCE() rather than smp_store_release() here?
+> 
+> Though, IIUC, This is fine for all the archs but ARM64, because there
+> will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
+> carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
 
-Hmm this being a polling path, that barrier can get pretty expensive and
-last I checked it was unnecessary:
+Not sure. On PPC for example, you'll use lwsync() but will that not
+attach to the store to &node->next instead?
 
-036cc30c6b6 (locking/osq: No need for load/acquire when acquire-polling)
+Still leaving that store and the WRITE_ONCE() unordered.
 
-Thanks,
-Davidlohr
+Also I don't see the control dependency between xchg-load and WRITE_ONCE
+helping anything to order the two stores.
+
+
+So yeah, subtle if not broken, definitely needs more explanation.
