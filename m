@@ -1,98 +1,84 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
- acquire/release barrier
-Date: Wed, 15 Jun 2016 16:04:46 +0800
-Message-ID: <20160615080446.GA28443@insomnia>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
- <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: cmpxchg and x86 flags output
+Date: Wed, 15 Jun 2016 10:50:02 +0200
+Message-ID: <20160615085002.GC30935@twins.programming.kicks-ass.net>
+References: <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="pf9I7BMVVzbSWLtt"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:33171 "EHLO
-	mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750841AbcFOIBX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 04:01:23 -0400
+Received: from bombadil.infradead.org ([198.137.202.9]:50525 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751024AbcFOIuJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2016 04:50:09 -0400
 Content-Disposition: inline
-In-Reply-To: <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+In-Reply-To: <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, David Howells <dhowells@redhat.com>
 
+On Tue, Jun 14, 2016 at 04:53:00PM -0700, H. Peter Anvin wrote:
+> The x86 gcc now has the ability to return the value of flags output.  In
+> most use cases, this has been trivial to use in the kernel.
+> 
+> However, cmpxchg() presents a problem.  The current definition of
+> cmpxchg() and its variants is:
+> 
+> 	out = cmpxchg(ptr, old, new);
+> 
+> ... which is then frequently followed by:
+> 
+> 	if (likely(old == out))
+> 
+> ... or something along those lines.
+> 
+> This test is unnecessary and can now be elided, but this means changing
+> the signature on the cmpxchg() function (macro, generally).
+> 
+> It seems to me that the sanest way to handle this is to add a new
+> interface with a fourth parameter, so:
+> 
+> 	changed = cmpxchgx(ptr, old, new, out);
 
---pf9I7BMVVzbSWLtt
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+See also:
 
-Hi Waiman,
+  lkml.kernel.org/r/146358429016.8596.3381723959064491676.stgit@warthog.procyon.org.uk
 
-On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
-> The osq_lock() and osq_unlock() function may not provide the necessary
-> acquire and release barrier in some cases. This patch makes sure
-> that the proper barriers are provided when osq_lock() is successful
-> or when osq_unlock() is called.
->=20
-> Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
-> ---
->  kernel/locking/osq_lock.c |    4 ++--
->  1 files changed, 2 insertions(+), 2 deletions(-)
->=20
-> diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
-> index 05a3785..7dd4ee5 100644
-> --- a/kernel/locking/osq_lock.c
-> +++ b/kernel/locking/osq_lock.c
-> @@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
->  	 * cmpxchg in an attempt to undo our queueing.
->  	 */
-> =20
-> -	while (!READ_ONCE(node->locked)) {
-> +	while (!smp_load_acquire(&node->locked)) {
->  		/*
->  		 * If we need to reschedule bail... so we can block.
->  		 */
-> @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
->  	 * Second most likely case.
->  	 */
->  	node =3D this_cpu_ptr(&osq_node);
-> -	next =3D xchg(&node->next, NULL);
-> +	next =3D xchg_release(&node->next, NULL);
->  	if (next) {
->  		WRITE_ONCE(next->locked, 1);
+where David suggests the same.
 
-So we still use WRITE_ONCE() rather than smp_store_release() here?
+> 
+> A generic implementation of cmpxchgx() would be provided, looking like:
+> 
+> #define cmpxchgx(ptr, old, new, out) ({			\
+> 	__typeof__((*(ptr))) __old = (old);		\
+> 	__typeof__((*(ptr))) __new = (new);		\
+> 	__typeof__((*(ptr))) __old = (old);		\
+> 	__typeof__((*(ptr))) __out; 			\
+> 	(out) = __out = cmpxchg(ptr, __old, __new);	\
+> 	(__old != __out);				\
+> })
+> 
+> ... and so on for all the many other variants.
+> 
+> However, I'm wondering how well this will fit in with other
+> architectures.
 
-Though, IIUC, This is fine for all the archs but ARM64, because there
-will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
-carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
+All ll/sc based archs also already know if the operation succeeded
+without having to do the extra comparison.
 
-Not sure whether it's a problem on ARM64, but I think we certainly need
-to add some comments here, if we count on this trick.
+SPARCv9,S390x which are native CAS architectures, also places the
+success of the operation in condition codes.
 
-Am I missing something or misunderstanding you here?
+IA64 might be the odd duck out (or I'm not reading the manual right,
+which is entirely possible).
 
-Regards,
-Boqun
+> Keep in mind gcc will probably gain this ability for
+> other architectures with flags at some point, although that doesn't
+> inherently mean that cmpxchg will be able to make use of it.
+> 
+> This means a lot of changes even to common code, so I want to make sure
+> the interface is right before embarking on an implementation.
+> 
+> Thoughts?
 
->  		return;
-> --=20
-> 1.7.1
->=20
-
---pf9I7BMVVzbSWLtt
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJXYQwZAAoJEEl56MO1B/q4BTEIAJfTXZU/LW00kU5SZGECAbIb
-k/lhU4XFRPM4wCMZNsAgs3aO6V/VE7+F3TMfDdVik0w9zm0wvMGl3ELRTCcDNhgv
-JVguF3wnwfkOIWIG/pPvGaKOGMc/1g6Pi21cxAOceTF5H5roeB7hqcJfZ3fr32gd
-DYko8LgQ8xhqDV0HwIuekIgc7GP+D1sdesOcesntHOEi3xYjdDAPzZHGh0iMGzpv
-cFZVTa1+dTSpJYO3LoF/zcab6yb0q2WBAYZPuLRka9Wq/yJQ230Scq3Lwy+PoJPx
-eN++9Y5oXMaMAUB1PqsNPp4MOucrnakBo8dal7qA2z7k+fEFbWDxU0f5NmQDkeY=
-=mWBt
------END PGP SIGNATURE-----
-
---pf9I7BMVVzbSWLtt--
+David has already done lots of the conversions for you.
