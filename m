@@ -1,64 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:39183 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754324AbcFPOf6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jun 2016 10:35:58 -0400
-Date: Thu, 16 Jun 2016 16:35:30 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement
- atomic_fetch_{add,sub,and,or,xor}()
-Message-ID: <20160616143530.GG30921@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <20160531102642.333689893@infradead.org>
- <CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com>
- <20160616101309.GD30921@twins.programming.kicks-ass.net>
- <mvmk2hpxq1a.fsf@hawking.suse.de>
- <20160616124949.GF30921@twins.programming.kicks-ass.net>
- <mvma8ilxpl6.fsf@hawking.suse.de>
+Received: from mail-bl2on0078.outbound.protection.outlook.com ([65.55.169.78]:32019
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754216AbcFPOiq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Jun 2016 10:38:46 -0400
+Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
+ clear
+References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
+ <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
+ <20160608111844.GV2658@codeblueprint.co.uk> <5759B67A.4000800@amd.com>
+ <20160613135110.GC2658@codeblueprint.co.uk> <57615561.4090502@amd.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <5762B9E7.80903@amd.com>
+Date: Thu, 16 Jun 2016 09:38:31 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <mvma8ilxpl6.fsf@hawking.suse.de>
+In-Reply-To: <57615561.4090502@amd.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, cmetcalf@mellanox.com, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, dbueso@suse.de, Wu Fengguang <fengguang.wu@intel.com>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-Message-ID: <20160616143530.KDMK2NjUF_oGRDokYPQSEjDpAnUW19ob0V38ohUcnlI@z>
+To: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160616143831.hjbHkhbet-CUbXXWqo6grobRhba0-XCtWXehmuKAlZU@z>
 
-On Thu, Jun 16, 2016 at 02:53:09PM +0200, Andreas Schwab wrote:
-> Peter Zijlstra <peterz@infradead.org> writes:
+On 06/15/2016 08:17 AM, Tom Lendacky wrote:
+> On 06/13/2016 08:51 AM, Matt Fleming wrote:
+>> On Thu, 09 Jun, at 01:33:30PM, Tom Lendacky wrote:
+>>>
 
-> > OK, care to elucidate? Clearly I need help reading this.
+[...]
+
+>>
+>>> I'll look further into this, but I saw that this area of virtual memory
+>>> was mapped un-encrypted and after freeing the boot services the
+>>> mappings were somehow reused as un-encrypted for DMA which assumes
+>>> (unless using swiotlb) encrypted. This resulted in DMA data being
+>>> transferred in as encrypted and then accessed un-encrypted.
+>>
+>> That the mappings were re-used isn't a surprise.
+>>
+>> efi_free_boot_services() lifts the reservation that was put in place
+>> during efi_reserve_boot_services() and releases the pages to the
+>> kernel's memory allocators.
+>>
+>> What is surprising is that they were marked unencrypted at all.
+>> There's nothing special about these pages as far as the __va() region
+>> is concerned.
 > 
-> grep '2.*atomic_read'
+> Right, let me keep looking into this to see if I can pin down what
+> was (or is) happening.
 
-Much thanks to your detailed answer I found yet another obscure inline
-asm syntax 'feature'.
+Ok, I think this was happening before the commit to build our own
+EFI page table structures:
 
-So the "2" input operand actually sets the value of "=&d" (tmp), how
-creative...
+commit 67a9108ed ("x86/efi: Build our own page table structures")
 
-I would find:
+Before this commit the boot services ended up mapped into the kernel
+page table entries as un-encrypted during efi_map_regions() and I needed
+to change those entries back to encrypted. With your change above,
+this appears to no longer be needed.
 
-#define ATOMIC_OP_RETURN(op, c_op, asm_op)                              \
-static inline int atomic_##op##_return(int i, atomic_t *v)              \
-{                                                                       \
-        int t, tmp = atomic_read(v);                                    \
-                                                                        \
-        __asm__ __volatile__(                                           \
-                        "1:     movel %2,%1\n"                          \
-                        "       " #asm_op "l %3,%1\n"                   \
-                        "       casl %2,%1,%0\n"                        \
-                        "       jne 1b"                                 \
-                        : "+m" (*v), "=&d" (t), "+d" (tmp)              \
-                        : "g" (i));                                     \
-        return t;                                                       \
-}
+Thanks,
+Tom
 
-Much more obvious.
-
-But you're right, it seems to be sorted. I'll queue a patch removing
-that comment.
-
-Thanks!
-
+> 
+> Thanks,
+> Tom
+> 
+>>
