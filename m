@@ -1,103 +1,115 @@
-From: Waiman Long <waiman.long@hpe.com>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper acquire/release
- barrier
-Date: Thu, 16 Jun 2016 17:35:54 -0400
-Message-ID: <57631BBA.9070505@hpe.com>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com> <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com> <20160615080446.GA28443@insomnia> <5761A5FF.5070703@hpe.com> <20160616021951.GA16918@insomnia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: [PATCH V2 02/63] clocksource/drivers/clksrc-probe: Introduce init functions with return code
+Date: Thu, 16 Jun 2016 23:26:21 +0200
+Message-ID: <1466112442-31105-3-git-send-email-daniel.lezcano@linaro.org>
+References: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160616021951.GA16918@insomnia>
+In-Reply-To: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Will Deacon <will.deacon@arm.com>
+To: daniel.lezcano@linaro.org, tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 06/15/2016 10:19 PM, Boqun Feng wrote:
-> On Wed, Jun 15, 2016 at 03:01:19PM -0400, Waiman Long wrote:
->> On 06/15/2016 04:04 AM, Boqun Feng wrote:
->>> Hi Waiman,
->>>
->>> On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
->>>> The osq_lock() and osq_unlock() function may not provide the necessary
->>>> acquire and release barrier in some cases. This patch makes sure
->>>> that the proper barriers are provided when osq_lock() is successful
->>>> or when osq_unlock() is called.
->>>>
->>>> Signed-off-by: Waiman Long<Waiman.Long@hpe.com>
->>>> ---
->>>>    kernel/locking/osq_lock.c |    4 ++--
->>>>    1 files changed, 2 insertions(+), 2 deletions(-)
->>>>
->>>> diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
->>>> index 05a3785..7dd4ee5 100644
->>>> --- a/kernel/locking/osq_lock.c
->>>> +++ b/kernel/locking/osq_lock.c
->>>> @@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
->>>>    	 * cmpxchg in an attempt to undo our queueing.
->>>>    	 */
->>>>
->>>> -	while (!READ_ONCE(node->locked)) {
->>>> +	while (!smp_load_acquire(&node->locked)) {
->>>>    		/*
->>>>    		 * If we need to reschedule bail... so we can block.
->>>>    		 */
->>>> @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
->>>>    	 * Second most likely case.
->>>>    	 */
->>>>    	node = this_cpu_ptr(&osq_node);
->>>> -	next = xchg(&node->next, NULL);
->>>> +	next = xchg_release(&node->next, NULL);
->>>>    	if (next) {
->>>>    		WRITE_ONCE(next->locked, 1);
->>> So we still use WRITE_ONCE() rather than smp_store_release() here?
->>>
->>> Though, IIUC, This is fine for all the archs but ARM64, because there
->>> will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
->>> carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
->>>
->>> Not sure whether it's a problem on ARM64, but I think we certainly need
->>> to add some comments here, if we count on this trick.
->>>
->>> Am I missing something or misunderstanding you here?
->>>
->>> Regards,
->>> Boqun
->> The change on the unlock side is more for documentation purpose than is
->> actually needed. As you had said, the xchg() call has provided the necessary
->> memory barrier. Using the _release variant, however, may have some
-> But I'm afraid the barrier doesn't remain if we replace xchg() with
-> xchg_release() on ARM64v8, IIUC, xchg_release() is just a ldxr+stlxr
-> loop with no barrier on ARM64v8. This means the following code:
->
-> 	CPU 0					CPU 1 (next)
-> 	========================		==================
-> 	WRITE_ONCE(x, 1);			r1 = smp_load_acquire(next->locked, 1);
-> 	xchg_release(&node->next, NULL);	r2 = READ_ONCE(x);
-> 	WRITE_ONCE(next->locked, 1);
->
-> could result in (r1 == 1&&  r2 == 0) on ARM64v8, IIUC.
+Currently, the clksrc-probe is not able to handle any error from the init
+functions. There are different issues with the current code:
+ - the code is duplicated in the init functions by writing error
+ - every driver tends to panic in its own init function
+ - counting the number of clocksources is not reliable
 
-If you look into the actual code:
+This patch adds another table to store the functions returning an error.
+The table is temporary while we convert all the drivers to return an error
+and will disappear.
 
-         next = xchg_release(&node->next, NULL);
-         if (next) {
-                 WRITE_ONCE(next->locked, 1);
-                 return;
-         }
+Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+---
+ drivers/clocksource/clksrc-probe.c | 22 ++++++++++++++++++++++
+ include/asm-generic/vmlinux.lds.h  |  2 ++
+ include/linux/clocksource.h        |  3 +++
+ 3 files changed, 27 insertions(+)
 
-There is a control dependency that WRITE_ONCE() won't happen until 
-xchg_release() returns. For your particular example, I will change it to
-
-     CPU 0
-     ===================
-     WRITE_ONCE(x, 1);
-     xchg_relaxed(&node->next, NULL);
-     smp_store_release(next->locked, 1);
-
-I don't change WRITE_ONCE to a smp_store_release() because it may not 
-always execute.
-
-Cheers,
-Longman
+diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
+index 7cb6c92..5fa6a55 100644
+--- a/drivers/clocksource/clksrc-probe.c
++++ b/drivers/clocksource/clksrc-probe.c
+@@ -20,16 +20,22 @@
+ #include <linux/clocksource.h>
+ 
+ extern struct of_device_id __clksrc_of_table[];
++extern struct of_device_id __clksrc_ret_of_table[];
+ 
+ static const struct of_device_id __clksrc_of_table_sentinel
+ 	__used __section(__clksrc_of_table_end);
+ 
++static const struct of_device_id __clksrc_ret_of_table_sentinel
++	__used __section(__clksrc_ret_of_table_end);
++
+ void __init clocksource_probe(void)
+ {
+ 	struct device_node *np;
+ 	const struct of_device_id *match;
+ 	of_init_fn_1 init_func;
++	of_init_fn_1_ret init_func_ret;
+ 	unsigned clocksources = 0;
++	int ret;
+ 
+ 	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
+ 		if (!of_device_is_available(np))
+@@ -40,6 +46,22 @@ void __init clocksource_probe(void)
+ 		clocksources++;
+ 	}
+ 
++	for_each_matching_node_and_match(np, __clksrc_ret_of_table, &match) {
++		if (!of_device_is_available(np))
++			continue;
++
++		init_func_ret = match->data;
++
++		ret = init_func_ret(np);
++		if (ret) {
++			pr_err("Failed to initialize '%s': %d",
++			       of_node_full_name(np), ret);
++			continue;
++		}
++
++		clocksources++;
++	}
++
+ 	clocksources += acpi_probe_device_table(clksrc);
+ 
+ 	if (!clocksources)
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 6a67ab9..8c6c626 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -173,6 +173,7 @@
+ 	*(__##name##_of_table_end)
+ 
+ #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
++#define CLKSRC_RET_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc_ret)
+ #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
+ #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
+ #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
+@@ -531,6 +532,7 @@
+ 	CLK_OF_TABLES()							\
+ 	RESERVEDMEM_OF_TABLES()						\
+ 	CLKSRC_OF_TABLES()						\
++	CLKSRC_RET_OF_TABLES()						\
+ 	IOMMU_OF_TABLES()						\
+ 	CPU_METHOD_OF_TABLES()						\
+ 	CPUIDLE_METHOD_OF_TABLES()					\
+diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
+index 44a1aff..15c3839 100644
+--- a/include/linux/clocksource.h
++++ b/include/linux/clocksource.h
+@@ -246,6 +246,9 @@ extern int clocksource_i8253_init(void);
+ #define CLOCKSOURCE_OF_DECLARE(name, compat, fn) \
+ 	OF_DECLARE_1(clksrc, name, compat, fn)
+ 
++#define CLOCKSOURCE_OF_DECLARE_RET(name, compat, fn) \
++	OF_DECLARE_1_RET(clksrc_ret, name, compat, fn)
++
+ #ifdef CONFIG_CLKSRC_PROBE
+ extern void clocksource_probe(void);
+ #else
+-- 
+1.9.1
