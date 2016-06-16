@@ -1,115 +1,72 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: [PATCH V2 02/63] clocksource/drivers/clksrc-probe: Introduce init functions with return code
-Date: Thu, 16 Jun 2016 23:26:21 +0200
-Message-ID: <1466112442-31105-3-git-send-email-daniel.lezcano@linaro.org>
-References: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Thu, 16 Jun 2016 15:21:41 -0700
+Message-ID: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
+References: <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
+ <20160615085002.GC30935@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
+In-Reply-To: <20160615085002.GC30935@twins.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: daniel.lezcano@linaro.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, David Howells <dhowells@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, the clksrc-probe is not able to handle any error from the init
-functions. There are different issues with the current code:
- - the code is duplicated in the init functions by writing error
- - every driver tends to panic in its own init function
- - counting the number of clocksources is not reliable
+On 06/15/16 01:50, Peter Zijlstra wrote:
+>>
+>> It seems to me that the sanest way to handle this is to add a new
+>> interface with a fourth parameter, so:
+>>
+>> 	changed = cmpxchgx(ptr, old, new, out);
+> 
+> See also:
+> 
+>   lkml.kernel.org/r/146358429016.8596.3381723959064491676.stgit@warthog.procyon.org.uk
+> 
+> where David suggests the same.
+> 
+>>
+>> A generic implementation of cmpxchgx() would be provided, looking like:
+>>
+>> #define cmpxchgx(ptr, old, new, out) ({			\
+>> 	__typeof__((*(ptr))) __old = (old);		\
+>> 	__typeof__((*(ptr))) __new = (new);		\
+>> 	__typeof__((*(ptr))) __old = (old);		\
+>> 	__typeof__((*(ptr))) __out; 			\
+>> 	(out) = __out = cmpxchg(ptr, __old, __new);	\
+>> 	(__old != __out);				\
+>> })
+>>
+>> ... and so on for all the many other variants.
+>>
+>> However, I'm wondering how well this will fit in with other
+>> architectures.
+> 
+> All ll/sc based archs also already know if the operation succeeded
+> without having to do the extra comparison.
+> 
+> SPARCv9,S390x which are native CAS architectures, also places the
+> success of the operation in condition codes.
+> 
+> IA64 might be the odd duck out (or I'm not reading the manual right,
+> which is entirely possible).
+> 
+>> Keep in mind gcc will probably gain this ability for
+>> other architectures with flags at some point, although that doesn't
+>> inherently mean that cmpxchg will be able to make use of it.
+>>
+>> This means a lot of changes even to common code, so I want to make sure
+>> the interface is right before embarking on an implementation.
+>>
+>> Thoughts?
+> 
+> David has already done lots of the conversions for you.
+> 
 
-This patch adds another table to store the functions returning an error.
-The table is temporary while we convert all the drivers to return an error
-and will disappear.
+Well, that sounds promising.  I wonder how David's model, using
+intrinsics (do we have enough intrinsics to actually be able to do this
+"correctly"?), compare to using the flags output from assembly.
 
-Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
----
- drivers/clocksource/clksrc-probe.c | 22 ++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h  |  2 ++
- include/linux/clocksource.h        |  3 +++
- 3 files changed, 27 insertions(+)
-
-diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
-index 7cb6c92..5fa6a55 100644
---- a/drivers/clocksource/clksrc-probe.c
-+++ b/drivers/clocksource/clksrc-probe.c
-@@ -20,16 +20,22 @@
- #include <linux/clocksource.h>
- 
- extern struct of_device_id __clksrc_of_table[];
-+extern struct of_device_id __clksrc_ret_of_table[];
- 
- static const struct of_device_id __clksrc_of_table_sentinel
- 	__used __section(__clksrc_of_table_end);
- 
-+static const struct of_device_id __clksrc_ret_of_table_sentinel
-+	__used __section(__clksrc_ret_of_table_end);
-+
- void __init clocksource_probe(void)
- {
- 	struct device_node *np;
- 	const struct of_device_id *match;
- 	of_init_fn_1 init_func;
-+	of_init_fn_1_ret init_func_ret;
- 	unsigned clocksources = 0;
-+	int ret;
- 
- 	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
- 		if (!of_device_is_available(np))
-@@ -40,6 +46,22 @@ void __init clocksource_probe(void)
- 		clocksources++;
- 	}
- 
-+	for_each_matching_node_and_match(np, __clksrc_ret_of_table, &match) {
-+		if (!of_device_is_available(np))
-+			continue;
-+
-+		init_func_ret = match->data;
-+
-+		ret = init_func_ret(np);
-+		if (ret) {
-+			pr_err("Failed to initialize '%s': %d",
-+			       of_node_full_name(np), ret);
-+			continue;
-+		}
-+
-+		clocksources++;
-+	}
-+
- 	clocksources += acpi_probe_device_table(clksrc);
- 
- 	if (!clocksources)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..8c6c626 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -173,6 +173,7 @@
- 	*(__##name##_of_table_end)
- 
- #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define CLKSRC_RET_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc_ret)
- #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
- #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
- #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
-@@ -531,6 +532,7 @@
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
- 	CLKSRC_OF_TABLES()						\
-+	CLKSRC_RET_OF_TABLES()						\
- 	IOMMU_OF_TABLES()						\
- 	CPU_METHOD_OF_TABLES()						\
- 	CPUIDLE_METHOD_OF_TABLES()					\
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index 44a1aff..15c3839 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -246,6 +246,9 @@ extern int clocksource_i8253_init(void);
- #define CLOCKSOURCE_OF_DECLARE(name, compat, fn) \
- 	OF_DECLARE_1(clksrc, name, compat, fn)
- 
-+#define CLOCKSOURCE_OF_DECLARE_RET(name, compat, fn) \
-+	OF_DECLARE_1_RET(clksrc_ret, name, compat, fn)
-+
- #ifdef CONFIG_CLKSRC_PROBE
- extern void clocksource_probe(void);
- #else
--- 
-1.9.1
+	-hpa
