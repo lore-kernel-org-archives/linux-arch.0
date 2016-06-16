@@ -1,72 +1,220 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
- acquire/release barrier
-Date: Thu, 16 Jun 2016 11:16:28 +0100
-Message-ID: <20160616101627.GA5827@arm.com>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
- <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
- <20160615080446.GA28443@insomnia>
- <5761A5FF.5070703@hpe.com>
- <20160616021951.GA16918@insomnia>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Subject: Re: [PATCH 21/23] arm64: ilp32: introduce ilp32-specific handlers for
+ sigframe and ucontext
+Date: Thu, 16 Jun 2016 19:21:22 +0800
+Message-ID: <57628BB2.7080100@huawei.com>
+References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
+ <1464048292-30136-22-git-send-email-ynorov@caviumnetworks.com>
+ <5752BCC8.7080205@huawei.com> <20160612174430.GA12067@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160616021951.GA16918@insomnia>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Waiman Long <waiman.long@hpe.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160612174430.GA12067@yury-N73SV>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi guys,
+Hi,
 
-On Thu, Jun 16, 2016 at 10:19:51AM +0800, Boqun Feng wrote:
-> On Wed, Jun 15, 2016 at 03:01:19PM -0400, Waiman Long wrote:
-> > On 06/15/2016 04:04 AM, Boqun Feng wrote:
-> > > On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
-> > > > @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
-> > > >   	 * Second most likely case.
-> > > >   	 */
-> > > >   	node = this_cpu_ptr(&osq_node);
-> > > > -	next = xchg(&node->next, NULL);
-> > > > +	next = xchg_release(&node->next, NULL);
-> > > >   	if (next) {
-> > > >   		WRITE_ONCE(next->locked, 1);
-> > > So we still use WRITE_ONCE() rather than smp_store_release() here?
-> > > 
-> > > Though, IIUC, This is fine for all the archs but ARM64, because there
-> > > will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
-> > > carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
-> > > 
-> > > Not sure whether it's a problem on ARM64, but I think we certainly need
-> > > to add some comments here, if we count on this trick.
-> > > 
-> > > Am I missing something or misunderstanding you here?
-> > > 
-> > The change on the unlock side is more for documentation purpose than is
-> > actually needed. As you had said, the xchg() call has provided the necessary
-> > memory barrier. Using the _release variant, however, may have some
-> 
-> But I'm afraid the barrier doesn't remain if we replace xchg() with
-> xchg_release() on ARM64v8, IIUC, xchg_release() is just a ldxr+stlxr
-> loop with no barrier on ARM64v8. This means the following code:
-> 
-> 	CPU 0					CPU 1 (next)
-> 	========================		==================
-> 	WRITE_ONCE(x, 1);			r1 = smp_load_acquire(next->locked, 1);
-> 	xchg_release(&node->next, NULL);	r2 = READ_ONCE(x);
-> 	WRITE_ONCE(next->locked, 1);
-> 
-> could result in (r1 == 1 && r2 == 0) on ARM64v8, IIUC.
+On 2016/6/13 1:44, Yury Norov wrote:
+> Hi Bamvor,
+>
+> Sorry, I missed this patch.
+>
+> On Sat, Jun 04, 2016 at 07:34:32PM +0800, Zhangjian (Bamvor) wrote:
+>> Hi,
+>>
+>> I found an issue of unwind with the following code. The correct backtrace
+>> should be:
+>> (gdb) where
+>> #0 0x004004d0 in my_sig (sig=11) at test_force3.c:16
+>> #1 <signal handler called>
+>> #2 func2 (num=0) at test_force3.c:22
+>> #3 0x00400540 in func1 (num=1) at test_force3.c:28
+>> #4 0x00400574 in main (argc=1, argv=0xffd7bc04) at test_force3.c:33
+>>
+>> Without my patch, the backtrace is:
+>> (gdb) where
+>> #0 0x00400490 in my_sig (sig=11) at test_force3.c:16
+>> #1 <signal handler called>
+>> #2 0x004004e4 in main (argc=1, argv=0xffe6f8f4) at test_force3.c:33
+>>
+>> With my patch which fix the wrong frame pointer(setup_return calculate the offset
+>> of fp through ilp32_sigframe instead of sigfreame), the backtrace is:
+>> (gdb) where
+>> #0 0x00400490 in my_sig (sig=11) at test_force3.c:16
+>> #1 <signal handler called>
+>> #2 func1 () at test_force3.c:28
+>> #3 0x004004e4 in main (argc=1, argv=0xffe6f8f4) at test_force3.c:33
+>>
+>> I am not sure there is still some issue in kernel. But it seem that the gdb of ilp32
+>> does not work correctly when unwind without framepointer.
+>>
+>> The test code is:
+>>
+>>  From 7e364a765097f57aed2d73f94c1688c2e7343e79 Mon Sep 17 00:00:00 2001
+>> From: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+>> Date: Sat, 4 Jun 2016 14:30:05 +0800
+>> Subject: [PATCH] arm64: ilp32: fix for wrong fp offset when calculate the
+>>   new fp
+>>
+>> ILP32 define its own sigframe(ilp32_sigframe) because of the
+>> difference uc_context. setup_return do not use ilp32 specific
+>> sigframe to calculate the new offset of fp which lead to wrong
+>> fp in signal handler. At this circumstance, gdb backtrace will miss
+>> one item:
+>> (gdb) where
+>>
+>> It should be:
+>> (gdb) where
+>>
+>> The test code is as follows:
+>>
+>> void my_sig(int sig)
+>> {
+>>          printf("sig=%d\n", sig);
+>>          *(int *)0 = 0x0;
+>> }
+>>
+>> void func2(int num)
+>> {
+>>          printf("%s: %d\n", __FUNCTION__, num);
+>>          *(int *)0 = 0x0;
+>>          func2(num-1);
+>> }
+>>
+>> void func1(int num)
+>> {
+>>          printf("%s\n", __FUNCTION__);
+>>          func2(num - 1);
+>> }
+>>
+>> int main(int argc, char **argv)
+>> {
+>>          signal(11, my_sig);
+>>          func1(argc);
+>>          return 0;
+>> }
+>>
+>> This patch fix this by passing the correct offset of fp to
+>> setup_return.
+>> Test pass on both ILP32 and LP64 in aarch64 EE.
+>>
+>> Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+>> ---
+>>   arch/arm64/include/asm/signal_common.h | 3 ++-
+>>   arch/arm64/kernel/signal.c             | 9 +++++----
+>>   arch/arm64/kernel/signal_ilp32.c       | 4 ++--
+>>   3 files changed, 9 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/arch/arm64/include/asm/signal_common.h b/arch/arm64/include/asm/signal_common.h
+>> index de93c71..a5d7b63 100644
+>> --- a/arch/arm64/include/asm/signal_common.h
+>> +++ b/arch/arm64/include/asm/signal_common.h
+>> @@ -29,6 +29,7 @@ int setup_sigcontex(struct sigcontext __user *uc_mcontext,
+>>   		    struct pt_regs *regs);
+>>   int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sf);
+>>   void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+>> -			void __user *frame, off_t sigframe_off, int usig);
+>> +			void __user *frame, off_t sigframe_off, off_t fp_off,
+>> +			int usig);
+>>
+>>   #endif /* __ASM_SIGNAL_COMMON_H */
+>> diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+>> index 038bebe..e66a6e9 100644
+>> --- a/arch/arm64/kernel/signal.c
+>> +++ b/arch/arm64/kernel/signal.c
+>> @@ -256,14 +256,14 @@ static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
+>>   }
+>>
+>>   void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+>> -			 void __user *frame, off_t sigframe_off, int usig)
+>> +			 void __user *frame, off_t sigframe_off, off_t fp_off,
+>> +			 int usig)
+>>   {
+>>   	__sigrestore_t sigtramp;
+>>
+>>   	regs->regs[0] = usig;
+>>   	regs->sp = (unsigned long)frame;
+>> -	regs->regs[29] = regs->sp + sigframe_off +
+>> -		offsetof(struct sigframe, fp);
+>> +	regs->regs[29] = regs->sp + sigframe_off + fp_off;
+>
+> I think you are right here. The only nitpick is what for we send 2
+> offsets just to add one to another inside setup_return()?
+> We can do like this:
+>
+>          void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+>          			 void __user *frame, off_t fp_off, int usig)
+>          {
+>          	__sigrestore_t sigtramp;
+>
+>          	regs->regs[0] = usig;
+>          	regs->sp = (unsigned long)frame;
+>          	regs->regs[29] = regs->sp + fp_off;
+>                  [...]
+>          }
+>
+> Where fp_off calculation is done by caller.
+>
+> 	setup_return(regs, &ksig->ka, frame,
+> 		offsetof(struct rt_sigframe, sig) + offsetof(struct sigframe, fp),
+>                  usig);
+>
+> For me it's more clear to understand what happens with this approach.
+> I don't think struct rt_sigframe will grow, but we can even introduce
+> some helper for it:
+>          #define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig) + offsetof(struct sigframe, fp))
+>
+> If no objections, I'll apply your patch with my fix in next series.
+Sure. Thanks.
 
-Yes, of course. Why is that unexpected? You could just as easily make
-the xchg_release an smp_store_release and this would still be permitted,
-that's the whole point of acquire/release -- they're semi-permeable
-barriers that allow accesses outside of the critical section to leak in,
-but not the other way around.
+Regards
 
-It's worth noting that you've omitted the control dependency from
-xchg_release to the subsequent write in your litmus tests, but I don't
-think that actually changes anything here.
-
-Will
+Bamvor
+>
+>>   	regs->pc = (unsigned long)ka->sa.sa_handler;
+>>
+>>   	if (ka->sa.sa_flags & SA_RESTORER)
+>> @@ -294,7 +294,8 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+>>   	err |= setup_sigframe(&frame->sig, regs, set);
+>>   	if (err == 0) {
+>>   		setup_return(regs, &ksig->ka, frame,
+>> -			offsetof(struct rt_sigframe, sig), usig);
+>> +			offsetof(struct rt_sigframe, sig),
+>> +			offsetof(struct sigframe, fp), usig);
+>>   		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+>>   			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+>>   			regs->regs[1] = (unsigned long)&frame->info;
+>> diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
+>> index a8ea73e..9030f14 100644
+>> --- a/arch/arm64/kernel/signal_ilp32.c
+>> +++ b/arch/arm64/kernel/signal_ilp32.c
+>> @@ -147,7 +147,6 @@ static struct ilp32_rt_sigframe __user *ilp32_get_sigframe(struct ksignal *ksig,
+>>   	struct ilp32_rt_sigframe __user *frame;
+>>
+>>   	sp = sp_top = sigsp(regs->sp, ksig);
+>> -
+>>   	sp = (sp - sizeof(struct ilp32_rt_sigframe)) & ~15;
+>>   	frame = (struct ilp32_rt_sigframe __user *)sp;
+>>
+>> @@ -183,7 +182,8 @@ int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
+>>   	err |= setup_ilp32_sigframe(&frame->sig, regs, set);
+>>   	if (err == 0) {
+>>   		setup_return(regs, &ksig->ka, frame,
+>> -			     offsetof(struct ilp32_rt_sigframe, sig), usig);
+>> +			     offsetof(struct ilp32_rt_sigframe, sig),
+>> +			     offsetof(struct ilp32_sigframe, fp), usig);
+>>   		regs->regs[1] = (unsigned long)&frame->info;
+>>   		regs->regs[2] = (unsigned long)&frame->sig.uc;
+>>   	}
+>> --
+>> 1.8.4.5
+>>
+>> Regards
+>>
+>> Bamvor
+>>
+>>
