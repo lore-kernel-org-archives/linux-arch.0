@@ -1,56 +1,35 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement atomic_fetch_{add,sub,and,or,xor}()
-Date: Thu, 16 Jun 2016 21:55:05 +0200
-Message-ID: <CAMuHMdXxw23dUpSgQRZz0XO=4tx-ZEbpmjfx3ivHqL8Qx0vn9g@mail.gmail.com>
-References: <20160531102642.333689893@infradead.org> <CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com>
- <20160616101309.GD30921@twins.programming.kicks-ass.net> <mvmk2hpxq1a.fsf@hawking.suse.de>
- <20160616124949.GF30921@twins.programming.kicks-ass.net> <mvma8ilxpl6.fsf@hawking.suse.de>
- <20160616143530.GG30921@twins.programming.kicks-ass.net> <mvma8ilw66n.fsf@hawking.suse.de>
- <20160616145653.GH30921@twins.programming.kicks-ass.net> <mvm4m8tw4xz.fsf@hawking.suse.de>
- <20160616174421.GK30921@twins.programming.kicks-ass.net>
+From: Waiman Long <waiman.long@hpe.com>
+Subject: Re: [RFC PATCH-tip v2 2/6] locking/rwsem: Stop active read lock ASAP
+Date: Thu, 16 Jun 2016 17:25:35 -0400
+Message-ID: <5763194F.80109@hpe.com>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com> <1465944489-43440-3-git-send-email-Waiman.Long@hpe.com> <20160615172242.GQ30921@twins.programming.kicks-ass.net> <5761A9DE.6040702@hpe.com> <20160616021436.GA7765@linux-80c1.suse>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f67.google.com ([209.85.214.67]:33556 "EHLO
-	mail-it0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754370AbcFPTzH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jun 2016 15:55:07 -0400
-In-Reply-To: <20160616174421.GK30921@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>James
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20160616021436.GA7765@linux-80c1.suse>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Davidlohr Bueso <dave@stgolabs.net>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
-
-On Thu, Jun 16, 2016 at 7:44 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Thu, Jun 16, 2016 at 05:04:24PM +0200, Andreas Schwab wrote:
->> Peter Zijlstra <peterz@infradead.org> writes:
->>
->> > If not, do you want me to 'fix' this or just remove the comment?
->>
->> It's not broken, so nothing to fix.
+On 06/15/2016 10:14 PM, Davidlohr Bueso wrote:
+> On Wed, 15 Jun 2016, Waiman Long wrote:
 >
-> Its non obvious code, that's usually plenty reason to change it.
+>> I think there will be a little bit of performance impact for a 
+>> workload that produce just the right amount of rwsem contentions. 
 >
-> Geert, you maintain this stuff, what say you? Is there still a good
-> reason (like supporting ancient compilers that don't do "+d" for
-> example) to keep the code as is?
+> I'm not saying the change doesn't make sense, but this is the sort of
+> thing that will show nice numbers in one workload and go bite you in
+> another.
+>
+> Thanks,
+> Davidlohr
 
-I don't know when support for "+d" was introduced.
-But given people regularly use old compilers, I'm not inclined to change it,
-unless there's a very good reason.
+I would certainly agree if the additional atomic op is in the fastpath. 
+Since it is in the slowpath, one additional atomic op will just be a 
+small part of the whole rwsem_down_read_failed() function. I doubt if 
+the performance degradation, if any, can be even noticeable.
 
-BTW, what's the failure mode if an old compiler not supporting "+d"
-encounters it?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Cheers,
+Longman
