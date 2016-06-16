@@ -1,70 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0078.outbound.protection.outlook.com ([65.55.169.78]:32019
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754216AbcFPOiq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jun 2016 10:38:46 -0400
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160608111844.GV2658@codeblueprint.co.uk> <5759B67A.4000800@amd.com>
- <20160613135110.GC2658@codeblueprint.co.uk> <57615561.4090502@amd.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <5762B9E7.80903@amd.com>
-Date: Thu, 16 Jun 2016 09:38:31 -0500
+Received: from mail-out.m-online.net ([212.18.0.9]:55237 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754167AbcFPOh4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jun 2016 10:37:56 -0400
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement atomic_fetch_{add,sub,and,or,xor}()
+References: <20160531101925.702692792@infradead.org>
+	<20160531102642.333689893@infradead.org>
+	<CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com>
+	<20160616101309.GD30921@twins.programming.kicks-ass.net>
+	<mvmk2hpxq1a.fsf@hawking.suse.de>
+	<20160616124949.GF30921@twins.programming.kicks-ass.net>
+	<mvma8ilxpl6.fsf@hawking.suse.de>
+	<20160616143530.GG30921@twins.programming.kicks-ass.net>
+Date: Thu, 16 Jun 2016 16:37:36 +0200
+In-Reply-To: <20160616143530.GG30921@twins.programming.kicks-ass.net> (Peter
+	Zijlstra's message of "Thu, 16 Jun 2016 16:35:30 +0200")
+Message-ID: <mvma8ilw66n.fsf@hawking.suse.de>
 MIME-Version: 1.0
-In-Reply-To: <57615561.4090502@amd.com>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160616143831.hjbHkhbet-CUbXXWqo6grobRhba0-XCtWXehmuKAlZU@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?utf-8?B?RnLDqWTDqXJpYw==?= Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, cmetcalf@mellanox.com, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, dbueso@suse.de, Wu Fengguang <fengguang.wu@intel.com>, linux-m68k <linux-m68k@lists.linux-m68k.org>
+Message-ID: <20160616143736.vQV2iuPnH73MYtG9R9vuEeg6ZatCYeYl2ESWbOy_z6Y@z>
 
-On 06/15/2016 08:17 AM, Tom Lendacky wrote:
-> On 06/13/2016 08:51 AM, Matt Fleming wrote:
->> On Thu, 09 Jun, at 01:33:30PM, Tom Lendacky wrote:
->>>
+Peter Zijlstra <peterz@infradead.org> writes:
 
-[...]
+> So the "2" input operand actually sets the value of "=&d" (tmp), how
+> creative...
 
->>
->>> I'll look further into this, but I saw that this area of virtual memory
->>> was mapped un-encrypted and after freeing the boot services the
->>> mappings were somehow reused as un-encrypted for DMA which assumes
->>> (unless using swiotlb) encrypted. This resulted in DMA data being
->>> transferred in as encrypted and then accessed un-encrypted.
->>
->> That the mappings were re-used isn't a surprise.
->>
->> efi_free_boot_services() lifts the reservation that was put in place
->> during efi_reserve_boot_services() and releases the pages to the
->> kernel's memory allocators.
->>
->> What is surprising is that they were marked unencrypted at all.
->> There's nothing special about these pages as far as the __va() region
->> is concerned.
-> 
-> Right, let me keep looking into this to see if I can pin down what
-> was (or is) happening.
+That was the only way to do it when this was written.
 
-Ok, I think this was happening before the commit to build our own
-EFI page table structures:
+Andreas.
 
-commit 67a9108ed ("x86/efi: Build our own page table structures")
-
-Before this commit the boot services ended up mapped into the kernel
-page table entries as un-encrypted during efi_map_regions() and I needed
-to change those entries back to encrypted. With your change above,
-this appears to no longer be needed.
-
-Thanks,
-Tom
-
-> 
-> Thanks,
-> Tom
-> 
->>
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
