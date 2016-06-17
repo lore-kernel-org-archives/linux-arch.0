@@ -1,166 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hpe.com ([15.241.48.73]:46434 "EHLO
-	g9t5009.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933830AbcFQPmT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 11:42:19 -0400
-From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip/locking/core v3 05/10] locking/rwsem: move down rwsem_down_read_failed function
-Date: Fri, 17 Jun 2016 11:41:31 -0400
-Message-ID: <1466178096-5623-6-git-send-email-Waiman.Long@hpe.com>
-In-Reply-To: <1466178096-5623-1-git-send-email-Waiman.Long@hpe.com>
-References: <1466178096-5623-1-git-send-email-Waiman.Long@hpe.com>
+Received: from foss.arm.com ([217.140.101.70]:51391 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932315AbcFQPpg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 11:45:36 -0400
+Date: Fri, 17 Jun 2016 16:45:36 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
+ acquire/release barrier
+Message-ID: <20160617154536.GB1284@arm.com>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+ <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+ <20160615080446.GA28443@insomnia>
+ <5761A5FF.5070703@hpe.com>
+ <20160616021951.GA16918@insomnia>
+ <57631BBA.9070505@hpe.com>
+ <20160617004837.GB16918@insomnia>
+ <576416B1.6020006@hpe.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <576416B1.6020006@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160617154131.jJCGakyo2uz_xAQaJHdpVZGtST_uOAuVdmyqdyntkkY@z>
+To: Waiman Long <waiman.long@hpe.com>
+Cc: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Message-ID: <20160617154536.B1LAO8ZnhZ0LMp8YkHod_pmfhLT_oH0jCasbVRQ2Nzc@z>
 
-Move the rwsem_down_read_failed() function down to below the
-optimistic spinning section before enabling optimistic spinning for
-the readers. It is because the rwsem_down_read_failed() function will
-call rwsem_optimistic_spin() in later patch.
+On Fri, Jun 17, 2016 at 11:26:41AM -0400, Waiman Long wrote:
+> On 06/16/2016 08:48 PM, Boqun Feng wrote:
+> >On Thu, Jun 16, 2016 at 05:35:54PM -0400, Waiman Long wrote:
+> >>If you look into the actual code:
+> >>
+> >>         next = xchg_release(&node->next, NULL);
+> >>         if (next) {
+> >>                 WRITE_ONCE(next->locked, 1);
+> >>                 return;
+> >>         }
+> >>
+> >>There is a control dependency that WRITE_ONCE() won't happen until
+> >But a control dependency only orders LOAD->STORE pairs, right? And here
+> >the control dependency orders the LOAD part of xchg_release() and the
+> >WRITE_ONCE().
+> >
+> >Along with the fact that RELEASE only orders the STORE part of xchg with
+> >the memory operations preceding the STORE part, so for the following
+> >code:
+> >
+> >	WRTIE_ONCE(x,1);
+> >	next = xchg_release(&node->next, NULL);
+> >	if (next)
+> >		WRITE_ONCE(next->locked, 1);
+> >
+> >such a reordering is allowed to happen on ARM64v8
+> >
+> >	next = ldxr [&node->next] // LOAD part of xchg_release()
+> >
+> >	if (next)
+> >		WRITE_ONCE(next->locked, 1);
+> >
+> >	WRITE_ONCE(x,1);
+> >	stlxr NULL [&node->next]  // STORE part of xchg_releae()
+> >
+> >Am I missing your point here?
+> 
+> My understanding of the release barrier is that both prior LOADs and STOREs
+> can't move after the barrier. If WRITE_ONCE(x, 1) can move to below as shown
+> above, it is not a real release barrier and we may need to change the
+> barrier code.
 
-There is no change in code.
+You seem to be missing the point.
 
-Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
----
- kernel/locking/rwsem-xadd.c |  116 +++++++++++++++++++++---------------------
- 1 files changed, 58 insertions(+), 58 deletions(-)
+{READ,WRITE}_ONCE accesses appearing in program order after a release
+are not externally ordered with respect to the release unless they
+access the same location.
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index ce68b54..5fd689e 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -226,64 +226,6 @@ __rwsem_mark_wake(struct rw_semaphore *sem,
- }
- 
- /*
-- * Wait for the read lock to be granted
-- */
--__visible
--struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
--{
--	long count, adjustment = 0;
--	struct rwsem_waiter waiter;
--	struct task_struct *tsk = current;
--	WAKE_Q(wake_q);
--
--	/*
--	 * Undo read bias from down_read operation, stop active locking.
--	 * Doing that after taking the wait_lock may block writer lock
--	 * stealing for too long.
--	 */
--	atomic_long_add(-RWSEM_ACTIVE_READ_BIAS, &sem->count);
--
--	/* set up my own style of waitqueue */
--	waiter.task = tsk;
--	waiter.type = RWSEM_WAITING_FOR_READ;
--
--	raw_spin_lock_irq(&sem->wait_lock);
--	if (list_empty(&sem->wait_list))
--		adjustment += RWSEM_WAITING_BIAS;
--	list_add_tail(&waiter.list, &sem->wait_list);
--
--	/* we're now waiting on the lock */
--	if (adjustment)
--		count = atomic_long_add_return(adjustment, &sem->count);
--	else
--		count = atomic_long_read(&sem->count);
--
--	/* If there are no active locks, wake the front queued process(es).
--	 *
--	 * If there are no writers and we are first in the queue,
--	 * wake our own waiter to join the existing active readers !
--	 */
--	if (count == RWSEM_WAITING_BIAS ||
--	    (count > RWSEM_WAITING_BIAS && adjustment))
--		sem = __rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
--
--	raw_spin_unlock_irq(&sem->wait_lock);
--	wake_up_q(&wake_q);
--
--	/* wait to be given the lock */
--	while (true) {
--		set_task_state(tsk, TASK_UNINTERRUPTIBLE);
--		if (!waiter.task)
--			break;
--		schedule();
--	}
--
--	__set_task_state(tsk, TASK_RUNNING);
--	return sem;
--}
--EXPORT_SYMBOL(rwsem_down_read_failed);
--
--/*
-  * This function must be called with the sem->wait_lock held to prevent
-  * race conditions between checking the rwsem wait list and setting the
-  * sem->count accordingly.
-@@ -525,6 +467,64 @@ static inline bool reader_spinning_enabled(struct rw_semaphore *sem)
- #endif
- 
- /*
-+ * Wait for the read lock to be granted
-+ */
-+__visible
-+struct rw_semaphore __sched * rwsem_down_read_failed(struct rw_semaphore *sem)
-+{
-+	long count, adjustment = 0;
-+	struct rwsem_waiter waiter;
-+	struct task_struct *tsk = current;
-+	WAKE_Q(wake_q);
-+
-+	/*
-+	 * Undo read bias from down_read operation, stop active locking.
-+	 * Doing that after taking the wait_lock may block writer lock
-+	 * stealing for too long.
-+	 */
-+	atomic_long_add(-RWSEM_ACTIVE_READ_BIAS, &sem->count);
-+
-+	/* set up my own style of waitqueue */
-+	waiter.task = tsk;
-+	waiter.type = RWSEM_WAITING_FOR_READ;
-+
-+	raw_spin_lock_irq(&sem->wait_lock);
-+	if (list_empty(&sem->wait_list))
-+		adjustment += RWSEM_WAITING_BIAS;
-+	list_add_tail(&waiter.list, &sem->wait_list);
-+
-+	/* we're now waiting on the lock */
-+	if (adjustment)
-+		count = atomic_long_add_return(adjustment, &sem->count);
-+	else
-+		count = atomic_long_read(&sem->count);
-+
-+	/* If there are no active locks, wake the front queued process(es).
-+	 *
-+	 * If there are no writers and we are first in the queue,
-+	 * wake our own waiter to join the existing active readers !
-+	 */
-+	if (count == RWSEM_WAITING_BIAS ||
-+	    (count > RWSEM_WAITING_BIAS && adjustment))
-+		sem = __rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
-+
-+	raw_spin_unlock_irq(&sem->wait_lock);
-+	wake_up_q(&wake_q);
-+
-+	/* wait to be given the lock */
-+	while (true) {
-+		set_task_state(tsk, TASK_UNINTERRUPTIBLE);
-+		if (!waiter.task)
-+			break;
-+		schedule();
-+	}
-+
-+	__set_task_state(tsk, TASK_RUNNING);
-+	return sem;
-+}
-+EXPORT_SYMBOL(rwsem_down_read_failed);
-+
-+/*
-  * Wait until we successfully acquire the write lock
-  */
- static inline struct rw_semaphore *
--- 
-1.7.1
+This is illustrated by Boqun's example, which shows two WRITE_ONCE
+accesses being reordered before a store-release forming the write
+component of an xchg_release. In both cases, WRITE_ONCE(x, 1) remains
+ordered before the store-release.
 
+Will
