@@ -1,83 +1,115 @@
 From: Waiman Long <waiman.long@hpe.com>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper acquire/release
- barrier
-Date: Fri, 17 Jun 2016 14:17:27 -0400
-Message-ID: <57643EB7.6030600@hpe.com>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com> <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com> <20160615080446.GA28443@insomnia> <5761A5FF.5070703@hpe.com> <20160616021951.GA16918@insomnia> <57631BBA.9070505@hpe.com> <20160617004837.GB16918@insomnia> <576416B1.6020006@hpe.com> <20160617154536.GB1284@arm.com>
+Subject: Re: [PATCH v2] locking/qrwlock: Let qrwlock has same layout regardless
+ of the endian
+Date: Fri, 17 Jun 2016 15:06:33 -0400
+Message-ID: <57644A39.9080509@hpe.com>
+References: <1465983109-3217-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0121.outbound.protection.outlook.com ([65.55.169.121]:15647
+Received: from mail-bl2on0101.outbound.protection.outlook.com ([65.55.169.101]:59795
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932106AbcFQSRt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jun 2016 14:17:49 -0400
-In-Reply-To: <20160617154536.GB1284@arm.com>
+	id S1753126AbcFQTWI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 15:22:08 -0400
+In-Reply-To: <1465983109-3217-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ingo@redhat.com, peterz@infradead.org, arnd@arndb.de, will.deacon@arm.com
 
-On 06/17/2016 11:45 AM, Will Deacon wrote:
-> On Fri, Jun 17, 2016 at 11:26:41AM -0400, Waiman Long wrote:
->> On 06/16/2016 08:48 PM, Boqun Feng wrote:
->>> On Thu, Jun 16, 2016 at 05:35:54PM -0400, Waiman Long wrote:
->>>> If you look into the actual code:
->>>>
->>>>          next = xchg_release(&node->next, NULL);
->>>>          if (next) {
->>>>                  WRITE_ONCE(next->locked, 1);
->>>>                  return;
->>>>          }
->>>>
->>>> There is a control dependency that WRITE_ONCE() won't happen until
->>> But a control dependency only orders LOAD->STORE pairs, right? And here
->>> the control dependency orders the LOAD part of xchg_release() and the
->>> WRITE_ONCE().
->>>
->>> Along with the fact that RELEASE only orders the STORE part of xchg with
->>> the memory operations preceding the STORE part, so for the following
->>> code:
->>>
->>> 	WRTIE_ONCE(x,1);
->>> 	next = xchg_release(&node->next, NULL);
->>> 	if (next)
->>> 		WRITE_ONCE(next->locked, 1);
->>>
->>> such a reordering is allowed to happen on ARM64v8
->>>
->>> 	next = ldxr [&node->next] // LOAD part of xchg_release()
->>>
->>> 	if (next)
->>> 		WRITE_ONCE(next->locked, 1);
->>>
->>> 	WRITE_ONCE(x,1);
->>> 	stlxr NULL [&node->next]  // STORE part of xchg_releae()
->>>
->>> Am I missing your point here?
->> My understanding of the release barrier is that both prior LOADs and STOREs
->> can't move after the barrier. If WRITE_ONCE(x, 1) can move to below as shown
->> above, it is not a real release barrier and we may need to change the
->> barrier code.
-> You seem to be missing the point.
+On 06/15/2016 05:31 AM, Pan Xinhui wrote:
+> This patch aims to get rid of endianness in queued_write_unlock(). We
+> want to set  __qrwlock->wmode to NULL, however the address is not
+> &lock->cnts in big endian machine. That causes queued_write_unlock()
+> write NULL to the wrong field of __qrwlock.
 >
-> {READ,WRITE}_ONCE accesses appearing in program order after a release
-> are not externally ordered with respect to the release unless they
-> access the same location.
+> Actually qrwlock can have same layout, IOW we can remove the #if
+> __little_endian in struct __qrwlock. With such modification, we only
+> need define some _QW* and _QR* with corresponding values in different
+> endian systems.
 >
-> This is illustrated by Boqun's example, which shows two WRITE_ONCE
-> accesses being reordered before a store-release forming the write
-> component of an xchg_release. In both cases, WRITE_ONCE(x, 1) remains
-> ordered before the store-release.
+> Suggested-by: Will Deacon<will.deacon@arm.com>
+> Signed-off-by: Pan Xinhui<xinhui.pan@linux.vnet.ibm.com>
+> ---
+> change from v1:
+> 	A typo fix which is really bad...
+> 	thanks Will for the carefull review. :)
+> ---
+>   include/asm-generic/qrwlock.h | 15 +++++++++++----
+>   kernel/locking/qrwlock.c      | 10 ++++------
+>   2 files changed, 15 insertions(+), 10 deletions(-)
 >
-> Will
+> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> index 54a8e65..28fb94a 100644
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -27,11 +27,18 @@
+>   /*
+>    * Writer states&  reader shift and bias
+>    */
+> -#define	_QW_WAITING	1		/* A writer is waiting	   */
+> -#define	_QW_LOCKED	0xff		/* A writer holds the lock */
+> -#define	_QW_WMASK	0xff		/* Writer mask		   */
+> +#ifdef	__LITTLE_ENDIAN
+>   #define	_QR_SHIFT	8		/* Reader count shift	   */
+> -#define _QR_BIAS	(1U<<  _QR_SHIFT)
+> +#define	_QW_SHIFT	0		/* Writer mode shift	*/
+> +#else
+> +#define	_QR_SHIFT	0		/* Reader count shift	   */
+> +#define	_QW_SHIFT	24		/* Writer mode shift	*/
+> +#endif
+> +
+> +#define	_QW_WAITING	(1U<<  _QW_SHIFT)	/* A writer is waiting	   */
+> +#define	_QW_LOCKED	(0xffU<<  _QW_SHIFT)	/* A writer holds the lock */
+> +#define	_QW_WMASK	(0xffU<<  _QW_SHIFT)	/* Writer mask		   */
+> +#define	_QR_BIAS	(1U<<  _QR_SHIFT)
+>
+>   /*
+>    * External function declarations
+> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> index fec0823..57d66cf 100644
+> --- a/kernel/locking/qrwlock.c
+> +++ b/kernel/locking/qrwlock.c
+> @@ -30,18 +30,15 @@ struct __qrwlock {
+>   	union {
+>   		atomic_t cnts;
+>   		struct {
+> -#ifdef __LITTLE_ENDIAN
+>   			u8 wmode;	/* Writer mode   */
+>   			u8 rcnts[3];	/* Reader counts */
+> -#else
+> -			u8 rcnts[3];	/* Reader counts */
+> -			u8 wmode;	/* Writer mode   */
+> -#endif
+>   		};
+>   	};
+>   	arch_spinlock_t	lock;
+>   };
+>
+> +#define	_QW_MODEVAL(v)	((v)>>  _QW_SHIFT)
 
-I am sorry that I misread the mail. I am not used to treating xchg as 
-two separate instructions. Yes, it is a problem. In that case, we have 
-to either keep the xchg() function as it is or use 
-smp_store_release(&next->locked, 1). So which one is a better 
-alternative for ARM or PPC?
+I know what you are doing here, but it is a bit hard to understand it 
+just by looking at the name of the macro itself. Maybe some other names 
+like _QW_MASKVAL() or_QW_BYTEVAL(). You may also want to have a line of 
+comment about it. Other than that, I don't see any problem with it.
 
-Cheers,
-Longman
+Acked-by: Waiman Long <Waiman.Long@hpe.com>
+
+
+
+> +
+>   /**
+>    * rspin_until_writer_unlock - inc reader count&  spin until writer is gone
+>    * @lock  : Pointer to queue rwlock structure
+> @@ -127,7 +124,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+>   		struct __qrwlock *l = (struct __qrwlock *)lock;
+>
+>   		if (!READ_ONCE(l->wmode)&&
+> -		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
+> +		   (cmpxchg_relaxed(&l->wmode, 0,
+> +					_QW_MODEVAL(_QW_WAITING)) == 0))
+>   			break;
+>
+>   		cpu_relax_lowlatency();
