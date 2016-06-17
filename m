@@ -1,42 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:36075 "EHLO
-	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753341AbcFQPvt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 11:51:49 -0400
-Received: by mail-wm0-f48.google.com with SMTP id f126so3416949wma.1
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jun 2016 08:51:49 -0700 (PDT)
-Date: Fri, 17 Jun 2016 16:51:45 +0100
-From: Matt Fleming <matt@codeblueprint.co.uk>
-Subject: Re: [RFC PATCH v1 10/18] x86/efi: Access EFI related tables in the
- clear
-Message-ID: <20160617155145.GJ2658@codeblueprint.co.uk>
-References: <20160426225553.13567.19459.stgit@tlendack-t1.amdoffice.net>
- <20160426225740.13567.85438.stgit@tlendack-t1.amdoffice.net>
- <20160608111844.GV2658@codeblueprint.co.uk>
- <5759B67A.4000800@amd.com>
- <20160613135110.GC2658@codeblueprint.co.uk>
- <57615561.4090502@amd.com>
- <5762B9E7.80903@amd.com>
+Received: from mx2.suse.de ([195.135.220.15]:59648 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752847AbcFQQ3k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 12:29:40 -0400
+Date: Fri, 17 Jun 2016 09:29:26 -0700
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
+ acquire/release barrier
+Message-ID: <20160617162926.GB14591@linux-80c1.suse>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
+ <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
+ <20160615165659.GC2094@linux-80c1.suse>
+ <20160615171250.GO30921@twins.programming.kicks-ass.net>
+ <20160615182724.GD2094@linux-80c1.suse>
+ <20160615184007.GW30921@twins.programming.kicks-ass.net>
+ <20160617011155.GA14591@linux-80c1.suse>
+ <576408F7.8020901@hpe.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Disposition: inline
-In-Reply-To: <5762B9E7.80903@amd.com>
+In-Reply-To: <576408F7.8020901@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160617155145.-n-UNxScgVJP3mExqvee4qLJKjA6ffyguwqAWngeR4o@z>
+To: Waiman Long <waiman.long@hpe.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Message-ID: <20160617162926.d6xG73Dn15sYxeT1P4vAUMwibGbFTsHU38YdFgOnpQY@z>
 
-On Thu, 16 Jun, at 09:38:31AM, Tom Lendacky wrote:
-> 
-> Ok, I think this was happening before the commit to build our own
-> EFI page table structures:
-> 
-> commit 67a9108ed ("x86/efi: Build our own page table structures")
-> 
-> Before this commit the boot services ended up mapped into the kernel
-> page table entries as un-encrypted during efi_map_regions() and I needed
-> to change those entries back to encrypted. With your change above,
-> this appears to no longer be needed.
+On Fri, 17 Jun 2016, Waiman Long wrote:
 
-Great news! Things are as they should be ;)
+>On 06/16/2016 09:11 PM, Davidlohr Bueso wrote:
+>>On Wed, 15 Jun 2016, Peter Zijlstra wrote:
+>>
+>>>Yeah, see a few patches further in this series, where he guards a
+>>>variables with the osq_lock.
+>>
+>>So one problem I have with all this is that if we are hardening 
+>>osq_lock/unlock()
+>>because of some future use that is specific to rwsems, then we will 
+>>immediately
+>>be hurting mutexes for no good reason.
+>>
+>
+>I am going to change it to use smp_acquire__after_ctrl_dep() as 
+>suggested by PeterZ. Is that a good enough compromise? I have also 
+>changed the xchg in the unlock side to xchg_release which could help 
+>performance in some archs. The thing is when developers see the name 
+>osq_lock/osq_unlock, they will naturally assume the proper barrriers 
+>are provided which is not currently the case.
+
+Oh, from your discussions with Boqun, I was under the impression that ->locked
+was now going to be properly ordered in all cases now, which is why
+I worry about mutexes.
+
+>Anyway, the change won't affect x86, it is probably ARM or PPC that 
+>may have an impact.
+
+Yes, that xchg() won't affect x86, but adding an smp_store_release(node->locked, 1)
+or such will obviously.
+
+Thanks,
+Davidlohr
