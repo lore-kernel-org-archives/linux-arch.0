@@ -1,161 +1,56 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 11/19] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Sat, 18 Jun 2016 02:54:20 +0300
-Message-ID: <1466207668-10549-12-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 06/19] arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
+Date: Sat, 18 Jun 2016 02:54:15 +0300
+Message-ID: <1466207668-10549-7-git-send-email-ynorov@caviumnetworks.com>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <libc-alpha-return-70766-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 In-Reply-To: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>
 List-Id: linux-arch.vger.kernel.org
 
-to handle ILP32 binaries
+From: Andrew Pinski <apinski@cavium.com>
 
+Define __BITS_PER_LONG depending on the ABI used (i.e. check whether
+__ILP32__ or __LP64__ is defined).  This is necessary for glibc to
+determine the appropriate type definitions for the system call interface.
+
+Signed-off-by: Andrew Pinski <apinski@cavium.com>
+Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/include/asm/elf.h     |  6 +++
- arch/arm64/kernel/Makefile       |  1 +
- arch/arm64/kernel/binfmt_ilp32.c | 96 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 103 insertions(+)
- create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ arch/arm64/include/uapi/asm/bitsperlong.h | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index a967726..4dcbcec 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -174,10 +174,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+diff --git a/arch/arm64/include/uapi/asm/bitsperlong.h b/arch/arm64/include/uapi/asm/bitsperlong.h
+index fce9c29..4265243 100644
+--- a/arch/arm64/include/uapi/asm/bitsperlong.h
++++ b/arch/arm64/include/uapi/asm/bitsperlong.h
+@@ -16,7 +16,14 @@
+ #ifndef __ASM_BITSPERLONG_H
+ #define __ASM_BITSPERLONG_H
  
- #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
- 
-+#ifndef USE_AARCH64_GREG
- /* AArch32 registers. */
- #define COMPAT_ELF_NGREG		18
- typedef unsigned int			compat_elf_greg_t;
- typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-+#else /* AArch64 registers for AARCH64/ILP32 */
-+#define COMPAT_ELF_NGREG	ELF_NGREG
-+#define compat_elf_greg_t	elf_greg_t
-+#define compat_elf_gregset_t	elf_gregset_t
-+#endif
- 
- /* AArch32 EABI. */
- #define EF_ARM_EABI_MASK		0xff000000
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 60d59cb..bcdd4b2 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o		\
- 					   ../../arm/kernel/opcodes.o binfmt_elf32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
-new file mode 100644
-index 0000000..416b3f5
---- /dev/null
-+++ b/arch/arm64/kernel/binfmt_ilp32.c
-@@ -0,0 +1,96 @@
-+/*
-+ * Support for ILP32 Linux/aarch64 ELF binaries.
-+ */
-+#define USE_AARCH64_GREG
-+
-+#include <linux/elfcore-compat.h>
-+#include <linux/time.h>
-+
-+#undef	ELF_CLASS
-+#define ELF_CLASS	ELFCLASS32
-+
-+#undef	elfhdr
-+#undef	elf_phdr
-+#undef	elf_shdr
-+#undef	elf_note
-+#undef	elf_addr_t
-+#define elfhdr		elf32_hdr
-+#define elf_phdr	elf32_phdr
-+#define elf_shdr	elf32_shdr
-+#define elf_note	elf32_note
-+#define elf_addr_t	Elf32_Addr
-+
-+/*
-+ * Some data types as stored in coredump.
-+ */
-+#define user_long_t		compat_long_t
-+#define user_siginfo_t		compat_siginfo_t
-+#define copy_siginfo_to_user	copy_siginfo_to_user32
-+
-+/*
-+ * The machine-dependent core note format types are defined in elfcore-compat.h,
-+ * which requires asm/elf.h to define compat_elf_gregset_t et al.
-+ */
-+#define elf_prstatus	compat_elf_prstatus
-+#define elf_prpsinfo	compat_elf_prpsinfo
-+
-+/*
-+ * Compat version of cputime_to_compat_timeval, perhaps this
-+ * should be an inline in <linux/compat.h>.
-+ */
-+static void cputime_to_compat_timeval(const cputime_t cputime,
-+				      struct compat_timeval *value)
-+{
-+	struct timeval tv;
-+	cputime_to_timeval(cputime, &tv);
-+	value->tv_sec = tv.tv_sec;
-+	value->tv_usec = tv.tv_usec;
-+}
-+
-+#undef cputime_to_timeval
-+#define cputime_to_timeval cputime_to_compat_timeval
-+
-+/* AARCH64 ILP32 EABI. */
-+#undef elf_check_arch
-+#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
-+					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
-+
-+#undef SET_PERSONALITY
-+#define SET_PERSONALITY(ex)						\
-+do {									\
-+	set_thread_flag(TIF_32BIT_AARCH64);				\
-+	clear_thread_flag(TIF_32BIT);					\
-+} while (0)
-+
-+#undef ARCH_DLINFO
-+#define ARCH_DLINFO							\
-+do {									\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-+		    (elf_addr_t)(long)current->mm->context.vdso);	\
-+} while (0)
-+
-+#undef ELF_PLATFORM
-+#ifdef __AARCH64EB__
-+#define ELF_PLATFORM		("aarch64_be:ilp32")
+-#define __BITS_PER_LONG 64
++#if defined(__LP64__)
++/* Assuming __LP64__ will be defined for native ELF64's and not for ILP32. */
++#  define __BITS_PER_LONG 64
++#elif defined(__ILP32__)
++#  define __BITS_PER_LONG 32
 +#else
-+#define ELF_PLATFORM		("aarch64:ilp32")
++#  error "Neither LP64 nor ILP32: unsupported ABI in asm/bitsperlong.h"
 +#endif
-+
-+#undef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
-+
-+#undef ELF_HWCAP
-+#undef ELF_HWCAP2
-+#define ELF_HWCAP			((u32) elf_hwcap)
-+#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
-+
-+/*
-+ * Rename a few of the symbols that binfmt_elf.c will define.
-+ * These are all local so the names don't really matter, but it
-+ * might make some debugging less confusing not to duplicate them.
-+ */
-+#define elf_format		compat_elf_format
-+#define init_elf_binfmt		init_compat_elf_binfmt
-+#define exit_elf_binfmt		exit_compat_elf_binfmt
-+
-+#include "../../../fs/binfmt_elf.c"
+ 
+ #include <asm-generic/bitsperlong.h>
+ 
 -- 
 2.7.4
