@@ -1,11 +1,11 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 12/19] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
-Date: Sat, 18 Jun 2016 02:54:21 +0300
-Message-ID: <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 13/19] arm64: ilp32: share aarch32 syscall handlers
+Date: Sat, 18 Jun 2016 02:54:22 +0300
+Message-ID: <1466207668-10549-14-git-send-email-ynorov@caviumnetworks.com>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <libc-alpha-return-70771-glibc-alpha=m.gmane.org@sourceware.org>
+Return-path: <libc-alpha-return-70772-glibc-alpha=m.gmane.org@sourceware.org>
 List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
 List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
 List-Archive: <http://sourceware.org/ml/libc-alpha/>
@@ -17,185 +17,201 @@ To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
 List-Id: linux-arch.vger.kernel.org
 
-Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
-detection of the task type.
+off_t is  passed in register pair just like in aarch32.
+In this patch corresponding aarch32 handlers are shared to
+ilp32 code.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/unistd32.h |  2 +-
- arch/arm64/kernel/ptrace.c        | 50 ++++++++++++++++++++++++++++++++++++++-
- arch/arm64/kernel/sys32.c         |  1 +
- include/linux/ptrace.h            |  6 +++++
- kernel/ptrace.c                   | 10 ++++----
- 5 files changed, 62 insertions(+), 7 deletions(-)
+ arch/arm64/kernel/Makefile         |  1 +
+ arch/arm64/kernel/entry32.S        | 65 --------------------------
+ arch/arm64/kernel/entry32_common.S | 93 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 94 insertions(+), 65 deletions(-)
+ create mode 100644 arch/arm64/kernel/entry32_common.S
 
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index b7e8ef1..6da7cbd 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
- 			/* 25 was sys_stime */
- __SYSCALL(25, sys_ni_syscall)
- #define __NR_ptrace 26
--__SYSCALL(__NR_ptrace, compat_sys_ptrace)
-+__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
- 			/* 27 was sys_alarm */
- __SYSCALL(27, sys_ni_syscall)
- 			/* 28 was sys_fstat */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 38a09338..a861105 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -29,6 +29,7 @@
- #include <linux/user.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
-+#include <linux/syscalls.h>
- #include <linux/init.h>
- #include <linux/signal.h>
- #include <linux/uaccess.h>
-@@ -1114,7 +1115,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
- }
- #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index bcdd4b2..d11572d 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -29,6 +29,7 @@ arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
+ 					   sys_compat.o entry32.o		\
+ 					   ../../arm/kernel/opcodes.o binfmt_elf32.o
+ arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
++arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
+ arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+ arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/entry32.S b/arch/arm64/kernel/entry32.S
+index f332d5d..fd2b0d5 100644
+--- a/arch/arm64/kernel/entry32.S
++++ b/arch/arm64/kernel/entry32.S
+@@ -54,68 +54,3 @@ ENTRY(compat_sys_fstatfs64_wrapper)
+ 	b	compat_sys_fstatfs64
+ ENDPROC(compat_sys_fstatfs64_wrapper)
  
--long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
- 			compat_ulong_t caddr, compat_ulong_t cdata)
- {
- 	unsigned long addr = caddr;
-@@ -1191,8 +1192,55 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 
- 	return ret;
- }
+-/*
+- * Note: off_4k (w5) is always in units of 4K. If we can't do the
+- * requested offset because it is not page-aligned, we return -EINVAL.
+- */
+-ENTRY(compat_sys_mmap2_wrapper)
+-#if PAGE_SHIFT > 12
+-	tst	w5, #~PAGE_MASK >> 12
+-	b.ne	1f
+-	lsr	w5, w5, #PAGE_SHIFT - 12
+-#endif
+-	b	sys_mmap_pgoff
+-1:	mov	x0, #-EINVAL
+-	ret
+-ENDPROC(compat_sys_mmap2_wrapper)
+-
+-/*
+- * Wrappers for AArch32 syscalls that either take 64-bit parameters
+- * in registers or that take 32-bit parameters which require sign
+- * extension.
+- */
+-ENTRY(compat_sys_pread64_wrapper)
+-	regs_to_64	x3, x4, x5
+-	b	sys_pread64
+-ENDPROC(compat_sys_pread64_wrapper)
+-
+-ENTRY(compat_sys_pwrite64_wrapper)
+-	regs_to_64	x3, x4, x5
+-	b	sys_pwrite64
+-ENDPROC(compat_sys_pwrite64_wrapper)
+-
+-ENTRY(compat_sys_truncate64_wrapper)
+-	regs_to_64	x1, x2, x3
+-	b	sys_truncate
+-ENDPROC(compat_sys_truncate64_wrapper)
+-
+-ENTRY(compat_sys_ftruncate64_wrapper)
+-	regs_to_64	x1, x2, x3
+-	b	sys_ftruncate
+-ENDPROC(compat_sys_ftruncate64_wrapper)
+-
+-ENTRY(compat_sys_readahead_wrapper)
+-	regs_to_64	x1, x2, x3
+-	mov	w2, w4
+-	b	sys_readahead
+-ENDPROC(compat_sys_readahead_wrapper)
+-
+-ENTRY(compat_sys_fadvise64_64_wrapper)
+-	mov	w6, w1
+-	regs_to_64	x1, x2, x3
+-	regs_to_64	x2, x4, x5
+-	mov	w3, w6
+-	b	sys_fadvise64_64
+-ENDPROC(compat_sys_fadvise64_64_wrapper)
+-
+-ENTRY(compat_sys_sync_file_range2_wrapper)
+-	regs_to_64	x2, x2, x3
+-	regs_to_64	x3, x4, x5
+-	b	sys_sync_file_range2
+-ENDPROC(compat_sys_sync_file_range2_wrapper)
+-
+-ENTRY(compat_sys_fallocate_wrapper)
+-	regs_to_64	x2, x2, x3
+-	regs_to_64	x3, x4, x5
+-	b	sys_fallocate
+-ENDPROC(compat_sys_fallocate_wrapper)
+diff --git a/arch/arm64/kernel/entry32_common.S b/arch/arm64/kernel/entry32_common.S
+new file mode 100644
+index 0000000..261cd97
+--- /dev/null
++++ b/arch/arm64/kernel/entry32_common.S
+@@ -0,0 +1,93 @@
++/*
++ * Compat system call wrappers
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Authors: Will Deacon <will.deacon@arm.com>
++ *	    Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
-+		       compat_long_t, addr, compat_long_t, data)
-+{
-+	struct task_struct *child;
-+	long ret;
++#include <linux/linkage.h>
++#include <linux/const.h>
 +
-+	if (request == PTRACE_TRACEME) {
-+		ret = ptrace_traceme();
-+		goto out;
-+	}
++#include <asm/assembler.h>
++#include <asm/asm-offsets.h>
++#include <asm/errno.h>
++#include <asm/page.h>
 +
-+	child = ptrace_get_task_struct(pid);
-+	if (IS_ERR(child)) {
-+		ret = PTR_ERR(child);
-+		goto out;
-+	}
++/*
++ * Note: off_4k (w5) is always in units of 4K. If we can't do the
++ * requested offset because it is not page-aligned, we return -EINVAL.
++ */
++ENTRY(compat_sys_mmap2_wrapper)
++#if PAGE_SHIFT > 12
++	tst	w5, #~PAGE_MASK >> 12
++	b.ne	1f
++	lsr	w5, w5, #PAGE_SHIFT - 12
++#endif
++	b	sys_mmap_pgoff
++1:	mov	x0, #-EINVAL
++	ret
++ENDPROC(compat_sys_mmap2_wrapper)
 +
-+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
-+		ret = ptrace_attach(child, request, addr, data);
-+		goto out_put_task_struct;
-+	}
++/*
++ * Wrappers for AArch32 syscalls that either take 64-bit parameters
++ * in registers or that take 32-bit parameters which require sign
++ * extension.
++ */
++ENTRY(compat_sys_pread64_wrapper)
++	regs_to_64	x3, x4, x5
++	b	sys_pread64
++ENDPROC(compat_sys_pread64_wrapper)
 +
-+	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
-+				  request == PTRACE_INTERRUPT);
-+	if (!ret) {
-+		ret = compat_a32_ptrace(child, request, addr, data);
-+		if (ret || request != PTRACE_DETACH)
-+			ptrace_unfreeze_traced(child);
-+	}
++ENTRY(compat_sys_pwrite64_wrapper)
++	regs_to_64	x3, x4, x5
++	b	sys_pwrite64
++ENDPROC(compat_sys_pwrite64_wrapper)
 +
-+ out_put_task_struct:
-+	put_task_struct(child);
-+ out:
-+	return ret;
-+}
++ENTRY(compat_sys_truncate64_wrapper)
++	regs_to_64	x1, x2, x3
++	b	sys_truncate
++ENDPROC(compat_sys_truncate64_wrapper)
 +
- #endif /* CONFIG_AARCH32_EL0 */
- 
-+#ifdef CONFIG_COMPAT
++ENTRY(compat_sys_ftruncate64_wrapper)
++	regs_to_64	x1, x2, x3
++	b	sys_ftruncate
++ENDPROC(compat_sys_ftruncate64_wrapper)
 +
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+			compat_ulong_t caddr, compat_ulong_t cdata)
-+{
-+	return compat_ptrace_request(child, request, caddr, cdata);
-+}
++ENTRY(compat_sys_readahead_wrapper)
++	regs_to_64	x1, x2, x3
++	mov	w2, w4
++	b	sys_readahead
++ENDPROC(compat_sys_readahead_wrapper)
 +
-+#endif /* CONFIG_COMPAT */
++ENTRY(compat_sys_fadvise64_64_wrapper)
++	mov	w6, w1
++	regs_to_64	x1, x2, x3
++	regs_to_64	x2, x4, x5
++	mov	w3, w6
++	b	sys_fadvise64_64
++ENDPROC(compat_sys_fadvise64_64_wrapper)
 +
- const struct user_regset_view *task_user_regset_view(struct task_struct *task)
- {
- #ifdef CONFIG_AARCH32_EL0
-diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
-index a40b134..3752443 100644
---- a/arch/arm64/kernel/sys32.c
-+++ b/arch/arm64/kernel/sys32.c
-@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
- asmlinkage long compat_sys_sync_file_range2_wrapper(void);
- asmlinkage long compat_sys_fallocate_wrapper(void);
- asmlinkage long compat_sys_mmap2_wrapper(void);
-+asmlinkage long compat_sys_aarch32_ptrace(void);
- 
- #undef __SYSCALL
- #define __SYSCALL(nr, sym)	[nr] = sym,
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index 504c98a..75887a0 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
- int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
-+int ptrace_traceme(void);
-+struct task_struct *ptrace_get_task_struct(pid_t pid);
-+int ptrace_attach(struct task_struct *task, long request,
-+			 unsigned long addr, unsigned long flags);
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state);
-+void ptrace_unfreeze_traced(struct task_struct *task);
- 
- /**
-  * ptrace_parent - return the task that is tracing the given task
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index d49bfa1..cadf24c 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -136,7 +136,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
- 	return ret;
- }
- 
--static void ptrace_unfreeze_traced(struct task_struct *task)
-+void ptrace_unfreeze_traced(struct task_struct *task)
- {
- 	if (task->state != __TASK_TRACED)
- 		return;
-@@ -168,7 +168,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
-  * RETURNS:
-  * 0 on success, -ESRCH if %child is not ready.
-  */
--static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- {
- 	int ret = -ESRCH;
- 
-@@ -292,7 +292,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
- 	return !err;
- }
- 
--static int ptrace_attach(struct task_struct *task, long request,
-+int ptrace_attach(struct task_struct *task, long request,
- 			 unsigned long addr,
- 			 unsigned long flags)
- {
-@@ -406,7 +406,7 @@ out:
-  * Performs checks and sets PT_PTRACED.
-  * Should be used by all ptrace implementations for PTRACE_TRACEME.
-  */
--static int ptrace_traceme(void)
-+ int ptrace_traceme(void)
- {
- 	int ret = -EPERM;
- 
-@@ -1056,7 +1056,7 @@ int ptrace_request(struct task_struct *child, long request,
- 	return ret;
- }
- 
--static struct task_struct *ptrace_get_task_struct(pid_t pid)
-+struct task_struct *ptrace_get_task_struct(pid_t pid)
- {
- 	struct task_struct *child;
- 
++ENTRY(compat_sys_sync_file_range2_wrapper)
++	regs_to_64	x2, x2, x3
++	regs_to_64	x3, x4, x5
++	b	sys_sync_file_range2
++ENDPROC(compat_sys_sync_file_range2_wrapper)
++
++ENTRY(compat_sys_fallocate_wrapper)
++	regs_to_64	x2, x2, x3
++	regs_to_64	x3, x4, x5
++	b	sys_fallocate
++ENDPROC(compat_sys_fallocate_wrapper)
 -- 
 2.7.4
