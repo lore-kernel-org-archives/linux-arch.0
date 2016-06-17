@@ -1,58 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f43.google.com ([209.85.218.43]:34170 "EHLO
-	mail-oi0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932740AbcFQWTN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 18:19:13 -0400
-Received: by mail-oi0-f43.google.com with SMTP id d132so136739858oig.1
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jun 2016 15:19:13 -0700 (PDT)
+Received: from mail-bn1on0086.outbound.protection.outlook.com ([157.56.110.86]:63328
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751095AbcFQXyo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 19:54:44 -0400
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 01/19] compat ABI: use non-compat openat and open_by_handle_at variants
+Date: Sat, 18 Jun 2016 02:54:10 +0300
+Message-ID: <1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-In-Reply-To: <20160617205728.qgha2qeubdkg73uh@treble>
-References: <cover.1466192946.git.luto@kernel.org> <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
- <20160617205728.qgha2qeubdkg73uh@treble>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 17 Jun 2016 15:18:52 -0700
-Message-ID: <CALCETrWABPx5xysNnfX7H7yKFptDT7ys-P_3Kew4gZQQGLh-fw@mail.gmail.com>
-Subject: Re: [PATCH v2 06/13] fork: Add generic vmalloced stack support
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160617221852.47ls-Rn_4dApkKWanD7hR6JxZzTqJ5jou_oBYGw5QL8@z>
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+Message-ID: <20160617235410.feKUYu4Xh1UYSGLAywY6Xmgcy-TNhgOl3GxS6BX2Ju4@z>
 
-On Fri, Jun 17, 2016 at 1:57 PM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Fri, Jun 17, 2016 at 01:00:42PM -0700, Andy Lutomirski wrote:
->> @@ -213,24 +232,46 @@ struct kmem_cache *vm_area_cachep;
->>  /* SLAB cache for mm_struct structures (tsk->mm) */
->>  static struct kmem_cache *mm_cachep;
->>
->> -static void account_kernel_stack(struct thread_info *ti, int account)
->> +static void account_kernel_stack(struct task_struct *tsk, int account)
->>  {
->> -     struct zone *zone = page_zone(virt_to_page(ti));
->> +     struct zone *zone;
->> +     struct thread_info *ti = task_thread_info(tsk);
->> +     struct vm_struct *vm = task_stack_vm_area(tsk);
->> +
->> +     BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
->> +
->> +     if (vm) {
->> +             int i;
->>
->> -     mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
->> -                         THREAD_SIZE / 1024 * account);
->> +             BUG_ON(vm->nr_pages != THREAD_SIZE / PAGE_SIZE);
->>
->> -     /* All stack pages belong to the same memcg. */
->> -     memcg_kmem_update_page_stat(
->> -             virt_to_page(ti), MEMCG_KERNEL_STACK,
->> -             account * (THREAD_SIZE / PAGE_SIZE));
->> +             for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
->> +                     mod_zone_page_state(page_zone(vm->pages[i]),
->> +                                         1, PAGE_SIZE / 1024 * account);
->
-> Shouldn't the second argument be NR_KERNEL_STACK_KB instead of 1?
+The only difference is that non-compat version forces O_LARGEFILE,
+and it should be the default behaviour for all architectures, as
+we don't support 32-bit off_t. The only exception is tile32, that
+continues with compat version of syscalls.
 
-Indeed. Queued for v3.
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
+---
+ arch/tile/kernel/compat.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
---Andy
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 4912084..489ae19 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+ #define compat_sys_readahead sys32_readahead
+ #define sys_llseek compat_sys_llseek
+ 
++#define sys_openat		compat_sys_openat
++#define sys_open_by_handle_at	compat_sys_open_by_handle_at
++
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
+-- 
+2.7.4
+
