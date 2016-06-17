@@ -1,63 +1,54 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 11/13] x86/dumpstack/64: Handle faults when printing the "Stack:" part of an OOPS
-Date: Fri, 17 Jun 2016 13:00:47 -0700
-Message-ID: <bdb80a7119a4045a7c7d78218d14100b027ed1f6.1466192946.git.luto@kernel.org>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 03/13] x86/cpa: Warn if kernel_unmap_pages_in_pgd is
+ used inappropriately
+Date: Fri, 17 Jun 2016 22:30:45 +0200
+Message-ID: <20160617203045.GB3842@pd.tnic>
 References: <cover.1466192946.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3503-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <cover.1466192946.git.luto@kernel.org>
-In-Reply-To: <cover.1466192946.git.luto@kernel.org>
-References: <cover.1466192946.git.luto@kernel.org>
-To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+ <3336bb02792d56c49d18e2f7a435fd194a4a22e4.1466192946.git.luto@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([78.46.96.112]:59215 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932469AbcFQUau (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 16:30:50 -0400
+Content-Disposition: inline
+In-Reply-To: <3336bb02792d56c49d18e2f7a435fd194a4a22e4.1466192946.git.luto@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-If we overflow the stack into a guard page, we'll recursively fault
-when trying to dump the contents of the guard page.  Use
-probe_kernel_address so we can recover if this happens.
+On Fri, Jun 17, 2016 at 01:00:39PM -0700, Andy Lutomirski wrote:
+> It's currently only used in the EFI code, which is safe AFAICT.
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/kernel/dumpstack_64.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+"It is basically useful for a pagetable hierarchy which is not init_mm."
 
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index 603356a5597a..5e298638c790 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -276,6 +276,8 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 
- 	stack = sp;
- 	for (i = 0; i < kstack_depth_to_print; i++) {
-+		unsigned long word;
-+
- 		if (stack >= irq_stack && stack <= irq_stack_end) {
- 			if (stack == irq_stack_end) {
- 				stack = (unsigned long *) (irq_stack_end[-1]);
-@@ -285,12 +287,18 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		if (kstack_end(stack))
- 			break;
- 		}
-+
-+		if (probe_kernel_address(stack, word))
-+			break;
-+
- 		if ((i % STACKSLOTS_PER_LINE) == 0) {
- 			if (i != 0)
- 				pr_cont("\n");
--			printk("%s %016lx", log_lvl, *stack++);
-+			printk("%s %016lx", log_lvl, word);
- 		} else
--			pr_cont(" %016lx", *stack++);
-+			pr_cont(" %016lx", word);
-+
-+		stack++;
- 		touch_nmi_watchdog();
- 	}
- 	preempt_enable();
+> Warn if anyone tries to use it on the normal kernel pgd.
+> 
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  arch/x86/mm/pageattr.c | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+> index 6a8026918bf6..e9b9c5cedbb8 100644
+> --- a/arch/x86/mm/pageattr.c
+> +++ b/arch/x86/mm/pageattr.c
+> @@ -1996,6 +1996,9 @@ out:
+>  void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+>  			       unsigned numpages)
+>  {
+> +	/* Unmapping kernel entries from init_mm's pgd is not allowed. */
+> +	WARN_ON(root == init_mm.pgd);
+
+We can also return and not do the unmapping:
+
+	if (WARN_ON(root == init_mm.pgd))
+		return;
+
 -- 
-2.5.5
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
