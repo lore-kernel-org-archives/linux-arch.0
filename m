@@ -1,62 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59648 "EHLO mx2.suse.de"
+Received: from mail.kernel.org ([198.145.29.136]:59482 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752847AbcFQQ3k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jun 2016 12:29:40 -0400
-Date: Fri, 17 Jun 2016 09:29:26 -0700
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
- acquire/release barrier
-Message-ID: <20160617162926.GB14591@linux-80c1.suse>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
- <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
- <20160615165659.GC2094@linux-80c1.suse>
- <20160615171250.GO30921@twins.programming.kicks-ass.net>
- <20160615182724.GD2094@linux-80c1.suse>
- <20160615184007.GW30921@twins.programming.kicks-ass.net>
- <20160617011155.GA14591@linux-80c1.suse>
- <576408F7.8020901@hpe.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Disposition: inline
-In-Reply-To: <576408F7.8020901@hpe.com>
+	id S933659AbcFQUBO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 16:01:14 -0400
+From: Andy Lutomirski <luto@kernel.org>
+Subject: [PATCH v2 10/13] x86/dumpstack: Try harder to get a call trace on stack overflow
+Date: Fri, 17 Jun 2016 13:00:46 -0700
+Message-ID: <e6d2a3c778d9850714ff4b8084a74143d8f3dd5a.1466192946.git.luto@kernel.org>
+In-Reply-To: <cover.1466192946.git.luto@kernel.org>
+References: <cover.1466192946.git.luto@kernel.org>
+In-Reply-To: <cover.1466192946.git.luto@kernel.org>
+References: <cover.1466192946.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-Message-ID: <20160617162926.d6xG73Dn15sYxeT1P4vAUMwibGbFTsHU38YdFgOnpQY@z>
+To: x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160617200046.vvjA3AN6k9efPmag46g-bt1f3nd11DpbG5C4hEhFrlI@z>
 
-On Fri, 17 Jun 2016, Waiman Long wrote:
+If we overflow the stack, print_context_stack will abort.  Detect
+this case and rewind back into the valid part of the stack so that
+we can trace it.
 
->On 06/16/2016 09:11 PM, Davidlohr Bueso wrote:
->>On Wed, 15 Jun 2016, Peter Zijlstra wrote:
->>
->>>Yeah, see a few patches further in this series, where he guards a
->>>variables with the osq_lock.
->>
->>So one problem I have with all this is that if we are hardening 
->>osq_lock/unlock()
->>because of some future use that is specific to rwsems, then we will 
->>immediately
->>be hurting mutexes for no good reason.
->>
->
->I am going to change it to use smp_acquire__after_ctrl_dep() as 
->suggested by PeterZ. Is that a good enough compromise? I have also 
->changed the xchg in the unlock side to xchg_release which could help 
->performance in some archs. The thing is when developers see the name 
->osq_lock/osq_unlock, they will naturally assume the proper barrriers 
->are provided which is not currently the case.
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
+---
+ arch/x86/kernel/dumpstack.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-Oh, from your discussions with Boqun, I was under the impression that ->locked
-was now going to be properly ordered in all cases now, which is why
-I worry about mutexes.
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index d4d085e27d04..9cdf05d768cf 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -89,7 +89,7 @@ static inline int valid_stack_ptr(struct thread_info *tinfo,
+ 		else
+ 			return 0;
+ 	}
+-	return p > t && p < t + THREAD_SIZE - size;
++	return p >= t && p < t + THREAD_SIZE - size;
+ }
+ 
+ unsigned long
+@@ -100,6 +100,13 @@ print_context_stack(struct thread_info *tinfo,
+ {
+ 	struct stack_frame *frame = (struct stack_frame *)bp;
+ 
++	/*
++	 * If we overflowed the stack into a guard page, jump back to the
++	 * bottom of the usable stack.
++	 */
++	if ((unsigned long)tinfo - (unsigned long)stack < PAGE_SIZE)
++		stack = (unsigned long *)tinfo;
++
+ 	while (valid_stack_ptr(tinfo, stack, sizeof(*stack), end)) {
+ 		unsigned long addr;
+ 
+-- 
+2.5.5
 
->Anyway, the change won't affect x86, it is probably ARM or PPC that 
->may have an impact.
-
-Yes, that xchg() won't affect x86, but adding an smp_store_release(node->locked, 1)
-or such will obviously.
-
-Thanks,
-Davidlohr
