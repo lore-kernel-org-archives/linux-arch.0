@@ -1,47 +1,52 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 02/13] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
-Date: Fri, 17 Jun 2016 13:00:38 -0700
-Message-ID: <832aa0209ca4bd94b043add243ac36ab56285639.1466192946.git.luto@kernel.org>
+Subject: [PATCH v2 10/13] x86/dumpstack: Try harder to get a call trace on stack overflow
+Date: Fri, 17 Jun 2016 13:00:46 -0700
+Message-ID: <e6d2a3c778d9850714ff4b8084a74143d8f3dd5a.1466192946.git.luto@kernel.org>
 References: <cover.1466192946.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3494-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1466192946.git.luto@kernel.org>
 In-Reply-To: <cover.1466192946.git.luto@kernel.org>
 References: <cover.1466192946.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This avoids pointless races in which another CPU or task might see a
-partially populated global pgd entry.  These races should normally
-be harmless, but, if another CPU propagates the entry via
-vmalloc_fault and then populate_pgd fails (due to memory allocation
-failure, for example), this prevents a use-after-free of the pgd
-entry.
+If we overflow the stack, print_context_stack will abort.  Detect
+this case and rewind back into the valid part of the stack so that
+we can trace it.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/mm/pageattr.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/x86/kernel/dumpstack.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 7a1f7bbf4105..6a8026918bf6 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
- 
- 	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
- 	if (ret < 0) {
--		unmap_pgd_range(cpa->pgd, addr,
-+		if (pud)
-+			free_page((unsigned long)pud);
-+		unmap_pud_range(pgd_entry, addr,
- 				addr + (cpa->numpages << PAGE_SHIFT));
- 		return ret;
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index d4d085e27d04..9cdf05d768cf 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -89,7 +89,7 @@ static inline int valid_stack_ptr(struct thread_info *tinfo,
+ 		else
+ 			return 0;
  	}
+-	return p > t && p < t + THREAD_SIZE - size;
++	return p >= t && p < t + THREAD_SIZE - size;
+ }
+ 
+ unsigned long
+@@ -100,6 +100,13 @@ print_context_stack(struct thread_info *tinfo,
+ {
+ 	struct stack_frame *frame = (struct stack_frame *)bp;
+ 
++	/*
++	 * If we overflowed the stack into a guard page, jump back to the
++	 * bottom of the usable stack.
++	 */
++	if ((unsigned long)tinfo - (unsigned long)stack < PAGE_SIZE)
++		stack = (unsigned long *)tinfo;
++
+ 	while (valid_stack_ptr(tinfo, stack, sizeof(*stack), end)) {
+ 		unsigned long addr;
+ 
 -- 
 2.5.5
