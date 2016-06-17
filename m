@@ -1,121 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5008.houston.hpe.com ([15.241.48.72]:39530 "EHLO
-	g9t5008.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933846AbcFQPma (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 11:42:30 -0400
+Received: from g4t3426.houston.hpe.com ([15.241.140.75]:39237 "EHLO
+	g4t3426.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933869AbcFQPm0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 11:42:26 -0400
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip/locking/core v3 09/10] locking/rwsem: Enable reactivation of reader spinning
-Date: Fri, 17 Jun 2016 11:41:35 -0400
-Message-ID: <1466178096-5623-10-git-send-email-Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip/locking/core v3 10/10] locking/rwsem: Add a boot parameter to reader spinning threshold
+Date: Fri, 17 Jun 2016 11:41:36 -0400
+Message-ID: <1466178096-5623-11-git-send-email-Waiman.Long@hpe.com>
 In-Reply-To: <1466178096-5623-1-git-send-email-Waiman.Long@hpe.com>
 References: <1466178096-5623-1-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160617154135.fpAfkRZ_nWRjsqbfdJx0lIdIlDgS-8IjKtibdNaKfZY@z>
+Message-ID: <20160617154136.q6IpfpRifo4Yq1QPu-6AgzMaCMYw_KOwCN2p6Hb0-14@z>
 
-Reader optimistic spinning will be disabled once the rspin_enabled
-count reaches 0. After that, it cannot be re-enabled. This may cause
-an eligible rwsem locked out of reader spinning because of a series
-of unfortunate events.
-
-This patch looks at the regular writer-on-writer spinning history. If
-there are sufficient more successful spin attempts than failed ones,
-it will try to reactivate reader spinning.
+The default reader spining threshold is current set to 4096. However,
+the right reader spinning threshold may vary from one system to
+another and among the different architectures. This patch adds a new
+kernel boot parameter to modify the threshold value. This enables
+better tailoring to the needs of different systems as well as for
+testing purposes.
 
 Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
 ---
- include/linux/rwsem.h       |   12 ++++++++----
- kernel/locking/rwsem-xadd.c |   27 +++++++++++++++++++++++++--
- 2 files changed, 33 insertions(+), 6 deletions(-)
+ Documentation/kernel-parameters.txt |    3 +++
+ kernel/locking/rwsem-xadd.c         |   14 +++++++++++++-
+ 2 files changed, 16 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index 8978f87..98284b4 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -32,7 +32,11 @@ struct rw_semaphore {
- 	raw_spinlock_t wait_lock;
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	struct optimistic_spin_queue osq; /* spinner MCS lock */
--	int rspin_enabled;	/* protected by osq lock */
-+	/*
-+	 * Reader optimistic spinning fields protected by osq lock
-+	 */
-+	uint16_t rspin_enabled;
-+	int16_t  wspin_cnt;
+diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+index 82b42c9..3bee995 100644
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -3645,6 +3645,9 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
  
- 	/*
- 	 * Write owner. Used as a speculative check to see
-@@ -74,10 +78,10 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
- /*
-  * Each successful reader spin will increment the rspin_enabled by 1.
-  * Each unsuccessful spin, on the other hand, will decrement it by 2.
-- * Reader spinning will be permanently disabled when it reaches 0.
-+ * Reader spinning will be disabled when it reaches 0.
-  */
- #ifndef RWSEM_RSPIN_ENABLED_DEFAULT
--# define RWSEM_RSPIN_ENABLED_DEFAULT	40
-+# define RWSEM_RSPIN_ENABLED_DEFAULT	30
- #endif
- #define RWSEM_RSPIN_ENABLED_MAX		1024
+ 	rw		[KNL] Mount root device read-write on boot
  
-@@ -87,7 +91,7 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
++	rwsem_rspin_threshold=
++			[KNL] Set rw semaphore reader spinning threshold
++
+ 	S		[KNL] Run init in single mode
  
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- #define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, \
--		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT
-+		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT, .wspin_cnt = 0
- #else
- #define __RWSEM_OPT_INIT(lockname)
- #endif
+ 	s390_iommu=	[HW,S390]
 diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 42c8dda..c6b6105 100644
+index c6b6105..6360180 100644
 --- a/kernel/locking/rwsem-xadd.c
 +++ b/kernel/locking/rwsem-xadd.c
-@@ -108,6 +108,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
+@@ -280,6 +280,18 @@ static inline bool rwsem_try_write_lock(long count, struct rw_semaphore *sem)
+ 
  #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	sem->owner = NULL;
- 	sem->rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT;
-+	sem->wspin_cnt = 0;
- 	osq_lock_init(&sem->osq);
- #endif
- }
-@@ -466,10 +467,32 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem,
- 		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
- 			sem->rspin_enabled++;
- 		} else if (!taken) {
--			if  (sem->rspin_enabled > 2)
-+			if  (sem->rspin_enabled > 2) {
- 				sem->rspin_enabled -= 2;
--			else
-+			} else if (sem->rspin_enabled) {
- 				sem->rspin_enabled = 0;
-+				/*
-+				 * Reset wspin_cnt so that it won't get
-+				 * re-enabled too soon.
-+				 */
-+				if (sem->wspin_cnt > -30)
-+					sem->wspin_cnt = -30;
-+			}
-+		}
-+	} else if (type == RWSEM_WAITING_FOR_WRITE) {
-+		/*
-+		 * Every 10 successful writer-on-writer spins more than failed
-+		 * spins will increment rspin_enabled to encourage more
-+		 * writer-on-reader spinning attempts.
-+		 */
-+		if (taken) {
-+			if ((++sem->wspin_cnt >= 10) &&
-+			    (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
-+				sem->wspin_cnt = 0;
-+				sem->rspin_enabled++;
-+			}
-+		} else if (sem->wspin_cnt > -100) {
-+			sem->wspin_cnt--;
- 		}
- 	}
- 	osq_unlock(&sem->osq);
+ /*
++ * Reader spinning threshold
++ */
++static int __read_mostly rspin_threshold = RWSEM_RSPIN_THRESHOLD;
++
++static int __init set_rspin_threshold(char *str)
++{
++	get_option(&str, &rspin_threshold);
++	return 0;
++}
++early_param("rwsem_rspin_threshold", set_rspin_threshold);
++
++/*
+  * Try to acquire write lock before the writer has been put on wait queue.
+  */
+ static inline bool rwsem_try_write_lock_unqueued(struct rw_semaphore *sem)
+@@ -402,7 +414,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem,
+ 	if (!osq_lock(&sem->osq))
+ 		goto done;
+ 
+-	rspin_cnt = sem->rspin_enabled ? RWSEM_RSPIN_THRESHOLD : 0;
++	rspin_cnt = sem->rspin_enabled ? rspin_threshold : 0;
+ 
+ 	/*
+ 	 * Optimistically spin on the owner field and attempt to acquire the
 -- 
 1.7.1
 
