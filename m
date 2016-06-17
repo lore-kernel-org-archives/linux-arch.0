@@ -1,10 +1,10 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 07/13] x86/die: Don't try to recover from an OOPS on a non-default stack
-Date: Fri, 17 Jun 2016 13:00:43 -0700
-Message-ID: <30244111e69a30752befcfe37bd95b6d108ff309.1466192946.git.luto@kernel.org>
+Subject: [PATCH v2 09/13] x86/dumpstack: When dumping stack bytes due to OOPS, start with regs->sp
+Date: Fri, 17 Jun 2016 13:00:45 -0700
+Message-ID: <ac1423ff89885723ceb5c9cb1615b258b2f11544.1466192946.git.luto@kernel.org>
 References: <cover.1466192946.git.luto@kernel.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3497-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-3501-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
@@ -16,30 +16,45 @@ To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It's not going to work, because the scheduler will explode if we try
-to schedule when running on an IST stack or similar.
-
-This will matter when we let kernel stack overflows (which are #DF)
-call die().
+The comment suggests that show_stack(NULL, NULL) should backtrace
+the current context, but the code doesn't match the comment.  If
+regs are given, start the "Stack:" hexdump at regs->sp.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/kernel/dumpstack.c | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/kernel/dumpstack_32.c | 4 +++-
+ arch/x86/kernel/dumpstack_64.c | 4 +++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-index 2bb25c3fe2e8..36effb39c9c9 100644
---- a/arch/x86/kernel/dumpstack.c
-+++ b/arch/x86/kernel/dumpstack.c
-@@ -247,6 +247,9 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
- 		return;
- 	if (in_interrupt())
- 		panic("Fatal exception in interrupt");
-+	if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
-+	     & ~(THREAD_SIZE - 1)) != 0)
-+		panic("Fatal exception on special stack");
- 	if (panic_on_oops)
- 		panic("Fatal exception");
- 	do_exit(signr);
+diff --git a/arch/x86/kernel/dumpstack_32.c b/arch/x86/kernel/dumpstack_32.c
+index 464ffd69b92e..91069ebe3c87 100644
+--- a/arch/x86/kernel/dumpstack_32.c
++++ b/arch/x86/kernel/dumpstack_32.c
+@@ -98,7 +98,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 	int i;
+ 
+ 	if (sp == NULL) {
+-		if (task)
++		if (regs)
++			sp = (unsigned long *)regs->sp;
++		else if (task)
+ 			sp = (unsigned long *)task->thread.sp;
+ 		else
+ 			sp = (unsigned long *)&sp;
+diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
+index 5f1c6266eb30..603356a5597a 100644
+--- a/arch/x86/kernel/dumpstack_64.c
++++ b/arch/x86/kernel/dumpstack_64.c
+@@ -266,7 +266,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 	 * back trace for this cpu:
+ 	 */
+ 	if (sp == NULL) {
+-		if (task)
++		if (regs)
++			sp = (unsigned long *)regs->sp;
++		else if (task)
+ 			sp = (unsigned long *)task->thread.sp;
+ 		else
+ 			sp = (unsigned long *)&sp;
 -- 
 2.5.5
