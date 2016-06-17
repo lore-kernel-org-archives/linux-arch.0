@@ -1,138 +1,126 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement
- atomic_fetch_{add,sub,and,or,xor}()
-Date: Fri, 17 Jun 2016 17:40:24 +0200
-Message-ID: <20160617154024.GY30154@twins.programming.kicks-ass.net>
-References: <20160531101925.702692792@infradead.org>
- <20160531102642.333689893@infradead.org>
- <CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com>
- <20160616101309.GD30921@twins.programming.kicks-ass.net>
- <mvmk2hpxq1a.fsf@hawking.suse.de>
+From: Waiman Long <waiman.long@hpe.com>
+Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper acquire/release
+ barrier
+Date: Fri, 17 Jun 2016 11:26:41 -0400
+Message-ID: <576416B1.6020006@hpe.com>
+References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com> <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com> <20160615080446.GA28443@insomnia> <5761A5FF.5070703@hpe.com> <20160616021951.GA16918@insomnia> <57631BBA.9070505@hpe.com> <20160617004837.GB16918@insomnia>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:56028 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932139AbcFQPk7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jun 2016 11:40:59 -0400
-Content-Disposition: inline
-In-Reply-To: <mvmk2hpxq1a.fsf@hawking.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?iso-8859-1?Q?Fr=E9d=E9ric?= Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>Ja
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160617004837.GB16918@insomnia>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
+On 06/16/2016 08:48 PM, Boqun Feng wrote:
+> On Thu, Jun 16, 2016 at 05:35:54PM -0400, Waiman Long wrote:
+>> On 06/15/2016 10:19 PM, Boqun Feng wrote:
+>>> On Wed, Jun 15, 2016 at 03:01:19PM -0400, Waiman Long wrote:
+>>>> On 06/15/2016 04:04 AM, Boqun Feng wrote:
+>>>>> Hi Waiman,
+>>>>>
+>>>>> On Tue, Jun 14, 2016 at 06:48:04PM -0400, Waiman Long wrote:
+>>>>>> The osq_lock() and osq_unlock() function may not provide the necessary
+>>>>>> acquire and release barrier in some cases. This patch makes sure
+>>>>>> that the proper barriers are provided when osq_lock() is successful
+>>>>>> or when osq_unlock() is called.
+>>>>>>
+>>>>>> Signed-off-by: Waiman Long<Waiman.Long@hpe.com>
+>>>>>> ---
+>>>>>>     kernel/locking/osq_lock.c |    4 ++--
+>>>>>>     1 files changed, 2 insertions(+), 2 deletions(-)
+>>>>>>
+>>>>>> diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+>>>>>> index 05a3785..7dd4ee5 100644
+>>>>>> --- a/kernel/locking/osq_lock.c
+>>>>>> +++ b/kernel/locking/osq_lock.c
+>>>>>> @@ -115,7 +115,7 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+>>>>>>     	 * cmpxchg in an attempt to undo our queueing.
+>>>>>>     	 */
+>>>>>>
+>>>>>> -	while (!READ_ONCE(node->locked)) {
+>>>>>> +	while (!smp_load_acquire(&node->locked)) {
+>>>>>>     		/*
+>>>>>>     		 * If we need to reschedule bail... so we can block.
+>>>>>>     		 */
+>>>>>> @@ -198,7 +198,7 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+>>>>>>     	 * Second most likely case.
+>>>>>>     	 */
+>>>>>>     	node = this_cpu_ptr(&osq_node);
+>>>>>> -	next = xchg(&node->next, NULL);
+>>>>>> +	next = xchg_release(&node->next, NULL);
+>>>>>>     	if (next) {
+>>>>>>     		WRITE_ONCE(next->locked, 1);
+>>>>> So we still use WRITE_ONCE() rather than smp_store_release() here?
+>>>>>
+>>>>> Though, IIUC, This is fine for all the archs but ARM64, because there
+>>>>> will always be a xchg_release()/xchg() before the WRITE_ONCE(), which
+>>>>> carries a necessary barrier to upgrade WRITE_ONCE() to a RELEASE.
+>>>>>
+>>>>> Not sure whether it's a problem on ARM64, but I think we certainly need
+>>>>> to add some comments here, if we count on this trick.
+>>>>>
+>>>>> Am I missing something or misunderstanding you here?
+>>>>>
+>>>>> Regards,
+>>>>> Boqun
+>>>> The change on the unlock side is more for documentation purpose than is
+>>>> actually needed. As you had said, the xchg() call has provided the necessary
+>>>> memory barrier. Using the _release variant, however, may have some
+>>> But I'm afraid the barrier doesn't remain if we replace xchg() with
+>>> xchg_release() on ARM64v8, IIUC, xchg_release() is just a ldxr+stlxr
+>>> loop with no barrier on ARM64v8. This means the following code:
+>>>
+>>> 	CPU 0					CPU 1 (next)
+>>> 	========================		==================
+>>> 	WRITE_ONCE(x, 1);			r1 = smp_load_acquire(next->locked, 1);
+>>> 	xchg_release(&node->next, NULL);	r2 = READ_ONCE(x);
+>>> 	WRITE_ONCE(next->locked, 1);
+>>>
+>>> could result in (r1 == 1&&   r2 == 0) on ARM64v8, IIUC.
+>> If you look into the actual code:
+>>
+>>          next = xchg_release(&node->next, NULL);
+>>          if (next) {
+>>                  WRITE_ONCE(next->locked, 1);
+>>                  return;
+>>          }
+>>
+>> There is a control dependency that WRITE_ONCE() won't happen until
+> But a control dependency only orders LOAD->STORE pairs, right? And here
+> the control dependency orders the LOAD part of xchg_release() and the
+> WRITE_ONCE().
+>
+> Along with the fact that RELEASE only orders the STORE part of xchg with
+> the memory operations preceding the STORE part, so for the following
+> code:
+>
+> 	WRTIE_ONCE(x,1);
+> 	next = xchg_release(&node->next, NULL);
+> 	if (next)
+> 		WRITE_ONCE(next->locked, 1);
+>
+> such a reordering is allowed to happen on ARM64v8
+>
+> 	next = ldxr [&node->next] // LOAD part of xchg_release()
+>
+> 	if (next)
+> 		WRITE_ONCE(next->locked, 1);
+>
+> 	WRITE_ONCE(x,1);
+> 	stlxr NULL [&node->next]  // STORE part of xchg_releae()
+>
+> Am I missing your point here?
+>
+> Regards,
+> Boqun
 
-Could either of you comment on the below patch?
+My understanding of the release barrier is that both prior LOADs and 
+STOREs can't move after the barrier. If WRITE_ONCE(x, 1) can move to 
+below as shown above, it is not a real release barrier and we may need 
+to change the barrier code.
 
-All atomic functions that return a value should imply full memory
-barrier semantics -- this very much includes a compiler barrier / memory
-clobber.
-
-
-
----
-
- arch/m68k/include/asm/atomic.h  | 19 ++++++++++++-------
- arch/m68k/include/asm/cmpxchg.h |  9 ++++++---
- 2 files changed, 18 insertions(+), 10 deletions(-)
-
-diff --git a/arch/m68k/include/asm/atomic.h b/arch/m68k/include/asm/atomic.h
-index 3e03de7ae33b..062a60417cb9 100644
---- a/arch/m68k/include/asm/atomic.h
-+++ b/arch/m68k/include/asm/atomic.h
-@@ -56,7 +56,8 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
- 			"	casl %2,%1,%0\n"			\
- 			"	jne 1b"					\
- 			: "+m" (*v), "=&d" (t), "=&d" (tmp)		\
--			: "g" (i), "2" (atomic_read(v)));		\
-+			: "g" (i), "2" (atomic_read(v))			\
-+			: "memory");					\
- 	return t;							\
- }
- 
-@@ -71,7 +72,8 @@ static inline int atomic_fetch_##op(int i, atomic_t *v)			\
- 			"	casl %2,%1,%0\n"			\
- 			"	jne 1b"					\
- 			: "+m" (*v), "=&d" (t), "=&d" (tmp)		\
--			: "g" (i), "2" (atomic_read(v)));		\
-+			: "g" (i), "2" (atomic_read(v))			\
-+			: "memory");					\
- 	return tmp;							\
- }
- 
-@@ -141,7 +143,7 @@ static inline void atomic_dec(atomic_t *v)
- static inline int atomic_dec_and_test(atomic_t *v)
- {
- 	char c;
--	__asm__ __volatile__("subql #1,%1; seq %0" : "=d" (c), "+m" (*v));
-+	__asm__ __volatile__("subql #1,%1; seq %0" : "=d" (c), "+m" (*v) : : "memory");
- 	return c != 0;
- }
- 
-@@ -151,14 +153,15 @@ static inline int atomic_dec_and_test_lt(atomic_t *v)
- 	__asm__ __volatile__(
- 		"subql #1,%1; slt %0"
- 		: "=d" (c), "=m" (*v)
--		: "m" (*v));
-+		: "m" (*v)
-+		: "memory");
- 	return c != 0;
- }
- 
- static inline int atomic_inc_and_test(atomic_t *v)
- {
- 	char c;
--	__asm__ __volatile__("addql #1,%1; seq %0" : "=d" (c), "+m" (*v));
-+	__asm__ __volatile__("addql #1,%1; seq %0" : "=d" (c), "+m" (*v) : : "memory");
- 	return c != 0;
- }
- 
-@@ -204,7 +207,8 @@ static inline int atomic_sub_and_test(int i, atomic_t *v)
- 	char c;
- 	__asm__ __volatile__("subl %2,%1; seq %0"
- 			     : "=d" (c), "+m" (*v)
--			     : ASM_DI (i));
-+			     : ASM_DI (i)
-+			     : "memory");
- 	return c != 0;
- }
- 
-@@ -213,7 +217,8 @@ static inline int atomic_add_negative(int i, atomic_t *v)
- 	char c;
- 	__asm__ __volatile__("addl %2,%1; smi %0"
- 			     : "=d" (c), "+m" (*v)
--			     : ASM_DI (i));
-+			     : ASM_DI (i)
-+			     : "memory");
- 	return c != 0;
- }
- 
-diff --git a/arch/m68k/include/asm/cmpxchg.h b/arch/m68k/include/asm/cmpxchg.h
-index 83b1df80f0ac..d8b3d2b48785 100644
---- a/arch/m68k/include/asm/cmpxchg.h
-+++ b/arch/m68k/include/asm/cmpxchg.h
-@@ -98,17 +98,20 @@ static inline unsigned long __cmpxchg(volatile void *p, unsigned long old,
- 	case 1:
- 		__asm__ __volatile__ ("casb %0,%2,%1"
- 				      : "=d" (old), "=m" (*(char *)p)
--				      : "d" (new), "0" (old), "m" (*(char *)p));
-+				      : "d" (new), "0" (old), "m" (*(char *)p)
-+				      : "memory");
- 		break;
- 	case 2:
- 		__asm__ __volatile__ ("casw %0,%2,%1"
- 				      : "=d" (old), "=m" (*(short *)p)
--				      : "d" (new), "0" (old), "m" (*(short *)p));
-+				      : "d" (new), "0" (old), "m" (*(short *)p)
-+				      : "memory");
- 		break;
- 	case 4:
- 		__asm__ __volatile__ ("casl %0,%2,%1"
- 				      : "=d" (old), "=m" (*(int *)p)
--				      : "d" (new), "0" (old), "m" (*(int *)p));
-+				      : "d" (new), "0" (old), "m" (*(int *)p)
-+				      : "memory");
- 		break;
- 	default:
- 		old = __invalid_cmpxchg_size(p, old, new, size);
+Cheers,
+Longman
