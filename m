@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0099.outbound.protection.outlook.com ([207.46.100.99]:27690
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1bon0081.outbound.protection.outlook.com ([157.56.111.81]:35568
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932891AbcFQXzW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jun 2016 19:55:22 -0400
+	id S1753475AbcFQXyv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 19:54:51 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 09/19] arm64: ilp32: add is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64
-Date: Sat, 18 Jun 2016 02:54:18 +0300
-Message-ID: <1466207668-10549-10-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 03/19] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+Date: Sat, 18 Jun 2016 02:54:12 +0300
+Message-ID: <1466207668-10549-4-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,129 +15,77 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Message-ID: <20160617235418.urx_rpUVI94L54_gxTyQngkCjJLnjvggR9DgUk6nusA@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+Message-ID: <20160617235412.vfRJgQgGfMpdB3sef0VPtMAmnUjDJ3y2NbShEiaq5k8@z>
 
-ILP32 tasks are needed to be distinguished from lp64 and aarch32.
-This patch adds helper functions is_ilp32_compat_{task,thread} and
-thread flag TIF_32BIT_AARCH64 to address it. This is a preparation
-for following patches in ilp32 patchset.
+Based on Andrew Pinski's patch-series.
 
-For consistency, SET_PERSONALITY is changed here accordingly.
-
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/include/asm/elf.h         | 13 +++++++++++--
- arch/arm64/include/asm/is_compat.h   | 30 ++++++++++++++++++++++++++++--
- arch/arm64/include/asm/thread_info.h |  2 ++
- 3 files changed, 41 insertions(+), 4 deletions(-)
+ Documentation/arm64/ilp32.txt | 54 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+ create mode 100644 Documentation/arm64/ilp32.txt
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index bef2d90..a967726 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -142,7 +142,11 @@ typedef struct user_fpsimd_state elf_fpregset_t;
-  */
- #define ELF_PLAT_INIT(_r, load_addr)	(_r)->regs[0] = 0
- 
--#define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
-+#define SET_PERSONALITY(ex)		\
-+do {						\
-+	clear_thread_flag(TIF_32BIT_AARCH64);	\
-+	clear_thread_flag(TIF_32BIT);		\
-+} while (0)
- 
- #define ARCH_DLINFO							\
- do {									\
-@@ -182,7 +186,12 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
- 					 ((x)->e_flags & EF_ARM_EABI_MASK))
- 
- #define compat_start_thread		compat_start_thread
--#define COMPAT_SET_PERSONALITY(ex)	set_thread_flag(TIF_32BIT);
-+#define COMPAT_SET_PERSONALITY(ex)		\
-+do {						\
-+	clear_thread_flag(TIF_32BIT_AARCH64);	\
-+	set_thread_flag(TIF_32BIT);		\
-+} while (0)
+diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+new file mode 100644
+index 0000000..d5faa31
+--- /dev/null
++++ b/Documentation/arm64/ilp32.txt
+@@ -0,0 +1,54 @@
++ILP32 AARCH64 SYSCALL ABI
++=========================
 +
- #define COMPAT_ARCH_DLINFO
- extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
- 				      int uses_interp);
-diff --git a/arch/arm64/include/asm/is_compat.h b/arch/arm64/include/asm/is_compat.h
-index 8dba5ca..7726beb 100644
---- a/arch/arm64/include/asm/is_compat.h
-+++ b/arch/arm64/include/asm/is_compat.h
-@@ -45,18 +45,44 @@ static inline int is_a32_compat_thread(struct thread_info *thread)
- 
- #endif /* CONFIG_AARCH32_EL0 */
- 
-+#ifdef CONFIG_ARM64_ILP32
++This document describes the ILP32 syscall ABI and where it differs
++from the generic compat linux syscall interface.
 +
-+static inline int is_ilp32_compat_task(void)
-+{
-+	return test_thread_flag(TIF_32BIT_AARCH64);
-+}
++AARCH64/ILP32 userspace can potentially access top halves of registers that
++are passed as syscall arguments, so such registers (w0-w7) are deloused.
 +
-+static inline int is_ilp32_compat_thread(struct thread_info *thread)
-+{
-+	return test_ti_thread_flag(thread, TIF_32BIT_AARCH64);
-+}
++AARCH64/ILP32 provides next types turned to 64-bit (comparing to AARCH32):
++ino_t       is u64 type.
++off_t       is s64 type.
++blkcnt_t    is s64 type.
++fsblkcnt_t  is u64 type.
++fsfilcnt_t  is u64 type.
 +
-+#else
++AARCH64/ILP32 ABI uses standard syscall table which can be found at
++include/uapi/asm-generic/unistd.h, with the exceptions listed below.
 +
-+static inline int is_ilp32_compat_task(void)
-+{
-+	return 0;
-+}
++Syscalls which pass 64bit values are handled by the code shared from
++AARCH32 and pass that value as a pair. Next syscalls are affected:
++fadvise64_64()
++fallocate()
++ftruncate64()		
++pread64	()
++pwrite64()
++readahead()
++sync_file_range()
++truncate64()
++sys_mmap()
 +
-+static inline int is_ilp32_compat_thread(struct thread_info *thread)
-+{
-+	return 0;
-+}
++ptrace() syscall is handled by compat version.
 +
-+#endif /* CONFIG_ARM64_ILP32 */
++fcntl64() syscall is handled by non-compat handler as struct flock for ilp32
++is the same as for lp64
 +
- #ifdef CONFIG_COMPAT
- 
- static inline int is_compat_task(void)
- {
--	return is_a32_compat_task();
-+	return is_a32_compat_task() || is_ilp32_compat_task();
- }
- 
- #endif /* CONFIG_COMPAT */
- 
- static inline int is_compat_thread(struct thread_info *thread)
- {
--	return is_a32_compat_thread(thread);
-+	return is_a32_compat_thread(thread) || is_ilp32_compat_thread(thread);
- }
- 
- 
-diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-index 4daa559..8802645 100644
---- a/arch/arm64/include/asm/thread_info.h
-+++ b/arch/arm64/include/asm/thread_info.h
-@@ -119,6 +119,7 @@ static inline struct thread_info *current_thread_info(void)
- #define TIF_RESTORE_SIGMASK	20
- #define TIF_SINGLESTEP		21
- #define TIF_32BIT		22	/* AARCH32 process */
-+#define TIF_32BIT_AARCH64	23	/* 32 bit process on AArch64(ILP32) */
- 
- #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
- #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-@@ -130,6 +131,7 @@ static inline struct thread_info *current_thread_info(void)
- #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
- #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
- #define _TIF_32BIT		(1 << TIF_32BIT)
-+#define _TIF_32BIT_AARCH64	(1 << TIF_32BIT_AARCH64)
- 
- #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
- 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE)
++shmat() syscall is handled by non-compat handler as aarch64/ilp32 has no
++limitation on 4-pages alignement for shared memory.
++
++Syscalls which take a pointer to stat, stat64, statfs, statfs64
++structures are now routed to native handlers directly, as aarch64/ilp32
++defines userspace ino_t, off_t, blkcnt_t, fsblkcnt_t, fsfilcnt_t types
++as 64-bit and it makes that structures have same layout as lp64.
++Next syscalls are affected:
++fstatat64()
++fstat64()
++statfs64()
++fstatfs64()
++
++struct rt_sigframe is redefined and contains struct compat_siginfo,
++as compat syscalls expects, and struct ilp32_sigframe, to handle
++AARCH64 register set and 32-bit userspace register representation.h
++
++elf_gregset_t is taken from lp64 to handle registers properly.
 -- 
 2.7.4
 
