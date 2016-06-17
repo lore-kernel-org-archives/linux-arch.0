@@ -1,7 +1,7 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 03/19] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
-Date: Sat, 18 Jun 2016 02:54:12 +0300
-Message-ID: <1466207668-10549-4-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 07/19] thread: move thread bits accessors to separated file
+Date: Sat, 18 Jun 2016 02:54:16 +0300
+Message-ID: <1466207668-10549-8-git-send-email-ynorov@caviumnetworks.com>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,73 +12,142 @@ To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
 List-Id: linux-arch.vger.kernel.org
 
-Based on Andrew Pinski's patch-series.
+They may be accessed from low-level code, so isolating is a measure to
+avoid circular dependencies in header files.
+
+The exact reason for circular dependency is WARN_ON() macro added by Al
+Viro in patch [edd63a27] "set_restore_sigmask() is never called without
+SIGPENDING (and never should be)"
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- Documentation/arm64/ilp32.txt | 54 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 54 insertions(+)
- create mode 100644 Documentation/arm64/ilp32.txt
+ include/linux/thread_bits.h | 55 +++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/thread_info.h | 44 +-----------------------------------
+ 2 files changed, 56 insertions(+), 43 deletions(-)
+ create mode 100644 include/linux/thread_bits.h
 
-diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
+diff --git a/include/linux/thread_bits.h b/include/linux/thread_bits.h
 new file mode 100644
-index 0000000..d5faa31
+index 0000000..0d05d16
 --- /dev/null
-+++ b/Documentation/arm64/ilp32.txt
-@@ -0,0 +1,54 @@
-+ILP32 AARCH64 SYSCALL ABI
-+=========================
++++ b/include/linux/thread_bits.h
+@@ -0,0 +1,55 @@
 +
-+This document describes the ILP32 syscall ABI and where it differs
-+from the generic compat linux syscall interface.
++/* thread_bits.h: common low-level thread bits accessors */
 +
-+AARCH64/ILP32 userspace can potentially access top halves of registers that
-+are passed as syscall arguments, so such registers (w0-w7) are deloused.
++#ifndef _LINUX_THREAD_BITS_H
++#define _LINUX_THREAD_BITS_H
 +
-+AARCH64/ILP32 provides next types turned to 64-bit (comparing to AARCH32):
-+ino_t       is u64 type.
-+off_t       is s64 type.
-+blkcnt_t    is s64 type.
-+fsblkcnt_t  is u64 type.
-+fsfilcnt_t  is u64 type.
++#ifndef __ASSEMBLY__
 +
-+AARCH64/ILP32 ABI uses standard syscall table which can be found at
-+include/uapi/asm-generic/unistd.h, with the exceptions listed below.
++#include <linux/bitops.h>
++#include <asm/thread_info.h>
 +
-+Syscalls which pass 64bit values are handled by the code shared from
-+AARCH32 and pass that value as a pair. Next syscalls are affected:
-+fadvise64_64()
-+fallocate()
-+ftruncate64()		
-+pread64	()
-+pwrite64()
-+readahead()
-+sync_file_range()
-+truncate64()
-+sys_mmap()
++/*
++ * flag set/clear/test wrappers
++ * - pass TIF_xxxx constants to these functions
++ */
 +
-+ptrace() syscall is handled by compat version.
++static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	set_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+fcntl64() syscall is handled by non-compat handler as struct flock for ilp32
-+is the same as for lp64
++static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	clear_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+shmat() syscall is handled by non-compat handler as aarch64/ilp32 has no
-+limitation on 4-pages alignement for shared memory.
++static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+Syscalls which take a pointer to stat, stat64, statfs, statfs64
-+structures are now routed to native handlers directly, as aarch64/ilp32
-+defines userspace ino_t, off_t, blkcnt_t, fsblkcnt_t, fsfilcnt_t types
-+as 64-bit and it makes that structures have same layout as lp64.
-+Next syscalls are affected:
-+fstatat64()
-+fstat64()
-+statfs64()
-+fstatfs64()
++static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+struct rt_sigframe is redefined and contains struct compat_siginfo,
-+as compat syscalls expects, and struct ilp32_sigframe, to handle
-+AARCH64 register set and 32-bit userspace register representation.h
++static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+elf_gregset_t is taken from lp64 to handle registers properly.
++#define set_thread_flag(flag) \
++	set_ti_thread_flag(current_thread_info(), flag)
++#define clear_thread_flag(flag) \
++	clear_ti_thread_flag(current_thread_info(), flag)
++#define test_and_set_thread_flag(flag) \
++	test_and_set_ti_thread_flag(current_thread_info(), flag)
++#define test_and_clear_thread_flag(flag) \
++	test_and_clear_ti_thread_flag(current_thread_info(), flag)
++#define test_thread_flag(flag) \
++	test_ti_thread_flag(current_thread_info(), flag)
++
++#endif /* !__ASSEMBLY__ */
++#endif /* _LINUX_THREAD_BITS_H */
++
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index b4c2a48..b094aed 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -50,8 +50,7 @@ struct restart_block {
+ 
+ extern long do_no_restart_syscall(struct restart_block *parm);
+ 
+-#include <linux/bitops.h>
+-#include <asm/thread_info.h>
++#include <linux/thread_bits.h>
+ 
+ #ifdef __KERNEL__
+ 
+@@ -62,47 +61,6 @@ extern long do_no_restart_syscall(struct restart_block *parm);
+ # define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK)
+ #endif
+ 
+-/*
+- * flag set/clear/test wrappers
+- * - pass TIF_xxxx constants to these functions
+- */
+-
+-static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	set_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	clear_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-#define set_thread_flag(flag) \
+-	set_ti_thread_flag(current_thread_info(), flag)
+-#define clear_thread_flag(flag) \
+-	clear_ti_thread_flag(current_thread_info(), flag)
+-#define test_and_set_thread_flag(flag) \
+-	test_and_set_ti_thread_flag(current_thread_info(), flag)
+-#define test_and_clear_thread_flag(flag) \
+-	test_and_clear_ti_thread_flag(current_thread_info(), flag)
+-#define test_thread_flag(flag) \
+-	test_ti_thread_flag(current_thread_info(), flag)
+-
+ #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
+ 
+ #if defined TIF_RESTORE_SIGMASK && !defined HAVE_SET_RESTORE_SIGMASK
 -- 
 2.7.4
