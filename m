@@ -1,49 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:59034 "EHLO mail.kernel.org"
+Received: from mx1.redhat.com ([209.132.183.28]:60706 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932744AbcFQUA5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jun 2016 16:00:57 -0400
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 02/13] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
-Date: Fri, 17 Jun 2016 13:00:38 -0700
-Message-ID: <832aa0209ca4bd94b043add243ac36ab56285639.1466192946.git.luto@kernel.org>
-In-Reply-To: <cover.1466192946.git.luto@kernel.org>
+	id S1755113AbcFQU5b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 16:57:31 -0400
+Date: Fri, 17 Jun 2016 15:57:28 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 06/13] fork: Add generic vmalloced stack support
+Message-ID: <20160617205728.qgha2qeubdkg73uh@treble>
 References: <cover.1466192946.git.luto@kernel.org>
-In-Reply-To: <cover.1466192946.git.luto@kernel.org>
-References: <cover.1466192946.git.luto@kernel.org>
+ <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160617200038.OdT7tQX9xerz6O014ITUpMiytdAfZES7hD8olyTfXZA@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160617205728.H_CJ1W1Trx20tEnVTa9m384zy_SFBDkGQr0hDSj2Odg@z>
 
-This avoids pointless races in which another CPU or task might see a
-partially populated global pgd entry.  These races should normally
-be harmless, but, if another CPU propagates the entry via
-vmalloc_fault and then populate_pgd fails (due to memory allocation
-failure, for example), this prevents a use-after-free of the pgd
-entry.
+On Fri, Jun 17, 2016 at 01:00:42PM -0700, Andy Lutomirski wrote:
+> @@ -213,24 +232,46 @@ struct kmem_cache *vm_area_cachep;
+>  /* SLAB cache for mm_struct structures (tsk->mm) */
+>  static struct kmem_cache *mm_cachep;
+>  
+> -static void account_kernel_stack(struct thread_info *ti, int account)
+> +static void account_kernel_stack(struct task_struct *tsk, int account)
+>  {
+> -	struct zone *zone = page_zone(virt_to_page(ti));
+> +	struct zone *zone;
+> +	struct thread_info *ti = task_thread_info(tsk);
+> +	struct vm_struct *vm = task_stack_vm_area(tsk);
+> +
+> +	BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
+> +
+> +	if (vm) {
+> +		int i;
+>  
+> -	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
+> -			    THREAD_SIZE / 1024 * account);
+> +		BUG_ON(vm->nr_pages != THREAD_SIZE / PAGE_SIZE);
+>  
+> -	/* All stack pages belong to the same memcg. */
+> -	memcg_kmem_update_page_stat(
+> -		virt_to_page(ti), MEMCG_KERNEL_STACK,
+> -		account * (THREAD_SIZE / PAGE_SIZE));
+> +		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
+> +			mod_zone_page_state(page_zone(vm->pages[i]),
+> +					    1, PAGE_SIZE / 1024 * account);
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/mm/pageattr.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+Shouldn't the second argument be NR_KERNEL_STACK_KB instead of 1?
 
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 7a1f7bbf4105..6a8026918bf6 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
- 
- 	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
- 	if (ret < 0) {
--		unmap_pgd_range(cpa->pgd, addr,
-+		if (pud)
-+			free_page((unsigned long)pud);
-+		unmap_pud_range(pgd_entry, addr,
- 				addr + (cpa->numpages << PAGE_SHIFT));
- 		return ret;
- 	}
 -- 
-2.5.5
-
+Josh
