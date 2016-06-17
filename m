@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0091.outbound.protection.outlook.com ([65.55.169.91]:11344
+Received: from mail-bl2on0096.outbound.protection.outlook.com ([65.55.169.96]:26411
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755281AbcFQXzK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jun 2016 19:55:10 -0400
+	id S932858AbcFQXzv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jun 2016 19:55:51 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 07/19] thread: move thread bits accessors to separated file
-Date: Sat, 18 Jun 2016 02:54:16 +0300
-Message-ID: <1466207668-10549-8-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 16/19] arm64: signal32: move ilp32 and aarch32 common code to separated file
+Date: Sat, 18 Jun 2016 02:54:25 +0300
+Message-ID: <1466207668-10549-17-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,145 +16,279 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
-Message-ID: <20160617235416.HKNKfqtWgN7FI9pzYv6syPJ0O4_CPHcssmIhZrHKlTc@z>
-
-They may be accessed from low-level code, so isolating is a measure to
-avoid circular dependencies in header files.
-
-The exact reason for circular dependency is WARN_ON() macro added by Al
-Viro in patch [edd63a27] "set_restore_sigmask() is never called without
-SIGPENDING (and never should be)"
+Message-ID: <20160617235425.E4VyqPib0E-ZERfOd5kJxmwOGHxWV93akWRydct04mw@z>
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- include/linux/thread_bits.h | 55 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/thread_info.h | 44 +-----------------------------------
- 2 files changed, 56 insertions(+), 43 deletions(-)
- create mode 100644 include/linux/thread_bits.h
+ arch/arm64/include/asm/signal32_common.h |  25 +++++++
+ arch/arm64/kernel/Makefile               |   2 +-
+ arch/arm64/kernel/signal32.c             |  85 -----------------------
+ arch/arm64/kernel/signal32_common.c      | 115 +++++++++++++++++++++++++++++++
+ 4 files changed, 141 insertions(+), 86 deletions(-)
+ create mode 100644 arch/arm64/include/asm/signal32_common.h
+ create mode 100644 arch/arm64/kernel/signal32_common.c
 
-diff --git a/include/linux/thread_bits.h b/include/linux/thread_bits.h
+diff --git a/arch/arm64/include/asm/signal32_common.h b/arch/arm64/include/asm/signal32_common.h
 new file mode 100644
-index 0000000..0d05d16
+index 0000000..b4f2099
 --- /dev/null
-+++ b/include/linux/thread_bits.h
-@@ -0,0 +1,55 @@
-+
-+/* thread_bits.h: common low-level thread bits accessors */
-+
-+#ifndef _LINUX_THREAD_BITS_H
-+#define _LINUX_THREAD_BITS_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/bitops.h>
-+#include <asm/thread_info.h>
-+
++++ b/arch/arm64/include/asm/signal32_common.h
+@@ -0,0 +1,25 @@
 +/*
-+ * flag set/clear/test wrappers
-+ * - pass TIF_xxxx constants to these functions
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SIGNAL32_COMMON_H
++#define __ASM_SIGNAL32_COMMON_H
++
++#ifdef CONFIG_COMPAT
++
++int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from);
++int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from);
++
++#endif /* CONFIG_COMPAT*/
++
++#endif /* __ASM_SIGNAL32_COMMON_H */
++
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 205bc03..d69bd40 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -29,7 +29,7 @@ arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
+ 					   sys_compat.o entry32.o		\
+ 					   ../../arm/kernel/opcodes.o binfmt_elf32.o
+ arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
+-arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
++arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
+ arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+ arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index b7063de..b103af3 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -125,91 +125,6 @@ static inline int get_sigset_t(sigset_t *set,
+ 	return 0;
+ }
+ 
+-int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
+-{
+-	int err;
+-
+-	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
+-		return -EFAULT;
+-
+-	/* If you change siginfo_t structure, please be sure
+-	 * this code is fixed accordingly.
+-	 * It should never copy any pad contained in the structure
+-	 * to avoid security leaks, but must copy the generic
+-	 * 3 ints plus the relevant union member.
+-	 * This routine must convert siginfo from 64bit to 32bit as well
+-	 * at the same time.
+-	 */
+-	err = __put_user(from->si_signo, &to->si_signo);
+-	err |= __put_user(from->si_errno, &to->si_errno);
+-	err |= __put_user((short)from->si_code, &to->si_code);
+-	if (from->si_code < 0)
+-		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
+-				      SI_PAD_SIZE);
+-	else switch (from->si_code & __SI_MASK) {
+-	case __SI_KILL:
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		break;
+-	case __SI_TIMER:
+-		 err |= __put_user(from->si_tid, &to->si_tid);
+-		 err |= __put_user(from->si_overrun, &to->si_overrun);
+-		 err |= __put_user(from->si_int, &to->si_int);
+-		break;
+-	case __SI_POLL:
+-		err |= __put_user(from->si_band, &to->si_band);
+-		err |= __put_user(from->si_fd, &to->si_fd);
+-		break;
+-	case __SI_FAULT:
+-		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
+-				  &to->si_addr);
+-#ifdef BUS_MCEERR_AO
+-		/*
+-		 * Other callers might not initialize the si_lsb field,
+-		 * so check explicitly for the right codes here.
+-		 */
+-		if (from->si_signo == SIGBUS &&
+-		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
+-			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
+-#endif
+-		break;
+-	case __SI_CHLD:
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		err |= __put_user(from->si_status, &to->si_status);
+-		err |= __put_user(from->si_utime, &to->si_utime);
+-		err |= __put_user(from->si_stime, &to->si_stime);
+-		break;
+-	case __SI_RT: /* This is not generated by the kernel as of now. */
+-	case __SI_MESGQ: /* But this is */
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		err |= __put_user(from->si_int, &to->si_int);
+-		break;
+-	case __SI_SYS:
+-		err |= __put_user((compat_uptr_t)(unsigned long)
+-				from->si_call_addr, &to->si_call_addr);
+-		err |= __put_user(from->si_syscall, &to->si_syscall);
+-		err |= __put_user(from->si_arch, &to->si_arch);
+-		break;
+-	default: /* this is just in case for now ... */
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		break;
+-	}
+-	return err;
+-}
+-
+-int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
+-{
+-	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
+-	    copy_from_user(to->_sifields._pad,
+-			   from->_sifields._pad, SI_PAD_SIZE))
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
+ /*
+  * VFP save/restore code.
+  *
+diff --git a/arch/arm64/kernel/signal32_common.c b/arch/arm64/kernel/signal32_common.c
+new file mode 100644
+index 0000000..8fbb609
+--- /dev/null
++++ b/arch/arm64/kernel/signal32_common.c
+@@ -0,0 +1,115 @@
++/*
++ * Based on arch/arm/kernel/signal.c
++ *
++ * Copyright (C) 1995-2009 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ * Modified by Will Deacon <will.deacon@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
++#include <linux/compat.h>
++#include <linux/signal.h>
++#include <linux/ratelimit.h>
++
++#include <asm/esr.h>
++#include <asm/fpsimd.h>
++#include <asm/signal32_common.h>
++#include <asm/uaccess.h>
++#include <asm/unistd.h>
++
++int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
 +{
-+	set_bit(flag, (unsigned long *)&ti->flags);
++	int err;
++
++	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
++		return -EFAULT;
++
++	/* If you change siginfo_t structure, please be sure
++	 * this code is fixed accordingly.
++	 * It should never copy any pad contained in the structure
++	 * to avoid security leaks, but must copy the generic
++	 * 3 ints plus the relevant union member.
++	 * This routine must convert siginfo from 64bit to 32bit as well
++	 * at the same time.
++	 */
++	err = __put_user(from->si_signo, &to->si_signo);
++	err |= __put_user(from->si_errno, &to->si_errno);
++	err |= __put_user((short)from->si_code, &to->si_code);
++	if (from->si_code < 0)
++		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
++				      SI_PAD_SIZE);
++	else switch (from->si_code & __SI_MASK) {
++	case __SI_KILL:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	case __SI_TIMER:
++		 err |= __put_user(from->si_tid, &to->si_tid);
++		 err |= __put_user(from->si_overrun, &to->si_overrun);
++		 err |= __put_user(from->si_int, &to->si_int);
++		break;
++	case __SI_POLL:
++		err |= __put_user(from->si_band, &to->si_band);
++		err |= __put_user(from->si_fd, &to->si_fd);
++		break;
++	case __SI_FAULT:
++		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
++				  &to->si_addr);
++#ifdef BUS_MCEERR_AO
++		/*
++		 * Other callers might not initialize the si_lsb field,
++		 * so check explicitly for the right codes here.
++		 */
++		if (from->si_signo == SIGBUS &&
++		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
++			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
++#endif
++		break;
++	case __SI_CHLD:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		err |= __put_user(from->si_status, &to->si_status);
++		err |= __put_user(from->si_utime, &to->si_utime);
++		err |= __put_user(from->si_stime, &to->si_stime);
++		break;
++	case __SI_RT: /* This is not generated by the kernel as of now. */
++	case __SI_MESGQ: /* But this is */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		err |= __put_user(from->si_int, &to->si_int);
++		break;
++	case __SI_SYS:
++		err |= __put_user((compat_uptr_t)(unsigned long)
++				from->si_call_addr, &to->si_call_addr);
++		err |= __put_user(from->si_syscall, &to->si_syscall);
++		err |= __put_user(from->si_arch, &to->si_arch);
++		break;
++	default: /* this is just in case for now ... */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	}
++	return err;
 +}
 +
-+static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
++int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
 +{
-+	clear_bit(flag, (unsigned long *)&ti->flags);
++	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
++	    copy_from_user(to->_sifields._pad,
++			   from->_sifields._pad, SI_PAD_SIZE))
++		return -EFAULT;
++
++	return 0;
 +}
 +
-+static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
-+{
-+	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
-+}
-+
-+static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
-+{
-+	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
-+}
-+
-+static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
-+{
-+	return test_bit(flag, (unsigned long *)&ti->flags);
-+}
-+
-+#define set_thread_flag(flag) \
-+	set_ti_thread_flag(current_thread_info(), flag)
-+#define clear_thread_flag(flag) \
-+	clear_ti_thread_flag(current_thread_info(), flag)
-+#define test_and_set_thread_flag(flag) \
-+	test_and_set_ti_thread_flag(current_thread_info(), flag)
-+#define test_and_clear_thread_flag(flag) \
-+	test_and_clear_ti_thread_flag(current_thread_info(), flag)
-+#define test_thread_flag(flag) \
-+	test_ti_thread_flag(current_thread_info(), flag)
-+
-+#endif /* !__ASSEMBLY__ */
-+#endif /* _LINUX_THREAD_BITS_H */
-+
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index b4c2a48..b094aed 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -50,8 +50,7 @@ struct restart_block {
- 
- extern long do_no_restart_syscall(struct restart_block *parm);
- 
--#include <linux/bitops.h>
--#include <asm/thread_info.h>
-+#include <linux/thread_bits.h>
- 
- #ifdef __KERNEL__
- 
-@@ -62,47 +61,6 @@ extern long do_no_restart_syscall(struct restart_block *parm);
- # define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK)
- #endif
- 
--/*
-- * flag set/clear/test wrappers
-- * - pass TIF_xxxx constants to these functions
-- */
--
--static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	set_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	clear_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
--}
--
--static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
--{
--	return test_bit(flag, (unsigned long *)&ti->flags);
--}
--
--#define set_thread_flag(flag) \
--	set_ti_thread_flag(current_thread_info(), flag)
--#define clear_thread_flag(flag) \
--	clear_ti_thread_flag(current_thread_info(), flag)
--#define test_and_set_thread_flag(flag) \
--	test_and_set_ti_thread_flag(current_thread_info(), flag)
--#define test_and_clear_thread_flag(flag) \
--	test_and_clear_ti_thread_flag(current_thread_info(), flag)
--#define test_thread_flag(flag) \
--	test_ti_thread_flag(current_thread_info(), flag)
--
- #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
- 
- #if defined TIF_RESTORE_SIGMASK && !defined HAVE_SET_RESTORE_SIGMASK
 -- 
 2.7.4
 
