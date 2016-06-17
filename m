@@ -1,73 +1,105 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 05/13] mm: Move memcg stack accounting to account_kernel_stack
-Date: Fri, 17 Jun 2016 13:00:41 -0700
-Message-ID: <8a17889a9d47b7b4deb41f2fcccada8bf54d4b6f.1466192946.git.luto@kernel.org>
+Subject: [PATCH v2 08/13] x86/dumpstack: When OOPSing, rewind the stack before do_exit
+Date: Fri, 17 Jun 2016 13:00:44 -0700
+Message-ID: <b22badbe9ebcb6ad283b243f851c1b7d33d5bb2a.1466192946.git.luto@kernel.org>
 References: <cover.1466192946.git.luto@kernel.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1466192946.git.luto@kernel.org>
 In-Reply-To: <cover.1466192946.git.luto@kernel.org>
 References: <cover.1466192946.git.luto@kernel.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-We should account for stacks regardless of stack size.  Move it into
-account_kernel_stack.
+If we call do_exit with a clean stack, we greatly reduce the risk of
+recursive oopses due to stack overflow in do_exit, and we allow
+do_exit to work even if we OOPS from an IST stack.  The latter gives
+us a much better chance of surviving long enough after we detect a
+stack overflow to write out our logs.
 
-Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
+I intentionally separated this from the preceding patch that
+disables do_exit-on-OOPS on IST stacks.  This way, if we need to
+revert this patch, we still end up in an acceptable state wrt stack
+overflow handling.
+
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- kernel/fork.c | 15 ++++++---------
- 1 file changed, 6 insertions(+), 9 deletions(-)
+ arch/x86/entry/entry_32.S   | 11 +++++++++++
+ arch/x86/entry/entry_64.S   | 11 +++++++++++
+ arch/x86/kernel/dumpstack.c | 13 +++++++++----
+ 3 files changed, 31 insertions(+), 4 deletions(-)
 
-diff --git a/kernel/fork.c b/kernel/fork.c
-index be7f006af727..cd2abe6e4e41 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -165,20 +165,12 @@ static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
- 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
- 						  THREAD_SIZE_ORDER);
- 
--	if (page)
--		memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--					    1 << THREAD_SIZE_ORDER);
--
- 	return page ? page_address(page) : NULL;
- }
- 
- static inline void free_thread_info(struct thread_info *ti)
- {
--	struct page *page = virt_to_page(ti);
--
--	memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--				    -(1 << THREAD_SIZE_ORDER));
--	__free_kmem_pages(page, THREAD_SIZE_ORDER);
-+	free_kmem_pages((unsigned long)ti, THREAD_SIZE_ORDER);
- }
- # else
- static struct kmem_cache *thread_info_cache;
-@@ -227,6 +219,11 @@ static void account_kernel_stack(struct thread_info *ti, int account)
- 
- 	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
- 			    THREAD_SIZE / 1024 * account);
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index 983e5d3a0d27..0b56666e6039 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
+ 	jmp	error_code
+ END(async_page_fault)
+ #endif
 +
-+	/* All stack pages belong to the same memcg. */
-+	memcg_kmem_update_page_stat(
-+		virt_to_page(ti), MEMCG_KERNEL_STACK,
-+		account * (THREAD_SIZE / PAGE_SIZE));
- }
++ENTRY(rewind_stack_do_exit)
++	/* Prevent any naive code from trying to unwind to our caller. */
++	xorl	%ebp, %ebp
++
++	movl	PER_CPU_VAR(cpu_current_top_of_stack), %esi
++	leal	-TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
++
++	call	do_exit
++1:	jmp 1b
++END(rewind_stack_do_exit)
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 9ee0da1807ed..b846875aeea6 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
+ 	mov	$-ENOSYS, %eax
+ 	sysret
+ END(ignore_sysret)
++
++ENTRY(rewind_stack_do_exit)
++	/* Prevent any naive code from trying to unwind to our caller. */
++	xorl	%ebp, %ebp
++
++	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rax
++	leaq	-TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%rax), %rsp
++
++	call	do_exit
++1:	jmp 1b
++END(rewind_stack_do_exit)
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index 36effb39c9c9..d4d085e27d04 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -228,6 +228,8 @@ unsigned long oops_begin(void)
+ EXPORT_SYMBOL_GPL(oops_begin);
+ NOKPROBE_SYMBOL(oops_begin);
  
- void free_task(struct task_struct *tsk)
++extern void __noreturn rewind_stack_do_exit(int signr);
++
+ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+ {
+ 	if (regs && kexec_should_crash(current))
+@@ -247,12 +249,15 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+ 		return;
+ 	if (in_interrupt())
+ 		panic("Fatal exception in interrupt");
+-	if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
+-	     & ~(THREAD_SIZE - 1)) != 0)
+-		panic("Fatal exception on special stack");
+ 	if (panic_on_oops)
+ 		panic("Fatal exception");
+-	do_exit(signr);
++
++	/*
++	 * We're not going to return, but we might be on an IST stack or
++	 * have very little stack space left.  Rewind the stack and kill
++	 * the task.
++	 */
++	rewind_stack_do_exit(signr);
+ }
+ NOKPROBE_SYMBOL(oops_end);
+ 
 -- 
 2.5.5
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
