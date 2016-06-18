@@ -1,130 +1,53 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [RFC PATCH-tip v2 1/6] locking/osq: Make lock/unlock proper
- acquire/release barrier
-Date: Sat, 18 Jun 2016 16:46:20 +0800
-Message-ID: <20160618084620.GA24424@insomnia>
-References: <1465944489-43440-1-git-send-email-Waiman.Long@hpe.com>
- <1465944489-43440-2-git-send-email-Waiman.Long@hpe.com>
- <20160615080446.GA28443@insomnia>
- <5761A5FF.5070703@hpe.com>
- <20160616021951.GA16918@insomnia>
- <57631BBA.9070505@hpe.com>
- <20160617004837.GB16918@insomnia>
- <576416B1.6020006@hpe.com>
- <20160617154536.GB1284@arm.com>
- <57643EB7.6030600@hpe.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v2 03/13] x86/cpa: Warn if kernel_unmap_pages_in_pgd is
+ used inappropriately
+Date: Sat, 18 Jun 2016 03:29:01 -0700
+Message-ID: <CALCETrW-i8p=w5PTW817kAmfybHUntYkcAjc6sUsFJGcDGdnMA@mail.gmail.com>
+References: <cover.1466192946.git.luto@kernel.org> <3336bb02792d56c49d18e2f7a435fd194a4a22e4.1466192946.git.luto@kernel.org>
+ <20160617203045.GB3842@pd.tnic>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="7AUc2qLy4jB3hD7Z"
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <57643EB7.6030600@hpe.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Waiman Long <waiman.long@hpe.com>
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <kernel-hardening-return-3513-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20160617203045.GB3842@pd.tnic>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Matt Fleming <matt@codeblueprint.co.uk>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Jun 17, 2016 at 1:30 PM, Borislav Petkov <bp@alien8.de> wrote:
+> On Fri, Jun 17, 2016 at 01:00:39PM -0700, Andy Lutomirski wrote:
+>> It's currently only used in the EFI code, which is safe AFAICT.
+>
+> "It is basically useful for a pagetable hierarchy which is not init_mm."
+>
+>> Warn if anyone tries to use it on the normal kernel pgd.
+>>
+>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>> ---
+>>  arch/x86/mm/pageattr.c | 3 +++
+>>  1 file changed, 3 insertions(+)
+>>
+>> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+>> index 6a8026918bf6..e9b9c5cedbb8 100644
+>> --- a/arch/x86/mm/pageattr.c
+>> +++ b/arch/x86/mm/pageattr.c
+>> @@ -1996,6 +1996,9 @@ out:
+>>  void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+>>                              unsigned numpages)
+>>  {
+>> +     /* Unmapping kernel entries from init_mm's pgd is not allowed. */
+>> +     WARN_ON(root == init_mm.pgd);
+>
+> We can also return and not do the unmapping:
+>
+>         if (WARN_ON(root == init_mm.pgd))
+>                 return;
 
---7AUc2qLy4jB3hD7Z
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I'll do one better: the only function that calls this function is
+unused.  I'll just delete it.
 
-On Fri, Jun 17, 2016 at 02:17:27PM -0400, Waiman Long wrote:
-> On 06/17/2016 11:45 AM, Will Deacon wrote:
-> > On Fri, Jun 17, 2016 at 11:26:41AM -0400, Waiman Long wrote:
-> > > On 06/16/2016 08:48 PM, Boqun Feng wrote:
-> > > > On Thu, Jun 16, 2016 at 05:35:54PM -0400, Waiman Long wrote:
-> > > > > If you look into the actual code:
-> > > > >=20
-> > > > >          next =3D xchg_release(&node->next, NULL);
-> > > > >          if (next) {
-> > > > >                  WRITE_ONCE(next->locked, 1);
-> > > > >                  return;
-> > > > >          }
-> > > > >=20
-> > > > > There is a control dependency that WRITE_ONCE() won't happen until
-> > > > But a control dependency only orders LOAD->STORE pairs, right? And =
-here
-> > > > the control dependency orders the LOAD part of xchg_release() and t=
-he
-> > > > WRITE_ONCE().
-> > > >=20
-> > > > Along with the fact that RELEASE only orders the STORE part of xchg=
- with
-> > > > the memory operations preceding the STORE part, so for the following
-> > > > code:
-> > > >=20
-> > > > 	WRTIE_ONCE(x,1);
-> > > > 	next =3D xchg_release(&node->next, NULL);
-> > > > 	if (next)
-> > > > 		WRITE_ONCE(next->locked, 1);
-> > > >=20
-> > > > such a reordering is allowed to happen on ARM64v8
-> > > >=20
-> > > > 	next =3D ldxr [&node->next] // LOAD part of xchg_release()
-> > > >=20
-> > > > 	if (next)
-> > > > 		WRITE_ONCE(next->locked, 1);
-> > > >=20
-> > > > 	WRITE_ONCE(x,1);
-> > > > 	stlxr NULL [&node->next]  // STORE part of xchg_releae()
-> > > >=20
-> > > > Am I missing your point here?
-> > > My understanding of the release barrier is that both prior LOADs and =
-STOREs
-> > > can't move after the barrier. If WRITE_ONCE(x, 1) can move to below a=
-s shown
-> > > above, it is not a real release barrier and we may need to change the
-> > > barrier code.
-> > You seem to be missing the point.
-> >=20
-> > {READ,WRITE}_ONCE accesses appearing in program order after a release
-> > are not externally ordered with respect to the release unless they
-> > access the same location.
-> >=20
-> > This is illustrated by Boqun's example, which shows two WRITE_ONCE
-> > accesses being reordered before a store-release forming the write
-> > component of an xchg_release. In both cases, WRITE_ONCE(x, 1) remains
-> > ordered before the store-release.
-> >=20
-> > Will
->=20
-> I am sorry that I misread the mail. I am not used to treating xchg as two
-> separate instructions. Yes, it is a problem. In that case, we have to eit=
-her
-
-And sorry for the Red Pill ;-)
-
-> keep the xchg() function as it is or use smp_store_release(&next->locked,
-> 1). So which one is a better alternative for ARM or PPC?
->=20
-
-For PPC, I think xchg_release() + smp_store_release() is better than the=20
-current code, because the former has two lwsync while the latter has two
-sync, and sync is quite expensive than lwsync on PPC.
-
-I need to leave the ARM part to Will ;-)
-
-Regards,
-Boqun
-
-> Cheers,
-> Longman
-
---7AUc2qLy4jB3hD7Z
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJXZQpWAAoJEEl56MO1B/q4EvcIAJaKsjeT+0WpdzKQmZFFiCkl
-WM7yCDfa/eYz4qVkxMIaKluoR1SX/cMXUlRSSmJWqjrTczvDSugMPNYEVXCHJsdv
-qkWKdONYuz5fhzUBFqBK+B3usUUpRM4v/vUOE2BG7YE+yzZSpI5Sq5Y+KpI5xuUk
-UFq/4bV6jM5ufhMOARFdctIdHx3UUzZpAsQPwBx79cN3kSH2BUUx4PhHd3XQYw+Q
-HOLQB4jqd0TyKe2r6LJb+/FAsyl28nnLPo/pF7H8H+cGgCJaBKjouvA5TFV3yTD/
-FfiTf6fCpTJ7OIT9aLZnlZhfznYoHQ6pKHm6AdT5bCYmyJqv16gtPHvhZu43+0U=
-=FP4F
------END PGP SIGNATURE-----
-
---7AUc2qLy4jB3hD7Z--
+--Andy
