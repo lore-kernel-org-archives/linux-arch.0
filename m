@@ -1,43 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.9]:36275 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753334AbcFTRrM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2016 13:47:12 -0400
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement atomic_fetch_{add,sub,and,or,xor}()
-References: <20160531101925.702692792@infradead.org>
-	<20160531102642.333689893@infradead.org>
-	<CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com>
-	<20160616101309.GD30921@twins.programming.kicks-ass.net>
-	<mvmk2hpxq1a.fsf@hawking.suse.de>
-	<20160617154024.GY30154@twins.programming.kicks-ass.net>
-Date: Mon, 20 Jun 2016 19:47:00 +0200
-In-Reply-To: <20160617154024.GY30154@twins.programming.kicks-ass.net> (Peter
-	Zijlstra's message of "Fri, 17 Jun 2016 17:40:24 +0200")
-Message-ID: <87twgniwh7.fsf@linux-m68k.org>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mail.kernel.org ([198.145.29.136]:58034 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752289AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jun 2016 19:45:12 -0400
+From: Andy Lutomirski <luto@kernel.org>
+Subject: [PATCH v3 02/13] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
+Date: Mon, 20 Jun 2016 16:43:32 -0700
+Message-ID: <a69511534e25cd8600178f712ca65d8dd2077197.1466466093.git.luto@kernel.org>
+In-Reply-To: <cover.1466466093.git.luto@kernel.org>
+References: <cover.1466466093.git.luto@kernel.org>
+In-Reply-To: <cover.1466466093.git.luto@kernel.org>
+References: <cover.1466466093.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?utf-8?B?RnLDqWTDqXJpYw==?= Weisbecker <fweisbec@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, cmetcalf@mellanox.com, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, dbueso@suse.de, Wu Fengguang <fengguang.wu@intel.com>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-Message-ID: <20160620174700.dJQN5RLe-M2y5r2OJQlh71LGHPztvAKmdqFyyLVvEHA@z>
+To: x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160620234332.aYzxBsU_SNrdAjOK9HgbcPYrkO1teTzWWmRKzTs2kWA@z>
 
-Peter Zijlstra <peterz@infradead.org> writes:
+This avoids pointless races in which another CPU or task might see a
+partially populated global pgd entry.  These races should normally
+be harmless, but, if another CPU propagates the entry via
+vmalloc_fault and then populate_pgd fails (due to memory allocation
+failure, for example), this prevents a use-after-free of the pgd
+entry.
 
-> Could either of you comment on the below patch?
->
-> All atomic functions that return a value should imply full memory
-> barrier semantics -- this very much includes a compiler barrier / memory
-> clobber.
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
+---
+ arch/x86/mm/pageattr.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-I wonder if it is possible to find a case where this makes a real
-difference, ie. where the compiler erroneously reused a value due to
-the missing barrier.
-
-Andreas.
-
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 7a1f7bbf4105..6a8026918bf6 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
+ 
+ 	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
+ 	if (ret < 0) {
+-		unmap_pgd_range(cpa->pgd, addr,
++		if (pud)
++			free_page((unsigned long)pud);
++		unmap_pud_range(pgd_entry, addr,
+ 				addr + (cpa->numpages << PAGE_SHIFT));
+ 		return ret;
+ 	}
 -- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+2.5.5
+
