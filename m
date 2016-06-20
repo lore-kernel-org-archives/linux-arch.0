@@ -1,121 +1,240 @@
-From: Neil Armstrong <narmstrong@baylibre.com>
-Subject: Re: [PATCH V2 63/63] clocksources: Switch back to the clksrc table
-Date: Mon, 20 Jun 2016 11:19:21 +0200
-Message-ID: <5767B519.5010501@baylibre.com>
-References: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
- <1466112442-31105-64-git-send-email-daniel.lezcano@linaro.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 14/19] arm64: ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Date: Mon, 20 Jun 2016 15:48:34 +0300
+Message-ID: <20160620124834.GA12429@yury-N73SV>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <1466207668-10549-15-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1466112442-31105-64-git-send-email-daniel.lezcano@linaro.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>, Ralf Baechle <ralf@linux-mips.org>, Ley Foon Tan <lftan@altera.com>, Srinivas Kandagatla <srinivas.kandagatla@gmail.com>, Maxime Coquelin <maxime.coquelin@st.com>, Patrice Chotard <patrice.chotard@st.com>, Stephen Warren <swarren@wwwdotorg.org>, Lee Jones <lee@kernel.org>, Eric Anholt <eric@anholt.net>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, =?UTF-8?Q?S=c3=b6ren_Brinkmann?= <soren.brinkmann@xilinx.com>, Linus Walleij <linus.walleij@linaro.org>, Alexander Shiyan <shc_work@mail.ru>, Kukjin Kim <kgene@kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1466207668-10549-15-git-send-email-ynorov@caviumnetworks.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
+Cc: kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, broonie@kernel.org, bamvor.zhangjian@huawei.com, Andrew Pinski <apinski@cavium.com>, maxim.kuvyrkov@linaro.org, schwidefsky@de.ibm.com, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, linyongting@huawei.com, davem@davemloft.net, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On 06/16/2016 11:27 PM, Daniel Lezcano wrote:
-> All the clocksource drivers's init function are now converted to return
-> an error code. CLOCKSOURCE_OF_DECLARE is no longer used as well as the
-> clksrc-of table.
+On Sat, Jun 18, 2016 at 02:54:23AM +0300, Yury Norov wrote:
+> From: Andrew Pinski <apinski@cavium.com>
 > 
-> Let's convert back the names:
->  - CLOCKSOURCE_OF_DECLARE_RET => CLOCKSOURCE_OF_DECLARE
->  - clksrc-of-ret              => clksrc-of
+> Add a separate syscall-table for ILP32, which dispatches either to native
+> LP64 system call implementation or to compat-syscalls, as appropriate.
 > 
-> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 > ---
->  arch/arc/kernel/time.c                    |  6 +++---
->  arch/arm/kernel/smp_twd.c                 |  6 +++---
->  arch/microblaze/kernel/timer.c            |  2 +-
->  arch/mips/ralink/cevt-rt3352.c            |  2 +-
->  arch/nios2/kernel/time.c                  |  2 +-
->  drivers/clocksource/arm_arch_timer.c      |  6 +++---
->  drivers/clocksource/arm_global_timer.c    |  2 +-
->  drivers/clocksource/armv7m_systick.c      |  2 +-
->  drivers/clocksource/asm9260_timer.c       |  2 +-
->  drivers/clocksource/bcm2835_timer.c       |  2 +-
->  drivers/clocksource/bcm_kona_timer.c      |  4 ++--
->  drivers/clocksource/cadence_ttc_timer.c   |  2 +-
->  drivers/clocksource/clksrc-dbx500-prcmu.c |  2 +-
->  drivers/clocksource/clksrc-probe.c        | 14 --------------
->  drivers/clocksource/clksrc_st_lpc.c       |  2 +-
->  drivers/clocksource/clps711x-timer.c      |  2 +-
->  drivers/clocksource/dw_apb_timer_of.c     |  8 ++++----
->  drivers/clocksource/exynos_mct.c          |  4 ++--
->  drivers/clocksource/fsl_ftm_timer.c       |  2 +-
->  drivers/clocksource/h8300_timer16.c       |  2 +-
->  drivers/clocksource/h8300_timer8.c        |  2 +-
->  drivers/clocksource/h8300_tpu.c           |  2 +-
->  drivers/clocksource/meson6_timer.c        |  2 +-
->  drivers/clocksource/mips-gic-timer.c      |  2 +-
->  drivers/clocksource/moxart_timer.c        |  2 +-
->  drivers/clocksource/mps2-timer.c          |  2 +-
->  drivers/clocksource/mtk_timer.c           |  2 +-
->  drivers/clocksource/mxs_timer.c           |  2 +-
->  drivers/clocksource/nomadik-mtu.c         |  2 +-
->  drivers/clocksource/pxa_timer.c           |  2 +-
->  drivers/clocksource/qcom-timer.c          |  4 ++--
->  drivers/clocksource/rockchip_timer.c      |  8 ++++----
->  drivers/clocksource/samsung_pwm_timer.c   |  8 ++++----
->  drivers/clocksource/sun4i_timer.c         |  2 +-
->  drivers/clocksource/tango_xtal.c          |  2 +-
->  drivers/clocksource/tegra20_timer.c       |  4 ++--
->  drivers/clocksource/time-armada-370-xp.c  |  6 +++---
->  drivers/clocksource/time-efm32.c          |  4 ++--
->  drivers/clocksource/time-lpc32xx.c        |  2 +-
->  drivers/clocksource/time-orion.c          |  2 +-
->  drivers/clocksource/time-pistachio.c      |  2 +-
->  drivers/clocksource/timer-atlas7.c        |  2 +-
->  drivers/clocksource/timer-atmel-pit.c     |  2 +-
->  drivers/clocksource/timer-atmel-st.c      |  2 +-
->  drivers/clocksource/timer-digicolor.c     |  2 +-
->  drivers/clocksource/timer-imx-gpt.c       | 24 ++++++++++++------------
->  drivers/clocksource/timer-integrator-ap.c |  2 +-
->  drivers/clocksource/timer-keystone.c      |  2 +-
->  drivers/clocksource/timer-nps.c           |  4 ++--
->  drivers/clocksource/timer-oxnas-rps.c     |  4 ++--
->  drivers/clocksource/timer-prima2.c        |  2 +-
->  drivers/clocksource/timer-sp804.c         |  4 ++--
->  drivers/clocksource/timer-stm32.c         |  2 +-
->  drivers/clocksource/timer-sun5i.c         |  4 ++--
->  drivers/clocksource/timer-ti-32k.c        |  2 +-
->  drivers/clocksource/timer-u300.c          |  2 +-
->  drivers/clocksource/versatile.c           |  4 ++--
->  drivers/clocksource/vf_pit_timer.c        |  2 +-
->  drivers/clocksource/vt8500_timer.c        |  2 +-
->  drivers/clocksource/zevio-timer.c         |  2 +-
->  include/asm-generic/vmlinux.lds.h         |  2 --
->  include/linux/clocksource.h               |  5 +----
->  62 files changed, 98 insertions(+), 117 deletions(-)
+>  arch/arm64/include/asm/unistd.h |  6 ++-
+>  arch/arm64/kernel/Makefile      |  2 +-
+>  arch/arm64/kernel/entry.S       | 29 +++++++++++++-
+>  arch/arm64/kernel/sys_ilp32.c   | 84 +++++++++++++++++++++++++++++++++++++++++
+>  4 files changed, 117 insertions(+), 4 deletions(-)
+>  create mode 100644 arch/arm64/kernel/sys_ilp32.c
 > 
-
-[...]
-
-> diff --git a/drivers/clocksource/timer-oxnas-rps.c b/drivers/clocksource/timer-oxnas-rps.c
-> index 0d99f40..bd887e2 100644
-> --- a/drivers/clocksource/timer-oxnas-rps.c
-> +++ b/drivers/clocksource/timer-oxnas-rps.c
-> @@ -293,5 +293,5 @@ err_alloc:
->  	return ret;
->  }
+> diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
+> index fe9d6c1..250654c 100644
+> --- a/arch/arm64/include/asm/unistd.h
+> +++ b/arch/arm64/include/asm/unistd.h
+> @@ -13,13 +13,17 @@
+>   * You should have received a copy of the GNU General Public License
+>   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+>   */
+> +
+> +#ifdef CONFIG_COMPAT
+> +#define __ARCH_WANT_SYS_LLSEEK
+> +#endif
+> +
+>  #ifdef CONFIG_AARCH32_EL0
+>  #define __ARCH_WANT_COMPAT_SYS_GETDENTS64
+>  #define __ARCH_WANT_COMPAT_STAT64
+>  #define __ARCH_WANT_SYS_GETHOSTNAME
+>  #define __ARCH_WANT_SYS_PAUSE
+>  #define __ARCH_WANT_SYS_GETPGRP
+> -#define __ARCH_WANT_SYS_LLSEEK
+>  #define __ARCH_WANT_SYS_NICE
+>  #define __ARCH_WANT_SYS_SIGPENDING
+>  #define __ARCH_WANT_SYS_SIGPROCMASK
+> diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+> index d11572d..205bc03 100644
+> --- a/arch/arm64/kernel/Makefile
+> +++ b/arch/arm64/kernel/Makefile
+> @@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+>  arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
+>  					   sys_compat.o entry32.o		\
+>  					   ../../arm/kernel/opcodes.o binfmt_elf32.o
+> -arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
+> +arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
+>  arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
+>  arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+>  arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+> diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+> index 21a0624..b2b9725 100644
+> --- a/arch/arm64/kernel/entry.S
+> +++ b/arch/arm64/kernel/entry.S
+> @@ -239,6 +239,23 @@ tsk	.req	x28		// current thread_info
 >  
-> -CLOCKSOURCE_OF_DECLARE_RET(ox810se_rps,
-> -			   "oxsemi,ox810se-rps-timer", oxnas_rps_timer_init);
-> +CLOCKSOURCE_OF_DECLARE(ox810se_rps,
-> +		       "oxsemi,ox810se-rps-timer", oxnas_rps_timer_init);
+>  	.text
+>  
+> +#ifdef CONFIG_ARM64_ILP32
+> +/*
+> + * AARCH64/ILP32. Zero top halves of x0-x7
+> + * registers as userspace may put garbage there.
+> + */
+> +	.macro	delouse_input_regs
+> +	mov w0, w0
+> +	mov w1, w1
+> +	mov w2, w2
+> +	mov w3, w3
+> +	mov w4, w4
+> +	mov w5, w5
+> +	mov w6, w6
+> +	mov w7, w7
+> +	.endm
+> +#endif
+> +
+>  /*
+>   * Exception vectors.
+>   */
+> @@ -501,6 +518,7 @@ el0_svc_compat:
+>  	 * AArch32 syscall handling
+>  	 */
+>  	adrp	stbl, compat_sys_call_table	// load compat syscall table pointer
+> +	ldr     x16, [tsk, #TI_FLAGS]
+>  	uxtw	scno, w7			// syscall number in w7 (r7)
+>  	mov     sc_nr, #__NR_compat_syscalls
+>  	b	el0_svc_naked
+> @@ -717,15 +735,22 @@ ENDPROC(ret_from_fork)
+>  	.align	6
+>  el0_svc:
+>  	adrp	stbl, sys_call_table		// load syscall table pointer
+> +	ldr	x16, [tsk, #TI_FLAGS]
+>  	uxtw	scno, w8			// syscall number in w8
+>  	mov	sc_nr, #__NR_syscalls
+> +#ifdef CONFIG_ARM64_ILP32
+> +	adrp	x17, sys_call_ilp32_table	// load ilp32 syscall table pointer
+> +	tst	x16, #_TIF_32BIT_AARCH64
+> +	b.eq	el0_svc_naked			// We are using LP64  syscall table
+> +	mov	stbl, x17			// We are using ILP32 syscall table
+> +	delouse_input_regs
+> +#endif
 
-For the OXNAS part :
+It should be like this:
+#ifdef CONFIG_ARM64_ILP32
+        tst     x16, #_TIF_32BIT_AARCH64
+        b.eq    el0_svc_naked                   // We are using LP64  syscall table
+        adrp    stbl, sys_call_ilp32_table      // load ilp32 syscall table pointer
+        delouse_input_regs
+#endif
 
-Acked-by: Neil Armstrong <narmstrong@baylibre.com>
-
-Thanks,
-Neil
+>  el0_svc_naked:					// compat entry point
+>  	stp	x0, scno, [sp, #S_ORIG_X0]	// save the original x0 and syscall number
+>  	enable_dbg_and_irq
+>  	ct_user_exit 1
+>  
+> -	ldr	x16, [tsk, #TI_FLAGS]		// check for syscall hooks
+> -	tst	x16, #_TIF_SYSCALL_WORK
+> +	tst	x16, #_TIF_SYSCALL_WORK		// check for syscall hooks
+>  	b.ne	__sys_trace
+>  	cmp     scno, sc_nr                     // check upper syscall limit
+>  	b.hs	ni_sys
+> diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
+> new file mode 100644
+> index 0000000..00c4d4b
+> --- /dev/null
+> +++ b/arch/arm64/kernel/sys_ilp32.c
+> @@ -0,0 +1,84 @@
+> +/*
+> + * AArch64- ILP32 specific system calls implementation
+> + *
+> + * Copyright (C) 2016 Cavium Inc.
+> + * Author: Andrew Pinski <apinski@cavium.com>
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +
+> +#define __SYSCALL_COMPAT
+> +
+> +#include <linux/compiler.h>
+> +#include <linux/errno.h>
+> +#include <linux/fs.h>
+> +#include <linux/mm.h>
+> +#include <linux/msg.h>
+> +#include <linux/export.h>
+> +#include <linux/sched.h>
+> +#include <linux/slab.h>
+> +#include <linux/syscalls.h>
+> +#include <linux/compat.h>
+> +#include <asm-generic/syscalls.h>
+> +
+> +/*
+> + * Using aarch32 syscall handlerss where off_t is passed.
+> + */
+> +#define compat_sys_fadvise64_64		compat_sys_fadvise64_64_wrapper
+> +#define compat_sys_fallocate		compat_sys_fallocate_wrapper
+> +#define compat_sys_fcntl64		sys_fcntl
+> +#define compat_sys_ftruncate64		compat_sys_ftruncate64_wrapper
+> +#define compat_sys_pread64		compat_sys_pread64_wrapper
+> +#define compat_sys_pwrite64		compat_sys_pwrite64_wrapper
+> +#define compat_sys_readahead		compat_sys_readahead_wrapper
+> +#define compat_sys_shmat		sys_shmat
+> +#define compat_sys_sync_file_range	compat_sys_sync_file_range2_wrapper
+> +#define compat_sys_truncate64		compat_sys_truncate64_wrapper
+> +#define sys_mmap2			compat_sys_mmap2_wrapper
+> +#define sys_ptrace			compat_sys_ptrace
+> +
+> +/*
+> + * Use non-compat syscall handlerss where stat and statfs structure
+> + * pointers are passed, as their layout is identical to LP64.
+> + */
+> +#define compat_sys_fstatfs64		sys_fstatfs
+> +#define compat_sys_statfs64		sys_statfs
+> +#define sys_fstat64			sys_newfstat
+> +#define sys_fstatat64			sys_newfstatat
+> +
+> +asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+> +asmlinkage long compat_sys_fallocate_wrapper(void);
+> +asmlinkage long compat_sys_ftruncate64_wrapper(void);
+> +asmlinkage long compat_sys_mmap2_wrapper(void);
+> +asmlinkage long compat_sys_pread64_wrapper(void);
+> +asmlinkage long compat_sys_pwrite64_wrapper(void);
+> +asmlinkage long compat_sys_readahead_wrapper(void);
+> +asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+> +asmlinkage long compat_sys_truncate64_wrapper(void);
+> +
+> +asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
+> +#define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
+> +
+> +#include <asm/syscall.h>
+> +
+> +#undef __SYSCALL
+> +#define __SYSCALL(nr, sym)	[nr] = sym,
+> +
+> +/*
+> + * The sys_call_ilp32_table array must be 4K aligned to be accessible from
+> + * kernel/entry.S.
+> + */
+> +void *sys_call_ilp32_table[__NR_syscalls] __aligned(4096) = {
+> +	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
+> +#include <asm/unistd.h>
+> +};
+> -- 
+> 2.7.4
