@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:58714 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:58080 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752719AbcFTXpP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2016 19:45:15 -0400
+	id S1752633AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jun 2016 19:45:12 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v3 05/13] mm: Fix memcg stack accounting for sub-page stacks
-Date: Mon, 20 Jun 2016 16:43:35 -0700
-Message-ID: <6bacdd1005517bef4c6f6a4154bd7d1d4f4371f3.1466466093.git.luto@kernel.org>
+Subject: [PATCH v3 03/13] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
+Date: Mon, 20 Jun 2016 16:43:33 -0700
+Message-ID: <0b78b5c100c1c046c498f1085f40e9422e9d23f5.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
 References: <cover.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
@@ -14,89 +14,150 @@ References: <cover.1466466093.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
-Message-ID: <20160620234335.q89yD8cbeeMaMczEoIAu4kep7FRfkCUSsvtiqbQmVq8@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Matt Fleming <matt@codeblueprint.co.uk>, linux-efi@vger.kernel.org
+Message-ID: <20160620234333.wJYJMtVa-a7Oo7zNtFb3OH_4eCZEGzidOvu9lwrhMAI@z>
 
-We should account for stacks regardless of stack size, and we need
-to account in sub-page units if THREAD_SIZE < PAGE_SIZE.  Change the
-units to kilobytes and Move it into account_kernel_stack().
+kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
+init_mm.pgd were to be cleared, callers would need to ensure that
+the pgd entry hadn't been propagated to any other pgd.
 
-Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
+Its only caller was efi_cleanup_page_tables(), and that, in turn,
+was unused, so just delete both functions.  This leaves a couple of
+other helpers unused, so delete them, too.
+
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: linux-efi@vger.kernel.org
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/memcontrol.h |  2 +-
- kernel/fork.c              | 15 ++++++---------
- mm/memcontrol.c            |  2 +-
- 3 files changed, 8 insertions(+), 11 deletions(-)
+ arch/x86/include/asm/efi.h           |  1 -
+ arch/x86/include/asm/pgtable_types.h |  2 --
+ arch/x86/mm/pageattr.c               | 28 ----------------------------
+ arch/x86/platform/efi/efi.c          |  2 --
+ arch/x86/platform/efi/efi_32.c       |  3 ---
+ arch/x86/platform/efi/efi_64.c       |  5 -----
+ 6 files changed, 41 deletions(-)
 
-diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
-index a805474df4ab..3b653b86bb8f 100644
---- a/include/linux/memcontrol.h
-+++ b/include/linux/memcontrol.h
-@@ -52,7 +52,7 @@ enum mem_cgroup_stat_index {
- 	MEM_CGROUP_STAT_SWAP,		/* # of pages, swapped out */
- 	MEM_CGROUP_STAT_NSTATS,
- 	/* default hierarchy stats */
--	MEMCG_KERNEL_STACK = MEM_CGROUP_STAT_NSTATS,
-+	MEMCG_KERNEL_STACK_KB = MEM_CGROUP_STAT_NSTATS,
- 	MEMCG_SLAB_RECLAIMABLE,
- 	MEMCG_SLAB_UNRECLAIMABLE,
- 	MEMCG_SOCK,
-diff --git a/kernel/fork.c b/kernel/fork.c
-index be7f006af727..ff3c41c2ba96 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -165,20 +165,12 @@ static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
- 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
- 						  THREAD_SIZE_ORDER);
+diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
+index 78d1e7467eae..45ea38df86d4 100644
+--- a/arch/x86/include/asm/efi.h
++++ b/arch/x86/include/asm/efi.h
+@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
+ extern void efi_sync_low_kernel_mappings(void);
+ extern int __init efi_alloc_page_tables(void);
+ extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+-extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+ extern void __init old_map_region(efi_memory_desc_t *md);
+ extern void __init runtime_code_page_mkexec(void);
+ extern void __init efi_runtime_update_mappings(void);
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 7b5efe264eff..0b9f58ad10c8 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
+ extern phys_addr_t slow_virt_to_phys(void *__address);
+ extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
+ 				   unsigned numpages, unsigned long page_flags);
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages);
+ #endif	/* !__ASSEMBLY__ */
  
--	if (page)
--		memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--					    1 << THREAD_SIZE_ORDER);
--
- 	return page ? page_address(page) : NULL;
+ #endif /* _ASM_X86_PGTABLE_DEFS_H */
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 6a8026918bf6..762162af3662 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
+ 	return true;
  }
  
- static inline void free_thread_info(struct thread_info *ti)
+-static bool try_to_free_pud_page(pud_t *pud)
+-{
+-	int i;
+-
+-	for (i = 0; i < PTRS_PER_PUD; i++)
+-		if (!pud_none(pud[i]))
+-			return false;
+-
+-	free_page((unsigned long)pud);
+-	return true;
+-}
+-
+ static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
  {
--	struct page *page = virt_to_page(ti);
+ 	pte_t *pte = pte_offset_kernel(pmd, start);
+@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
+ 	 */
+ }
+ 
+-static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
+-{
+-	pgd_t *pgd_entry = root + pgd_index(addr);
 -
--	memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--				    -(1 << THREAD_SIZE_ORDER));
--	__free_kmem_pages(page, THREAD_SIZE_ORDER);
-+	free_kmem_pages((unsigned long)ti, THREAD_SIZE_ORDER);
- }
- # else
- static struct kmem_cache *thread_info_cache;
-@@ -227,6 +219,11 @@ static void account_kernel_stack(struct thread_info *ti, int account)
- 
- 	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
- 			    THREAD_SIZE / 1024 * account);
-+
-+	/* All stack pages belong to the same memcg. */
-+	memcg_kmem_update_page_stat(
-+		virt_to_page(ti), MEMCG_KERNEL_STACK_KB,
-+		account * (THREAD_SIZE / 1024));
+-	unmap_pud_range(pgd_entry, addr, end);
+-
+-	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
+-		pgd_clear(pgd_entry);
+-}
+-
+ static int alloc_pte_page(pmd_t *pmd)
+ {
+ 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
+@@ -1993,12 +1971,6 @@ out:
+ 	return retval;
  }
  
- void free_task(struct task_struct *tsk)
-diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 75e74408cc8f..8e13a2419dad 100644
---- a/mm/memcontrol.c
-+++ b/mm/memcontrol.c
-@@ -5133,7 +5133,7 @@ static int memory_stat_show(struct seq_file *m, void *v)
- 	seq_printf(m, "file %llu\n",
- 		   (u64)stat[MEM_CGROUP_STAT_CACHE] * PAGE_SIZE);
- 	seq_printf(m, "kernel_stack %llu\n",
--		   (u64)stat[MEMCG_KERNEL_STACK] * PAGE_SIZE);
-+		   (u64)stat[MEMCG_KERNEL_STACK_KB] * 1024);
- 	seq_printf(m, "slab %llu\n",
- 		   (u64)(stat[MEMCG_SLAB_RECLAIMABLE] +
- 			 stat[MEMCG_SLAB_UNRECLAIMABLE]) * PAGE_SIZE);
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages)
+-{
+-	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
+-}
+-
+ /*
+  * The testcases use internal knowledge of the implementation that shouldn't
+  * be exposed to the rest of the kernel. Include these directly here.
+diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
+index f93545e7dc54..62986e5fbdba 100644
+--- a/arch/x86/platform/efi/efi.c
++++ b/arch/x86/platform/efi/efi.c
+@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
+ 	 * EFI mixed mode we need all of memory to be accessible when
+ 	 * we pass parameters to the EFI runtime services in the
+ 	 * thunking code.
+-	 *
+-	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
+ 	 */
+ 	free_pages((unsigned long)new_memmap, pg_shift);
+ 
+diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
+index 338402b91d2e..cef39b097649 100644
+--- a/arch/x86/platform/efi/efi_32.c
++++ b/arch/x86/platform/efi/efi_32.c
+@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ {
+ 	return 0;
+ }
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-}
+ 
+ void __init efi_map_region(efi_memory_desc_t *md)
+ {
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 6e7242be1c87..5ab219c2ba43 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ 	return 0;
+ }
+ 
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
+-}
+-
+ static void __init __map_region(efi_memory_desc_t *md, u64 va)
+ {
+ 	unsigned long flags = _PAGE_RW;
 -- 
 2.5.5
 
