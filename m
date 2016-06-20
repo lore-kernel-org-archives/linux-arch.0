@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:58142 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:58736 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752775AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2016 19:45:12 -0400
+	id S1753605AbcFTXpQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jun 2016 19:45:16 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v3 04/13] mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
-Date: Mon, 20 Jun 2016 16:43:34 -0700
-Message-ID: <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+Subject: [PATCH v3 12/13] x86/mm/64: Enable vmapped stacks
+Date: Mon, 20 Jun 2016 16:43:42 -0700
+Message-ID: <a4f8f14249fb7744e714ee0fac4ef46d8745dce2.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
 References: <cover.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
@@ -14,98 +14,191 @@ References: <cover.1466466093.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
-Message-ID: <20160620234334.316AXKNbKgo3t3hXetNDX8VR4f-2zDjTwW33QWEULWY@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160620234342.qV0KTKvnYGrujeZxvPrOw0-E38KMlhJQXtHjg4JVMRE@z>
 
-Currently, NR_KERNEL_STACK tracks the number of kernel stacks in a
-zone.  This only makes sense if each kernel stack exists entirely in
-one zone, and allowing vmapped stacks could break this assumption.
+This allows x86_64 kernels to enable vmapped stacks.  There are a
+couple of interesting bits.
 
-Since frv has THREAD_SIZE < PAGE_SIZE, we need to track kernel stack
-allocations in a unit that divides both THREAD_SIZE and PAGE_SIZE on
-all architectures.  Keep it simple and use KiB.
+First, x86 lazily faults in top-level paging entries for the vmalloc
+area.  This won't work if we get a page fault while trying to access
+the stack: the CPU will promote it to a double-fault and we'll die.
+To avoid this problem, probe the new stack when switching stacks and
+forcibly populate the pgd entry for the stack when switching mms.
 
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
+Second, once we have guard pages around the stack, we'll want to
+detect and handle stack overflow.
+
+I didn't enable it on x86_32.  We'd need to rework the double-fault
+code a bit and I'm concerned about running out of vmalloc virtual
+addresses under some workloads.
+
+This patch, by itself, will behave somewhat erratically when the
+stack overflows while RSP is still more than a few tens of bytes
+above the bottom of the stack.  Specifically, we'll get #PF and make
+it to no_context and an oops without triggering a double-fault, and
+no_context doesn't know about stack overflows.  The next patch will
+improve that case.
+
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- drivers/base/node.c    | 3 +--
- fs/proc/meminfo.c      | 2 +-
- include/linux/mmzone.h | 2 +-
- kernel/fork.c          | 3 ++-
- mm/page_alloc.c        | 3 +--
- 5 files changed, 6 insertions(+), 7 deletions(-)
+ arch/x86/Kconfig                 |  1 +
+ arch/x86/include/asm/switch_to.h | 28 +++++++++++++++++++++++++++-
+ arch/x86/kernel/traps.c          | 32 ++++++++++++++++++++++++++++++++
+ arch/x86/mm/tlb.c                | 15 +++++++++++++++
+ 4 files changed, 75 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/base/node.c b/drivers/base/node.c
-index 560751bad294..27dc68a0ed2d 100644
---- a/drivers/base/node.c
-+++ b/drivers/base/node.c
-@@ -121,8 +121,7 @@ static ssize_t node_read_meminfo(struct device *dev,
- 		       nid, K(node_page_state(nid, NR_FILE_MAPPED)),
- 		       nid, K(node_page_state(nid, NR_ANON_PAGES)),
- 		       nid, K(i.sharedram),
--		       nid, node_page_state(nid, NR_KERNEL_STACK) *
--				THREAD_SIZE / 1024,
-+		       nid, node_page_state(nid, NR_KERNEL_STACK_KB),
- 		       nid, K(node_page_state(nid, NR_PAGETABLE)),
- 		       nid, K(node_page_state(nid, NR_UNSTABLE_NFS)),
- 		       nid, K(node_page_state(nid, NR_BOUNCE)),
-diff --git a/fs/proc/meminfo.c b/fs/proc/meminfo.c
-index 83720460c5bc..239b5a06cee0 100644
---- a/fs/proc/meminfo.c
-+++ b/fs/proc/meminfo.c
-@@ -145,7 +145,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
- 				global_page_state(NR_SLAB_UNRECLAIMABLE)),
- 		K(global_page_state(NR_SLAB_RECLAIMABLE)),
- 		K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
--		global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
-+		global_page_state(NR_KERNEL_STACK_KB),
- 		K(global_page_state(NR_PAGETABLE)),
- #ifdef CONFIG_QUICKLIST
- 		K(quicklist_total_size()),
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index 02069c23486d..63f05a7efb54 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -127,7 +127,7 @@ enum zone_stat_item {
- 	NR_SLAB_RECLAIMABLE,
- 	NR_SLAB_UNRECLAIMABLE,
- 	NR_PAGETABLE,		/* used for pagetables */
--	NR_KERNEL_STACK,
-+	NR_KERNEL_STACK_KB,	/* measured in KiB */
- 	/* Second 128 byte cacheline */
- 	NR_UNSTABLE_NFS,	/* NFS unstable pages */
- 	NR_BOUNCE,
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 5c2c355aa97f..be7f006af727 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -225,7 +225,8 @@ static void account_kernel_stack(struct thread_info *ti, int account)
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0a7b885964ba..b624b24d1dc1 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -92,6 +92,7 @@ config X86
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_EBPF_JIT			if X86_64
++	select HAVE_ARCH_VMAP_STACK		if X86_64
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select HAVE_CMPXCHG_DOUBLE
+ 	select HAVE_CMPXCHG_LOCAL
+diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
+index 8f321a1b03a1..14e4b20f0aaf 100644
+--- a/arch/x86/include/asm/switch_to.h
++++ b/arch/x86/include/asm/switch_to.h
+@@ -8,6 +8,28 @@ struct tss_struct;
+ void __switch_to_xtra(struct task_struct *prev_p, struct task_struct *next_p,
+ 		      struct tss_struct *tss);
+ 
++/* This runs runs on the previous thread's stack. */
++static inline void prepare_switch_to(struct task_struct *prev,
++				     struct task_struct *next)
++{
++#ifdef CONFIG_VMAP_STACK
++	/*
++	 * If we switch to a stack that has a top-level paging entry
++	 * that is not present in the current mm, the resulting #PF will
++	 * will be promoted to a double-fault and we'll panic.  Probe
++	 * the new stack now so that vmalloc_fault can fix up the page
++	 * tables if needed.  This can only happen if we use a stack
++	 * in vmap space.
++	 *
++	 * We assume that the stack is aligned so that it never spans
++	 * more than one top-level paging entry.
++	 *
++	 * To minimize cache pollution, just follow the stack pointer.
++	 */
++	READ_ONCE(*(unsigned char *)next->thread.sp);
++#endif
++}
++
+ #ifdef CONFIG_X86_32
+ 
+ #ifdef CONFIG_CC_STACKPROTECTOR
+@@ -39,6 +61,8 @@ do {									\
+ 	 */								\
+ 	unsigned long ebx, ecx, edx, esi, edi;				\
+ 									\
++	prepare_switch_to(prev, next);					\
++									\
+ 	asm volatile("pushl %%ebp\n\t"		/* save    EBP   */	\
+ 		     "movl %%esp,%[prev_sp]\n\t"	/* save    ESP   */ \
+ 		     "movl %[next_sp],%%esp\n\t"	/* restore ESP   */ \
+@@ -103,7 +127,9 @@ do {									\
+  * clean in kernel mode, with the possible exception of IOPL.  Kernel IOPL
+  * has no effect.
+  */
+-#define switch_to(prev, next, last) \
++#define switch_to(prev, next, last)					  \
++	prepare_switch_to(prev, next);					  \
++									  \
+ 	asm volatile(SAVE_CONTEXT					  \
+ 	     "movq %%rsp,%P[threadrsp](%[prev])\n\t" /* save RSP */	  \
+ 	     "movq %P[threadrsp](%[next]),%%rsp\n\t" /* restore RSP */	  \
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index 00f03d82e69a..9cb7ea781176 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -292,12 +292,30 @@ DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present",	segment_not_present)
+ DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
+ DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
+ 
++#ifdef CONFIG_VMAP_STACK
++static void __noreturn handle_stack_overflow(const char *message,
++					     struct pt_regs *regs,
++					     unsigned long fault_address)
++{
++	printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
++		 (void *)fault_address, current->stack,
++		 (char *)current->stack + THREAD_SIZE - 1);
++	die(message, regs, 0);
++
++	/* Be absolutely certain we don't return. */
++	panic(message);
++}
++#endif
++
+ #ifdef CONFIG_X86_64
+ /* Runs on IST stack */
+ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
  {
- 	struct zone *zone = page_zone(virt_to_page(ti));
+ 	static const char str[] = "double fault";
+ 	struct task_struct *tsk = current;
++#ifdef CONFIG_VMAP_STACK
++	unsigned long cr2;
++#endif
  
--	mod_zone_page_state(zone, NR_KERNEL_STACK, account);
-+	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
-+			    THREAD_SIZE / 1024 * account);
- }
+ #ifdef CONFIG_X86_ESPFIX64
+ 	extern unsigned char native_irq_return_iret[];
+@@ -332,6 +350,20 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+ 	tsk->thread.error_code = error_code;
+ 	tsk->thread.trap_nr = X86_TRAP_DF;
  
- void free_task(struct task_struct *tsk)
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 6903b695ebae..a277dea926c9 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -4457,8 +4457,7 @@ void show_free_areas(unsigned int filter)
- 			K(zone_page_state(zone, NR_SHMEM)),
- 			K(zone_page_state(zone, NR_SLAB_RECLAIMABLE)),
- 			K(zone_page_state(zone, NR_SLAB_UNRECLAIMABLE)),
--			zone_page_state(zone, NR_KERNEL_STACK) *
--				THREAD_SIZE / 1024,
-+			zone_page_state(zone, NR_KERNEL_STACK_KB),
- 			K(zone_page_state(zone, NR_PAGETABLE)),
- 			K(zone_page_state(zone, NR_UNSTABLE_NFS)),
- 			K(zone_page_state(zone, NR_BOUNCE)),
++#ifdef CONFIG_VMAP_STACK
++	/*
++	 * If we overflow the stack into a guard page, the CPU will fail
++	 * to deliver #PF and will send #DF instead.  CR2 will contain
++	 * the linear address of the second fault, which will be in the
++	 * guard page below the bottom of the stack.
++	 */
++	cr2 = read_cr2();
++	if ((unsigned long)tsk->stack - 1 - cr2 < PAGE_SIZE)
++		handle_stack_overflow(
++			"kernel stack overflow (double-fault)",
++			regs, cr2);
++#endif
++
+ #ifdef CONFIG_DOUBLEFAULT
+ 	df_debug(regs, error_code);
+ #endif
+diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
+index 5643fd0b1a7d..fbf036ae72ac 100644
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -77,10 +77,25 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
+ 	unsigned cpu = smp_processor_id();
+ 
+ 	if (likely(prev != next)) {
++		if (IS_ENABLED(CONFIG_VMAP_STACK)) {
++			/*
++			 * If our current stack is in vmalloc space and isn't
++			 * mapped in the new pgd, we'll double-fault.  Forcibly
++			 * map it.
++			 */
++			unsigned int stack_pgd_index =
++				pgd_index(current_stack_pointer());
++			pgd_t *pgd = next->pgd + stack_pgd_index;
++
++			if (unlikely(pgd_none(*pgd)))
++				set_pgd(pgd, init_mm.pgd[stack_pgd_index]);
++		}
++
+ #ifdef CONFIG_SMP
+ 		this_cpu_write(cpu_tlbstate.state, TLBSTATE_OK);
+ 		this_cpu_write(cpu_tlbstate.active_mm, next);
+ #endif
++
+ 		cpumask_set_cpu(cpu, mm_cpumask(next));
+ 
+ 		/*
 -- 
 2.5.5
 
