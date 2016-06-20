@@ -1,72 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:49123 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752556AbcFTOyV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2016 10:54:21 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH 18/19] arm64:ilp32: add vdso-ilp32 and use for signal return
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
-	<1466207668-10549-19-git-send-email-ynorov@caviumnetworks.com>
-Date: Mon, 20 Jun 2016 16:54:17 +0200
-In-Reply-To: <1466207668-10549-19-git-send-email-ynorov@caviumnetworks.com>
-	(Yury Norov's message of "Sat, 18 Jun 2016 02:54:27 +0300")
-Message-ID: <mvminx3ud0m.fsf@hawking.suse.de>
+Received: from mail-vk0-f54.google.com ([209.85.213.54]:33336 "EHLO
+	mail-vk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752229AbcFTQFq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2016 12:05:46 -0400
+Received: by mail-vk0-f54.google.com with SMTP id d185so201611243vkg.0
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2016 09:05:46 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20160620130232.GC9892@dhcp22.suse.cz>
+References: <cover.1466192946.git.luto@kernel.org> <8a17889a9d47b7b4deb41f2fcccada8bf54d4b6f.1466192946.git.luto@kernel.org>
+ <20160620130232.GC9892@dhcp22.suse.cz>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Mon, 20 Jun 2016 09:05:24 -0700
+Message-ID: <CALCETrUhiFdNeE8BOcOYPDVLcDO6aq412iDT+Lf_9QHdmsY6Eg@mail.gmail.com>
+Subject: Re: [PATCH v2 05/13] mm: Move memcg stack accounting to account_kernel_stack
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
-Message-ID: <20160620145417.TSEP-lANa0F_lpeEFJPwtsSJayECNsgbd95yYZV-Yhs@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Borislav Petkov <bp@alien8.de>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Brian Gerst <brgerst@gmail.com>, Johannes Weiner <hannes@cmpxchg.org>, Linus Torvalds <torvalds@linux-foundation.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jann Horn <jann@thejh.net>, Vladimir Davydov <vdavydov@virtuozzo.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, X86 ML <x86@kernel.org>
+Message-ID: <20160620160524.dSDUcCCqw8uh4Boi3IpCFjbjNOBqcNhspwvGidb1rq8@z>
 
-Yury Norov <ynorov@caviumnetworks.com> writes:
+On Jun 20, 2016 6:02 AM, "Michal Hocko" <mhocko@kernel.org> wrote:
+>
+> On Fri 17-06-16 13:00:41, Andy Lutomirski wrote:
+> > We should account for stacks regardless of stack size.  Move it into
+> > account_kernel_stack.
+> >
+> > Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
+> > Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
+> > Cc: Johannes Weiner <hannes@cmpxchg.org>
+> > Cc: Michal Hocko <mhocko@kernel.org>
+> > Cc: linux-mm@kvack.org
+> > Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>
+> Acked-by: Michal Hocko <mhocko@suse.com>
+>
 
-> diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-> index 2a0de6f..e48ea34 100644
-> --- a/arch/arm64/kernel/vdso.c
-> +++ b/arch/arm64/kernel/vdso.c
-> @@ -40,6 +40,12 @@ extern char vdso_start, vdso_end;
->  static unsigned long vdso_pages;
->  static struct page **vdso_pagelist;
->  
-> +#ifdef CONFIG_ARM64_ILP32
-> +extern char vdso_ilp32_start, vdso_ilp32_end;
-> +static unsigned long vdso_ilp32_pages;
-> +static struct page **vdso_ilp32_pagelist;
-> +#endif
-> +
->  /*
->   * The vDSO data page.
->   */
-> @@ -110,24 +116,29 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
->  }
->  #endif /* CONFIG_AARCH32_EL0 */
->  
-> -static struct vm_special_mapping vdso_spec[2];
-> -
-> -static int __init vdso_init(void)
-> +static int __init vdso_init_common(char *vdso_start, char *vdso_end,
+This needs the same kilobyte treatment as the other accounting patch,
+so I'm going to send v3 without your ack.
 
-Using the same name for the parameter as for the global variable is
-dangerous ....
-
-> +					  unsigned long *vdso_pagesp,
-> +					  struct page ***vdso_pagelistp,
-> +					  struct vm_special_mapping* vdso_spec)
->  {
->  	int i;
-> +	unsigned long vdso_pages;
-> +	struct page **vdso_pagelist;
->  
-> -	if (memcmp(&vdso_start, "\177ELF", 4)) {
-> +	if (memcmp(vdso_start, "\177ELF", 4)) {
-
-... because forgetting to remove & can be fatal, and your compiler may
-not even warn you.
-
-Andreas.
-
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+--Andy
