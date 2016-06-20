@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:58738 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:58726 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752485AbcFTXpR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2016 19:45:17 -0400
+	id S1753271AbcFTXpP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jun 2016 19:45:15 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v3 11/13] x86/dumpstack/64: Handle faults when printing the "Stack:" part of an OOPS
-Date: Mon, 20 Jun 2016 16:43:41 -0700
-Message-ID: <e5e1204f716d122572197b902f062d05670308de.1466466093.git.luto@kernel.org>
+Subject: [PATCH v3 10/13] x86/dumpstack: Try harder to get a call trace on stack overflow
+Date: Mon, 20 Jun 2016 16:43:40 -0700
+Message-ID: <4f079dccec047d02b6b2e1aa28650380c91ed0b7.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
 References: <cover.1466466093.git.luto@kernel.org>
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
@@ -15,51 +15,44 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160620234341.tlFos2nxZv_ONciQp0kx5R_eA33P5BYel_Im7kyX2d8@z>
+Message-ID: <20160620234340.VucCDw-9hQYBKzZsDfLCwCXwWWlH8HDsnirYaanQNbw@z>
 
-If we overflow the stack into a guard page, we'll recursively fault
-when trying to dump the contents of the guard page.  Use
-probe_kernel_address so we can recover if this happens.
+If we overflow the stack, print_context_stack will abort.  Detect
+this case and rewind back into the valid part of the stack so that
+we can trace it.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/kernel/dumpstack_64.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ arch/x86/kernel/dumpstack.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index 603356a5597a..5e298638c790 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -276,6 +276,8 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 
- 	stack = sp;
- 	for (i = 0; i < kstack_depth_to_print; i++) {
-+		unsigned long word;
-+
- 		if (stack >= irq_stack && stack <= irq_stack_end) {
- 			if (stack == irq_stack_end) {
- 				stack = (unsigned long *) (irq_stack_end[-1]);
-@@ -285,12 +287,18 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		if (kstack_end(stack))
- 			break;
- 		}
-+
-+		if (probe_kernel_address(stack, word))
-+			break;
-+
- 		if ((i % STACKSLOTS_PER_LINE) == 0) {
- 			if (i != 0)
- 				pr_cont("\n");
--			printk("%s %016lx", log_lvl, *stack++);
-+			printk("%s %016lx", log_lvl, word);
- 		} else
--			pr_cont(" %016lx", *stack++);
-+			pr_cont(" %016lx", word);
-+
-+		stack++;
- 		touch_nmi_watchdog();
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index d4d085e27d04..9cdf05d768cf 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -89,7 +89,7 @@ static inline int valid_stack_ptr(struct thread_info *tinfo,
+ 		else
+ 			return 0;
  	}
- 	preempt_enable();
+-	return p > t && p < t + THREAD_SIZE - size;
++	return p >= t && p < t + THREAD_SIZE - size;
+ }
+ 
+ unsigned long
+@@ -100,6 +100,13 @@ print_context_stack(struct thread_info *tinfo,
+ {
+ 	struct stack_frame *frame = (struct stack_frame *)bp;
+ 
++	/*
++	 * If we overflowed the stack into a guard page, jump back to the
++	 * bottom of the usable stack.
++	 */
++	if ((unsigned long)tinfo - (unsigned long)stack < PAGE_SIZE)
++		stack = (unsigned long *)tinfo;
++
+ 	while (valid_stack_ptr(tinfo, stack, sizeof(*stack), end)) {
+ 		unsigned long addr;
+ 
 -- 
 2.5.5
 
