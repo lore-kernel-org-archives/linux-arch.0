@@ -1,49 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:58034 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:57934 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752289AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1751956AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Mon, 20 Jun 2016 19:45:12 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v3 02/13] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
-Date: Mon, 20 Jun 2016 16:43:32 -0700
-Message-ID: <a69511534e25cd8600178f712ca65d8dd2077197.1466466093.git.luto@kernel.org>
-In-Reply-To: <cover.1466466093.git.luto@kernel.org>
-References: <cover.1466466093.git.luto@kernel.org>
-In-Reply-To: <cover.1466466093.git.luto@kernel.org>
-References: <cover.1466466093.git.luto@kernel.org>
+Subject: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Mon, 20 Jun 2016 16:43:30 -0700
+Message-ID: <cover.1466466093.git.luto@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160620234332.aYzxBsU_SNrdAjOK9HgbcPYrkO1teTzWWmRKzTs2kWA@z>
+Message-ID: <20160620234330.0Ncfx7H9_FpRRmqOpkFsZzK033rnHdKGX6RJL01CEJw@z>
 
-This avoids pointless races in which another CPU or task might see a
-partially populated global pgd entry.  These races should normally
-be harmless, but, if another CPU propagates the entry via
-vmalloc_fault and then populate_pgd fails (due to memory allocation
-failure, for example), this prevents a use-after-free of the pgd
-entry.
+Since the dawn of time, a kernel stack overflow has been a real PITA
+to debug, has caused nondeterministic crashes some time after the
+actual overflow, and has generally been easy to exploit for root.
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/mm/pageattr.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
+that enable it (just x86 for now) get virtually mapped stacks with
+guard pages.  This causes reliable faults when the stack overflows.
 
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 7a1f7bbf4105..6a8026918bf6 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
- 
- 	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
- 	if (ret < 0) {
--		unmap_pgd_range(cpa->pgd, addr,
-+		if (pud)
-+			free_page((unsigned long)pud);
-+		unmap_pud_range(pgd_entry, addr,
- 				addr + (cpa->numpages << PAGE_SHIFT));
- 		return ret;
- 	}
+If the arch implements it well, we get a nice OOPS on stack overflow
+(as opposed to panicing directly or otherwise exploding badly).  On
+x86, the OOPS is nice, has a usable call trace, and the overflowing
+task is killed cleanly.
+
+On my laptop, this adds about 1.5µs of overhead to task creation,
+which seems to be mainly caused by vmalloc inefficiently allocating
+individual pages even when a higher-order page is available on the
+freelist.
+
+This does not address interrupt stacks.  It also does not address
+the possibility of privilege escalation by a controlled stack
+overflow that overwrites thread_info without hitting the guard page.
+I'll send patches to address the latter issue once this series
+lands.
+
+It's worth noting that s390 has an arch-specific gcc feature that
+detects stack overflows by adjusting function prologues.  Arches
+with features like that may wish to avoid using vmapped stacks to
+minimize the performance hit.
+
+Ingo, would it make sense to throw it into a seaparate branch in
+-tip?  I wouldn't mind seeing some -next testing to give people a
+chance to shake out problems.  I'm particularly interested in
+whether there are any drivers that expect virt_to_phys to work on
+stack addresses.  (I know that virtio-net used to, but I fixed that
+a while back.)
+
+Changes from v2:
+ - Delete kerne_unmap_pages_in_pgd rather than hardening it (Borislav)
+ - Fix sub-page stack accounting better (Josh)
+
+Changes from v1:
+ - Fix rewind_stack_and_do_exit (Josh)
+ - Fix deadlock under load
+ - Clean up generic stack vmalloc code
+ - Many other minor fixes
+
+Andy Lutomirski (12):
+  x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
+  x86/mm: Remove kernel_unmap_pages_in_pgd() and
+    efi_cleanup_page_tables()
+  mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
+  mm: Fix memcg stack accounting for sub-page stacks
+  fork: Add generic vmalloced stack support
+  x86/die: Don't try to recover from an OOPS on a non-default stack
+  x86/dumpstack: When OOPSing, rewind the stack before do_exit
+  x86/dumpstack: When dumping stack bytes due to OOPS, start with
+    regs->sp
+  x86/dumpstack: Try harder to get a call trace on stack overflow
+  x86/dumpstack/64: Handle faults when printing the "Stack:" part of an
+    OOPS
+  x86/mm/64: Enable vmapped stacks
+  x86/mm: Improve stack-overflow #PF handling
+
+Ingo Molnar (1):
+  x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
+
+ arch/Kconfig                         | 29 ++++++++++++
+ arch/ia64/include/asm/thread_info.h  |  2 +-
+ arch/x86/Kconfig                     |  1 +
+ arch/x86/entry/entry_32.S            | 11 +++++
+ arch/x86/entry/entry_64.S            | 11 +++++
+ arch/x86/include/asm/efi.h           |  1 -
+ arch/x86/include/asm/pgtable_types.h |  2 -
+ arch/x86/include/asm/switch_to.h     | 28 +++++++++++-
+ arch/x86/include/asm/traps.h         |  6 +++
+ arch/x86/kernel/dumpstack.c          | 19 +++++++-
+ arch/x86/kernel/dumpstack_32.c       |  4 +-
+ arch/x86/kernel/dumpstack_64.c       | 16 +++++--
+ arch/x86/kernel/traps.c              | 32 ++++++++++++++
+ arch/x86/mm/fault.c                  | 39 ++++++++++++++++
+ arch/x86/mm/init_64.c                | 27 -----------
+ arch/x86/mm/pageattr.c               | 32 ++------------
+ arch/x86/mm/tlb.c                    | 15 +++++++
+ arch/x86/platform/efi/efi.c          |  2 -
+ arch/x86/platform/efi/efi_32.c       |  3 --
+ arch/x86/platform/efi/efi_64.c       |  5 ---
+ drivers/base/node.c                  |  3 +-
+ fs/proc/meminfo.c                    |  2 +-
+ include/linux/memcontrol.h           |  2 +-
+ include/linux/mmzone.h               |  2 +-
+ include/linux/sched.h                | 15 +++++++
+ kernel/fork.c                        | 86 +++++++++++++++++++++++++++---------
+ mm/memcontrol.c                      |  2 +-
+ mm/page_alloc.c                      |  3 +-
+ 28 files changed, 295 insertions(+), 105 deletions(-)
+
 -- 
 2.5.5
 
