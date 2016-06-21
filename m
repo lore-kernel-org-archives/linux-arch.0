@@ -1,83 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42496 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751530AbcFUSMr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 14:12:47 -0400
-Message-ID: <1466532133.2756.50.camel@redhat.com>
-Subject: Re: [kernel-hardening] Re: [PATCH v3 00/13] Virtually mapped stacks
- with guard pages (x86, core)
-From: Rik van Riel <riel@redhat.com>
-Date: Tue, 21 Jun 2016 14:02:13 -0400
-In-Reply-To: <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org>
-	 <13212319.WrhLzgRA6Z@wuerfel>
-	 <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-CorTQSSXHM2WOtKrQ0Sl"
-Mime-Version: 1.0
+Received: from mail-lf0-f52.google.com ([209.85.215.52]:36211 "EHLO
+	mail-lf0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751870AbcFUSMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 14:12:33 -0400
+Received: by mail-lf0-f52.google.com with SMTP id q132so36079505lfe.3
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 11:12:33 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <CALCETrWEokFnfjx_LjG_S4TizjVo=YcJNpeoSwxHn0-d2+Aw+A@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrX0VXZVgy0_6-Jq_sT4yPKYogGjTZvn8VqvMzPtw4-3wg@mail.gmail.com>
+ <CA+55aFzBAdM2UGpmVQjhnEtsvfPmJE1aqeoo4e65PrQvsvsFnQ@mail.gmail.com> <CALCETrWEokFnfjx_LjG_S4TizjVo=YcJNpeoSwxHn0-d2+Aw+A@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Tue, 21 Jun 2016 11:12:31 -0700
+Message-ID: <CAGXu5jLQk8zha3cx158GU6AGN+XDManurTmuC08XjYcJBJhvfg@mail.gmail.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com, Arnd Bergmann <arnd@arndb.de>
-Cc: Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621180213.-BfrJ0u5tVxRhcsv3zD-5dcMYW3y-2-q7_YigBr0lWI@z>
+To: Andy Lutomirski <luto@amacapital.net>, Herbert Xu <herbert@gondor.apana.org.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621181231.t8xfNKAwBimmYESs9SU4ud76FnL6QmmNpaygbFi9r6g@z>
 
+On Tue, Jun 21, 2016 at 10:27 AM, Andy Lutomirski <luto@amacapital.net> wrote:
+> On Tue, Jun 21, 2016 at 10:16 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>> On Tue, Jun 21, 2016 at 9:45 AM, Andy Lutomirski <luto@amacapital.net> wrote:
+>>>
+>>> So I'm leaning toward fewer cache entries per cpu, maybe just one.
+>>> I'm all for making it a bit faster, but I think we should weigh that
+>>> against increasing memory usage too much and thus scaring away the
+>>> embedded folks.
+>>
+>> I don't think the embedded folks will be scared by a per-cpu cache, if
+>> it's just one or two entries.  And I really do think that even just
+>> one or two entries will indeed catch a lot of the cases.
+>>
+>> And yes, fork+execve() is too damn expensive in page table build-up
+>> and tear-down. I'm not sure why bash doesn't do vfork+exec for when it
+>> has to wait for the process anyway, but it doesn't seem to do that.
+>>
+>
+> I don't know about bash, but glibc very recently fixed a long-standing
+> but in posix_spawn and started using clone() in a sensible manner for
+> this.
+>
+> FWIW, it may be a while before this can be enabled in distro kernels.
+> There are some code paths (*cough* crypto users *cough*) that think
+> that calling sg_init_one with a stack address is a reasonable thing to
+> do, and it doesn't work with a vmalloced stack.  grsecurity works
 
---=-CorTQSSXHM2WOtKrQ0Sl
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+... O_o ...
 
-On Tue, 2016-06-21 at 10:16 -0700, Kees Cook wrote:
-> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> >=20
-> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
-> > >=20
-> > >=20
-> > > On my laptop, this adds about 1.5=C2=B5s of overhead to task creation=
-,
-> > > which seems to be mainly caused by vmalloc inefficiently
-> > > allocating
-> > > individual pages even when a higher-order page is available on
-> > > the
-> > > freelist.
-> > Would it help to have a fixed virtual address for the stack instead
-> > and map the current stack to that during a task switch, similar to
-> > how we handle fixmap pages?
-> >=20
-> > That would of course trade the allocation overhead for a task
-> > switch
-> > overhead, which may be better or worse. It would also give
-> > "current"
-> > a constant address, which may give a small performance advantage
-> > but may also introduce a new attack vector unless we randomize it
-> > again.
-> Right: we don't want a fixed address. That makes attacks WAY easier.
+Why does it not work on a vmalloced stack??
 
-Does that imply we might want the per-cpu cache of
-these stacks to be larger than one, in order to
-introduce some more randomness after an attacker
-crashed an ASLRed program looking for ROP gadgets,
-and the next one is spawned? :)
+> around this by using a real lowmem higher-order stack, aliasing it
+> into vmalloc space, and arranging for virt_to_phys to backtrack the
+> alias, but eww.  I think I'd rather find and fix the bugs, assuming
+> they're straightforward.
 
---=20
-All Rights Reversed.
+Yeah. That's ugly.
 
+-Kees
 
---=-CorTQSSXHM2WOtKrQ0Sl
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJXaYElAAoJEM553pKExN6Dd1IH/26D9y8/CCeKr35zps5ADJPk
-xdGDss78w8Dks+PT0yUsqCXZBlvKdmJAxveAx+nME2RQ/hvcanGAFvoJf4EunSJv
-UWtkErANVA9mm6gtVqguW276BnkNdv0mjPfF5oGuiptmHfmjE0Oc+0HyuX4xcj4G
-rN1Nw+fZtJIgCZn/8HCkHF2q5jladxfZneJpI9wsEwbUBBzzciqQbxAJr11JHdxm
-1CmHq36G3PX3BssWgx7bb79sKnyaOpccfuBFuUK4d5mMQ0kyd2q2YauTiqxECcm7
-GCj2Zx9lDnA3rs1vxcmcr5+0q0osYKh+NU/H9rqDkoMc7B5qHSW9kSyiDE34jDE=
-=6XiW
------END PGP SIGNATURE-----
-
---=-CorTQSSXHM2WOtKrQ0Sl--
-
+-- 
+Kees Cook
+Chrome OS & Brillo Security
