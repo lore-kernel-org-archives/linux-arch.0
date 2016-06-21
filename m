@@ -1,69 +1,156 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: Re: [PATCH v3 00/13] Virtually mapped stacks
- with guard pages (x86, core)
-Date: Tue, 21 Jun 2016 14:19:49 -0400
-Message-ID: <1466533189.2756.52.camel@redhat.com>
-References: <cover.1466466093.git.luto@kernel.org>
-	 <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
-	 <CALCETrX0VXZVgy0_6-Jq_sT4yPKYogGjTZvn8VqvMzPtw4-3wg@mail.gmail.com>
-	 <CA+55aFzBAdM2UGpmVQjhnEtsvfPmJE1aqeoo4e65PrQvsvsFnQ@mail.gmail.com>
-	 <CALCETrWEokFnfjx_LjG_S4TizjVo=YcJNpeoSwxHn0-d2+Aw+A@mail.gmail.com>
-	 <CAGXu5jLQk8zha3cx158GU6AGN+XDManurTmuC08XjYcJBJhvfg@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Date: Tue, 21 Jun 2016 20:28:44 +0200
+Message-ID: <20160621182844.GT30927@twins.programming.kicks-ass.net>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+ <20160621172918.GS30927@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-iRBwSazlTytAWjIbeDno"
-Return-path: <kernel-hardening-return-3567-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAGXu5jLQk8zha3cx158GU6AGN+XDManurTmuC08XjYcJBJhvfg@mail.gmail.com>
-To: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>, Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:46137 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752508AbcFUS2t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 14:28:49 -0400
+Content-Disposition: inline
+In-Reply-To: <20160621172918.GS30927@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Tue, Jun 21, 2016 at 07:29:18PM +0200, Peter Zijlstra wrote:
 
---=-iRBwSazlTytAWjIbeDno
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+> OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
+> can build me a kernel with it.
 
-On Tue, 2016-06-21 at 11:12 -0700, Kees Cook wrote:
-> On Tue, Jun 21, 2016 at 10:27 AM, Andy Lutomirski
-> <luto@amacapital.net> wrote:
-> > FWIW, it may be a while before this can be enabled in distro
-> > kernels.
-> > There are some code paths (*cough* crypto users *cough*) that think
-> > that calling sg_init_one with a stack address is a reasonable thing
-> > to
-> > do, and it doesn't work with a vmalloced stack.=C2=A0=C2=A0grsecurity w=
-orks
-> ... O_o ...
->=20
-> Why does it not work on a vmalloced stack??
+The below, much larger than desired, patch seems to make it go again.
 
-Because virt_to_page() does not work on vmalloced
-memory.
+I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
+with the builtin C11 atomic primitives.
 
---=20
-All Rights Reversed.
+You want me to rename them all to regain consistent naming?
 
+---
+ arch/tile/include/asm/atomic_32.h |   16 ++++++++--------
+ arch/tile/include/asm/futex.h     |    6 +++---
+ arch/tile/lib/atomic_32.c         |    8 ++++----
+ arch/tile/lib/atomic_asm_32.S     |    8 ++++----
+ 4 files changed, 19 insertions(+), 19 deletions(-)
 
---=-iRBwSazlTytAWjIbeDno
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJXaYVFAAoJEM553pKExN6DW9wIAJGaNx+6WeMQkYnYyi+B9CVI
-2Oc9YIw237LfSNkFqzsa1awGA5Z2C6m1qwaT3MoDJlKem4/em4xjdbWKdkTbM3lP
-nSINT0cqztExGZDLVNFtiLpjypp1mJsLYsywlZP8n4gGDR5T0qIqXY2JQSlhJcAd
-dH8A1x9GgMke0l/WkALesvEuRqIFNWAMBUFI7LJ4J4Zs0Tt4lvJAioT4XlLqDFKG
-a0AUxkKaoeRmpUYrRgSMHBgY1WzUkd6YI6Hjbr0U8rk3Mis/pQ+9Bgnr8bj29bRv
-BqwQOtO4EC9ZQ+yZCg6RMfxEZ3ARqtGAyKTekvP/RQUxjmopjwuhLkdSPGMIPMI=
-=1NxW
------END PGP SIGNATURE-----
-
---=-iRBwSazlTytAWjIbeDno--
+diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
+index da8eb4e..e063825 100644
+--- a/arch/tile/include/asm/atomic_32.h
++++ b/arch/tile/include/asm/atomic_32.h
+@@ -143,15 +143,15 @@ static inline void atomic64_##op(long long i, atomic64_t *v)	\
+ {								\
+ 	_atomic64_fetch_##op(&v->counter, i);			\
+ }								\
+-static inline void atomic64_##op(long long i, atomic64_t *v)	\
++static inline long long atomic64_fetch_##op(long long i, atomic64_t *v)	\
+ {								\
+ 	smp_mb();						\
+ 	return _atomic64_fetch_##op(&v->counter, i);		\
+ }
+ 
+-ATOMIC64_OP(and)
+-ATOMIC64_OP(or)
+-ATOMIC64_OP(xor)
++ATOMIC64_OPS(and)
++ATOMIC64_OPS(or)
++ATOMIC64_OPS(xor)
+ 
+ #undef ATOMIC64_OPS
+ 
+@@ -272,10 +272,10 @@ extern struct __get_user __atomic_xchg(volatile int *p, int *lock, int n);
+ extern struct __get_user __atomic_xchg_add(volatile int *p, int *lock, int n);
+ extern struct __get_user __atomic_xchg_add_unless(volatile int *p,
+ 						  int *lock, int o, int n);
+-extern struct __get_user __atomic_fetch_or(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_and(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_andn(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_xor(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_or(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_and(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_andn(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_xor(volatile int *p, int *lock, int n);
+ extern long long __atomic64_cmpxchg(volatile long long *p, int *lock,
+ 					long long o, long long n);
+ extern long long __atomic64_xchg(volatile long long *p, int *lock, long long n);
+diff --git a/arch/tile/include/asm/futex.h b/arch/tile/include/asm/futex.h
+index 1a6ef1b..479b28b 100644
+--- a/arch/tile/include/asm/futex.h
++++ b/arch/tile/include/asm/futex.h
+@@ -82,9 +82,9 @@
+ 
+ #define __futex_set() __futex_call(__atomic_xchg)
+ #define __futex_add() __futex_call(__atomic_xchg_add)
+-#define __futex_or() __futex_call(__atomic_or)
+-#define __futex_andn() __futex_call(__atomic_andn)
+-#define __futex_xor() __futex_call(__atomic_xor)
++#define __futex_or() __futex_call(__atomic32_fetch_or)
++#define __futex_andn() __futex_call(__atomic32_fetch_andn)
++#define __futex_xor() __futex_call(__atomic32_fetch_xor)
+ 
+ #define __futex_cmpxchg()						\
+ 	{								\
+diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
+index 5b6bd93..64d12fa 100644
+--- a/arch/tile/lib/atomic_32.c
++++ b/arch/tile/lib/atomic_32.c
+@@ -90,25 +90,25 @@ EXPORT_SYMBOL(_atomic_cmpxchg);
+ 
+ unsigned long _atomic_fetch_or(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_or((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_or((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_or);
+ 
+ unsigned long _atomic_fetch_and(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_and((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_and((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_and);
+ 
+ unsigned long _atomic_fetch_andn(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_andn((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_andn((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_andn);
+ 
+ unsigned long _atomic_fetch_xor(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_xor((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_xor((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_xor);
+ 
+diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
+index 507abdd..e78fed0 100644
+--- a/arch/tile/lib/atomic_asm_32.S
++++ b/arch/tile/lib/atomic_asm_32.S
+@@ -177,10 +177,10 @@ atomic_op _xchg, 32, "move r24, r2"
+ atomic_op _xchg_add, 32, "add r24, r22, r2"
+ atomic_op _xchg_add_unless, 32, \
+ 	"sne r26, r22, r2; { bbns r26, 3f; add r24, r22, r3 }"
+-atomic_op _fetch_or, 32, "or r24, r22, r2"
+-atomic_op _fetch_and, 32, "and r24, r22, r2"
+-atomic_op _fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
+-atomic_op _fetch_xor, 32, "xor r24, r22, r2"
++atomic_op 32_fetch_or, 32, "or r24, r22, r2"
++atomic_op 32_fetch_and, 32, "and r24, r22, r2"
++atomic_op 32_fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
++atomic_op 32_fetch_xor, 32, "xor r24, r22, r2"
+ 
+ atomic_op 64_cmpxchg, 64, "{ seq r26, r22, r2; seq r27, r23, r3 }; \
+ 	{ bbns r26, 3f; move r24, r4 }; { bbns r27, 3f; move r25, r5 }"
