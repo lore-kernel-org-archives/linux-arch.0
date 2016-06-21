@@ -1,47 +1,42 @@
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH 08/19] arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
-Date: Tue, 21 Jun 2016 13:34:59 +0200
-Message-ID: <mvmk2hipyfw.fsf@hawking.suse.de>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
-	<1466207668-10549-9-git-send-email-ynorov@caviumnetworks.com>
-	<576915B0.5040706@huawei.com>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: Re: linux-next: Tree for Jun 21
+Date: Tue, 21 Jun 2016 08:08:29 -0400
+Message-ID: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <libc-alpha-return-70874-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-Reply-To: <576915B0.5040706@huawei.com> (Zhangjian's message of "Tue, 21
-	Jun 2016 18:23:44 +0800")
-To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <Andrew.Pinski@c>aviumnetworks.com
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5768E650.2080506@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-"Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com> writes:
-
->> @@ -78,9 +79,9 @@
+On 6/21/2016 3:01 AM, Sudip Mukherjee wrote:
+> On Tuesday 21 June 2016 06:46 AM, Stephen Rothwell wrote:
+>> Hi all,
 >>
->>   #ifdef CONFIG_COMPAT
->>   #define TASK_SIZE_32		UL(0x100000000)
->> -#define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
->> +#define TASK_SIZE		(is_compat_task() ?		\
->>   				TASK_SIZE_32 : TASK_SIZE_64)
->> -#define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
->> +#define TASK_SIZE_OF(tsk)	(is_compat_thread(tsk) ? \
-> It should be
-> +#define TASK_SIZE_OF(tsk)      (is_compat_thread(task_thread_info(tsk)) ? \
-> is_compat_thread takes "struct thread_info *thread" while TASK_SIZE_OF takes
-> "struct task_struct *tsk"tsk.
+>> Changes since 20160620:
+>
+> tilepro defconfig is failing while doing "make prepare" and bisect shows the first bad commit as:
+>
+> 1af5de9af138 ("locking/atomic, arch/tile: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()")
+>
+> You can find today's build log at:
+> https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
 
-If that doesn't throw an error does that mean that TASK_SIZE_OF is
-unused?
+On inspection, I note that the arch/tile/include/atomic_32.h header has
 
-Andreas.
+ATOMIC64_OP(and)
+ATOMIC64_OP(or)
+ATOMIC64_OP(xor)
+
+but these should be ATOMIC64_OPS, plural.
+
+Peter, what toolchain were you using for tilepro build testing?  You need to have a tilepro toolchain (not tilegx) and build with ARCH=tilepro.
 
 -- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
