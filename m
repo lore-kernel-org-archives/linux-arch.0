@@ -1,47 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f51.google.com ([209.85.215.51]:34156 "EHLO
-	mail-lf0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752707AbcFURYW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:24:22 -0400
-Received: by mail-lf0-f51.google.com with SMTP id h129so34118906lfh.1
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 10:24:21 -0700 (PDT)
+Received: from merlin.infradead.org ([205.233.59.134]:46039 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751704AbcFURaw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:30:52 -0400
+Date: Tue, 21 Jun 2016 19:29:18 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Message-ID: <20160621172918.GS30927@twins.programming.kicks-ass.net>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
-In-Reply-To: <13212319.WrhLzgRA6Z@wuerfel>
-References: <cover.1466466093.git.luto@kernel.org> <13212319.WrhLzgRA6Z@wuerfel>
-From: Kees Cook <keescook@chromium.org>
-Date: Tue, 21 Jun 2016 10:16:21 -0700
-Message-ID: <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160621170607.GQ30154@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621171621.6hPWJQdaNGUhsdydQ7wNwM1UnURK3nOpb0z4S3Ssd_o@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621172918.VpIAxzodXeiSuw_jssXu_VuS_ulMehZ9H0uYILWFxSU@z>
 
-On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
->>
->> On my laptop, this adds about 1.5µs of overhead to task creation,
->> which seems to be mainly caused by vmalloc inefficiently allocating
->> individual pages even when a higher-order page is available on the
->> freelist.
->
-> Would it help to have a fixed virtual address for the stack instead
-> and map the current stack to that during a task switch, similar to
-> how we handle fixmap pages?
->
-> That would of course trade the allocation overhead for a task switch
-> overhead, which may be better or worse. It would also give "current"
-> a constant address, which may give a small performance advantage
-> but may also introduce a new attack vector unless we randomize it
-> again.
+On Tue, Jun 21, 2016 at 07:06:07PM +0200, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 11:26:19AM -0400, Chris Metcalf wrote:
+> > This has been true since gcc 4.x when tilepro support was first added.
+> > 
+> > In any case if you replace the #include <asm/unistd.h> with
+> > 
+> > #define __NR_FAST_cmpxchg    -1
+> > #define __NR_FAST_atomic_update    -2
+> > #define __NR_FAST_cmpxchg64    -3
+> > 
+> > that should also probably fix it, though I haven't tested it.  It probably
+> > wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
+> > since it's not like those fast system call numbers will ever change.
 
-Right: we don't want a fixed address. That makes attacks WAY easier.
-
--Kees
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
+can build me a kernel with it.
