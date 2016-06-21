@@ -1,48 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:62056 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.133]:55161 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750701AbcFUTru convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 15:47:50 -0400
+	with ESMTP id S1752639AbcFUTuD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 15:50:03 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Tue, 21 Jun 2016 21:47:44 +0200
-Message-ID: <6248429.A4IJrfgOW3@wuerfel>
-In-Reply-To: <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <13212319.WrhLzgRA6Z@wuerfel> <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH v3 06/13] fork: Add generic vmalloced stack support
+Date: Tue, 21 Jun 2016 21:44:13 +0200
+Message-ID: <3742830.xcm4l8nxyl@wuerfel>
+In-Reply-To: <1466533948.2756.56.camel@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org> <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com> <1466533948.2756.56.camel@redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621194744.lHRYBl42wzOvDg44PxY2pO6sMV6EUNWdHX8ARF4RJc8@z>
+To: Rik van Riel <riel@redhat.com>
+Cc: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>, Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621194413.FSbh8G9CWm4Y5a40KqhBHaTVRu1kQ-nHNxxozsniYV4@z>
 
-On Tuesday, June 21, 2016 10:16:21 AM CEST Kees Cook wrote:
-> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
-> >>
-> >> On my laptop, this adds about 1.5µs of overhead to task creation,
-> >> which seems to be mainly caused by vmalloc inefficiently allocating
-> >> individual pages even when a higher-order page is available on the
-> >> freelist.
-> >
-> > Would it help to have a fixed virtual address for the stack instead
-> > and map the current stack to that during a task switch, similar to
-> > how we handle fixmap pages?
-> >
-> > That would of course trade the allocation overhead for a task switch
-> > overhead, which may be better or worse. It would also give "current"
-> > a constant address, which may give a small performance advantage
-> > but may also introduce a new attack vector unless we randomize it
-> > again.
+On Tuesday, June 21, 2016 2:32:28 PM CEST Rik van Riel wrote:
+> On Tue, 2016-06-21 at 10:13 -0700, Kees Cook wrote:
+> > On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net
+> > > wrote:
+> > > 
+> > > I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc
+> > > range.
+> > > It has no in-tree users for non-fixed addresses right now.
+> > What about the lack of pre-range guard page? That seems like a
+> > critical feature for this. 
 > 
-> Right: we don't want a fixed address. That makes attacks WAY easier.
+> If VM_NO_GUARD is disallowed, and every vmalloc area has
+> a guard area behind it, then every subsequent vmalloc area
+> will have a guard page ahead of it.
+> 
+> I think disallowing VM_NO_GUARD will be all that is required.
+> 
+> The only thing we may want to verify on the architectures that
+> we care about is that there is nothing mapped immediately before
+> the start of the vmalloc range, otherwise the first vmalloced
+> area will not have a guard page below it.
 
-Do we care about making the address more random then? When I look
-at /proc/vmallocinfo, I see that allocations are all using
-consecutive addresses, so if you can figure out the virtual
-address of the stack for one process that would give you a good
-chance of guessing the address for the next pid.
+FWIW, ARM has an 8MB guard area between the linear mapping of
+physical memory and the start of the vmalloc area. I have not
+checked any of the other architectures though.
 
 	Arnd
