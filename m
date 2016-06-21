@@ -1,40 +1,49 @@
-From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 09:55:15 +0100
-Message-ID: <20160621085515.GA2888@sudip-tp>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <20160621075828.GL30154@twins.programming.kicks-ass.net>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Tue, 21 Jun 2016 10:06:20 +0100
+Message-ID: <4467.1466499980@warthog.procyon.org.uk>
+References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-next-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160621075828.GL30154@twins.programming.kicks-ass.net>
-Sender: linux-next-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
+Content-ID: <4466.1466499980.1@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 09:58:28AM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 21, 2016 at 08:01:36AM +0100, Sudip Mukherjee wrote:
-> 
-> > tilepro defconfig is failing while doing "make prepare" and bisect shows the
-> > first bad commit as:
-> > 
-> > 1af5de9af138 ("locking/atomic, arch/tile: Implement
-> > atomic{,64}_fetch_{add,sub,and,or,xor}()")
-> > 
-> > You can find today's build log at:
-> > https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
-> > 
-> > Please do let me know if i can help in any way to debug/solve this.
-> 
-> I cannot reproduce, I tried both tip/master (which carries the patch you
-> fingered) and next/master.
+H. Peter Anvin <hpa@zytor.com> wrote:
 
-Thats strange.
-The log I gave is for next-20160621.
-BTW, I am using gcc-5.3.0
+> Well, that sounds promising.  I wonder how David's model, using
+> intrinsics (do we have enough intrinsics to actually be able to do this
+> "correctly"?), compare to using the flags output from assembly.
 
-regards
-sudip
+There is an advantage to using the intriniscs on arches with explicit
+barriers.  On powerpc64, for example, the compiler can move the release memory
+barrier earlier to push register-only instructions between the barrier and the
+lwarx.  This would allow the memory barrier to be executed concurrently with
+those instructions.
+
+The compiler could also move the acquire memory barrier later, pulling
+register-only instructions between the stwcx and that barrier, though I don't
+see any advantage to doing so.
+
+Whereas if the release barrier is in the same asm block as the lwarx, the
+compiler cannot do anything with it.
+
+
+Another advantage is that the compiler can switch between instruction variants
+automatically, allowing us to get rid of the size-based switch statements for
+things like cmpxchg().
+
+
+However, there's probably not a great deal of difference to be had if the
+inline asm codes the appropriate instruction in each case for something like
+x86*.  The emitted code ought to look the same.  The second biggest win for
+the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
+it actually did anything rather than comparing the result.  I added two
+variants, one that only returned the yes/no and one that passed back the value
+as well as the yes/no.
+
+David
