@@ -1,54 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36626 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750783AbcFUJS1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 05:18:27 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net>
-Subject: Re: cmpxchg and x86 flags output
+Received: from mout.kundenserver.de ([212.227.126.131]:54480 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751491AbcFUJaM convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 05:30:12 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Tue, 21 Jun 2016 11:24:18 +0200
+Message-ID: <13212319.WrhLzgRA6Z@wuerfel>
+In-Reply-To: <cover.1466466093.git.luto@kernel.org>
+References: <cover.1466466093.git.luto@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <4466.1466499980.1@warthog.procyon.org.uk>
-Date: Tue, 21 Jun 2016 10:06:20 +0100
-Message-ID: <4467.1466499980@warthog.procyon.org.uk>
+Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="iso-8859-1"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20160621090620.qfzKTsK8UqSoAfdxer4fP7i_yqzuNJWh1BssG5exW34@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621092418._tzFJxAtyygYMD7kbGjeiwOvuOfne2efV-y_T8acFm4@z>
 
-H. Peter Anvin <hpa@zytor.com> wrote:
+On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
+> 
+> On my laptop, this adds about 1.5µs of overhead to task creation,
+> which seems to be mainly caused by vmalloc inefficiently allocating
+> individual pages even when a higher-order page is available on the
+> freelist.
 
-> Well, that sounds promising.  I wonder how David's model, using
-> intrinsics (do we have enough intrinsics to actually be able to do this
-> "correctly"?), compare to using the flags output from assembly.
+Would it help to have a fixed virtual address for the stack instead
+and map the current stack to that during a task switch, similar to
+how we handle fixmap pages?
 
-There is an advantage to using the intriniscs on arches with explicit
-barriers.  On powerpc64, for example, the compiler can move the release memory
-barrier earlier to push register-only instructions between the barrier and the
-lwarx.  This would allow the memory barrier to be executed concurrently with
-those instructions.
+That would of course trade the allocation overhead for a task switch
+overhead, which may be better or worse. It would also give "current"
+a constant address, which may give a small performance advantage
+but may also introduce a new attack vector unless we randomize it
+again.
 
-The compiler could also move the acquire memory barrier later, pulling
-register-only instructions between the stwcx and that barrier, though I don't
-see any advantage to doing so.
-
-Whereas if the release barrier is in the same asm block as the lwarx, the
-compiler cannot do anything with it.
-
-
-Another advantage is that the compiler can switch between instruction variants
-automatically, allowing us to get rid of the size-based switch statements for
-things like cmpxchg().
-
-
-However, there's probably not a great deal of difference to be had if the
-inline asm codes the appropriate instruction in each case for something like
-x86*.  The emitted code ought to look the same.  The second biggest win for
-the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
-it actually did anything rather than comparing the result.  I added two
-variants, one that only returned the yes/no and one that passed back the value
-as well as the yes/no.
-
-David
+	Arnd
