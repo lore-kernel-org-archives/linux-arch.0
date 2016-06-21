@@ -1,53 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43167 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751415AbcFUMpe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 08:45:34 -0400
-Date: Tue, 21 Jun 2016 14:42:47 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Message-ID: <20160621124247.GM30921@twins.programming.kicks-ass.net>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+Received: from mx2.suse.de ([195.135.220.15]:54852 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750948AbcFUNXp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jun 2016 09:23:45 -0400
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH 08/19] arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+	<1466207668-10549-9-git-send-email-ynorov@caviumnetworks.com>
+	<576915B0.5040706@huawei.com>
+Date: Tue, 21 Jun 2016 13:34:59 +0200
+In-Reply-To: <576915B0.5040706@huawei.com> (Zhangjian's message of "Tue, 21
+	Jun 2016 18:23:44 +0800")
+Message-ID: <mvmk2hipyfw.fsf@hawking.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621124247.SBtYoFW1PJFAtQwDvXnXEG1YMiaztlIG8MrF7ZqCyuo@z>
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Message-ID: <20160621113459.89CIIRfGQbaqxxQv59b9b7KmSTjrw7_RH44kIeMscIA@z>
 
-On Tue, Jun 21, 2016 at 08:08:29AM -0400, Chris Metcalf wrote:
-> 
-> On inspection, I note that the arch/tile/include/atomic_32.h header has
-> 
-> ATOMIC64_OP(and)
-> ATOMIC64_OP(or)
-> ATOMIC64_OP(xor)
-> 
-> but these should be ATOMIC64_OPS, plural.
+"Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com> writes:
 
-Bugger, I'll go fix. Clearly nobody has tilepro toolchains :/
+>> @@ -78,9 +79,9 @@
+>>
+>>   #ifdef CONFIG_COMPAT
+>>   #define TASK_SIZE_32		UL(0x100000000)
+>> -#define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
+>> +#define TASK_SIZE		(is_compat_task() ?		\
+>>   				TASK_SIZE_32 : TASK_SIZE_64)
+>> -#define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
+>> +#define TASK_SIZE_OF(tsk)	(is_compat_thread(tsk) ? \
+> It should be
+> +#define TASK_SIZE_OF(tsk)      (is_compat_thread(task_thread_info(tsk)) ? \
+> is_compat_thread takes "struct thread_info *thread" while TASK_SIZE_OF takes
+> "struct task_struct *tsk"tsk.
 
-> Peter, what toolchain were you using for tilepro build testing? 
+If that doesn't throw an error does that mean that TASK_SIZE_OF is
+unused?
 
-tilegx-linux-
+Andreas.
 
-> You need to have a tilepro toolchain (not tilegx) 
-
-Ah, should I go use TARGET=tilepro-linux ?
-
-> and build with ARCH=tilepro.
-
-        tilepro)
-                ARCH=tile
-                CROSS_COMPILE=tilegx-linux-
-                if [ "$CONFIG" == "defconfig" ] ; then
-                        CONFIG=tilepro_defconfig
-                fi
-                ;;
-
-So I suppose that too is wrong.
+-- 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
