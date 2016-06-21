@@ -1,72 +1,50 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2 06/13] fork: Add generic vmalloced stack support
-Date: Tue, 21 Jun 2016 10:01:06 -0700
-Message-ID: <CALCETrXqH1J5qwKhm7V2E1nfx2LWnkvG7DxYdd2NP5Sp6j+JfA@mail.gmail.com>
-References: <cover.1466192946.git.luto@kernel.org> <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
- <20160620133614.GE9892@dhcp22.suse.cz> <CALCETrV3M0a4Xyro21Rz8gpkq1b8PnFUZm_NPnBr0BBO8HS6ug@mail.gmail.com>
- <20160621084649.GC30848@dhcp22.suse.cz>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: Re: linux-next: Tree for Jun 21
+Date: Tue, 21 Jun 2016 11:26:19 -0400
+Message-ID: <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop> <20160621141435.GB7381@worktop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160621084649.GC30848@dhcp22.suse.cz>
+In-Reply-To: <20160621141435.GB7381@worktop>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 1:46 AM, Michal Hocko <mhocko@kernel.org> wrote=
-:
-> On Mon 20-06-16 09:13:55, Andy Lutomirski wrote:
->> On Mon, Jun 20, 2016 at 6:36 AM, Michal Hocko <mhocko@kernel.org> wr=
-ote:
->> > On Fri 17-06-16 13:00:42, Andy Lutomirski wrote:
->> >> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated wit=
-h
->> >> vmalloc_node.
->> >
->> > I like this! It also reduces demand for higher order (order-2) pag=
-es
->> > considerably which is a great plus on its own. I would be little b=
-it
->> > worried about the performance because vmalloc wasn't the fastest o=
-ne
->> > AFAIR. Have you tried to measure that?
->>
->> It seems to add about 1.5=E7=9B=9C to pthread_create+join on my lapt=
-op.  (On
->> an unmodified, stripped-down kernel, it took about 7=E7=9B=9C before=
-=2E  On a
->> Fedora system, the baseline is much worse.)  I think that most of th=
-e
->> overhead is because vmalloc allocates one page at a time, which mean=
-s
->> that it won't use a higher order page even if one is sitting on a
->> freelist.
->
-> I guess a less artificial test case which would would generate a lot =
-of
-> tasks and some memory pressure would be more representative (e.g.
-> kernbench). The thing is that even order-2 pages might get quite
-> expensive when the memory is fragmented.
->
->> I can imagine better integration with the page allocator in which
->> higher order pages are used if readily available.  Similarly, vfree
->> could free pages that happen to be aligned and consecutive as a unit
->> to avoid the overhead of merging them back together one at a time.
->>
->> But I'm not planning on doing any of this myself any time soon.  I
->> just want to get the code working and merged.
->
-> I agree, there is a room for improvement but no necessarily as a part=
- of
-> this series.
->
+On 6/21/2016 10:14 AM, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
+>>> I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
+>>> so should be easy enough to include.  There's also a cross-toolchain for x64 I put
+>>> up a while ago [1] that you could grab if you wanted to try it.
+>> I usually build my own set -- and just did. But tilepro was not
+>> included. Lemme go do so.
+> binutils-2_26-branch builds for tilepro-linux
+> gcc-6-branch does _not_ build for tilepro-linux
 
-Agreed.  My goal is to get this good enough for upstream, and we can
-make it even better down the road.
+I figured I would take a stab at diagnosing this myself, and it looks like the
+toolchain build assumes that the kernel headers have already been installed
+and therefore we have <asm/unistd.h> available.  This actually seems like
+a reasonable prerequisite for building the toolchain.  I'm guessing you
+don't?  Should you?  Or perhaps the compiler shouldn't make that assumption?
+This has been true since gcc 4.x when tilepro support was first added.
 
-That being said, I think I will implement Linus' suggestion of a tiny
-percpu cache.
+In any case if you replace the #include <asm/unistd.h> with
 
---Andy
+#define __NR_FAST_cmpxchg    -1
+#define __NR_FAST_atomic_update    -2
+#define __NR_FAST_cmpxchg64    -3
+
+that should also probably fix it, though I haven't tested it.  It probably
+wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
+since it's not like those fast system call numbers will ever change.
+
+-- 
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
