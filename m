@@ -1,73 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f43.google.com ([209.85.213.43]:36851 "EHLO
-	mail-vk0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932199AbcFURdq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:33:46 -0400
-Received: by mail-vk0-f43.google.com with SMTP id u64so29810323vkf.3
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 10:33:46 -0700 (PDT)
+Received: from mail-db3on0098.outbound.protection.outlook.com ([157.55.234.98]:53503
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751606AbcFUSEN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jun 2016 14:04:13 -0400
+Subject: Re: linux-next: Tree for Jun 21
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop> <20160621141435.GB7381@worktop>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+Date: Tue, 21 Jun 2016 11:26:19 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
- <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
- <CALCETrWp+7+9j1vMgv5hxvtq3akZZZVdaVDfOLoFwhX+kL=Ntw@mail.gmail.com> <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 21 Jun 2016 10:28:05 -0700
-Message-ID: <CALCETrWLAS4sSmN4ejVhK3vDsqNEQEh3RU5ps1iXtAoighaYsw@mail.gmail.com>
-Subject: Re: [PATCH v3 06/13] fork: Add generic vmalloced stack support
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <20160621141435.GB7381@worktop>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621172805.BawbC9IvWmuCfgzeRR90cPZadbG9_jeltADlrVeQl9I@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621152619.vyTTXtb2SyTd09IOg9LASHRU0Ws61jfA39Pe-SdnJMk@z>
 
-On Tue, Jun 21, 2016 at 10:13 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Tue, Jun 21, 2016 at 12:30 AM, Jann Horn <jannh@google.com> wrote:
->>> On Tue, Jun 21, 2016 at 1:43 AM, Andy Lutomirski <luto@kernel.org> wrote:
->>>> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
->>>> vmalloc_node.
->>> [...]
->>>>  static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
->>>>                                                   int node)
->>>>  {
->>>> +#ifdef CONFIG_VMAP_STACK
->>>> +       struct thread_info *ti = __vmalloc_node_range(
->>>> +               THREAD_SIZE, THREAD_SIZE, VMALLOC_START, VMALLOC_END,
->>>> +               THREADINFO_GFP | __GFP_HIGHMEM, PAGE_KERNEL,
->>>> +               0, node, __builtin_return_address(0));
->>>> +
->>>
->>> After spender gave some hints on IRC about the guard pages not working
->>> reliably, I decided to have a closer look at this. As far as I can
->>> tell, the idea is that __vmalloc_node_range() automatically adds guard
->>> pages unless the VM_NO_GUARD flag is specified. However, those guard
->>> pages are *behind* allocations, not in front of them, while a stack
->>> guard primarily needs to be in front of the allocation. This wouldn't
->>> matter if all allocations in the vmalloc area had guard pages behind
->>> them, but if someone first does some data allocation with VM_NO_GUARD
->>> and then a stack allocation directly behind that, there won't be a
->>> guard between the data allocation and the stack allocation.
->>
->> I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc range.
->> It has no in-tree users for non-fixed addresses right now.
->
-> What about the lack of pre-range guard page? That seems like a
-> critical feature for this. :)
->
+On 6/21/2016 10:14 AM, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
+>>> I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
+>>> so should be easy enough to include.  There's also a cross-toolchain for x64 I put
+>>> up a while ago [1] that you could grab if you wanted to try it.
+>> I usually build my own set -- and just did. But tilepro was not
+>> included. Lemme go do so.
+> binutils-2_26-branch builds for tilepro-linux
+> gcc-6-branch does _not_ build for tilepro-linux
 
-Agreed.  There's a big va hole there on x86_64, but I don't know about
-other arches.  It might pay to add something to the vmalloc core code.
-Any volunteers?
+I figured I would take a stab at diagnosing this myself, and it looks like the
+toolchain build assumes that the kernel headers have already been installed
+and therefore we have <asm/unistd.h> available.  This actually seems like
+a reasonable prerequisite for building the toolchain.  I'm guessing you
+don't?  Should you?  Or perhaps the compiler shouldn't make that assumption?
+This has been true since gcc 4.x when tilepro support was first added.
 
-> -Kees
->
-> --
-> Kees Cook
-> Chrome OS & Brillo Security
+In any case if you replace the #include <asm/unistd.h> with
 
+#define __NR_FAST_cmpxchg    -1
+#define __NR_FAST_atomic_update    -2
+#define __NR_FAST_cmpxchg64    -3
 
+that should also probably fix it, though I haven't tested it.  It probably
+wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
+since it's not like those fast system call numbers will ever change.
 
 -- 
-Andy Lutomirski
-AMA Capital Management, LLC
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
+
