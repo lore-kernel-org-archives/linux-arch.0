@@ -1,163 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:58080 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752633AbcFTXpM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2016 19:45:12 -0400
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v3 03/13] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
-Date: Mon, 20 Jun 2016 16:43:33 -0700
-Message-ID: <0b78b5c100c1c046c498f1085f40e9422e9d23f5.1466466093.git.luto@kernel.org>
+Received: from mail-ob0-f196.google.com ([209.85.214.196]:33412 "EHLO
+	mail-ob0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750716AbcFUECe convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 00:02:34 -0400
+MIME-Version: 1.0
 In-Reply-To: <cover.1466466093.git.luto@kernel.org>
 References: <cover.1466466093.git.luto@kernel.org>
-In-Reply-To: <cover.1466466093.git.luto@kernel.org>
-References: <cover.1466466093.git.luto@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 20 Jun 2016 21:01:40 -0700
+Message-ID: <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Matt Fleming <matt@codeblueprint.co.uk>, linux-efi@vger.kernel.org
-Message-ID: <20160620234333.wJYJMtVa-a7Oo7zNtFb3OH_4eCZEGzidOvu9lwrhMAI@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621040140.VledZPAyh4C73PR6gL6mVvTsS15bYS2SJVXNHtaMWBE@z>
 
-kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
-init_mm.pgd were to be cleared, callers would need to ensure that
-the pgd entry hadn't been propagated to any other pgd.
+On Mon, Jun 20, 2016 at 4:43 PM, Andy Lutomirski <luto@kernel.org> wrote:
+>
+> On my laptop, this adds about 1.5µs of overhead to task creation,
+> which seems to be mainly caused by vmalloc inefficiently allocating
+> individual pages even when a higher-order page is available on the
+> freelist.
 
-Its only caller was efi_cleanup_page_tables(), and that, in turn,
-was unused, so just delete both functions.  This leaves a couple of
-other helpers unused, so delete them, too.
+I really think that problem needs to be fixed before this should be merged.
 
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: linux-efi@vger.kernel.org
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/include/asm/efi.h           |  1 -
- arch/x86/include/asm/pgtable_types.h |  2 --
- arch/x86/mm/pageattr.c               | 28 ----------------------------
- arch/x86/platform/efi/efi.c          |  2 --
- arch/x86/platform/efi/efi_32.c       |  3 ---
- arch/x86/platform/efi/efi_64.c       |  5 -----
- 6 files changed, 41 deletions(-)
+The easy fix may be to just have a very limited re-use of these stacks
+in generic code, rather than try to do anything fancy with multi-page
+allocations. Just a few of these allocations held in reserve (perhaps
+make the allocations percpu to avoid new locks).
 
-diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
-index 78d1e7467eae..45ea38df86d4 100644
---- a/arch/x86/include/asm/efi.h
-+++ b/arch/x86/include/asm/efi.h
-@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
- extern void efi_sync_low_kernel_mappings(void);
- extern int __init efi_alloc_page_tables(void);
- extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
--extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
- extern void __init old_map_region(efi_memory_desc_t *md);
- extern void __init runtime_code_page_mkexec(void);
- extern void __init efi_runtime_update_mappings(void);
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 7b5efe264eff..0b9f58ad10c8 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
- extern phys_addr_t slow_virt_to_phys(void *__address);
- extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
- 				   unsigned numpages, unsigned long page_flags);
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages);
- #endif	/* !__ASSEMBLY__ */
- 
- #endif /* _ASM_X86_PGTABLE_DEFS_H */
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 6a8026918bf6..762162af3662 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
- 	return true;
- }
- 
--static bool try_to_free_pud_page(pud_t *pud)
--{
--	int i;
--
--	for (i = 0; i < PTRS_PER_PUD; i++)
--		if (!pud_none(pud[i]))
--			return false;
--
--	free_page((unsigned long)pud);
--	return true;
--}
--
- static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
- {
- 	pte_t *pte = pte_offset_kernel(pmd, start);
-@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
- 	 */
- }
- 
--static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
--{
--	pgd_t *pgd_entry = root + pgd_index(addr);
--
--	unmap_pud_range(pgd_entry, addr, end);
--
--	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
--		pgd_clear(pgd_entry);
--}
--
- static int alloc_pte_page(pmd_t *pmd)
- {
- 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
-@@ -1993,12 +1971,6 @@ out:
- 	return retval;
- }
- 
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages)
--{
--	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
--}
--
- /*
-  * The testcases use internal knowledge of the implementation that shouldn't
-  * be exposed to the rest of the kernel. Include these directly here.
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index f93545e7dc54..62986e5fbdba 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
- 	 * EFI mixed mode we need all of memory to be accessible when
- 	 * we pass parameters to the EFI runtime services in the
- 	 * thunking code.
--	 *
--	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
- 	 */
- 	free_pages((unsigned long)new_memmap, pg_shift);
- 
-diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
-index 338402b91d2e..cef39b097649 100644
---- a/arch/x86/platform/efi/efi_32.c
-+++ b/arch/x86/platform/efi/efi_32.c
-@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- {
- 	return 0;
- }
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--}
- 
- void __init efi_map_region(efi_memory_desc_t *md)
- {
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index 6e7242be1c87..5ab219c2ba43 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	return 0;
- }
- 
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
--}
--
- static void __init __map_region(efi_memory_desc_t *md, u64 va)
- {
- 	unsigned long flags = _PAGE_RW;
--- 
-2.5.5
+It won't help for a thundering herd problem where you start tons of
+new threads, but those don't tend to be short-lived ones anyway. In
+contrast, I think one common case is the "run shell scripts" that runs
+tons and tons of short-lived processes, and having a small "stack of
+stacks" would probably catch that case very nicely. Even a
+single-entry cache might be ok, but I see no reason to not make it be
+perhaps three or four stacks per CPU.
 
+Make the "thread create/exit" sequence go really fast by avoiding the
+allocation/deallocation, and hopefully catching a hot cache and TLB
+line too.
+
+Performance is not something that we add later. If the first version
+of the patch series doesn't perform well, it should not be considered
+ready.
+
+            Linus
