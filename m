@@ -1,57 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0098.outbound.protection.outlook.com ([157.55.234.98]:53503
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751606AbcFUSEN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 14:04:13 -0400
-Subject: Re: linux-next: Tree for Jun 21
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
- <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop> <20160621141435.GB7381@worktop>
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
-Date: Tue, 21 Jun 2016 11:26:19 -0400
+Received: from mail-vk0-f53.google.com ([209.85.213.53]:36400 "EHLO
+	mail-vk0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752307AbcFUSGD convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 14:06:03 -0400
+Received: by mail-vk0-f53.google.com with SMTP id u64so30981569vkf.3
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 11:06:01 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20160621141435.GB7381@worktop>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1466532133.2756.50.camel@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org> <13212319.WrhLzgRA6Z@wuerfel>
+ <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com> <1466532133.2756.50.camel@redhat.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 21 Jun 2016 11:05:41 -0700
+Message-ID: <CALCETrX-rKLa7Skr5NOannx4no1Vma2j-ahAquQNmwLYaVgwQA@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH v3 00/13] Virtually mapped stacks
+ with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621152619.vyTTXtb2SyTd09IOg9LASHRU0Ws61jfA39Pe-SdnJMk@z>
+To: Rik van Riel <riel@redhat.com>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621180541.ExCwyYnFT7NXK33C_YnoNkAsT1dc_5VywOtowD7Jis8@z>
 
-On 6/21/2016 10:14 AM, Peter Zijlstra wrote:
-> On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
->>> I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
->>> so should be easy enough to include.  There's also a cross-toolchain for x64 I put
->>> up a while ago [1] that you could grab if you wanted to try it.
->> I usually build my own set -- and just did. But tilepro was not
->> included. Lemme go do so.
-> binutils-2_26-branch builds for tilepro-linux
-> gcc-6-branch does _not_ build for tilepro-linux
+On Tue, Jun 21, 2016 at 11:02 AM, Rik van Riel <riel@redhat.com> wrote:
+> On Tue, 2016-06-21 at 10:16 -0700, Kees Cook wrote:
+>> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> >
+>> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
+>> > >
+>> > >
+>> > > On my laptop, this adds about 1.5µs of overhead to task creation,
+>> > > which seems to be mainly caused by vmalloc inefficiently
+>> > > allocating
+>> > > individual pages even when a higher-order page is available on
+>> > > the
+>> > > freelist.
+>> > Would it help to have a fixed virtual address for the stack instead
+>> > and map the current stack to that during a task switch, similar to
+>> > how we handle fixmap pages?
+>> >
+>> > That would of course trade the allocation overhead for a task
+>> > switch
+>> > overhead, which may be better or worse. It would also give
+>> > "current"
+>> > a constant address, which may give a small performance advantage
+>> > but may also introduce a new attack vector unless we randomize it
+>> > again.
+>> Right: we don't want a fixed address. That makes attacks WAY easier.
+>
+> Does that imply we might want the per-cpu cache of
+> these stacks to be larger than one, in order to
+> introduce some more randomness after an attacker
+> crashed an ASLRed program looking for ROP gadgets,
+> and the next one is spawned? :)
 
-I figured I would take a stab at diagnosing this myself, and it looks like the
-toolchain build assumes that the kernel headers have already been installed
-and therefore we have <asm/unistd.h> available.  This actually seems like
-a reasonable prerequisite for building the toolchain.  I'm guessing you
-don't?  Should you?  Or perhaps the compiler shouldn't make that assumption?
-This has been true since gcc 4.x when tilepro support was first added.
+This is the kernel stack, so this only really matters if there's some
+attack in which you OOPS but learn the kernel stack address in the
+process and then reuse that stack.  So... maybe?
 
-In any case if you replace the #include <asm/unistd.h> with
-
-#define __NR_FAST_cmpxchg    -1
-#define __NR_FAST_atomic_update    -2
-#define __NR_FAST_cmpxchg64    -3
-
-that should also probably fix it, though I haven't tested it.  It probably
-wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
-since it's not like those fast system call numbers will ever change.
-
--- 
-Chris Metcalf, Mellanox Technologies
-http://www.mellanox.com
-
+--Andy
