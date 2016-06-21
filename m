@@ -1,156 +1,75 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 20:28:44 +0200
-Message-ID: <20160621182844.GT30927@twins.programming.kicks-ass.net>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
- <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop>
- <20160621141435.GB7381@worktop>
- <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
- <20160621170607.GQ30154@twins.programming.kicks-ass.net>
- <20160621172918.GS30927@twins.programming.kicks-ass.net>
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: Re: [PATCH v3 06/13] fork: Add generic
+ vmalloced stack support
+Date: Tue, 21 Jun 2016 14:32:28 -0400
+Message-ID: <1466533948.2756.56.camel@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org>
+	 <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
+	 <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
+	 <CALCETrWp+7+9j1vMgv5hxvtq3akZZZVdaVDfOLoFwhX+kL=Ntw@mail.gmail.com>
+	 <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:46137 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752508AbcFUS2t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 14:28:49 -0400
-Content-Disposition: inline
-In-Reply-To: <20160621172918.GS30927@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; micalg="pgp-sha256";
+	protocol="application/pgp-signature"; boundary="=-JIDeOF8ZZyE1csowjY8T"
+Return-path: <kernel-hardening-return-3568-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
+To: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>
+Cc: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 07:29:18PM +0200, Peter Zijlstra wrote:
 
-> OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
-> can build me a kernel with it.
+--=-JIDeOF8ZZyE1csowjY8T
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-The below, much larger than desired, patch seems to make it go again.
+On Tue, 2016-06-21 at 10:13 -0700, Kees Cook wrote:
+> On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net
+> > wrote:
+> >=C2=A0
+> > I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc
+> > range.
+> > It has no in-tree users for non-fixed addresses right now.
+> What about the lack of pre-range guard page? That seems like a
+> critical feature for this. :)
 
-I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
-with the builtin C11 atomic primitives.
+If VM_NO_GUARD is disallowed, and every vmalloc area has
+a guard area behind it, then every subsequent vmalloc area
+will have a guard page ahead of it.
 
-You want me to rename them all to regain consistent naming?
+I think disallowing VM_NO_GUARD will be all that is required.
 
----
- arch/tile/include/asm/atomic_32.h |   16 ++++++++--------
- arch/tile/include/asm/futex.h     |    6 +++---
- arch/tile/lib/atomic_32.c         |    8 ++++----
- arch/tile/lib/atomic_asm_32.S     |    8 ++++----
- 4 files changed, 19 insertions(+), 19 deletions(-)
+The only thing we may want to verify on the architectures that
+we care about is that there is nothing mapped immediately before
+the start of the vmalloc range, otherwise the first vmalloced
+area will not have a guard page below it.
 
-diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
-index da8eb4e..e063825 100644
---- a/arch/tile/include/asm/atomic_32.h
-+++ b/arch/tile/include/asm/atomic_32.h
-@@ -143,15 +143,15 @@ static inline void atomic64_##op(long long i, atomic64_t *v)	\
- {								\
- 	_atomic64_fetch_##op(&v->counter, i);			\
- }								\
--static inline void atomic64_##op(long long i, atomic64_t *v)	\
-+static inline long long atomic64_fetch_##op(long long i, atomic64_t *v)	\
- {								\
- 	smp_mb();						\
- 	return _atomic64_fetch_##op(&v->counter, i);		\
- }
- 
--ATOMIC64_OP(and)
--ATOMIC64_OP(or)
--ATOMIC64_OP(xor)
-+ATOMIC64_OPS(and)
-+ATOMIC64_OPS(or)
-+ATOMIC64_OPS(xor)
- 
- #undef ATOMIC64_OPS
- 
-@@ -272,10 +272,10 @@ extern struct __get_user __atomic_xchg(volatile int *p, int *lock, int n);
- extern struct __get_user __atomic_xchg_add(volatile int *p, int *lock, int n);
- extern struct __get_user __atomic_xchg_add_unless(volatile int *p,
- 						  int *lock, int o, int n);
--extern struct __get_user __atomic_fetch_or(volatile int *p, int *lock, int n);
--extern struct __get_user __atomic_fetch_and(volatile int *p, int *lock, int n);
--extern struct __get_user __atomic_fetch_andn(volatile int *p, int *lock, int n);
--extern struct __get_user __atomic_fetch_xor(volatile int *p, int *lock, int n);
-+extern struct __get_user __atomic32_fetch_or(volatile int *p, int *lock, int n);
-+extern struct __get_user __atomic32_fetch_and(volatile int *p, int *lock, int n);
-+extern struct __get_user __atomic32_fetch_andn(volatile int *p, int *lock, int n);
-+extern struct __get_user __atomic32_fetch_xor(volatile int *p, int *lock, int n);
- extern long long __atomic64_cmpxchg(volatile long long *p, int *lock,
- 					long long o, long long n);
- extern long long __atomic64_xchg(volatile long long *p, int *lock, long long n);
-diff --git a/arch/tile/include/asm/futex.h b/arch/tile/include/asm/futex.h
-index 1a6ef1b..479b28b 100644
---- a/arch/tile/include/asm/futex.h
-+++ b/arch/tile/include/asm/futex.h
-@@ -82,9 +82,9 @@
- 
- #define __futex_set() __futex_call(__atomic_xchg)
- #define __futex_add() __futex_call(__atomic_xchg_add)
--#define __futex_or() __futex_call(__atomic_or)
--#define __futex_andn() __futex_call(__atomic_andn)
--#define __futex_xor() __futex_call(__atomic_xor)
-+#define __futex_or() __futex_call(__atomic32_fetch_or)
-+#define __futex_andn() __futex_call(__atomic32_fetch_andn)
-+#define __futex_xor() __futex_call(__atomic32_fetch_xor)
- 
- #define __futex_cmpxchg()						\
- 	{								\
-diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
-index 5b6bd93..64d12fa 100644
---- a/arch/tile/lib/atomic_32.c
-+++ b/arch/tile/lib/atomic_32.c
-@@ -90,25 +90,25 @@ EXPORT_SYMBOL(_atomic_cmpxchg);
- 
- unsigned long _atomic_fetch_or(volatile unsigned long *p, unsigned long mask)
- {
--	return __atomic_fetch_or((int *)p, __atomic_setup(p), mask).val;
-+	return __atomic32_fetch_or((int *)p, __atomic_setup(p), mask).val;
- }
- EXPORT_SYMBOL(_atomic_fetch_or);
- 
- unsigned long _atomic_fetch_and(volatile unsigned long *p, unsigned long mask)
- {
--	return __atomic_fetch_and((int *)p, __atomic_setup(p), mask).val;
-+	return __atomic32_fetch_and((int *)p, __atomic_setup(p), mask).val;
- }
- EXPORT_SYMBOL(_atomic_fetch_and);
- 
- unsigned long _atomic_fetch_andn(volatile unsigned long *p, unsigned long mask)
- {
--	return __atomic_fetch_andn((int *)p, __atomic_setup(p), mask).val;
-+	return __atomic32_fetch_andn((int *)p, __atomic_setup(p), mask).val;
- }
- EXPORT_SYMBOL(_atomic_fetch_andn);
- 
- unsigned long _atomic_fetch_xor(volatile unsigned long *p, unsigned long mask)
- {
--	return __atomic_fetch_xor((int *)p, __atomic_setup(p), mask).val;
-+	return __atomic32_fetch_xor((int *)p, __atomic_setup(p), mask).val;
- }
- EXPORT_SYMBOL(_atomic_fetch_xor);
- 
-diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
-index 507abdd..e78fed0 100644
---- a/arch/tile/lib/atomic_asm_32.S
-+++ b/arch/tile/lib/atomic_asm_32.S
-@@ -177,10 +177,10 @@ atomic_op _xchg, 32, "move r24, r2"
- atomic_op _xchg_add, 32, "add r24, r22, r2"
- atomic_op _xchg_add_unless, 32, \
- 	"sne r26, r22, r2; { bbns r26, 3f; add r24, r22, r3 }"
--atomic_op _fetch_or, 32, "or r24, r22, r2"
--atomic_op _fetch_and, 32, "and r24, r22, r2"
--atomic_op _fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
--atomic_op _fetch_xor, 32, "xor r24, r22, r2"
-+atomic_op 32_fetch_or, 32, "or r24, r22, r2"
-+atomic_op 32_fetch_and, 32, "and r24, r22, r2"
-+atomic_op 32_fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
-+atomic_op 32_fetch_xor, 32, "xor r24, r22, r2"
- 
- atomic_op 64_cmpxchg, 64, "{ seq r26, r22, r2; seq r27, r23, r3 }; \
- 	{ bbns r26, 3f; move r24, r4 }; { bbns r27, 3f; move r25, r5 }"
+I suspect all the 64 bit architectures are fine in that regard,
+with enormous gaps between kernel memory ranges.
+
+--=20
+All Rights Reversed.
+
+
+--=-JIDeOF8ZZyE1csowjY8T
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJXaYg9AAoJEM553pKExN6DMgQH/AkJiDO6nYz4HDPcXzy6mKtQ
+P5YfvXRL6roj7l3lG5FQuwcPryPj+vy4HHyysPEvo9Sk8DABLDsvDO3a8QdbWrkm
+D2zFcrN3OaAN8IRXHPyhHgDrotBZ5AUkFiUzf4EP18kxML+AWZioifpM8XL5FvH6
+YbZRKyNaDz5QZpB+5DIIjT/3ngU+2Cn71ZkreKJ9fSqVfnP4Ea+U+89CzHi9hxUr
+tC+eTPrgiJ281SBFQUCbs42WSpd7vfQtSk8Q2IxRCChKAyBhY8AVKH37+hYvOtgw
+H5jiIzbdOyDo5ofr01P0emLx/kEGyH4zURu8QCeJMxHB9XB86QVwHh4bc/RzkP4=
+=hL+a
+-----END PGP SIGNATURE-----
+
+--=-JIDeOF8ZZyE1csowjY8T--
