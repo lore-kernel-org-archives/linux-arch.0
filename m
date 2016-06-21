@@ -1,39 +1,81 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 19:29:18 +0200
-Message-ID: <20160621172918.GS30927@twins.programming.kicks-ass.net>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
- <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop>
- <20160621141435.GB7381@worktop>
- <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
- <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: Re: [PATCH v3 00/13] Virtually mapped stacks
+ with guard pages (x86, core)
+Date: Tue, 21 Jun 2016 14:02:13 -0400
+Message-ID: <1466532133.2756.50.camel@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org>
+	 <13212319.WrhLzgRA6Z@wuerfel>
+	 <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-next-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160621170607.GQ30154@twins.programming.kicks-ass.net>
-Sender: linux-next-owner@vger.kernel.org
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; micalg="pgp-sha256";
+	protocol="application/pgp-signature"; boundary="=-CorTQSSXHM2WOtKrQ0Sl"
+Return-path: <kernel-hardening-return-3564-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
+To: kernel-hardening@lists.openwall.com, Arnd Bergmann <arnd@arndb.de>
+Cc: Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 07:06:07PM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 21, 2016 at 11:26:19AM -0400, Chris Metcalf wrote:
-> > This has been true since gcc 4.x when tilepro support was first added.
-> > 
-> > In any case if you replace the #include <asm/unistd.h> with
-> > 
-> > #define __NR_FAST_cmpxchg    -1
-> > #define __NR_FAST_atomic_update    -2
-> > #define __NR_FAST_cmpxchg64    -3
-> > 
-> > that should also probably fix it, though I haven't tested it.  It probably
-> > wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
-> > since it's not like those fast system call numbers will ever change.
 
-OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
-can build me a kernel with it.
+--=-CorTQSSXHM2WOtKrQ0Sl
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+On Tue, 2016-06-21 at 10:16 -0700, Kees Cook wrote:
+> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> >=20
+> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
+> > >=20
+> > >=20
+> > > On my laptop, this adds about 1.5=C2=B5s of overhead to task creation=
+,
+> > > which seems to be mainly caused by vmalloc inefficiently
+> > > allocating
+> > > individual pages even when a higher-order page is available on
+> > > the
+> > > freelist.
+> > Would it help to have a fixed virtual address for the stack instead
+> > and map the current stack to that during a task switch, similar to
+> > how we handle fixmap pages?
+> >=20
+> > That would of course trade the allocation overhead for a task
+> > switch
+> > overhead, which may be better or worse. It would also give
+> > "current"
+> > a constant address, which may give a small performance advantage
+> > but may also introduce a new attack vector unless we randomize it
+> > again.
+> Right: we don't want a fixed address. That makes attacks WAY easier.
+
+Does that imply we might want the per-cpu cache of
+these stacks to be larger than one, in order to
+introduce some more randomness after an attacker
+crashed an ASLRed program looking for ROP gadgets,
+and the next one is spawned? :)
+
+--=20
+All Rights Reversed.
+
+
+--=-CorTQSSXHM2WOtKrQ0Sl
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJXaYElAAoJEM553pKExN6Dd1IH/26D9y8/CCeKr35zps5ADJPk
+xdGDss78w8Dks+PT0yUsqCXZBlvKdmJAxveAx+nME2RQ/hvcanGAFvoJf4EunSJv
+UWtkErANVA9mm6gtVqguW276BnkNdv0mjPfF5oGuiptmHfmjE0Oc+0HyuX4xcj4G
+rN1Nw+fZtJIgCZn/8HCkHF2q5jladxfZneJpI9wsEwbUBBzzciqQbxAJr11JHdxm
+1CmHq36G3PX3BssWgx7bb79sKnyaOpccfuBFuUK4d5mMQ0kyd2q2YauTiqxECcm7
+GCj2Zx9lDnA3rs1vxcmcr5+0q0osYKh+NU/H9rqDkoMc7B5qHSW9kSyiDE34jDE=
+=6XiW
+-----END PGP SIGNATURE-----
+
+--=-CorTQSSXHM2WOtKrQ0Sl--
