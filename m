@@ -1,51 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Mon, 20 Jun 2016 21:01:40 -0700
-Message-ID: <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Finn Thain <fthain@telegraphics.com.au>
+Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement
+ atomic_fetch_{add,sub,and,or,xor}()
+Date: Tue, 21 Jun 2016 14:27:22 +1000 (AEST)
+Message-ID: <alpine.LNX.2.00.1606211350360.26385@nippy.intranet>
+References: <20160531101925.702692792@infradead.org> <20160531102642.333689893@infradead.org> <CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com> <20160616101309.GD30921@twins.programming.kicks-ass.net> <mvmk2hpxq1a.fsf@hawking.suse.de>
+ <20160617154024.GY30154@twins.programming.kicks-ass.net> <87twgniwh7.fsf@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kernel-hardening-return-3547-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: linus971@gmail.com
-In-Reply-To: <cover.1466466093.git.luto@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <87twgniwh7.fsf@linux-m68k.org>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?ISO-8859-15?Q?Fr=E9d=E9ric_Weisbecker?= <fweisbec@gmail.com>, "linux-kernel\\@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 20, 2016 at 4:43 PM, Andy Lutomirski <luto@kernel.org> wrote:
->
-> On my laptop, this adds about 1.5=C2=B5s of overhead to task creation,
-> which seems to be mainly caused by vmalloc inefficiently allocating
-> individual pages even when a higher-order page is available on the
-> freelist.
 
-I really think that problem needs to be fixed before this should be merged.
+On Mon, 20 Jun 2016, Andreas Schwab wrote:
 
-The easy fix may be to just have a very limited re-use of these stacks
-in generic code, rather than try to do anything fancy with multi-page
-allocations. Just a few of these allocations held in reserve (perhaps
-make the allocations percpu to avoid new locks).
+> Peter Zijlstra <peterz@infradead.org> writes:
+> 
+> > Could either of you comment on the below patch?
+> >
+> > All atomic functions that return a value should imply full memory 
+> > barrier semantics -- this very much includes a compiler barrier / 
+> > memory clobber.
+> 
+> I wonder if it is possible to find a case where this makes a real 
+> difference, ie. where the compiler erroneously reused a value due to the 
+> missing barrier.
 
-It won't help for a thundering herd problem where you start tons of
-new threads, but those don't tend to be short-lived ones anyway. In
-contrast, I think one common case is the "run shell scripts" that runs
-tons and tons of short-lived processes, and having a small "stack of
-stacks" would probably catch that case very nicely. Even a
-single-entry cache might be ok, but I see no reason to not make it be
-perhaps three or four stacks per CPU.
+What the compiler does erroneously is a compiler bug by definition. But I 
+think that was not what you meant.
 
-Make the "thread create/exit" sequence go really fast by avoiding the
-allocation/deallocation, and hopefully catching a hot cache and TLB
-line too.
+Perhaps you're asking whether gcc in particular does what you expect, 
+despite ambiguous source code. But what about other tools like static 
+analyzers?
 
-Performance is not something that we add later. If the first version
-of the patch series doesn't perform well, it should not be considered
-ready.
+Ambiguous code is likely to attract patches like this for as long as it 
+remains ambiguous. That's a waste of everyone's time, if patches like this 
+could be written and reviewed just once.
 
-            Linus
+-- 
+
+> 
+> Andreas.
+> 
+> 
