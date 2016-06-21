@@ -1,57 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:52080 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751698AbcFUT3K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 15:29:10 -0400
-Date: Tue, 21 Jun 2016 21:04:12 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Message-ID: <20160621190412.GU30927@twins.programming.kicks-ass.net>
-References: <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop>
- <20160621141435.GB7381@worktop>
- <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
- <20160621170607.GQ30154@twins.programming.kicks-ass.net>
- <20160621172918.GS30927@twins.programming.kicks-ass.net>
- <20160621182844.GT30927@twins.programming.kicks-ass.net>
- <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
- <20160621185048.GR30909@twins.programming.kicks-ass.net>
+Received: from mail-vk0-f43.google.com ([209.85.213.43]:32815 "EHLO
+	mail-vk0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751143AbcFUTof (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 15:44:35 -0400
+Received: by mail-vk0-f43.google.com with SMTP id d185so34501662vkg.0
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 12:44:17 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160621185048.GR30909@twins.programming.kicks-ass.net>
+In-Reply-To: <3742830.xcm4l8nxyl@wuerfel>
+References: <cover.1466466093.git.luto@kernel.org> <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
+ <1466533948.2756.56.camel@redhat.com> <3742830.xcm4l8nxyl@wuerfel>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 21 Jun 2016 12:43:56 -0700
+Message-ID: <CALCETrXB5UuChvGPODfsP0jE3f3yaG8SgtukyfH26jcK2=Jpvw@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH v3 06/13] fork: Add generic
+ vmalloced stack support
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621190412.cstKyYakuREziriOwSUsVaVSvyjXKM5mszhTbKK27bI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Rik van Riel <riel@redhat.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621194356.kHNmK4Nj1XRwvXt0edywpNMeobZG5111L0NWzwuz4xc@z>
 
-On Tue, Jun 21, 2016 at 08:50:48PM +0200, Peter Zijlstra wrote:
-> I've no idea; I use this thing:
-> 
->   git://git.infradead.org/users/segher/buildall.git
-> 
-> Although I've got some local modifications, none are to the actual
-> toolchain building part (although I suppose I should send segher a
-> patch).
+On Tue, Jun 21, 2016 at 12:44 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday, June 21, 2016 2:32:28 PM CEST Rik van Riel wrote:
+>> On Tue, 2016-06-21 at 10:13 -0700, Kees Cook wrote:
+>> > On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net
+>> > > wrote:
+>> > >
+>> > > I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc
+>> > > range.
+>> > > It has no in-tree users for non-fixed addresses right now.
+>> > What about the lack of pre-range guard page? That seems like a
+>> > critical feature for this.
+>>
+>> If VM_NO_GUARD is disallowed, and every vmalloc area has
+>> a guard area behind it, then every subsequent vmalloc area
+>> will have a guard page ahead of it.
+>>
+>> I think disallowing VM_NO_GUARD will be all that is required.
+>>
+>> The only thing we may want to verify on the architectures that
+>> we care about is that there is nothing mapped immediately before
+>> the start of the vmalloc range, otherwise the first vmalloced
+>> area will not have a guard page below it.
+>
+> FWIW, ARM has an 8MB guard area between the linear mapping of
+> physical memory and the start of the vmalloc area. I have not
+> checked any of the other architectures though.
 
-Oops, I do have..
+If we start banning VM_NO_GUARD in the vmalloc area, we could also
+explicitly prevent use of the bottom page of the vmalloc area.
 
-sjlj-exceptions is causing aarch64 to fail, so I killed it, its not like
-the kernel needs that.
+>
+>         Arnd
 
 
-diff --git a/build-gcc b/build-gcc
-index a93c624..183f445 100755
---- a/build-gcc
-+++ b/build-gcc
-@@ -22,7 +22,7 @@ $ECHO -ne "       gcc:" && \
- 	$GCC_SRC/configure \
- 	--target=$TARGET --enable-targets=all --prefix=$PREFIX \
- 	--enable-languages=c --without-headers --disable-bootstrap \
--	--enable-sjlj-exceptions --with-system-libunwind \
-+	--disable-sjlj-exceptions --with-system-libunwind \
- 	--disable-nls --disable-threads --disable-shared \
- 	--disable-libmudflap --disable-libssp --disable-libgomp \
- 	--disable-decimal-float --disable-libquadmath \
+
+-- 
+Andy Lutomirski
+AMA Capital Management, LLC
