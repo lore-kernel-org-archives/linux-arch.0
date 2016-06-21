@@ -1,47 +1,68 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3 06/13] fork: Add generic vmalloced stack support
-Date: Tue, 21 Jun 2016 09:59:49 -0700
-Message-ID: <CALCETrWp+7+9j1vMgv5hxvtq3akZZZVdaVDfOLoFwhX+kL=Ntw@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
- <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Tue, 21 Jun 2016 10:00:11 -0700
+Message-ID: <F800D95C-A84C-4F54-9620-F28465AC4A16@zytor.com>
+References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net> <4467.1466499980@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-3557-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
-To: Jann Horn <jannh@google.com>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4467.1466499980@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 12:30 AM, Jann Horn <jannh@google.com> wrote:
-> On Tue, Jun 21, 2016 at 1:43 AM, Andy Lutomirski <luto@kernel.org> wrote:
->> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
->> vmalloc_node.
-> [...]
->>  static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
->>                                                   int node)
->>  {
->> +#ifdef CONFIG_VMAP_STACK
->> +       struct thread_info *ti = __vmalloc_node_range(
->> +               THREAD_SIZE, THREAD_SIZE, VMALLOC_START, VMALLOC_END,
->> +               THREADINFO_GFP | __GFP_HIGHMEM, PAGE_KERNEL,
->> +               0, node, __builtin_return_address(0));
->> +
+On June 21, 2016 2:06:20 AM PDT, David Howells <dhowells@redhat.com> wrote:
+>H. Peter Anvin <hpa@zytor.com> wrote:
 >
-> After spender gave some hints on IRC about the guard pages not working
-> reliably, I decided to have a closer look at this. As far as I can
-> tell, the idea is that __vmalloc_node_range() automatically adds guard
-> pages unless the VM_NO_GUARD flag is specified. However, those guard
-> pages are *behind* allocations, not in front of them, while a stack
-> guard primarily needs to be in front of the allocation. This wouldn't
-> matter if all allocations in the vmalloc area had guard pages behind
-> them, but if someone first does some data allocation with VM_NO_GUARD
-> and then a stack allocation directly behind that, there won't be a
-> guard between the data allocation and the stack allocation.
+>> Well, that sounds promising.  I wonder how David's model, using
+>> intrinsics (do we have enough intrinsics to actually be able to do
+>this
+>> "correctly"?), compare to using the flags output from assembly.
+>
+>There is an advantage to using the intriniscs on arches with explicit
+>barriers.  On powerpc64, for example, the compiler can move the release
+>memory
+>barrier earlier to push register-only instructions between the barrier
+>and the
+>lwarx.  This would allow the memory barrier to be executed concurrently
+>with
+>those instructions.
+>
+>The compiler could also move the acquire memory barrier later, pulling
+>register-only instructions between the stwcx and that barrier, though I
+>don't
+>see any advantage to doing so.
+>
+>Whereas if the release barrier is in the same asm block as the lwarx,
+>the
+>compiler cannot do anything with it.
+>
+>
+>Another advantage is that the compiler can switch between instruction
+>variants
+>automatically, allowing us to get rid of the size-based switch
+>statements for
+>things like cmpxchg().
+>
+>
+>However, there's probably not a great deal of difference to be had if
+>the
+>inline asm codes the appropriate instruction in each case for something
+>like
+>x86*.  The emitted code ought to look the same.  The second biggest win
+>for
+>the intriniscs, I think, is the ability to ask the CMPXCHG instruction
+>whether
+>it actually did anything rather than comparing the result.  I added two
+>variants, one that only returned the yes/no and one that passed back
+>the value
+>as well as the yes/no.
+>
+>David
 
-I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc range.
-It has no in-tree users for non-fixed addresses right now.
+The question for me is for things like lock patching that we do on x86...
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
