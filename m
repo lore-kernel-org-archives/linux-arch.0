@@ -1,68 +1,72 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: cmpxchg and x86 flags output
-Date: Tue, 21 Jun 2016 10:00:11 -0700
-Message-ID: <F800D95C-A84C-4F54-9620-F28465AC4A16@zytor.com>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net> <4467.1466499980@warthog.procyon.org.uk>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v2 06/13] fork: Add generic vmalloced stack support
+Date: Tue, 21 Jun 2016 10:01:06 -0700
+Message-ID: <CALCETrXqH1J5qwKhm7V2E1nfx2LWnkvG7DxYdd2NP5Sp6j+JfA@mail.gmail.com>
+References: <cover.1466192946.git.luto@kernel.org> <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
+ <20160620133614.GE9892@dhcp22.suse.cz> <CALCETrV3M0a4Xyro21Rz8gpkq1b8PnFUZm_NPnBr0BBO8HS6ug@mail.gmail.com>
+ <20160621084649.GC30848@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4467.1466499980@warthog.procyon.org.uk>
+In-Reply-To: <20160621084649.GC30848@dhcp22.suse.cz>
 Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On June 21, 2016 2:06:20 AM PDT, David Howells <dhowells@redhat.com> wrote:
->H. Peter Anvin <hpa@zytor.com> wrote:
+On Tue, Jun 21, 2016 at 1:46 AM, Michal Hocko <mhocko@kernel.org> wrote=
+:
+> On Mon 20-06-16 09:13:55, Andy Lutomirski wrote:
+>> On Mon, Jun 20, 2016 at 6:36 AM, Michal Hocko <mhocko@kernel.org> wr=
+ote:
+>> > On Fri 17-06-16 13:00:42, Andy Lutomirski wrote:
+>> >> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated wit=
+h
+>> >> vmalloc_node.
+>> >
+>> > I like this! It also reduces demand for higher order (order-2) pag=
+es
+>> > considerably which is a great plus on its own. I would be little b=
+it
+>> > worried about the performance because vmalloc wasn't the fastest o=
+ne
+>> > AFAIR. Have you tried to measure that?
+>>
+>> It seems to add about 1.5=E7=9B=9C to pthread_create+join on my lapt=
+op.  (On
+>> an unmodified, stripped-down kernel, it took about 7=E7=9B=9C before=
+=2E  On a
+>> Fedora system, the baseline is much worse.)  I think that most of th=
+e
+>> overhead is because vmalloc allocates one page at a time, which mean=
+s
+>> that it won't use a higher order page even if one is sitting on a
+>> freelist.
 >
->> Well, that sounds promising.  I wonder how David's model, using
->> intrinsics (do we have enough intrinsics to actually be able to do
->this
->> "correctly"?), compare to using the flags output from assembly.
+> I guess a less artificial test case which would would generate a lot =
+of
+> tasks and some memory pressure would be more representative (e.g.
+> kernbench). The thing is that even order-2 pages might get quite
+> expensive when the memory is fragmented.
 >
->There is an advantage to using the intriniscs on arches with explicit
->barriers.  On powerpc64, for example, the compiler can move the release
->memory
->barrier earlier to push register-only instructions between the barrier
->and the
->lwarx.  This would allow the memory barrier to be executed concurrently
->with
->those instructions.
+>> I can imagine better integration with the page allocator in which
+>> higher order pages are used if readily available.  Similarly, vfree
+>> could free pages that happen to be aligned and consecutive as a unit
+>> to avoid the overhead of merging them back together one at a time.
+>>
+>> But I'm not planning on doing any of this myself any time soon.  I
+>> just want to get the code working and merged.
 >
->The compiler could also move the acquire memory barrier later, pulling
->register-only instructions between the stwcx and that barrier, though I
->don't
->see any advantage to doing so.
+> I agree, there is a room for improvement but no necessarily as a part=
+ of
+> this series.
 >
->Whereas if the release barrier is in the same asm block as the lwarx,
->the
->compiler cannot do anything with it.
->
->
->Another advantage is that the compiler can switch between instruction
->variants
->automatically, allowing us to get rid of the size-based switch
->statements for
->things like cmpxchg().
->
->
->However, there's probably not a great deal of difference to be had if
->the
->inline asm codes the appropriate instruction in each case for something
->like
->x86*.  The emitted code ought to look the same.  The second biggest win
->for
->the intriniscs, I think, is the ability to ask the CMPXCHG instruction
->whether
->it actually did anything rather than comparing the result.  I added two
->variants, one that only returned the yes/no and one that passed back
->the value
->as well as the yes/no.
->
->David
 
-The question for me is for things like lock patching that we do on x86...
--- 
-Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
+Agreed.  My goal is to get this good enough for upstream, and we can
+make it even better down the road.
+
+That being said, I think I will implement Linus' suggestion of a tiny
+percpu cache.
+
+--Andy
