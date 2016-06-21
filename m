@@ -1,38 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:42303 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751606AbcFUO22 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 10:28:28 -0400
-Date: Tue, 21 Jun 2016 16:04:08 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from mail-lb0-f182.google.com ([209.85.217.182]:32808 "EHLO
+	mail-lb0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751630AbcFUOey (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 10:34:54 -0400
+Date: Tue, 21 Jun 2016 15:34:45 +0100
+From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
 Subject: Re: linux-next: Tree for Jun 21
-Message-ID: <20160621140408.GE3704@worktop>
+Message-ID: <20160621143445.GA16888@sudip-tp>
 References: <20160621154638.1169904b@canb.auug.org.au>
  <5768E650.2080506@gmail.com>
  <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
  <20160621124247.GM30921@twins.programming.kicks-ass.net>
  <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+In-Reply-To: <20160621141435.GB7381@worktop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621140408.YumB8t8KMphMXJhM2GVSLTKRfMqGPTtUx4ZyIiKZcgg@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621143445.Ic3RStOOfdre06INfQsr3QAyUJI5M434TOjWuPatUDA@z>
 
-On Tue, Jun 21, 2016 at 09:47:00AM -0400, Chris Metcalf wrote:
-> On 6/21/2016 8:42 AM, Peter Zijlstra wrote:
-> >On Tue, Jun 21, 2016 at 08:08:29AM -0400, Chris Metcalf wrote:
-> >>You need to have a tilepro toolchain (not tilegx)
-> >Ah, should I go use TARGET=tilepro-linux ?
+On Tue, Jun 21, 2016 at 04:14:35PM +0200, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
+> > > I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
+> > > so should be easy enough to include.  There's also a cross-toolchain for x64 I put
+> > > up a while ago [1] that you could grab if you wanted to try it.
+> > 
+> > I usually build my own set -- and just did. But tilepro was not
+> > included. Lemme go do so.
 > 
-> Yes.
+> binutils-2_26-branch builds for tilepro-linux
+> gcc-6-branch does _not_ build for tilepro-linux
 
-> I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
-> so should be easy enough to include.  There's also a cross-toolchain for x64 I put
-> up a while ago [1] that you could grab if you wanted to try it.
+I have not tried with binutils-2_26. But if you want my compiler, its at
+http://chat.vectorindia.net/crosstool/x86_64/5.3.0/tilepro-linux-gnu.tar.xz
 
-I usually build my own set -- and just did. But tilepro was not
-included. Lemme go do so.
+regards
+sudip
