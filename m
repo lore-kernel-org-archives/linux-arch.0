@@ -1,73 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:37870 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932169AbcFURA6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 13:00:58 -0400
-In-Reply-To: <4467.1466499980@warthog.procyon.org.uk>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net> <4467.1466499980@warthog.procyon.org.uk>
+Received: from bombadil.infradead.org ([198.137.202.9]:39831 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751704AbcFURGN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:06:13 -0400
+Date: Tue, 21 Jun 2016 19:06:07 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Message-ID: <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain;
- charset=UTF-8
-Subject: Re: cmpxchg and x86 flags output
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Tue, 21 Jun 2016 10:00:11 -0700
-Message-ID: <F800D95C-A84C-4F54-9620-F28465AC4A16@zytor.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20160621170011.SxoE5_IsMDGZJ_M2htthWmVKL-jJJh5Gte7IjNuJKm4@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621170607.FDezGiIORy6FTtmYtInhxPZHMmcjW9PEoyIKBKQU4WI@z>
 
-On June 21, 2016 2:06:20 AM PDT, David Howells <dhowells@redhat.com> wrote:
->H. Peter Anvin <hpa@zytor.com> wrote:
->
->> Well, that sounds promising.  I wonder how David's model, using
->> intrinsics (do we have enough intrinsics to actually be able to do
->this
->> "correctly"?), compare to using the flags output from assembly.
->
->There is an advantage to using the intriniscs on arches with explicit
->barriers.  On powerpc64, for example, the compiler can move the release
->memory
->barrier earlier to push register-only instructions between the barrier
->and the
->lwarx.  This would allow the memory barrier to be executed concurrently
->with
->those instructions.
->
->The compiler could also move the acquire memory barrier later, pulling
->register-only instructions between the stwcx and that barrier, though I
->don't
->see any advantage to doing so.
->
->Whereas if the release barrier is in the same asm block as the lwarx,
->the
->compiler cannot do anything with it.
->
->
->Another advantage is that the compiler can switch between instruction
->variants
->automatically, allowing us to get rid of the size-based switch
->statements for
->things like cmpxchg().
->
->
->However, there's probably not a great deal of difference to be had if
->the
->inline asm codes the appropriate instruction in each case for something
->like
->x86*.  The emitted code ought to look the same.  The second biggest win
->for
->the intriniscs, I think, is the ability to ask the CMPXCHG instruction
->whether
->it actually did anything rather than comparing the result.  I added two
->variants, one that only returned the yes/no and one that passed back
->the value
->as well as the yes/no.
->
->David
+On Tue, Jun 21, 2016 at 11:26:19AM -0400, Chris Metcalf wrote:
+> On 6/21/2016 10:14 AM, Peter Zijlstra wrote:
+> >On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
+> >>>I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
+> >>>so should be easy enough to include.  There's also a cross-toolchain for x64 I put
+> >>>up a while ago [1] that you could grab if you wanted to try it.
+> >>I usually build my own set -- and just did. But tilepro was not
+> >>included. Lemme go do so.
+> >binutils-2_26-branch builds for tilepro-linux
+> >gcc-6-branch does _not_ build for tilepro-linux
+> 
+> I figured I would take a stab at diagnosing this myself, and it looks like the
+> toolchain build assumes that the kernel headers have already been installed
+> and therefore we have <asm/unistd.h> available.  This actually seems like
+> a reasonable prerequisite for building the toolchain.  I'm guessing you
+> don't?  Should you?  Or perhaps the compiler shouldn't make that assumption?
 
-The question for me is for things like lock patching that we do on x86...
--- 
-Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
+I can build:
+
+ls -la /opt/cross/bin/*-gcc | wc -l
+27
+
+compilers without installing kernel headers.
+
+> This has been true since gcc 4.x when tilepro support was first added.
+> 
+> In any case if you replace the #include <asm/unistd.h> with
+> 
+> #define __NR_FAST_cmpxchg    -1
+> #define __NR_FAST_atomic_update    -2
+> #define __NR_FAST_cmpxchg64    -3
+> 
+> that should also probably fix it, though I haven't tested it.  It probably
+> wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
+> since it's not like those fast system call numbers will ever change.
+
+OK, I'll go test that right after I've got the kid in bed .. I'll let
+you know.
