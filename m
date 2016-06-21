@@ -1,70 +1,38 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3 06/13] fork: Add generic vmalloced stack support
-Date: Tue, 21 Jun 2016 10:28:05 -0700
-Message-ID: <CALCETrWLAS4sSmN4ejVhK3vDsqNEQEh3RU5ps1iXtAoighaYsw@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
- <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
- <CALCETrWp+7+9j1vMgv5hxvtq3akZZZVdaVDfOLoFwhX+kL=Ntw@mail.gmail.com> <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Tue, 21 Jun 2016 10:24:53 -0700
+Message-ID: <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
+References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
+ <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
+ <20160615085002.GC30935@twins.programming.kicks-ass.net>
+ <4467.1466499980@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-3563-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
-To: Kees Cook <keescook@chromium.org>
-Cc: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:38392 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751900AbcFURaw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:30:52 -0400
+In-Reply-To: <4467.1466499980@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On Tue, Jun 21, 2016 at 10:13 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Tue, Jun 21, 2016 at 12:30 AM, Jann Horn <jannh@google.com> wrote:
->>> On Tue, Jun 21, 2016 at 1:43 AM, Andy Lutomirski <luto@kernel.org> wrote:
->>>> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
->>>> vmalloc_node.
->>> [...]
->>>>  static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
->>>>                                                   int node)
->>>>  {
->>>> +#ifdef CONFIG_VMAP_STACK
->>>> +       struct thread_info *ti = __vmalloc_node_range(
->>>> +               THREAD_SIZE, THREAD_SIZE, VMALLOC_START, VMALLOC_END,
->>>> +               THREADINFO_GFP | __GFP_HIGHMEM, PAGE_KERNEL,
->>>> +               0, node, __builtin_return_address(0));
->>>> +
->>>
->>> After spender gave some hints on IRC about the guard pages not working
->>> reliably, I decided to have a closer look at this. As far as I can
->>> tell, the idea is that __vmalloc_node_range() automatically adds guard
->>> pages unless the VM_NO_GUARD flag is specified. However, those guard
->>> pages are *behind* allocations, not in front of them, while a stack
->>> guard primarily needs to be in front of the allocation. This wouldn't
->>> matter if all allocations in the vmalloc area had guard pages behind
->>> them, but if someone first does some data allocation with VM_NO_GUARD
->>> and then a stack allocation directly behind that, there won't be a
->>> guard between the data allocation and the stack allocation.
->>
->> I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc range.
->> It has no in-tree users for non-fixed addresses right now.
->
-> What about the lack of pre-range guard page? That seems like a
-> critical feature for this. :)
->
+On 06/21/16 02:06, David Howells wrote:
+> 
+> However, there's probably not a great deal of difference to be had if the
+> inline asm codes the appropriate instruction in each case for something like
+> x86*.  The emitted code ought to look the same.  The second biggest win for
+> the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
+> it actually did anything rather than comparing the result.  I added two
+> variants, one that only returned the yes/no and one that passed back the value
+> as well as the yes/no.
+> 
 
-Agreed.  There's a big va hole there on x86_64, but I don't know about
-other arches.  It might pay to add something to the vmalloc core code.
-Any volunteers?
+Right, and we want that either way.  The API change that you are
+proposing is definitely what we want; the specifics of the x86
+implementation is sort of orthogonal.
 
-> -Kees
->
-> --
-> Kees Cook
-> Chrome OS & Brillo Security
-
-
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+	-hpa
