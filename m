@@ -1,53 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kvm5.telegraphics.com.au ([98.124.60.144]:53724 "EHLO
-	kvm5.telegraphics.com.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751545AbcFUEpX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 00:45:23 -0400
-Date: Tue, 21 Jun 2016 14:27:22 +1000 (AEST)
-From: Finn Thain <fthain@telegraphics.com.au>
-Subject: Re: [PATCH -v2 14/33] locking,m68k: Implement
- atomic_fetch_{add,sub,and,or,xor}()
-In-Reply-To: <87twgniwh7.fsf@linux-m68k.org>
-Message-ID: <alpine.LNX.2.00.1606211350360.26385@nippy.intranet>
-References: <20160531101925.702692792@infradead.org> <20160531102642.333689893@infradead.org> <CAMuHMdXG4veEOqr5vcZQEQH55=CT6CPXOfqrc_m=fpXEseAdLA@mail.gmail.com> <20160616101309.GD30921@twins.programming.kicks-ass.net> <mvmk2hpxq1a.fsf@hawking.suse.de>
- <20160617154024.GY30154@twins.programming.kicks-ass.net> <87twgniwh7.fsf@linux-m68k.org>
+Received: from mail-lb0-f181.google.com ([209.85.217.181]:33744 "EHLO
+	mail-lb0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752070AbcFUHCc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 03:02:32 -0400
+Message-ID: <5768E650.2080506@gmail.com>
+Date: Tue, 21 Jun 2016 08:01:36 +0100
+From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: linux-next: Tree for Jun 21
+References: <20160621154638.1169904b@canb.auug.org.au>
+In-Reply-To: <20160621154638.1169904b@canb.auug.org.au>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, boqun.feng@gmail.com, waiman.long@hpe.com, =?ISO-8859-15?Q?Fr=E9d=E9ric_Weisbecker?= <fweisbec@gmail.com>, "linux-kernel\\@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, cmetcalf@mellanox.com, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, dbueso@suse.de, Wu Fengguang <fengguang.wu@intel.com>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-Message-ID: <20160621042722.juhB4Z4xkMGmWPTnnSTFa4OPioEOl7E3T74Clys936Y@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Chris Metcalf <cmetcalf@mellanox.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621070136.DEVadl1jFGt2w0gOEkxuvGbQU6ntycMFV3JSN-OtHx0@z>
 
+On Tuesday 21 June 2016 06:46 AM, Stephen Rothwell wrote:
+> Hi all,
+>
+> Changes since 20160620:
 
-On Mon, 20 Jun 2016, Andreas Schwab wrote:
+tilepro defconfig is failing while doing "make prepare" and bisect shows 
+the first bad commit as:
 
-> Peter Zijlstra <peterz@infradead.org> writes:
-> 
-> > Could either of you comment on the below patch?
-> >
-> > All atomic functions that return a value should imply full memory 
-> > barrier semantics -- this very much includes a compiler barrier / 
-> > memory clobber.
-> 
-> I wonder if it is possible to find a case where this makes a real 
-> difference, ie. where the compiler erroneously reused a value due to the 
-> missing barrier.
+1af5de9af138 ("locking/atomic, arch/tile: Implement 
+atomic{,64}_fetch_{add,sub,and,or,xor}()")
 
-What the compiler does erroneously is a compiler bug by definition. But I 
-think that was not what you meant.
+You can find today's build log at:
+https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
 
-Perhaps you're asking whether gcc in particular does what you expect, 
-despite ambiguous source code. But what about other tools like static 
-analyzers?
+Please do let me know if i can help in any way to debug/solve this.
 
-Ambiguous code is likely to attract patches like this for as long as it 
-remains ambiguous. That's a waste of everyone's time, if patches like this 
-could be written and reviewed just once.
-
--- 
-
-> 
-> Andreas.
-> 
-> 
+regards
+sudip
