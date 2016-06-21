@@ -1,42 +1,48 @@
-From: Chris Metcalf <cmetcalf@mellanox.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 08:08:29 -0400
-Message-ID: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+Date: Tue, 21 Jun 2016 14:42:47 +0200
+Message-ID: <20160621124247.GM30921@twins.programming.kicks-ass.net>
 References: <20160621154638.1169904b@canb.auug.org.au>
  <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5768E650.2080506@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+Sender: linux-next-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 6/21/2016 3:01 AM, Sudip Mukherjee wrote:
-> On Tuesday 21 June 2016 06:46 AM, Stephen Rothwell wrote:
->> Hi all,
->>
->> Changes since 20160620:
->
-> tilepro defconfig is failing while doing "make prepare" and bisect shows the first bad commit as:
->
-> 1af5de9af138 ("locking/atomic, arch/tile: Implement atomic{,64}_fetch_{add,sub,and,or,xor}()")
->
-> You can find today's build log at:
-> https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
+On Tue, Jun 21, 2016 at 08:08:29AM -0400, Chris Metcalf wrote:
+> 
+> On inspection, I note that the arch/tile/include/atomic_32.h header has
+> 
+> ATOMIC64_OP(and)
+> ATOMIC64_OP(or)
+> ATOMIC64_OP(xor)
+> 
+> but these should be ATOMIC64_OPS, plural.
 
-On inspection, I note that the arch/tile/include/atomic_32.h header has
+Bugger, I'll go fix. Clearly nobody has tilepro toolchains :/
 
-ATOMIC64_OP(and)
-ATOMIC64_OP(or)
-ATOMIC64_OP(xor)
+> Peter, what toolchain were you using for tilepro build testing? 
 
-but these should be ATOMIC64_OPS, plural.
+tilegx-linux-
 
-Peter, what toolchain were you using for tilepro build testing?  You need to have a tilepro toolchain (not tilegx) and build with ARCH=tilepro.
+> You need to have a tilepro toolchain (not tilegx) 
 
--- 
-Chris Metcalf, Mellanox Technologies
-http://www.mellanox.com
+Ah, should I go use TARGET=tilepro-linux ?
+
+> and build with ARCH=tilepro.
+
+        tilepro)
+                ARCH=tile
+                CROSS_COMPILE=tilegx-linux-
+                if [ "$CONFIG" == "defconfig" ] ; then
+                        CONFIG=tilepro_defconfig
+                fi
+                ;;
+
+So I suppose that too is wrong.
