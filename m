@@ -1,77 +1,62 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Tue, 21 Jun 2016 13:18:38 -0700
-Message-ID: <CAGXu5jJKnEdUw3yNjYLif8EXeavOJROd3YdEoS-JtmrQEF5Z-w@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <13212319.WrhLzgRA6Z@wuerfel>
- <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
- <6248429.A4IJrfgOW3@wuerfel> <CALCETrXG4tA=YexrdoMcy0xQeN9Oq0eDeUXKjFHCs-1HUMigDg@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Date: Tue, 21 Jun 2016 20:50:48 +0200
+Message-ID: <20160621185048.GR30909@twins.programming.kicks-ass.net>
+References: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+ <20160621172918.GS30927@twins.programming.kicks-ass.net>
+ <20160621182844.GT30927@twins.programming.kicks-ass.net>
+ <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrXG4tA=YexrdoMcy0xQeN9Oq0eDeUXKjFHCs-1HUMigDg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
+Sender: linux-next-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 21, 2016 at 12:47 PM, Andy Lutomirski <luto@amacapital.net>=
- wrote:
-> On Tue, Jun 21, 2016 at 12:47 PM, Arnd Bergmann <arnd@arndb.de> wrote=
-:
->> On Tuesday, June 21, 2016 10:16:21 AM CEST Kees Cook wrote:
->>> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrot=
-e:
->>> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
->>> >>
->>> >> On my laptop, this adds about 1.5=C2=B5s of overhead to task cre=
-ation,
->>> >> which seems to be mainly caused by vmalloc inefficiently allocat=
-ing
->>> >> individual pages even when a higher-order page is available on t=
-he
->>> >> freelist.
->>> >
->>> > Would it help to have a fixed virtual address for the stack inste=
-ad
->>> > and map the current stack to that during a task switch, similar t=
-o
->>> > how we handle fixmap pages?
->>> >
->>> > That would of course trade the allocation overhead for a task swi=
-tch
->>> > overhead, which may be better or worse. It would also give "curre=
-nt"
->>> > a constant address, which may give a small performance advantage
->>> > but may also introduce a new attack vector unless we randomize it
->>> > again.
->>>
->>> Right: we don't want a fixed address. That makes attacks WAY easier=
-=2E
->>
->> Do we care about making the address more random then? When I look
->> at /proc/vmallocinfo, I see that allocations are all using
->> consecutive addresses, so if you can figure out the virtual
->> address of the stack for one process that would give you a good
->> chance of guessing the address for the next pid.
->
-> Quite possibly.  We should seriously consider at least randomizing th=
-e
-> *start* of the vmalloc area, at least on 64-bit architectures.
+On Tue, Jun 21, 2016 at 02:36:34PM -0400, Chris Metcalf wrote:
+> On 6/21/2016 2:28 PM, Peter Zijlstra wrote:
 
-Yup, this is already under way for x86. Thomas Garnier has a series
-that he's been working on:
+> >I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
+> >with the builtin C11 atomic primitives.
+> >
+> >You want me to rename them all to regain consistent naming?
+> 
+> Yes, it's probably the right thing to do.  All the internal routines with "atomic32"
+> or "atomic64" I assume you mean?
 
-http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=3Dkas=
-lr/memory
+Yep, after this patch we have a few __atomic_ and a few __atomic32_,
+which is rather unbecoming. Lemme go convert them all to __atomic32_.
 
-I'd love to see similar for other architectures too.
+> So what's your build process for the cross tools, by the way?  I'm assuming
+> you're not doing a total bootstrap cross-tool build since you'd need minimal
+> kernel headers (linux/errno.h or whatever) in that case.  I assume you're using
+> the host headers to build the cross tool?
+> 
+> So I'm a little confused how the other kernel headers are working out for you,
+> e.g. <arch/icache.h> is referenced when building the tilegx libgcc.
 
-Thomas just sent me an updated series I'll be putting up for review lat=
-er today.
+I've no idea; I use this thing:
 
--Kees
+  git://git.infradead.org/users/segher/buildall.git
 
---=20
-Kees Cook
-Chrome OS & Brillo Security
+Although I've got some local modifications, none are to the actual
+toolchain building part (although I suppose I should send segher a
+patch).
+
+I have binutils-gdb.git and gcc.bit checkouts and point the buildall
+config to that (both are on latest stable branches binutils-2_26-branch
+and gcc-6-branch resp.). And I point the kernel path to my current
+hacked up tree.
+
+I don't really rebuild the entire toolchains often, mostly only when I
+really need a new GCC or its getting really old (like I used 5.3.0 for a
+long while).
