@@ -1,33 +1,47 @@
-From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 08:01:36 +0100
-Message-ID: <5768E650.2080506@gmail.com>
-References: <20160621154638.1169904b@canb.auug.org.au>
+From: Jann Horn <jannh@google.com>
+Subject: Re: [PATCH v3 06/13] fork: Add generic vmalloced stack support
+Date: Tue, 21 Jun 2016 09:30:31 +0200
+Message-ID: <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-next-owner@vger.kernel.org>
-In-Reply-To: <20160621154638.1169904b@canb.auug.org.au>
-Sender: linux-next-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Chris Metcalf <cmetcalf@mellanox.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f176.google.com ([209.85.223.176]:34221 "EHLO
+	mail-io0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751846AbcFUH52 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 03:57:28 -0400
+Received: by mail-io0-f176.google.com with SMTP id g13so3024468ioj.1
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 00:56:38 -0700 (PDT)
+In-Reply-To: <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Tuesday 21 June 2016 06:46 AM, Stephen Rothwell wrote:
-> Hi all,
->
-> Changes since 20160620:
+On Tue, Jun 21, 2016 at 1:43 AM, Andy Lutomirski <luto@kernel.org> wrote:
+> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
+> vmalloc_node.
+[...]
+>  static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
+>                                                   int node)
+>  {
+> +#ifdef CONFIG_VMAP_STACK
+> +       struct thread_info *ti = __vmalloc_node_range(
+> +               THREAD_SIZE, THREAD_SIZE, VMALLOC_START, VMALLOC_END,
+> +               THREADINFO_GFP | __GFP_HIGHMEM, PAGE_KERNEL,
+> +               0, node, __builtin_return_address(0));
+> +
 
-tilepro defconfig is failing while doing "make prepare" and bisect shows 
-the first bad commit as:
+After spender gave some hints on IRC about the guard pages not working
+reliably, I decided to have a closer look at this. As far as I can
+tell, the idea is that __vmalloc_node_range() automatically adds guard
+pages unless the VM_NO_GUARD flag is specified. However, those guard
+pages are *behind* allocations, not in front of them, while a stack
+guard primarily needs to be in front of the allocation. This wouldn't
+matter if all allocations in the vmalloc area had guard pages behind
+them, but if someone first does some data allocation with VM_NO_GUARD
+and then a stack allocation directly behind that, there won't be a
+guard between the data allocation and the stack allocation.
 
-1af5de9af138 ("locking/atomic, arch/tile: Implement 
-atomic{,64}_fetch_{add,sub,and,or,xor}()")
-
-You can find today's build log at:
-https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
-
-Please do let me know if i can help in any way to debug/solve this.
-
-regards
-sudip
+(I might be wrong though; this is only from looking at the code, not
+from testing it.)
