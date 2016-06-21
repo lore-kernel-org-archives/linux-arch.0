@@ -1,49 +1,37 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: cmpxchg and x86 flags output
-Date: Tue, 21 Jun 2016 10:06:20 +0100
-Message-ID: <4467.1466499980@warthog.procyon.org.uk>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com> <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com> <20160615085002.GC30935@twins.programming.kicks-ass.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Tue, 21 Jun 2016 11:24:18 +0200
+Message-ID: <13212319.WrhLzgRA6Z@wuerfel>
+References: <cover.1466466093.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
-Content-ID: <4466.1466499980.1@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kernel-hardening-return-3549-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <cover.1466466093.git.luto@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-H. Peter Anvin <hpa@zytor.com> wrote:
+On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
+>=20
+> On my laptop, this adds about 1.5=B5s of overhead to task creation,
+> which seems to be mainly caused by vmalloc inefficiently allocating
+> individual pages even when a higher-order page is available on the
+> freelist.
 
-> Well, that sounds promising.  I wonder how David's model, using
-> intrinsics (do we have enough intrinsics to actually be able to do this
-> "correctly"?), compare to using the flags output from assembly.
+Would it help to have a fixed virtual address for the stack instead
+and map the current stack to that during a task switch, similar to
+how we handle fixmap pages?
 
-There is an advantage to using the intriniscs on arches with explicit
-barriers.  On powerpc64, for example, the compiler can move the release memory
-barrier earlier to push register-only instructions between the barrier and the
-lwarx.  This would allow the memory barrier to be executed concurrently with
-those instructions.
+That would of course trade the allocation overhead for a task switch
+overhead, which may be better or worse. It would also give "current"
+a constant address, which may give a small performance advantage
+but may also introduce a new attack vector unless we randomize it
+again.
 
-The compiler could also move the acquire memory barrier later, pulling
-register-only instructions between the stwcx and that barrier, though I don't
-see any advantage to doing so.
-
-Whereas if the release barrier is in the same asm block as the lwarx, the
-compiler cannot do anything with it.
-
-
-Another advantage is that the compiler can switch between instruction variants
-automatically, allowing us to get rid of the size-based switch statements for
-things like cmpxchg().
-
-
-However, there's probably not a great deal of difference to be had if the
-inline asm codes the appropriate instruction in each case for something like
-x86*.  The emitted code ought to look the same.  The second biggest win for
-the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
-it actually did anything rather than comparing the result.  I added two
-variants, one that only returned the yes/no and one that passed back the value
-as well as the yes/no.
-
-David
+	Arnd
