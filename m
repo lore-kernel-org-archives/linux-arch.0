@@ -1,38 +1,39 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: cmpxchg and x86 flags output
-Date: Tue, 21 Jun 2016 10:24:53 -0700
-Message-ID: <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
- <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
- <20160615085002.GC30935@twins.programming.kicks-ass.net>
- <4467.1466499980@warthog.procyon.org.uk>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Date: Tue, 21 Jun 2016 19:29:18 +0200
+Message-ID: <20160621172918.GS30927@twins.programming.kicks-ass.net>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38392 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751900AbcFURaw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:30:52 -0400
-In-Reply-To: <4467.1466499980@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+Sender: linux-next-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 06/21/16 02:06, David Howells wrote:
-> 
-> However, there's probably not a great deal of difference to be had if the
-> inline asm codes the appropriate instruction in each case for something like
-> x86*.  The emitted code ought to look the same.  The second biggest win for
-> the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
-> it actually did anything rather than comparing the result.  I added two
-> variants, one that only returned the yes/no and one that passed back the value
-> as well as the yes/no.
-> 
+On Tue, Jun 21, 2016 at 07:06:07PM +0200, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 11:26:19AM -0400, Chris Metcalf wrote:
+> > This has been true since gcc 4.x when tilepro support was first added.
+> > 
+> > In any case if you replace the #include <asm/unistd.h> with
+> > 
+> > #define __NR_FAST_cmpxchg    -1
+> > #define __NR_FAST_atomic_update    -2
+> > #define __NR_FAST_cmpxchg64    -3
+> > 
+> > that should also probably fix it, though I haven't tested it.  It probably
+> > wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
+> > since it's not like those fast system call numbers will ever change.
 
-Right, and we want that either way.  The API change that you are
-proposing is definitely what we want; the specifics of the x86
-implementation is sort of orthogonal.
-
-	-hpa
+OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
+can build me a kernel with it.
