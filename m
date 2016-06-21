@@ -1,71 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60811 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751748AbcFUSUa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 14:20:30 -0400
-Message-ID: <1466533189.2756.52.camel@redhat.com>
-Subject: Re: [kernel-hardening] Re: [PATCH v3 00/13] Virtually mapped stacks
- with guard pages (x86, core)
-From: Rik van Riel <riel@redhat.com>
-Date: Tue, 21 Jun 2016 14:19:49 -0400
-In-Reply-To: <CAGXu5jLQk8zha3cx158GU6AGN+XDManurTmuC08XjYcJBJhvfg@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org>
-	 <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
-	 <CALCETrX0VXZVgy0_6-Jq_sT4yPKYogGjTZvn8VqvMzPtw4-3wg@mail.gmail.com>
-	 <CA+55aFzBAdM2UGpmVQjhnEtsvfPmJE1aqeoo4e65PrQvsvsFnQ@mail.gmail.com>
-	 <CALCETrWEokFnfjx_LjG_S4TizjVo=YcJNpeoSwxHn0-d2+Aw+A@mail.gmail.com>
-	 <CAGXu5jLQk8zha3cx158GU6AGN+XDManurTmuC08XjYcJBJhvfg@mail.gmail.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-iRBwSazlTytAWjIbeDno"
-Mime-Version: 1.0
+Received: from mail-am1on0079.outbound.protection.outlook.com ([157.56.112.79]:15221
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751794AbcFUSg7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jun 2016 14:36:59 -0400
+Subject: Re: linux-next: Tree for Jun 21
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop> <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+ <20160621172918.GS30927@twins.programming.kicks-ass.net>
+ <20160621182844.GT30927@twins.programming.kicks-ass.net>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
+Date: Tue, 21 Jun 2016 14:36:34 -0400
+MIME-Version: 1.0
+In-Reply-To: <20160621182844.GT30927@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>, Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621181949.TMbCDYjmeuGjKWo4lUfc5kjeN8wJPqk_UGD8myr1KmM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621183634.aEqBa9i9OP-vJOy1WR3egbxncyUk3SgZN3fbmnlLHVQ@z>
 
+On 6/21/2016 2:28 PM, Peter Zijlstra wrote:
+> On Tue, Jun 21, 2016 at 07:29:18PM +0200, Peter Zijlstra wrote:
+>
+>> >OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
+>> >can build me a kernel with it.
+> The below, much larger than desired, patch seems to make it go again.
+>
+> I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
+> with the builtin C11 atomic primitives.
+>
+> You want me to rename them all to regain consistent naming?
 
---=-iRBwSazlTytAWjIbeDno
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Yes, it's probably the right thing to do.  All the internal routines with "atomic32"
+or "atomic64" I assume you mean?
 
-On Tue, 2016-06-21 at 11:12 -0700, Kees Cook wrote:
-> On Tue, Jun 21, 2016 at 10:27 AM, Andy Lutomirski
-> <luto@amacapital.net> wrote:
-> > FWIW, it may be a while before this can be enabled in distro
-> > kernels.
-> > There are some code paths (*cough* crypto users *cough*) that think
-> > that calling sg_init_one with a stack address is a reasonable thing
-> > to
-> > do, and it doesn't work with a vmalloced stack.=C2=A0=C2=A0grsecurity w=
-orks
-> ... O_o ...
->=20
-> Why does it not work on a vmalloced stack??
+So what's your build process for the cross tools, by the way?  I'm assuming
+you're not doing a total bootstrap cross-tool build since you'd need minimal
+kernel headers (linux/errno.h or whatever) in that case.  I assume you're using
+the host headers to build the cross tool?
 
-Because virt_to_page() does not work on vmalloced
-memory.
+So I'm a little confused how the other kernel headers are working out for you,
+e.g. <arch/icache.h> is referenced when building the tilegx libgcc.
 
---=20
-All Rights Reversed.
-
-
---=-iRBwSazlTytAWjIbeDno
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJXaYVFAAoJEM553pKExN6DW9wIAJGaNx+6WeMQkYnYyi+B9CVI
-2Oc9YIw237LfSNkFqzsa1awGA5Z2C6m1qwaT3MoDJlKem4/em4xjdbWKdkTbM3lP
-nSINT0cqztExGZDLVNFtiLpjypp1mJsLYsywlZP8n4gGDR5T0qIqXY2JQSlhJcAd
-dH8A1x9GgMke0l/WkALesvEuRqIFNWAMBUFI7LJ4J4Zs0Tt4lvJAioT4XlLqDFKG
-a0AUxkKaoeRmpUYrRgSMHBgY1WzUkd6YI6Hjbr0U8rk3Mis/pQ+9Bgnr8bj29bRv
-BqwQOtO4EC9ZQ+yZCg6RMfxEZ3ARqtGAyKTekvP/RQUxjmopjwuhLkdSPGMIPMI=
-=1NxW
------END PGP SIGNATURE-----
-
---=-iRBwSazlTytAWjIbeDno--
+-- 
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
 
