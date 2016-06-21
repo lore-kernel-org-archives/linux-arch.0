@@ -1,53 +1,67 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 09:58:28 +0200
-Message-ID: <20160621075828.GL30154@twins.programming.kicks-ass.net>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v2 06/13] fork: Add generic vmalloced stack support
+Date: Tue, 21 Jun 2016 10:46:49 +0200
+Message-ID: <20160621084649.GC30848@dhcp22.suse.cz>
+References: <cover.1466192946.git.luto@kernel.org>
+ <44f658aacbabd9d1689b3e0aae60ee8746881eff.1466192946.git.luto@kernel.org>
+ <20160620133614.GE9892@dhcp22.suse.cz>
+ <CALCETrV3M0a4Xyro21Rz8gpkq1b8PnFUZm_NPnBr0BBO8HS6ug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f179.google.com ([209.85.217.179]:35557 "EHLO
+	mail-lb0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751485AbcFUIqw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 04:46:52 -0400
 Content-Disposition: inline
-In-Reply-To: <5768E650.2080506@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Chris Metcalf <cmetcalf@mellanox.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CALCETrV3M0a4Xyro21Rz8gpkq1b8PnFUZm_NPnBr0BBO8HS6ug@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Tue, Jun 21, 2016 at 08:01:36AM +0100, Sudip Mukherjee wrote:
+On Mon 20-06-16 09:13:55, Andy Lutomirski wrote:
+> On Mon, Jun 20, 2016 at 6:36 AM, Michal Hocko <mhocko@kernel.org> wro=
+te:
+> > On Fri 17-06-16 13:00:42, Andy Lutomirski wrote:
+> >> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
+> >> vmalloc_node.
+> >
+> > I like this! It also reduces demand for higher order (order-2) page=
+s
+> > considerably which is a great plus on its own. I would be little bi=
+t
+> > worried about the performance because vmalloc wasn't the fastest on=
+e
+> > AFAIR. Have you tried to measure that?
+>=20
+> It seems to add about 1.5=B5s to pthread_create+join on my laptop.  (=
+On
+> an unmodified, stripped-down kernel, it took about 7=B5s before.  On =
+a
+> Fedora system, the baseline is much worse.)  I think that most of the
+> overhead is because vmalloc allocates one page at a time, which means
+> that it won't use a higher order page even if one is sitting on a
+> freelist.
 
-> tilepro defconfig is failing while doing "make prepare" and bisect shows the
-> first bad commit as:
-> 
-> 1af5de9af138 ("locking/atomic, arch/tile: Implement
-> atomic{,64}_fetch_{add,sub,and,or,xor}()")
-> 
-> You can find today's build log at:
-> https://travis-ci.org/sudipm-mukherjee/parport/jobs/139112570
-> 
-> Please do let me know if i can help in any way to debug/solve this.
+I guess a less artificial test case which would would generate a lot of
+tasks and some memory pressure would be more representative (e.g.
+kernbench). The thing is that even order-2 pages might get quite
+expensive when the memory is fragmented.
 
-I cannot reproduce, I tried both tip/master (which carries the patch you
-fingered) and next/master.
+> I can imagine better integration with the page allocator in which
+> higher order pages are used if readily available.  Similarly, vfree
+> could free pages that happen to be aligned and consecutive as a unit
+> to avoid the overhead of merging them back together one at a time.
+>=20
+> But I'm not planning on doing any of this myself any time soon.  I
+> just want to get the code working and merged.
 
-My tilepro build ends in a vmlinux with just a single warning.
+I agree, there is a room for improvement but no necessarily as a part o=
+f
+this series.
 
-
-root@ivb-ep:/usr/src/linux-2.6# rm -rf tile-defconfig/ tile-tilepro_defconfig/
-root@ivb-ep:/usr/src/linux-2.6# ./build-arch-defconfig.sh tilepro
-make[1]: Entering directory `/usr/src/linux-2.6/tile-tilepro_defconfig'
-  HOSTCC  scripts/basic/fixdep
-  GEN     ./Makefile
-  HOSTCC  scripts/kconfig/conf.o
-  HOSTCC  scripts/kconfig/zconf.tab.o
-  HOSTLD  scripts/kconfig/conf
-#
-# configuration written to .config
-#
-make[1]: Leaving directory `/usr/src/linux-2.6/tile-tilepro_defconfig'
-../arch/tile/lib/cacheflush.c: In function 'finv_buffer_remote':
-../arch/tile/lib/cacheflush.c:146:0: warning: ignoring #pragma unroll  [-Wunknown-pragmas]
- #pragma unroll 8
- 
-root@ivb-ep:/usr/src/linux-2.6# ls -la tile-tilepro_defconfig/vmlinux
-vmlinux    vmlinux.o  
+--=20
+Michal Hocko
+SUSE Labs
