@@ -1,47 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54852 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750948AbcFUNXp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 09:23:45 -0400
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH 08/19] arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
-	<1466207668-10549-9-git-send-email-ynorov@caviumnetworks.com>
-	<576915B0.5040706@huawei.com>
-Date: Tue, 21 Jun 2016 13:34:59 +0200
-In-Reply-To: <576915B0.5040706@huawei.com> (Zhangjian's message of "Tue, 21
-	Jun 2016 18:23:44 +0800")
-Message-ID: <mvmk2hipyfw.fsf@hawking.suse.de>
+Received: from merlin.infradead.org ([205.233.59.134]:45723 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751498AbcFUOPR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 10:15:17 -0400
+Date: Tue, 21 Jun 2016 16:14:35 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Message-ID: <20160621141435.GB7381@worktop>
+References: <20160621154638.1169904b@canb.auug.org.au>
+ <5768E650.2080506@gmail.com>
+ <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160621140408.GE3704@worktop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Message-ID: <20160621113459.89CIIRfGQbaqxxQv59b9b7KmSTjrw7_RH44kIeMscIA@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621141435.MPFjudGA9CtGBsWQjvh8_0Mw60emmWnPXpoy7pBO-4U@z>
 
-"Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com> writes:
+On Tue, Jun 21, 2016 at 04:04:08PM +0200, Peter Zijlstra wrote:
+> > I'm not sure who builds the toolchains, but tilepro is in upstream gcc/binutils/etc
+> > so should be easy enough to include.  There's also a cross-toolchain for x64 I put
+> > up a while ago [1] that you could grab if you wanted to try it.
+> 
+> I usually build my own set -- and just did. But tilepro was not
+> included. Lemme go do so.
 
->> @@ -78,9 +79,9 @@
->>
->>   #ifdef CONFIG_COMPAT
->>   #define TASK_SIZE_32		UL(0x100000000)
->> -#define TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
->> +#define TASK_SIZE		(is_compat_task() ?		\
->>   				TASK_SIZE_32 : TASK_SIZE_64)
->> -#define TASK_SIZE_OF(tsk)	(test_tsk_thread_flag(tsk, TIF_32BIT) ? \
->> +#define TASK_SIZE_OF(tsk)	(is_compat_thread(tsk) ? \
-> It should be
-> +#define TASK_SIZE_OF(tsk)      (is_compat_thread(task_thread_info(tsk)) ? \
-> is_compat_thread takes "struct thread_info *thread" while TASK_SIZE_OF takes
-> "struct task_struct *tsk"tsk.
+binutils-2_26-branch builds for tilepro-linux
+gcc-6-branch does _not_ build for tilepro-linux
 
-If that doesn't throw an error does that mean that TASK_SIZE_OF is
-unused?
 
-Andreas.
+---
 
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+/usr/local/src/buildall/tilepro/gcc/./gcc/xgcc -B/usr/local/src/buildall/tilepro/gcc/./gcc/ -B/opt/cross/tilepro-linux/bin/ -B/opt/cross/tilepro-linux/lib/ -isystem /opt/cross/tilepro-linux/include -isystem /opt/cross/tilepro-linux/sys-include    -g -O2 -O2  -g -O2 -DIN_GCC  -DCROSS_DIRECTORY_STRUCTURE  -W -Wall -Wno-narrowing -Wwrite-strings -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes -Wold-style-definition  -isystem ./include   -fPIC -g -DIN_LIBGCC2 -fbuilding-libgcc -fno-stack-protector -Dinhibit_libc  -fPIC -I. -I. -I../.././gcc -I/usr/local/src/gcc/libgcc -I/usr/local/src/gcc/libgcc/. -I/usr/local/src/gcc/libgcc/../gcc -I/usr/local/src/gcc/libgcc/../include  -DHAVE_CC_TLS  -o unwind-sjlj.o -MT unwind-sjlj.o -MD -MP -MF unwind-sjlj.dep -fexceptions -c /usr/local/src/gcc/libgcc/unwind-sjlj.c -fvisibility=hidden -DHIDE_EXPORTS
+In file included from /usr/local/src/gcc/libgcc/config/tilepro/atomic.c:26:0:
+/usr/local/src/gcc/libgcc/config/tilepro/atomic.h:98:24: fatal error: asm/unistd.h: No such file or directory
+ #include <asm/unistd.h>
+                        ^
+compilation terminated.
+mv -f softmpy.visT softmpy.vis
+make[2]: *** [atomic.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+make[2]: Leaving directory `/usr/local/src/buildall/tilepro/gcc/tilepro-linux/libgcc'
+make[1]: *** [all-target-libgcc] Error 2
+make[1]: Leaving directory `/usr/local/src/buildall/tilepro/gcc'
+make: *** [all] Error 2
