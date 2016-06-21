@@ -1,36 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 5/5] vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
-Date: Tue, 21 Jun 2016 11:25:15 +0200
-Message-ID: <9339659.lz6OGfeSnb@wuerfel>
-References: <1465883938-25194-1-git-send-email-yamada.masahiro@socionext.com> <576855FD.6020202@suse.cz> <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
+From: Vladimir Davydov <vdavydov@virtuozzo.com>
+Subject: Re: [PATCH v3 04/13] mm: Track NR_KERNEL_STACK in KiB instead of
+ number of stacks
+Date: Tue, 21 Jun 2016 12:46:25 +0300
+Message-ID: <20160621094625.GA15970@esperanza>
+References: <cover.1466466093.git.luto@kernel.org>
+ <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: Michal Marek <mmarek@suse.cz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, Michal Simek <michal.simek@xilinx.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org
+Return-path: <kernel-hardening-return-3550-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday, June 21, 2016 8:20:10 AM CEST Masahiro Yamada wrote:
-> 2016-06-21 5:45 GMT+09:00 Michal Marek <mmarek@suse.cz>:
-> > Dne 14.6.2016 v 07:58 Masahiro Yamada napsal(a):
-> >> The use of config_enabled() against config options is ambiguous.
-> >>
-> >> Now, IS_ENABLED() is implemented purely with macro expansion, so
-> >> let's replace config_enabled() with IS_ENABLED().
-> >>
-> >> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-> >
-> > I applied the whole series to kbuild.git#kbuild.
-> >
+On Mon, Jun 20, 2016 at 04:43:34PM -0700, Andy Lutomirski wrote:
+> Currently, NR_KERNEL_STACK tracks the number of kernel stacks in a
+> zone.  This only makes sense if each kernel stack exists entirely in
+> one zone, and allowing vmapped stacks could break this assumption.
 > 
-> This series was applied by Andrew Morton last week.
+> Since frv has THREAD_SIZE < PAGE_SIZE, we need to track kernel stack
+> allocations in a unit that divides both THREAD_SIZE and PAGE_SIZE on
+> all architectures.  Keep it simple and use KiB.
 > 
-> I do not want to double it.  Could you drop it?
+> Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Cc: Michal Hocko <mhocko@kernel.org>
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 
-Andrew usually drops patches from his tree when they show up in
-another maintainer tree.
-
-	Arnd
+Reviewed-by: Vladimir Davydov <vdavydov@virtuozzo.com>
