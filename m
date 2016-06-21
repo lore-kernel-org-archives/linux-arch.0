@@ -1,57 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-am1on0079.outbound.protection.outlook.com ([157.56.112.79]:15221
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751794AbcFUSg7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jun 2016 14:36:59 -0400
-Subject: Re: linux-next: Tree for Jun 21
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
- <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop> <20160621141435.GB7381@worktop>
- <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
- <20160621170607.GQ30154@twins.programming.kicks-ass.net>
- <20160621172918.GS30927@twins.programming.kicks-ass.net>
- <20160621182844.GT30927@twins.programming.kicks-ass.net>
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
-Date: Tue, 21 Jun 2016 14:36:34 -0400
-MIME-Version: 1.0
-In-Reply-To: <20160621182844.GT30927@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:35938 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751564AbcFUSoH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jun 2016 14:44:07 -0400
+Message-ID: <1466533948.2756.56.camel@redhat.com>
+Subject: Re: [kernel-hardening] Re: [PATCH v3 06/13] fork: Add generic
+ vmalloced stack support
+From: Rik van Riel <riel@redhat.com>
+Date: Tue, 21 Jun 2016 14:32:28 -0400
+In-Reply-To: <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org>
+	 <f7855f9eae0a27f5a03db1291f46fea1cc0a2a3f.1466466093.git.luto@kernel.org>
+	 <CAG48ez3WGu+03HDBA5daSV+zXGoR+iFHHYxZav0o6JCM9-EPMg@mail.gmail.com>
+	 <CALCETrWp+7+9j1vMgv5hxvtq3akZZZVdaVDfOLoFwhX+kL=Ntw@mail.gmail.com>
+	 <CAGXu5jJjihEU0HkSTWJymLZ5y=J03bkBHNgVf9QOSgWz6bf-SQ@mail.gmail.com>
+Content-Type: multipart/signed; micalg="pgp-sha256";
+	protocol="application/pgp-signature"; boundary="=-JIDeOF8ZZyE1csowjY8T"
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621183634.aEqBa9i9OP-vJOy1WR3egbxncyUk3SgZN3fbmnlLHVQ@z>
+To: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>
+Cc: Jann Horn <jannh@google.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621183228.Va1fmqkrM_aSGccC1Zoz4dJgv6nkKh-5S1RWUWDP1vw@z>
 
-On 6/21/2016 2:28 PM, Peter Zijlstra wrote:
-> On Tue, Jun 21, 2016 at 07:29:18PM +0200, Peter Zijlstra wrote:
->
->> >OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
->> >can build me a kernel with it.
-> The below, much larger than desired, patch seems to make it go again.
->
-> I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
-> with the builtin C11 atomic primitives.
->
-> You want me to rename them all to regain consistent naming?
 
-Yes, it's probably the right thing to do.  All the internal routines with "atomic32"
-or "atomic64" I assume you mean?
+--=-JIDeOF8ZZyE1csowjY8T
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-So what's your build process for the cross tools, by the way?  I'm assuming
-you're not doing a total bootstrap cross-tool build since you'd need minimal
-kernel headers (linux/errno.h or whatever) in that case.  I assume you're using
-the host headers to build the cross tool?
+On Tue, 2016-06-21 at 10:13 -0700, Kees Cook wrote:
+> On Tue, Jun 21, 2016 at 9:59 AM, Andy Lutomirski <luto@amacapital.net
+> > wrote:
+> >=C2=A0
+> > I'm tempted to explicitly disallow VM_NO_GUARD in the vmalloc
+> > range.
+> > It has no in-tree users for non-fixed addresses right now.
+> What about the lack of pre-range guard page? That seems like a
+> critical feature for this. :)
 
-So I'm a little confused how the other kernel headers are working out for you,
-e.g. <arch/icache.h> is referenced when building the tilegx libgcc.
+If VM_NO_GUARD is disallowed, and every vmalloc area has
+a guard area behind it, then every subsequent vmalloc area
+will have a guard page ahead of it.
 
--- 
-Chris Metcalf, Mellanox Technologies
-http://www.mellanox.com
+I think disallowing VM_NO_GUARD will be all that is required.
+
+The only thing we may want to verify on the architectures that
+we care about is that there is nothing mapped immediately before
+the start of the vmalloc range, otherwise the first vmalloced
+area will not have a guard page below it.
+
+I suspect all the 64 bit architectures are fine in that regard,
+with enormous gaps between kernel memory ranges.
+
+--=20
+All Rights Reversed.
+
+
+--=-JIDeOF8ZZyE1csowjY8T
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJXaYg9AAoJEM553pKExN6DMgQH/AkJiDO6nYz4HDPcXzy6mKtQ
+P5YfvXRL6roj7l3lG5FQuwcPryPj+vy4HHyysPEvo9Sk8DABLDsvDO3a8QdbWrkm
+D2zFcrN3OaAN8IRXHPyhHgDrotBZ5AUkFiUzf4EP18kxML+AWZioifpM8XL5FvH6
+YbZRKyNaDz5QZpB+5DIIjT/3ngU+2Cn71ZkreKJ9fSqVfnP4Ea+U+89CzHi9hxUr
+tC+eTPrgiJ281SBFQUCbs42WSpd7vfQtSk8Q2IxRCChKAyBhY8AVKH37+hYvOtgw
+H5jiIzbdOyDo5ofr01P0emLx/kEGyH4zURu8QCeJMxHB9XB86QVwHh4bc/RzkP4=
+=hL+a
+-----END PGP SIGNATURE-----
+
+--=-JIDeOF8ZZyE1csowjY8T--
 
