@@ -1,70 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f53.google.com ([209.85.215.53]:33318 "EHLO
-	mail-lf0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751659AbcFUUSm convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 16:18:42 -0400
-Received: by mail-lf0-f53.google.com with SMTP id f6so41323169lfg.0
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 13:18:41 -0700 (PDT)
+Received: from merlin.infradead.org ([205.233.59.134]:46359 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751951AbcFUUkp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 16:40:45 -0400
+Date: Tue, 21 Jun 2016 20:50:48 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Message-ID: <20160621185048.GR30909@twins.programming.kicks-ass.net>
+References: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+ <20160621172918.GS30927@twins.programming.kicks-ass.net>
+ <20160621182844.GT30927@twins.programming.kicks-ass.net>
+ <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrXG4tA=YexrdoMcy0xQeN9Oq0eDeUXKjFHCs-1HUMigDg@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <13212319.WrhLzgRA6Z@wuerfel>
- <CAGXu5jJaWxcOKLtXG3r1XWE8NpL=GFSZwmV_UYjjv6q0135ETQ@mail.gmail.com>
- <6248429.A4IJrfgOW3@wuerfel> <CALCETrXG4tA=YexrdoMcy0xQeN9Oq0eDeUXKjFHCs-1HUMigDg@mail.gmail.com>
-From: Kees Cook <keescook@chromium.org>
-Date: Tue, 21 Jun 2016 13:18:38 -0700
-Message-ID: <CAGXu5jJKnEdUw3yNjYLif8EXeavOJROd3YdEoS-JtmrQEF5Z-w@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160621201838.iUcgHKgDSFBZ8SZmS4Db1Bo-Y-R77zXvCICu0PrBM1Y@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160621185048.jBBwejThp-VY8v55AVFbgpItSeuPomE23GlIPgx5jEE@z>
 
-On Tue, Jun 21, 2016 at 12:47 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Tue, Jun 21, 2016 at 12:47 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Tuesday, June 21, 2016 10:16:21 AM CEST Kees Cook wrote:
->>> On Tue, Jun 21, 2016 at 2:24 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> > On Monday, June 20, 2016 4:43:30 PM CEST Andy Lutomirski wrote:
->>> >>
->>> >> On my laptop, this adds about 1.5µs of overhead to task creation,
->>> >> which seems to be mainly caused by vmalloc inefficiently allocating
->>> >> individual pages even when a higher-order page is available on the
->>> >> freelist.
->>> >
->>> > Would it help to have a fixed virtual address for the stack instead
->>> > and map the current stack to that during a task switch, similar to
->>> > how we handle fixmap pages?
->>> >
->>> > That would of course trade the allocation overhead for a task switch
->>> > overhead, which may be better or worse. It would also give "current"
->>> > a constant address, which may give a small performance advantage
->>> > but may also introduce a new attack vector unless we randomize it
->>> > again.
->>>
->>> Right: we don't want a fixed address. That makes attacks WAY easier.
->>
->> Do we care about making the address more random then? When I look
->> at /proc/vmallocinfo, I see that allocations are all using
->> consecutive addresses, so if you can figure out the virtual
->> address of the stack for one process that would give you a good
->> chance of guessing the address for the next pid.
->
-> Quite possibly.  We should seriously consider at least randomizing the
-> *start* of the vmalloc area, at least on 64-bit architectures.
+On Tue, Jun 21, 2016 at 02:36:34PM -0400, Chris Metcalf wrote:
+> On 6/21/2016 2:28 PM, Peter Zijlstra wrote:
 
-Yup, this is already under way for x86. Thomas Garnier has a series
-that he's been working on:
+> >I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
+> >with the builtin C11 atomic primitives.
+> >
+> >You want me to rename them all to regain consistent naming?
+> 
+> Yes, it's probably the right thing to do.  All the internal routines with "atomic32"
+> or "atomic64" I assume you mean?
 
-http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=kaslr/memory
+Yep, after this patch we have a few __atomic_ and a few __atomic32_,
+which is rather unbecoming. Lemme go convert them all to __atomic32_.
 
-I'd love to see similar for other architectures too.
+> So what's your build process for the cross tools, by the way?  I'm assuming
+> you're not doing a total bootstrap cross-tool build since you'd need minimal
+> kernel headers (linux/errno.h or whatever) in that case.  I assume you're using
+> the host headers to build the cross tool?
+> 
+> So I'm a little confused how the other kernel headers are working out for you,
+> e.g. <arch/icache.h> is referenced when building the tilegx libgcc.
 
-Thomas just sent me an updated series I'll be putting up for review later today.
+I've no idea; I use this thing:
 
--Kees
+  git://git.infradead.org/users/segher/buildall.git
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+Although I've got some local modifications, none are to the actual
+toolchain building part (although I suppose I should send segher a
+patch).
+
+I have binutils-gdb.git and gcc.bit checkouts and point the buildall
+config to that (both are on latest stable branches binutils-2_26-branch
+and gcc-6-branch resp.). And I point the kernel path to my current
+hacked up tree.
+
+I don't really rebuild the entire toolchains often, mostly only when I
+really need a new GCC or its getting really old (like I used 5.3.0 for a
+long while).
