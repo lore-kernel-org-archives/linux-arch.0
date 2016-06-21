@@ -1,44 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:46039 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751704AbcFURaw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:30:52 -0400
-Date: Tue, 21 Jun 2016 19:29:18 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: linux-next: Tree for Jun 21
-Message-ID: <20160621172918.GS30927@twins.programming.kicks-ass.net>
-References: <20160621154638.1169904b@canb.auug.org.au>
- <5768E650.2080506@gmail.com>
- <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
- <20160621124247.GM30921@twins.programming.kicks-ass.net>
- <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
- <20160621140408.GE3704@worktop>
- <20160621141435.GB7381@worktop>
- <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
- <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+Received: from mail-vk0-f43.google.com ([209.85.213.43]:34835 "EHLO
+	mail-vk0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753088AbcFURdW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 13:33:22 -0400
+Received: by mail-vk0-f43.google.com with SMTP id j2so29803759vkg.2
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2016 10:33:21 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+In-Reply-To: <CA+55aFzBAdM2UGpmVQjhnEtsvfPmJE1aqeoo4e65PrQvsvsFnQ@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrX0VXZVgy0_6-Jq_sT4yPKYogGjTZvn8VqvMzPtw4-3wg@mail.gmail.com> <CA+55aFzBAdM2UGpmVQjhnEtsvfPmJE1aqeoo4e65PrQvsvsFnQ@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 21 Jun 2016 10:27:18 -0700
+Message-ID: <CALCETrWEokFnfjx_LjG_S4TizjVo=YcJNpeoSwxHn0-d2+Aw+A@mail.gmail.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160621172918.VpIAxzodXeiSuw_jssXu_VuS_ulMehZ9H0uYILWFxSU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160621172718.uIZokWJuGvNIIodj24tuPTK1o3291ujZ7Kj9VBTdqs0@z>
 
-On Tue, Jun 21, 2016 at 07:06:07PM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 21, 2016 at 11:26:19AM -0400, Chris Metcalf wrote:
-> > This has been true since gcc 4.x when tilepro support was first added.
-> > 
-> > In any case if you replace the #include <asm/unistd.h> with
-> > 
-> > #define __NR_FAST_cmpxchg    -1
-> > #define __NR_FAST_atomic_update    -2
-> > #define __NR_FAST_cmpxchg64    -3
-> > 
-> > that should also probably fix it, though I haven't tested it.  It probably
-> > wouldn't be crazy to just put those #defines directly in tilepro's atomic.h,
-> > since it's not like those fast system call numbers will ever change.
+On Tue, Jun 21, 2016 at 10:16 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Tue, Jun 21, 2016 at 9:45 AM, Andy Lutomirski <luto@amacapital.net> wrote:
+>>
+>> So I'm leaning toward fewer cache entries per cpu, maybe just one.
+>> I'm all for making it a bit faster, but I think we should weigh that
+>> against increasing memory usage too much and thus scaring away the
+>> embedded folks.
+>
+> I don't think the embedded folks will be scared by a per-cpu cache, if
+> it's just one or two entries.  And I really do think that even just
+> one or two entries will indeed catch a lot of the cases.
+>
+> And yes, fork+execve() is too damn expensive in page table build-up
+> and tear-down. I'm not sure why bash doesn't do vfork+exec for when it
+> has to wait for the process anyway, but it doesn't seem to do that.
+>
 
-OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
-can build me a kernel with it.
+I don't know about bash, but glibc very recently fixed a long-standing
+but in posix_spawn and started using clone() in a sensible manner for
+this.
+
+FWIW, it may be a while before this can be enabled in distro kernels.
+There are some code paths (*cough* crypto users *cough*) that think
+that calling sg_init_one with a stack address is a reasonable thing to
+do, and it doesn't work with a vmalloced stack.  grsecurity works
+around this by using a real lowmem higher-order stack, aliasing it
+into vmalloc space, and arranging for virt_to_phys to backtrack the
+alias, but eww.  I think I'd rather find and fix the bugs, assuming
+they're straightforward.
+
+--Andy
