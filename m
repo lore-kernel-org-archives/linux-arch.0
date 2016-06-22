@@ -1,43 +1,51 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: cmpxchg and x86 flags output
-Date: Tue, 21 Jun 2016 17:09:03 -0700
-Message-ID: <7d1c236f-80d1-2c58-be0e-6676769636b3@zytor.com>
-References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
- <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
- <20160615085002.GC30935@twins.programming.kicks-ass.net>
- <4467.1466499980@warthog.procyon.org.uk>
- <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 5/5] vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
+Date: Wed, 22 Jun 2016 15:52:05 +0900
+Message-ID: <CAK7LNAQiTwqN=OPgVk0KveyMyfu11ps_p0AMP=OUqfYDMSAtRg@mail.gmail.com>
+References: <1465883938-25194-1-git-send-email-yamada.masahiro@socionext.com>
+ <576855FD.6020202@suse.cz> <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
+ <9339659.lz6OGfeSnb@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44942 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751088AbcFVA3y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 20:29:54 -0400
-In-Reply-To: <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <9339659.lz6OGfeSnb@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Marek <mmarek@suse.cz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Michal Simek <michal.simek@xilinx.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 06/21/16 10:24, H. Peter Anvin wrote:
-> On 06/21/16 02:06, David Howells wrote:
+Hi Andrew,
+
+2016-06-21 18:25 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
+> On Tuesday, June 21, 2016 8:20:10 AM CEST Masahiro Yamada wrote:
+>> 2016-06-21 5:45 GMT+09:00 Michal Marek <mmarek@suse.cz>:
+>> > Dne 14.6.2016 v 07:58 Masahiro Yamada napsal(a):
+>> >> The use of config_enabled() against config options is ambiguous.
+>> >>
+>> >> Now, IS_ENABLED() is implemented purely with macro expansion, so
+>> >> let's replace config_enabled() with IS_ENABLED().
+>> >>
+>> >> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+>> >
+>> > I applied the whole series to kbuild.git#kbuild.
+>> >
 >>
->> However, there's probably not a great deal of difference to be had if the
->> inline asm codes the appropriate instruction in each case for something like
->> x86*.  The emitted code ought to look the same.  The second biggest win for
->> the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
->> it actually did anything rather than comparing the result.  I added two
->> variants, one that only returned the yes/no and one that passed back the value
->> as well as the yes/no.
+>> This series was applied by Andrew Morton last week.
 >>
-> 
-> Right, and we want that either way.  The API change that you are
-> proposing is definitely what we want; the specifics of the x86
-> implementation is sort of orthogonal.
-> 
+>> I do not want to double it.  Could you drop it?
+>
+> Andrew usually drops patches from his tree when they show up in
+> another maintainer tree.
 
-So how do we make this move forward?
 
-	-hpa
+Now, each patch of this series appears twice in linux-next.
+
+Andrew,
+Is it possible to drop this series from your tree?
+
+
+Thanks
+
+-- 
+Best Regards
+Masahiro Yamada
