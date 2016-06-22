@@ -1,47 +1,43 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: linux-next: Tree for Jun 21
-Date: Tue, 21 Jun 2016 23:14:00 +0200
-Message-ID: <3813680.TbHyagWbHe@wuerfel>
-References: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com> <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com> <20160621185048.GR30909@twins.programming.kicks-ass.net>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Tue, 21 Jun 2016 17:09:03 -0700
+Message-ID: <7d1c236f-80d1-2c58-be0e-6676769636b3@zytor.com>
+References: <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
+ <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
+ <20160615085002.GC30935@twins.programming.kicks-ass.net>
+ <4467.1466499980@warthog.procyon.org.uk>
+ <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160621185048.GR30909@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>, Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:44942 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751088AbcFVA3y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2016 20:29:54 -0400
+In-Reply-To: <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On Tuesday, June 21, 2016 8:50:48 PM CEST Peter Zijlstra wrote:
+On 06/21/16 10:24, H. Peter Anvin wrote:
+> On 06/21/16 02:06, David Howells wrote:
+>>
+>> However, there's probably not a great deal of difference to be had if the
+>> inline asm codes the appropriate instruction in each case for something like
+>> x86*.  The emitted code ought to look the same.  The second biggest win for
+>> the intriniscs, I think, is the ability to ask the CMPXCHG instruction whether
+>> it actually did anything rather than comparing the result.  I added two
+>> variants, one that only returned the yes/no and one that passed back the value
+>> as well as the yes/no.
+>>
 > 
-> > So what's your build process for the cross tools, by the way?  I'm assuming
-> > you're not doing a total bootstrap cross-tool build since you'd need minimal
-> > kernel headers (linux/errno.h or whatever) in that case.  I assume you're using
-> > the host headers to build the cross tool?
-> > 
-> > So I'm a little confused how the other kernel headers are working out for you,
-> > e.g. <arch/icache.h> is referenced when building the tilegx libgcc.
+> Right, and we want that either way.  The API change that you are
+> proposing is definitely what we want; the specifics of the x86
+> implementation is sort of orthogonal.
 > 
-> I've no idea; I use this thing:
-> 
->   git://git.infradead.org/users/segher/buildall.git
-> 
-> Although I've got some local modifications, none are to the actual
-> toolchain building part (although I suppose I should send segher a
-> patch).
-> 
-> I have binutils-gdb.git and gcc.bit checkouts and point the buildall
-> config to that (both are on latest stable branches binutils-2_26-branch
-> and gcc-6-branch resp.). And I point the kernel path to my current
-> hacked up tree.
-> 
-> I don't really rebuild the entire toolchains often, mostly only when I
-> really need a new GCC or its getting really old (like I used 5.3.0 for a
-> long while).
 
-I think the kernel headers are only needed for building glibc, which
-buildall.git doesn't use: it only does the initial stage of creating
-a cross-toolchain.
+So how do we make this move forward?
 
-	Arnd
+	-hpa
