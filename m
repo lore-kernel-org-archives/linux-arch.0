@@ -1,51 +1,122 @@
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: Re: [PATCH 5/5] vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
-Date: Wed, 22 Jun 2016 15:52:05 +0900
-Message-ID: <CAK7LNAQiTwqN=OPgVk0KveyMyfu11ps_p0AMP=OUqfYDMSAtRg@mail.gmail.com>
-References: <1465883938-25194-1-git-send-email-yamada.masahiro@socionext.com>
- <576855FD.6020202@suse.cz> <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
- <9339659.lz6OGfeSnb@wuerfel>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v3 04/13] mm: Track NR_KERNEL_STACK in KiB instead of
+ number of stacks
+Date: Wed, 22 Jun 2016 09:35:54 +0200
+Message-ID: <20160622073554.GA9208@dhcp22.suse.cz>
+References: <cover.1466466093.git.luto@kernel.org>
+ <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <9339659.lz6OGfeSnb@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Marek <mmarek@suse.cz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Michal Simek <michal.simek@xilinx.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andrew,
+On Mon 20-06-16 16:43:34, Andy Lutomirski wrote:
+> Currently, NR_KERNEL_STACK tracks the number of kernel stacks in a
+> zone.  This only makes sense if each kernel stack exists entirely in
+> one zone, and allowing vmapped stacks could break this assumption.
+> 
+> Since frv has THREAD_SIZE < PAGE_SIZE, we need to track kernel stack
+> allocations in a unit that divides both THREAD_SIZE and PAGE_SIZE on
+> all architectures.  Keep it simple and use KiB.
+> 
+> Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Cc: Michal Hocko <mhocko@kernel.org>
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 
-2016-06-21 18:25 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
-> On Tuesday, June 21, 2016 8:20:10 AM CEST Masahiro Yamada wrote:
->> 2016-06-21 5:45 GMT+09:00 Michal Marek <mmarek@suse.cz>:
->> > Dne 14.6.2016 v 07:58 Masahiro Yamada napsal(a):
->> >> The use of config_enabled() against config options is ambiguous.
->> >>
->> >> Now, IS_ENABLED() is implemented purely with macro expansion, so
->> >> let's replace config_enabled() with IS_ENABLED().
->> >>
->> >> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
->> >
->> > I applied the whole series to kbuild.git#kbuild.
->> >
->>
->> This series was applied by Andrew Morton last week.
->>
->> I do not want to double it.  Could you drop it?
->
-> Andrew usually drops patches from his tree when they show up in
-> another maintainer tree.
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-
-Now, each patch of this series appears twice in linux-next.
-
-Andrew,
-Is it possible to drop this series from your tree?
-
-
-Thanks
+> ---
+>  drivers/base/node.c    | 3 +--
+>  fs/proc/meminfo.c      | 2 +-
+>  include/linux/mmzone.h | 2 +-
+>  kernel/fork.c          | 3 ++-
+>  mm/page_alloc.c        | 3 +--
+>  5 files changed, 6 insertions(+), 7 deletions(-)
+> 
+> diff --git a/drivers/base/node.c b/drivers/base/node.c
+> index 560751bad294..27dc68a0ed2d 100644
+> --- a/drivers/base/node.c
+> +++ b/drivers/base/node.c
+> @@ -121,8 +121,7 @@ static ssize_t node_read_meminfo(struct device *dev,
+>  		       nid, K(node_page_state(nid, NR_FILE_MAPPED)),
+>  		       nid, K(node_page_state(nid, NR_ANON_PAGES)),
+>  		       nid, K(i.sharedram),
+> -		       nid, node_page_state(nid, NR_KERNEL_STACK) *
+> -				THREAD_SIZE / 1024,
+> +		       nid, node_page_state(nid, NR_KERNEL_STACK_KB),
+>  		       nid, K(node_page_state(nid, NR_PAGETABLE)),
+>  		       nid, K(node_page_state(nid, NR_UNSTABLE_NFS)),
+>  		       nid, K(node_page_state(nid, NR_BOUNCE)),
+> diff --git a/fs/proc/meminfo.c b/fs/proc/meminfo.c
+> index 83720460c5bc..239b5a06cee0 100644
+> --- a/fs/proc/meminfo.c
+> +++ b/fs/proc/meminfo.c
+> @@ -145,7 +145,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
+>  				global_page_state(NR_SLAB_UNRECLAIMABLE)),
+>  		K(global_page_state(NR_SLAB_RECLAIMABLE)),
+>  		K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
+> -		global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
+> +		global_page_state(NR_KERNEL_STACK_KB),
+>  		K(global_page_state(NR_PAGETABLE)),
+>  #ifdef CONFIG_QUICKLIST
+>  		K(quicklist_total_size()),
+> diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+> index 02069c23486d..63f05a7efb54 100644
+> --- a/include/linux/mmzone.h
+> +++ b/include/linux/mmzone.h
+> @@ -127,7 +127,7 @@ enum zone_stat_item {
+>  	NR_SLAB_RECLAIMABLE,
+>  	NR_SLAB_UNRECLAIMABLE,
+>  	NR_PAGETABLE,		/* used for pagetables */
+> -	NR_KERNEL_STACK,
+> +	NR_KERNEL_STACK_KB,	/* measured in KiB */
+>  	/* Second 128 byte cacheline */
+>  	NR_UNSTABLE_NFS,	/* NFS unstable pages */
+>  	NR_BOUNCE,
+> diff --git a/kernel/fork.c b/kernel/fork.c
+> index 5c2c355aa97f..be7f006af727 100644
+> --- a/kernel/fork.c
+> +++ b/kernel/fork.c
+> @@ -225,7 +225,8 @@ static void account_kernel_stack(struct thread_info *ti, int account)
+>  {
+>  	struct zone *zone = page_zone(virt_to_page(ti));
+>  
+> -	mod_zone_page_state(zone, NR_KERNEL_STACK, account);
+> +	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
+> +			    THREAD_SIZE / 1024 * account);
+>  }
+>  
+>  void free_task(struct task_struct *tsk)
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 6903b695ebae..a277dea926c9 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -4457,8 +4457,7 @@ void show_free_areas(unsigned int filter)
+>  			K(zone_page_state(zone, NR_SHMEM)),
+>  			K(zone_page_state(zone, NR_SLAB_RECLAIMABLE)),
+>  			K(zone_page_state(zone, NR_SLAB_UNRECLAIMABLE)),
+> -			zone_page_state(zone, NR_KERNEL_STACK) *
+> -				THREAD_SIZE / 1024,
+> +			zone_page_state(zone, NR_KERNEL_STACK_KB),
+>  			K(zone_page_state(zone, NR_PAGETABLE)),
+>  			K(zone_page_state(zone, NR_UNSTABLE_NFS)),
+>  			K(zone_page_state(zone, NR_BOUNCE)),
+> -- 
+> 2.5.5
 
 -- 
-Best Regards
-Masahiro Yamada
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
