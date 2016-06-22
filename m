@@ -1,58 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef008-v.nifty.com ([210.131.4.245]:50952 "EHLO
-	condef008-v.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750854AbcFVHAk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2016 03:00:40 -0400
-Received: from conssluserg-03.nifty.com ([10.26.8.82])by condef008-v.nifty.com with ESMTP id u5M6qKAT005776
-	for <linux-arch@vger.kernel.org>; Wed, 22 Jun 2016 15:52:20 +0900
+Received: from mail-lb0-f195.google.com ([209.85.217.195]:35647 "EHLO
+	mail-lb0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751524AbcFVHiG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2016 03:38:06 -0400
+Date: Wed, 22 Jun 2016 09:38:03 +0200
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v3 05/13] mm: Fix memcg stack accounting for sub-page
+ stacks
+Message-ID: <20160622073803.GB9208@dhcp22.suse.cz>
+References: <cover.1466466093.git.luto@kernel.org>
+ <6bacdd1005517bef4c6f6a4154bd7d1d4f4371f3.1466466093.git.luto@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <9339659.lz6OGfeSnb@wuerfel>
-References: <1465883938-25194-1-git-send-email-yamada.masahiro@socionext.com>
- <576855FD.6020202@suse.cz> <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
- <9339659.lz6OGfeSnb@wuerfel>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Wed, 22 Jun 2016 15:52:05 +0900
-Message-ID: <CAK7LNAQiTwqN=OPgVk0KveyMyfu11ps_p0AMP=OUqfYDMSAtRg@mail.gmail.com>
-Subject: Re: [PATCH 5/5] vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6bacdd1005517bef4c6f6a4154bd7d1d4f4371f3.1466466093.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Marek <mmarek@suse.cz>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Michal Simek <michal.simek@xilinx.com>, Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org
-Message-ID: <20160622065205.mSrSIa83ZfqiG6bXi9F-nfXwq1Bcf7oxqUesI4mRghA@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, linux-mm@kvack.org
+Message-ID: <20160622073803.BQgeF0S3nAj99zBwixDFiPXbIuhkIS3iJISwtziQrcM@z>
 
-Hi Andrew,
+On Mon 20-06-16 16:43:35, Andy Lutomirski wrote:
+> We should account for stacks regardless of stack size, and we need
+> to account in sub-page units if THREAD_SIZE < PAGE_SIZE.  Change the
+> units to kilobytes and Move it into account_kernel_stack().
+> 
+> Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
+> Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
+> Cc: Johannes Weiner <hannes@cmpxchg.org>
+> Cc: Michal Hocko <mhocko@kernel.org>
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 
-2016-06-21 18:25 GMT+09:00 Arnd Bergmann <arnd@arndb.de>:
-> On Tuesday, June 21, 2016 8:20:10 AM CEST Masahiro Yamada wrote:
->> 2016-06-21 5:45 GMT+09:00 Michal Marek <mmarek@suse.cz>:
->> > Dne 14.6.2016 v 07:58 Masahiro Yamada napsal(a):
->> >> The use of config_enabled() against config options is ambiguous.
->> >>
->> >> Now, IS_ENABLED() is implemented purely with macro expansion, so
->> >> let's replace config_enabled() with IS_ENABLED().
->> >>
->> >> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
->> >
->> > I applied the whole series to kbuild.git#kbuild.
->> >
->>
->> This series was applied by Andrew Morton last week.
->>
->> I do not want to double it.  Could you drop it?
->
-> Andrew usually drops patches from his tree when they show up in
-> another maintainer tree.
+Acked-by: Michal Hocko <mhocko@suse.com>
 
-
-Now, each patch of this series appears twice in linux-next.
-
-Andrew,
-Is it possible to drop this series from your tree?
-
-
-Thanks
+> ---
+>  include/linux/memcontrol.h |  2 +-
+>  kernel/fork.c              | 15 ++++++---------
+>  mm/memcontrol.c            |  2 +-
+>  3 files changed, 8 insertions(+), 11 deletions(-)
+> 
+> diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
+> index a805474df4ab..3b653b86bb8f 100644
+> --- a/include/linux/memcontrol.h
+> +++ b/include/linux/memcontrol.h
+> @@ -52,7 +52,7 @@ enum mem_cgroup_stat_index {
+>  	MEM_CGROUP_STAT_SWAP,		/* # of pages, swapped out */
+>  	MEM_CGROUP_STAT_NSTATS,
+>  	/* default hierarchy stats */
+> -	MEMCG_KERNEL_STACK = MEM_CGROUP_STAT_NSTATS,
+> +	MEMCG_KERNEL_STACK_KB = MEM_CGROUP_STAT_NSTATS,
+>  	MEMCG_SLAB_RECLAIMABLE,
+>  	MEMCG_SLAB_UNRECLAIMABLE,
+>  	MEMCG_SOCK,
+> diff --git a/kernel/fork.c b/kernel/fork.c
+> index be7f006af727..ff3c41c2ba96 100644
+> --- a/kernel/fork.c
+> +++ b/kernel/fork.c
+> @@ -165,20 +165,12 @@ static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
+>  	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
+>  						  THREAD_SIZE_ORDER);
+>  
+> -	if (page)
+> -		memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
+> -					    1 << THREAD_SIZE_ORDER);
+> -
+>  	return page ? page_address(page) : NULL;
+>  }
+>  
+>  static inline void free_thread_info(struct thread_info *ti)
+>  {
+> -	struct page *page = virt_to_page(ti);
+> -
+> -	memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
+> -				    -(1 << THREAD_SIZE_ORDER));
+> -	__free_kmem_pages(page, THREAD_SIZE_ORDER);
+> +	free_kmem_pages((unsigned long)ti, THREAD_SIZE_ORDER);
+>  }
+>  # else
+>  static struct kmem_cache *thread_info_cache;
+> @@ -227,6 +219,11 @@ static void account_kernel_stack(struct thread_info *ti, int account)
+>  
+>  	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
+>  			    THREAD_SIZE / 1024 * account);
+> +
+> +	/* All stack pages belong to the same memcg. */
+> +	memcg_kmem_update_page_stat(
+> +		virt_to_page(ti), MEMCG_KERNEL_STACK_KB,
+> +		account * (THREAD_SIZE / 1024));
+>  }
+>  
+>  void free_task(struct task_struct *tsk)
+> diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+> index 75e74408cc8f..8e13a2419dad 100644
+> --- a/mm/memcontrol.c
+> +++ b/mm/memcontrol.c
+> @@ -5133,7 +5133,7 @@ static int memory_stat_show(struct seq_file *m, void *v)
+>  	seq_printf(m, "file %llu\n",
+>  		   (u64)stat[MEM_CGROUP_STAT_CACHE] * PAGE_SIZE);
+>  	seq_printf(m, "kernel_stack %llu\n",
+> -		   (u64)stat[MEMCG_KERNEL_STACK] * PAGE_SIZE);
+> +		   (u64)stat[MEMCG_KERNEL_STACK_KB] * 1024);
+>  	seq_printf(m, "slab %llu\n",
+>  		   (u64)(stat[MEMCG_SLAB_RECLAIMABLE] +
+>  			 stat[MEMCG_SLAB_UNRECLAIMABLE]) * PAGE_SIZE);
+> -- 
+> 2.5.5
 
 -- 
-Best Regards
-Masahiro Yamada
+Michal Hocko
+SUSE Labs
