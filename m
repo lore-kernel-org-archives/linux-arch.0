@@ -1,121 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f67.google.com ([209.85.215.67]:34899 "EHLO
-	mail-lf0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751000AbcFVHuS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2016 03:50:18 -0400
-Date: Wed, 22 Jun 2016 09:35:54 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v3 04/13] mm: Track NR_KERNEL_STACK in KiB instead of
- number of stacks
-Message-ID: <20160622073554.GA9208@dhcp22.suse.cz>
-References: <cover.1466466093.git.luto@kernel.org>
- <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+Received: from merlin.infradead.org ([205.233.59.134]:47166 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751026AbcFVJko (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2016 05:40:44 -0400
+Date: Wed, 22 Jun 2016 11:16:49 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: linux-next: Tree for Jun 21
+Message-ID: <20160622091649.GB30154@twins.programming.kicks-ass.net>
+References: <f43656af-050c-82b3-e10d-66be072be320@mellanox.com>
+ <20160621124247.GM30921@twins.programming.kicks-ass.net>
+ <5ed77f4c-44eb-ca02-1373-e878d3dea31e@mellanox.com>
+ <20160621140408.GE3704@worktop>
+ <20160621141435.GB7381@worktop>
+ <94270f5c-1a28-f9d7-2b5a-eb874dc35398@mellanox.com>
+ <20160621170607.GQ30154@twins.programming.kicks-ass.net>
+ <20160621172918.GS30927@twins.programming.kicks-ass.net>
+ <20160621182844.GT30927@twins.programming.kicks-ass.net>
+ <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <053517e55aaf7ab1bbb7424abd89a1ac5535aa64.1466466093.git.luto@kernel.org>
+In-Reply-To: <ff97cde6-44e2-e25d-7bd2-78dbf344fc7b@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, linux-mm@kvack.org
-Message-ID: <20160622073554.CsVotO7D2q5Hfom46d2LuyKu-kniaLgp17AsJAjT6cM@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160622091649.le29lSCD3aqh5Wv-7jSQCDL3QE131axv5QVzRmfeJO4@z>
 
-On Mon 20-06-16 16:43:34, Andy Lutomirski wrote:
-> Currently, NR_KERNEL_STACK tracks the number of kernel stacks in a
-> zone.  This only makes sense if each kernel stack exists entirely in
-> one zone, and allowing vmapped stacks could break this assumption.
+On Tue, Jun 21, 2016 at 02:36:34PM -0400, Chris Metcalf wrote:
+> On 6/21/2016 2:28 PM, Peter Zijlstra wrote:
+> >On Tue, Jun 21, 2016 at 07:29:18PM +0200, Peter Zijlstra wrote:
+> >
+> >>>OK, I seem to have a tilepro-linux-gcc-6.1.1 build done. Lets see if I
+> >>>can build me a kernel with it.
+> >The below, much larger than desired, patch seems to make it go again.
+> >
+> >I had to s/__atomic_fetch/__atomic32_fetch/ to avoid a namespace clash
+> >with the builtin C11 atomic primitives.
+> >
+> >You want me to rename them all to regain consistent naming?
 > 
-> Since frv has THREAD_SIZE < PAGE_SIZE, we need to track kernel stack
-> allocations in a unit that divides both THREAD_SIZE and PAGE_SIZE on
-> all architectures.  Keep it simple and use KiB.
-> 
-> Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-> Cc: Johannes Weiner <hannes@cmpxchg.org>
-> Cc: Michal Hocko <mhocko@kernel.org>
-> Cc: linux-mm@kvack.org
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> Yes, it's probably the right thing to do.  All the internal routines with "atomic32"
+> or "atomic64" I assume you mean?
 
-Acked-by: Michal Hocko <mhocko@suse.com>
+Something like so then?
 
-> ---
->  drivers/base/node.c    | 3 +--
->  fs/proc/meminfo.c      | 2 +-
->  include/linux/mmzone.h | 2 +-
->  kernel/fork.c          | 3 ++-
->  mm/page_alloc.c        | 3 +--
->  5 files changed, 6 insertions(+), 7 deletions(-)
-> 
-> diff --git a/drivers/base/node.c b/drivers/base/node.c
-> index 560751bad294..27dc68a0ed2d 100644
-> --- a/drivers/base/node.c
-> +++ b/drivers/base/node.c
-> @@ -121,8 +121,7 @@ static ssize_t node_read_meminfo(struct device *dev,
->  		       nid, K(node_page_state(nid, NR_FILE_MAPPED)),
->  		       nid, K(node_page_state(nid, NR_ANON_PAGES)),
->  		       nid, K(i.sharedram),
-> -		       nid, node_page_state(nid, NR_KERNEL_STACK) *
-> -				THREAD_SIZE / 1024,
-> +		       nid, node_page_state(nid, NR_KERNEL_STACK_KB),
->  		       nid, K(node_page_state(nid, NR_PAGETABLE)),
->  		       nid, K(node_page_state(nid, NR_UNSTABLE_NFS)),
->  		       nid, K(node_page_state(nid, NR_BOUNCE)),
-> diff --git a/fs/proc/meminfo.c b/fs/proc/meminfo.c
-> index 83720460c5bc..239b5a06cee0 100644
-> --- a/fs/proc/meminfo.c
-> +++ b/fs/proc/meminfo.c
-> @@ -145,7 +145,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
->  				global_page_state(NR_SLAB_UNRECLAIMABLE)),
->  		K(global_page_state(NR_SLAB_RECLAIMABLE)),
->  		K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
-> -		global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
-> +		global_page_state(NR_KERNEL_STACK_KB),
->  		K(global_page_state(NR_PAGETABLE)),
->  #ifdef CONFIG_QUICKLIST
->  		K(quicklist_total_size()),
-> diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-> index 02069c23486d..63f05a7efb54 100644
-> --- a/include/linux/mmzone.h
-> +++ b/include/linux/mmzone.h
-> @@ -127,7 +127,7 @@ enum zone_stat_item {
->  	NR_SLAB_RECLAIMABLE,
->  	NR_SLAB_UNRECLAIMABLE,
->  	NR_PAGETABLE,		/* used for pagetables */
-> -	NR_KERNEL_STACK,
-> +	NR_KERNEL_STACK_KB,	/* measured in KiB */
->  	/* Second 128 byte cacheline */
->  	NR_UNSTABLE_NFS,	/* NFS unstable pages */
->  	NR_BOUNCE,
-> diff --git a/kernel/fork.c b/kernel/fork.c
-> index 5c2c355aa97f..be7f006af727 100644
-> --- a/kernel/fork.c
-> +++ b/kernel/fork.c
-> @@ -225,7 +225,8 @@ static void account_kernel_stack(struct thread_info *ti, int account)
->  {
->  	struct zone *zone = page_zone(virt_to_page(ti));
->  
-> -	mod_zone_page_state(zone, NR_KERNEL_STACK, account);
-> +	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
-> +			    THREAD_SIZE / 1024 * account);
->  }
->  
->  void free_task(struct task_struct *tsk)
-> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-> index 6903b695ebae..a277dea926c9 100644
-> --- a/mm/page_alloc.c
-> +++ b/mm/page_alloc.c
-> @@ -4457,8 +4457,7 @@ void show_free_areas(unsigned int filter)
->  			K(zone_page_state(zone, NR_SHMEM)),
->  			K(zone_page_state(zone, NR_SLAB_RECLAIMABLE)),
->  			K(zone_page_state(zone, NR_SLAB_UNRECLAIMABLE)),
-> -			zone_page_state(zone, NR_KERNEL_STACK) *
-> -				THREAD_SIZE / 1024,
-> +			zone_page_state(zone, NR_KERNEL_STACK_KB),
->  			K(zone_page_state(zone, NR_PAGETABLE)),
->  			K(zone_page_state(zone, NR_UNSTABLE_NFS)),
->  			K(zone_page_state(zone, NR_BOUNCE)),
-> -- 
-> 2.5.5
+---
+ arch/tile/include/asm/atomic_32.h |   24 ++++++++++++------------
+ arch/tile/include/asm/futex.h     |   14 +++++++-------
+ arch/tile/lib/atomic_32.c         |   16 ++++++++--------
+ arch/tile/lib/atomic_asm_32.S     |   21 +++++++++++++--------
+ 4 files changed, 40 insertions(+), 35 deletions(-)
 
--- 
-Michal Hocko
-SUSE Labs
+diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
+index da8eb4e..a937742 100644
+--- a/arch/tile/include/asm/atomic_32.h
++++ b/arch/tile/include/asm/atomic_32.h
+@@ -143,15 +143,15 @@ static inline void atomic64_##op(long long i, atomic64_t *v)	\
+ {								\
+ 	_atomic64_fetch_##op(&v->counter, i);			\
+ }								\
+-static inline void atomic64_##op(long long i, atomic64_t *v)	\
++static inline long long atomic64_fetch_##op(long long i, atomic64_t *v)	\
+ {								\
+ 	smp_mb();						\
+ 	return _atomic64_fetch_##op(&v->counter, i);		\
+ }
+ 
+-ATOMIC64_OP(and)
+-ATOMIC64_OP(or)
+-ATOMIC64_OP(xor)
++ATOMIC64_OPS(and)
++ATOMIC64_OPS(or)
++ATOMIC64_OPS(xor)
+ 
+ #undef ATOMIC64_OPS
+ 
+@@ -266,16 +266,16 @@ struct __get_user {
+ 	unsigned long val;
+ 	int err;
+ };
+-extern struct __get_user __atomic_cmpxchg(volatile int *p,
++extern struct __get_user __atomic32_cmpxchg(volatile int *p,
+ 					  int *lock, int o, int n);
+-extern struct __get_user __atomic_xchg(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_xchg_add(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_xchg_add_unless(volatile int *p,
++extern struct __get_user __atomic32_xchg(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_xchg_add(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_xchg_add_unless(volatile int *p,
+ 						  int *lock, int o, int n);
+-extern struct __get_user __atomic_fetch_or(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_and(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_andn(volatile int *p, int *lock, int n);
+-extern struct __get_user __atomic_fetch_xor(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_or(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_and(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_andn(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic32_fetch_xor(volatile int *p, int *lock, int n);
+ extern long long __atomic64_cmpxchg(volatile long long *p, int *lock,
+ 					long long o, long long n);
+ extern long long __atomic64_xchg(volatile long long *p, int *lock, long long n);
+diff --git a/arch/tile/include/asm/futex.h b/arch/tile/include/asm/futex.h
+index 1a6ef1b..e64a1b7 100644
+--- a/arch/tile/include/asm/futex.h
++++ b/arch/tile/include/asm/futex.h
+@@ -80,16 +80,16 @@
+ 		ret = gu.err;						\
+ 	}
+ 
+-#define __futex_set() __futex_call(__atomic_xchg)
+-#define __futex_add() __futex_call(__atomic_xchg_add)
+-#define __futex_or() __futex_call(__atomic_or)
+-#define __futex_andn() __futex_call(__atomic_andn)
+-#define __futex_xor() __futex_call(__atomic_xor)
++#define __futex_set() __futex_call(__atomic32_xchg)
++#define __futex_add() __futex_call(__atomic32_xchg_add)
++#define __futex_or() __futex_call(__atomic32_fetch_or)
++#define __futex_andn() __futex_call(__atomic32_fetch_andn)
++#define __futex_xor() __futex_call(__atomic32_fetch_xor)
+ 
+ #define __futex_cmpxchg()						\
+ 	{								\
+-		struct __get_user gu = __atomic_cmpxchg((u32 __force *)uaddr, \
+-							lock, oldval, oparg); \
++		struct __get_user gu = __atomic32_cmpxchg((u32 __force *)uaddr, \
++							  lock, oldval, oparg); \
+ 		val = gu.val;						\
+ 		ret = gu.err;						\
+ 	}
+diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
+index 5b6bd93..f812880 100644
+--- a/arch/tile/lib/atomic_32.c
++++ b/arch/tile/lib/atomic_32.c
+@@ -61,13 +61,13 @@ static inline int *__atomic_setup(volatile void *v)
+ 
+ int _atomic_xchg(int *v, int n)
+ {
+-	return __atomic_xchg(v, __atomic_setup(v), n).val;
++	return __atomic32_xchg(v, __atomic_setup(v), n).val;
+ }
+ EXPORT_SYMBOL(_atomic_xchg);
+ 
+ int _atomic_xchg_add(int *v, int i)
+ {
+-	return __atomic_xchg_add(v, __atomic_setup(v), i).val;
++	return __atomic32_xchg_add(v, __atomic_setup(v), i).val;
+ }
+ EXPORT_SYMBOL(_atomic_xchg_add);
+ 
+@@ -78,37 +78,37 @@ int _atomic_xchg_add_unless(int *v, int a, int u)
+ 	 * to use the first argument consistently as the "old value"
+ 	 * in the assembly, as is done for _atomic_cmpxchg().
+ 	 */
+-	return __atomic_xchg_add_unless(v, __atomic_setup(v), u, a).val;
++	return __atomic32_xchg_add_unless(v, __atomic_setup(v), u, a).val;
+ }
+ EXPORT_SYMBOL(_atomic_xchg_add_unless);
+ 
+ int _atomic_cmpxchg(int *v, int o, int n)
+ {
+-	return __atomic_cmpxchg(v, __atomic_setup(v), o, n).val;
++	return __atomic32_cmpxchg(v, __atomic_setup(v), o, n).val;
+ }
+ EXPORT_SYMBOL(_atomic_cmpxchg);
+ 
+ unsigned long _atomic_fetch_or(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_or((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_or((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_or);
+ 
+ unsigned long _atomic_fetch_and(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_and((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_and((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_and);
+ 
+ unsigned long _atomic_fetch_andn(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_andn((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_andn((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_andn);
+ 
+ unsigned long _atomic_fetch_xor(volatile unsigned long *p, unsigned long mask)
+ {
+-	return __atomic_fetch_xor((int *)p, __atomic_setup(p), mask).val;
++	return __atomic32_fetch_xor((int *)p, __atomic_setup(p), mask).val;
+ }
+ EXPORT_SYMBOL(_atomic_fetch_xor);
+ 
+diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
+index 507abdd..1a70e6c 100644
+--- a/arch/tile/lib/atomic_asm_32.S
++++ b/arch/tile/lib/atomic_asm_32.S
+@@ -172,15 +172,20 @@ STD_ENTRY_SECTION(__atomic\name, .text.atomic)
+ 	.endif
+ 	.endm
+ 
+-atomic_op _cmpxchg, 32, "seq r26, r22, r2; { bbns r26, 3f; move r24, r3 }"
+-atomic_op _xchg, 32, "move r24, r2"
+-atomic_op _xchg_add, 32, "add r24, r22, r2"
+-atomic_op _xchg_add_unless, 32, \
++
++/*
++ * Use __atomic32 prefix to avoid collisions with GCC builtin __atomic functions.
++ */
++
++atomic_op 32_cmpxchg, 32, "seq r26, r22, r2; { bbns r26, 3f; move r24, r3 }"
++atomic_op 32_xchg, 32, "move r24, r2"
++atomic_op 32_xchg_add, 32, "add r24, r22, r2"
++atomic_op 32_xchg_add_unless, 32, \
+ 	"sne r26, r22, r2; { bbns r26, 3f; add r24, r22, r3 }"
+-atomic_op _fetch_or, 32, "or r24, r22, r2"
+-atomic_op _fetch_and, 32, "and r24, r22, r2"
+-atomic_op _fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
+-atomic_op _fetch_xor, 32, "xor r24, r22, r2"
++atomic_op 32_fetch_or, 32, "or r24, r22, r2"
++atomic_op 32_fetch_and, 32, "and r24, r22, r2"
++atomic_op 32_fetch_andn, 32, "nor r2, r2, zero; and r24, r22, r2"
++atomic_op 32_fetch_xor, 32, "xor r24, r22, r2"
+ 
+ atomic_op 64_cmpxchg, 64, "{ seq r26, r22, r2; seq r27, r23, r3 }; \
+ 	{ bbns r26, 3f; move r24, r4 }; { bbns r27, 3f; move r25, r5 }"
