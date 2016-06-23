@@ -1,70 +1,52 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Wed, 22 Jun 2016 23:02:21 -0700
-Message-ID: <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH 5/5] vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
+Date: Thu, 23 Jun 2016 17:07:52 +0900
+Message-ID: <CAK7LNARgu7EqNkFWepS9BuXUmHsRxynYut3JfL5XNp0qxN+2aw@mail.gmail.com>
+References: <1465883938-25194-1-git-send-email-yamada.masahiro@socionext.com>
+ <1465883938-25194-5-git-send-email-yamada.masahiro@socionext.com>
+ <576855FD.6020202@suse.cz> <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:16611 "EHLO
+	conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750839AbcFWIIG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 04:08:06 -0400
+In-Reply-To: <CAK7LNAR4mdwQqsf4xhtsMA7FEuAqNMEzE+6HkYCW30qLbKb1=A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Michal Simek <michal.simek@xilinx.com>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org
 
-On Wed, Jun 22, 2016 at 6:22 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+Hi Andrew, Michal,
+
+2016-06-21 8:20 GMT+09:00 Masahiro Yamada <yamada.masahiro@socionext.com>:
+> 2016-06-21 5:45 GMT+09:00 Michal Marek <mmarek@suse.cz>:
+>> Dne 14.6.2016 v 07:58 Masahiro Yamada napsal(a):
+>>> The use of config_enabled() against config options is ambiguous.
+>>>
+>>> Now, IS_ENABLED() is implemented purely with macro expansion, so
+>>> let's replace config_enabled() with IS_ENABLED().
+>>>
+>>> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+>>
+>> I applied the whole series to kbuild.git#kbuild.
+>>
 >
-> I implemented a percpu cache, and it's useless.
+> This series was applied by Andrew Morton last week.
 >
-> When a task goes away, one reference is held until the next RCU grace
-> period so that task_struct can be used under RCU (look for
-> delayed_put_task_struct).
+> I do not want to double it.  Could you drop it?
 
-Yeah, that RCU batching will screw the cache idea.
 
-But isn't it only the "task_struct" that needs that? That's a separate
-allocation from the stack, which contains the "thread_info".
+Michal,
+It is OK.  Everything is fine now.
 
-I think that what we *could* do is re-use the tread-info within the
-RCU grace period, as long as we delay freeing the task_struct.
 
-Yes, yes, we currently tie the task_struct and thread_info lifetimes
-together very tightly, but that's a historical thing rather than a
-requirement. We do the
+Andrew,
+Thanks a lot for taking care of this!
 
-        account_kernel_stack(tsk->stack, -1);
-        arch_release_thread_info(tsk->stack);
-        free_thread_info(tsk->stack);
 
-in free_task(), but I could imagine doing it earlier, and
-independently of the RCU-delayed free.
 
-In fact, I think we just do that at exit() time synchronously. The
-reference counting of the task_struct() is because a lot of other
-threads can have references to the exiting thread (and we have the
-tasklist and thread lists that are RCU-traversed), but none of those
-other references should ever look at the stack. Or even the
-thread-info.
-
-Hmm. I bet it would show some problems, but not be technically
-impossible. Especially if we make the thread-info rules be like the
-SLAB_DESTROY_BY_RCU semantics - the allocation may be re-used during
-the RCU grace period, but it is going to still exists and be of the
-same type.
-
-This sounds very much like something for Oleg Nesterov.
-
-Oleg, what do you think? Would it be reasonable to free the stack and
-thread_info synchronously at exit time, clear the pointer (to catch
-any odd use), and only RCU-delay the task_struct itself?
-
-That is, after all, what we already do with the VM, semaphores, files,
-fs info etc. There's no real reason I see to keep the stack around.
-
-(Obviously, we can't release it in do_exit() itself like we do some of
-the other state - it would need to be released after we've scheduled
-away to another process' stack, but we already have that TASK_DEAD
-handling in finish_task_switch for this exact reason).
-
-                 Linus
+-- 
+Best Regards
+Masahiro Yamada
