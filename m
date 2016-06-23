@@ -1,94 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:36713 "EHLO
-	mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751690AbcFWRoK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 13:44:10 -0400
+Received: from mail-wm0-f46.google.com ([74.125.82.46]:36580 "EHLO
+	mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751187AbcFWSAL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 14:00:11 -0400
+Received: by mail-wm0-f46.google.com with SMTP id f126so136628516wma.1
+        for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2016 11:00:10 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20160623170352.GA17372@redhat.com>
+In-Reply-To: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
 References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
  <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
  <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
  <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 23 Jun 2016 10:44:08 -0700
-Message-ID: <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Thu, 23 Jun 2016 11:00:08 -0700
+Message-ID: <CAGXu5jLd=cUa-8Fdp+6hypvn=cVVVkv-MWcZBnEy956fA96aMg@mail.gmail.com>
 Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160623174408.LVwOVpJDy1BbQSEPN908I6_drtgbR3ghAAzdUYEQnFU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160623180008.O1-1t_WjSPL-DT-PyDBQBXBXb-YMHsMEjtChXKN6-9o@z>
 
-On Thu, Jun 23, 2016 at 10:03 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+On Thu, Jun 23, 2016 at 10:52 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Thu, Jun 23, 2016 at 10:44 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>>
+>> The thread_info->tsk pointer, that was one of the most critical issues
+>> and the main raison d'être of the thread_info, has been replaced on
+>> x86 by just using the per-cpu "current_task". Yes,.there are probably
+>> more than a few "ti->task" users left for legacy reasons, harking back
+>> to when the thread-info was cheaper to access, but it shouldn't be a
+>> big deal.
 >
-> Let me quote my previous email ;)
+> Ugh. Looking around at this, it turns out that a great example of this
+> kind of legacy issue is the debug_mutex stuff.
 >
->         And we can't free/nullify it when the parent/debuger reaps a zombie,
->         say, mark_oom_victim() expects that get_task_struct() protects
->         thread_info as well.
->
-> probably we can fix all such users though...
+> It uses "struct thread_info *" as the owner pointer, and there is _no_
+> existing reason for it. In fact, in every single place it actually
+> wants the task_struct, and it does task_thread_info(task) just to
+> convert it to the thread-info, and then converts it back with
+> "ti->task".
 
-TIF_MEMDIE is indeed a potential problem, but I don't think
-mark_oom_victim() is actually problematic.
+Heh, yeah, that looks like a nice clean-up.
 
-mark_oom_victim() is called with either "current", or with a victim
-that still has its mm and signal pointer (and the task is locked). So
-the lifetime is already guaranteed - or that code is already very very
-buggy, since it follows tsk->signal and tsk->mm
+> So the attached patch seems to be the right thing to do regardless of
+> this whole discussion.
 
-So as far as I can tell, that's all fine.
+Why does __mutex_lock_common() have "task" as a stack variable? It's
+only assigned at the start, and is always "current". (I only noticed
+from the patch changing "current_thread_info()" and
+"task_thread_info(task)" both to "task".)
 
-That said, by now it would actually in many ways be great if we could
-get rid of thread_info entirely. The historical reasons for
-thread_info have almost all been subsumed by the percpu area.
+-Kees
 
-The reason for thread_info originally was
-
- - we used to find the task_struct by just masking the stack pointer
-(long long ago). When the task struct grew too big, we kept just the
-critical pieces and some arch-specific stuff and , called it
-"thread_info", and moved the rest to an external allocation and added
-the pointer to it.
-
- - the really crticial stuff we didn't want to follow a pointer for,
-so things like preempt_count etc were in thread_info
-
- - but they were *so* critical that PeterZ (at my prodding) moved
-those things to percpu caches that get updated at schedule time
-instead
-
-so these days, thread_info has almost nothing really critical in it
-any more. There's the thread-local flags, yes, but they could stay or
-easily be moved to the task_struct or get similar per-cpu fixup as
-preempt_count did a couple of years ago. The only annoyance is the few
-remaining entry code assembly sequences, but I suspect they would
-actually become simpler with a per-cpu thing, and with Andy's cleanups
-they are pretty insignificant these days. There seems to be exactly
-two uses of ASM_THREAD_INFO(TI_flags,.. left.
-
-So I suspect that it would
-
- (a) already be possible to just free the stack and thread info at
-release time, because any rcu users will already be doing task_lock()
-and check mm etc.
-
- (b) it probably would be a nice cleanup to try to make it even more
-obviously safe by just shrinking thread_info more (or even getting rid
-of it entirely, but that may be too painful because there are other
-architectures that may depend on it more).
-
-I dunno. Looking at what remains of thread_info, it really doesn't
-seem very critical.
-
-The thread_info->tsk pointer, that was one of the most critical issues
-and the main raison d'être of the thread_info, has been replaced on
-x86 by just using the per-cpu "current_task". Yes,.there are probably
-more than a few "ti->task" users left for legacy reasons, harking back
-to when the thread-info was cheaper to access, but it shouldn't be a
-big deal.
-
-                  Linus
+-- 
+Kees Cook
+Chrome OS & Brillo Security
