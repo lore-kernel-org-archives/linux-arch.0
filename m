@@ -1,157 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0015.hostedemail.com ([216.40.44.15]:42073 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752046AbcFWNrn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Jun 2016 09:47:43 -0400
-Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
-	by smtpgrave07.hostedemail.com (Postfix) with ESMTP id 442ED11AEE4
-	for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2016 13:37:44 +0000 (UTC)
-Date: Thu, 23 Jun 2016 09:37:40 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
-Message-ID: <20160623093740.638579af@gandalf.local.home>
-In-Reply-To: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
-References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:55033 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751425AbcFWRKm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Jun 2016 13:10:42 -0400
+Date: Thu, 23 Jun 2016 19:10:37 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Message-ID: <20160623171037.GB17372@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org>
+ <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com>
+ <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <CALCETrU2B0QYBgTTSAFiK026Bx96+Bk=k64bhrDT+TiXsV7D4A@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrU2B0QYBgTTSAFiK026Bx96+Bk=k64bhrDT+TiXsV7D4A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Namhyung Kim <namhyung@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20160623133740.FuCXHK85RgYGUXM6Rgew3aqbYRtxeIa1VFgAsnAX8x8@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160623171037.Nts5KAsqs_0Liuf9_-U30Rfj6u9eoyLAEZ2sRWENX8g@z>
 
-On Mon, 23 May 2016 00:26:15 +0900
-Namhyung Kim <namhyung@kernel.org> wrote:
+On 06/23, Andy Lutomirski wrote:
+>
+> That sounds a bit more fragile than I'm really comfortable with,
+> although it'll at least oops reliably if we get it wrong.
+>
+> But I'm planning on moving ti->flags (and the rest of thread_info,
+> either piecemeal or as a unit) into task_struct on architectures that
+> opt in,
 
-> Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
-> can have padding bytes at the end due to alignment in 64-bit data type.
-> As these data are recorded so frequently, those paddings waste
-> non-negligible space.  As some archs can have efficient unaligned
-> accesses, reducing the alignment can save ~10% of data size:
-> 
->   ftrace_graph_ent_entry:  24 -> 20
->   ftrace_graph_ret_entry:  48 -> 44
-> 
-> Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
-> the padding.  Tested on x86_64 only.
+I agree, this looks better. probably it should not be that hard to fix
+GET_THREAD_INFO/etc, but you know this much better than me.
 
-I'd like to see this tested on other archs too.
-
-[ Added linux-arch so maybe other arch maintainers may know about this ]
-
-> 
-> Signed-off-by: Namhyung Kim <namhyung@kernel.org>
-> ---
->  include/linux/ftrace.h       | 16 ++++++++++++----
->  kernel/trace/trace.h         | 11 +++++++++++
->  kernel/trace/trace_entries.h |  4 ++--
->  3 files changed, 25 insertions(+), 6 deletions(-)
-> 
-> diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-> index dea12a6e413b..35c523ba5c59 100644
-> --- a/include/linux/ftrace.h
-> +++ b/include/linux/ftrace.h
-> @@ -751,25 +751,33 @@ extern void ftrace_init(void);
->  static inline void ftrace_init(void) { }
->  #endif
->  
-> +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
-> +# define FTRACE_ALIGNMENT	4
-> +#else
-> +# define FTRACE_ALIGNMENT	8
-> +#endif
-
-Swap the above. Having the #ifndef is more confusing to understand than
-to have a #ifdef.
-
-> +
-> +#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))
-
-Do we really need to pack it? I mean, just get rid of the hole (like
-you did with the movement of the overrun) and shouldn't the array be
-aligned normally without holes, if the arch can support it? Doesn't gcc
-take care of that?
-
--- Steve
-
-> +
->  /*
->   * Structure that defines an entry function trace.
->   */
->  struct ftrace_graph_ent {
->  	unsigned long func; /* Current function */
->  	int depth;
-> -};
-> +} FTRACE_ALIGN_DATA;
->  
->  /*
->   * Structure that defines a return function trace.
->   */
->  struct ftrace_graph_ret {
->  	unsigned long func; /* Current function */
-> -	unsigned long long calltime;
-> -	unsigned long long rettime;
->  	/* Number of functions that overran the depth limit for current task */
->  	unsigned long overrun;
-> +	unsigned long long calltime;
-> +	unsigned long long rettime;
->  	int depth;
-> -};
-> +} FTRACE_ALIGN_DATA;
->  
->  /* Type of the callback handlers for tracing function graph*/
->  typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
-> diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
-> index 5167c366d6b7..d2dd49ca55ee 100644
-> --- a/kernel/trace/trace.h
-> +++ b/kernel/trace/trace.h
-> @@ -80,6 +80,12 @@ enum trace_type {
->  	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
->  		     filter)
->  
-> +#undef FTRACE_ENTRY_PACKED
-> +#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
-> +			    filter)					\
-> +	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
-> +		     filter) FTRACE_ALIGN_DATA
-> +
->  #include "trace_entries.h"
->  
->  /*
-> @@ -1600,6 +1606,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
->  #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
->  	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
->  		     filter)
-> +#undef FTRACE_ENTRY_PACKED
-> +#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
-> +	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
-> +		     filter)
-> +
->  #include "trace_entries.h"
->  
->  #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
-> diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
-> index ee7b94a4810a..5c30efcda5e6 100644
-> --- a/kernel/trace/trace_entries.h
-> +++ b/kernel/trace/trace_entries.h
-> @@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
->  );
->  
->  /* Function call entry */
-> -FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
-> +FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
->  
->  	TRACE_GRAPH_ENT,
->  
-> @@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
->  );
->  
->  /* Function return entry */
-> -FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
-> +FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
->  
->  	TRACE_GRAPH_RET,
->  
+Oleg.
 
