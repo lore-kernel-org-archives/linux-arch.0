@@ -1,75 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f41.google.com ([209.85.218.41]:33069 "EHLO
-	mail-oi0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751078AbcFWGCX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 02:02:23 -0400
+Received: from smtprelay0015.hostedemail.com ([216.40.44.15]:42073 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752046AbcFWNrn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Jun 2016 09:47:43 -0400
+Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
+	by smtpgrave07.hostedemail.com (Postfix) with ESMTP id 442ED11AEE4
+	for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2016 13:37:44 +0000 (UTC)
+Date: Thu, 23 Jun 2016 09:37:40 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
+Message-ID: <20160623093740.638579af@gandalf.local.home>
+In-Reply-To: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
+References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 22 Jun 2016 23:02:21 -0700
-Message-ID: <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160623060221.1UjEntKGerDBqyGkEvpGBa90czfjRQB4dQeiRp-LDpE@z>
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20160623133740.FuCXHK85RgYGUXM6Rgew3aqbYRtxeIa1VFgAsnAX8x8@z>
 
-On Wed, Jun 22, 2016 at 6:22 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->
-> I implemented a percpu cache, and it's useless.
->
-> When a task goes away, one reference is held until the next RCU grace
-> period so that task_struct can be used under RCU (look for
-> delayed_put_task_struct).
+On Mon, 23 May 2016 00:26:15 +0900
+Namhyung Kim <namhyung@kernel.org> wrote:
 
-Yeah, that RCU batching will screw the cache idea.
+> Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
+> can have padding bytes at the end due to alignment in 64-bit data type.
+> As these data are recorded so frequently, those paddings waste
+> non-negligible space.  As some archs can have efficient unaligned
+> accesses, reducing the alignment can save ~10% of data size:
+> 
+>   ftrace_graph_ent_entry:  24 -> 20
+>   ftrace_graph_ret_entry:  48 -> 44
+> 
+> Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
+> the padding.  Tested on x86_64 only.
 
-But isn't it only the "task_struct" that needs that? That's a separate
-allocation from the stack, which contains the "thread_info".
+I'd like to see this tested on other archs too.
 
-I think that what we *could* do is re-use the tread-info within the
-RCU grace period, as long as we delay freeing the task_struct.
+[ Added linux-arch so maybe other arch maintainers may know about this ]
 
-Yes, yes, we currently tie the task_struct and thread_info lifetimes
-together very tightly, but that's a historical thing rather than a
-requirement. We do the
+> 
+> Signed-off-by: Namhyung Kim <namhyung@kernel.org>
+> ---
+>  include/linux/ftrace.h       | 16 ++++++++++++----
+>  kernel/trace/trace.h         | 11 +++++++++++
+>  kernel/trace/trace_entries.h |  4 ++--
+>  3 files changed, 25 insertions(+), 6 deletions(-)
+> 
+> diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+> index dea12a6e413b..35c523ba5c59 100644
+> --- a/include/linux/ftrace.h
+> +++ b/include/linux/ftrace.h
+> @@ -751,25 +751,33 @@ extern void ftrace_init(void);
+>  static inline void ftrace_init(void) { }
+>  #endif
+>  
+> +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+> +# define FTRACE_ALIGNMENT	4
+> +#else
+> +# define FTRACE_ALIGNMENT	8
+> +#endif
 
-        account_kernel_stack(tsk->stack, -1);
-        arch_release_thread_info(tsk->stack);
-        free_thread_info(tsk->stack);
+Swap the above. Having the #ifndef is more confusing to understand than
+to have a #ifdef.
 
-in free_task(), but I could imagine doing it earlier, and
-independently of the RCU-delayed free.
+> +
+> +#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))
 
-In fact, I think we just do that at exit() time synchronously. The
-reference counting of the task_struct() is because a lot of other
-threads can have references to the exiting thread (and we have the
-tasklist and thread lists that are RCU-traversed), but none of those
-other references should ever look at the stack. Or even the
-thread-info.
+Do we really need to pack it? I mean, just get rid of the hole (like
+you did with the movement of the overrun) and shouldn't the array be
+aligned normally without holes, if the arch can support it? Doesn't gcc
+take care of that?
 
-Hmm. I bet it would show some problems, but not be technically
-impossible. Especially if we make the thread-info rules be like the
-SLAB_DESTROY_BY_RCU semantics - the allocation may be re-used during
-the RCU grace period, but it is going to still exists and be of the
-same type.
+-- Steve
 
-This sounds very much like something for Oleg Nesterov.
+> +
+>  /*
+>   * Structure that defines an entry function trace.
+>   */
+>  struct ftrace_graph_ent {
+>  	unsigned long func; /* Current function */
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /*
+>   * Structure that defines a return function trace.
+>   */
+>  struct ftrace_graph_ret {
+>  	unsigned long func; /* Current function */
+> -	unsigned long long calltime;
+> -	unsigned long long rettime;
+>  	/* Number of functions that overran the depth limit for current task */
+>  	unsigned long overrun;
+> +	unsigned long long calltime;
+> +	unsigned long long rettime;
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /* Type of the callback handlers for tracing function graph*/
+>  typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
+> diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+> index 5167c366d6b7..d2dd49ca55ee 100644
+> --- a/kernel/trace/trace.h
+> +++ b/kernel/trace/trace.h
+> @@ -80,6 +80,12 @@ enum trace_type {
+>  	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+>  
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
+> +			    filter)					\
+> +	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter) FTRACE_ALIGN_DATA
+> +
+>  #include "trace_entries.h"
+>  
+>  /*
+> @@ -1600,6 +1606,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
+>  #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
+>  	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
+> +	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter)
+> +
+>  #include "trace_entries.h"
+>  
+>  #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
+> diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
+> index ee7b94a4810a..5c30efcda5e6 100644
+> --- a/kernel/trace/trace_entries.h
+> +++ b/kernel/trace/trace_entries.h
+> @@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
+>  );
+>  
+>  /* Function call entry */
+> -FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
+>  
+>  	TRACE_GRAPH_ENT,
+>  
+> @@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+>  );
+>  
+>  /* Function return entry */
+> -FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
+>  
+>  	TRACE_GRAPH_RET,
+>  
 
-Oleg, what do you think? Would it be reasonable to free the stack and
-thread_info synchronously at exit time, clear the pointer (to catch
-any odd use), and only RCU-delay the task_struct itself?
-
-That is, after all, what we already do with the VM, semaphores, files,
-fs info etc. There's no real reason I see to keep the stack around.
-
-(Obviously, we can't release it in do_exit() itself like we do some of
-the other state - it would need to be released after we've scheduled
-away to another process' stack, but we already have that TASK_DEAD
-handling in finish_task_switch for this exact reason).
-
-                 Linus
