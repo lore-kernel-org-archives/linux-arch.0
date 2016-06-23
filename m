@@ -1,91 +1,147 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH] kasan: account for new sections when instrumenting globals
-Date: Thu, 23 Jun 2016 15:21:42 +0200
-Message-ID: <CACT4Y+YrYO0JYnknmFHk4EGvzyP7wwxW-xoMJtcJeEaHo17eDw@mail.gmail.com>
-References: <1466615238-57411-1-git-send-email-dvyukov@google.com>
- <CAPAsAGwxXqyxAjj4o6q=1Ddz4h1PQrv5VcP=DrUg2NvK1or-=g@mail.gmail.com>
- <CAPAsAGx9gf-3K35TCGNjE=suW9_aDY0+a+0L9xtjtBHOYoiysg@mail.gmail.com>
- <CACT4Y+Zd25zQFXWL7tGFxt_-s-kM99K7SCgwyFxZuh2HPiW7Cw@mail.gmail.com>
- <CAPAsAGxkbvBVei=Kz4hyKij44GEh12kL9bUn28FomtfnA-xUAQ@mail.gmail.com> <CACT4Y+bBYULtE4ZgzLY=2yGtPyz5x_kKA0N8m74rUJzM6B=Piw@mail.gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
+Date: Thu, 23 Jun 2016 09:37:40 -0400
+Message-ID: <20160623093740.638579af@gandalf.local.home>
+References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f46.google.com ([209.85.215.46]:33867 "EHLO
-	mail-lf0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750885AbcFWNWE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 09:22:04 -0400
-Received: by mail-lf0-f46.google.com with SMTP id h129so95873778lfh.1
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2016 06:22:02 -0700 (PDT)
-In-Reply-To: <CACT4Y+bBYULtE4ZgzLY=2yGtPyz5x_kKA0N8m74rUJzM6B=Piw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, kasan-dev <kasan-dev@googlegroups.com>, Alexander Potapenko <glider@google.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 23, 2016 at 3:19 PM, Dmitry Vyukov <dvyukov@google.com> wrote:
-> On Thu, Jun 23, 2016 at 3:06 PM, Andrey Ryabinin <ryabinin.a.a@gmail.com> wrote:
->> 2016-06-23 15:40 GMT+03:00 Dmitry Vyukov <dvyukov@google.com>:
->>> On Thu, Jun 23, 2016 at 1:50 PM, Andrey Ryabinin <ryabinin.a.a@gmail.com> wrote:
->>>> 2016-06-23 14:49 GMT+03:00 Andrey Ryabinin <ryabinin.a.a@gmail.com>:
->>>>
->>>>> Frankly, I don't understand why .text.[exit,startup] sections has any relation
->>>>> to the bug you described, but maybe I just don't now linker
->>>>
->>>> ... scripting well enough to understand what's going on here.
->>>
->>>
->>> I noticed that these 3 new sections are what's different between
->>> kernel that works and kernel that does not work. So I decided to
->>> account all of them
->>> Checked now, it works only with .dtors.
->>> Is it preferable to add only .dtors or all sections?
->>
->> No. Merging text.startup/text.exit into INIT_TEXT/EXIT_TEXT makes sense anyway.
->> This will save us some memory. Also we can add .fini_array into
->> DISCARD section, because we don't need destructors.
->>
->> As for .dtors, at first I'd like to understand where it comes from.
->> AFAIU it shouldn't exist at all.
->> Recent gcc should generate .fini_array instead of .dtors -
->> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=46770
->> So something is wrong here. Can you share your kernel .config, kernel version?
->> And you use gcc-6.1.0, right?
->
-> gcc version 6.1.1 20160513
->
-> .dtors contains asan destructors for global vars:
->
->   [18] .dtors            PROGBITS         ffffffff8279a600  016c7600
->        0000000000002e20  0000000000000000  WA       0     0     8
->
-> 016c7600  00 1b b4 81 ff ff ff ff  20 1b b4 81 ff ff ff ff  |........ .......|
-> 016c7610  40 1b b4 81 ff ff ff ff  60 1b b4 81 ff ff ff ff  |@.......`.......|
-> 016c7620  80 1b b4 81 ff ff ff ff  a0 1b b4 81 ff ff ff ff  |................|
-> 016c7630  c0 1b b4 81 ff ff ff ff  e0 1b b4 81 ff ff ff ff  |................|
->
-> vmlinux.old:ffffffff81b41b20 0000000000000017 t
-> _GLOBAL__sub_D_65535_0_init_uts_ns
-> vmlinux.old:ffffffff81b41b40 0000000000000017 t
-> _GLOBAL__sub_D_65535_0_root_mountflags
-> vmlinux.old:ffffffff81b41b60 0000000000000017 t _GLOBAL__sub_D_65535_0_rd_prompt
-> vmlinux.old:ffffffff81b41b80 0000000000000017 t
-> _GLOBAL__sub_D_65535_0_initrd_load
->
-> ffffffff81b41b20 <_GLOBAL__sub_D_65535_0_init_uts_ns>:
-> ffffffff81b41b20:       55                      push   %rbp
-> ffffffff81b41b21:       be 03 00 00 00          mov    $0x3,%esi
-> ffffffff81b41b26:       48 c7 c7 a0 23 21 82    mov    $0xffffffff822123a0,%rdi
-> ffffffff81b41b2d:       48 89 e5                mov    %rsp,%rbp
-> ffffffff81b41b30:       e8 9b 85 83 ff          callq
-> ffffffff8137a0d0 <__asan_unregister_globals>
-> ffffffff81b41b35:       5d                      pop    %rbp
-> ffffffff81b41b36:       c3                      retq
-> ffffffff81b41b37:       66 0f 1f 84 00 00 00    nopw   0x0(%rax,%rax,1)
-> ffffffff81b41b3e:       00 00
+On Mon, 23 May 2016 00:26:15 +0900
+Namhyung Kim <namhyung@kernel.org> wrote:
 
+> Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
+> can have padding bytes at the end due to alignment in 64-bit data type.
+> As these data are recorded so frequently, those paddings waste
+> non-negligible space.  As some archs can have efficient unaligned
+> accesses, reducing the alignment can save ~10% of data size:
+> 
+>   ftrace_graph_ent_entry:  24 -> 20
+>   ftrace_graph_ret_entry:  48 -> 44
+> 
+> Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
+> the padding.  Tested on x86_64 only.
 
-gcc/asan.c seems to use plain dtors:
-      fn = builtin_decl_implicit (BUILT_IN_ASAN_UNREGISTER_GLOBALS);
-      append_to_statement_list (build_call_expr (fn, 2,
-build_fold_addr_expr (var), gcount_tree), &dtor_statements);
-      cgraph_build_static_cdtor ('D', dtor_statements, priority);
+I'd like to see this tested on other archs too.
+
+[ Added linux-arch so maybe other arch maintainers may know about this ]
+
+> 
+> Signed-off-by: Namhyung Kim <namhyung@kernel.org>
+> ---
+>  include/linux/ftrace.h       | 16 ++++++++++++----
+>  kernel/trace/trace.h         | 11 +++++++++++
+>  kernel/trace/trace_entries.h |  4 ++--
+>  3 files changed, 25 insertions(+), 6 deletions(-)
+> 
+> diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+> index dea12a6e413b..35c523ba5c59 100644
+> --- a/include/linux/ftrace.h
+> +++ b/include/linux/ftrace.h
+> @@ -751,25 +751,33 @@ extern void ftrace_init(void);
+>  static inline void ftrace_init(void) { }
+>  #endif
+>  
+> +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+> +# define FTRACE_ALIGNMENT	4
+> +#else
+> +# define FTRACE_ALIGNMENT	8
+> +#endif
+
+Swap the above. Having the #ifndef is more confusing to understand than
+to have a #ifdef.
+
+> +
+> +#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))
+
+Do we really need to pack it? I mean, just get rid of the hole (like
+you did with the movement of the overrun) and shouldn't the array be
+aligned normally without holes, if the arch can support it? Doesn't gcc
+take care of that?
+
+-- Steve
+
+> +
+>  /*
+>   * Structure that defines an entry function trace.
+>   */
+>  struct ftrace_graph_ent {
+>  	unsigned long func; /* Current function */
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /*
+>   * Structure that defines a return function trace.
+>   */
+>  struct ftrace_graph_ret {
+>  	unsigned long func; /* Current function */
+> -	unsigned long long calltime;
+> -	unsigned long long rettime;
+>  	/* Number of functions that overran the depth limit for current task */
+>  	unsigned long overrun;
+> +	unsigned long long calltime;
+> +	unsigned long long rettime;
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /* Type of the callback handlers for tracing function graph*/
+>  typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
+> diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+> index 5167c366d6b7..d2dd49ca55ee 100644
+> --- a/kernel/trace/trace.h
+> +++ b/kernel/trace/trace.h
+> @@ -80,6 +80,12 @@ enum trace_type {
+>  	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+>  
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
+> +			    filter)					\
+> +	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter) FTRACE_ALIGN_DATA
+> +
+>  #include "trace_entries.h"
+>  
+>  /*
+> @@ -1600,6 +1606,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
+>  #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
+>  	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
+> +	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter)
+> +
+>  #include "trace_entries.h"
+>  
+>  #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
+> diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
+> index ee7b94a4810a..5c30efcda5e6 100644
+> --- a/kernel/trace/trace_entries.h
+> +++ b/kernel/trace/trace_entries.h
+> @@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
+>  );
+>  
+>  /* Function call entry */
+> -FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
+>  
+>  	TRACE_GRAPH_ENT,
+>  
+> @@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+>  );
+>  
+>  /* Function return entry */
+> -FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
+>  
+>  	TRACE_GRAPH_RET,
+>  
