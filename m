@@ -1,46 +1,53 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Thu, 23 Jun 2016 12:17:41 -0700
-Message-ID: <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+Date: Thu, 23 Jun 2016 12:34:24 -0700
+Message-ID: <CA+55aFzuNg5pfv_S_55u1tGhfUEux16wwiUSeCStKfha2MrxBQ@mail.gmail.com>
 References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
  <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
  <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
- <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com> <20160623185340.GO30154@twins.programming.kicks-ass.net>
+ <20160623143126.GA16664@redhat.com> <20160623191123.GE30935@twins.programming.kicks-ass.net>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:34354 "EHLO
-	mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750890AbcFWTRn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 15:17:43 -0400
-In-Reply-To: <20160623185340.GO30154@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <kernel-hardening-return-3612-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: linus971@gmail.com
+In-Reply-To: <20160623191123.GE30935@twins.programming.kicks-ass.net>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 23, 2016 at 11:53 AM, Peter Zijlstra <peterz@infradead.org> wrote:
->>
->> So the attached patch seems to be the right thing to do regardless of
->> this whole discussion.
+On Thu, Jun 23, 2016 at 12:11 PM, Peter Zijlstra <peterz@infradead.org> wrote:
 >
-> Yeah, that looks fine. Want me to take it or will you just commit?
+> Didn't we talk about using SLAB_DESTROY_BY_RCU for task_struct before?
+> If that is possible, a reuse in per-cpu cache is equally possible.
+>
+> All we really want to guarantee is that the memory remains a
+> task_struct, it need not remain the same task, right?
 
-I'm committing these trivial non-semantic patches, I'm actually
-running the kernel without any ti->task pointer now (the previous
-patch I sent out).
+No, we can't do SLAB_DESTROY_BY_RCU for the task_struct itself,
+because the RCU list traversal does expect that the thread and task
+lists are stable even if it walks into a "stale" struct task_struct.
 
-So I'll do the mutex debug patch and the stack dump patch as just he
-obvious cleanup patches.
+If we re-use the task-struct before the RCU grace period is over, then
+the list walker might end up walking into the wrong thread group
+(bad!) or seeing tasks twice on the task list (also bad, although
+perhaps not _as_ bad).
 
-Those are the "purely legacy reasons for a bad calling convention",
-and I'm ok with those during the rc series to make it easier for
-people to play around with this.
+The _other_ fields might be ok, but updaing the very list fields that
+we walk with RCU is a no-no.
 
-With he goal being that I'm hoping that we can then actually get rid
-of this (at least on x86-64, even if we leave it in some other
-architectures) in 4.8.
+Basically, SLAB_DESTROY_BY_RCU is fine only for things where the RCU
+field use is idempotent. So for things where the RCU walker only looks
+at entries that don't matter semantically, or where it does things
+like "lock/unlock" on a lock that is still valid.
 
-                    Linus
+It's actually fairly rare that we can use SLAB_DESTROY_BY_RCU. We have
+that sighand thing, and there's a couple of networking uses for the
+request_sock and socket slabs. And I sincerely hope the socket slab
+RCU lists are safe, because it's dangerous.
+
+               Linus
