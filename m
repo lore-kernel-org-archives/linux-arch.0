@@ -1,45 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36872 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751415AbcFVRtu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jun 2016 13:49:50 -0400
-Subject: Re: cmpxchg and x86 flags output
-References: <F800D95C-A84C-4F54-9620-F28465AC4A16@zytor.com>
- <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
- <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
- <20160615085002.GC30935@twins.programming.kicks-ass.net>
- <4467.1466499980@warthog.procyon.org.uk>
- <16238.1466611894@warthog.procyon.org.uk>
- <8455f920-3fea-a20b-1ac1-857870c80338@zytor.com>
- <CA+55aFxva_dW+=10JA9G1d1uAW1rHimLS5jGVUeNxfFepFzA9A@mail.gmail.com>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <c4704d53-e6eb-4cc4-4d3f-023ff36157b6@zytor.com>
-Date: Wed, 22 Jun 2016 10:49:06 -0700
+Received: from mail-oi0-f41.google.com ([209.85.218.41]:33069 "EHLO
+	mail-oi0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751078AbcFWGCX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 02:02:23 -0400
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFxva_dW+=10JA9G1d1uAW1rHimLS5jGVUeNxfFepFzA9A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 22 Jun 2016 23:02:21 -0700
+Message-ID: <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20160622174906.k-vN-dsY1scPg6-hux2W3_0V-tnA9J2cL0ylkBUII2I@z>
+To: Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160623060221.1UjEntKGerDBqyGkEvpGBa90czfjRQB4dQeiRp-LDpE@z>
 
-On 06/22/16 10:11, Linus Torvalds wrote:
-> 
-> I thought Richard Henderson already had a patch for the condition code
-> asm outputs, but maybe I misremember.
-> 
+On Wed, Jun 22, 2016 at 6:22 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>
+> I implemented a percpu cache, and it's useless.
+>
+> When a task goes away, one reference is held until the next RCU grace
+> period so that task_struct can be used under RCU (look for
+> delayed_put_task_struct).
 
-It is already in the released version of gcc 6.1; there is a patchset in
--tip already for using it for everything other than cmpxchg using the
-CC_SET/CC_OUT macros I proposed a while ago.  cmpxchg is special because
-it requires API changes to take advantage of, which as far as I
-understand happens to be exactly the API changes that David has already
-implemented.  Apparently some other architectures really can benefit
-from intrinsics, so that is okay; we can use inline asm with flags
-output on x86.
+Yeah, that RCU batching will screw the cache idea.
 
-	-hpa
+But isn't it only the "task_struct" that needs that? That's a separate
+allocation from the stack, which contains the "thread_info".
 
+I think that what we *could* do is re-use the tread-info within the
+RCU grace period, as long as we delay freeing the task_struct.
 
+Yes, yes, we currently tie the task_struct and thread_info lifetimes
+together very tightly, but that's a historical thing rather than a
+requirement. We do the
+
+        account_kernel_stack(tsk->stack, -1);
+        arch_release_thread_info(tsk->stack);
+        free_thread_info(tsk->stack);
+
+in free_task(), but I could imagine doing it earlier, and
+independently of the RCU-delayed free.
+
+In fact, I think we just do that at exit() time synchronously. The
+reference counting of the task_struct() is because a lot of other
+threads can have references to the exiting thread (and we have the
+tasklist and thread lists that are RCU-traversed), but none of those
+other references should ever look at the stack. Or even the
+thread-info.
+
+Hmm. I bet it would show some problems, but not be technically
+impossible. Especially if we make the thread-info rules be like the
+SLAB_DESTROY_BY_RCU semantics - the allocation may be re-used during
+the RCU grace period, but it is going to still exists and be of the
+same type.
+
+This sounds very much like something for Oleg Nesterov.
+
+Oleg, what do you think? Would it be reasonable to free the stack and
+thread_info synchronously at exit time, clear the pointer (to catch
+any odd use), and only RCU-delay the task_struct itself?
+
+That is, after all, what we already do with the VM, semaphores, files,
+fs info etc. There's no real reason I see to keep the stack around.
+
+(Obviously, we can't release it in do_exit() itself like we do some of
+the other state - it would need to be released after we've scheduled
+away to another process' stack, but we already have that TASK_DEAD
+handling in finish_task_switch for this exact reason).
+
+                 Linus
