@@ -1,93 +1,49 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: [PATCH v2] kasan: account for destructor sections
-Date: Thu, 23 Jun 2016 18:06:50 +0200
-Message-ID: <1466698010-62530-1-git-send-email-dvyukov@google.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Thu, 23 Jun 2016 09:30:52 -0700
+Message-ID: <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com> <20160623143126.GA16664@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f43.google.com ([74.125.82.43]:36653 "EHLO
-	mail-wm0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750919AbcFWQGz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 12:06:55 -0400
-Received: by mail-wm0-f43.google.com with SMTP id f126so133117169wma.1
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2016 09:06:55 -0700 (PDT)
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:35109 "EHLO
+	mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751357AbcFWQay (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2016 12:30:54 -0400
+In-Reply-To: <20160623143126.GA16664@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, ryabinin.a.a@gmail.com
-Cc: kasan-dev@googlegroups.com, glider@google.com, Dmitry Vyukov <dvyukov@google.com>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-If CONFIG_KASAN is enabled and gcc is configured with
---disable-initfini-array, gcc emits .ctors/.dtors and
-.text.startup/.text.exit sections instead of
-.init_array/.fini_array.
-.dtors section is not explicitly accounted in the linker
-script and messes vvar/percpu layout. Want:
+On Thu, Jun 23, 2016 at 7:31 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+>
+> I didn't see the patches yet, quite possibly I misunderstood... But no,
+> I don't this we can do this (if we are not going to move ti->flags to
+> task_struct at least).
 
-ffffffff822bfd80 D _edata
-ffffffff822c0000 D __vvar_beginning_hack
-ffffffff822c0000 A __vvar_page
-ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
-ffffffff822c1000 A __init_begin
-ffffffff822c1000 D init_per_cpu__irq_stack_union
-ffffffff822c1000 A __per_cpu_load
-ffffffff822d3000 D init_per_cpu__gdt_page
+Argh. Yes, ti->flags is used by others. Everything else should be
+thread-synchronous, but there's ti->flags.
 
-Got:
+(And if we get scheduled, the thread-synchronous things will matter, of course):
 
-ffffffff8279a600 D _edata
-ffffffff8279b000 A __vvar_page
-ffffffff8279c000 A __init_begin
-ffffffff8279c000 D init_per_cpu__irq_stack_union
-ffffffff8279c000 A __per_cpu_load
-ffffffff8279e000 D __vvar_beginning_hack
-ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
-ffffffff827ae000 D init_per_cpu__gdt_page
+> Yes, but the problem is that a zombie thread can do its last schedule
+> before it is reaped.
 
-This happens because __vvar_page and .vvar get different
-addresses in arch/x86/kernel/vmlinux.lds.S:
+Worse, the wait sequence will definitely look at it.
 
-	. = ALIGN(PAGE_SIZE);
-	__vvar_page = .;
+But that does bring up another possibility: do it at wait() time, when
+we do release_thread(). That's when we *used* to synchronously free
+it, before we did the lockless RCU walks.
 
-	.vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
-		/* work around gold bug 13023 */
-		__vvar_beginning_hack = .;
+At that point, it has been removed from all the thread lists. So the
+only way to find it is through the RCU walks. Do any of *those* touch
+ti->flags? I'm not seeing it, and it sounds fixable if any do.
 
-Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
-Merge .text.startup into init text.
+If we could release the thread stack in release_thread(), that would be good.
 
-Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
+Andy - I bet you can at least test it.
 
----
-
-Changes since v1:
- - discard .dtors
- - don't define .mem sections
----
- include/asm-generic/vmlinux.lds.h | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..081d0f2 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -542,15 +542,19 @@
- 
- #define INIT_TEXT							\
- 	*(.init.text)							\
-+	*(.text.startup)						\
- 	MEM_DISCARD(init.text)
- 
- #define EXIT_DATA							\
- 	*(.exit.data)							\
-+	*(.fini_array)							\
-+	*(.dtors)							\
- 	MEM_DISCARD(exit.data)						\
- 	MEM_DISCARD(exit.rodata)
- 
- #define EXIT_TEXT							\
- 	*(.exit.text)							\
-+	*(.text.exit)							\
- 	MEM_DISCARD(exit.text)
- 
- #define EXIT_CALL							\
--- 
-2.8.0.rc3.226.g39d4020
+            Linus
