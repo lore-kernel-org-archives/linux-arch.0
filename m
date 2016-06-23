@@ -1,61 +1,52 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Thu, 23 Jun 2016 11:00:08 -0700
-Message-ID: <CAGXu5jLd=cUa-8Fdp+6hypvn=cVVVkv-MWcZBnEy956fA96aMg@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Date: Thu, 23 Jun 2016 20:12:16 +0200
+Message-ID: <20160623181215.GA17813@redhat.com>
+References: <cover.1466466093.git.luto@kernel.org>
+ <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
  <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
  <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com>
+ <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com>
+ <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
  <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kernel-hardening-return-3599-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: keescook@google.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:51260 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751198AbcFWSMV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Jun 2016 14:12:21 -0400
+Content-Disposition: inline
 In-Reply-To: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Thu, Jun 23, 2016 at 10:52 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Thu, Jun 23, 2016 at 10:44 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->>
->> The thread_info->tsk pointer, that was one of the most critical issues
->> and the main raison d'=C3=AAtre of the thread_info, has been replaced on
->> x86 by just using the per-cpu "current_task". Yes,.there are probably
->> more than a few "ti->task" users left for legacy reasons, harking back
->> to when the thread-info was cheaper to access, but it shouldn't be a
->> big deal.
+On 06/23, Linus Torvalds wrote:
 >
 > Ugh. Looking around at this, it turns out that a great example of this
 > kind of legacy issue is the debug_mutex stuff.
->
+
+Heh ;) I am looking at it too.
+
 > It uses "struct thread_info *" as the owner pointer, and there is _no_
 > existing reason for it. In fact, in every single place it actually
 > wants the task_struct, and it does task_thread_info(task) just to
 > convert it to the thread-info, and then converts it back with
 > "ti->task".
 
-Heh, yeah, that looks like a nice clean-up.
+Even worse, this task is always "current" afaics, so
 
 > So the attached patch seems to be the right thing to do regardless of
 > this whole discussion.
 
-Why does __mutex_lock_common() have "task" as a stack variable? It's
-only assigned at the start, and is always "current". (I only noticed
-from the patch changing "current_thread_info()" and
-"task_thread_info(task)" both to "task".)
+I think we should simply remove this argument.
 
--Kees
+And probably kill task_struct->blocked_on? I do not see the point of
+this task->blocked_on != waiter check.
 
---=20
-Kees Cook
-Chrome OS & Brillo Security
+Oleg.
