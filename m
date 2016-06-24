@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:43270 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:43444 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750923AbcFXEXR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jun 2016 00:23:17 -0400
+	id S1751452AbcFXEXX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2016 00:23:23 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 01/16] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
-Date: Thu, 23 Jun 2016 21:22:56 -0700
-Message-ID: <9a1ddd10d96898f8a2c94c3f3d37073c73ba50c9.1466741835.git.luto@kernel.org>
+Subject: [PATCH v4 05/16] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
+Date: Thu, 23 Jun 2016 21:23:00 -0700
+Message-ID: <916f9ab7751d1c678754736f1b03cde5699ec29d.1466741835.git.luto@kernel.org>
 In-Reply-To: <cover.1466741835.git.luto@kernel.org>
 References: <cover.1466741835.git.luto@kernel.org>
 In-Reply-To: <cover.1466741835.git.luto@kernel.org>
@@ -14,272 +14,151 @@ References: <cover.1466741835.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Marcel Holtmann <marcel@holtmann.org>, Gustavo Padovan <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, Herbert Xu <herbert@gondor.apana.org.au>, netdev@vger.kernel.org
-Message-ID: <20160624042256.wbkGS8utkd78B5D77iqpsox0IEY7FihixViXe7UrphM@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Matt Fleming <matt@codeblueprint.co.uk>, linux-efi@vger.kernel.org
+Message-ID: <20160624042300.gQ0oO3Ij_RjMxTY4oJcxFFcu3-j2ZvRecz-onHgSZWw@z>
 
-SMP does ECB crypto on stack buffers.  This is complicated and
-fragile, and it will not work if the stack is virtually allocated.
+kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
+init_mm.pgd were to be cleared, callers would need to ensure that
+the pgd entry hadn't been propagated to any other pgd.
 
-Switch to the crypto_cipher interface, which is simpler and safer.
+Its only caller was efi_cleanup_page_tables(), and that, in turn,
+was unused, so just delete both functions.  This leaves a couple of
+other helpers unused, so delete them, too.
 
-Cc: Marcel Holtmann <marcel@holtmann.org>
-Cc: Gustavo Padovan <gustavo@padovan.org>
-Cc: Johan Hedberg <johan.hedberg@gmail.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: linux-bluetooth@vger.kernel.org
-Cc: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: netdev@vger.kernel.org
+Cc: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: linux-efi@vger.kernel.org
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- net/bluetooth/smp.c | 67 ++++++++++++++++++++++-------------------------------
- 1 file changed, 28 insertions(+), 39 deletions(-)
+ arch/x86/include/asm/efi.h           |  1 -
+ arch/x86/include/asm/pgtable_types.h |  2 --
+ arch/x86/mm/pageattr.c               | 28 ----------------------------
+ arch/x86/platform/efi/efi.c          |  2 --
+ arch/x86/platform/efi/efi_32.c       |  3 ---
+ arch/x86/platform/efi/efi_64.c       |  5 -----
+ 6 files changed, 41 deletions(-)
 
-diff --git a/net/bluetooth/smp.c b/net/bluetooth/smp.c
-index 50976a6481f3..4c1a16a96ae5 100644
---- a/net/bluetooth/smp.c
-+++ b/net/bluetooth/smp.c
-@@ -22,9 +22,9 @@
+diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
+index 78d1e7467eae..45ea38df86d4 100644
+--- a/arch/x86/include/asm/efi.h
++++ b/arch/x86/include/asm/efi.h
+@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
+ extern void efi_sync_low_kernel_mappings(void);
+ extern int __init efi_alloc_page_tables(void);
+ extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+-extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+ extern void __init old_map_region(efi_memory_desc_t *md);
+ extern void __init runtime_code_page_mkexec(void);
+ extern void __init efi_runtime_update_mappings(void);
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 7b5efe264eff..0b9f58ad10c8 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
+ extern phys_addr_t slow_virt_to_phys(void *__address);
+ extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
+ 				   unsigned numpages, unsigned long page_flags);
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages);
+ #endif	/* !__ASSEMBLY__ */
  
- #include <linux/debugfs.h>
- #include <linux/scatterlist.h>
-+#include <linux/crypto.h>
- #include <crypto/b128ops.h>
- #include <crypto/hash.h>
--#include <crypto/skcipher.h>
+ #endif /* _ASM_X86_PGTABLE_DEFS_H */
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 6a8026918bf6..762162af3662 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
+ 	return true;
+ }
  
- #include <net/bluetooth/bluetooth.h>
- #include <net/bluetooth/hci_core.h>
-@@ -88,7 +88,7 @@ struct smp_dev {
- 	u8			min_key_size;
- 	u8			max_key_size;
- 
--	struct crypto_skcipher	*tfm_aes;
-+	struct crypto_cipher	*tfm_aes;
- 	struct crypto_shash	*tfm_cmac;
- };
- 
-@@ -127,7 +127,7 @@ struct smp_chan {
- 	u8			dhkey[32];
- 	u8			mackey[16];
- 
--	struct crypto_skcipher	*tfm_aes;
-+	struct crypto_cipher	*tfm_aes;
- 	struct crypto_shash	*tfm_cmac;
- };
- 
-@@ -361,10 +361,8 @@ static int smp_h6(struct crypto_shash *tfm_cmac, const u8 w[16],
-  * s1 and ah.
-  */
- 
--static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
-+static int smp_e(struct crypto_cipher *tfm, const u8 *k, u8 *r)
- {
--	SKCIPHER_REQUEST_ON_STACK(req, tfm);
--	struct scatterlist sg;
- 	uint8_t tmp[16], data[16];
- 	int err;
- 
-@@ -378,7 +376,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
- 	/* The most significant octet of key corresponds to k[0] */
- 	swap_buf(k, tmp, 16);
- 
--	err = crypto_skcipher_setkey(tfm, tmp, 16);
-+	err = crypto_cipher_setkey(tfm, tmp, 16);
- 	if (err) {
- 		BT_ERR("cipher setkey failed: %d", err);
- 		return err;
-@@ -387,16 +385,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
- 	/* Most significant octet of plaintextData corresponds to data[0] */
- 	swap_buf(r, data, 16);
- 
--	sg_init_one(&sg, data, 16);
+-static bool try_to_free_pud_page(pud_t *pud)
+-{
+-	int i;
 -
--	skcipher_request_set_tfm(req, tfm);
--	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg, &sg, 16, NULL);
+-	for (i = 0; i < PTRS_PER_PUD; i++)
+-		if (!pud_none(pud[i]))
+-			return false;
 -
--	err = crypto_skcipher_encrypt(req);
--	skcipher_request_zero(req);
--	if (err)
--		BT_ERR("Encrypt data error %d", err);
-+	crypto_cipher_encrypt_one(tfm, data, data);
- 
- 	/* Most significant octet of encryptedData corresponds to data[0] */
- 	swap_buf(data, r, 16);
-@@ -406,7 +395,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
- 	return err;
+-	free_page((unsigned long)pud);
+-	return true;
+-}
+-
+ static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
+ {
+ 	pte_t *pte = pte_offset_kernel(pmd, start);
+@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
+ 	 */
  }
  
--static int smp_c1(struct crypto_skcipher *tfm_aes, const u8 k[16],
-+static int smp_c1(struct crypto_cipher *tfm_aes, const u8 k[16],
- 		  const u8 r[16], const u8 preq[7], const u8 pres[7], u8 _iat,
- 		  const bdaddr_t *ia, u8 _rat, const bdaddr_t *ra, u8 res[16])
+-static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
+-{
+-	pgd_t *pgd_entry = root + pgd_index(addr);
+-
+-	unmap_pud_range(pgd_entry, addr, end);
+-
+-	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
+-		pgd_clear(pgd_entry);
+-}
+-
+ static int alloc_pte_page(pmd_t *pmd)
  {
-@@ -455,7 +444,7 @@ static int smp_c1(struct crypto_skcipher *tfm_aes, const u8 k[16],
- 	return err;
+ 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
+@@ -1993,12 +1971,6 @@ out:
+ 	return retval;
  }
  
--static int smp_s1(struct crypto_skcipher *tfm_aes, const u8 k[16],
-+static int smp_s1(struct crypto_cipher *tfm_aes, const u8 k[16],
- 		  const u8 r1[16], const u8 r2[16], u8 _r[16])
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages)
+-{
+-	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
+-}
+-
+ /*
+  * The testcases use internal knowledge of the implementation that shouldn't
+  * be exposed to the rest of the kernel. Include these directly here.
+diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
+index f93545e7dc54..62986e5fbdba 100644
+--- a/arch/x86/platform/efi/efi.c
++++ b/arch/x86/platform/efi/efi.c
+@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
+ 	 * EFI mixed mode we need all of memory to be accessible when
+ 	 * we pass parameters to the EFI runtime services in the
+ 	 * thunking code.
+-	 *
+-	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
+ 	 */
+ 	free_pages((unsigned long)new_memmap, pg_shift);
+ 
+diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
+index 338402b91d2e..cef39b097649 100644
+--- a/arch/x86/platform/efi/efi_32.c
++++ b/arch/x86/platform/efi/efi_32.c
+@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
  {
- 	int err;
-@@ -471,7 +460,7 @@ static int smp_s1(struct crypto_skcipher *tfm_aes, const u8 k[16],
- 	return err;
+ 	return 0;
  }
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-}
  
--static int smp_ah(struct crypto_skcipher *tfm, const u8 irk[16],
-+static int smp_ah(struct crypto_cipher *tfm, const u8 irk[16],
- 		  const u8 r[3], u8 res[3])
+ void __init efi_map_region(efi_memory_desc_t *md)
  {
- 	u8 _res[16];
-@@ -759,7 +748,7 @@ static void smp_chan_destroy(struct l2cap_conn *conn)
- 	kzfree(smp->slave_csrk);
- 	kzfree(smp->link_key);
- 
--	crypto_free_skcipher(smp->tfm_aes);
-+	crypto_free_cipher(smp->tfm_aes);
- 	crypto_free_shash(smp->tfm_cmac);
- 
- 	/* Ensure that we don't leave any debug key around if debug key
-@@ -1359,9 +1348,9 @@ static struct smp_chan *smp_chan_create(struct l2cap_conn *conn)
- 	if (!smp)
- 		return NULL;
- 
--	smp->tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
-+	smp->tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
- 	if (IS_ERR(smp->tfm_aes)) {
--		BT_ERR("Unable to create ECB crypto context");
-+		BT_ERR("Unable to create AES crypto context");
- 		kzfree(smp);
- 		return NULL;
- 	}
-@@ -1369,7 +1358,7 @@ static struct smp_chan *smp_chan_create(struct l2cap_conn *conn)
- 	smp->tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, 0);
- 	if (IS_ERR(smp->tfm_cmac)) {
- 		BT_ERR("Unable to create CMAC crypto context");
--		crypto_free_skcipher(smp->tfm_aes);
-+		crypto_free_cipher(smp->tfm_aes);
- 		kzfree(smp);
- 		return NULL;
- 	}
-@@ -3120,7 +3109,7 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
- {
- 	struct l2cap_chan *chan;
- 	struct smp_dev *smp;
--	struct crypto_skcipher *tfm_aes;
-+	struct crypto_cipher *tfm_aes;
- 	struct crypto_shash *tfm_cmac;
- 
- 	if (cid == L2CAP_CID_SMP_BREDR) {
-@@ -3132,9 +3121,9 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
- 	if (!smp)
- 		return ERR_PTR(-ENOMEM);
- 
--	tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
-+	tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
- 	if (IS_ERR(tfm_aes)) {
--		BT_ERR("Unable to create ECB crypto context");
-+		BT_ERR("Unable to create AES crypto context");
- 		kzfree(smp);
- 		return ERR_CAST(tfm_aes);
- 	}
-@@ -3142,7 +3131,7 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
- 	tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, 0);
- 	if (IS_ERR(tfm_cmac)) {
- 		BT_ERR("Unable to create CMAC crypto context");
--		crypto_free_skcipher(tfm_aes);
-+		crypto_free_cipher(tfm_aes);
- 		kzfree(smp);
- 		return ERR_CAST(tfm_cmac);
- 	}
-@@ -3156,7 +3145,7 @@ create_chan:
- 	chan = l2cap_chan_create();
- 	if (!chan) {
- 		if (smp) {
--			crypto_free_skcipher(smp->tfm_aes);
-+			crypto_free_cipher(smp->tfm_aes);
- 			crypto_free_shash(smp->tfm_cmac);
- 			kzfree(smp);
- 		}
-@@ -3203,7 +3192,7 @@ static void smp_del_chan(struct l2cap_chan *chan)
- 	smp = chan->data;
- 	if (smp) {
- 		chan->data = NULL;
--		crypto_free_skcipher(smp->tfm_aes);
-+		crypto_free_cipher(smp->tfm_aes);
- 		crypto_free_shash(smp->tfm_cmac);
- 		kzfree(smp);
- 	}
-@@ -3440,7 +3429,7 @@ void smp_unregister(struct hci_dev *hdev)
- 
- #if IS_ENABLED(CONFIG_BT_SELFTEST_SMP)
- 
--static int __init test_ah(struct crypto_skcipher *tfm_aes)
-+static int __init test_ah(struct crypto_cipher *tfm_aes)
- {
- 	const u8 irk[16] = {
- 			0x9b, 0x7d, 0x39, 0x0a, 0xa6, 0x10, 0x10, 0x34,
-@@ -3460,7 +3449,7 @@ static int __init test_ah(struct crypto_skcipher *tfm_aes)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 6e7242be1c87..5ab219c2ba43 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
  	return 0;
  }
  
--static int __init test_c1(struct crypto_skcipher *tfm_aes)
-+static int __init test_c1(struct crypto_cipher *tfm_aes)
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
+-}
+-
+ static void __init __map_region(efi_memory_desc_t *md, u64 va)
  {
- 	const u8 k[16] = {
- 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-@@ -3490,7 +3479,7 @@ static int __init test_c1(struct crypto_skcipher *tfm_aes)
- 	return 0;
- }
- 
--static int __init test_s1(struct crypto_skcipher *tfm_aes)
-+static int __init test_s1(struct crypto_cipher *tfm_aes)
- {
- 	const u8 k[16] = {
- 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-@@ -3686,7 +3675,7 @@ static const struct file_operations test_smp_fops = {
- 	.llseek		= default_llseek,
- };
- 
--static int __init run_selftests(struct crypto_skcipher *tfm_aes,
-+static int __init run_selftests(struct crypto_cipher *tfm_aes,
- 				struct crypto_shash *tfm_cmac)
- {
- 	ktime_t calltime, delta, rettime;
-@@ -3764,27 +3753,27 @@ done:
- 
- int __init bt_selftest_smp(void)
- {
--	struct crypto_skcipher *tfm_aes;
-+	struct crypto_cipher *tfm_aes;
- 	struct crypto_shash *tfm_cmac;
- 	int err;
- 
--	tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
-+	tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
- 	if (IS_ERR(tfm_aes)) {
--		BT_ERR("Unable to create ECB crypto context");
-+		BT_ERR("Unable to create AES crypto context");
- 		return PTR_ERR(tfm_aes);
- 	}
- 
- 	tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, CRYPTO_ALG_ASYNC);
- 	if (IS_ERR(tfm_cmac)) {
- 		BT_ERR("Unable to create CMAC crypto context");
--		crypto_free_skcipher(tfm_aes);
-+		crypto_free_cipher(tfm_aes);
- 		return PTR_ERR(tfm_cmac);
- 	}
- 
- 	err = run_selftests(tfm_aes, tfm_cmac);
- 
- 	crypto_free_shash(tfm_cmac);
--	crypto_free_skcipher(tfm_aes);
-+	crypto_free_cipher(tfm_aes);
- 
- 	return err;
- }
+ 	unsigned long flags = _PAGE_RW;
 -- 
 2.5.5
 
