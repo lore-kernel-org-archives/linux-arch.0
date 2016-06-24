@@ -1,69 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f41.google.com ([209.85.213.41]:35198 "EHLO
-	mail-vk0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751002AbcFXShF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 14:37:05 -0400
-Received: by mail-vk0-f41.google.com with SMTP id j2so162254700vkg.2
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jun 2016 11:37:04 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CA+55aFzXYTOBxRW7mCub9Wt8F5KzhFZRkx_XFZFg2coN+66PjQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
- <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
- <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:48262 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751349AbcFXUvU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2016 16:51:20 -0400
+Date: Fri, 24 Jun 2016 15:51:16 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Message-ID: <20160624205116.4hbnurrnan4afq2t@treble>
+References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+ <20160623185340.GO30154@twins.programming.kicks-ass.net>
+ <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
  <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
  <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
  <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
  <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
- <CALCETrUh0s8zV0S=Si4V_RB1dEUx6n2RtALC-+VJhGMEBqPTzA@mail.gmail.com> <CA+55aFzXYTOBxRW7mCub9Wt8F5KzhFZRkx_XFZFg2coN+66PjQ@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 24 Jun 2016 11:36:44 -0700
-Message-ID: <CALCETrVX289Lu6i78U0JquW2euqNCnRjrzHRc99hMAPX0FjMiQ@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Content-Type: text/plain; charset=UTF-8
+ <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
+ <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
+ <20160624202530.unmidps4kpebo2na@treble>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20160624202530.unmidps4kpebo2na@treble>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160624183644._jaFs2kfDrbxTkq0nmS1Mere1LzTS8ouab3vChhOF_o@z>
+Cc: Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160624205116.uvkjDowNQuVz4eeqymYInS4cokeYPzhjjf-EJ5cosck@z>
 
-On Fri, Jun 24, 2016 at 10:56 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jun 24, 2016 at 10:47 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>
->> FWIW, your patch is much more lenient than my approach.
->
-> I hate big flag-days - they cause so much pain for everybody. The
-> people who get it to work and can test it, can't test all the other
-> cases (whether they be drivers or other architectures), so I'd much
-> rather implement something that allows a gradual per-architecture
-> change from having the thread_info on the stack into having the
-> thread_info in the task_struct.
->
-> Bit "let's just change everything at once" patches are fine (and, in
-> fact, preferable) when you can test everything in one go. So something
-> that can be statically verified (ie "patch makes no semantic
-> difference, but changes calling convention or naming, so if it
-> compiles it is fine") I much prefer just getting the pain over and
-> done with rather than some lingering thing.
->
-> But when it's something where "oops, I broke every other architecture,
-> and I can't even test it", I'd much rather do it in a way where each
-> architecture can move over to the new model one by one.
+On Fri, Jun 24, 2016 at 03:25:30PM -0500, Josh Poimboeuf wrote:
+> On Fri, Jun 24, 2016 at 11:11:47AM -0700, Linus Torvalds wrote:
+> > On Fri, Jun 24, 2016 at 10:51 AM, Linus Torvalds
+> > <torvalds@linux-foundation.org> wrote:
+> > >
+> > > And in particular, the init_task stack initialization initialized it
+> > > to the init_thread pointer. Which was definitely deadly.
+> > >
+> > > Let's see if that was it..
+> > 
+> > No, it's still broken. But it's *less* broken, so here's a new version
+> > of the patch that at least gets some of the stack setup right, in my
+> > hope that somebody will bother to look at this, and being less broken
+> > might mean that somebody sees what else I missed..
+> 
+> I found at least one bug.  The changing of task->stack from a "void *" to an
+> "unsigned long *":
+> 
+> > -	void *stack;
+> > +	unsigned long *stack;
+> 
+> That subtly changes the pointer arithmetic in do_boot_cpu():
+> 
+> 
+> 	idle->thread.sp = (unsigned long) (((struct pt_regs *)
+> 			  (THREAD_SIZE +  task_stack_page(idle))) - 1);
+> 
+> 
+> That ends up adding 128k to the stack page bottom instead of 16k.
+> 
+> But fixing that doesn't seem to fix this:
+> 
+> [18446743832.576241] ------------[ cut here ]------------
+> [18446743832.576241] WARNING: CPU: 1 PID: 0 at /home/jpoimboe/git/linux/arch/x86/kernel/cpu/common.c:1434 cpu_init+0x34b/0x440
+> [18446743832.576241] Modules linked in:
+> [18446743832.576241] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.7.0-rc4+ #47
+> [18446743832.576241] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.8.1-20150318_183358- 04/01/2014
+> [18446743832.576241]  0000000000000086 574e5e6c6855ace9 ffff88007c553e88 ffffffff8143cb83
+> [18446743832.576241]  0000000000000000 0000000000000000 ffff88007c553ec8 ffffffff810b0e7b
+> [18446743832.576241]  0000059a00000000 0000000000000000 0000000000000000 0000000000000000
+> [18446743832.576241] Call Trace:
+> [18446743832.576241]  [<ffffffff8143cb83>] dump_stack+0x85/0xc2
+> [18446743832.576241]  [<ffffffff810b0e7b>] __warn+0xcb/0xf0
+> [18446743832.576241]  [<ffffffff810b0fad>] warn_slowpath_null+0x1d/0x20
+> [18446743832.576241]  [<ffffffff810491bb>] cpu_init+0x34b/0x440
+> [18446743832.576241]  [<ffffffff8105ab7c>] start_secondary+0x1c/0x1a0
+> [18446743832.576241] ---[ end trace 924d57afbaca0720 ]---
+> 
+> So there's at least another bug lurking..
 
-Agreed.
+Found another bug:
 
-To clarify, though: I wasn't planning on changing all arches at once.
- I'm just saying that, for arches that switch over, they get a single
-core definition of thread_info.  That way, when someone (probably
-named Peter) decides down the road to move, say, thread_info::cpu into
-task_struct proper to optimize cache line layout, they won't need to
-do it for every architecture.
+#define stack_smp_processor_id()					\
+({								\
+	struct thread_info *ti;						\
+	__asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (CURRENT_MASK));	\
+	ti->cpu;							\
+})
 
-Also, I want to give people an incentive to finally move their crap
-out of struct thread_info and into struct thread_struct.
+That macro is obviously no longer valid.
 
---Andy
+That seems to cause the above warning.  When trying to boot CPU 1,
+cpu_init() calls the above macro which incorrectly returns 0.
+
+-- 
+Josh
