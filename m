@@ -1,96 +1,88 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: [PATCH v3] vmlinux.lds: account for destructor sections
-Date: Fri, 24 Jun 2016 17:39:28 +0200
-Message-ID: <1466782768-106896-1-git-send-email-dvyukov@google.com>
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v4 11/16] x86/dumpstack: When OOPSing, rewind the stack
+ before do_exit
+Date: Fri, 24 Jun 2016 10:48:29 -0500
+Message-ID: <20160624154829.mfh7e5it22rssupm@treble>
+References: <cover.1466741835.git.luto@kernel.org>
+ <2bae70091dd75abc881259747987979156f2f789.1466741835.git.luto@kernel.org>
+ <20160624153001.b5urlxdpvliqqqji@treble>
+ <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f53.google.com ([74.125.82.53]:36444 "EHLO
-	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750972AbcFXPjf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 11:39:35 -0400
-Received: by mail-wm0-f53.google.com with SMTP id f126so27090818wma.1
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jun 2016 08:39:34 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:35618 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751235AbcFXPsc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2016 11:48:32 -0400
+Content-Disposition: inline
+In-Reply-To: <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, ryabinin.a.a@gmail.com
-Cc: kasan-dev@googlegroups.com, glider@google.com, Dmitry Vyukov <dvyukov@google.com>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-If CONFIG_KASAN is enabled and gcc is configured with
---disable-initfini-array and/or gold linker is used,
-gcc emits .ctors/.dtors and .text.startup/.text.exit
-sections instead of .init_array/.fini_array.
-.dtors section is not explicitly accounted in the linker
-script and messes vvar/percpu layout. Want:
+On Fri, Jun 24, 2016 at 11:35:13AM -0400, Brian Gerst wrote:
+> On Fri, Jun 24, 2016 at 11:30 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> > On Thu, Jun 23, 2016 at 09:23:06PM -0700, Andy Lutomirski wrote:
+> >> If we call do_exit with a clean stack, we greatly reduce the risk of
+> >> recursive oopses due to stack overflow in do_exit, and we allow
+> >> do_exit to work even if we OOPS from an IST stack.  The latter gives
+> >> us a much better chance of surviving long enough after we detect a
+> >> stack overflow to write out our logs.
+> >>
+> >> I intentionally separated this from the preceding patch that
+> >> disables do_exit-on-OOPS on IST stacks.  This way, if we need to
+> >> revert this patch, we still end up in an acceptable state wrt stack
+> >> overflow handling.
+> >>
+> >> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> >> ---
+> >>  arch/x86/entry/entry_32.S   | 11 +++++++++++
+> >>  arch/x86/entry/entry_64.S   | 11 +++++++++++
+> >>  arch/x86/kernel/dumpstack.c | 13 +++++++++----
+> >>  3 files changed, 31 insertions(+), 4 deletions(-)
+> >>
+> >> diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+> >> index 983e5d3a0d27..0b56666e6039 100644
+> >> --- a/arch/x86/entry/entry_32.S
+> >> +++ b/arch/x86/entry/entry_32.S
+> >> @@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
+> >>       jmp     error_code
+> >>  END(async_page_fault)
+> >>  #endif
+> >> +
+> >> +ENTRY(rewind_stack_do_exit)
+> >> +     /* Prevent any naive code from trying to unwind to our caller. */
+> >> +     xorl    %ebp, %ebp
+> >> +
+> >> +     movl    PER_CPU_VAR(cpu_current_top_of_stack), %esi
+> >> +     leal    -TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
+> >> +
+> >> +     call    do_exit
+> >> +1:   jmp 1b
+> >> +END(rewind_stack_do_exit)
+> >> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+> >> index 9ee0da1807ed..b846875aeea6 100644
+> >> --- a/arch/x86/entry/entry_64.S
+> >> +++ b/arch/x86/entry/entry_64.S
+> >> @@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
+> >>       mov     $-ENOSYS, %eax
+> >>       sysret
+> >>  END(ignore_sysret)
+> >> +
+> >> +ENTRY(rewind_stack_do_exit)
+> >> +     /* Prevent any naive code from trying to unwind to our caller. */
+> >> +     xorl    %ebp, %ebp
+> >
+> > s/ebp/rbp/g/ ?
+> 
+> No, this quirk of the x86-64 instruction set will zero-extend to
+> 64-bits without needing a REX prefix.
 
-ffffffff822bfd80 D _edata
-ffffffff822c0000 D __vvar_beginning_hack
-ffffffff822c0000 A __vvar_page
-ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
-ffffffff822c1000 A __init_begin
-ffffffff822c1000 D init_per_cpu__irq_stack_union
-ffffffff822c1000 A __per_cpu_load
-ffffffff822d3000 D init_per_cpu__gdt_page
+Ah, so it makes the instruction smaller.  And I see that gcc also does
+the same.  In that case:
 
-Got:
+Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
 
-ffffffff8279a600 D _edata
-ffffffff8279b000 A __vvar_page
-ffffffff8279c000 A __init_begin
-ffffffff8279c000 D init_per_cpu__irq_stack_union
-ffffffff8279c000 A __per_cpu_load
-ffffffff8279e000 D __vvar_beginning_hack
-ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
-ffffffff827ae000 D init_per_cpu__gdt_page
-
-This happens because __vvar_page and .vvar get different
-addresses in arch/x86/kernel/vmlinux.lds.S:
-
-	. = ALIGN(PAGE_SIZE);
-	__vvar_page = .;
-
-	.vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
-		/* work around gold bug 13023 */
-		__vvar_beginning_hack = .;
-
-Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
-Merge .text.startup into init text.
-
-Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
-
----
-
-Changes since v1:
- - discard .dtors
- - don't define .mem sections
-
-Changes since v2:
- - use 'vmlinux.lds' subsystem prefix instead of 'kasan'
----
- include/asm-generic/vmlinux.lds.h | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..081d0f2 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -542,15 +542,19 @@
- 
- #define INIT_TEXT							\
- 	*(.init.text)							\
-+	*(.text.startup)						\
- 	MEM_DISCARD(init.text)
- 
- #define EXIT_DATA							\
- 	*(.exit.data)							\
-+	*(.fini_array)							\
-+	*(.dtors)							\
- 	MEM_DISCARD(exit.data)						\
- 	MEM_DISCARD(exit.rodata)
- 
- #define EXIT_TEXT							\
- 	*(.exit.text)							\
-+	*(.text.exit)							\
- 	MEM_DISCARD(exit.text)
- 
- #define EXIT_CALL							\
 -- 
-2.8.0.rc3.226.g39d4020
+Josh
