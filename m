@@ -1,71 +1,71 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Fri, 24 Jun 2016 14:34:59 -0700
-Message-ID: <CALCETrWC4u55TsW_B+DJOdfR8XkbZ5cXGtgKj5+JL5UU2ntUAg@mail.gmail.com>
-References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
- <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
- <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
- <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
- <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
- <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
- <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
- <20160624202530.unmidps4kpebo2na@treble> <20160624205116.4hbnurrnan4afq2t@treble>
- <CA+55aFyWJSE3DdoZvtc=tkuqvn1eQC=-dK=kfQ70ZR_7xLTkvA@mail.gmail.com>
- <CALCETrXUZbsr+ZvcCsffCMGFwX7xs8zqM2WGtfwLd+ws7T5A6A@mail.gmail.com> <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v4 0/2] kbuild: Remove stale asm-generic wrappers
+Date: Fri, 24 Jun 2016 23:42:22 +0100
+Message-ID: <1466808144-23209-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-3673-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:34880 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751019AbcFXWms (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 18:42:48 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kbuild@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 
-On Fri, Jun 24, 2016 at 2:32 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jun 24, 2016 at 2:25 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->>
->> What's the prognosis for this patch?  Should I queue up all the pieces
->> and send them out after the vmap-stack thing?
->
-> I'm going to split this thing up and apply the "semantically null"
-> cleanup parts.
->
-> For example, this patch makes it clear that our current
-> "alloc_thread_info_node()" this is entirely insane.
->
-> We literally do:
->
->         ti = alloc_thread_info_node(tsk, node);
->         ...
->         tsk->stack = ti;
->
-> and
->
->         arch_release_thread_info(tsk->stack);
->         free_thread_info(tsk->stack);
->
-> and the pure *confusion* there is just crazy. We're talking
-> "tsk->stack", but then we talk about freeing and allocating
-> "thread_info"
->
-> So I'll apply the whole "rename 'free_thread_info()' into
-> 'free_thread_stack()'" part independently of anything else. It will
-> not change any semantics at all, since we currently have "tsk->stack
-> == thread_info", but it's too ugly to live, and it will then make the
-> patches that *do* change semantics much clearer and easier to see.
->
-> So let me get the pure semantic patches done, and then for 4.8 when we
-> do the things that actually change real meaning we'll have a sane
-> base. Ok?
->
+This patchset attempts to fix kbuild to automatically remove stale
+asm-generic wrappers, i.e. when files are removed from generic-y and
+added directly into arch/*/include/uapi/asm/, but where the existing
+wrapper in arch/*/include/generated/asm/ continues to be used.
 
-Works for me.  I'll see whether my vmap patches still apply and, if
-needed, rebase and send a v5.
+MIPS was recently burned by this in v4.3 (see patch 2), with continuing
+reports of build failures when people upgrade their trees, which go away
+after arch/mips/include/generated is removed (or reportedly make
+mrproper/distclean). It is particularly irritating during bisection.
 
---Andy
+Since v2 I've seen other cases of this breaking MIPS build, and testing
+on x86_64, starting a build first on v4.0 and then on mainline with this
+patchset shows one stale generated header:
+  REMOVE  arch/x86/include/generated/asm/scatterlist.h
+
+Changes in v4:
+- None (resend on Thomas Gleixner's request).
+
+Changes in v3:
+- Ensure FORCE actually gets marked .PHONY.
+
+Changes in v2:
+- New patch 1 to add tracking of generated headers that aren't generic-y
+  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
+  robot).
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+
+James Hogan (2):
+  kbuild, x86: Track generated headers with generated-y
+  kbuild: Remove stale asm-generic wrappers
+
+ Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
+ arch/x86/include/asm/Kbuild        |  6 ++++++
+ scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
+ 3 files changed, 36 insertions(+), 1 deletion(-)
+
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Cc: linux-kbuild@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-doc@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+-- 
+2.4.10
