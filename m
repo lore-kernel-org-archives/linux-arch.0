@@ -1,56 +1,132 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
- core)
-Date: Thu, 23 Jun 2016 21:46:17 +0200
-Message-ID: <20160623194617.GS30154@twins.programming.kicks-ass.net>
-References: <cover.1466466093.git.luto@kernel.org>
- <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
- <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com>
- <20160623191123.GE30935@twins.programming.kicks-ass.net>
- <CA+55aFzuNg5pfv_S_55u1tGhfUEux16wwiUSeCStKfha2MrxBQ@mail.gmail.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: [PATCH v4 00/16] Virtually mapped stacks with guard pages (x86, core)
+Date: Thu, 23 Jun 2016 21:22:55 -0700
+Message-ID: <cover.1466741835.git.luto@kernel.org>
 Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-3614-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <kernel-hardening-return-3621-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
 List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzuNg5pfv_S_55u1tGhfUEux16wwiUSeCStKfha2MrxBQ@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 23, 2016 at 12:34:24PM -0700, Linus Torvalds wrote:
-> On Thu, Jun 23, 2016 at 12:11 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> >
-> > Didn't we talk about using SLAB_DESTROY_BY_RCU for task_struct before?
-> > If that is possible, a reuse in per-cpu cache is equally possible.
-> >
-> > All we really want to guarantee is that the memory remains a
-> > task_struct, it need not remain the same task, right?
-> 
-> No, we can't do SLAB_DESTROY_BY_RCU for the task_struct itself,
-> because the RCU list traversal does expect that the thread and task
-> lists are stable even if it walks into a "stale" struct task_struct.
+Since the dawn of time, a kernel stack overflow has been a real PITA
+to debug, has caused nondeterministic crashes some time after the
+actual overflow, and has generally been easy to exploit for root.
 
-Indeed.
+With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
+that enable it (just x86 for now) get virtually mapped stacks with
+guard pages.  This causes reliable faults when the stack overflows.
 
-OK, so the situation we talked about before is different, we wanted to
-do SLAB_DESTROY_BY_RCU on top of the existing delayed_put_task_struct()
-to get a double grace period.
+If the arch implements it well, we get a nice OOPS on stack overflow
+(as opposed to panicing directly or otherwise exploding badly).  On
+x86, the OOPS is nice, has a usable call trace, and the overflowing
+task is killed cleanly.
 
-The problem was for things like rq->curr, which isn't RCU managed as
-such, we could still do:
+On my laptop, this adds about 1.5µs of overhead to task creation,
+which seems to be mainly caused by vmalloc inefficiently allocating
+individual pages even when a higher-order page is available on the
+freelist.
 
-	rcu_read_lock();
-	task = rq->curr;
+This does not address interrupt stacks.  It also does not address
+the possibility of privilege escalation by a controlled stack
+overflow that overwrites thread_info without hitting the guard page.
+I'll send patches to address the latter issue once this series
+lands.
 
-and rely on task being _a_ task_struct, even though it might not be the
-self-same task we thought we had.
+It's worth noting that s390 has an arch-specific gcc feature that
+detects stack overflows by adjusting function prologues.  Arches
+with features like that may wish to avoid using vmapped stacks to
+minimize the performance hit.
 
-So yes, not an option and I was stitching together two half remembered
-situations to create utter nonsense.
+Ingo, would it make sense to throw it into a seaparate branch in
+-tip?  I wouldn't mind seeing some -next testing to give people a
+chance to shake out problems.  I'm particularly interested in
+whether there are any drivers that expect virt_to_phys to work on
+stack addresses.  (I know that virtio-net used to, but I fixed that
+a while back.)
+
+Once this lands in -tip, I'm planning on attacking thread_info.
+Once thread_info is under control, we can start caching a couple of
+stacks per cpu, and that should get us most of the performance back.
+
+Changes from v3:
+ - Fix rxrpc and bluetooth, which used scatterlists pointed at the stack
+ - Add some acks and cc's
+
+Changes from v2:
+ - Delete kernel_unmap_pages_in_pgd rather than hardening it (Borislav)
+ - Fix sub-page stack accounting better (Josh)
+
+Changes from v1:
+ - Fix rewind_stack_and_do_exit (Josh)
+ - Fix deadlock under load
+ - Clean up generic stack vmalloc code
+ - Many other minor fixes
+ 
+Andy Lutomirski (14):
+  bluetooth: Switch SMP to crypto_cipher_encrypt_one()
+  x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
+  x86/mm: Remove kernel_unmap_pages_in_pgd() and
+    efi_cleanup_page_tables()
+  mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
+  mm: Fix memcg stack accounting for sub-page stacks
+  dma-api: Teach the "DMA-from-stack" check about vmapped stacks
+  fork: Add generic vmalloced stack support
+  x86/die: Don't try to recover from an OOPS on a non-default stack
+  x86/dumpstack: When OOPSing, rewind the stack before do_exit
+  x86/dumpstack: When dumping stack bytes due to OOPS, start with
+    regs->sp
+  x86/dumpstack: Try harder to get a call trace on stack overflow
+  x86/dumpstack/64: Handle faults when printing the "Stack:" part of an
+    OOPS
+  x86/mm/64: Enable vmapped stacks
+  x86/mm: Improve stack-overflow #PF handling
+
+Herbert Xu (1):
+  rxrpc: Avoid using stack memory in SG lists in rxkad
+
+Ingo Molnar (1):
+  x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
+
+ arch/Kconfig                         |  29 ++++++++++
+ arch/ia64/include/asm/thread_info.h  |   2 +-
+ arch/x86/Kconfig                     |   1 +
+ arch/x86/entry/entry_32.S            |  11 ++++
+ arch/x86/entry/entry_64.S            |  11 ++++
+ arch/x86/include/asm/efi.h           |   1 -
+ arch/x86/include/asm/pgtable_types.h |   2 -
+ arch/x86/include/asm/switch_to.h     |  28 +++++++++-
+ arch/x86/include/asm/traps.h         |   6 ++
+ arch/x86/kernel/dumpstack.c          |  19 ++++++-
+ arch/x86/kernel/dumpstack_32.c       |   4 +-
+ arch/x86/kernel/dumpstack_64.c       |  16 +++++-
+ arch/x86/kernel/traps.c              |  32 +++++++++++
+ arch/x86/mm/fault.c                  |  39 +++++++++++++
+ arch/x86/mm/init_64.c                |  27 ---------
+ arch/x86/mm/pageattr.c               |  32 +----------
+ arch/x86/mm/tlb.c                    |  15 +++++
+ arch/x86/platform/efi/efi.c          |   2 -
+ arch/x86/platform/efi/efi_32.c       |   3 -
+ arch/x86/platform/efi/efi_64.c       |   5 --
+ drivers/base/node.c                  |   3 +-
+ fs/proc/meminfo.c                    |   2 +-
+ include/linux/memcontrol.h           |   2 +-
+ include/linux/mmzone.h               |   2 +-
+ include/linux/sched.h                |  15 +++++
+ kernel/fork.c                        |  86 ++++++++++++++++++++++-------
+ lib/dma-debug.c                      |  39 +++++++++++--
+ mm/memcontrol.c                      |   2 +-
+ mm/page_alloc.c                      |   3 +-
+ net/bluetooth/smp.c                  |  67 ++++++++++-------------
+ net/rxrpc/ar-internal.h              |   1 +
+ net/rxrpc/rxkad.c                    | 103 +++++++++++++++--------------------
+ 32 files changed, 400 insertions(+), 210 deletions(-)
+
+-- 
+2.5.5
