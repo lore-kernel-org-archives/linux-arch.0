@@ -1,80 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:34166 "EHLO
-	mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751555AbcFXPfO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 11:35:14 -0400
+Received: from smtprelay0149.hostedemail.com ([216.40.44.149]:56232 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751337AbcFXR3I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2016 13:29:08 -0400
+Date: Fri, 24 Jun 2016 13:29:04 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
+Message-ID: <20160624132904.1a94c0fc@gandalf.local.home>
+In-Reply-To: <20160624161534.GA29064@danjae.aot.lge.com>
+References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
+	<20160623093740.638579af@gandalf.local.home>
+	<20160624063543.GA1607@sejong>
+	<20160624120440.3961bb05@gandalf.local.home>
+	<20160624161534.GA29064@danjae.aot.lge.com>
 MIME-Version: 1.0
-In-Reply-To: <20160624153001.b5urlxdpvliqqqji@treble>
-References: <cover.1466741835.git.luto@kernel.org> <2bae70091dd75abc881259747987979156f2f789.1466741835.git.luto@kernel.org>
- <20160624153001.b5urlxdpvliqqqji@treble>
-From: Brian Gerst <brgerst@gmail.com>
-Date: Fri, 24 Jun 2016 11:35:13 -0400
-Message-ID: <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
-Subject: Re: [PATCH v4 11/16] x86/dumpstack: When OOPSing, rewind the stack
- before do_exit
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160624153513.zaABi7T6UUQ58Jmy3RKw4GF3iiU3XHpUMYPKynAzxls@z>
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20160624172904.sIglTMa9QMIJxlGXXoavddBEcxsWKIglFfnau4JEw7U@z>
 
-On Fri, Jun 24, 2016 at 11:30 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Thu, Jun 23, 2016 at 09:23:06PM -0700, Andy Lutomirski wrote:
->> If we call do_exit with a clean stack, we greatly reduce the risk of
->> recursive oopses due to stack overflow in do_exit, and we allow
->> do_exit to work even if we OOPS from an IST stack.  The latter gives
->> us a much better chance of surviving long enough after we detect a
->> stack overflow to write out our logs.
->>
->> I intentionally separated this from the preceding patch that
->> disables do_exit-on-OOPS on IST stacks.  This way, if we need to
->> revert this patch, we still end up in an acceptable state wrt stack
->> overflow handling.
->>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> ---
->>  arch/x86/entry/entry_32.S   | 11 +++++++++++
->>  arch/x86/entry/entry_64.S   | 11 +++++++++++
->>  arch/x86/kernel/dumpstack.c | 13 +++++++++----
->>  3 files changed, 31 insertions(+), 4 deletions(-)
->>
->> diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
->> index 983e5d3a0d27..0b56666e6039 100644
->> --- a/arch/x86/entry/entry_32.S
->> +++ b/arch/x86/entry/entry_32.S
->> @@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
->>       jmp     error_code
->>  END(async_page_fault)
->>  #endif
->> +
->> +ENTRY(rewind_stack_do_exit)
->> +     /* Prevent any naive code from trying to unwind to our caller. */
->> +     xorl    %ebp, %ebp
->> +
->> +     movl    PER_CPU_VAR(cpu_current_top_of_stack), %esi
->> +     leal    -TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
->> +
->> +     call    do_exit
->> +1:   jmp 1b
->> +END(rewind_stack_do_exit)
->> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
->> index 9ee0da1807ed..b846875aeea6 100644
->> --- a/arch/x86/entry/entry_64.S
->> +++ b/arch/x86/entry/entry_64.S
->> @@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
->>       mov     $-ENOSYS, %eax
->>       sysret
->>  END(ignore_sysret)
->> +
->> +ENTRY(rewind_stack_do_exit)
->> +     /* Prevent any naive code from trying to unwind to our caller. */
->> +     xorl    %ebp, %ebp
->
-> s/ebp/rbp/g/ ?
+On Sat, 25 Jun 2016 01:15:34 +0900
+Namhyung Kim <namhyung@kernel.org> wrote:
 
-No, this quirk of the x86-64 instruction set will zero-extend to
-64-bits without needing a REX prefix.
+> On Fri, Jun 24, 2016 at 12:04:40PM -0400, Steven Rostedt wrote:
+> > On Fri, 24 Jun 2016 15:35:44 +0900
+> > Namhyung Kim <namhyung@kernel.org> wrote:
+> > 
+> >   
+> > > > > diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+> > > > > index dea12a6e413b..35c523ba5c59 100644
+> > > > > --- a/include/linux/ftrace.h
+> > > > > +++ b/include/linux/ftrace.h
+> > > > > @@ -751,25 +751,33 @@ extern void ftrace_init(void);
+> > > > >  static inline void ftrace_init(void) { }
+> > > > >  #endif
+> > > > >  
+> > > > > +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+> > > > > +# define FTRACE_ALIGNMENT	4
+> > > > > +#else
+> > > > > +# define FTRACE_ALIGNMENT	8
+> > > > > +#endif    
+> > > > 
+> 
+> As far as I can see, the ring buffer has following code in ring_buffer.c:
+> 
+>   #define RB_ALIGNMENT		4U
+>   #define RB_MAX_SMALL_DATA	(RB_ALIGNMENT * RINGBUF_TYPE_DATA_TYPE_LEN_MAX)
+>   #define RB_EVNT_MIN_SIZE	8U	/* two 32bit words */
+> 
+>   #ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+>   # define RB_FORCE_8BYTE_ALIGNMENT	0
+>   # define RB_ARCH_ALIGNMENT		RB_ALIGNMENT
+>   #else
+>   # define RB_FORCE_8BYTE_ALIGNMENT	1
+>   # define RB_ARCH_ALIGNMENT		8U
+>   #endif
+> 
+>   #define RB_ALIGN_DATA		__aligned(RB_ARCH_ALIGNMENT)
+> 
 
---
-Brian Gerst
+Right, what I meant was that we should just define FTRACE_ALIGNMENT
+unconditionally to 4. If CONFIG_HAVE_64BIT_ALIGNED_ACCESS is not set,
+it will add the buffered space regardless.
+
+You already moved "overrun", I don't see anything that would be out of
+alignment if the structure itself is aligned.
+
+-- Steve
