@@ -1,32 +1,96 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v4 14/16] x86/dumpstack/64: Handle faults when printing
- the "Stack:" part of an OOPS
-Date: Fri, 24 Jun 2016 10:36:18 -0500
-Message-ID: <20160624153618.gbl2qzlbkapfbngs@treble>
-References: <cover.1466741835.git.luto@kernel.org>
- <cdc5198de169727bea97a4209864e7cb3c97ea76.1466741835.git.luto@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: [PATCH v3] vmlinux.lds: account for destructor sections
+Date: Fri, 24 Jun 2016 17:39:28 +0200
+Message-ID: <1466782768-106896-1-git-send-email-dvyukov@google.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55550 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750999AbcFXPgV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jun 2016 11:36:21 -0400
-Content-Disposition: inline
-In-Reply-To: <cdc5198de169727bea97a4209864e7cb3c97ea76.1466741835.git.luto@kernel.org>
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:36444 "EHLO
+	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750972AbcFXPjf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 11:39:35 -0400
+Received: by mail-wm0-f53.google.com with SMTP id f126so27090818wma.1
+        for <linux-arch@vger.kernel.org>; Fri, 24 Jun 2016 08:39:34 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, ryabinin.a.a@gmail.com
+Cc: kasan-dev@googlegroups.com, glider@google.com, Dmitry Vyukov <dvyukov@google.com>
 
-On Thu, Jun 23, 2016 at 09:23:09PM -0700, Andy Lutomirski wrote:
-> If we overflow the stack into a guard page, we'll recursively fault
-> when trying to dump the contents of the guard page.  Use
-> probe_kernel_address so we can recover if this happens.
-> 
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+If CONFIG_KASAN is enabled and gcc is configured with
+--disable-initfini-array and/or gold linker is used,
+gcc emits .ctors/.dtors and .text.startup/.text.exit
+sections instead of .init_array/.fini_array.
+.dtors section is not explicitly accounted in the linker
+script and messes vvar/percpu layout. Want:
 
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
+ffffffff822bfd80 D _edata
+ffffffff822c0000 D __vvar_beginning_hack
+ffffffff822c0000 A __vvar_page
+ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
+ffffffff822c1000 A __init_begin
+ffffffff822c1000 D init_per_cpu__irq_stack_union
+ffffffff822c1000 A __per_cpu_load
+ffffffff822d3000 D init_per_cpu__gdt_page
 
+Got:
+
+ffffffff8279a600 D _edata
+ffffffff8279b000 A __vvar_page
+ffffffff8279c000 A __init_begin
+ffffffff8279c000 D init_per_cpu__irq_stack_union
+ffffffff8279c000 A __per_cpu_load
+ffffffff8279e000 D __vvar_beginning_hack
+ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
+ffffffff827ae000 D init_per_cpu__gdt_page
+
+This happens because __vvar_page and .vvar get different
+addresses in arch/x86/kernel/vmlinux.lds.S:
+
+	. = ALIGN(PAGE_SIZE);
+	__vvar_page = .;
+
+	.vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
+		/* work around gold bug 13023 */
+		__vvar_beginning_hack = .;
+
+Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
+Merge .text.startup into init text.
+
+Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
+
+---
+
+Changes since v1:
+ - discard .dtors
+ - don't define .mem sections
+
+Changes since v2:
+ - use 'vmlinux.lds' subsystem prefix instead of 'kasan'
+---
+ include/asm-generic/vmlinux.lds.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 6a67ab9..081d0f2 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -542,15 +542,19 @@
+ 
+ #define INIT_TEXT							\
+ 	*(.init.text)							\
++	*(.text.startup)						\
+ 	MEM_DISCARD(init.text)
+ 
+ #define EXIT_DATA							\
+ 	*(.exit.data)							\
++	*(.fini_array)							\
++	*(.dtors)							\
+ 	MEM_DISCARD(exit.data)						\
+ 	MEM_DISCARD(exit.rodata)
+ 
+ #define EXIT_TEXT							\
+ 	*(.exit.text)							\
++	*(.text.exit)							\
+ 	MEM_DISCARD(exit.text)
+ 
+ #define EXIT_CALL							\
 -- 
-Josh
+2.8.0.rc3.226.g39d4020
