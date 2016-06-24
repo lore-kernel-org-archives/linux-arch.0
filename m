@@ -1,74 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f46.google.com ([209.85.213.46]:34392 "EHLO
-	mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751337AbcFXVfU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 17:35:20 -0400
-Received: by mail-vk0-f46.google.com with SMTP id c2so137005307vkg.1
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jun 2016 14:35:20 -0700 (PDT)
+Received: from mailapp01.imgtec.com ([195.59.15.196]:9562 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751053AbcFXWmt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 18:42:49 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v4 2/2] kbuild: Remove stale asm-generic wrappers
+Date: Fri, 24 Jun 2016 23:42:24 +0100
+Message-ID: <1466808144-23209-3-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1466808144-23209-1-git-send-email-james.hogan@imgtec.com>
+References: <1466808144-23209-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
-References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
- <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
- <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
- <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
- <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
- <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
- <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
- <20160624202530.unmidps4kpebo2na@treble> <20160624205116.4hbnurrnan4afq2t@treble>
- <CA+55aFyWJSE3DdoZvtc=tkuqvn1eQC=-dK=kfQ70ZR_7xLTkvA@mail.gmail.com>
- <CALCETrXUZbsr+ZvcCsffCMGFwX7xs8zqM2WGtfwLd+ws7T5A6A@mail.gmail.com> <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 24 Jun 2016 14:34:59 -0700
-Message-ID: <CALCETrWC4u55TsW_B+DJOdfR8XkbZ5cXGtgKj5+JL5UU2ntUAg@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160624213459.SwnyCaPB6v9nyUyURDPa2IUmcf3nCZc7jWaJgUzs4yk@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160624224224.9JLDGwUNONRv8xUljQiyJWzmja2CmgK_VQwdmgUeSS0@z>
 
-On Fri, Jun 24, 2016 at 2:32 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jun 24, 2016 at 2:25 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->>
->> What's the prognosis for this patch?  Should I queue up all the pieces
->> and send them out after the vmap-stack thing?
->
-> I'm going to split this thing up and apply the "semantically null"
-> cleanup parts.
->
-> For example, this patch makes it clear that our current
-> "alloc_thread_info_node()" this is entirely insane.
->
-> We literally do:
->
->         ti = alloc_thread_info_node(tsk, node);
->         ...
->         tsk->stack = ti;
->
-> and
->
->         arch_release_thread_info(tsk->stack);
->         free_thread_info(tsk->stack);
->
-> and the pure *confusion* there is just crazy. We're talking
-> "tsk->stack", but then we talk about freeing and allocating
-> "thread_info"
->
-> So I'll apply the whole "rename 'free_thread_info()' into
-> 'free_thread_stack()'" part independently of anything else. It will
-> not change any semantics at all, since we currently have "tsk->stack
-> == thread_info", but it's too ugly to live, and it will then make the
-> patches that *do* change semantics much clearer and easier to see.
->
-> So let me get the pure semantic patches done, and then for 4.8 when we
-> do the things that actually change real meaning we'll have a sane
-> base. Ok?
->
+When a header file is removed from generic-y (often accompanied by the
+addition of an arch specific header), the generated wrapper file will
+persist, and in some cases may still take precedence over the new arch
+header.
 
-Works for me.  I'll see whether my vmap patches still apply and, if
-needed, rebase and send a v5.
+For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
+the wrapper when reusing a dirty build tree resulted in build failures
+in arch/mips/kernel/signal.c:
 
---Andy
+arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
+arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
+  return &uc->uc_extcontext;
+            ^
+
+Fix by detecting and removing wrapper headers in generated header
+directories that do not correspond to a filename in generic-y, genhdr-y,
+or the newly introduced generated-y.
+
+Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
+Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+---
+Changes in v4:
+- None (resend).
+
+Changes in v3:
+- Ensure FORCE actually gets marked .PHONY.
+
+Changes in v2:
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+---
+ scripts/Makefile.asm-generic | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+index 045e0098e962..e4d017d53819 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -13,11 +13,26 @@ include scripts/Kbuild.include
+ # Create output directory if not already present
+ _dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
+ 
++# Stale wrappers when the corresponding files are removed from generic-y
++# need removing.
++generated-y   := $(generic-y) $(genhdr-y) $(generated-y)
++all-files     := $(patsubst %, $(obj)/%, $(generated-y))
++old-headers   := $(wildcard $(obj)/*.h)
++unwanted      := $(filter-out $(all-files),$(old-headers))
++
+ quiet_cmd_wrap = WRAP    $@
+ cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
+ 
+-all: $(patsubst %, $(obj)/%, $(generic-y))
++quiet_cmd_remove = REMOVE  $(unwanted)
++cmd_remove = rm -f $(unwanted)
++
++all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
++	$(if $(unwanted),$(call cmd,remove),)
+ 	@:
+ 
+ $(obj)/%.h:
+ 	$(call cmd,wrap)
++
++PHONY += FORCE
++.PHONY: $(PHONY)
++FORCE: ;
+-- 
+2.4.10
+
