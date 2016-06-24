@@ -1,56 +1,47 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 12/16] x86/dumpstack: When dumping stack bytes due to OOPS, start with regs->sp
-Date: Thu, 23 Jun 2016 21:23:07 -0700
-Message-ID: <077c8fb1f0a6b7514ef473ed1403b507ff919932.1466741835.git.luto@kernel.org>
+Subject: [PATCH v4 04/16] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
+Date: Thu, 23 Jun 2016 21:22:59 -0700
+Message-ID: <3403d1d7d13c5a28635507c5e47400800ddc3733.1466741835.git.luto@kernel.org>
 References: <cover.1466741835.git.luto@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-3625-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <cover.1466741835.git.luto@kernel.org>
 In-Reply-To: <cover.1466741835.git.luto@kernel.org>
 References: <cover.1466741835.git.luto@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-The comment suggests that show_stack(NULL, NULL) should backtrace
-the current context, but the code doesn't match the comment.  If
-regs are given, start the "Stack:" hexdump at regs->sp.
+This avoids pointless races in which another CPU or task might see a
+partially populated global pgd entry.  These races should normally
+be harmless, but, if another CPU propagates the entry via
+vmalloc_fault and then populate_pgd fails (due to memory allocation
+failure, for example), this prevents a use-after-free of the pgd
+entry.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/kernel/dumpstack_32.c | 4 +++-
- arch/x86/kernel/dumpstack_64.c | 4 +++-
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ arch/x86/mm/pageattr.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/dumpstack_32.c b/arch/x86/kernel/dumpstack_32.c
-index fef917e79b9d..948d77da3881 100644
---- a/arch/x86/kernel/dumpstack_32.c
-+++ b/arch/x86/kernel/dumpstack_32.c
-@@ -96,7 +96,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 	int i;
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 7a1f7bbf4105..6a8026918bf6 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
  
- 	if (sp == NULL) {
--		if (task)
-+		if (regs)
-+			sp = (unsigned long *)regs->sp;
-+		else if (task)
- 			sp = (unsigned long *)task->thread.sp;
- 		else
- 			sp = (unsigned long *)&sp;
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index d558a8a49016..a81e1ef73bf2 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -264,7 +264,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 	 * back trace for this cpu:
- 	 */
- 	if (sp == NULL) {
--		if (task)
-+		if (regs)
-+			sp = (unsigned long *)regs->sp;
-+		else if (task)
- 			sp = (unsigned long *)task->thread.sp;
- 		else
- 			sp = (unsigned long *)&sp;
+ 	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
+ 	if (ret < 0) {
+-		unmap_pgd_range(cpa->pgd, addr,
++		if (pud)
++			free_page((unsigned long)pud);
++		unmap_pud_range(pgd_entry, addr,
+ 				addr + (cpa->numpages << PAGE_SHIFT));
+ 		return ret;
+ 	}
 -- 
 2.5.5
