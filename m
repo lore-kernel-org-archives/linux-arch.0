@@ -1,63 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:36386 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751019AbcFXPGq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 11:06:46 -0400
-Date: Fri, 24 Jun 2016 17:06:37 +0200
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
- core)
-Message-ID: <20160624150637.GD20203@dhcp22.suse.cz>
-References: <cover.1466466093.git.luto@kernel.org>
- <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
- <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com>
- <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com>
- <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
- <20160623185221.GA17983@redhat.com>
- <20160624140558.GA20208@dhcp22.suse.cz>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:34166 "EHLO
+	mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751555AbcFXPfO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 11:35:14 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160624140558.GA20208@dhcp22.suse.cz>
+In-Reply-To: <20160624153001.b5urlxdpvliqqqji@treble>
+References: <cover.1466741835.git.luto@kernel.org> <2bae70091dd75abc881259747987979156f2f789.1466741835.git.luto@kernel.org>
+ <20160624153001.b5urlxdpvliqqqji@treble>
+From: Brian Gerst <brgerst@gmail.com>
+Date: Fri, 24 Jun 2016 11:35:13 -0400
+Message-ID: <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
+Subject: Re: [PATCH v4 11/16] x86/dumpstack: When OOPSing, rewind the stack
+ before do_exit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160624150637.ivrgeakbnXcGcpfgm5SLixA3TcZB-D0XwQaccFxzqV8@z>
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160624153513.zaABi7T6UUQ58Jmy3RKw4GF3iiU3XHpUMYPKynAzxls@z>
 
-On Fri 24-06-16 16:05:58, Michal Hocko wrote:
-> On Thu 23-06-16 20:52:21, Oleg Nesterov wrote:
-> > On 06/23, Linus Torvalds wrote:
-> > >
-> > > On Thu, Jun 23, 2016 at 10:03 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> > > >
-> > > > Let me quote my previous email ;)
-> > > >
-> > > >         And we can't free/nullify it when the parent/debuger reaps a zombie,
-> > > >         say, mark_oom_victim() expects that get_task_struct() protects
-> > > >         thread_info as well.
-> > > >
-> > > > probably we can fix all such users though...
-> > >
-> > > TIF_MEMDIE is indeed a potential problem, but I don't think
-> > > mark_oom_victim() is actually problematic.
-> > >
-> > > mark_oom_victim() is called with either "current",
-> > 
-> > This is no longer true in -mm tree.
-> > 
-> > But I agree, this is fixable (and in fact I still hope TIF_MEMDIE will die,
-> > at least in its current form).
-> 
-> We can move the flag to the task_struct. There are still some bits left
-> there. This would be trivial so that the oom usage doesn't stay in the
-> way.
+On Fri, Jun 24, 2016 at 11:30 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> On Thu, Jun 23, 2016 at 09:23:06PM -0700, Andy Lutomirski wrote:
+>> If we call do_exit with a clean stack, we greatly reduce the risk of
+>> recursive oopses due to stack overflow in do_exit, and we allow
+>> do_exit to work even if we OOPS from an IST stack.  The latter gives
+>> us a much better chance of surviving long enough after we detect a
+>> stack overflow to write out our logs.
+>>
+>> I intentionally separated this from the preceding patch that
+>> disables do_exit-on-OOPS on IST stacks.  This way, if we need to
+>> revert this patch, we still end up in an acceptable state wrt stack
+>> overflow handling.
+>>
+>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>> ---
+>>  arch/x86/entry/entry_32.S   | 11 +++++++++++
+>>  arch/x86/entry/entry_64.S   | 11 +++++++++++
+>>  arch/x86/kernel/dumpstack.c | 13 +++++++++----
+>>  3 files changed, 31 insertions(+), 4 deletions(-)
+>>
+>> diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+>> index 983e5d3a0d27..0b56666e6039 100644
+>> --- a/arch/x86/entry/entry_32.S
+>> +++ b/arch/x86/entry/entry_32.S
+>> @@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
+>>       jmp     error_code
+>>  END(async_page_fault)
+>>  #endif
+>> +
+>> +ENTRY(rewind_stack_do_exit)
+>> +     /* Prevent any naive code from trying to unwind to our caller. */
+>> +     xorl    %ebp, %ebp
+>> +
+>> +     movl    PER_CPU_VAR(cpu_current_top_of_stack), %esi
+>> +     leal    -TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
+>> +
+>> +     call    do_exit
+>> +1:   jmp 1b
+>> +END(rewind_stack_do_exit)
+>> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+>> index 9ee0da1807ed..b846875aeea6 100644
+>> --- a/arch/x86/entry/entry_64.S
+>> +++ b/arch/x86/entry/entry_64.S
+>> @@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
+>>       mov     $-ENOSYS, %eax
+>>       sysret
+>>  END(ignore_sysret)
+>> +
+>> +ENTRY(rewind_stack_do_exit)
+>> +     /* Prevent any naive code from trying to unwind to our caller. */
+>> +     xorl    %ebp, %ebp
+>
+> s/ebp/rbp/g/ ?
 
-Here is the patch. I've found two bugs when the TIF_MEMDIE was checked
-on current rather than the given task. I will separate them into their
-own patches (was just too lazy for it now). If the approach looks
-reasonable then I will repost next week.
----
+No, this quirk of the x86-64 instruction set will zero-extend to
+64-bits without needing a REX prefix.
+
+--
+Brian Gerst
