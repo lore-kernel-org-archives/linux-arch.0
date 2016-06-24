@@ -1,88 +1,66 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v4 11/16] x86/dumpstack: When OOPSing, rewind the stack
- before do_exit
-Date: Fri, 24 Jun 2016 10:48:29 -0500
-Message-ID: <20160624154829.mfh7e5it22rssupm@treble>
-References: <cover.1466741835.git.luto@kernel.org>
- <2bae70091dd75abc881259747987979156f2f789.1466741835.git.luto@kernel.org>
- <20160624153001.b5urlxdpvliqqqji@treble>
- <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
+Date: Fri, 24 Jun 2016 12:04:40 -0400
+Message-ID: <20160624120440.3961bb05@gandalf.local.home>
+References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
+	<20160623093740.638579af@gandalf.local.home>
+	<20160624063543.GA1607@sejong>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35618 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751235AbcFXPsc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jun 2016 11:48:32 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMzpN2jYQq2shQpn6J9ptHBFikYNiFErraW0=T_hiLkemmaPSg@mail.gmail.com>
+Received: from smtprelay0146.hostedemail.com ([216.40.44.146]:44669 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751185AbcFXQEo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2016 12:04:44 -0400
+In-Reply-To: <20160624063543.GA1607@sejong>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brian Gerst <brgerst@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Fri, Jun 24, 2016 at 11:35:13AM -0400, Brian Gerst wrote:
-> On Fri, Jun 24, 2016 at 11:30 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> > On Thu, Jun 23, 2016 at 09:23:06PM -0700, Andy Lutomirski wrote:
-> >> If we call do_exit with a clean stack, we greatly reduce the risk of
-> >> recursive oopses due to stack overflow in do_exit, and we allow
-> >> do_exit to work even if we OOPS from an IST stack.  The latter gives
-> >> us a much better chance of surviving long enough after we detect a
-> >> stack overflow to write out our logs.
-> >>
-> >> I intentionally separated this from the preceding patch that
-> >> disables do_exit-on-OOPS on IST stacks.  This way, if we need to
-> >> revert this patch, we still end up in an acceptable state wrt stack
-> >> overflow handling.
-> >>
-> >> Signed-off-by: Andy Lutomirski <luto@kernel.org>
-> >> ---
-> >>  arch/x86/entry/entry_32.S   | 11 +++++++++++
-> >>  arch/x86/entry/entry_64.S   | 11 +++++++++++
-> >>  arch/x86/kernel/dumpstack.c | 13 +++++++++----
-> >>  3 files changed, 31 insertions(+), 4 deletions(-)
-> >>
-> >> diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-> >> index 983e5d3a0d27..0b56666e6039 100644
-> >> --- a/arch/x86/entry/entry_32.S
-> >> +++ b/arch/x86/entry/entry_32.S
-> >> @@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
-> >>       jmp     error_code
-> >>  END(async_page_fault)
-> >>  #endif
-> >> +
-> >> +ENTRY(rewind_stack_do_exit)
-> >> +     /* Prevent any naive code from trying to unwind to our caller. */
-> >> +     xorl    %ebp, %ebp
-> >> +
-> >> +     movl    PER_CPU_VAR(cpu_current_top_of_stack), %esi
-> >> +     leal    -TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
-> >> +
-> >> +     call    do_exit
-> >> +1:   jmp 1b
-> >> +END(rewind_stack_do_exit)
-> >> diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-> >> index 9ee0da1807ed..b846875aeea6 100644
-> >> --- a/arch/x86/entry/entry_64.S
-> >> +++ b/arch/x86/entry/entry_64.S
-> >> @@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
-> >>       mov     $-ENOSYS, %eax
-> >>       sysret
-> >>  END(ignore_sysret)
-> >> +
-> >> +ENTRY(rewind_stack_do_exit)
-> >> +     /* Prevent any naive code from trying to unwind to our caller. */
-> >> +     xorl    %ebp, %ebp
-> >
-> > s/ebp/rbp/g/ ?
+On Fri, 24 Jun 2016 15:35:44 +0900
+Namhyung Kim <namhyung@kernel.org> wrote:
+
+
+> > > diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+> > > index dea12a6e413b..35c523ba5c59 100644
+> > > --- a/include/linux/ftrace.h
+> > > +++ b/include/linux/ftrace.h
+> > > @@ -751,25 +751,33 @@ extern void ftrace_init(void);
+> > >  static inline void ftrace_init(void) { }
+> > >  #endif
+> > >  
+> > > +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+> > > +# define FTRACE_ALIGNMENT	4
+> > > +#else
+> > > +# define FTRACE_ALIGNMENT	8
+> > > +#endif  
+> > 
+> > Swap the above. Having the #ifndef is more confusing to understand than
+> > to have a #ifdef.  
 > 
-> No, this quirk of the x86-64 instruction set will zero-extend to
-> 64-bits without needing a REX prefix.
+> Will do.
+> 
+> >   
+> > > +
+> > > +#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))  
+> > 
+> > Do we really need to pack it? I mean, just get rid of the hole (like
+> > you did with the movement of the overrun) and shouldn't the array be
+> > aligned normally without holes, if the arch can support it? Doesn't gcc
+> > take care of that?  
+> 
+> I'm not sure I understood you correctly.  AFAIK the size of struct is
+> a multiple of alignment unit and gcc manual says the aligment
+> attribute only can be increased unless the 'packed' is used as well..
 
-Ah, so it makes the instruction smaller.  And I see that gcc also does
-the same.  In that case:
+Ah, I see you are trying to get the recorded size in the array down to
+a 4 byte alignment (due to the "int depth"), instead of adding the 4
+bytes to the buffer.
 
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Hmm, I wondering if we need the ifdef above, as the ring buffer itself
+will force the 8 byte alignment of structures added to the buffer.
 
--- 
-Josh
+-- Steve
