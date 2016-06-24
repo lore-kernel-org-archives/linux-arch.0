@@ -1,56 +1,43 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 13/16] x86/dumpstack: Try harder to get a call trace on stack overflow
-Date: Thu, 23 Jun 2016 21:23:08 -0700
-Message-ID: <f76b49739625fce1264428155540ca7161925511.1466741835.git.luto@kernel.org>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH v4 01/16] bluetooth: Switch SMP to
+ crypto_cipher_encrypt_one()
+Date: Fri, 24 Jun 2016 14:10:46 +0800
+Message-ID: <20160624061046.GB16850@gondor.apana.org.au>
 References: <cover.1466741835.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3634-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <cover.1466741835.git.luto@kernel.org>
-In-Reply-To: <cover.1466741835.git.luto@kernel.org>
-References: <cover.1466741835.git.luto@kernel.org>
-To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+ <9a1ddd10d96898f8a2c94c3f3d37073c73ba50c9.1466741835.git.luto@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from helcar.hengli.com.au ([209.40.204.226]:60385 "EHLO
+	helcar.hengli.com.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750999AbcFXGLo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 02:11:44 -0400
+Content-Disposition: inline
+In-Reply-To: <9a1ddd10d96898f8a2c94c3f3d37073c73ba50c9.1466741835.git.luto@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Marcel Holtmann <marcel@holtmann.org>, Gustavo Padovan <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, netdev@vger.kernel.org
 
-If we overflow the stack, print_context_stack will abort.  Detect
-this case and rewind back into the valid part of the stack so that
-we can trace it.
+On Thu, Jun 23, 2016 at 09:22:56PM -0700, Andy Lutomirski wrote:
+> SMP does ECB crypto on stack buffers.  This is complicated and
+> fragile, and it will not work if the stack is virtually allocated.
+> 
+> Switch to the crypto_cipher interface, which is simpler and safer.
+> 
+> Cc: Marcel Holtmann <marcel@holtmann.org>
+> Cc: Gustavo Padovan <gustavo@padovan.org>
+> Cc: Johan Hedberg <johan.hedberg@gmail.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: linux-bluetooth@vger.kernel.org
+> Cc: Herbert Xu <herbert@gondor.apana.org.au>
+> Cc: netdev@vger.kernel.org
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- arch/x86/kernel/dumpstack.c | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
 
-diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
-index 4592bc4ed3e1..4538f7ca9072 100644
---- a/arch/x86/kernel/dumpstack.c
-+++ b/arch/x86/kernel/dumpstack.c
-@@ -87,7 +87,7 @@ static inline int valid_stack_ptr(struct task_struct *task,
- 		else
- 			return 0;
- 	}
--	return p > t && p < t + THREAD_SIZE - size;
-+	return p >= t && p < t + THREAD_SIZE - size;
- }
- 
- unsigned long
-@@ -98,6 +98,13 @@ print_context_stack(struct task_struct *task,
- {
- 	struct stack_frame *frame = (struct stack_frame *)bp;
- 
-+	/*
-+	 * If we overflowed the stack into a guard page, jump back to the
-+	 * bottom of the usable stack.
-+	 */
-+	if ((unsigned long)task->stack - (unsigned long)stack < PAGE_SIZE)
-+		stack = (unsigned long *)task->stack;
-+
- 	while (valid_stack_ptr(task, stack, sizeof(*stack), end)) {
- 		unsigned long addr;
- 
+Thanks,
 -- 
-2.5.5
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
