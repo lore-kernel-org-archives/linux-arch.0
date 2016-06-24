@@ -1,67 +1,45 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC/PATCH] ftrace: Reduce size of function graph entries
-Date: Fri, 24 Jun 2016 13:29:04 -0400
-Message-ID: <20160624132904.1a94c0fc@gandalf.local.home>
-References: <1463930775-12214-1-git-send-email-namhyung@kernel.org>
-	<20160623093740.638579af@gandalf.local.home>
-	<20160624063543.GA1607@sejong>
-	<20160624120440.3961bb05@gandalf.local.home>
-	<20160624161534.GA29064@danjae.aot.lge.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Fri, 24 Jun 2016 10:40:46 -0700
+Message-ID: <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+ <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+ <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
+ <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com> <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160624161534.GA29064@danjae.aot.lge.com>
+In-Reply-To: <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Namhyung Kim <namhyung@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, 25 Jun 2016 01:15:34 +0900
-Namhyung Kim <namhyung@kernel.org> wrote:
+On Fri, Jun 24, 2016 at 10:21 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> But as mentioned, I must have missed something. There were a number of
+> places where the code used the task_stack_page() and
+> task_thread_info() interchangably, which used to work and is no longer
+> true. There might simply be cases I missed.
 
-> On Fri, Jun 24, 2016 at 12:04:40PM -0400, Steven Rostedt wrote:
-> > On Fri, 24 Jun 2016 15:35:44 +0900
-> > Namhyung Kim <namhyung@kernel.org> wrote:
-> > 
-> >   
-> > > > > diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-> > > > > index dea12a6e413b..35c523ba5c59 100644
-> > > > > --- a/include/linux/ftrace.h
-> > > > > +++ b/include/linux/ftrace.h
-> > > > > @@ -751,25 +751,33 @@ extern void ftrace_init(void);
-> > > > >  static inline void ftrace_init(void) { }
-> > > > >  #endif
-> > > > >  
-> > > > > +#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
-> > > > > +# define FTRACE_ALIGNMENT	4
-> > > > > +#else
-> > > > > +# define FTRACE_ALIGNMENT	8
-> > > > > +#endif    
-> > > > 
-> 
-> As far as I can see, the ring buffer has following code in ring_buffer.c:
-> 
->   #define RB_ALIGNMENT		4U
->   #define RB_MAX_SMALL_DATA	(RB_ALIGNMENT * RINGBUF_TYPE_DATA_TYPE_LEN_MAX)
->   #define RB_EVNT_MIN_SIZE	8U	/* two 32bit words */
-> 
->   #ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
->   # define RB_FORCE_8BYTE_ALIGNMENT	0
->   # define RB_ARCH_ALIGNMENT		RB_ALIGNMENT
->   #else
->   # define RB_FORCE_8BYTE_ALIGNMENT	1
->   # define RB_ARCH_ALIGNMENT		8U
->   #endif
-> 
->   #define RB_ALIGN_DATA		__aligned(RB_ARCH_ALIGNMENT)
-> 
+.. and immediately as I wrote that, I went "Duh".
 
-Right, what I meant was that we should just define FTRACE_ALIGNMENT
-unconditionally to 4. If CONFIG_HAVE_64BIT_ALIGNED_ACCESS is not set,
-it will add the buffered space regardless.
+One place I missed was free_thread_info(), which should now free the
+stack, not the ti pointer. But it does
 
-You already moved "overrun", I don't see anything that would be out of
-alignment if the structure itself is aligned.
+        struct page *page = virt_to_page(ti);
 
--- Steve
+and frees that, which is bogus. It turns out that we do do
+
+        free_thread_info(tsk->stack);
+
+which is bogus too, and undoes it, but I think I have a few new places
+to look at..
+
+                Linus
