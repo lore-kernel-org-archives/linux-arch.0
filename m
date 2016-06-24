@@ -1,64 +1,56 @@
-From: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Subject: Re: [PATCH v3] vmlinux.lds: account for destructor sections
-Date: Fri, 24 Jun 2016 19:57:38 +0300
-Message-ID: <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com>
-References: <1466782768-106896-1-git-send-email-dvyukov@google.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Fri, 24 Jun 2016 10:21:50 -0700
+Message-ID: <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
+References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+ <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+ <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com> <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f65.google.com ([209.85.215.65]:33177 "EHLO
-	mail-lf0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751143AbcFXQ5l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 12:57:41 -0400
-Received: by mail-lf0-f65.google.com with SMTP id l188so22347986lfe.0
-        for <linux-arch@vger.kernel.org>; Fri, 24 Jun 2016 09:57:40 -0700 (PDT)
-In-Reply-To: <1466782768-106896-1-git-send-email-dvyukov@google.com>
+Received: from mail-oi0-f67.google.com ([209.85.218.67]:33212 "EHLO
+	mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751175AbcFXRVw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 13:21:52 -0400
+In-Reply-To: <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Vyukov <dvyukov@google.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, kasan-dev <kasan-dev@googlegroups.com>, Alexander Potapenko <glider@google.com>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-2016-06-24 18:39 GMT+03:00 Dmitry Vyukov <dvyukov@google.com>:
-> If CONFIG_KASAN is enabled and gcc is configured with
-> --disable-initfini-array and/or gold linker is used,
-> gcc emits .ctors/.dtors and .text.startup/.text.exit
-> sections instead of .init_array/.fini_array.
-> .dtors section is not explicitly accounted in the linker
-> script and messes vvar/percpu layout. Want:
+On Fri, Jun 24, 2016 at 5:25 AM, Brian Gerst <brgerst@gmail.com> wrote:
+>   *
+>   * rdi: prev task we switched from
+> + * rsi: task we're switching to
+>   */
+>  ENTRY(ret_from_fork)
+> -    LOCK ; btr $TIF_FORK, TI_flags(%r8)
+> +    LOCK ; btr $TIF_FORK, TI_flags(%rsi)    /* rsi: this newly forked task */
 >
-> ffffffff822bfd80 D _edata
-> ffffffff822c0000 D __vvar_beginning_hack
-> ffffffff822c0000 A __vvar_page
-> ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
-> ffffffff822c1000 A __init_begin
-> ffffffff822c1000 D init_per_cpu__irq_stack_union
-> ffffffff822c1000 A __per_cpu_load
-> ffffffff822d3000 D init_per_cpu__gdt_page
+>      call    schedule_tail            /* rdi: 'prev' task parameter */
 >
-> Got:
->
-> ffffffff8279a600 D _edata
-> ffffffff8279b000 A __vvar_page
-> ffffffff8279c000 A __init_begin
-> ffffffff8279c000 D init_per_cpu__irq_stack_union
-> ffffffff8279c000 A __per_cpu_load
-> ffffffff8279e000 D __vvar_beginning_hack
-> ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
-> ffffffff827ae000 D init_per_cpu__gdt_page
->
-> This happens because __vvar_page and .vvar get different
-> addresses in arch/x86/kernel/vmlinux.lds.S:
->
->         . = ALIGN(PAGE_SIZE);
->         __vvar_page = .;
->
->         .vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
->                 /* work around gold bug 13023 */
->                 __vvar_beginning_hack = .;
->
-> Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
-> Merge .text.startup into init text.
->
-> Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
+> I think you forgot GET_THREAD_INFO() here.  RSI is the task, not the
+> thread_info.  FYI, this goes away with my switch_to() rewrite, which
+> removes TIF_FORK.
 
-Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+The point of that patch series is to make the thread_info and the
+task_struct pointer have the same value on x86 - we hide the
+thread_info inside the task_struct itself, and in fact at the
+beginning of it.
+
+That allows for the above kinds of simplification - use the task
+struct pointer and thread info interchangably in the asm code.
+
+But as mentioned, I must have missed something. There were a number of
+places where the code used the task_stack_page() and
+task_thread_info() interchangably, which used to work and is no longer
+true. There might simply be cases I missed.
+
+Or there might simply be cases I screwed up.
+
+                Linus
