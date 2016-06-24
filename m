@@ -1,66 +1,38 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Fri, 24 Jun 2016 11:36:44 -0700
-Message-ID: <CALCETrVX289Lu6i78U0JquW2euqNCnRjrzHRc99hMAPX0FjMiQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
- <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
- <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
- <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
- <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
- <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
- <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
- <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
- <CALCETrUh0s8zV0S=Si4V_RB1dEUx6n2RtALC-+VJhGMEBqPTzA@mail.gmail.com> <CA+55aFzXYTOBxRW7mCub9Wt8F5KzhFZRkx_XFZFg2coN+66PjQ@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Carlo Caione <carlo@caione.org>
+Subject: Re: [PATCH V2 63/63] clocksources: Switch back to the clksrc table
+Date: Fri, 24 Jun 2016 22:12:52 +0200
+Message-ID: <20160624201252.GA2382@localhost>
+References: <1466112442-31105-1-git-send-email-daniel.lezcano@linaro.org>
+ <1466112442-31105-64-git-send-email-daniel.lezcano@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-3658-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CA+55aFzXYTOBxRW7mCub9Wt8F5KzhFZRkx_XFZFg2coN+66PjQ@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <1466112442-31105-64-git-send-email-daniel.lezcano@linaro.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Michal Simek <monstr@monstr.eu>, John Crispin <john@phrozen.org>, Ralf Baechle <ralf@linux-mips.org>, Ley Foon Tan <lftan@altera.com>, Srinivas Kandagatla <srinivas.kandagatla@gmail.com>, Maxime Coquelin <maxime.coquelin@st.com>, Patrice Chotard <patrice.chotard@st.com>, Stephen Warren <swarren@wwwdotorg.org>, Lee Jones <lee@kernel.org>, Eric Anholt <eric@anholt.net>, Florian Fainelli <f.fainelli@gmail.com>, Ray Jui <rjui@broadcom.com>, Scott Branden <sbranden@broadcom.com>, =?utf-8?B?U8O2cmVu?= Brinkmann <soren.brinkmann@xilinx.com>, Linus Walleij <linus.walleij@linaro.org>, Alexander Shiyan <shc_work@mail.ru>, Kukjin
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 24, 2016 at 10:56 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jun 24, 2016 at 10:47 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>
->> FWIW, your patch is much more lenient than my approach.
->
-> I hate big flag-days - they cause so much pain for everybody. The
-> people who get it to work and can test it, can't test all the other
-> cases (whether they be drivers or other architectures), so I'd much
-> rather implement something that allows a gradual per-architecture
-> change from having the thread_info on the stack into having the
-> thread_info in the task_struct.
->
-> Bit "let's just change everything at once" patches are fine (and, in
-> fact, preferable) when you can test everything in one go. So something
-> that can be statically verified (ie "patch makes no semantic
-> difference, but changes calling convention or naming, so if it
-> compiles it is fine") I much prefer just getting the pain over and
-> done with rather than some lingering thing.
->
-> But when it's something where "oops, I broke every other architecture,
-> and I can't even test it", I'd much rather do it in a way where each
-> architecture can move over to the new model one by one.
+On 16/06/16 23:27, Daniel Lezcano wrote:
+> All the clocksource drivers's init function are now converted to return
+> an error code. CLOCKSOURCE_OF_DECLARE is no longer used as well as the
+> clksrc-of table.
+> 
+> Let's convert back the names:
+>  - CLOCKSOURCE_OF_DECLARE_RET => CLOCKSOURCE_OF_DECLARE
+>  - clksrc-of-ret              => clksrc-of
+> 
+> Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+> ---
+>  drivers/clocksource/meson6_timer.c        |  2 +-
 
-Agreed.
-
-To clarify, though: I wasn't planning on changing all arches at once.
- I'm just saying that, for arches that switch over, they get a single
-core definition of thread_info.  That way, when someone (probably
-named Peter) decides down the road to move, say, thread_info::cpu into
-task_struct proper to optimize cache line layout, they won't need to
-do it for every architecture.
-
-Also, I want to give people an incentive to finally move their crap
-out of struct thread_info and into struct thread_struct.
-
---Andy
+Acked-by: Carlo Caione <carlo@caione.org>
