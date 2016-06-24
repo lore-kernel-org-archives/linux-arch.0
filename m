@@ -1,101 +1,57 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
-Date: Fri, 24 Jun 2016 08:25:20 -0400
-Message-ID: <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
-References: <cover.1466466093.git.luto@kernel.org> <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Date: Fri, 24 Jun 2016 16:05:58 +0200
+Message-ID: <20160624140558.GA20208@dhcp22.suse.cz>
+References: <cover.1466466093.git.luto@kernel.org>
+ <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
  <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
  <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
- <20160623143126.GA16664@redhat.com> <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
- <20160623170352.GA17372@redhat.com> <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
- <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
- <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com>
+ <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com>
+ <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <20160623185221.GA17983@redhat.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f42.google.com ([209.85.218.42]:34436 "EHLO
-	mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751089AbcFXMZW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2016 08:25:22 -0400
-In-Reply-To: <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-3642-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <20160623185221.GA17983@redhat.com>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 24, 2016 at 2:17 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Thu, Jun 23, 2016 at 12:17 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->>
->> With the goal being that I'm hoping that we can then actually get rid
->> of this (at least on x86-64, even if we leave it in some other
->> architectures) in 4.8.
->
-> The context here was that we could almost get rid of thread-info
-> entirely, at least for x86-64, by moving it into struct task_struct.
->
-> It turns out that we're not *that* far off after the obvious cleanups
-> I already committed, but I couldn't get things quite to work.
->
-> I'm attaching a patch that I wrote today that doesn't boot, but "looks
-> right". The reason I'm attaching it is because I'm hoping somebody
-> wants to take a look and maybe see what else I missed, but mostly
-> because I think the patch is interesting in a couple of cases where we
-> just do incredibly ugly things.
->
-> First off, some code that Andy wrote when he re-organized the entry path.
->
-> Oh Gods, Andy. That pt_regs_to_thread_info() thing made me want to do
-> unspeakable acts on a poor innocent wax figure that looked _exactly_
-> like you.
->
-> I just got rid of pt_regs_to_thread_info() entirely, and just replaced
-> it with current_thread_info().  I'm not at all convinced that trying
-> to be that clever was really a good idea.
->
-> Secondly, the x86-64 ret_from_fork calling convention was documented
-> wrongly. It says %rdi contains the previous task pointer. Yes it does,
-> but it doesn't mention that %r8 is supposed to contain the new
-> thread_info. That was fun to find.
->
-> And thirdly, the stack size games that asm/kprobes.h plays are just
-> disgusting. I stared at that code for much too long. I may in fact be
-> going blind as a result.
->
-> The rest was fairly straightforward, although since the end result
-> doesn't actually work, that "straightforward" may be broken too. But
-> the basic approach _looks_ sane.
->
-> Comments? Anybody want to play with this and see where I went wrong?
->
-> (Note - this patch was written on top of the two thread-info removal
-> patches I committed in
->
->    da01e18a37a5 x86: avoid avoid passing around 'thread_info' in stack
-> dumping code
->    6720a305df74 locking: avoid passing around 'thread_info' in mutex
-> debugging code
->
-> and depends on them, since "ti->task" no longer exists with
-> CONFIG_THREAD_INFO_IN_TASK. "ti" and "task" will have the same value).
->
->                  Linus
+On Thu 23-06-16 20:52:21, Oleg Nesterov wrote:
+> On 06/23, Linus Torvalds wrote:
+> >
+> > On Thu, Jun 23, 2016 at 10:03 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> > >
+> > > Let me quote my previous email ;)
+> > >
+> > >         And we can't free/nullify it when the parent/debuger reaps a zombie,
+> > >         say, mark_oom_victim() expects that get_task_struct() protects
+> > >         thread_info as well.
+> > >
+> > > probably we can fix all such users though...
+> >
+> > TIF_MEMDIE is indeed a potential problem, but I don't think
+> > mark_oom_victim() is actually problematic.
+> >
+> > mark_oom_victim() is called with either "current",
+> 
+> This is no longer true in -mm tree.
+> 
+> But I agree, this is fixable (and in fact I still hope TIF_MEMDIE will die,
+> at least in its current form).
 
-  * A newly forked process directly context switches into this address.
-  *
-  * rdi: prev task we switched from
-+ * rsi: task we're switching to
-  */
- ENTRY(ret_from_fork)
--    LOCK ; btr $TIF_FORK, TI_flags(%r8)
-+    LOCK ; btr $TIF_FORK, TI_flags(%rsi)    /* rsi: this newly forked task */
-
-     call    schedule_tail            /* rdi: 'prev' task parameter */
-
-I think you forgot GET_THREAD_INFO() here.  RSI is the task, not the
-thread_info.  FYI, this goes away with my switch_to() rewrite, which
-removes TIF_FORK.
-
---
-Brian Gerst
+We can move the flag to the task_struct. There are still some bits left
+there. This would be trivial so that the oom usage doesn't stay in the
+way.
+-- 
+Michal Hocko
+SUSE Labs
