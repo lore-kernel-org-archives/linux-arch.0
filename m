@@ -1,250 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:43075 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751210AbcFYJil (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jun 2016 05:38:41 -0400
-Message-ID: <576E509A.7090702@huawei.com>
-Date: Sat, 25 Jun 2016 17:36:26 +0800
-From: zhouchengming <zhouchengming1@huawei.com>
+Received: from mail-vk0-f45.google.com ([209.85.213.45]:34282 "EHLO
+	mail-vk0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751298AbcFYXYz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jun 2016 19:24:55 -0400
+Received: by mail-vk0-f45.google.com with SMTP id c2so162258643vkg.1
+        for <linux-arch@vger.kernel.org>; Sat, 25 Jun 2016 16:24:55 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCH 17/23] arm64: ptrace: handle ptrace_request differently
- for aarch32 and ilp32
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com> <1464048292-30136-18-git-send-email-ynorov@caviumnetworks.com> <57577611.9000607@huawei.com> <20160608170048.GA24482@yury-N73SV>
-In-Reply-To: <20160608170048.GA24482@yury-N73SV>
-Content-Type: multipart/mixed;
-	boundary="------------020409060404030701010104"
+In-Reply-To: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+ <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+ <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
+ <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
+ <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
+ <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
+ <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
+ <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
+ <20160624202530.unmidps4kpebo2na@treble> <20160624205116.4hbnurrnan4afq2t@treble>
+ <CA+55aFyWJSE3DdoZvtc=tkuqvn1eQC=-dK=kfQ70ZR_7xLTkvA@mail.gmail.com>
+ <CALCETrXUZbsr+ZvcCsffCMGFwX7xs8zqM2WGtfwLd+ws7T5A6A@mail.gmail.com>
+ <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
+ <CALCETrWC4u55TsW_B+DJOdfR8XkbZ5cXGtgKj5+JL5UU2ntUAg@mail.gmail.com> <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Sat, 25 Jun 2016 16:19:30 -0700
+Message-ID: <CALCETrX9LSNCrj6Z=QS122XUODpv89hEKi=U3rfxiaAZxs6E4Q@mail.gmail.com>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, kilobyte@angband.pl, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, agraf@suse.de, geert@linux-m68k.org, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, broonie@kernel.org, schwidefsky@de.ibm.com, bamvor.zhangjian@huawei.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com
-Message-ID: <20160625093626.44pyBursw-Unq31VoT5uL_f66gte0yuibyyymNTuKk4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160625231930.JlG2BaMsuSezBFuOfcUHJtZ92Eo-Hbbtc7LU9XGGruc@z>
 
---------------020409060404030701010104
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-
-On 2016/6/9 1:00, Yury Norov wrote:
-> On Wed, Jun 08, 2016 at 09:34:09AM +0800, zhouchengming wrote:
->> On 2016/5/24 8:04, Yury Norov wrote:
->>> Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
->>> detection of the task type.
+On Fri, Jun 24, 2016 at 7:41 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Fri, Jun 24, 2016 at 2:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
 >>>
->>> Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
->
-> [...]
->
->> Hello, I found ilp32 will use sys_ptrace, not compat_sys_ptrace. So I write
->> a little patch to see if can solve the problem correctly.
+>>> So let me get the pure semantic patches done, and then for 4.8 when we
+>>> do the things that actually change real meaning we'll have a sane
+>>> base. Ok?
 >>
->> Thanks.
->>
->>  From f6156236df578bb05c4a17e7f9776ceaf8f7afe6 Mon Sep 17 00:00:00 2001
->> From: Zhou Chengming<zhouchengming1@huawei.com>
->> Date: Wed, 8 Jun 2016 09:46:23 +0800
->> Subject: [PATCH] ilp32: use compat_sys_ptrace instead of sys_ptrace
->>
->> When we analyze a testcase of ptrace that failed on ilp32, we found
->> the syscall that the ilp32 uses is sys_ptrace, not compat_sys_ptrace.
->> Because in include/uapi/asm-generic/unistd.h it's defined like:
->> __SYSCALL(__NR_ptrace, sys_ptrace)
->> So we change it to __SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace),
->> let compat tasks use the compat_sys_ptrace.
->>
->> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->> ---
->>   include/uapi/asm-generic/unistd.h |    2 +-
->>   1 files changed, 1 insertions(+), 1 deletions(-)
->>
->> diff --git a/include/uapi/asm-generic/unistd.h
->> b/include/uapi/asm-generic/unistd.h
->> index 2862d2e..50ee770 100644
->> --- a/include/uapi/asm-generic/unistd.h
->> +++ b/include/uapi/asm-generic/unistd.h
->> @@ -364,7 +364,7 @@ __SC_WRAP(__NR_syslog, sys_syslog)
->>
->>   /* kernel/ptrace.c */
->>   #define __NR_ptrace 117
->> -__SYSCALL(__NR_ptrace, sys_ptrace)
->> +__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
->>
->>   /* kernel/sched/core.c */
->>   #define __NR_sched_setparam 118
->> --
->> 1.7.7
->>
+>> Works for me.  I'll see whether my vmap patches still apply and, if
+>> needed, rebase and send a v5.
 >
-> Hi Zhou,
+> Ok, I'e pushed out the cleanups (and all the pulls that always come in
+> on Friday afternoon - gaah, I shouldn't have tried doing this on a
+> Friday).
 >
-> Thank you for the catch.
+> I'm attaching the current left-over patch that actually changes
+> things. It's obviously a composite, and includes your "remove
+> stack_smp_processor_id()" thing etc, so it's not meant to be used
+> as-is, but it does seem to work.
 >
-> Could you also show the test that is failed for you. It should
-> probably be sent to LTP maillist.
+> Interestingly, it seems pretty clean too, removing more lines than it
+> adds (despite the fact that it adds a new config option), and
+> generally making things prettier rather than the reverse.
 >
-> I'm not sure your fix correct as it affects other architectures that
-> use standard unistd.h. I think it's better to redirect the syscall in
-> arch/arm64/kernel/sys_ilp32.c with corresponding definition.
->
-> Yury
->
-> .
->
+> That's always a good sign.
 
-Sorry, I missed this mail. Thanks for your reply. :)
-I attach the testcase file of ptrace that failed on ilp32.
-I also think it's better to redirect the syscall in ilp32, so I changed
-the patch.
+I rebased my series onto your tree and then rebased this thing onto my
+series, tweaked it some, and split it up a bit.  My version works a
+bit differently (thread_info has a single element if the new option is
+set) but is otherwise more or less your code.  It seems to work.
 
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=01ac3242f314405c1bac0f820ec3575a850509d3
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=87194cac139aebecec89a68eff719ab44f0469a2
 
- From 7e692ba1adf02c2a2f125836f5222f455c9ffe56 Mon Sep 17 00:00:00 2001
-From: Zhou Chengming <zhouchengming1@huawei.com>
-Date: Sat, 25 Jun 2016 18:02:51 +0800
-Subject: [PATCH] ilp32 should use compat_sys_ptrace
+On top of *that*, I taught the kernel to free stacks in release_task
+and to cache stacks if vmalloced.  That still blows up: when
+cryptomgr_test calls do_exit during boot, do_exit calls exit_notify,
+which observes that the task state is TASK_DEAD and thus calls
+release_task on itself and goes boom.
 
-The file include/uapi/asm-generic/unistd.h defines this:
-__SYSCALL(__NR_ptrace, sys_ptrace)
-It may cause some ptrace tests failed on ilp32. So we redirect the ptrace
-syscall in arch/arm64/kernel/sys_ilp32.c with corresponding definition.
+Linus, Oleg, help?  How am I supposed to quickly free the stack if the
+task goes through this code path?  In fact, why does this work on
+current kernels?  After all, can't schedule() indicates an RCU grace
+period?  In principle, what prevents delayed_put_task_struct from
+deleting the running stack before scheduling?
 
-Signed-off-by: Zhou Chengming <zhouchengming1@huawei.com>
----
-  arch/arm64/kernel/sys_ilp32.c |    3 +++
-  1 files changed, 3 insertions(+), 0 deletions(-)
+My kludged up patch that only early-releases the stack if release_task
+is called from a different task is here:
 
-diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
-index d85fe94..06d5e1b 100644
---- a/arch/arm64/kernel/sys_ilp32.c
-+++ b/arch/arm64/kernel/sys_ilp32.c
-@@ -46,6 +46,9 @@
-  asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
-  #define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=2327ca2ab3d634d120ea185e737fef2e4e9cf012
 
-+/* ilp32 should use compat_sys_ptrace */
-+#define sys_ptrace		       compat_sys_ptrace
-+
-  #include <asm/syscall.h>
-
-  #undef __SYSCALL
--- 
-1.7.7
-
-
-
-
---------------020409060404030701010104
-Content-Type: text/plain; charset="gb18030";
-	name="tc_ptrace_setoptions_09.c"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment; filename="tc_ptrace_setoptions_09.c"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/ptrace.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/user.h>
-#include <signal.h>
-
-int main()
-{
-    pid_t child;
-    unsigned long exit_status;
-    int status;
-    int is_get_event = 0;
-    long ptrace_ret;
-
-    int result = SIGTRAP | (PTRACE_EVENT_EXIT<<8);
-
-    child = fork();
-    if(child < 0)
-    {
-        printf("fork error\n");
-        exit(1);
-    }
-    else if(child == 0)
-    {
-        sleep(1);
-        exit(127);
-    }
-    else
-    {
-        ptrace_ret = ptrace(PTRACE_ATTACH, child, NULL, NULL);
-        if(ptrace_ret != 0)                                   
-        {
-            printf("ptrace PTRACE_ATTACH error %d \n", errno);
-            exit(1);
-        }
-
-        printf("ATTACH SUCCESS\n");
-        sleep(1);
-       
-        ptrace_ret = ptrace(PTRACE_SETOPTIONS, child, NULL, PTRACE_O_TRACEEXIT);
-        if(ptrace_ret != 0)                                   
-        {
-            printf("ptrace PTRACE_SETOPTIONS PTRACE_O_TRACEFORK error %d \n", errno);
-            ptrace(PTRACE_DETACH, child, NULL, NULL);
-            exit(1);
-        }
-
-        printf("SETOPTIONS SUCCESS!\n");
-
-        while(1)
-        {
-            usleep(1);
-            pid_t pid;
-            if ((pid = wait(&status)) == -1) {
-                perror("wait");
-                exit(1);
-            };
-   
-            printf("pid : %d\n", pid);
-            printf("the child process stops. status: %d, signal? %d, exit? %d, continue? %d, stop? %d\n" , WEXITSTATUS(status) , WIFSIGNALED(status) , WIFEXITED(status) , WIFCONTINUED(status) ,WIFSTOPPED(status));
-
-            if (WSTOPSIG(status) == SIGTRAP)
-            {
-                printf("status : %d\n", status>>8);
-                if (status>>8 == result)
-                {
-                    if (ptrace(PTRACE_GETEVENTMSG, child, NULL, &exit_status))
-                    {
-                        perror("error geteventmsg");
-                        exit(1);
-                    }
-                
-                    printf("exit_status %d\n", WEXITSTATUS((int)exit_status));
-
-                    exit_status = WEXITSTATUS(exit_status);
-
-                    if (exit_status != 127)
-                    {
-                        printf("exit status is not equal with 127!\n");
-                        exit(1);
-                    }
-                    is_get_event = 1;
-                }
-            }
-
-            if (WIFEXITED(status))
-            {
-                printf("child exit!\n");
-                break;
-            }
-
-            if(ptrace(PTRACE_CONT, pid, NULL, (void *) SIGCONT))
-            {
-                printf("ptrace cont %d error %d\n", pid, errno);
-                exit(1);
-            }
-
-        }
-
-        if (is_get_event)
-            exit(0);
-        else
-            exit(1);
-    }
-}
-
---------------020409060404030701010104--
-
+Ick.
