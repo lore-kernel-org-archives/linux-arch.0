@@ -1,156 +1,82 @@
-From: Bamvor Zhang <bamv2005@gmail.com>
-Subject: Re: [PATCH 17/23] arm64: ptrace: handle ptrace_request differently
- for aarch32 and ilp32
-Date: Sat, 25 Jun 2016 22:15:40 +0800
-Message-ID: <CAOijeYKpH-1pumqrQw+kY0gbdVoZ02kUJtJkwX33H403v+Scmw@mail.gmail.com>
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com>
- <1464048292-30136-18-git-send-email-ynorov@caviumnetworks.com>
- <57577611.9000607@huawei.com> <20160608170048.GA24482@yury-N73SV> <576E509A.7090702@huawei.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Sat, 25 Jun 2016 16:19:30 -0700
+Message-ID: <CALCETrX9LSNCrj6Z=QS122XUODpv89hEKi=U3rfxiaAZxs6E4Q@mail.gmail.com>
+References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
+ <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
+ <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
+ <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
+ <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
+ <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
+ <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
+ <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
+ <20160624202530.unmidps4kpebo2na@treble> <20160624205116.4hbnurrnan4afq2t@treble>
+ <CA+55aFyWJSE3DdoZvtc=tkuqvn1eQC=-dK=kfQ70ZR_7xLTkvA@mail.gmail.com>
+ <CALCETrXUZbsr+ZvcCsffCMGFwX7xs8zqM2WGtfwLd+ws7T5A6A@mail.gmail.com>
+ <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
+ <CALCETrWC4u55TsW_B+DJOdfR8XkbZ5cXGtgKj5+JL5UU2ntUAg@mail.gmail.com> <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f196.google.com ([209.85.223.196]:32915 "EHLO
-	mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751308AbcFYOPm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jun 2016 10:15:42 -0400
-In-Reply-To: <576E509A.7090702@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: zhouchengming <zhouchengming1@huawei.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, kilobyte@angband.pl, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, broonie@kernel.org, schwidefsky@de.ibm.com, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, guohanjun@huawei.com
+Return-path: <kernel-hardening-return-3679-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi, Chengming
-
-On Sat, Jun 25, 2016 at 5:36 PM, zhouchengming
-<zhouchengming1@huawei.com> wrote:
-> On 2016/6/9 1:00, Yury Norov wrote:
->>
->> On Wed, Jun 08, 2016 at 09:34:09AM +0800, zhouchengming wrote:
+On Fri, Jun 24, 2016 at 7:41 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Fri, Jun 24, 2016 at 2:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
 >>>
->>> On 2016/5/24 8:04, Yury Norov wrote:
->>>>
->>>> Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
->>>> detection of the task type.
->>>>
->>>> Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+>>> So let me get the pure semantic patches done, and then for 4.8 when we
+>>> do the things that actually change real meaning we'll have a sane
+>>> base. Ok?
 >>
->>
->> [...]
->>
->>> Hello, I found ilp32 will use sys_ptrace, not compat_sys_ptrace. So I
->>> write
->>> a little patch to see if can solve the problem correctly.
->>>
->>> Thanks.
->>>
->>>  From f6156236df578bb05c4a17e7f9776ceaf8f7afe6 Mon Sep 17 00:00:00 2001
->>> From: Zhou Chengming<zhouchengming1@huawei.com>
->>> Date: Wed, 8 Jun 2016 09:46:23 +0800
->>> Subject: [PATCH] ilp32: use compat_sys_ptrace instead of sys_ptrace
->>>
->>> When we analyze a testcase of ptrace that failed on ilp32, we found
->>> the syscall that the ilp32 uses is sys_ptrace, not compat_sys_ptrace.
->>> Because in include/uapi/asm-generic/unistd.h it's defined like:
->>> __SYSCALL(__NR_ptrace, sys_ptrace)
->>> So we change it to __SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace),
->>> let compat tasks use the compat_sys_ptrace.
->>>
->>> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->>> ---
->>>   include/uapi/asm-generic/unistd.h |    2 +-
->>>   1 files changed, 1 insertions(+), 1 deletions(-)
->>>
->>> diff --git a/include/uapi/asm-generic/unistd.h
->>> b/include/uapi/asm-generic/unistd.h
->>> index 2862d2e..50ee770 100644
->>> --- a/include/uapi/asm-generic/unistd.h
->>> +++ b/include/uapi/asm-generic/unistd.h
->>> @@ -364,7 +364,7 @@ __SC_WRAP(__NR_syslog, sys_syslog)
->>>
->>>   /* kernel/ptrace.c */
->>>   #define __NR_ptrace 117
->>> -__SYSCALL(__NR_ptrace, sys_ptrace)
->>> +__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
->>>
->>>   /* kernel/sched/core.c */
->>>   #define __NR_sched_setparam 118
->>> --
->>> 1.7.7
->>>
->>
->> Hi Zhou,
->>
->> Thank you for the catch.
->>
->> Could you also show the test that is failed for you. It should
->> probably be sent to LTP maillist.
->>
->> I'm not sure your fix correct as it affects other architectures that
->> use standard unistd.h. I think it's better to redirect the syscall in
->> arch/arm64/kernel/sys_ilp32.c with corresponding definition.
->>
->> Yury
->>
->> .
->>
+>> Works for me.  I'll see whether my vmap patches still apply and, if
+>> needed, rebase and send a v5.
 >
-> Sorry, I missed this mail. Thanks for your reply. :)
-> I attach the testcase file of ptrace that failed on ilp32.
-> I also think it's better to redirect the syscall in ilp32, so I changed
-> the patch.
+> Ok, I'e pushed out the cleanups (and all the pulls that always come in
+> on Friday afternoon - gaah, I shouldn't have tried doing this on a
+> Friday).
+>
+> I'm attaching the current left-over patch that actually changes
+> things. It's obviously a composite, and includes your "remove
+> stack_smp_processor_id()" thing etc, so it's not meant to be used
+> as-is, but it does seem to work.
+>
+> Interestingly, it seems pretty clean too, removing more lines than it
+> adds (despite the fact that it adds a new config option), and
+> generally making things prettier rather than the reverse.
+>
+> That's always a good sign.
 
-Thanks for your patch. But Yury has already sent an new series this week
-which define ptrace to compat one.
+I rebased my series onto your tree and then rebased this thing onto my
+series, tweaked it some, and split it up a bit.  My version works a
+bit differently (thread_info has a single element if the new option is
+set) but is otherwise more or less your code.  It seems to work.
 
-It seems that Yury do not take GET/SETSIGMASK into account. You
-could share your test case and patches at this point.
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=01ac3242f314405c1bac0f820ec3575a850509d3
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=87194cac139aebecec89a68eff719ab44f0469a2
 
-Best wishes
+On top of *that*, I taught the kernel to free stacks in release_task
+and to cache stacks if vmalloced.  That still blows up: when
+cryptomgr_test calls do_exit during boot, do_exit calls exit_notify,
+which observes that the task state is TASK_DEAD and thus calls
+release_task on itself and goes boom.
 
-Bamvor
+Linus, Oleg, help?  How am I supposed to quickly free the stack if the
+task goes through this code path?  In fact, why does this work on
+current kernels?  After all, can't schedule() indicates an RCU grace
+period?  In principle, what prevents delayed_put_task_struct from
+deleting the running stack before scheduling?
 
-[1] https://www.mail-archive.com/linux-doc@vger.kernel.org/msg03811.html
->
->
-> From 7e692ba1adf02c2a2f125836f5222f455c9ffe56 Mon Sep 17 00:00:00 2001
-> From: Zhou Chengming <zhouchengming1@huawei.com>
-> Date: Sat, 25 Jun 2016 18:02:51 +0800
-> Subject: [PATCH] ilp32 should use compat_sys_ptrace
->
-> The file include/uapi/asm-generic/unistd.h defines this:
-> __SYSCALL(__NR_ptrace, sys_ptrace)
-> It may cause some ptrace tests failed on ilp32. So we redirect the ptrace
-> syscall in arch/arm64/kernel/sys_ilp32.c with corresponding definition.
->
-> Signed-off-by: Zhou Chengming <zhouchengming1@huawei.com>
-> ---
->  arch/arm64/kernel/sys_ilp32.c |    3 +++
->  1 files changed, 3 insertions(+), 0 deletions(-)
->
-> diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
-> index d85fe94..06d5e1b 100644
-> --- a/arch/arm64/kernel/sys_ilp32.c
-> +++ b/arch/arm64/kernel/sys_ilp32.c
-> @@ -46,6 +46,9 @@
->  asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
->  #define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
->
-> +/* ilp32 should use compat_sys_ptrace */
-> +#define sys_ptrace                    compat_sys_ptrace
-> +
->  #include <asm/syscall.h>
->
->  #undef __SYSCALL
-> --
-> 1.7.7
->
->
->
+My kludged up patch that only early-releases the stack if release_task
+is called from a different task is here:
 
+https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=2327ca2ab3d634d120ea185e737fef2e4e9cf012
 
-
--- 
------------------------------------------
-   arm64, kernel. opensuse
-   blog: http://aarch64.me
------------------------------------------
+Ick.
