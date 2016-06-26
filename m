@@ -1,43 +1,104 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 13/16] x86/dumpstack: Try harder to get a call trace on
- stack overflow
-Date: Sun, 26 Jun 2016 09:59:44 -0700
-Message-ID: <CALCETrXz_GHZzx=F3AgQ8FNQ0BJROhnvK5E6-zQd57xpBFAreA@mail.gmail.com>
-References: <cover.1466741835.git.luto@kernel.org> <f76b49739625fce1264428155540ca7161925511.1466741835.git.luto@kernel.org>
- <20160624153503.oeivkn7djnxdi5oq@treble>
-Reply-To: kernel-hardening@lists.openwall.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-3687-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20160624153503.oeivkn7djnxdi5oq@treble>
-To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: [PATCH v4 03/29] x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
+Date: Sun, 26 Jun 2016 14:55:25 -0700
+Message-ID: <cc398caa9e2fde24b9711106bd710dfc2bbb0276.1466974736.git.luto@kernel.org>
+References: <cover.1466974736.git.luto@kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1466974736.git.luto@kernel.org>
+In-Reply-To: <cover.1466974736.git.luto@kernel.org>
+References: <cover.1466974736.git.luto@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Denys Vlasenko <dvlasenk@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Waiman Long <Waiman.Long@hp.com>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jun 24, 2016 at 8:35 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Thu, Jun 23, 2016 at 09:23:08PM -0700, Andy Lutomirski wrote:
->> If we overflow the stack, print_context_stack will abort.  Detect
->> this case and rewind back into the valid part of the stack so that
->> we can trace it.
->>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->
-> Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
->
+From: Ingo Molnar <mingo@kernel.org>
 
-FWIW, I'm making a trivial change here for v4: task->stack ->
-task_stack_page(task).  Since it seems inconsequential, I'm keeping
-your reviewed-by.
+So when memory hotplug removes a piece of physical memory from pagetable
+mappings, it also frees the underlying PGD entry.
 
-> --
-> Josh
+This complicates PGD management, so don't do this. We can keep the
+PGD mapped and the PUD table all clear - it's only a single 4K page
+per 512 GB of memory hotplugged.
 
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Waiman Long <Waiman.Long@hp.com>
+Cc: linux-mm@kvack.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Message-Id: <1442903021-3893-4-git-send-email-mingo@kernel.org>
+---
+ arch/x86/mm/init_64.c | 27 ---------------------------
+ 1 file changed, 27 deletions(-)
 
-
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index bce2e5d9edd4..c7465453d64e 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -702,27 +702,6 @@ static void __meminit free_pmd_table(pmd_t *pmd_start, pud_t *pud)
+ 	spin_unlock(&init_mm.page_table_lock);
+ }
+ 
+-/* Return true if pgd is changed, otherwise return false. */
+-static bool __meminit free_pud_table(pud_t *pud_start, pgd_t *pgd)
+-{
+-	pud_t *pud;
+-	int i;
+-
+-	for (i = 0; i < PTRS_PER_PUD; i++) {
+-		pud = pud_start + i;
+-		if (pud_val(*pud))
+-			return false;
+-	}
+-
+-	/* free a pud table */
+-	free_pagetable(pgd_page(*pgd), 0);
+-	spin_lock(&init_mm.page_table_lock);
+-	pgd_clear(pgd);
+-	spin_unlock(&init_mm.page_table_lock);
+-
+-	return true;
+-}
+-
+ static void __meminit
+ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
+ 		 bool direct)
+@@ -913,7 +892,6 @@ remove_pagetable(unsigned long start, unsigned long end, bool direct)
+ 	unsigned long addr;
+ 	pgd_t *pgd;
+ 	pud_t *pud;
+-	bool pgd_changed = false;
+ 
+ 	for (addr = start; addr < end; addr = next) {
+ 		next = pgd_addr_end(addr, end);
+@@ -924,13 +902,8 @@ remove_pagetable(unsigned long start, unsigned long end, bool direct)
+ 
+ 		pud = (pud_t *)pgd_page_vaddr(*pgd);
+ 		remove_pud_table(pud, addr, next, direct);
+-		if (free_pud_table(pud, pgd))
+-			pgd_changed = true;
+ 	}
+ 
+-	if (pgd_changed)
+-		sync_global_pgds(start, end - 1, 1);
+-
+ 	flush_tlb_all();
+ }
+ 
 -- 
-Andy Lutomirski
-AMA Capital Management, LLC
+2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
