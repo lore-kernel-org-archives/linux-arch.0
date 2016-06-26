@@ -1,130 +1,54 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 17/29] x86: Move uaccess_err and sig_on_uaccess_err to thread_struct
-Date: Sun, 26 Jun 2016 14:55:39 -0700
-Message-ID: <ffb301d6213d3cd9e47f903699084854f61681e1.1466974736.git.luto@kernel.org>
+Subject: [PATCH v4 13/29] x86/dumpstack: Try harder to get a call trace on stack overflow
+Date: Sun, 26 Jun 2016 14:55:35 -0700
+Message-ID: <5ec59addf4d5ee9ed8dc51f9e927867534d0f911.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3695-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-thread_info is a legacy mess.  To prepare for its partial removal,
-move the uaccess control fields out -- they're straightforward.
+If we overflow the stack, print_context_stack will abort.  Detect
+this case and rewind back into the valid part of the stack so that
+we can trace it.
 
+Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/entry/vsyscall/vsyscall_64.c | 6 +++---
- arch/x86/include/asm/processor.h      | 3 +++
- arch/x86/include/asm/thread_info.h    | 2 --
- arch/x86/include/asm/uaccess.h        | 4 ++--
- arch/x86/mm/extable.c                 | 2 +-
- arch/x86/mm/fault.c                   | 2 +-
- 6 files changed, 10 insertions(+), 9 deletions(-)
+ arch/x86/kernel/dumpstack.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
-index 174c2549939d..3aba2b043050 100644
---- a/arch/x86/entry/vsyscall/vsyscall_64.c
-+++ b/arch/x86/entry/vsyscall/vsyscall_64.c
-@@ -221,8 +221,8 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
- 	 * With a real vsyscall, page faults cause SIGSEGV.  We want to
- 	 * preserve that behavior to make writing exploits harder.
- 	 */
--	prev_sig_on_uaccess_error = current_thread_info()->sig_on_uaccess_error;
--	current_thread_info()->sig_on_uaccess_error = 1;
-+	prev_sig_on_uaccess_error = current->thread.sig_on_uaccess_error;
-+	current->thread.sig_on_uaccess_error = 1;
- 
- 	ret = -EFAULT;
- 	switch (vsyscall_nr) {
-@@ -243,7 +243,7 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
- 		break;
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index 0d05f113805e..8a2113dfc154 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -87,7 +87,7 @@ static inline int valid_stack_ptr(struct task_struct *task,
+ 		else
+ 			return 0;
  	}
- 
--	current_thread_info()->sig_on_uaccess_error = prev_sig_on_uaccess_error;
-+	current->thread.sig_on_uaccess_error = prev_sig_on_uaccess_error;
- 
- check_fault:
- 	if (ret == -EFAULT) {
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 62c6cc3cc5d3..f53ae57bd985 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -419,6 +419,9 @@ struct thread_struct {
- 	/* Max allowed port in the bitmap, in bytes: */
- 	unsigned		io_bitmap_max;
- 
-+	unsigned int		sig_on_uaccess_error:1;
-+	unsigned int		uaccess_err:1;	/* uaccess failed */
-+
- 	/* Floating point and extended processor state */
- 	struct fpu		fpu;
- 	/*
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index 30c133ac05cd..7c47bb659ecd 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -58,8 +58,6 @@ struct thread_info {
- 	__u32			status;		/* thread synchronous flags */
- 	__u32			cpu;		/* current CPU */
- 	mm_segment_t		addr_limit;
--	unsigned int		sig_on_uaccess_error:1;
--	unsigned int		uaccess_err:1;	/* uaccess failed */
- };
- 
- #define INIT_THREAD_INFO(tsk)			\
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 2982387ba817..4d2a726e8e6d 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -468,13 +468,13 @@ struct __large_struct { unsigned long buf[100]; };
-  * uaccess_try and catch
-  */
- #define uaccess_try	do {						\
--	current_thread_info()->uaccess_err = 0;				\
-+	current->thread.uaccess_err = 0;				\
- 	__uaccess_begin();						\
- 	barrier();
- 
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
--	(err) |= (current_thread_info()->uaccess_err ? -EFAULT : 0);	\
-+	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
- } while (0)
- 
- /**
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index 4bb53b89f3c5..0f90cc218d04 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -37,7 +37,7 @@ bool ex_handler_ext(const struct exception_table_entry *fixup,
- 		   struct pt_regs *regs, int trapnr)
- {
- 	/* Special hack for uaccess_err */
--	current_thread_info()->uaccess_err = 1;
-+	current->thread.uaccess_err = 1;
- 	regs->ip = ex_fixup_addr(fixup);
- 	return true;
+-	return p > t && p < t + THREAD_SIZE - size;
++	return p >= t && p < t + THREAD_SIZE - size;
  }
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index c68b81f5659f..d34e21e81b07 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -737,7 +737,7 @@ no_context(struct pt_regs *regs, unsigned long error_code,
- 		 * In this case we need to make sure we're not recursively
- 		 * faulting through the emulate_vsyscall() logic.
- 		 */
--		if (current_thread_info()->sig_on_uaccess_error && signal) {
-+		if (current->thread.sig_on_uaccess_error && signal) {
- 			tsk->thread.trap_nr = X86_TRAP_PF;
- 			tsk->thread.error_code = error_code | PF_USER;
- 			tsk->thread.cr2 = address;
+ 
+ unsigned long
+@@ -98,6 +98,14 @@ print_context_stack(struct task_struct *task,
+ {
+ 	struct stack_frame *frame = (struct stack_frame *)bp;
+ 
++	/*
++	 * If we overflowed the stack into a guard page, jump back to the
++	 * bottom of the usable stack.
++	 */
++	if ((unsigned long)task_stack_page(task) - (unsigned long)stack <
++	    PAGE_SIZE)
++		stack = (unsigned long *)task_stack_page(task);
++
+ 	while (valid_stack_ptr(task, stack, sizeof(*stack), end)) {
+ 		unsigned long addr;
+ 
 -- 
 2.7.4
