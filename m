@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:60578 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:59832 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751948AbcFZV4d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 Jun 2016 17:56:33 -0400
+	id S1751738AbcFZV4N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 26 Jun 2016 17:56:13 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 25/29] um: Stop conflating task_struct::stack with thread_info
-Date: Sun, 26 Jun 2016 14:55:47 -0700
-Message-ID: <2730161a8000f2b5cef009483d92fee81fe900d5.1466974736.git.luto@kernel.org>
+Subject: [PATCH v4 11/29] x86/dumpstack: When OOPSing, rewind the stack before do_exit
+Date: Sun, 26 Jun 2016 14:55:33 -0700
+Message-ID: <b05602fd545f3ddbb2c3e2bfd2ef5d18e85edd50.1466974736.git.luto@kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
@@ -15,59 +15,98 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160626215547.cegvClr5GXg3M3x70Ck2N2LTJtZ2byyiVqrS6PRshj8@z>
+Message-ID: <20160626215533.5771o_i6mUwFEMVRbWt5exDAf54XkDLzoQeYbLUN6cE@z>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+If we call do_exit with a clean stack, we greatly reduce the risk of
+recursive oopses due to stack overflow in do_exit, and we allow
+do_exit to work even if we OOPS from an IST stack.  The latter gives
+us a much better chance of surviving long enough after we detect a
+stack overflow to write out our logs.
 
-thread_info may move in the future, so use the accessors.
+I intentionally separated this from the preceding patch that
+disables do_exit-on-OOPS on IST stacks.  This way, if we need to
+revert this patch, we still end up in an acceptable state wrt stack
+overflow handling.
 
-[changelog written by Andy]
-Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/um/ptrace_32.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/entry/entry_32.S   | 11 +++++++++++
+ arch/x86/entry/entry_64.S   | 11 +++++++++++
+ arch/x86/kernel/dumpstack.c | 13 +++++++++----
+ 3 files changed, 31 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/um/ptrace_32.c b/arch/x86/um/ptrace_32.c
-index ebd4dd6ef73b..14e8f6a628c2 100644
---- a/arch/x86/um/ptrace_32.c
-+++ b/arch/x86/um/ptrace_32.c
-@@ -191,7 +191,7 @@ int peek_user(struct task_struct *child, long addr, long data)
+diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
+index 983e5d3a0d27..0b56666e6039 100644
+--- a/arch/x86/entry/entry_32.S
++++ b/arch/x86/entry/entry_32.S
+@@ -1153,3 +1153,14 @@ ENTRY(async_page_fault)
+ 	jmp	error_code
+ END(async_page_fault)
+ #endif
++
++ENTRY(rewind_stack_do_exit)
++	/* Prevent any naive code from trying to unwind to our caller. */
++	xorl	%ebp, %ebp
++
++	movl	PER_CPU_VAR(cpu_current_top_of_stack), %esi
++	leal	-TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%esi), %esp
++
++	call	do_exit
++1:	jmp 1b
++END(rewind_stack_do_exit)
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index 9ee0da1807ed..b846875aeea6 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -1423,3 +1423,14 @@ ENTRY(ignore_sysret)
+ 	mov	$-ENOSYS, %eax
+ 	sysret
+ END(ignore_sysret)
++
++ENTRY(rewind_stack_do_exit)
++	/* Prevent any naive code from trying to unwind to our caller. */
++	xorl	%ebp, %ebp
++
++	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rax
++	leaq	-TOP_OF_KERNEL_STACK_PADDING-PTREGS_SIZE(%rax), %rsp
++
++	call	do_exit
++1:	jmp 1b
++END(rewind_stack_do_exit)
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index 352f022cfd5b..0d05f113805e 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -226,6 +226,8 @@ unsigned long oops_begin(void)
+ EXPORT_SYMBOL_GPL(oops_begin);
+ NOKPROBE_SYMBOL(oops_begin);
  
- static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
++extern void __noreturn rewind_stack_do_exit(int signr);
++
+ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
  {
--	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
-+	int err, n, cpu = task_thread_info(child)->cpu;
- 	struct user_i387_struct fpregs;
+ 	if (regs && kexec_should_crash(current))
+@@ -245,12 +247,15 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+ 		return;
+ 	if (in_interrupt())
+ 		panic("Fatal exception in interrupt");
+-	if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
+-	     & ~(THREAD_SIZE - 1)) != 0)
+-		panic("Fatal exception on special stack");
+ 	if (panic_on_oops)
+ 		panic("Fatal exception");
+-	do_exit(signr);
++
++	/*
++	 * We're not going to return, but we might be on an IST stack or
++	 * have very little stack space left.  Rewind the stack and kill
++	 * the task.
++	 */
++	rewind_stack_do_exit(signr);
+ }
+ NOKPROBE_SYMBOL(oops_end);
  
- 	err = save_i387_registers(userspace_pid[cpu],
-@@ -208,7 +208,7 @@ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
- 
- static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
- {
--	int n, cpu = ((struct thread_info *) child->stack)->cpu;
-+	int n, cpu = task_thread_info(child)->cpu;
- 	struct user_i387_struct fpregs;
- 
- 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
-@@ -221,7 +221,7 @@ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
- 
- static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
- {
--	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
-+	int err, n, cpu = task_thread_info(child)->cpu;
- 	struct user_fxsr_struct fpregs;
- 
- 	err = save_fpx_registers(userspace_pid[cpu], (unsigned long *) &fpregs);
-@@ -237,7 +237,7 @@ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *
- 
- static int set_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
- {
--	int n, cpu = ((struct thread_info *) child->stack)->cpu;
-+	int n, cpu = task_thread_info(child)->cpu;
- 	struct user_fxsr_struct fpregs;
- 
- 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
 -- 
 2.7.4
 
