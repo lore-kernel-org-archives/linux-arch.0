@@ -1,10 +1,10 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 20/29] x86/smp: Remove stack_smp_processor_id()
-Date: Sun, 26 Jun 2016 14:55:42 -0700
-Message-ID: <6c8610ea4d224d14699f62c07e569e2f01499234.1466974736.git.luto@kernel.org>
+Subject: [PATCH v4 25/29] um: Stop conflating task_struct::stack with thread_info
+Date: Sun, 26 Jun 2016 14:55:47 -0700
+Message-ID: <2730161a8000f2b5cef009483d92fee81fe900d5.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3715-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-3717-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
@@ -16,57 +16,56 @@ To: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It serves no purpose -- raw_smp_processor_id() works fine.  This
-change will be needed to move thread_info off the stack.
+From: Linus Torvalds <torvalds@linux-foundation.org>
 
+thread_info may move in the future, so use the accessors.
+
+[changelog written by Andy]
+Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/cpu.h   | 1 -
- arch/x86/include/asm/smp.h   | 6 ------
- arch/x86/kernel/cpu/common.c | 2 +-
- 3 files changed, 1 insertion(+), 8 deletions(-)
+ arch/x86/um/ptrace_32.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/cpu.h b/arch/x86/include/asm/cpu.h
-index 678637ad7476..59d34c521d96 100644
---- a/arch/x86/include/asm/cpu.h
-+++ b/arch/x86/include/asm/cpu.h
-@@ -17,7 +17,6 @@ static inline void prefill_possible_map(void) {}
+diff --git a/arch/x86/um/ptrace_32.c b/arch/x86/um/ptrace_32.c
+index ebd4dd6ef73b..14e8f6a628c2 100644
+--- a/arch/x86/um/ptrace_32.c
++++ b/arch/x86/um/ptrace_32.c
+@@ -191,7 +191,7 @@ int peek_user(struct task_struct *child, long addr, long data)
  
- #define cpu_physical_id(cpu)			boot_cpu_physical_apicid
- #define safe_smp_processor_id()			0
--#define stack_smp_processor_id()		0
+ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
+ {
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_thread_info(child)->cpu;
+ 	struct user_i387_struct fpregs;
  
- #endif /* CONFIG_SMP */
+ 	err = save_i387_registers(userspace_pid[cpu],
+@@ -208,7 +208,7 @@ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
  
-diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
-index 66b057306f40..0576b6157f3a 100644
---- a/arch/x86/include/asm/smp.h
-+++ b/arch/x86/include/asm/smp.h
-@@ -172,12 +172,6 @@ extern int safe_smp_processor_id(void);
- #elif defined(CONFIG_X86_64_SMP)
- #define raw_smp_processor_id() (this_cpu_read(cpu_number))
+ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_thread_info(child)->cpu;
+ 	struct user_i387_struct fpregs;
  
--#define stack_smp_processor_id()					\
--({								\
--	struct thread_info *ti;						\
--	__asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (CURRENT_MASK));	\
--	ti->cpu;							\
--})
- #define safe_smp_processor_id()		smp_processor_id()
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
+@@ -221,7 +221,7 @@ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
  
- #endif
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 0fe6953f421c..d22a7b9c4f0e 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -1452,7 +1452,7 @@ void cpu_init(void)
- 	struct task_struct *me;
- 	struct tss_struct *t;
- 	unsigned long v;
--	int cpu = stack_smp_processor_id();
-+	int cpu = raw_smp_processor_id();
- 	int i;
+ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_thread_info(child)->cpu;
+ 	struct user_fxsr_struct fpregs;
  
- 	wait_for_master_cpu(cpu);
+ 	err = save_fpx_registers(userspace_pid[cpu], (unsigned long *) &fpregs);
+@@ -237,7 +237,7 @@ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *
+ 
+ static int set_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_thread_info(child)->cpu;
+ 	struct user_fxsr_struct fpregs;
+ 
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
 -- 
 2.7.4
