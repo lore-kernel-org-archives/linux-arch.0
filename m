@@ -1,85 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f45.google.com ([209.85.213.45]:34282 "EHLO
-	mail-vk0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751298AbcFYXYz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jun 2016 19:24:55 -0400
-Received: by mail-vk0-f45.google.com with SMTP id c2so162258643vkg.1
-        for <linux-arch@vger.kernel.org>; Sat, 25 Jun 2016 16:24:55 -0700 (PDT)
+Received: from mail-vk0-f47.google.com ([209.85.213.47]:34356 "EHLO
+	mail-vk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751540AbcFZRAF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jun 2016 13:00:05 -0400
+Received: by mail-vk0-f47.google.com with SMTP id c2so176161514vkg.1
+        for <linux-arch@vger.kernel.org>; Sun, 26 Jun 2016 10:00:04 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
-References: <CA+55aFy54iDN56FDJAz3A8epRvKECVO+nL5LaMxdmKrFEOm05w@mail.gmail.com>
- <20160623185340.GO30154@twins.programming.kicks-ass.net> <CA+55aFzhUo=2M-y39NOpWAVm1h0ADfjR3dxszJmefvoEYLa2og@mail.gmail.com>
- <CA+55aFxo8tU42+hMjRgs1dUrqn1=rzDnvikRHHWV9HwDVeYkuQ@mail.gmail.com>
- <CAMzpN2i7ve0Rq9BCxjp2FUw5naPLrGDd7Mf3evrrRjUZN75oJQ@mail.gmail.com>
- <CA+55aFwJ1=pyr9fP_UzDjnyX2qJ4mpxg_DTTiOJTv9PFW4dHgg@mail.gmail.com>
- <CA+55aFyu=G09-Qg=M-7CmAudS1Mj+OZMPNerd9VfUwvNk8VL+Q@mail.gmail.com>
- <CA+55aFyKxNZQtCS3VY_8qMS4B=q-ar5ST8RdCTwAC07ZOkBjQA@mail.gmail.com>
- <CA+55aFx=wdH4v7cD2F5Kq+jwDfV5cz9qTANgOwpMTC3MY=99AQ@mail.gmail.com>
- <20160624202530.unmidps4kpebo2na@treble> <20160624205116.4hbnurrnan4afq2t@treble>
- <CA+55aFyWJSE3DdoZvtc=tkuqvn1eQC=-dK=kfQ70ZR_7xLTkvA@mail.gmail.com>
- <CALCETrXUZbsr+ZvcCsffCMGFwX7xs8zqM2WGtfwLd+ws7T5A6A@mail.gmail.com>
- <CA+55aFw96289kXRz9q7N=d4GD3eJxQB8ddV=GXMYm+Cd6Pk=Bg@mail.gmail.com>
- <CALCETrWC4u55TsW_B+DJOdfR8XkbZ5cXGtgKj5+JL5UU2ntUAg@mail.gmail.com> <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
+In-Reply-To: <20160624153503.oeivkn7djnxdi5oq@treble>
+References: <cover.1466741835.git.luto@kernel.org> <f76b49739625fce1264428155540ca7161925511.1466741835.git.luto@kernel.org>
+ <20160624153503.oeivkn7djnxdi5oq@treble>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Sat, 25 Jun 2016 16:19:30 -0700
-Message-ID: <CALCETrX9LSNCrj6Z=QS122XUODpv89hEKi=U3rfxiaAZxs6E4Q@mail.gmail.com>
-Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86, core)
+Date: Sun, 26 Jun 2016 09:59:44 -0700
+Message-ID: <CALCETrXz_GHZzx=F3AgQ8FNQ0BJROhnvK5E6-zQd57xpBFAreA@mail.gmail.com>
+Subject: Re: [PATCH v4 13/16] x86/dumpstack: Try harder to get a call trace on
+ stack overflow
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Brian Gerst <brgerst@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160625231930.JlG2BaMsuSezBFuOfcUHJtZ92Eo-Hbbtc7LU9XGGruc@z>
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160626165944.ySHI1hUltBkermI2XtS0H6s9sH47MzkA9j602jDc2KU@z>
 
-On Fri, Jun 24, 2016 at 7:41 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Fri, Jun 24, 2016 at 2:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->>>
->>> So let me get the pure semantic patches done, and then for 4.8 when we
->>> do the things that actually change real meaning we'll have a sane
->>> base. Ok?
+On Fri, Jun 24, 2016 at 8:35 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> On Thu, Jun 23, 2016 at 09:23:08PM -0700, Andy Lutomirski wrote:
+>> If we overflow the stack, print_context_stack will abort.  Detect
+>> this case and rewind back into the valid part of the stack so that
+>> we can trace it.
 >>
->> Works for me.  I'll see whether my vmap patches still apply and, if
->> needed, rebase and send a v5.
+>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 >
-> Ok, I'e pushed out the cleanups (and all the pulls that always come in
-> on Friday afternoon - gaah, I shouldn't have tried doing this on a
-> Friday).
+> Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
 >
-> I'm attaching the current left-over patch that actually changes
-> things. It's obviously a composite, and includes your "remove
-> stack_smp_processor_id()" thing etc, so it's not meant to be used
-> as-is, but it does seem to work.
->
-> Interestingly, it seems pretty clean too, removing more lines than it
-> adds (despite the fact that it adds a new config option), and
-> generally making things prettier rather than the reverse.
->
-> That's always a good sign.
 
-I rebased my series onto your tree and then rebased this thing onto my
-series, tweaked it some, and split it up a bit.  My version works a
-bit differently (thread_info has a single element if the new option is
-set) but is otherwise more or less your code.  It seems to work.
+FWIW, I'm making a trivial change here for v4: task->stack ->
+task_stack_page(task).  Since it seems inconsequential, I'm keeping
+your reviewed-by.
 
-https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=01ac3242f314405c1bac0f820ec3575a850509d3
-https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=87194cac139aebecec89a68eff719ab44f0469a2
+> --
+> Josh
 
-On top of *that*, I taught the kernel to free stacks in release_task
-and to cache stacks if vmalloced.  That still blows up: when
-cryptomgr_test calls do_exit during boot, do_exit calls exit_notify,
-which observes that the task state is TASK_DEAD and thus calls
-release_task on itself and goes boom.
 
-Linus, Oleg, help?  How am I supposed to quickly free the stack if the
-task goes through this code path?  In fact, why does this work on
-current kernels?  After all, can't schedule() indicates an RCU grace
-period?  In principle, what prevents delayed_put_task_struct from
-deleting the running stack before scheduling?
 
-My kludged up patch that only early-releases the stack if release_task
-is called from a different task is here:
-
-https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/commit/?h=x86/vmap_stack&id=2327ca2ab3d634d120ea185e737fef2e4e9cf012
-
-Ick.
+-- 
+Andy Lutomirski
+AMA Capital Management, LLC
