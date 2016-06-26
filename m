@@ -1,114 +1,199 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 06/29] mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
-Date: Sun, 26 Jun 2016 14:55:28 -0700
-Message-ID: <7042d0e35631cf932449f044f45c89054422f56c.1466974736.git.luto@kernel.org>
-References: <cover.1466974736.git.luto@kernel.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1466974736.git.luto@kernel.org>
-In-Reply-To: <cover.1466974736.git.luto@kernel.org>
-References: <cover.1466974736.git.luto@kernel.org>
-Sender: owner-linux-mm@kvack.org
+Subject: [PATCH v4 00/29] virtually mapped stacks and thread_info cleanup
+Date: Sun, 26 Jun 2016 14:55:22 -0700
+Message-ID: <cover.1466974736.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <kernel-hardening-return-3688-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 To: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, NR_KERNEL_STACK tracks the number of kernel stacks in a
-zone.  This only makes sense if each kernel stack exists entirely in
-one zone, and allowing vmapped stacks could break this assumption.
+Hi all-
 
-Since frv has THREAD_SIZE < PAGE_SIZE, we need to track kernel stack
-allocations in a unit that divides both THREAD_SIZE and PAGE_SIZE on
-all architectures.  Keep it simple and use KiB.
+Since the dawn of time, a kernel stack overflow has been a real PITA
+to debug, has caused nondeterministic crashes some time after the
+actual overflow, and has generally been easy to exploit for root.
 
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Reviewed-by: Vladimir Davydov <vdavydov@virtuozzo.com>
-Acked-by: Michal Hocko <mhocko@suse.com>
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- drivers/base/node.c    | 3 +--
- fs/proc/meminfo.c      | 2 +-
- include/linux/mmzone.h | 2 +-
- kernel/fork.c          | 3 ++-
- mm/page_alloc.c        | 3 +--
- 5 files changed, 6 insertions(+), 7 deletions(-)
+With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
+that enable it (just x86 for now) get virtually mapped stacks with
+guard pages.  This causes reliable faults when the stack overflows.
 
-diff --git a/drivers/base/node.c b/drivers/base/node.c
-index 560751bad294..27dc68a0ed2d 100644
---- a/drivers/base/node.c
-+++ b/drivers/base/node.c
-@@ -121,8 +121,7 @@ static ssize_t node_read_meminfo(struct device *dev,
- 		       nid, K(node_page_state(nid, NR_FILE_MAPPED)),
- 		       nid, K(node_page_state(nid, NR_ANON_PAGES)),
- 		       nid, K(i.sharedram),
--		       nid, node_page_state(nid, NR_KERNEL_STACK) *
--				THREAD_SIZE / 1024,
-+		       nid, node_page_state(nid, NR_KERNEL_STACK_KB),
- 		       nid, K(node_page_state(nid, NR_PAGETABLE)),
- 		       nid, K(node_page_state(nid, NR_UNSTABLE_NFS)),
- 		       nid, K(node_page_state(nid, NR_BOUNCE)),
-diff --git a/fs/proc/meminfo.c b/fs/proc/meminfo.c
-index 83720460c5bc..239b5a06cee0 100644
---- a/fs/proc/meminfo.c
-+++ b/fs/proc/meminfo.c
-@@ -145,7 +145,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
- 				global_page_state(NR_SLAB_UNRECLAIMABLE)),
- 		K(global_page_state(NR_SLAB_RECLAIMABLE)),
- 		K(global_page_state(NR_SLAB_UNRECLAIMABLE)),
--		global_page_state(NR_KERNEL_STACK) * THREAD_SIZE / 1024,
-+		global_page_state(NR_KERNEL_STACK_KB),
- 		K(global_page_state(NR_PAGETABLE)),
- #ifdef CONFIG_QUICKLIST
- 		K(quicklist_total_size()),
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index 02069c23486d..63f05a7efb54 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -127,7 +127,7 @@ enum zone_stat_item {
- 	NR_SLAB_RECLAIMABLE,
- 	NR_SLAB_UNRECLAIMABLE,
- 	NR_PAGETABLE,		/* used for pagetables */
--	NR_KERNEL_STACK,
-+	NR_KERNEL_STACK_KB,	/* measured in KiB */
- 	/* Second 128 byte cacheline */
- 	NR_UNSTABLE_NFS,	/* NFS unstable pages */
- 	NR_BOUNCE,
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 4a7ec0c6c88c..466ba8febe3b 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -225,7 +225,8 @@ static void account_kernel_stack(unsigned long *stack, int account)
- {
- 	struct zone *zone = page_zone(virt_to_page(stack));
- 
--	mod_zone_page_state(zone, NR_KERNEL_STACK, account);
-+	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
-+			    THREAD_SIZE / 1024 * account);
- }
- 
- void free_task(struct task_struct *tsk)
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 6903b695ebae..a277dea926c9 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -4457,8 +4457,7 @@ void show_free_areas(unsigned int filter)
- 			K(zone_page_state(zone, NR_SHMEM)),
- 			K(zone_page_state(zone, NR_SLAB_RECLAIMABLE)),
- 			K(zone_page_state(zone, NR_SLAB_UNRECLAIMABLE)),
--			zone_page_state(zone, NR_KERNEL_STACK) *
--				THREAD_SIZE / 1024,
-+			zone_page_state(zone, NR_KERNEL_STACK_KB),
- 			K(zone_page_state(zone, NR_PAGETABLE)),
- 			K(zone_page_state(zone, NR_UNSTABLE_NFS)),
- 			K(zone_page_state(zone, NR_BOUNCE)),
+If the arch implements it well, we get a nice OOPS on stack overflow
+(as opposed to panicing directly or otherwise exploding badly).  On
+x86, the OOPS is nice, has a usable call trace, and the overflowing
+task is killed cleanly.
+
+This series (starting with this version, v4) also extensively cleans
+up thread_info.  thread_info has been partially redundant with
+thread_struct for a long time -- both are places for arch code to
+add additional per-task variables.  thread_struct is much cleaner:
+it's always in task_struct, and there's nothing particularly magical
+about it.  So this series contains a bunch of cleanups on x86 to
+move almost everything from thread_info to thread_struct (which,
+even by itself, deletes more code than it adds) and to remove x86's
+dependence on thread_info's position on the stack.  Then it opts x86
+into a new config option THREAD_INFO_IN_TASK to get rid of
+arch-specific thread_info entirely and simply embed a defanged
+thread_info (containing only flags) and 'int cpu' into task_struct.
+
+Once thread_info stops being magical, there's another benefit: we
+can free the thread stack as soon as the task is dead (without
+waiting for RCU) and then, if vmapped stacks are in use, cache the
+entire stack for reuse on the same cpu.
+
+This seems to be an overall speedup of about 0.5-1 µs per
+pthread_create/join in a simple test -- a percpu cache of vmalloced
+stacks appears to be a bit faster than a high-order stack
+allocation, at least when the cache hits.  (I expect that workloads
+with a low cache hit rate are likely to be dominated by other
+effects anyway.)
+
+This does not address interrupt stacks.
+
+It's worth noting that s390 has an arch-specific gcc feature that
+detects stack overflows by adjusting function prologues.  Arches
+with features like that may wish to avoid using vmapped stacks to
+minimize the performance hit.
+
+Known issues:
+ - tcp md5, virtio_net, and virtio_console will have issues.  Eric Dumazet
+   has a patch for tcp md5, and Michael Tsirkin says he'll fix virtio_net
+   and virtio_console.
+
+Changes from v3:
+ - Minor cleanups
+ - Rebased onto Linus' tree
+ - All the thread_info stuff is new
+
+Changes from v2:
+ - Delete kerne_unmap_pages_in_pgd rather than hardening it (Borislav)
+ - Fix sub-page stack accounting better (Josh)
+
+Changes from v1:
+ - Fix rewind_stack_and_do_exit (Josh)
+ - Fix deadlock under load
+ - Clean up generic stack vmalloc code
+ - Many other minor fixes
+
+Andy Lutomirski (25):
+  bluetooth: Switch SMP to crypto_cipher_encrypt_one()
+  x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
+  x86/mm: Remove kernel_unmap_pages_in_pgd() and
+    efi_cleanup_page_tables()
+  mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
+  mm: Fix memcg stack accounting for sub-page stacks
+  dma-api: Teach the "DMA-from-stack" check about vmapped stacks
+  fork: Add generic vmalloced stack support
+  x86/die: Don't try to recover from an OOPS on a non-default stack
+  x86/dumpstack: When OOPSing, rewind the stack before do_exit
+  x86/dumpstack: When dumping stack bytes due to OOPS, start with
+    regs->sp
+  x86/dumpstack: Try harder to get a call trace on stack overflow
+  x86/dumpstack/64: Handle faults when printing the "Stack:" part of an
+    OOPS
+  x86/mm/64: Enable vmapped stacks
+  x86/mm: Improve stack-overflow #PF handling
+  x86: Move uaccess_err and sig_on_uaccess_err to thread_struct
+  x86: Move addr_limit to thread_struct
+  signal: Consolidate {TS,TLF}_RESTORE_SIGMASK code
+  x86/smp: Remove stack_smp_processor_id()
+  x86/smp: Remove unnecessary initialization of thread_info::cpu
+  x86/asm: Move 'status' from struct thread_info to struct thread_struct
+  kdb: Use task_cpu() instead of task_thread_info()->cpu
+  sched: Allow putting thread_info into task_struct
+  x86: Move thread_info into task_struct
+  sched: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
+  fork: Cache two thread stacks per cpu if CONFIG_VMAP_STACK is set
+
+Herbert Xu (1):
+  rxrpc: Avoid using stack memory in SG lists in rxkad
+
+Ingo Molnar (1):
+  x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
+
+Linus Torvalds (2):
+  x86/entry: Get rid of pt_regs_to_thread_info()
+  um: Stop conflating task_struct::stack with thread_info
+
+ arch/Kconfig                              |  29 ++++++
+ arch/alpha/include/asm/thread_info.h      |  27 -----
+ arch/ia64/include/asm/thread_info.h       |  30 +-----
+ arch/microblaze/include/asm/thread_info.h |  27 -----
+ arch/powerpc/include/asm/thread_info.h    |  25 -----
+ arch/sh/include/asm/thread_info.h         |  26 -----
+ arch/sparc/include/asm/thread_info_64.h   |  24 -----
+ arch/tile/include/asm/thread_info.h       |  27 -----
+ arch/x86/Kconfig                          |   2 +
+ arch/x86/entry/common.c                   |  25 ++---
+ arch/x86/entry/entry_32.S                 |  11 +++
+ arch/x86/entry/entry_64.S                 |  20 +++-
+ arch/x86/entry/vsyscall/vsyscall_64.c     |   6 +-
+ arch/x86/include/asm/checksum_32.h        |   3 +-
+ arch/x86/include/asm/cpu.h                |   1 -
+ arch/x86/include/asm/efi.h                |   1 -
+ arch/x86/include/asm/pgtable_types.h      |   2 -
+ arch/x86/include/asm/processor.h          |  32 ++++--
+ arch/x86/include/asm/smp.h                |   6 --
+ arch/x86/include/asm/switch_to.h          |  34 ++++++-
+ arch/x86/include/asm/syscall.h            |  23 +----
+ arch/x86/include/asm/thread_info.h        | 102 +------------------
+ arch/x86/include/asm/traps.h              |   6 ++
+ arch/x86/include/asm/uaccess.h            |  10 +-
+ arch/x86/kernel/asm-offsets.c             |   5 +-
+ arch/x86/kernel/cpu/common.c              |   2 +-
+ arch/x86/kernel/dumpstack.c               |  20 +++-
+ arch/x86/kernel/dumpstack_32.c            |   4 +-
+ arch/x86/kernel/dumpstack_64.c            |  16 ++-
+ arch/x86/kernel/fpu/init.c                |   1 -
+ arch/x86/kernel/irq_64.c                  |   3 +-
+ arch/x86/kernel/process.c                 |   6 +-
+ arch/x86/kernel/process_64.c              |   4 +-
+ arch/x86/kernel/ptrace.c                  |   2 +-
+ arch/x86/kernel/smpboot.c                 |   1 -
+ arch/x86/kernel/traps.c                   |  32 ++++++
+ arch/x86/lib/copy_user_64.S               |   8 +-
+ arch/x86/lib/csum-wrappers_64.c           |   1 +
+ arch/x86/lib/getuser.S                    |  20 ++--
+ arch/x86/lib/putuser.S                    |  10 +-
+ arch/x86/lib/usercopy_64.c                |   2 +-
+ arch/x86/mm/extable.c                     |   2 +-
+ arch/x86/mm/fault.c                       |  41 +++++++-
+ arch/x86/mm/init_64.c                     |  27 -----
+ arch/x86/mm/pageattr.c                    |  32 +-----
+ arch/x86/mm/tlb.c                         |  15 +++
+ arch/x86/platform/efi/efi.c               |   2 -
+ arch/x86/platform/efi/efi_32.c            |   3 -
+ arch/x86/platform/efi/efi_64.c            |   5 -
+ arch/x86/um/ptrace_32.c                   |   8 +-
+ drivers/base/node.c                       |   3 +-
+ drivers/pnp/isapnp/proc.c                 |   2 +-
+ fs/proc/meminfo.c                         |   2 +-
+ include/linux/init_task.h                 |   9 ++
+ include/linux/kdb.h                       |   2 +-
+ include/linux/memcontrol.h                |   2 +-
+ include/linux/mmzone.h                    |   2 +-
+ include/linux/sched.h                     | 115 +++++++++++++++++++++-
+ include/linux/thread_info.h               |  56 +++--------
+ init/Kconfig                              |   3 +
+ init/init_task.c                          |   7 +-
+ kernel/fork.c                             | 158 +++++++++++++++++++++++++-----
+ kernel/sched/core.c                       |   9 ++
+ kernel/sched/sched.h                      |   4 +
+ lib/bitmap.c                              |   2 +-
+ lib/dma-debug.c                           |  39 ++++++--
+ mm/memcontrol.c                           |   2 +-
+ mm/page_alloc.c                           |   3 +-
+ net/bluetooth/smp.c                       |  67 ++++++-------
+ net/rxrpc/ar-internal.h                   |   1 +
+ net/rxrpc/rxkad.c                         | 103 ++++++++-----------
+ 71 files changed, 714 insertions(+), 648 deletions(-)
+
 -- 
 2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
