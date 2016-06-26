@@ -1,10 +1,10 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 26/29] sched: Allow putting thread_info into task_struct
-Date: Sun, 26 Jun 2016 14:55:48 -0700
-Message-ID: <aeea9c1c41e889065b2c9ecd6d0694e4dfb529c8.1466974736.git.luto@kernel.org>
+Subject: [PATCH v4 20/29] x86/smp: Remove stack_smp_processor_id()
+Date: Sun, 26 Jun 2016 14:55:42 -0700
+Message-ID: <6c8610ea4d224d14699f62c07e569e2f01499234.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3712-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-3715-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
@@ -16,206 +16,57 @@ To: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-If an arch opts in by setting CONFIG_THREAD_INFO_IN_TASK_STRUCT,
-then thread_info is defined as a single 'u32 flags' and is the first
-entry of task_struct.  thread_info::task is removed (it serves no
-purpose if thread_info is embedded in task_struct), and
-thread_info::cpu gets its own slot in task_struct.
-
-This is heavily based on a patch written by Linus.
+It serves no purpose -- raw_smp_processor_id() works fine.  This
+change will be needed to move thread_info off the stack.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/init_task.h   |  9 +++++++++
- include/linux/sched.h       | 36 ++++++++++++++++++++++++++++++++++--
- include/linux/thread_info.h | 15 +++++++++++++++
- init/Kconfig                |  3 +++
- init/init_task.c            |  7 +++++--
- kernel/sched/sched.h        |  4 ++++
- 6 files changed, 70 insertions(+), 4 deletions(-)
+ arch/x86/include/asm/cpu.h   | 1 -
+ arch/x86/include/asm/smp.h   | 6 ------
+ arch/x86/kernel/cpu/common.c | 2 +-
+ 3 files changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/include/linux/init_task.h b/include/linux/init_task.h
-index f8834f820ec2..9c04d44eeb3c 100644
---- a/include/linux/init_task.h
-+++ b/include/linux/init_task.h
-@@ -15,6 +15,8 @@
- #include <net/net_namespace.h>
- #include <linux/sched/rt.h>
+diff --git a/arch/x86/include/asm/cpu.h b/arch/x86/include/asm/cpu.h
+index 678637ad7476..59d34c521d96 100644
+--- a/arch/x86/include/asm/cpu.h
++++ b/arch/x86/include/asm/cpu.h
+@@ -17,7 +17,6 @@ static inline void prefill_possible_map(void) {}
  
-+#include <asm/thread_info.h>
-+
- #ifdef CONFIG_SMP
- # define INIT_PUSHABLE_TASKS(tsk)					\
- 	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
-@@ -183,12 +185,19 @@ extern struct task_group root_task_group;
- # define INIT_KASAN(tsk)
+ #define cpu_physical_id(cpu)			boot_cpu_physical_apicid
+ #define safe_smp_processor_id()			0
+-#define stack_smp_processor_id()		0
+ 
+ #endif /* CONFIG_SMP */
+ 
+diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
+index 66b057306f40..0576b6157f3a 100644
+--- a/arch/x86/include/asm/smp.h
++++ b/arch/x86/include/asm/smp.h
+@@ -172,12 +172,6 @@ extern int safe_smp_processor_id(void);
+ #elif defined(CONFIG_X86_64_SMP)
+ #define raw_smp_processor_id() (this_cpu_read(cpu_number))
+ 
+-#define stack_smp_processor_id()					\
+-({								\
+-	struct thread_info *ti;						\
+-	__asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (CURRENT_MASK));	\
+-	ti->cpu;							\
+-})
+ #define safe_smp_processor_id()		smp_processor_id()
+ 
  #endif
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 0fe6953f421c..d22a7b9c4f0e 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -1452,7 +1452,7 @@ void cpu_init(void)
+ 	struct task_struct *me;
+ 	struct tss_struct *t;
+ 	unsigned long v;
+-	int cpu = stack_smp_processor_id();
++	int cpu = raw_smp_processor_id();
+ 	int i;
  
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+# define INIT_TASK_TI(tsk) .thread_info = INIT_THREAD_INFO(tsk),
-+#else
-+# define INIT_TASK_TI(tsk)
-+#endif
-+
- /*
-  *  INIT_TASK is used to set up the first task table, touch at
-  * your own risk!. Base=0, limit=0x1fffff (=2MB)
-  */
- #define INIT_TASK(tsk)	\
- {									\
-+	INIT_TASK_TI(tsk)						\
- 	.state		= 0,						\
- 	.stack		= init_stack,					\
- 	.usage		= ATOMIC_INIT(2),				\
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 569df670407a..4108b4880b86 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1456,6 +1456,13 @@ struct tlbflush_unmap_batch {
- };
- 
- struct task_struct {
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+	/*
-+	 * For reasons of header soup (see current_thread_info()), this
-+	 * must be the first element of task_struct.
-+	 */
-+	struct thread_info thread_info;
-+#endif
- 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
- 	void *stack;
- 	atomic_t usage;
-@@ -1465,6 +1472,9 @@ struct task_struct {
- #ifdef CONFIG_SMP
- 	struct llist_node wake_entry;
- 	int on_cpu;
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+	unsigned int cpu;	/* current CPU */
-+#endif
- 	unsigned int wakee_flips;
- 	unsigned long wakee_flip_decay_ts;
- 	struct task_struct *last_wakee;
-@@ -2557,7 +2567,9 @@ extern void set_curr_task(int cpu, struct task_struct *p);
- void yield(void);
- 
- union thread_union {
-+#ifndef CONFIG_THREAD_INFO_IN_TASK
- 	struct thread_info thread_info;
-+#endif
- 	unsigned long stack[THREAD_SIZE/sizeof(long)];
- };
- 
-@@ -3045,10 +3057,26 @@ static inline void threadgroup_change_end(struct task_struct *tsk)
- 	cgroup_threadgroup_change_end(tsk);
- }
- 
--#ifndef __HAVE_THREAD_FUNCTIONS
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+
-+static inline struct thread_info *task_thread_info(struct task_struct *task)
-+{
-+	return &task->thread_info;
-+}
-+static inline void *task_stack_page(const struct task_struct *task)
-+{
-+	return task->stack;
-+}
-+#define setup_thread_stack(new,old)	do { } while(0)
-+static inline unsigned long *end_of_stack(const struct task_struct *task)
-+{
-+	return task->stack;
-+}
-+
-+#elif !defined(__HAVE_THREAD_FUNCTIONS)
- 
- #define task_thread_info(task)	((struct thread_info *)(task)->stack)
--#define task_stack_page(task)	((task)->stack)
-+#define task_stack_page(task)	((void *)(task)->stack)
- 
- static inline void setup_thread_stack(struct task_struct *p, struct task_struct *org)
- {
-@@ -3348,7 +3376,11 @@ static inline void ptrace_signal_wake_up(struct task_struct *t, bool resume)
- 
- static inline unsigned int task_cpu(const struct task_struct *p)
- {
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+	return p->cpu;
-+#else
- 	return task_thread_info(p)->cpu;
-+#endif
- }
- 
- static inline int task_node(const struct task_struct *p)
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 352b1542f5cc..b2b32d63bc8e 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -13,6 +13,21 @@
- struct timespec;
- struct compat_timespec;
- 
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+struct thread_info {
-+	u32			flags;		/* low level flags */
-+};
-+
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.flags		= 0,			\
-+}
-+#endif
-+
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+#define current_thread_info() ((struct thread_info *)current)
-+#endif
-+
- /*
-  * System call restart block.
-  */
-diff --git a/init/Kconfig b/init/Kconfig
-index f755a602d4a1..0c83af6d3753 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -26,6 +26,9 @@ config IRQ_WORK
- config BUILDTIME_EXTABLE_SORT
- 	bool
- 
-+config THREAD_INFO_IN_TASK
-+	bool
-+
- menu "General setup"
- 
- config BROKEN
-diff --git a/init/init_task.c b/init/init_task.c
-index ba0a7f362d9e..11f83be1fa79 100644
---- a/init/init_task.c
-+++ b/init/init_task.c
-@@ -22,5 +22,8 @@ EXPORT_SYMBOL(init_task);
-  * Initial thread structure. Alignment of this is handled by a special
-  * linker map entry.
-  */
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
-+union thread_union init_thread_union __init_task_data = {
-+#ifndef CONFIG_THREAD_INFO_IN_TASK
-+	INIT_THREAD_INFO(init_task)
-+#endif
-+};
-diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
-index 7cbeb92a1cb9..a1cabcea4c54 100644
---- a/kernel/sched/sched.h
-+++ b/kernel/sched/sched.h
-@@ -999,7 +999,11 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
- 	 * per-task data have been completed by this moment.
- 	 */
- 	smp_wmb();
-+#ifdef CONFIG_THREAD_INFO_IN_TASK
-+	p->cpu = cpu;
-+#else
- 	task_thread_info(p)->cpu = cpu;
-+#endif
- 	p->wake_cpu = cpu;
- #endif
- }
+ 	wait_for_master_cpu(cpu);
 -- 
 2.7.4
