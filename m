@@ -1,303 +1,158 @@
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 02/29] rxrpc: Avoid using stack memory in SG lists in rxkad
-Date: Sun, 26 Jun 2016 14:55:24 -0700
-Message-ID: <1eeb00c5098d8096cdb61dc7ee1ddc61b3e80f9e.1466974736.git.luto@kernel.org>
+From: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: [PATCH v4 05/29] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
+Date: Sun, 26 Jun 2016 14:55:27 -0700
+Message-ID: <f49fbe4a40e1630981614b910fbfbcaa387e6c8f.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3690-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <cover.1466974736.git.luto@kernel.org>
-In-Reply-To: <cover.1466974736.git.luto@kernel.org>
-References: <cover.1466974736.git.luto@kernel.org>
-To: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Andy Lutomirski <luto@kernel.org>
+Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <cover.1466974736.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+In-Reply-To: <cover.1466974736.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+References: <cover.1466974736.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org" <kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Poimboeuf <jpoimboe-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Herbert Xu <herbert@gondor.apana.org.au>
+kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
+init_mm.pgd were to be cleared, callers would need to ensure that
+the pgd entry hadn't been propagated to any other pgd.
 
-rxkad uses stack memory in SG lists which would not work if stacks
-were allocated from vmalloc memory.  In fact, in most cases this
-isn't even necessary as the stack memory ends up getting copied
-over to kmalloc memory.
+Its only caller was efi_cleanup_page_tables(), and that, in turn,
+was unused, so just delete both functions.  This leaves a couple of
+other helpers unused, so delete them, too.
 
-This patch eliminates all the unnecessary stack memory uses by
-supplying the final destination directly to the crypto API.  In
-two instances where a temporary buffer is actually needed we also
-switch use the skb->cb area instead of the stack.
-
-Finally there is no need to split a split-page buffer into two SG
-entries so code dealing with that has been removed.
-
-Message-Id: <20160623064137.GA8958@gondor.apana.org.au>
-Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
+Cc: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Reviewed-by: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
+Signed-off-by: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
 ---
- net/rxrpc/ar-internal.h |   1 +
- net/rxrpc/rxkad.c       | 103 ++++++++++++++++++++----------------------------
- 2 files changed, 44 insertions(+), 60 deletions(-)
+ arch/x86/include/asm/efi.h           |  1 -
+ arch/x86/include/asm/pgtable_types.h |  2 --
+ arch/x86/mm/pageattr.c               | 28 ----------------------------
+ arch/x86/platform/efi/efi.c          |  2 --
+ arch/x86/platform/efi/efi_32.c       |  3 ---
+ arch/x86/platform/efi/efi_64.c       |  5 -----
+ 6 files changed, 41 deletions(-)
 
-diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
-index f0b807a163fa..8ee5933982f3 100644
---- a/net/rxrpc/ar-internal.h
-+++ b/net/rxrpc/ar-internal.h
-@@ -277,6 +277,7 @@ struct rxrpc_connection {
- 	struct key		*key;		/* security for this connection (client) */
- 	struct key		*server_key;	/* security for this service */
- 	struct crypto_skcipher	*cipher;	/* encryption handle */
-+	struct rxrpc_crypt	csum_iv_head;	/* leading block for csum_iv */
- 	struct rxrpc_crypt	csum_iv;	/* packet checksum base */
- 	unsigned long		events;
- #define RXRPC_CONN_CHALLENGE	0		/* send challenge packet */
-diff --git a/net/rxrpc/rxkad.c b/net/rxrpc/rxkad.c
-index bab56ed649ba..a28a3c6fdf1d 100644
---- a/net/rxrpc/rxkad.c
-+++ b/net/rxrpc/rxkad.c
-@@ -105,11 +105,9 @@ static void rxkad_prime_packet_security(struct rxrpc_connection *conn)
- {
- 	struct rxrpc_key_token *token;
- 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
--	struct scatterlist sg[2];
-+	struct rxrpc_crypt *csum_iv;
-+	struct scatterlist sg;
- 	struct rxrpc_crypt iv;
--	struct {
--		__be32 x[4];
--	} tmpbuf __attribute__((aligned(16))); /* must all be in same page */
+diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
+index 78d1e7467eae..45ea38df86d4 100644
+--- a/arch/x86/include/asm/efi.h
++++ b/arch/x86/include/asm/efi.h
+@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
+ extern void efi_sync_low_kernel_mappings(void);
+ extern int __init efi_alloc_page_tables(void);
+ extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+-extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
+ extern void __init old_map_region(efi_memory_desc_t *md);
+ extern void __init runtime_code_page_mkexec(void);
+ extern void __init efi_runtime_update_mappings(void);
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 7b5efe264eff..0b9f58ad10c8 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
+ extern phys_addr_t slow_virt_to_phys(void *__address);
+ extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
+ 				   unsigned numpages, unsigned long page_flags);
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages);
+ #endif	/* !__ASSEMBLY__ */
  
- 	_enter("");
- 
-@@ -119,24 +117,21 @@ static void rxkad_prime_packet_security(struct rxrpc_connection *conn)
- 	token = conn->key->payload.data[0];
- 	memcpy(&iv, token->kad->session_key, sizeof(iv));
- 
--	tmpbuf.x[0] = htonl(conn->epoch);
--	tmpbuf.x[1] = htonl(conn->cid);
--	tmpbuf.x[2] = 0;
--	tmpbuf.x[3] = htonl(conn->security_ix);
-+	csum_iv = &conn->csum_iv_head;
-+	csum_iv[0].x[0] = htonl(conn->epoch);
-+	csum_iv[0].x[1] = htonl(conn->cid);
-+	csum_iv[1].x[0] = 0;
-+	csum_iv[1].x[1] = htonl(conn->security_ix);
- 
--	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
--	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
-+	sg_init_one(&sg, csum_iv, 16);
- 
- 	skcipher_request_set_tfm(req, conn->cipher);
- 	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
-+	skcipher_request_set_crypt(req, &sg, &sg, 16, iv.x);
- 
- 	crypto_skcipher_encrypt(req);
- 	skcipher_request_zero(req);
- 
--	memcpy(&conn->csum_iv, &tmpbuf.x[2], sizeof(conn->csum_iv));
--	ASSERTCMP((u32 __force)conn->csum_iv.n[0], ==, (u32 __force)tmpbuf.x[2]);
--
- 	_leave("");
+ #endif /* _ASM_X86_PGTABLE_DEFS_H */
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 6a8026918bf6..762162af3662 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
+ 	return true;
  }
  
-@@ -150,12 +145,9 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
- {
- 	struct rxrpc_skb_priv *sp;
- 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
-+	struct rxkad_level1_hdr hdr;
- 	struct rxrpc_crypt iv;
--	struct scatterlist sg[2];
--	struct {
--		struct rxkad_level1_hdr hdr;
--		__be32	first;	/* first four bytes of data and padding */
--	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
-+	struct scatterlist sg;
- 	u16 check;
- 
- 	sp = rxrpc_skb(skb);
-@@ -165,24 +157,21 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
- 	check = sp->hdr.seq ^ sp->hdr.callNumber;
- 	data_size |= (u32)check << 16;
- 
--	tmpbuf.hdr.data_size = htonl(data_size);
--	memcpy(&tmpbuf.first, sechdr + 4, sizeof(tmpbuf.first));
-+	hdr.data_size = htonl(data_size);
-+	memcpy(sechdr, &hdr, sizeof(hdr));
- 
- 	/* start the encryption afresh */
- 	memset(&iv, 0, sizeof(iv));
- 
--	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
--	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
-+	sg_init_one(&sg, sechdr, 8);
- 
- 	skcipher_request_set_tfm(req, call->conn->cipher);
- 	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
-+	skcipher_request_set_crypt(req, &sg, &sg, 8, iv.x);
- 
- 	crypto_skcipher_encrypt(req);
- 	skcipher_request_zero(req);
- 
--	memcpy(sechdr, &tmpbuf, sizeof(tmpbuf));
+-static bool try_to_free_pud_page(pud_t *pud)
+-{
+-	int i;
 -
- 	_leave(" = 0");
+-	for (i = 0; i < PTRS_PER_PUD; i++)
+-		if (!pud_none(pud[i]))
+-			return false;
+-
+-	free_page((unsigned long)pud);
+-	return true;
+-}
+-
+ static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
+ {
+ 	pte_t *pte = pte_offset_kernel(pmd, start);
+@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
+ 	 */
+ }
+ 
+-static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
+-{
+-	pgd_t *pgd_entry = root + pgd_index(addr);
+-
+-	unmap_pud_range(pgd_entry, addr, end);
+-
+-	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
+-		pgd_clear(pgd_entry);
+-}
+-
+ static int alloc_pte_page(pmd_t *pmd)
+ {
+ 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
+@@ -1993,12 +1971,6 @@ out:
+ 	return retval;
+ }
+ 
+-void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
+-			       unsigned numpages)
+-{
+-	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
+-}
+-
+ /*
+  * The testcases use internal knowledge of the implementation that shouldn't
+  * be exposed to the rest of the kernel. Include these directly here.
+diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
+index f93545e7dc54..62986e5fbdba 100644
+--- a/arch/x86/platform/efi/efi.c
++++ b/arch/x86/platform/efi/efi.c
+@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
+ 	 * EFI mixed mode we need all of memory to be accessible when
+ 	 * we pass parameters to the EFI runtime services in the
+ 	 * thunking code.
+-	 *
+-	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
+ 	 */
+ 	free_pages((unsigned long)new_memmap, pg_shift);
+ 
+diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
+index 338402b91d2e..cef39b097649 100644
+--- a/arch/x86/platform/efi/efi_32.c
++++ b/arch/x86/platform/efi/efi_32.c
+@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ {
  	return 0;
  }
-@@ -196,8 +185,7 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
- 				       void *sechdr)
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-}
+ 
+ void __init efi_map_region(efi_memory_desc_t *md)
  {
- 	const struct rxrpc_key_token *token;
--	struct rxkad_level2_hdr rxkhdr
--		__attribute__((aligned(8))); /* must be all on one page */
-+	struct rxkad_level2_hdr rxkhdr;
- 	struct rxrpc_skb_priv *sp;
- 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
- 	struct rxrpc_crypt iv;
-@@ -216,17 +204,17 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
- 
- 	rxkhdr.data_size = htonl(data_size | (u32)check << 16);
- 	rxkhdr.checksum = 0;
-+	memcpy(sechdr, &rxkhdr, sizeof(rxkhdr));
- 
- 	/* encrypt from the session key */
- 	token = call->conn->key->payload.data[0];
- 	memcpy(&iv, token->kad->session_key, sizeof(iv));
- 
- 	sg_init_one(&sg[0], sechdr, sizeof(rxkhdr));
--	sg_init_one(&sg[1], &rxkhdr, sizeof(rxkhdr));
- 
- 	skcipher_request_set_tfm(req, call->conn->cipher);
- 	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(rxkhdr), iv.x);
-+	skcipher_request_set_crypt(req, &sg[0], &sg[0], sizeof(rxkhdr), iv.x);
- 
- 	crypto_skcipher_encrypt(req);
- 
-@@ -265,10 +253,11 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
- 	struct rxrpc_skb_priv *sp;
- 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
- 	struct rxrpc_crypt iv;
--	struct scatterlist sg[2];
--	struct {
-+	struct scatterlist sg;
-+	union {
- 		__be32 x[2];
--	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
-+		__be64 xl;
-+	} tmpbuf;
- 	u32 x, y;
- 	int ret;
- 
-@@ -294,16 +283,19 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
- 	tmpbuf.x[0] = htonl(sp->hdr.callNumber);
- 	tmpbuf.x[1] = htonl(x);
- 
--	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
--	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
-+	swap(tmpbuf.xl, *(__be64 *)sp);
-+
-+	sg_init_one(&sg, sp, sizeof(tmpbuf));
- 
- 	skcipher_request_set_tfm(req, call->conn->cipher);
- 	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
-+	skcipher_request_set_crypt(req, &sg, &sg, sizeof(tmpbuf), iv.x);
- 
- 	crypto_skcipher_encrypt(req);
- 	skcipher_request_zero(req);
- 
-+	swap(tmpbuf.xl, *(__be64 *)sp);
-+
- 	y = ntohl(tmpbuf.x[1]);
- 	y = (y >> 16) & 0xffff;
- 	if (y == 0)
-@@ -503,10 +495,11 @@ static int rxkad_verify_packet(const struct rxrpc_call *call,
- 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
- 	struct rxrpc_skb_priv *sp;
- 	struct rxrpc_crypt iv;
--	struct scatterlist sg[2];
--	struct {
-+	struct scatterlist sg;
-+	union {
- 		__be32 x[2];
--	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
-+		__be64 xl;
-+	} tmpbuf;
- 	u16 cksum;
- 	u32 x, y;
- 	int ret;
-@@ -534,16 +527,19 @@ static int rxkad_verify_packet(const struct rxrpc_call *call,
- 	tmpbuf.x[0] = htonl(call->call_id);
- 	tmpbuf.x[1] = htonl(x);
- 
--	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
--	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
-+	swap(tmpbuf.xl, *(__be64 *)sp);
-+
-+	sg_init_one(&sg, sp, sizeof(tmpbuf));
- 
- 	skcipher_request_set_tfm(req, call->conn->cipher);
- 	skcipher_request_set_callback(req, 0, NULL, NULL);
--	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
-+	skcipher_request_set_crypt(req, &sg, &sg, sizeof(tmpbuf), iv.x);
- 
- 	crypto_skcipher_encrypt(req);
- 	skcipher_request_zero(req);
- 
-+	swap(tmpbuf.xl, *(__be64 *)sp);
-+
- 	y = ntohl(tmpbuf.x[1]);
- 	cksum = (y >> 16) & 0xffff;
- 	if (cksum == 0)
-@@ -708,26 +704,13 @@ static void rxkad_calc_response_checksum(struct rxkad_response *response)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index b226b3f497f1..d288dcea1ffe 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+ 	return 0;
  }
  
- /*
-- * load a scatterlist with a potentially split-page buffer
-+ * load a scatterlist
-  */
--static void rxkad_sg_set_buf2(struct scatterlist sg[2],
-+static void rxkad_sg_set_buf2(struct scatterlist sg[1],
- 			      void *buf, size_t buflen)
+-void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+-{
+-	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
+-}
+-
+ static void __init __map_region(efi_memory_desc_t *md, u64 va)
  {
--	int nsg = 1;
--
--	sg_init_table(sg, 2);
--
-+	sg_init_table(sg, 1);
- 	sg_set_buf(&sg[0], buf, buflen);
--	if (sg[0].offset + buflen > PAGE_SIZE) {
--		/* the buffer was split over two pages */
--		sg[0].length = PAGE_SIZE - sg[0].offset;
--		sg_set_buf(&sg[1], buf + sg[0].length, buflen - sg[0].length);
--		nsg++;
--	}
--
--	sg_mark_end(&sg[nsg - 1]);
--
--	ASSERTCMP(sg[0].length + sg[1].length, ==, buflen);
- }
- 
- /*
-@@ -739,7 +722,7 @@ static void rxkad_encrypt_response(struct rxrpc_connection *conn,
- {
- 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
- 	struct rxrpc_crypt iv;
--	struct scatterlist sg[2];
-+	struct scatterlist sg[1];
- 
- 	/* continue encrypting from where we left off */
- 	memcpy(&iv, s2->session_key, sizeof(iv));
-@@ -999,7 +982,7 @@ static void rxkad_decrypt_response(struct rxrpc_connection *conn,
- 				   const struct rxrpc_crypt *session_key)
- {
- 	SKCIPHER_REQUEST_ON_STACK(req, rxkad_ci);
--	struct scatterlist sg[2];
-+	struct scatterlist sg[1];
- 	struct rxrpc_crypt iv;
- 
- 	_enter(",,%08x%08x",
+ 	unsigned long flags = _PAGE_RW;
 -- 
 2.7.4
