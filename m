@@ -1,201 +1,305 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:59274 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:59364 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750876AbcFZVz5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 Jun 2016 17:55:57 -0400
+	id S1751639AbcFZV4B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 26 Jun 2016 17:56:01 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 00/29] virtually mapped stacks and thread_info cleanup
-Date: Sun, 26 Jun 2016 14:55:22 -0700
-Message-ID: <cover.1466974736.git.luto@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v4 02/29] rxrpc: Avoid using stack memory in SG lists in rxkad
+Date: Sun, 26 Jun 2016 14:55:24 -0700
+Message-ID: <1eeb00c5098d8096cdb61dc7ee1ddc61b3e80f9e.1466974736.git.luto@kernel.org>
+In-Reply-To: <cover.1466974736.git.luto@kernel.org>
+References: <cover.1466974736.git.luto@kernel.org>
+In-Reply-To: <cover.1466974736.git.luto@kernel.org>
+References: <cover.1466974736.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160626215522.SEXfv-mAMFKE3WSapnvuQEDQLn31Dm_9jWfvwE0NBFs@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160626215524.Lbgxtry3hPayVa3JUKYCeNb3Hz0cD59Xi7nXb8GQa-M@z>
 
-Hi all-
+From: Herbert Xu <herbert@gondor.apana.org.au>
 
-Since the dawn of time, a kernel stack overflow has been a real PITA
-to debug, has caused nondeterministic crashes some time after the
-actual overflow, and has generally been easy to exploit for root.
+rxkad uses stack memory in SG lists which would not work if stacks
+were allocated from vmalloc memory.  In fact, in most cases this
+isn't even necessary as the stack memory ends up getting copied
+over to kmalloc memory.
 
-With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
-that enable it (just x86 for now) get virtually mapped stacks with
-guard pages.  This causes reliable faults when the stack overflows.
+This patch eliminates all the unnecessary stack memory uses by
+supplying the final destination directly to the crypto API.  In
+two instances where a temporary buffer is actually needed we also
+switch use the skb->cb area instead of the stack.
 
-If the arch implements it well, we get a nice OOPS on stack overflow
-(as opposed to panicing directly or otherwise exploding badly).  On
-x86, the OOPS is nice, has a usable call trace, and the overflowing
-task is killed cleanly.
+Finally there is no need to split a split-page buffer into two SG
+entries so code dealing with that has been removed.
 
-This series (starting with this version, v4) also extensively cleans
-up thread_info.  thread_info has been partially redundant with
-thread_struct for a long time -- both are places for arch code to
-add additional per-task variables.  thread_struct is much cleaner:
-it's always in task_struct, and there's nothing particularly magical
-about it.  So this series contains a bunch of cleanups on x86 to
-move almost everything from thread_info to thread_struct (which,
-even by itself, deletes more code than it adds) and to remove x86's
-dependence on thread_info's position on the stack.  Then it opts x86
-into a new config option THREAD_INFO_IN_TASK to get rid of
-arch-specific thread_info entirely and simply embed a defanged
-thread_info (containing only flags) and 'int cpu' into task_struct.
+Message-Id: <20160623064137.GA8958@gondor.apana.org.au>
+Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
+---
+ net/rxrpc/ar-internal.h |   1 +
+ net/rxrpc/rxkad.c       | 103 ++++++++++++++++++++----------------------------
+ 2 files changed, 44 insertions(+), 60 deletions(-)
 
-Once thread_info stops being magical, there's another benefit: we
-can free the thread stack as soon as the task is dead (without
-waiting for RCU) and then, if vmapped stacks are in use, cache the
-entire stack for reuse on the same cpu.
-
-This seems to be an overall speedup of about 0.5-1 µs per
-pthread_create/join in a simple test -- a percpu cache of vmalloced
-stacks appears to be a bit faster than a high-order stack
-allocation, at least when the cache hits.  (I expect that workloads
-with a low cache hit rate are likely to be dominated by other
-effects anyway.)
-
-This does not address interrupt stacks.
-
-It's worth noting that s390 has an arch-specific gcc feature that
-detects stack overflows by adjusting function prologues.  Arches
-with features like that may wish to avoid using vmapped stacks to
-minimize the performance hit.
-
-Known issues:
- - tcp md5, virtio_net, and virtio_console will have issues.  Eric Dumazet
-   has a patch for tcp md5, and Michael Tsirkin says he'll fix virtio_net
-   and virtio_console.
-
-Changes from v3:
- - Minor cleanups
- - Rebased onto Linus' tree
- - All the thread_info stuff is new
-
-Changes from v2:
- - Delete kerne_unmap_pages_in_pgd rather than hardening it (Borislav)
- - Fix sub-page stack accounting better (Josh)
-
-Changes from v1:
- - Fix rewind_stack_and_do_exit (Josh)
- - Fix deadlock under load
- - Clean up generic stack vmalloc code
- - Many other minor fixes
-
-Andy Lutomirski (25):
-  bluetooth: Switch SMP to crypto_cipher_encrypt_one()
-  x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
-  x86/mm: Remove kernel_unmap_pages_in_pgd() and
-    efi_cleanup_page_tables()
-  mm: Track NR_KERNEL_STACK in KiB instead of number of stacks
-  mm: Fix memcg stack accounting for sub-page stacks
-  dma-api: Teach the "DMA-from-stack" check about vmapped stacks
-  fork: Add generic vmalloced stack support
-  x86/die: Don't try to recover from an OOPS on a non-default stack
-  x86/dumpstack: When OOPSing, rewind the stack before do_exit
-  x86/dumpstack: When dumping stack bytes due to OOPS, start with
-    regs->sp
-  x86/dumpstack: Try harder to get a call trace on stack overflow
-  x86/dumpstack/64: Handle faults when printing the "Stack:" part of an
-    OOPS
-  x86/mm/64: Enable vmapped stacks
-  x86/mm: Improve stack-overflow #PF handling
-  x86: Move uaccess_err and sig_on_uaccess_err to thread_struct
-  x86: Move addr_limit to thread_struct
-  signal: Consolidate {TS,TLF}_RESTORE_SIGMASK code
-  x86/smp: Remove stack_smp_processor_id()
-  x86/smp: Remove unnecessary initialization of thread_info::cpu
-  x86/asm: Move 'status' from struct thread_info to struct thread_struct
-  kdb: Use task_cpu() instead of task_thread_info()->cpu
-  sched: Allow putting thread_info into task_struct
-  x86: Move thread_info into task_struct
-  sched: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
-  fork: Cache two thread stacks per cpu if CONFIG_VMAP_STACK is set
-
-Herbert Xu (1):
-  rxrpc: Avoid using stack memory in SG lists in rxkad
-
-Ingo Molnar (1):
-  x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
-
-Linus Torvalds (2):
-  x86/entry: Get rid of pt_regs_to_thread_info()
-  um: Stop conflating task_struct::stack with thread_info
-
- arch/Kconfig                              |  29 ++++++
- arch/alpha/include/asm/thread_info.h      |  27 -----
- arch/ia64/include/asm/thread_info.h       |  30 +-----
- arch/microblaze/include/asm/thread_info.h |  27 -----
- arch/powerpc/include/asm/thread_info.h    |  25 -----
- arch/sh/include/asm/thread_info.h         |  26 -----
- arch/sparc/include/asm/thread_info_64.h   |  24 -----
- arch/tile/include/asm/thread_info.h       |  27 -----
- arch/x86/Kconfig                          |   2 +
- arch/x86/entry/common.c                   |  25 ++---
- arch/x86/entry/entry_32.S                 |  11 +++
- arch/x86/entry/entry_64.S                 |  20 +++-
- arch/x86/entry/vsyscall/vsyscall_64.c     |   6 +-
- arch/x86/include/asm/checksum_32.h        |   3 +-
- arch/x86/include/asm/cpu.h                |   1 -
- arch/x86/include/asm/efi.h                |   1 -
- arch/x86/include/asm/pgtable_types.h      |   2 -
- arch/x86/include/asm/processor.h          |  32 ++++--
- arch/x86/include/asm/smp.h                |   6 --
- arch/x86/include/asm/switch_to.h          |  34 ++++++-
- arch/x86/include/asm/syscall.h            |  23 +----
- arch/x86/include/asm/thread_info.h        | 102 +------------------
- arch/x86/include/asm/traps.h              |   6 ++
- arch/x86/include/asm/uaccess.h            |  10 +-
- arch/x86/kernel/asm-offsets.c             |   5 +-
- arch/x86/kernel/cpu/common.c              |   2 +-
- arch/x86/kernel/dumpstack.c               |  20 +++-
- arch/x86/kernel/dumpstack_32.c            |   4 +-
- arch/x86/kernel/dumpstack_64.c            |  16 ++-
- arch/x86/kernel/fpu/init.c                |   1 -
- arch/x86/kernel/irq_64.c                  |   3 +-
- arch/x86/kernel/process.c                 |   6 +-
- arch/x86/kernel/process_64.c              |   4 +-
- arch/x86/kernel/ptrace.c                  |   2 +-
- arch/x86/kernel/smpboot.c                 |   1 -
- arch/x86/kernel/traps.c                   |  32 ++++++
- arch/x86/lib/copy_user_64.S               |   8 +-
- arch/x86/lib/csum-wrappers_64.c           |   1 +
- arch/x86/lib/getuser.S                    |  20 ++--
- arch/x86/lib/putuser.S                    |  10 +-
- arch/x86/lib/usercopy_64.c                |   2 +-
- arch/x86/mm/extable.c                     |   2 +-
- arch/x86/mm/fault.c                       |  41 +++++++-
- arch/x86/mm/init_64.c                     |  27 -----
- arch/x86/mm/pageattr.c                    |  32 +-----
- arch/x86/mm/tlb.c                         |  15 +++
- arch/x86/platform/efi/efi.c               |   2 -
- arch/x86/platform/efi/efi_32.c            |   3 -
- arch/x86/platform/efi/efi_64.c            |   5 -
- arch/x86/um/ptrace_32.c                   |   8 +-
- drivers/base/node.c                       |   3 +-
- drivers/pnp/isapnp/proc.c                 |   2 +-
- fs/proc/meminfo.c                         |   2 +-
- include/linux/init_task.h                 |   9 ++
- include/linux/kdb.h                       |   2 +-
- include/linux/memcontrol.h                |   2 +-
- include/linux/mmzone.h                    |   2 +-
- include/linux/sched.h                     | 115 +++++++++++++++++++++-
- include/linux/thread_info.h               |  56 +++--------
- init/Kconfig                              |   3 +
- init/init_task.c                          |   7 +-
- kernel/fork.c                             | 158 +++++++++++++++++++++++++-----
- kernel/sched/core.c                       |   9 ++
- kernel/sched/sched.h                      |   4 +
- lib/bitmap.c                              |   2 +-
- lib/dma-debug.c                           |  39 ++++++--
- mm/memcontrol.c                           |   2 +-
- mm/page_alloc.c                           |   3 +-
- net/bluetooth/smp.c                       |  67 ++++++-------
- net/rxrpc/ar-internal.h                   |   1 +
- net/rxrpc/rxkad.c                         | 103 ++++++++-----------
- 71 files changed, 714 insertions(+), 648 deletions(-)
-
+diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
+index f0b807a163fa..8ee5933982f3 100644
+--- a/net/rxrpc/ar-internal.h
++++ b/net/rxrpc/ar-internal.h
+@@ -277,6 +277,7 @@ struct rxrpc_connection {
+ 	struct key		*key;		/* security for this connection (client) */
+ 	struct key		*server_key;	/* security for this service */
+ 	struct crypto_skcipher	*cipher;	/* encryption handle */
++	struct rxrpc_crypt	csum_iv_head;	/* leading block for csum_iv */
+ 	struct rxrpc_crypt	csum_iv;	/* packet checksum base */
+ 	unsigned long		events;
+ #define RXRPC_CONN_CHALLENGE	0		/* send challenge packet */
+diff --git a/net/rxrpc/rxkad.c b/net/rxrpc/rxkad.c
+index bab56ed649ba..a28a3c6fdf1d 100644
+--- a/net/rxrpc/rxkad.c
++++ b/net/rxrpc/rxkad.c
+@@ -105,11 +105,9 @@ static void rxkad_prime_packet_security(struct rxrpc_connection *conn)
+ {
+ 	struct rxrpc_key_token *token;
+ 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
+-	struct scatterlist sg[2];
++	struct rxrpc_crypt *csum_iv;
++	struct scatterlist sg;
+ 	struct rxrpc_crypt iv;
+-	struct {
+-		__be32 x[4];
+-	} tmpbuf __attribute__((aligned(16))); /* must all be in same page */
+ 
+ 	_enter("");
+ 
+@@ -119,24 +117,21 @@ static void rxkad_prime_packet_security(struct rxrpc_connection *conn)
+ 	token = conn->key->payload.data[0];
+ 	memcpy(&iv, token->kad->session_key, sizeof(iv));
+ 
+-	tmpbuf.x[0] = htonl(conn->epoch);
+-	tmpbuf.x[1] = htonl(conn->cid);
+-	tmpbuf.x[2] = 0;
+-	tmpbuf.x[3] = htonl(conn->security_ix);
++	csum_iv = &conn->csum_iv_head;
++	csum_iv[0].x[0] = htonl(conn->epoch);
++	csum_iv[0].x[1] = htonl(conn->cid);
++	csum_iv[1].x[0] = 0;
++	csum_iv[1].x[1] = htonl(conn->security_ix);
+ 
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	sg_init_one(&sg, csum_iv, 16);
+ 
+ 	skcipher_request_set_tfm(req, conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
++	skcipher_request_set_crypt(req, &sg, &sg, 16, iv.x);
+ 
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	memcpy(&conn->csum_iv, &tmpbuf.x[2], sizeof(conn->csum_iv));
+-	ASSERTCMP((u32 __force)conn->csum_iv.n[0], ==, (u32 __force)tmpbuf.x[2]);
+-
+ 	_leave("");
+ }
+ 
+@@ -150,12 +145,9 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
+ {
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
++	struct rxkad_level1_hdr hdr;
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
+-		struct rxkad_level1_hdr hdr;
+-		__be32	first;	/* first four bytes of data and padding */
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++	struct scatterlist sg;
+ 	u16 check;
+ 
+ 	sp = rxrpc_skb(skb);
+@@ -165,24 +157,21 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
+ 	check = sp->hdr.seq ^ sp->hdr.callNumber;
+ 	data_size |= (u32)check << 16;
+ 
+-	tmpbuf.hdr.data_size = htonl(data_size);
+-	memcpy(&tmpbuf.first, sechdr + 4, sizeof(tmpbuf.first));
++	hdr.data_size = htonl(data_size);
++	memcpy(sechdr, &hdr, sizeof(hdr));
+ 
+ 	/* start the encryption afresh */
+ 	memset(&iv, 0, sizeof(iv));
+ 
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	sg_init_one(&sg, sechdr, 8);
+ 
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
++	skcipher_request_set_crypt(req, &sg, &sg, 8, iv.x);
+ 
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	memcpy(sechdr, &tmpbuf, sizeof(tmpbuf));
+-
+ 	_leave(" = 0");
+ 	return 0;
+ }
+@@ -196,8 +185,7 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
+ 				       void *sechdr)
+ {
+ 	const struct rxrpc_key_token *token;
+-	struct rxkad_level2_hdr rxkhdr
+-		__attribute__((aligned(8))); /* must be all on one page */
++	struct rxkad_level2_hdr rxkhdr;
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_crypt iv;
+@@ -216,17 +204,17 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
+ 
+ 	rxkhdr.data_size = htonl(data_size | (u32)check << 16);
+ 	rxkhdr.checksum = 0;
++	memcpy(sechdr, &rxkhdr, sizeof(rxkhdr));
+ 
+ 	/* encrypt from the session key */
+ 	token = call->conn->key->payload.data[0];
+ 	memcpy(&iv, token->kad->session_key, sizeof(iv));
+ 
+ 	sg_init_one(&sg[0], sechdr, sizeof(rxkhdr));
+-	sg_init_one(&sg[1], &rxkhdr, sizeof(rxkhdr));
+ 
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(rxkhdr), iv.x);
++	skcipher_request_set_crypt(req, &sg[0], &sg[0], sizeof(rxkhdr), iv.x);
+ 
+ 	crypto_skcipher_encrypt(req);
+ 
+@@ -265,10 +253,11 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
++	struct scatterlist sg;
++	union {
+ 		__be32 x[2];
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++		__be64 xl;
++	} tmpbuf;
+ 	u32 x, y;
+ 	int ret;
+ 
+@@ -294,16 +283,19 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
+ 	tmpbuf.x[0] = htonl(sp->hdr.callNumber);
+ 	tmpbuf.x[1] = htonl(x);
+ 
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	swap(tmpbuf.xl, *(__be64 *)sp);
++
++	sg_init_one(&sg, sp, sizeof(tmpbuf));
+ 
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
++	skcipher_request_set_crypt(req, &sg, &sg, sizeof(tmpbuf), iv.x);
+ 
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
++	swap(tmpbuf.xl, *(__be64 *)sp);
++
+ 	y = ntohl(tmpbuf.x[1]);
+ 	y = (y >> 16) & 0xffff;
+ 	if (y == 0)
+@@ -503,10 +495,11 @@ static int rxkad_verify_packet(const struct rxrpc_call *call,
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_skb_priv *sp;
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
++	struct scatterlist sg;
++	union {
+ 		__be32 x[2];
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++		__be64 xl;
++	} tmpbuf;
+ 	u16 cksum;
+ 	u32 x, y;
+ 	int ret;
+@@ -534,16 +527,19 @@ static int rxkad_verify_packet(const struct rxrpc_call *call,
+ 	tmpbuf.x[0] = htonl(call->call_id);
+ 	tmpbuf.x[1] = htonl(x);
+ 
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	swap(tmpbuf.xl, *(__be64 *)sp);
++
++	sg_init_one(&sg, sp, sizeof(tmpbuf));
+ 
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
++	skcipher_request_set_crypt(req, &sg, &sg, sizeof(tmpbuf), iv.x);
+ 
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
++	swap(tmpbuf.xl, *(__be64 *)sp);
++
+ 	y = ntohl(tmpbuf.x[1]);
+ 	cksum = (y >> 16) & 0xffff;
+ 	if (cksum == 0)
+@@ -708,26 +704,13 @@ static void rxkad_calc_response_checksum(struct rxkad_response *response)
+ }
+ 
+ /*
+- * load a scatterlist with a potentially split-page buffer
++ * load a scatterlist
+  */
+-static void rxkad_sg_set_buf2(struct scatterlist sg[2],
++static void rxkad_sg_set_buf2(struct scatterlist sg[1],
+ 			      void *buf, size_t buflen)
+ {
+-	int nsg = 1;
+-
+-	sg_init_table(sg, 2);
+-
++	sg_init_table(sg, 1);
+ 	sg_set_buf(&sg[0], buf, buflen);
+-	if (sg[0].offset + buflen > PAGE_SIZE) {
+-		/* the buffer was split over two pages */
+-		sg[0].length = PAGE_SIZE - sg[0].offset;
+-		sg_set_buf(&sg[1], buf + sg[0].length, buflen - sg[0].length);
+-		nsg++;
+-	}
+-
+-	sg_mark_end(&sg[nsg - 1]);
+-
+-	ASSERTCMP(sg[0].length + sg[1].length, ==, buflen);
+ }
+ 
+ /*
+@@ -739,7 +722,7 @@ static void rxkad_encrypt_response(struct rxrpc_connection *conn,
+ {
+ 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
++	struct scatterlist sg[1];
+ 
+ 	/* continue encrypting from where we left off */
+ 	memcpy(&iv, s2->session_key, sizeof(iv));
+@@ -999,7 +982,7 @@ static void rxkad_decrypt_response(struct rxrpc_connection *conn,
+ 				   const struct rxrpc_crypt *session_key)
+ {
+ 	SKCIPHER_REQUEST_ON_STACK(req, rxkad_ci);
+-	struct scatterlist sg[2];
++	struct scatterlist sg[1];
+ 	struct rxrpc_crypt iv;
+ 
+ 	_enter(",,%08x%08x",
 -- 
 2.7.4
 
