@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:59628 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:60712 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751705AbcFZV4I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 Jun 2016 17:56:08 -0400
+	id S1751721AbcFZV4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 26 Jun 2016 17:56:43 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v4 07/29] mm: Fix memcg stack accounting for sub-page stacks
-Date: Sun, 26 Jun 2016 14:55:29 -0700
-Message-ID: <eced7c0671ef8a2d23c2a60f6de9aedb312cb014.1466974736.git.luto@kernel.org>
+Subject: [PATCH v4 28/29] sched: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
+Date: Sun, 26 Jun 2016 14:55:50 -0700
+Message-ID: <ec58e505925c46bd43f9c4275c78292d4483af16.1466974736.git.luto@kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
 References: <cover.1466974736.git.luto@kernel.org>
 In-Reply-To: <cover.1466974736.git.luto@kernel.org>
@@ -14,98 +14,99 @@ References: <cover.1466974736.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
-Message-ID: <20160626215529.rpLt6mXpH58j3nU7Kr6xzLQ63IJ-AjsVN2yjDsIpUX0@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20160626215550.swUoMO3C1_N6wD98nH8G78MTjOquWxfSaW9y517DH24@z>
 
-We should account for stacks regardless of stack size, and we need
-to account in sub-page units if THREAD_SIZE < PAGE_SIZE.  Change the
-units to kilobytes and Move it into account_kernel_stack().
+We currently keep every task's stack around until the task_struct
+itself is freed.  This means that we keep the stack allocation alive
+for longer than necessary and that, under load, we free stacks in
+big batches whenever RCU drops the last task reference.  Neither of
+these is good for reuse of cache-hot memory, and freeing in batches
+prevents us from usefully caching small numbers of vmalloced stacks.
 
-Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Reviewed-by: Vladimir Davydov <vdavydov@virtuozzo.com>
-Acked-by: Michal Hocko <mhocko@suse.com>
+On architectures that have thread_info on the stack, we can't easily
+change this, but on architectures that set THREAD_INFO_IN_TASK, we
+can free it as soon as the task is dead.
+
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/memcontrol.h |  2 +-
- kernel/fork.c              | 19 ++++++++-----------
- mm/memcontrol.c            |  2 +-
- 3 files changed, 10 insertions(+), 13 deletions(-)
+ include/linux/sched.h |  1 +
+ kernel/fork.c         | 23 ++++++++++++++++++++++-
+ kernel/sched/core.c   |  9 +++++++++
+ 3 files changed, 32 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
-index a805474df4ab..3b653b86bb8f 100644
---- a/include/linux/memcontrol.h
-+++ b/include/linux/memcontrol.h
-@@ -52,7 +52,7 @@ enum mem_cgroup_stat_index {
- 	MEM_CGROUP_STAT_SWAP,		/* # of pages, swapped out */
- 	MEM_CGROUP_STAT_NSTATS,
- 	/* default hierarchy stats */
--	MEMCG_KERNEL_STACK = MEM_CGROUP_STAT_NSTATS,
-+	MEMCG_KERNEL_STACK_KB = MEM_CGROUP_STAT_NSTATS,
- 	MEMCG_SLAB_RECLAIMABLE,
- 	MEMCG_SLAB_UNRECLAIMABLE,
- 	MEMCG_SOCK,
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 4108b4880b86..0b9486826d62 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -2659,6 +2659,7 @@ static inline void kernel_signal_stop(void)
+ }
+ 
+ extern void release_task(struct task_struct * p);
++extern void release_task_stack(struct task_struct *tsk);
+ extern int send_sig_info(int, struct siginfo *, struct task_struct *);
+ extern int force_sigsegv(int, struct task_struct *);
+ extern int force_sig_info(int, struct siginfo *, struct task_struct *);
 diff --git a/kernel/fork.c b/kernel/fork.c
-index 466ba8febe3b..146c9840c079 100644
+index 06761de69360..8dd1329e1bf8 100644
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
-@@ -165,20 +165,12 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
- 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
- 						  THREAD_SIZE_ORDER);
- 
--	if (page)
--		memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--					    1 << THREAD_SIZE_ORDER);
--
- 	return page ? page_address(page) : NULL;
+@@ -269,11 +269,32 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
+ 	}
  }
  
- static inline void free_thread_stack(unsigned long *stack)
+-void free_task(struct task_struct *tsk)
++void release_task_stack(struct task_struct *tsk)
  {
--	struct page *page = virt_to_page(stack);
--
--	memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--				    -(1 << THREAD_SIZE_ORDER));
--	__free_kmem_pages(page, THREAD_SIZE_ORDER);
-+	free_kmem_pages((unsigned long)stack, THREAD_SIZE_ORDER);
- }
- # else
- static struct kmem_cache *thread_stack_cache;
-@@ -223,10 +215,15 @@ static struct kmem_cache *mm_cachep;
- 
- static void account_kernel_stack(unsigned long *stack, int account)
- {
--	struct zone *zone = page_zone(virt_to_page(stack));
-+	/* All stack pages are in the same zone and belong to the same memcg. */
-+	struct page *first_page = virt_to_page(stack);
- 
--	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
-+	mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
- 			    THREAD_SIZE / 1024 * account);
+ 	account_kernel_stack(tsk, -1);
+ 	arch_release_thread_stack(tsk->stack);
+ 	free_thread_stack(tsk);
++	tsk->stack = NULL;
++#ifdef CONFIG_VMAP_STACK
++	tsk->stack_vm_area = NULL;
++#endif
++}
 +
-+	memcg_kmem_update_page_stat(
-+		first_page, MEMCG_KERNEL_STACK_KB,
-+		account * (THREAD_SIZE / 1024));
- }
++void free_task(struct task_struct *tsk)
++{
++#ifndef CONFIG_THREAD_INFO_IN_TASK
++	/*
++	 * The task is finally done with both the stack and thread_info,
++	 * so free both.
++	 */
++	release_task_stack(tsk);
++#else
++	/*
++	 * If the task had a separate stack allocation, it should be gone
++	 * by now.
++	 */
++	WARN_ON_ONCE(tsk->stack);
++#endif
+ 	rt_mutex_debug_task_free(tsk);
+ 	ftrace_graph_exit_task(tsk);
+ 	put_seccomp_filter(tsk);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 51d7105f529a..00c9ba5cf605 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2742,6 +2742,15 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 		 * task and put them back on the free list.
+ 		 */
+ 		kprobe_flush_task(prev);
++
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++		/*
++		 * If thread_info is in task_struct, then the dead task no
++		 * longer needs its stack.  Free it right away.
++		 */
++		release_task_stack(prev);
++#endif
++
+ 		put_task_struct(prev);
+ 	}
  
- void free_task(struct task_struct *tsk)
-diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index ac8664db3823..ee44afc1f2d0 100644
---- a/mm/memcontrol.c
-+++ b/mm/memcontrol.c
-@@ -5133,7 +5133,7 @@ static int memory_stat_show(struct seq_file *m, void *v)
- 	seq_printf(m, "file %llu\n",
- 		   (u64)stat[MEM_CGROUP_STAT_CACHE] * PAGE_SIZE);
- 	seq_printf(m, "kernel_stack %llu\n",
--		   (u64)stat[MEMCG_KERNEL_STACK] * PAGE_SIZE);
-+		   (u64)stat[MEMCG_KERNEL_STACK_KB] * 1024);
- 	seq_printf(m, "slab %llu\n",
- 		   (u64)(stat[MEMCG_SLAB_RECLAIMABLE] +
- 			 stat[MEMCG_SLAB_UNRECLAIMABLE]) * PAGE_SIZE);
 -- 
 2.7.4
 
