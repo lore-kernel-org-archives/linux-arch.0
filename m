@@ -1,85 +1,55 @@
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: [PATCH 01/19] compat ABI: use non-compat openat and open_by_handle_at variants
-Date: Mon, 27 Jun 2016 09:47:38 +0200
-Message-ID: <mvmwplbkr8l.fsf@hawking.suse.de>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
-	<1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v4 01/29] bluetooth: Switch SMP to
+ crypto_cipher_encrypt_one()
+Date: Mon, 27 Jun 2016 10:54:03 +0200
+Message-ID: <20160627085403.GA26865@gmail.com>
+References: <cover.1466974736.git.luto@kernel.org>
+ <cover.1466974736.git.luto@kernel.org>
+ <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1466974736.git.luto@kernel.org>
+ <8C5360E3-94EE-4869-B9B9-AF9D41B5A3AC@holtmann.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44725 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751385AbcF0Hro (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jun 2016 03:47:44 -0400
-In-Reply-To: <1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
-	(Yury Norov's message of "Sat, 18 Jun 2016 02:54:10 +0300")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
-
-Yury Norov <ynorov@caviumnetworks.com> writes:
-
-> The only difference is that non-compat version forces O_LARGEFILE,
-> and it should be the default behaviour for all architectures, as
-> we don't support 32-bit off_t. The only exception is tile32, that
-> continues with compat version of syscalls.
->
-> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
-> ---
->  arch/tile/kernel/compat.c | 3 +++
->  1 file changed, 3 insertions(+)
->
-> diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-> index 4912084..489ae19 100644
-> --- a/arch/tile/kernel/compat.c
-> +++ b/arch/tile/kernel/compat.c
-> @@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
->  #define compat_sys_readahead sys32_readahead
->  #define sys_llseek compat_sys_llseek
->  
-> +#define sys_openat		compat_sys_openat
-> +#define sys_open_by_handle_at	compat_sys_open_by_handle_at
-> +
->  /* Call the assembly trampolines where necessary. */
->  #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
->  #define sys_clone _sys_clone
-
-This is a no-op.  Did you mean to add this?  Without that the testsuite
-of tar fails on ILP32.
-
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index a26415b..4dcc38d 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
- #define __NR_fchown 55
- __SYSCALL(__NR_fchown, sys_fchown)
- #define __NR_openat 56
--__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
-+__SYSCALL(__NR_openat, sys_openat)
- #define __NR_close 57
- __SYSCALL(__NR_close, sys_close)
- #define __NR_vhangup 58
-@@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
- #define __NR_name_to_handle_at         264
- __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
- #define __NR_open_by_handle_at         265
--__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
--	  compat_sys_open_by_handle_at)
-+__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
- #define __NR_clock_adjtime 266
- __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
- #define __NR_syncfs 267
--- 
-2.9.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-3728-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
+Content-Disposition: inline
+In-Reply-To: <8C5360E3-94EE-4869-B9B9-AF9D41B5A3AC@holtmann.org>
+To: Marcel Holtmann <marcel@holtmann.org>
+Cc: Andy Lutomirski <luto@kernel.org>, x86@kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
-Andreas.
+* Marcel Holtmann <marcel@holtmann.org> wrote:
 
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+> Hi Andy,
+> 
+> > SMP does ECB crypto on stack buffers.  This is complicated and
+> > fragile, and it will not work if the stack is virtually allocated.
+> > 
+> > Switch to the crypto_cipher interface, which is simpler and safer.
+> > 
+> > Cc: Marcel Holtmann <marcel@holtmann.org>
+> > Cc: Gustavo Padovan <gustavo@padovan.org>
+> > Cc: Johan Hedberg <johan.hedberg@gmail.com>
+> > Cc: "David S. Miller" <davem@davemloft.net>
+> > Cc: linux-bluetooth@vger.kernel.org
+> > Cc: netdev@vger.kernel.org
+> > Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+> > Acked-and-tested-by: Johan Hedberg <johan.hedberg@intel.com>
+> > Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> > ---
+> > net/bluetooth/smp.c | 67 ++++++++++++++++++++++-------------------------------
+> > 1 file changed, 28 insertions(+), 39 deletions(-)
+> 
+> patch has been applied to bluetooth-next tree.
+
+Sadly carrying this separately will delay the virtual kernel stacks feature by a 
+kernel cycle, because it's a must-have prerequisite.
+
+Thanks,
+
+	Ingo
