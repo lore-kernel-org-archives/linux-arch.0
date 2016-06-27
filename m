@@ -1,47 +1,85 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v4 05/29] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
-Date: Mon, 27 Jun 2016 09:19:10 +0200
-Message-ID: <f7f8c528-b72d-4b3d-a595-2c7c4743d0f0@email.android.com>
-References: <cover.1466974736.git.luto@kernel.org><cover.1466974736.git.luto@kernel.org> <f49fbe4a40e1630981614b910fbfbcaa387e6c8f.1466974736.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH 01/19] compat ABI: use non-compat openat and open_by_handle_at variants
+Date: Mon, 27 Jun 2016 09:47:38 +0200
+Message-ID: <mvmwplbkr8l.fsf@hawking.suse.de>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+	<1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-3727-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <f49fbe4a40e1630981614b910fbfbcaa387e6c8f.1466974736.git.luto@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>, x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Matt Fleming <matt@codeblueprint.co.uk>, linux-efi@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:44725 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751385AbcF0Hro (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Jun 2016 03:47:44 -0400
+In-Reply-To: <1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
+	(Yury Norov's message of "Sat, 18 Jun 2016 02:54:10 +0300")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
 
-Andy Lutomirski <luto@kernel.org> wrote:
+Yury Norov <ynorov@caviumnetworks.com> writes:
 
->kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
->init_mm.pgd were to be cleared, callers would need to ensure that
->the pgd entry hadn't been propagated to any other pgd.
+> The only difference is that non-compat version forces O_LARGEFILE,
+> and it should be the default behaviour for all architectures, as
+> we don't support 32-bit off_t. The only exception is tile32, that
+> continues with compat version of syscalls.
 >
->Its only caller was efi_cleanup_page_tables(), and that, in turn,
->was unused, so just delete both functions.  This leaves a couple of
->other helpers unused, so delete them, too.
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
+> ---
+>  arch/tile/kernel/compat.c | 3 +++
+>  1 file changed, 3 insertions(+)
 >
->Cc: Matt Fleming <matt@codeblueprint.co.uk>
->Cc: linux-efi@vger.kernel.org
->Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
->Signed-off-by: Andy Lutomirski <luto@kernel.org>
->---
-> arch/x86/include/asm/efi.h           |  1 -
-> arch/x86/include/asm/pgtable_types.h |  2 --
-> arch/x86/mm/pageattr.c               | 28 ----------------------------
-> arch/x86/platform/efi/efi.c          |  2 --
-> arch/x86/platform/efi/efi_32.c       |  3 ---
-> arch/x86/platform/efi/efi_64.c       |  5 -----
-> 6 files changed, 41 deletions(-)
+> diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+> index 4912084..489ae19 100644
+> --- a/arch/tile/kernel/compat.c
+> +++ b/arch/tile/kernel/compat.c
+> @@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+>  #define compat_sys_readahead sys32_readahead
+>  #define sys_llseek compat_sys_llseek
+>  
+> +#define sys_openat		compat_sys_openat
+> +#define sys_open_by_handle_at	compat_sys_open_by_handle_at
+> +
+>  /* Call the assembly trampolines where necessary. */
+>  #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+>  #define sys_clone _sys_clone
 
-Acked-by: Borislav Petkov <bp@suse.de>
+This is a no-op.  Did you mean to add this?  Without that the testsuite
+of tar fails on ILP32.
+
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index a26415b..4dcc38d 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
+ #define __NR_fchown 55
+ __SYSCALL(__NR_fchown, sys_fchown)
+ #define __NR_openat 56
+-__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
++__SYSCALL(__NR_openat, sys_openat)
+ #define __NR_close 57
+ __SYSCALL(__NR_close, sys_close)
+ #define __NR_vhangup 58
+@@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
+ #define __NR_name_to_handle_at         264
+ __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
+ #define __NR_open_by_handle_at         265
+-__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
+-	  compat_sys_open_by_handle_at)
++__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
+ #define __NR_clock_adjtime 266
+ __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
+ #define __NR_syncfs 267
+-- 
+2.9.0
+
+
+Andreas.
 
 -- 
-Sent from a small device: formatting sucks and brevity is inevitable. 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
