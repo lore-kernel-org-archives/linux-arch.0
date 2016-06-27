@@ -1,51 +1,54 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 15/29] x86/mm/64: Enable vmapped stacks
-Date: Mon, 27 Jun 2016 10:30:31 -0700
-Message-ID: <CALCETrW9aeSMq7b9OaxnN6zJBnhEDtQ85Q4UC2eoft5v59FvBw@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <f0a81fa3f7f81422cca23c9d6c88a555d89787ab.1466974736.git.luto@kernel.org>
- <CAMzpN2gBgZbBBJ_kAT=fty7=8z3xDyv2gzz9xuGLoK7EUuHh0A@mail.gmail.com>
- <CAMzpN2ggqbwkfNjHtYg3KU5oeerU6NPa0AqzG7PFtJuWy3dyKA@mail.gmail.com>
- <CALCETrWQCpNWum5WofkApw4Ht+KB5H=tmPS5GummTFsSVfNF7g@mail.gmail.com>
- <CALCETrXVtjPQHx2g_O3HRr-DNLWRpDL3Pftt2peoVrfNGiSucA@mail.gmail.com> <CA+55aFznPpS8rT_GLdAyHsr80B2FCb2Hm-4b9QTqREMCv6_s-Q@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f51.google.com ([209.85.213.51]:35472 "EHLO
-	mail-vk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751673AbcF0Raw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 13:30:52 -0400
-Received: by mail-vk0-f51.google.com with SMTP id j2so241257631vkg.2
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jun 2016 10:30:51 -0700 (PDT)
-In-Reply-To: <CA+55aFznPpS8rT_GLdAyHsr80B2FCb2Hm-4b9QTqREMCv6_s-Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Brian Gerst <brgerst@gmail.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+From: Marcel Holtmann <marcel@holtmann.org>
+Subject: Re: [PATCH v4 01/29] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
+Date: Tue, 28 Jun 2016 00:30:24 +0200
+Message-ID: <2833CC26-7306-4803-A5DB-4CBECCF35C08@holtmann.org>
+References: <cover.1466974736.git.luto@kernel.org> <cover.1466974736.git.luto@kernel.org> <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1466974736.git.luto@kernel.org> <8C5360E3-94EE-4869-B9B9-AF9D41B5A3AC@holtmann.org> <20160627085403.GA26865@gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <kernel-hardening-return-3741-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20160627085403.GA26865@gmail.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andy Lutomirski <luto@kernel.org>, x86@kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 27, 2016 at 10:28 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Mon, Jun 27, 2016 at 8:54 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>
->> How about:
->>
->>     tsk_stack = (unsigned long)task_stack_page(tsk);
->>     if (regs->rsp <= tsk_stack + 7*8 && regs->rsp > tsk_stack - PAGE_SIZE) {
->
-> I'm not at all convinced that regs->rsp will be all that reliable
-> under a double-fault scenario either. I'd be more inclined to trusr
-> cr2 than the register state.
->
-> It's true that double faults can happen for *other* reasons entirely,
-> and as such it's not clear that %cr2 is reliable either, but since
-> this is all just about a printout, I'd rather go that way anyway.
+Hi Ingo,
 
-Fair enough.  The chance that we get #GP-in-#GP or similar while CR2
-coincidentally points to the guard page is quite low.  I'll add all
-the details to the comment but I'll leave the code alone.
+>>> SMP does ECB crypto on stack buffers.  This is complicated and
+>>> fragile, and it will not work if the stack is virtually allocated.
+>>>=20
+>>> Switch to the crypto_cipher interface, which is simpler and safer.
+>>>=20
+>>> Cc: Marcel Holtmann <marcel@holtmann.org>
+>>> Cc: Gustavo Padovan <gustavo@padovan.org>
+>>> Cc: Johan Hedberg <johan.hedberg@gmail.com>
+>>> Cc: "David S. Miller" <davem@davemloft.net>
+>>> Cc: linux-bluetooth@vger.kernel.org
+>>> Cc: netdev@vger.kernel.org
+>>> Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+>>> Acked-and-tested-by: Johan Hedberg <johan.hedberg@intel.com>
+>>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>>> ---
+>>> net/bluetooth/smp.c | 67 =
+++++++++++++++++++++++-------------------------------
+>>> 1 file changed, 28 insertions(+), 39 deletions(-)
+>>=20
+>> patch has been applied to bluetooth-next tree.
+>=20
+> Sadly carrying this separately will delay the virtual kernel stacks =
+feature by a=20
+> kernel cycle, because it's a must-have prerequisite.
 
-FWIW, the manual only says that CS and RIP are untrustworthy, not that
-RSP is untrustworthy, but it doesn't specify *what* RSP would contain
-anywhere I can find.  I don't think this is important enough to start
-harassing the Intel and AMD folks over.
+I can take it back out, but then I have the fear the the ECDH change to =
+use KPP for SMP might be the one that has to wait a kernel cycle. Either =
+way is fine with me, but I want to avoid nasty merge conflicts in the =
+Bluetooth SMP code.
 
---Andy
+Regards
+
+Marcel
