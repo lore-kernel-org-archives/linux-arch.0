@@ -1,70 +1,205 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 28/29] sched: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
-Date: Sun, 26 Jun 2016 19:35:11 -0700
-Message-ID: <CALCETrVFC+X6uLe-ce7BePBTM5zCnAUn_vV73jyS-evTbmg6PA@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <ec58e505925c46bd43f9c4275c78292d4483af16.1466974736.git.luto@kernel.org>
+From: zhouchengming <zhouchengming1@huawei.com>
+Subject: Re: [PATCH 12/19] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Mon, 27 Jun 2016 12:47:25 +0800
+Message-ID: <5770AFDD.8060807@huawei.com>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f44.google.com ([209.85.213.44]:34448 "EHLO
-	mail-vk0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751564AbcF0Cfb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jun 2016 22:35:31 -0400
-Received: by mail-vk0-f44.google.com with SMTP id c2so184965420vkg.1
-        for <linux-arch@vger.kernel.org>; Sun, 26 Jun 2016 19:35:31 -0700 (PDT)
-In-Reply-To: <ec58e505925c46bd43f9c4275c78292d4483af16.1466974736.git.luto@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jun 26, 2016 at 2:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> We currently keep every task's stack around until the task_struct
-> itself is freed.  This means that we keep the stack allocation alive
-> for longer than necessary and that, under load, we free stacks in
-> big batches whenever RCU drops the last task reference.  Neither of
-> these is good for reuse of cache-hot memory, and freeing in batches
-> prevents us from usefully caching small numbers of vmalloced stacks.
+The {GET,SET}SIGMASK request of ptrace on ilp32 is wrong, it's handled
+by ptrace_request(like aarch64). So I write a patch to fix it(just for
+ilp32). I will send the patch next.
+
+Thanks!
+
+On 2016/6/18 7:54, Yury Norov wrote:
+> Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+> detection of the task type.
 >
-> On architectures that have thread_info on the stack, we can't easily
-> change this, but on architectures that set THREAD_INFO_IN_TASK, we
-> can free it as soon as the task is dead.
-
-This is broken:
-
-> -void free_task(struct task_struct *tsk)
-> +void release_task_stack(struct task_struct *tsk)
->  {
->         account_kernel_stack(tsk, -1);
->         arch_release_thread_stack(tsk->stack);
->         free_thread_stack(tsk);
-> +       tsk->stack = NULL;
-> +#ifdef CONFIG_VMAP_STACK
-> +       tsk->stack_vm_area = NULL;
-> +#endif
+> Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+> ---
+>   arch/arm64/include/asm/unistd32.h |  2 +-
+>   arch/arm64/kernel/ptrace.c        | 50 ++++++++++++++++++++++++++++++++++++++-
+>   arch/arm64/kernel/sys32.c         |  1 +
+>   include/linux/ptrace.h            |  6 +++++
+>   kernel/ptrace.c                   | 10 ++++----
+>   5 files changed, 62 insertions(+), 7 deletions(-)
+>
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index b7e8ef1..6da7cbd 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
+>   			/* 25 was sys_stime */
+>   __SYSCALL(25, sys_ni_syscall)
+>   #define __NR_ptrace 26
+> -__SYSCALL(__NR_ptrace, compat_sys_ptrace)
+> +__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
+>   			/* 27 was sys_alarm */
+>   __SYSCALL(27, sys_ni_syscall)
+>   			/* 28 was sys_fstat */
+> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+> index 38a09338..a861105 100644
+> --- a/arch/arm64/kernel/ptrace.c
+> +++ b/arch/arm64/kernel/ptrace.c
+> @@ -29,6 +29,7 @@
+>   #include<linux/user.h>
+>   #include<linux/seccomp.h>
+>   #include<linux/security.h>
+> +#include<linux/syscalls.h>
+>   #include<linux/init.h>
+>   #include<linux/signal.h>
+>   #include<linux/uaccess.h>
+> @@ -1114,7 +1115,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
+>   }
+>   #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
+>
+> -long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+> +static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
+>   			compat_ulong_t caddr, compat_ulong_t cdata)
+>   {
+>   	unsigned long addr = caddr;
+> @@ -1191,8 +1192,55 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+>
+>   	return ret;
+>   }
+> +
+> +COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
+> +		       compat_long_t, addr, compat_long_t, data)
+> +{
+> +	struct task_struct *child;
+> +	long ret;
+> +
+> +	if (request == PTRACE_TRACEME) {
+> +		ret = ptrace_traceme();
+> +		goto out;
+> +	}
+> +
+> +	child = ptrace_get_task_struct(pid);
+> +	if (IS_ERR(child)) {
+> +		ret = PTR_ERR(child);
+> +		goto out;
+> +	}
+> +
+> +	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
+> +		ret = ptrace_attach(child, request, addr, data);
+> +		goto out_put_task_struct;
+> +	}
+> +
+> +	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+> +				  request == PTRACE_INTERRUPT);
+> +	if (!ret) {
+> +		ret = compat_a32_ptrace(child, request, addr, data);
+> +		if (ret || request != PTRACE_DETACH)
+> +			ptrace_unfreeze_traced(child);
+> +	}
+> +
+> + out_put_task_struct:
+> +	put_task_struct(child);
+> + out:
+> +	return ret;
 > +}
 > +
-> +void free_task(struct task_struct *tsk)
+>   #endif /* CONFIG_AARCH32_EL0 */
+>
+> +#ifdef CONFIG_COMPAT
+> +
+> +long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+> +			compat_ulong_t caddr, compat_ulong_t cdata)
 > +{
-> +#ifndef CONFIG_THREAD_INFO_IN_TASK
-> +       /*
-> +        * The task is finally done with both the stack and thread_info,
-> +        * so free both.
-> +        */
-> +       release_task_stack(tsk);
-> +#else
-> +       /*
-> +        * If the task had a separate stack allocation, it should be gone
-> +        * by now.
-> +        */
-> +       WARN_ON_ONCE(tsk->stack);
-> +#endif
+> +	return compat_ptrace_request(child, request, caddr, cdata);
+> +}
+> +
+> +#endif /* CONFIG_COMPAT */
+> +
+>   const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+>   {
+>   #ifdef CONFIG_AARCH32_EL0
+> diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
+> index a40b134..3752443 100644
+> --- a/arch/arm64/kernel/sys32.c
+> +++ b/arch/arm64/kernel/sys32.c
+> @@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+>   asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+>   asmlinkage long compat_sys_fallocate_wrapper(void);
+>   asmlinkage long compat_sys_mmap2_wrapper(void);
+> +asmlinkage long compat_sys_aarch32_ptrace(void);
+>
+>   #undef __SYSCALL
+>   #define __SYSCALL(nr, sym)	[nr] = sym,
+> diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+> index 504c98a..75887a0 100644
+> --- a/include/linux/ptrace.h
+> +++ b/include/linux/ptrace.h
+> @@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
+>   			    unsigned long data);
+>   int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
+>   			    unsigned long data);
+> +int ptrace_traceme(void);
+> +struct task_struct *ptrace_get_task_struct(pid_t pid);
+> +int ptrace_attach(struct task_struct *task, long request,
+> +			 unsigned long addr, unsigned long flags);
+> +int ptrace_check_attach(struct task_struct *child, bool ignore_state);
+> +void ptrace_unfreeze_traced(struct task_struct *task);
+>
+>   /**
+>    * ptrace_parent - return the task that is tracing the given task
+> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+> index d49bfa1..cadf24c 100644
+> --- a/kernel/ptrace.c
+> +++ b/kernel/ptrace.c
+> @@ -136,7 +136,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
+>   	return ret;
+>   }
+>
+> -static void ptrace_unfreeze_traced(struct task_struct *task)
+> +void ptrace_unfreeze_traced(struct task_struct *task)
+>   {
+>   	if (task->state != __TASK_TRACED)
+>   		return;
+> @@ -168,7 +168,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+>    * RETURNS:
+>    * 0 on success, -ESRCH if %child is not ready.
+>    */
+> -static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+> +int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+>   {
+>   	int ret = -ESRCH;
+>
+> @@ -292,7 +292,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
+>   	return !err;
+>   }
+>
+> -static int ptrace_attach(struct task_struct *task, long request,
+> +int ptrace_attach(struct task_struct *task, long request,
+>   			 unsigned long addr,
+>   			 unsigned long flags)
+>   {
+> @@ -406,7 +406,7 @@ out:
+>    * Performs checks and sets PT_PTRACED.
+>    * Should be used by all ptrace implementations for PTRACE_TRACEME.
+>    */
+> -static int ptrace_traceme(void)
+> + int ptrace_traceme(void)
+>   {
+>   	int ret = -EPERM;
+>
+> @@ -1056,7 +1056,7 @@ int ptrace_request(struct task_struct *child, long request,
+>   	return ret;
+>   }
+>
+> -static struct task_struct *ptrace_get_task_struct(pid_t pid)
+> +struct task_struct *ptrace_get_task_struct(pid_t pid)
+>   {
+>   	struct task_struct *child;
+>
 
-We can get to free_task without first going through TASK_DEAD if we
-fail to clone().  I'm inclined to make release_task_stack be safe to
-call more than once and to call it unconditionally in free_task, since
-doing it without branches (calling release_task_stack in the
-copy_process failure path) will require more ifdeffery and sounds like
-more trouble than it's worth.
 
---Andy
