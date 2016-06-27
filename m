@@ -1,119 +1,184 @@
-From: Torsten Duwe <duwe@lst.de>
-Subject: [PATCH v2 2/2] arm64: implement live patching
-Date: Mon, 27 Jun 2016 17:17:22 +0200 (CEST)
-Message-ID: <20160627151722.B81C968D29@newverein.lst.de>
-References: <20160627151500.2247A68D20@newverein.lst.de>
-Return-path: <linux-sparse-owner@vger.kernel.org>
-In-Reply-To: <20160627151500.2247A68D20@newverein.lst.de>
-Sender: linux-sparse-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v4 15/29] x86/mm/64: Enable vmapped stacks
+Date: Mon, 27 Jun 2016 08:22:30 -0700
+Message-ID: <CALCETrWQCpNWum5WofkApw4Ht+KB5H=tmPS5GummTFsSVfNF7g@mail.gmail.com>
+References: <cover.1466974736.git.luto@kernel.org> <f0a81fa3f7f81422cca23c9d6c88a555d89787ab.1466974736.git.luto@kernel.org>
+ <CAMzpN2gBgZbBBJ_kAT=fty7=8z3xDyv2gzz9xuGLoK7EUuHh0A@mail.gmail.com> <CAMzpN2ggqbwkfNjHtYg3KU5oeerU6NPa0AqzG7PFtJuWy3dyKA@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <kernel-hardening-return-3732-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAMzpN2ggqbwkfNjHtYg3KU5oeerU6NPa0AqzG7PFtJuWy3dyKA@mail.gmail.com>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On top of FTRACE_WITH_REGS and the klp changes that go into v4.7
-this is straightforward.
+On Mon, Jun 27, 2016 at 8:12 AM, Brian Gerst <brgerst@gmail.com> wrote:
+> On Mon, Jun 27, 2016 at 11:01 AM, Brian Gerst <brgerst@gmail.com> wrote:
+>> On Sun, Jun 26, 2016 at 5:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
+>>> This allows x86_64 kernels to enable vmapped stacks.  There are a
+>>> couple of interesting bits.
+>>>
+>>> First, x86 lazily faults in top-level paging entries for the vmalloc
+>>> area.  This won't work if we get a page fault while trying to access
+>>> the stack: the CPU will promote it to a double-fault and we'll die.
+>>> To avoid this problem, probe the new stack when switching stacks and
+>>> forcibly populate the pgd entry for the stack when switching mms.
+>>>
+>>> Second, once we have guard pages around the stack, we'll want to
+>>> detect and handle stack overflow.
+>>>
+>>> I didn't enable it on x86_32.  We'd need to rework the double-fault
+>>> code a bit and I'm concerned about running out of vmalloc virtual
+>>> addresses under some workloads.
+>>>
+>>> This patch, by itself, will behave somewhat erratically when the
+>>> stack overflows while RSP is still more than a few tens of bytes
+>>> above the bottom of the stack.  Specifically, we'll get #PF and make
+>>> it to no_context and an oops without triggering a double-fault, and
+>>> no_context doesn't know about stack overflows.  The next patch will
+>>> improve that case.
+>>>
+>>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>>> ---
+>>>  arch/x86/Kconfig                 |  1 +
+>>>  arch/x86/include/asm/switch_to.h | 28 +++++++++++++++++++++++++++-
+>>>  arch/x86/kernel/traps.c          | 32 ++++++++++++++++++++++++++++++++
+>>>  arch/x86/mm/tlb.c                | 15 +++++++++++++++
+>>>  4 files changed, 75 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>>> index d9a94da0c29f..afdcf96ef109 100644
+>>> --- a/arch/x86/Kconfig
+>>> +++ b/arch/x86/Kconfig
+>>> @@ -92,6 +92,7 @@ config X86
+>>>         select HAVE_ARCH_TRACEHOOK
+>>>         select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>>>         select HAVE_EBPF_JIT                    if X86_64
+>>> +       select HAVE_ARCH_VMAP_STACK             if X86_64
+>>>         select HAVE_CC_STACKPROTECTOR
+>>>         select HAVE_CMPXCHG_DOUBLE
+>>>         select HAVE_CMPXCHG_LOCAL
+>>> diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
+>>> index 8f321a1b03a1..14e4b20f0aaf 100644
+>>> --- a/arch/x86/include/asm/switch_to.h
+>>> +++ b/arch/x86/include/asm/switch_to.h
+>>> @@ -8,6 +8,28 @@ struct tss_struct;
+>>>  void __switch_to_xtra(struct task_struct *prev_p, struct task_struct *next_p,
+>>>                       struct tss_struct *tss);
+>>>
+>>> +/* This runs runs on the previous thread's stack. */
+>>> +static inline void prepare_switch_to(struct task_struct *prev,
+>>> +                                    struct task_struct *next)
+>>> +{
+>>> +#ifdef CONFIG_VMAP_STACK
+>>> +       /*
+>>> +        * If we switch to a stack that has a top-level paging entry
+>>> +        * that is not present in the current mm, the resulting #PF will
+>>> +        * will be promoted to a double-fault and we'll panic.  Probe
+>>> +        * the new stack now so that vmalloc_fault can fix up the page
+>>> +        * tables if needed.  This can only happen if we use a stack
+>>> +        * in vmap space.
+>>> +        *
+>>> +        * We assume that the stack is aligned so that it never spans
+>>> +        * more than one top-level paging entry.
+>>> +        *
+>>> +        * To minimize cache pollution, just follow the stack pointer.
+>>> +        */
+>>> +       READ_ONCE(*(unsigned char *)next->thread.sp);
+>>> +#endif
+>>> +}
+>>> +
+>>>  #ifdef CONFIG_X86_32
+>>>
+>>>  #ifdef CONFIG_CC_STACKPROTECTOR
+>>> @@ -39,6 +61,8 @@ do {                                                                  \
+>>>          */                                                             \
+>>>         unsigned long ebx, ecx, edx, esi, edi;                          \
+>>>                                                                         \
+>>> +       prepare_switch_to(prev, next);                                  \
+>>> +                                                                       \
+>>>         asm volatile("pushl %%ebp\n\t"          /* save    EBP   */     \
+>>>                      "movl %%esp,%[prev_sp]\n\t"        /* save    ESP   */ \
+>>>                      "movl %[next_sp],%%esp\n\t"        /* restore ESP   */ \
+>>> @@ -103,7 +127,9 @@ do {                                                                        \
+>>>   * clean in kernel mode, with the possible exception of IOPL.  Kernel IOPL
+>>>   * has no effect.
+>>>   */
+>>> -#define switch_to(prev, next, last) \
+>>> +#define switch_to(prev, next, last)                                      \
+>>> +       prepare_switch_to(prev, next);                                    \
+>>> +                                                                         \
+>>>         asm volatile(SAVE_CONTEXT                                         \
+>>>              "movq %%rsp,%P[threadrsp](%[prev])\n\t" /* save RSP */       \
+>>>              "movq %P[threadrsp](%[next]),%%rsp\n\t" /* restore RSP */    \
+>>> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+>>> index 00f03d82e69a..9cb7ea781176 100644
+>>> --- a/arch/x86/kernel/traps.c
+>>> +++ b/arch/x86/kernel/traps.c
+>>> @@ -292,12 +292,30 @@ DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present", segment_not_present)
+>>>  DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",            stack_segment)
+>>>  DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",          alignment_check)
+>>>
+>>> +#ifdef CONFIG_VMAP_STACK
+>>> +static void __noreturn handle_stack_overflow(const char *message,
+>>> +                                            struct pt_regs *regs,
+>>> +                                            unsigned long fault_address)
+>>> +{
+>>> +       printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
+>>> +                (void *)fault_address, current->stack,
+>>> +                (char *)current->stack + THREAD_SIZE - 1);
+>>> +       die(message, regs, 0);
+>>> +
+>>> +       /* Be absolutely certain we don't return. */
+>>> +       panic(message);
+>>> +}
+>>> +#endif
+>>> +
+>>>  #ifdef CONFIG_X86_64
+>>>  /* Runs on IST stack */
+>>>  dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+>>>  {
+>>>         static const char str[] = "double fault";
+>>>         struct task_struct *tsk = current;
+>>> +#ifdef CONFIG_VMAP_STACK
+>>> +       unsigned long cr2;
+>>> +#endif
+>>>
+>>>  #ifdef CONFIG_X86_ESPFIX64
+>>>         extern unsigned char native_irq_return_iret[];
+>>> @@ -332,6 +350,20 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+>>>         tsk->thread.error_code = error_code;
+>>>         tsk->thread.trap_nr = X86_TRAP_DF;
+>>>
+>>> +#ifdef CONFIG_VMAP_STACK
+>>> +       /*
+>>> +        * If we overflow the stack into a guard page, the CPU will fail
+>>> +        * to deliver #PF and will send #DF instead.  CR2 will contain
+>>> +        * the linear address of the second fault, which will be in the
+>>> +        * guard page below the bottom of the stack.
+>>> +        */
+>>> +       cr2 = read_cr2();
+>>> +       if ((unsigned long)tsk->stack - 1 - cr2 < PAGE_SIZE)
+>>> +               handle_stack_overflow(
+>>> +                       "kernel stack overflow (double-fault)",
+>>> +                       regs, cr2);
+>>> +#endif
+>>
+>> Is there any other way to tell if this was from a page fault?  If it
+>> wasn't a page fault then CR2 is undefined.
+>
+> I guess it doesn't really matter, since the fault is fatal either way.
+> The error message might be incorrect though.
+>
 
-Signed-off-by: Torsten Duwe <duwe@suse.de>
----
- arch/arm64/Kconfig                 |  3 +++
- arch/arm64/include/asm/livepatch.h | 37 +++++++++++++++++++++++++++++++++++++
- arch/arm64/kernel/entry-ftrace.S   | 13 +++++++++++++
- 3 files changed, 53 insertions(+)
- create mode 100644 arch/arm64/include/asm/livepatch.h
+It's at least worth a comment, though.  Maybe I should check if
+regs->rsp is within 40 bytes of the bottom of the stack, too, such
+that delivery of an inner fault would have double-faulted assuming the
+inner fault didn't use an IST vector.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 36a0e26..cb5adf3 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -80,6 +80,7 @@ config ARM64
- 	select HAVE_GENERIC_DMA_COHERENT
- 	select HAVE_HW_BREAKPOINT if PERF_EVENTS
- 	select HAVE_IRQ_TIME_ACCOUNTING
-+	select HAVE_LIVEPATCH
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP if NUMA
- 	select HAVE_PATA_PLATFORM
-@@ -1042,4 +1043,6 @@ if CRYPTO
- source "arch/arm64/crypto/Kconfig"
- endif
- 
-+source "kernel/livepatch/Kconfig"
-+
- source "lib/Kconfig"
-diff --git a/arch/arm64/include/asm/livepatch.h b/arch/arm64/include/asm/livepatch.h
-new file mode 100644
-index 0000000..6b9a3d1
---- /dev/null
-+++ b/arch/arm64/include/asm/livepatch.h
-@@ -0,0 +1,37 @@
-+/*
-+ * livepatch.h - arm64-specific Kernel Live Patching Core
-+ *
-+ * Copyright (C) 2016 SUSE
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version 2
-+ * of the License, or (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef _ASM_ARM64_LIVEPATCH_H
-+#define _ASM_ARM64_LIVEPATCH_H
-+
-+#include <linux/module.h>
-+#include <linux/ftrace.h>
-+
-+#ifdef CONFIG_LIVEPATCH
-+static inline int klp_check_compiler_support(void)
-+{
-+	return 0;
-+}
-+
-+static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-+{
-+	regs->pc = ip;
-+}
-+#endif /* CONFIG_LIVEPATCH */
-+
-+#endif /* _ASM_ARM64_LIVEPATCH_H */
-diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
-index 3ebe791..b166cbf 100644
---- a/arch/arm64/kernel/entry-ftrace.S
-+++ b/arch/arm64/kernel/entry-ftrace.S
-@@ -204,6 +204,9 @@ ENTRY(ftrace_caller)
- 	str	x9, [sp, #S_LR]
- 	/* The program counter just after the ftrace call site */
- 	str	lr, [sp, #S_PC]
-+#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
-+	mov	x19,lr          /* remember old return address */
-+#endif
- 	/* The stack pointer as it was on ftrace_caller entry... */
- 	add	x29, sp, #S_FRAME_SIZE+16	/* ...is also our new FP */
- 	str	x29, [sp, #S_SP]
-@@ -219,6 +222,16 @@ ftrace_call:
- 
- 	bl	ftrace_stub
- 
-+#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
-+	/* Is the trace function a live patcher an has messed with
-+	 * the return address?
-+	*/
-+	ldr	x9, [sp, #S_PC]
-+	cmp	x9, x19		/* compare with the value we remembered */
-+	/* to not call graph tracer's "call" mechanism twice! */
-+	b.eq	ftrace_regs_return
-+#endif
-+
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- 	.global ftrace_graph_call
- ftrace_graph_call:			// ftrace_graph_caller();
--- 
-2.6.6
-
+--Andy
