@@ -1,156 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f46.google.com ([209.85.213.46]:34283 "EHLO
-	mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751770AbcF0Qfn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 12:35:43 -0400
-Received: by mail-vk0-f46.google.com with SMTP id c2so208900222vkg.1
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jun 2016 09:35:42 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAMzpN2jVghmEbpx7yyOVcOa4GMw8iRUez0WeehGYnrtdm7Ad1w@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <f0a81fa3f7f81422cca23c9d6c88a555d89787ab.1466974736.git.luto@kernel.org>
- <CAMzpN2gBgZbBBJ_kAT=fty7=8z3xDyv2gzz9xuGLoK7EUuHh0A@mail.gmail.com>
- <CAMzpN2ggqbwkfNjHtYg3KU5oeerU6NPa0AqzG7PFtJuWy3dyKA@mail.gmail.com>
- <CALCETrWQCpNWum5WofkApw4Ht+KB5H=tmPS5GummTFsSVfNF7g@mail.gmail.com>
- <CALCETrXVtjPQHx2g_O3HRr-DNLWRpDL3Pftt2peoVrfNGiSucA@mail.gmail.com> <CAMzpN2jVghmEbpx7yyOVcOa4GMw8iRUez0WeehGYnrtdm7Ad1w@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Mon, 27 Jun 2016 09:35:22 -0700
-Message-ID: <CALCETrU6fFNJDNvKn2ZJDz+5CW22mWb5nH6AXmNbGUvC4t2RSA@mail.gmail.com>
-Subject: Re: [PATCH v4 15/29] x86/mm/64: Enable vmapped stacks
-Content-Type: text/plain; charset=UTF-8
+Received: from ipv4.connman.net ([82.165.8.211]:35281 "EHLO mail.holtmann.org"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751644AbcF0Wa2 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 18:30:28 -0400
+Content-Type: text/plain; charset=us-ascii
+Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
+Subject: Re: [PATCH v4 01/29] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
+From: Marcel Holtmann <marcel@holtmann.org>
+In-Reply-To: <20160627085403.GA26865@gmail.com>
+Date: Tue, 28 Jun 2016 00:30:24 +0200
+Content-Transfer-Encoding: 8BIT
+Message-ID: <2833CC26-7306-4803-A5DB-4CBECCF35C08@holtmann.org>
+References: <cover.1466974736.git.luto@kernel.org> <cover.1466974736.git.luto@kernel.org> <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1466974736.git.luto@kernel.org> <8C5360E3-94EE-4869-B9B9-AF9D41B5A3AC@holtmann.org> <20160627085403.GA26865@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Brian Gerst <brgerst@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160627163522.lN9G8VnewGaRYWlfE_0o0EBh1J-XHg143d_aMgo3lT8@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andy Lutomirski <luto@kernel.org>, x86@kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, netdev@vger.kernel.org
+Message-ID: <20160627223024.W36vOv9sPSmWqyXr13Ib76M72SaG1zclMmnLN-sCmqA@z>
 
-On Mon, Jun 27, 2016 at 9:17 AM, Brian Gerst <brgerst@gmail.com> wrote:
-> On Mon, Jun 27, 2016 at 11:54 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Mon, Jun 27, 2016 at 8:22 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>> On Mon, Jun 27, 2016 at 8:12 AM, Brian Gerst <brgerst@gmail.com> wrote:
->>>> On Mon, Jun 27, 2016 at 11:01 AM, Brian Gerst <brgerst@gmail.com> wrote:
->>>>> On Sun, Jun 26, 2016 at 5:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
->>>>>>  #ifdef CONFIG_X86_64
->>>>>>  /* Runs on IST stack */
->>>>>>  dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
->>>>>>  {
->>>>>>         static const char str[] = "double fault";
->>>>>>         struct task_struct *tsk = current;
->>>>>> +#ifdef CONFIG_VMAP_STACK
->>>>>> +       unsigned long cr2;
->>>>>> +#endif
->>>>>>
->>>>>>  #ifdef CONFIG_X86_ESPFIX64
->>>>>>         extern unsigned char native_irq_return_iret[];
->>>>>> @@ -332,6 +350,20 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
->>>>>>         tsk->thread.error_code = error_code;
->>>>>>         tsk->thread.trap_nr = X86_TRAP_DF;
->>>>>>
->>>>>> +#ifdef CONFIG_VMAP_STACK
->>>>>> +       /*
->>>>>> +        * If we overflow the stack into a guard page, the CPU will fail
->>>>>> +        * to deliver #PF and will send #DF instead.  CR2 will contain
->>>>>> +        * the linear address of the second fault, which will be in the
->>>>>> +        * guard page below the bottom of the stack.
->>>>>> +        */
->>>>>> +       cr2 = read_cr2();
->>>>>> +       if ((unsigned long)tsk->stack - 1 - cr2 < PAGE_SIZE)
->>>>>> +               handle_stack_overflow(
->>>>>> +                       "kernel stack overflow (double-fault)",
->>>>>> +                       regs, cr2);
->>>>>> +#endif
->>>>>
->>>>> Is there any other way to tell if this was from a page fault?  If it
->>>>> wasn't a page fault then CR2 is undefined.
->>>>
->>>> I guess it doesn't really matter, since the fault is fatal either way.
->>>> The error message might be incorrect though.
->>>>
->>>
->>> It's at least worth a comment, though.  Maybe I should check if
->>> regs->rsp is within 40 bytes of the bottom of the stack, too, such
->>> that delivery of an inner fault would have double-faulted assuming the
->>> inner fault didn't use an IST vector.
->>>
->>
->> How about:
->>
->>     /*
->>      * If we overflow the stack into a guard page, the CPU will fail
->>      * to deliver #PF and will send #DF instead.  CR2 will contain
->>      * the linear address of the second fault, which will be in the
->>      * guard page below the bottom of the stack.
->>      *
->>      * We're limited to using heuristics here, since the CPU does
->>      * not tell us what type of fault failed and, if the first fault
->>      * wasn't a page fault, CR2 may contain stale garbage.  To mostly
->>      * rule out garbage, we check if the saved RSP is close enough to
->>      * the bottom of the stack to cause exception delivery to fail.
->>      * The worst case is 7 stack slots: one for alignment, five for
->>      * SS..RIP, and one for the error code.
->>      */
->>     tsk_stack = (unsigned long)task_stack_page(tsk);
->>     if (regs->rsp <= tsk_stack + 7*8 && regs->rsp > tsk_stack - PAGE_SIZE) {
->>         /* A double-fault due to #PF delivery failure is plausible. */
->>         cr2 = read_cr2();
->>         if (tsk_stack - 1 - cr2 < PAGE_SIZE)
->>             handle_stack_overflow(
->>                 "kernel stack overflow (double-fault)",
->>                 regs, cr2);
->>     }
->
-> I think RSP anywhere in the guard page would be best, since it could
-> have been decremented by a function prologue into the guard page
-> before an access that triggers the page fault.
->
+Hi Ingo,
 
-I think that can miss some stack overflows.  Suppose that RSP points
-very close to the bottom of the stack and we take an unrelated fault.
-The CPU can fail to deliver that fault and we get a double fault
-instead.  But I counted wrong, too.  Do you like this version and its
-explanation?
+>>> SMP does ECB crypto on stack buffers.  This is complicated and
+>>> fragile, and it will not work if the stack is virtually allocated.
+>>> 
+>>> Switch to the crypto_cipher interface, which is simpler and safer.
+>>> 
+>>> Cc: Marcel Holtmann <marcel@holtmann.org>
+>>> Cc: Gustavo Padovan <gustavo@padovan.org>
+>>> Cc: Johan Hedberg <johan.hedberg@gmail.com>
+>>> Cc: "David S. Miller" <davem@davemloft.net>
+>>> Cc: linux-bluetooth@vger.kernel.org
+>>> Cc: netdev@vger.kernel.org
+>>> Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+>>> Acked-and-tested-by: Johan Hedberg <johan.hedberg@intel.com>
+>>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>>> ---
+>>> net/bluetooth/smp.c | 67 ++++++++++++++++++++++-------------------------------
+>>> 1 file changed, 28 insertions(+), 39 deletions(-)
+>> 
+>> patch has been applied to bluetooth-next tree.
+> 
+> Sadly carrying this separately will delay the virtual kernel stacks feature by a 
+> kernel cycle, because it's a must-have prerequisite.
 
-    /*
-     * If we overflow the stack into a guard page, the CPU will fail
-     * to deliver #PF and will send #DF instead.  Similarly, if we
-     * take any non-IST exception while too close to the bottom of
-     * the stack, the processor will get a page fault while
-     * delivering the exception and will generate a double fault.
-     *
-     * According to the SDM (footnote in 6.15 under "Interrupt 14 -
-     * Page-Fault Exception (#PF):
-     *
-     *   Processors update CR2 whenever a page fault is detected. If a
-     *   second page fault occurs while an earlier page fault is being
-     *   deliv- ered, the faulting linear address of the second fault will
-     *   overwrite the contents of CR2 (replacing the previous
-     *   address). These updates to CR2 occur even if the page fault
-     *   results in a double fault or occurs during the delivery of a
-     *   double fault.
-     *
-     * However, if we got here due to a non-page-fault exception while
-     * delivering a non-page-fault exception, CR2 may contain a
-     * stale value.
-     *
-     * As a heuristic: we consider this double fault to be a stack
-     * overflow if CR2 points to the guard page and RSP is either
-     * in the guard page or close enough to the bottom of the stack
-     *
-     * We're limited to using heuristics here, since the CPU does
-     * not tell us what type of fault failed and, if the first fault
-     * wasn't a page fault, CR2 may contain stale garbage.  To
-     * mostly rule out garbage, we check if the saved RSP is close
-     * enough to the bottom of the stack to cause exception delivery
-     * to fail.  If RSP == tsk_stack + 48 and we take an exception,
-     * the stack is already aligned and there will be enough room
-     * SS, RSP, RFLAGS, CS, RIP, and a possible error code.  With
-     * any less space left, exception delivery could fail.
-     */
-    tsk_stack = (unsigned long)task_stack_page(tsk);
-    if (regs->rsp < tsk_stack + 48 && regs->rsp > tsk_stack - PAGE_SIZE) {
-        /* A double-fault due to #PF delivery failure is plausible. */
-        cr2 = read_cr2();
-        if (tsk_stack - 1 - cr2 < PAGE_SIZE)
-            handle_stack_overflow(
-                "kernel stack overflow (double-fault)",
-                regs, cr2);
-    }
+I can take it back out, but then I have the fear the the ECDH change to use KPP for SMP might be the one that has to wait a kernel cycle. Either way is fine with me, but I want to avoid nasty merge conflicts in the Bluetooth SMP code.
+
+Regards
+
+Marcel
+
