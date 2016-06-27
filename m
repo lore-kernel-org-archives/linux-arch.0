@@ -1,246 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:48048 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750736AbcF0KdX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 06:33:23 -0400
-Message-ID: <5771005B.3060605@huawei.com>
-Date: Mon, 27 Jun 2016 18:30:51 +0800
-From: zhouchengming <zhouchengming1@huawei.com>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:33052 "EHLO
+	mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751806AbcF0PCY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 11:02:24 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH] ilp32: fix {GET,SET}SIGMASK request for ptrace
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com> <5770B041.3040509@huawei.com> <20160627053916.GA305@yury-N73SV>
-In-Reply-To: <20160627053916.GA305@yury-N73SV>
-Content-Type: multipart/mixed;
-	boundary="------------000803040600030202030500"
+In-Reply-To: <f0a81fa3f7f81422cca23c9d6c88a555d89787ab.1466974736.git.luto@kernel.org>
+References: <cover.1466974736.git.luto@kernel.org> <f0a81fa3f7f81422cca23c9d6c88a555d89787ab.1466974736.git.luto@kernel.org>
+From: Brian Gerst <brgerst@gmail.com>
+Date: Mon, 27 Jun 2016 11:01:36 -0400
+Message-ID: <CAMzpN2gBgZbBBJ_kAT=fty7=8z3xDyv2gzz9xuGLoK7EUuHh0A@mail.gmail.com>
+Subject: Re: [PATCH v4 15/29] x86/mm/64: Enable vmapped stacks
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
-Message-ID: <20160627103051.SLJg6HGLcBcgQRcXS03frQFcI4j8hmEcTdpdKbGcUbc@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160627150136.NFCnMXFx0n6id6OxZLRSs8s1KoHkKsy7ss1B2MVxoDI@z>
 
---------------000803040600030202030500
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+On Sun, Jun 26, 2016 at 5:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> This allows x86_64 kernels to enable vmapped stacks.  There are a
+> couple of interesting bits.
+>
+> First, x86 lazily faults in top-level paging entries for the vmalloc
+> area.  This won't work if we get a page fault while trying to access
+> the stack: the CPU will promote it to a double-fault and we'll die.
+> To avoid this problem, probe the new stack when switching stacks and
+> forcibly populate the pgd entry for the stack when switching mms.
+>
+> Second, once we have guard pages around the stack, we'll want to
+> detect and handle stack overflow.
+>
+> I didn't enable it on x86_32.  We'd need to rework the double-fault
+> code a bit and I'm concerned about running out of vmalloc virtual
+> addresses under some workloads.
+>
+> This patch, by itself, will behave somewhat erratically when the
+> stack overflows while RSP is still more than a few tens of bytes
+> above the bottom of the stack.  Specifically, we'll get #PF and make
+> it to no_context and an oops without triggering a double-fault, and
+> no_context doesn't know about stack overflows.  The next patch will
+> improve that case.
+>
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  arch/x86/Kconfig                 |  1 +
+>  arch/x86/include/asm/switch_to.h | 28 +++++++++++++++++++++++++++-
+>  arch/x86/kernel/traps.c          | 32 ++++++++++++++++++++++++++++++++
+>  arch/x86/mm/tlb.c                | 15 +++++++++++++++
+>  4 files changed, 75 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index d9a94da0c29f..afdcf96ef109 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -92,6 +92,7 @@ config X86
+>         select HAVE_ARCH_TRACEHOOK
+>         select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>         select HAVE_EBPF_JIT                    if X86_64
+> +       select HAVE_ARCH_VMAP_STACK             if X86_64
+>         select HAVE_CC_STACKPROTECTOR
+>         select HAVE_CMPXCHG_DOUBLE
+>         select HAVE_CMPXCHG_LOCAL
+> diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
+> index 8f321a1b03a1..14e4b20f0aaf 100644
+> --- a/arch/x86/include/asm/switch_to.h
+> +++ b/arch/x86/include/asm/switch_to.h
+> @@ -8,6 +8,28 @@ struct tss_struct;
+>  void __switch_to_xtra(struct task_struct *prev_p, struct task_struct *next_p,
+>                       struct tss_struct *tss);
+>
+> +/* This runs runs on the previous thread's stack. */
+> +static inline void prepare_switch_to(struct task_struct *prev,
+> +                                    struct task_struct *next)
+> +{
+> +#ifdef CONFIG_VMAP_STACK
+> +       /*
+> +        * If we switch to a stack that has a top-level paging entry
+> +        * that is not present in the current mm, the resulting #PF will
+> +        * will be promoted to a double-fault and we'll panic.  Probe
+> +        * the new stack now so that vmalloc_fault can fix up the page
+> +        * tables if needed.  This can only happen if we use a stack
+> +        * in vmap space.
+> +        *
+> +        * We assume that the stack is aligned so that it never spans
+> +        * more than one top-level paging entry.
+> +        *
+> +        * To minimize cache pollution, just follow the stack pointer.
+> +        */
+> +       READ_ONCE(*(unsigned char *)next->thread.sp);
+> +#endif
+> +}
+> +
+>  #ifdef CONFIG_X86_32
+>
+>  #ifdef CONFIG_CC_STACKPROTECTOR
+> @@ -39,6 +61,8 @@ do {                                                                  \
+>          */                                                             \
+>         unsigned long ebx, ecx, edx, esi, edi;                          \
+>                                                                         \
+> +       prepare_switch_to(prev, next);                                  \
+> +                                                                       \
+>         asm volatile("pushl %%ebp\n\t"          /* save    EBP   */     \
+>                      "movl %%esp,%[prev_sp]\n\t"        /* save    ESP   */ \
+>                      "movl %[next_sp],%%esp\n\t"        /* restore ESP   */ \
+> @@ -103,7 +127,9 @@ do {                                                                        \
+>   * clean in kernel mode, with the possible exception of IOPL.  Kernel IOPL
+>   * has no effect.
+>   */
+> -#define switch_to(prev, next, last) \
+> +#define switch_to(prev, next, last)                                      \
+> +       prepare_switch_to(prev, next);                                    \
+> +                                                                         \
+>         asm volatile(SAVE_CONTEXT                                         \
+>              "movq %%rsp,%P[threadrsp](%[prev])\n\t" /* save RSP */       \
+>              "movq %P[threadrsp](%[next]),%%rsp\n\t" /* restore RSP */    \
+> diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+> index 00f03d82e69a..9cb7ea781176 100644
+> --- a/arch/x86/kernel/traps.c
+> +++ b/arch/x86/kernel/traps.c
+> @@ -292,12 +292,30 @@ DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present", segment_not_present)
+>  DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",            stack_segment)
+>  DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",          alignment_check)
+>
+> +#ifdef CONFIG_VMAP_STACK
+> +static void __noreturn handle_stack_overflow(const char *message,
+> +                                            struct pt_regs *regs,
+> +                                            unsigned long fault_address)
+> +{
+> +       printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
+> +                (void *)fault_address, current->stack,
+> +                (char *)current->stack + THREAD_SIZE - 1);
+> +       die(message, regs, 0);
+> +
+> +       /* Be absolutely certain we don't return. */
+> +       panic(message);
+> +}
+> +#endif
+> +
+>  #ifdef CONFIG_X86_64
+>  /* Runs on IST stack */
+>  dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+>  {
+>         static const char str[] = "double fault";
+>         struct task_struct *tsk = current;
+> +#ifdef CONFIG_VMAP_STACK
+> +       unsigned long cr2;
+> +#endif
+>
+>  #ifdef CONFIG_X86_ESPFIX64
+>         extern unsigned char native_irq_return_iret[];
+> @@ -332,6 +350,20 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+>         tsk->thread.error_code = error_code;
+>         tsk->thread.trap_nr = X86_TRAP_DF;
+>
+> +#ifdef CONFIG_VMAP_STACK
+> +       /*
+> +        * If we overflow the stack into a guard page, the CPU will fail
+> +        * to deliver #PF and will send #DF instead.  CR2 will contain
+> +        * the linear address of the second fault, which will be in the
+> +        * guard page below the bottom of the stack.
+> +        */
+> +       cr2 = read_cr2();
+> +       if ((unsigned long)tsk->stack - 1 - cr2 < PAGE_SIZE)
+> +               handle_stack_overflow(
+> +                       "kernel stack overflow (double-fault)",
+> +                       regs, cr2);
+> +#endif
 
-On 2016/6/27 13:39, Yury Norov wrote:
-> Hi Zhou,
->
-> Thank you for the patch. The idea is ok, but patch format got broken
-> for some reason. Could you re-send it?
->
-> Yury.
+Is there any other way to tell if this was from a page fault?  If it
+wasn't a page fault then CR2 is undefined.
 
-Sorry for the broken patch, maybe my mail guest has some problems. So
-I send the patch as an attachment.
-
-Thanks!
-
->
-> On Mon, Jun 27, 2016 at 12:49:05PM +0800, zhouchengming wrote:
->> atus: RO
->> Content-Length: 4732
->> Lines: 181
->>
->> The function compat_ptrace_request(used by ilp32) don't handle
->> {GET,SET}SIGMASK request, so it will be handled by ptrace_request.
->> But it's wrong because the compat_sigset_t of ilp32 differs from
->> the sigset_t of aarch64. The patch fixes it.
->>
->> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->> ---
->>   arch/arm64/include/asm/signal_ilp32.h |   22 ++++++++++++
->>   arch/arm64/kernel/ptrace.c            |   62
->> +++++++++++++++++++++++++++++++++
->
-> Here -  unneeded line break
->
->>   arch/arm64/kernel/signal_ilp32.c      |   23 +------------
->>   3 files changed, 85 insertions(+), 22 deletions(-)
->>
->> diff --git a/arch/arm64/include/asm/signal_ilp32.h
->> b/arch/arm64/include/asm/signal_ilp32.h
->
-> and here
->
->> index 30eff23..ed52607 100644
->> --- a/arch/arm64/include/asm/signal_ilp32.h
->> +++ b/arch/arm64/include/asm/signal_ilp32.h
->> @@ -21,6 +21,28 @@
->>   int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
->>   			  struct pt_regs *regs);
->>
->> +static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
->> +{
->> +	compat_sigset_t cset;
->> +
->> +	cset.sig[0] = set->sig[0]&  0xffffffffull;
->> +	cset.sig[1] = set->sig[0]>>  32;
->> +
->> +	return copy_to_user(uset,&cset, sizeof(*uset));
->> +}
->> +
->> +static inline int get_sigset_t(sigset_t *set,
->> +			       const compat_sigset_t __user *uset)
->> +{
->> +	compat_sigset_t s32;
->> +
->> +	if (copy_from_user(&s32, uset, sizeof(*uset)))
->> +		return -EFAULT;
->> +
->> +	set->sig[0] = s32.sig[0] | (((long)s32.sig[1])<<  32);
->> +	return 0;
->> +}
->> +
->>   #else
->>
->>   static inline int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
->> sigset_t *set,
->
-> and here
->
->> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
->> index a861105..8d4cad1 100644
->> --- a/arch/arm64/kernel/ptrace.c
->> +++ b/arch/arm64/kernel/ptrace.c
->> @@ -44,6 +44,7 @@
->>   #include<asm/syscall.h>
->>   #include<asm/traps.h>
->>   #include<asm/system_misc.h>
->> +#include<asm/signal_ilp32.h>
->>
->>   #define CREATE_TRACE_POINTS
->>   #include<trace/events/syscalls.h>
->> @@ -1231,12 +1232,73 @@ COMPAT_SYSCALL_DEFINE4(aarch32_ptrace,
->> compat_long_t, request, compat_long_t, pi
->
-> and later on the patch
->
->>
->>   #endif /* CONFIG_AARCH32_EL0 */
->>
->> +#ifdef CONFIG_ARM64_ILP32
->> +
->> +static int compat_ilp32_ptrace(struct task_struct *child, compat_long_t
->> request,
->> +			compat_ulong_t addr, compat_ulong_t data)
->> +{
->> +	compat_ulong_t __user *datap = compat_ptr(data);
->> +	int ret;
->> +
->> +	switch (request) {
->> +	case PTRACE_GETSIGMASK:
->> +		if (addr != sizeof(compat_sigset_t)) {
->> +			ret = -EINVAL;
->> +			break;
->> +		}
->> +
->> +		if (put_sigset_t((compat_sigset_t __user *)datap,&child->blocked))
->> +			ret = -EFAULT;
->> +		else
->> +			ret = 0;
->> +		break;
->> +
->> +	case PTRACE_SETSIGMASK: {
->> +		sigset_t new_set;
->> +		if (addr != sizeof(compat_sigset_t)) {
->> +			ret = -EINVAL;
->> +			break;
->> +		}
->> +
->> +		if (get_sigset_t(&new_set, (compat_sigset_t __user *)datap)) {
->> +			ret = -EFAULT;
->> +			break;
->> +		}
->> +
->> +		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
->> +
->> +		/*
->> +		 * Every thread does recalc_sigpending() after resume, so
->> +		 * retarget_shared_pending() and recalc_sigpending() are not
->> +		 * called here.
->> +		 */
->> +		spin_lock_irq(&child->sighand->siglock);
->> +		child->blocked = new_set;
->> +		spin_unlock_irq(&child->sighand->siglock);
->> +
->> +		ret = 0;
->> +		break;
->> +	}
->> +
->> +	default:
->> +		ret = compat_ptrace_request(child, request, addr, data);
->> +	}
->> +
->> +	return ret;
->> +}
->> +
->> +#endif /* CONFIG_ARM64_ILP32 */
->> +
->>   #ifdef CONFIG_COMPAT
->>
->>   long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
->>   			compat_ulong_t caddr, compat_ulong_t cdata)
->>   {
->> +#ifdef CONFIG_ARM64_ILP32
->> +	return compat_ilp32_ptrace(child, request, caddr, cdata);
->> +#else
->>   	return compat_ptrace_request(child, request, caddr, cdata);
->> +#endif
->>   }
->>
->>   #endif /* CONFIG_COMPAT */
->> diff --git a/arch/arm64/kernel/signal_ilp32.c
->> b/arch/arm64/kernel/signal_ilp32.c
->> index 8ca64b9..3ef2749 100644
->> --- a/arch/arm64/kernel/signal_ilp32.c
->> +++ b/arch/arm64/kernel/signal_ilp32.c
->> @@ -28,6 +28,7 @@
->>   #include<asm/fpsimd.h>
->>   #include<asm/signal32_common.h>
->>   #include<asm/signal_common.h>
->> +#include<asm/signal_ilp32.h>
->>   #include<asm/uaccess.h>
->>   #include<asm/unistd.h>
->>   #include<asm/ucontext.h>
->> @@ -58,28 +59,6 @@ struct ilp32_rt_sigframe {
->>   	struct ilp32_sigframe sig;
->>   };
->>
->> -static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
->> -{
->> -	compat_sigset_t cset;
->> -
->> -	cset.sig[0] = set->sig[0]&  0xffffffffull;
->> -	cset.sig[1] = set->sig[0]>>  32;
->> -
->> -	return copy_to_user(uset,&cset, sizeof(*uset));
->> -}
->> -
->> -static inline int get_sigset_t(sigset_t *set,
->> -                               const compat_sigset_t __user *uset)
->> -{
->> -	compat_sigset_t s32;
->> -
->> -	if (copy_from_user(&s32, uset, sizeof(*uset)))
->> -		return -EFAULT;
->> -
->> -	set->sig[0] = s32.sig[0] | (((long)s32.sig[1])<<  32);
->> -	return 0;
->> -}
->> -
->>   static int restore_ilp32_sigframe(struct pt_regs *regs,
->>                               struct
->
-> .
->
-
-
---------------000803040600030202030500
-Content-Type: text/plain; charset="gb18030";
-	name="0001-ilp32-fix-GET-SET-SIGMASK-request-for-ptrace.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
-	filename="0001-ilp32-fix-GET-SET-SIGMASK-request-for-ptrace.patch"
-
-
---------------000803040600030202030500--
+--
+Brian Gerst
