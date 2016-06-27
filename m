@@ -1,172 +1,210 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:41891 "EHLO
+Received: from szxga03-in.huawei.com ([119.145.14.66]:30842 "EHLO
 	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751758AbcF0CMJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jun 2016 22:12:09 -0400
-Message-ID: <57708ADC.3050002@huawei.com>
-Date: Mon, 27 Jun 2016 10:09:32 +0800
+	with ESMTP id S1750759AbcF0Eta (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 00:49:30 -0400
+Message-ID: <5770AFDD.8060807@huawei.com>
+Date: Mon, 27 Jun 2016 12:47:25 +0800
 From: zhouchengming <zhouchengming1@huawei.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 17/23] arm64: ptrace: handle ptrace_request differently
+Subject: Re: [PATCH 12/19] arm64: ptrace: handle ptrace_request differently
  for aarch32 and ilp32
-References: <1464048292-30136-1-git-send-email-ynorov@caviumnetworks.com> <1464048292-30136-18-git-send-email-ynorov@caviumnetworks.com> <57577611.9000607@huawei.com> <20160608170048.GA24482@yury-N73SV> <576E509A.7090702@huawei.com> <CAOijeYKpH-1pumqrQw+kY0gbdVoZ02kUJtJkwX33H403v+Scmw@mail.gmail.com>
-In-Reply-To: <CAOijeYKpH-1pumqrQw+kY0gbdVoZ02kUJtJkwX33H403v+Scmw@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bamvor Zhang <bamv2005@gmail.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, libc-alpha@sourceware.org, kilobyte@angband.pl, pinskia@gmail.com, szabolcs.nagy@arm.com, Nathan_Lynch@mentor.com, heiko.carstens@de.ibm.com, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, Prasun.Kapoor@caviumnetworks.com, klimov.linux@gmail.com, broonie@kernel.org, schwidefsky@de.ibm.com, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, guohanjun@huawei.com
-Message-ID: <20160627020932.Z1ZHrwT9Xz_Czqd6m_yxrqaDzVomcuEn9Hd_bMsD2eU@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+Message-ID: <20160627044725.C3JDOewaLJUgjsihUwLAjKrvmjNdfJcRIr4ruhNynXU@z>
 
-On 2016/6/25 22:15, Bamvor Zhang wrote:
-> Hi, Chengming
->
-> On Sat, Jun 25, 2016 at 5:36 PM, zhouchengming
-> <zhouchengming1@huawei.com>  wrote:
->> On 2016/6/9 1:00, Yury Norov wrote:
->>>
->>> On Wed, Jun 08, 2016 at 09:34:09AM +0800, zhouchengming wrote:
->>>>
->>>> On 2016/5/24 8:04, Yury Norov wrote:
->>>>>
->>>>> Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
->>>>> detection of the task type.
->>>>>
->>>>> Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
->>>
->>>
->>> [...]
->>>
->>>> Hello, I found ilp32 will use sys_ptrace, not compat_sys_ptrace. So I
->>>> write
->>>> a little patch to see if can solve the problem correctly.
->>>>
->>>> Thanks.
->>>>
->>>>   From f6156236df578bb05c4a17e7f9776ceaf8f7afe6 Mon Sep 17 00:00:00 2001
->>>> From: Zhou Chengming<zhouchengming1@huawei.com>
->>>> Date: Wed, 8 Jun 2016 09:46:23 +0800
->>>> Subject: [PATCH] ilp32: use compat_sys_ptrace instead of sys_ptrace
->>>>
->>>> When we analyze a testcase of ptrace that failed on ilp32, we found
->>>> the syscall that the ilp32 uses is sys_ptrace, not compat_sys_ptrace.
->>>> Because in include/uapi/asm-generic/unistd.h it's defined like:
->>>> __SYSCALL(__NR_ptrace, sys_ptrace)
->>>> So we change it to __SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace),
->>>> let compat tasks use the compat_sys_ptrace.
->>>>
->>>> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->>>> ---
->>>>    include/uapi/asm-generic/unistd.h |    2 +-
->>>>    1 files changed, 1 insertions(+), 1 deletions(-)
->>>>
->>>> diff --git a/include/uapi/asm-generic/unistd.h
->>>> b/include/uapi/asm-generic/unistd.h
->>>> index 2862d2e..50ee770 100644
->>>> --- a/include/uapi/asm-generic/unistd.h
->>>> +++ b/include/uapi/asm-generic/unistd.h
->>>> @@ -364,7 +364,7 @@ __SC_WRAP(__NR_syslog, sys_syslog)
->>>>
->>>>    /* kernel/ptrace.c */
->>>>    #define __NR_ptrace 117
->>>> -__SYSCALL(__NR_ptrace, sys_ptrace)
->>>> +__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
->>>>
->>>>    /* kernel/sched/core.c */
->>>>    #define __NR_sched_setparam 118
->>>> --
->>>> 1.7.7
->>>>
->>>
->>> Hi Zhou,
->>>
->>> Thank you for the catch.
->>>
->>> Could you also show the test that is failed for you. It should
->>> probably be sent to LTP maillist.
->>>
->>> I'm not sure your fix correct as it affects other architectures that
->>> use standard unistd.h. I think it's better to redirect the syscall in
->>> arch/arm64/kernel/sys_ilp32.c with corresponding definition.
->>>
->>> Yury
->>>
->>> .
->>>
->>
->> Sorry, I missed this mail. Thanks for your reply. :)
->> I attach the testcase file of ptrace that failed on ilp32.
->> I also think it's better to redirect the syscall in ilp32, so I changed
->> the patch.
->
-> Thanks for your patch. But Yury has already sent an new series this week
-> which define ptrace to compat one.
->
-> It seems that Yury do not take GET/SETSIGMASK into account. You
-> could share your test case and patches at this point.
->
-> Best wishes
->
-> Bamvor
-
-Ok, I get it. So the new series can handle ptrace correctly. :)
-But as for the GET/SETSIGMASK request, both ilp32 and aarch32 are wrong, 
-because they are handled in ptrace_request(like aarch64). But I don't 
-have a good way to correct it in all architectures.
-The architectures that use compat_ptrace_request are:
-arch/arm64, arch/mips, arch/parisc, arch/powerpc, arch/s390, arch/sparc,
-arch/tile, arch/x86.
-We have to use two architecture dependent functions in 
-compat_ptrace_request to fix the GET/SETSIGMASK request. (as for 
-arch/arm64, the two functions are: put_sigset_t and get_sigset_t)
-So we maybe have to prepare these functions for all these architectures.
-But I don't have much time to work on it. So I just fix it for ilp32 of 
-arch/arm64 (Ah, easier way for me). I will put my patch of this fix 
-under Yury's new series.
+The {GET,SET}SIGMASK request of ptrace on ilp32 is wrong, it's handled
+by ptrace_request(like aarch64). So I write a patch to fix it(just for
+ilp32). I will send the patch next.
 
 Thanks!
 
+On 2016/6/18 7:54, Yury Norov wrote:
+> Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+> detection of the task type.
 >
-> [1] https://www.mail-archive.com/linux-doc@vger.kernel.org/msg03811.html
->>
->>
->>  From 7e692ba1adf02c2a2f125836f5222f455c9ffe56 Mon Sep 17 00:00:00 2001
->> From: Zhou Chengming<zhouchengming1@huawei.com>
->> Date: Sat, 25 Jun 2016 18:02:51 +0800
->> Subject: [PATCH] ilp32 should use compat_sys_ptrace
->>
->> The file include/uapi/asm-generic/unistd.h defines this:
->> __SYSCALL(__NR_ptrace, sys_ptrace)
->> It may cause some ptrace tests failed on ilp32. So we redirect the ptrace
->> syscall in arch/arm64/kernel/sys_ilp32.c with corresponding definition.
->>
->> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->> ---
->>   arch/arm64/kernel/sys_ilp32.c |    3 +++
->>   1 files changed, 3 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
->> index d85fe94..06d5e1b 100644
->> --- a/arch/arm64/kernel/sys_ilp32.c
->> +++ b/arch/arm64/kernel/sys_ilp32.c
->> @@ -46,6 +46,9 @@
->>   asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
->>   #define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
->>
->> +/* ilp32 should use compat_sys_ptrace */
->> +#define sys_ptrace                    compat_sys_ptrace
->> +
->>   #include<asm/syscall.h>
->>
->>   #undef __SYSCALL
->> --
->> 1.7.7
->>
->>
->>
+> Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+> ---
+>   arch/arm64/include/asm/unistd32.h |  2 +-
+>   arch/arm64/kernel/ptrace.c        | 50 ++++++++++++++++++++++++++++++++++++++-
+>   arch/arm64/kernel/sys32.c         |  1 +
+>   include/linux/ptrace.h            |  6 +++++
+>   kernel/ptrace.c                   | 10 ++++----
+>   5 files changed, 62 insertions(+), 7 deletions(-)
 >
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index b7e8ef1..6da7cbd 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
+>   			/* 25 was sys_stime */
+>   __SYSCALL(25, sys_ni_syscall)
+>   #define __NR_ptrace 26
+> -__SYSCALL(__NR_ptrace, compat_sys_ptrace)
+> +__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
+>   			/* 27 was sys_alarm */
+>   __SYSCALL(27, sys_ni_syscall)
+>   			/* 28 was sys_fstat */
+> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+> index 38a09338..a861105 100644
+> --- a/arch/arm64/kernel/ptrace.c
+> +++ b/arch/arm64/kernel/ptrace.c
+> @@ -29,6 +29,7 @@
+>   #include<linux/user.h>
+>   #include<linux/seccomp.h>
+>   #include<linux/security.h>
+> +#include<linux/syscalls.h>
+>   #include<linux/init.h>
+>   #include<linux/signal.h>
+>   #include<linux/uaccess.h>
+> @@ -1114,7 +1115,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
+>   }
+>   #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
 >
+> -long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+> +static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
+>   			compat_ulong_t caddr, compat_ulong_t cdata)
+>   {
+>   	unsigned long addr = caddr;
+> @@ -1191,8 +1192,55 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+>
+>   	return ret;
+>   }
+> +
+> +COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
+> +		       compat_long_t, addr, compat_long_t, data)
+> +{
+> +	struct task_struct *child;
+> +	long ret;
+> +
+> +	if (request == PTRACE_TRACEME) {
+> +		ret = ptrace_traceme();
+> +		goto out;
+> +	}
+> +
+> +	child = ptrace_get_task_struct(pid);
+> +	if (IS_ERR(child)) {
+> +		ret = PTR_ERR(child);
+> +		goto out;
+> +	}
+> +
+> +	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
+> +		ret = ptrace_attach(child, request, addr, data);
+> +		goto out_put_task_struct;
+> +	}
+> +
+> +	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+> +				  request == PTRACE_INTERRUPT);
+> +	if (!ret) {
+> +		ret = compat_a32_ptrace(child, request, addr, data);
+> +		if (ret || request != PTRACE_DETACH)
+> +			ptrace_unfreeze_traced(child);
+> +	}
+> +
+> + out_put_task_struct:
+> +	put_task_struct(child);
+> + out:
+> +	return ret;
+> +}
+> +
+>   #endif /* CONFIG_AARCH32_EL0 */
+>
+> +#ifdef CONFIG_COMPAT
+> +
+> +long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+> +			compat_ulong_t caddr, compat_ulong_t cdata)
+> +{
+> +	return compat_ptrace_request(child, request, caddr, cdata);
+> +}
+> +
+> +#endif /* CONFIG_COMPAT */
+> +
+>   const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+>   {
+>   #ifdef CONFIG_AARCH32_EL0
+> diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
+> index a40b134..3752443 100644
+> --- a/arch/arm64/kernel/sys32.c
+> +++ b/arch/arm64/kernel/sys32.c
+> @@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+>   asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+>   asmlinkage long compat_sys_fallocate_wrapper(void);
+>   asmlinkage long compat_sys_mmap2_wrapper(void);
+> +asmlinkage long compat_sys_aarch32_ptrace(void);
+>
+>   #undef __SYSCALL
+>   #define __SYSCALL(nr, sym)	[nr] = sym,
+> diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+> index 504c98a..75887a0 100644
+> --- a/include/linux/ptrace.h
+> +++ b/include/linux/ptrace.h
+> @@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
+>   			    unsigned long data);
+>   int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
+>   			    unsigned long data);
+> +int ptrace_traceme(void);
+> +struct task_struct *ptrace_get_task_struct(pid_t pid);
+> +int ptrace_attach(struct task_struct *task, long request,
+> +			 unsigned long addr, unsigned long flags);
+> +int ptrace_check_attach(struct task_struct *child, bool ignore_state);
+> +void ptrace_unfreeze_traced(struct task_struct *task);
+>
+>   /**
+>    * ptrace_parent - return the task that is tracing the given task
+> diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+> index d49bfa1..cadf24c 100644
+> --- a/kernel/ptrace.c
+> +++ b/kernel/ptrace.c
+> @@ -136,7 +136,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
+>   	return ret;
+>   }
+>
+> -static void ptrace_unfreeze_traced(struct task_struct *task)
+> +void ptrace_unfreeze_traced(struct task_struct *task)
+>   {
+>   	if (task->state != __TASK_TRACED)
+>   		return;
+> @@ -168,7 +168,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+>    * RETURNS:
+>    * 0 on success, -ESRCH if %child is not ready.
+>    */
+> -static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+> +int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+>   {
+>   	int ret = -ESRCH;
+>
+> @@ -292,7 +292,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
+>   	return !err;
+>   }
+>
+> -static int ptrace_attach(struct task_struct *task, long request,
+> +int ptrace_attach(struct task_struct *task, long request,
+>   			 unsigned long addr,
+>   			 unsigned long flags)
+>   {
+> @@ -406,7 +406,7 @@ out:
+>    * Performs checks and sets PT_PTRACED.
+>    * Should be used by all ptrace implementations for PTRACE_TRACEME.
+>    */
+> -static int ptrace_traceme(void)
+> + int ptrace_traceme(void)
+>   {
+>   	int ret = -EPERM;
+>
+> @@ -1056,7 +1056,7 @@ int ptrace_request(struct task_struct *child, long request,
+>   	return ret;
+>   }
+>
+> -static struct task_struct *ptrace_get_task_struct(pid_t pid)
+> +struct task_struct *ptrace_get_task_struct(pid_t pid)
+>   {
+>   	struct task_struct *child;
 >
 
 
