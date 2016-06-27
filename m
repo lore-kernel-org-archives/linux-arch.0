@@ -1,425 +1,69 @@
-From: zhouchengming <zhouchengming1@huawei.com>
-Subject: Re: [PATCH] ilp32: fix {GET,SET}SIGMASK request for ptrace
-Date: Mon, 27 Jun 2016 18:30:51 +0800
-Message-ID: <5771005B.3060605@huawei.com>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com> <5770B041.3040509@huawei.com> <20160627053916.GA305@yury-N73SV>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Date: Mon, 27 Jun 2016 12:36:25 +0200
+Message-ID: <20160627103625.GF31799@dhcp22.suse.cz>
+References: <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com>
+ <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <20160623170352.GA17372@redhat.com>
+ <CA+55aFwHUw+6xEc-M+mZvwOxCsBD6zZDwyAQ-a_xupaH8py7cA@mail.gmail.com>
+ <20160623185221.GA17983@redhat.com>
+ <20160624140558.GA20208@dhcp22.suse.cz>
+ <20160624150637.GD20203@dhcp22.suse.cz>
+ <20160624202254.GA30695@redhat.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
-	boundary="------------000803040600030202030500"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:48048 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750736AbcF0KdX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 06:33:23 -0400
-In-Reply-To: <20160627053916.GA305@yury-N73SV>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36133 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751639AbcF0Kg1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 06:36:27 -0400
+Content-Disposition: inline
+In-Reply-To: <20160624202254.GA30695@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
---------------000803040600030202030500
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+On Fri 24-06-16 22:22:55, Oleg Nesterov wrote:
+> On 06/24, Michal Hocko wrote:
+> >
+> > On Fri 24-06-16 16:05:58, Michal Hocko wrote:
+> > > On Thu 23-06-16 20:52:21, Oleg Nesterov wrote:
+> > > >
+> > > > But I agree, this is fixable (and in fact I still hope TIF_MEMDIE will die,
+> > > > at least in its current form).
+> > >
+> > > We can move the flag to the task_struct.
+> 
+> Well, I actually meant that to me its usage doesn't look really
+> right and we need to change this logic. But this is off-topic.
+> 
+> > Here is the patch.
+> 
+> Can't comment, but note that it was decided to move ti->flags into
+> task_struct, so the patch is "off-topic" too ;)
 
-On 2016/6/27 13:39, Yury Norov wrote:
-> Hi Zhou,
->
-> Thank you for the patch. The idea is ok, but patch format got broken
-> for some reason. Could you re-send it?
->
-> Yury.
+OK, my original understanding was that we want to get rid of all the
+current thread flags.
 
-Sorry for the broken patch, maybe my mail guest has some problems. So
-I send the patch as an attachment.
+> 
+> > @@ -1856,6 +1856,8 @@ struct task_struct {
+> >  	unsigned long	task_state_change;
+> >  #endif
+> >  	int pagefault_disabled;
+> > +	/* oom victim - give it access to memory reserves */
+> > +	atomic_t	memdie;
+> 
+> Yet another oom member. And these atomic_add_unless's look a bit
+> strange, it seems that you could add "bool memdie" and use xchg()
+> with the same effect?
+
+That would work as well of course.
 
 Thanks!
-
->
-> On Mon, Jun 27, 2016 at 12:49:05PM +0800, zhouchengming wrote:
->> atus: RO
->> Content-Length: 4732
->> Lines: 181
->>
->> The function compat_ptrace_request(used by ilp32) don't handle
->> {GET,SET}SIGMASK request, so it will be handled by ptrace_request.
->> But it's wrong because the compat_sigset_t of ilp32 differs from
->> the sigset_t of aarch64. The patch fixes it.
->>
->> Signed-off-by: Zhou Chengming<zhouchengming1@huawei.com>
->> ---
->>   arch/arm64/include/asm/signal_ilp32.h |   22 ++++++++++++
->>   arch/arm64/kernel/ptrace.c            |   62
->> +++++++++++++++++++++++++++++++++
->
-> Here -  unneeded line break
->
->>   arch/arm64/kernel/signal_ilp32.c      |   23 +------------
->>   3 files changed, 85 insertions(+), 22 deletions(-)
->>
->> diff --git a/arch/arm64/include/asm/signal_ilp32.h
->> b/arch/arm64/include/asm/signal_ilp32.h
->
-> and here
->
->> index 30eff23..ed52607 100644
->> --- a/arch/arm64/include/asm/signal_ilp32.h
->> +++ b/arch/arm64/include/asm/signal_ilp32.h
->> @@ -21,6 +21,28 @@
->>   int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
->>   			  struct pt_regs *regs);
->>
->> +static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
->> +{
->> +	compat_sigset_t cset;
->> +
->> +	cset.sig[0] = set->sig[0]&  0xffffffffull;
->> +	cset.sig[1] = set->sig[0]>>  32;
->> +
->> +	return copy_to_user(uset,&cset, sizeof(*uset));
->> +}
->> +
->> +static inline int get_sigset_t(sigset_t *set,
->> +			       const compat_sigset_t __user *uset)
->> +{
->> +	compat_sigset_t s32;
->> +
->> +	if (copy_from_user(&s32, uset, sizeof(*uset)))
->> +		return -EFAULT;
->> +
->> +	set->sig[0] = s32.sig[0] | (((long)s32.sig[1])<<  32);
->> +	return 0;
->> +}
->> +
->>   #else
->>
->>   static inline int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
->> sigset_t *set,
->
-> and here
->
->> diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
->> index a861105..8d4cad1 100644
->> --- a/arch/arm64/kernel/ptrace.c
->> +++ b/arch/arm64/kernel/ptrace.c
->> @@ -44,6 +44,7 @@
->>   #include<asm/syscall.h>
->>   #include<asm/traps.h>
->>   #include<asm/system_misc.h>
->> +#include<asm/signal_ilp32.h>
->>
->>   #define CREATE_TRACE_POINTS
->>   #include<trace/events/syscalls.h>
->> @@ -1231,12 +1232,73 @@ COMPAT_SYSCALL_DEFINE4(aarch32_ptrace,
->> compat_long_t, request, compat_long_t, pi
->
-> and later on the patch
->
->>
->>   #endif /* CONFIG_AARCH32_EL0 */
->>
->> +#ifdef CONFIG_ARM64_ILP32
->> +
->> +static int compat_ilp32_ptrace(struct task_struct *child, compat_long_t
->> request,
->> +			compat_ulong_t addr, compat_ulong_t data)
->> +{
->> +	compat_ulong_t __user *datap = compat_ptr(data);
->> +	int ret;
->> +
->> +	switch (request) {
->> +	case PTRACE_GETSIGMASK:
->> +		if (addr != sizeof(compat_sigset_t)) {
->> +			ret = -EINVAL;
->> +			break;
->> +		}
->> +
->> +		if (put_sigset_t((compat_sigset_t __user *)datap,&child->blocked))
->> +			ret = -EFAULT;
->> +		else
->> +			ret = 0;
->> +		break;
->> +
->> +	case PTRACE_SETSIGMASK: {
->> +		sigset_t new_set;
->> +		if (addr != sizeof(compat_sigset_t)) {
->> +			ret = -EINVAL;
->> +			break;
->> +		}
->> +
->> +		if (get_sigset_t(&new_set, (compat_sigset_t __user *)datap)) {
->> +			ret = -EFAULT;
->> +			break;
->> +		}
->> +
->> +		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
->> +
->> +		/*
->> +		 * Every thread does recalc_sigpending() after resume, so
->> +		 * retarget_shared_pending() and recalc_sigpending() are not
->> +		 * called here.
->> +		 */
->> +		spin_lock_irq(&child->sighand->siglock);
->> +		child->blocked = new_set;
->> +		spin_unlock_irq(&child->sighand->siglock);
->> +
->> +		ret = 0;
->> +		break;
->> +	}
->> +
->> +	default:
->> +		ret = compat_ptrace_request(child, request, addr, data);
->> +	}
->> +
->> +	return ret;
->> +}
->> +
->> +#endif /* CONFIG_ARM64_ILP32 */
->> +
->>   #ifdef CONFIG_COMPAT
->>
->>   long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
->>   			compat_ulong_t caddr, compat_ulong_t cdata)
->>   {
->> +#ifdef CONFIG_ARM64_ILP32
->> +	return compat_ilp32_ptrace(child, request, caddr, cdata);
->> +#else
->>   	return compat_ptrace_request(child, request, caddr, cdata);
->> +#endif
->>   }
->>
->>   #endif /* CONFIG_COMPAT */
->> diff --git a/arch/arm64/kernel/signal_ilp32.c
->> b/arch/arm64/kernel/signal_ilp32.c
->> index 8ca64b9..3ef2749 100644
->> --- a/arch/arm64/kernel/signal_ilp32.c
->> +++ b/arch/arm64/kernel/signal_ilp32.c
->> @@ -28,6 +28,7 @@
->>   #include<asm/fpsimd.h>
->>   #include<asm/signal32_common.h>
->>   #include<asm/signal_common.h>
->> +#include<asm/signal_ilp32.h>
->>   #include<asm/uaccess.h>
->>   #include<asm/unistd.h>
->>   #include<asm/ucontext.h>
->> @@ -58,28 +59,6 @@ struct ilp32_rt_sigframe {
->>   	struct ilp32_sigframe sig;
->>   };
->>
->> -static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
->> -{
->> -	compat_sigset_t cset;
->> -
->> -	cset.sig[0] = set->sig[0]&  0xffffffffull;
->> -	cset.sig[1] = set->sig[0]>>  32;
->> -
->> -	return copy_to_user(uset,&cset, sizeof(*uset));
->> -}
->> -
->> -static inline int get_sigset_t(sigset_t *set,
->> -                               const compat_sigset_t __user *uset)
->> -{
->> -	compat_sigset_t s32;
->> -
->> -	if (copy_from_user(&s32, uset, sizeof(*uset)))
->> -		return -EFAULT;
->> -
->> -	set->sig[0] = s32.sig[0] | (((long)s32.sig[1])<<  32);
->> -	return 0;
->> -}
->> -
->>   static int restore_ilp32_sigframe(struct pt_regs *regs,
->>                               struct
->
-> .
->
-
-
---------------000803040600030202030500
-Content-Type: text/plain; charset="gb18030";
-	name="0001-ilp32-fix-GET-SET-SIGMASK-request-for-ptrace.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
-	filename="0001-ilp32-fix-GET-SET-SIGMASK-request-for-ptrace.patch"
-
-From 06f5abeca59069cb41b0b4fdfa06240d3f78910d Mon Sep 17 00:00:00 2001
-From: Zhou Chengming <zhouchengming1@huawei.com>
-Date: Mon, 27 Jun 2016 12:57:02 +0800
-Subject: [PATCH] ilp32: fix {GET,SET}SIGMASK request for ptrace
-
-The function compat_ptrace_request(used by ilp32) don't handle
-{GET,SET}SIGMASK request, so it will be handled by ptrace_request.
-But it's wrong because the compat_sigset_t of ilp32 differs from
-the sigset_t of aarch64. The patch fixes it.
-
-Signed-off-by: Zhou Chengming <zhouchengming1@huawei.com>
----
- arch/arm64/include/asm/signal_ilp32.h |   22 ++++++++++++
- arch/arm64/kernel/ptrace.c            |   62 +++++++++++++++++++++++++++++++++
- arch/arm64/kernel/signal_ilp32.c      |   23 +------------
- 3 files changed, 85 insertions(+), 22 deletions(-)
-
-diff --git a/arch/arm64/include/asm/signal_ilp32.h b/arch/arm64/include/asm/signal_ilp32.h
-index 30eff23..ed52607 100644
---- a/arch/arm64/include/asm/signal_ilp32.h
-+++ b/arch/arm64/include/asm/signal_ilp32.h
-@@ -21,6 +21,28 @@
- int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 			  struct pt_regs *regs);
- 
-+static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
-+{
-+	compat_sigset_t cset;
-+
-+	cset.sig[0] = set->sig[0] & 0xffffffffull;
-+	cset.sig[1] = set->sig[0] >> 32;
-+
-+	return copy_to_user(uset, &cset, sizeof(*uset));
-+}
-+
-+static inline int get_sigset_t(sigset_t *set,
-+			       const compat_sigset_t __user *uset)
-+{
-+	compat_sigset_t s32;
-+
-+	if (copy_from_user(&s32, uset, sizeof(*uset)))
-+		return -EFAULT;
-+
-+	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
-+	return 0;
-+}
-+
- #else
- 
- static inline int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index a861105..8d4cad1 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -44,6 +44,7 @@
- #include <asm/syscall.h>
- #include <asm/traps.h>
- #include <asm/system_misc.h>
-+#include <asm/signal_ilp32.h>
- 
- #define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
-@@ -1231,12 +1232,73 @@ COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pi
- 
- #endif /* CONFIG_AARCH32_EL0 */
- 
-+#ifdef CONFIG_ARM64_ILP32
-+
-+static int compat_ilp32_ptrace(struct task_struct *child, compat_long_t request,
-+			compat_ulong_t addr, compat_ulong_t data)
-+{
-+	compat_ulong_t __user *datap = compat_ptr(data);
-+	int ret;
-+
-+	switch (request) {
-+	case PTRACE_GETSIGMASK:
-+		if (addr != sizeof(compat_sigset_t)) {
-+			ret = -EINVAL;
-+			break;
-+		}
-+
-+		if (put_sigset_t((compat_sigset_t __user *)datap, &child->blocked))
-+			ret = -EFAULT;
-+		else
-+			ret = 0;
-+		break;
-+
-+	case PTRACE_SETSIGMASK: {
-+		sigset_t new_set;
-+		if (addr != sizeof(compat_sigset_t)) {
-+			ret = -EINVAL;
-+			break;
-+		}
-+
-+		if (get_sigset_t(&new_set, (compat_sigset_t __user *)datap)) {
-+			ret = -EFAULT;
-+			break;
-+		}
-+
-+		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
-+
-+		/*
-+		 * Every thread does recalc_sigpending() after resume, so
-+		 * retarget_shared_pending() and recalc_sigpending() are not
-+		 * called here.
-+		 */
-+		spin_lock_irq(&child->sighand->siglock);
-+		child->blocked = new_set;
-+		spin_unlock_irq(&child->sighand->siglock);
-+
-+		ret = 0;
-+		break;
-+	}
-+
-+	default:
-+		ret = compat_ptrace_request(child, request, addr, data);
-+	}
-+
-+	return ret;
-+}
-+
-+#endif /* CONFIG_ARM64_ILP32 */
-+
- #ifdef CONFIG_COMPAT
- 
- long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 			compat_ulong_t caddr, compat_ulong_t cdata)
- {
-+#ifdef CONFIG_ARM64_ILP32
-+	return compat_ilp32_ptrace(child, request, caddr, cdata);
-+#else
- 	return compat_ptrace_request(child, request, caddr, cdata);
-+#endif
- }
- 
- #endif /* CONFIG_COMPAT */
-diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
-index 8ca64b9..3ef2749 100644
---- a/arch/arm64/kernel/signal_ilp32.c
-+++ b/arch/arm64/kernel/signal_ilp32.c
-@@ -28,6 +28,7 @@
- #include <asm/fpsimd.h>
- #include <asm/signal32_common.h>
- #include <asm/signal_common.h>
-+#include <asm/signal_ilp32.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
- #include <asm/ucontext.h>
-@@ -58,28 +59,6 @@ struct ilp32_rt_sigframe {
- 	struct ilp32_sigframe sig;
- };
- 
--static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
--{
--	compat_sigset_t cset;
--
--	cset.sig[0] = set->sig[0] & 0xffffffffull;
--	cset.sig[1] = set->sig[0] >> 32;
--
--	return copy_to_user(uset, &cset, sizeof(*uset));
--}
--
--static inline int get_sigset_t(sigset_t *set,
--                               const compat_sigset_t __user *uset)
--{
--	compat_sigset_t s32;
--
--	if (copy_from_user(&s32, uset, sizeof(*uset)))
--		return -EFAULT;
--
--	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
--	return 0;
--}
--
- static int restore_ilp32_sigframe(struct pt_regs *regs,
-                             struct ilp32_sigframe __user *sf)
- {
 -- 
-1.7.7
-
-
---------------000803040600030202030500--
+Michal Hocko
+SUSE Labs
