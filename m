@@ -1,56 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f51.google.com ([209.85.213.51]:33954 "EHLO
-	mail-vk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751549AbcFZXtW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jun 2016 19:49:22 -0400
-Received: by mail-vk0-f51.google.com with SMTP id c2so182164379vkg.1
-        for <linux-arch@vger.kernel.org>; Sun, 26 Jun 2016 16:49:21 -0700 (PDT)
+Received: from mail-vk0-f52.google.com ([209.85.213.52]:33812 "EHLO
+	mail-vk0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751554AbcF0Akm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jun 2016 20:40:42 -0400
+Received: by mail-vk0-f52.google.com with SMTP id c2so182960588vkg.1
+        for <linux-arch@vger.kernel.org>; Sun, 26 Jun 2016 17:40:42 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAMzpN2iajQJGh1x0cE5HDnejJi2ifAqn_b4qLFvuogb-32jjmg@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <2730161a8000f2b5cef009483d92fee81fe900d5.1466974736.git.luto@kernel.org>
- <CAMzpN2iajQJGh1x0cE5HDnejJi2ifAqn_b4qLFvuogb-32jjmg@mail.gmail.com>
+In-Reply-To: <CAMzpN2jAh4MTdRHfOmG7F7QWjyVeuWj8cjDpCWx8j7hYbQtSjw@mail.gmail.com>
+References: <cover.1466974736.git.luto@kernel.org> <9eeb4be3c4e91d4155d0c4c234858f4259c5993d.1466974736.git.luto@kernel.org>
+ <CAMzpN2hO-c+dKF+TnEn8GzWVton_=_5jKCU7g6bFb=SC=hfnoA@mail.gmail.com>
+ <CALCETrXYtQUtLU-wF5YCxY9ZfNCDMZo1614Tg+FhcybPnCj4kw@mail.gmail.com> <CAMzpN2jAh4MTdRHfOmG7F7QWjyVeuWj8cjDpCWx8j7hYbQtSjw@mail.gmail.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Sun, 26 Jun 2016 16:49:01 -0700
-Message-ID: <CALCETrUO7tj0hVNKeMC7zcgqqGxzmAv1QWL-oh-eMc0WjYxb+Q@mail.gmail.com>
-Subject: Re: [PATCH v4 25/29] um: Stop conflating task_struct::stack with thread_info
+Date: Sun, 26 Jun 2016 17:40:22 -0700
+Message-ID: <CALCETrWcRgU9fLYEeUQVv79BwwSF+ehhn_fyUNYg+99nePk+vA@mail.gmail.com>
+Subject: Re: [PATCH v4 22/29] x86/asm: Move 'status' from struct thread_info
+ to struct thread_struct
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Brian Gerst <brgerst@gmail.com>
 Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160626234901.lCtKqbWhmfPSaiPlekkCMB9FzxL2kG1ulrNxM92BAnA@z>
+Message-ID: <20160627004022.HtDAq7kN191wuk_pkRqAnYmWBdsXFDTeV0x4P1ME03U@z>
 
-On Sun, Jun 26, 2016 at 4:40 PM, Brian Gerst <brgerst@gmail.com> wrote:
-> On Sun, Jun 26, 2016 at 5:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
->> From: Linus Torvalds <torvalds@linux-foundation.org>
+On Sun, Jun 26, 2016 at 5:36 PM, Brian Gerst <brgerst@gmail.com> wrote:
+> On Sun, Jun 26, 2016 at 8:23 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> On Sun, Jun 26, 2016 at 4:55 PM, Brian Gerst <brgerst@gmail.com> wrote:
+>>> On Sun, Jun 26, 2016 at 5:55 PM, Andy Lutomirski <luto@kernel.org> wrote:
+>>>> --- a/arch/x86/kernel/asm-offsets.c
+>>>> +++ b/arch/x86/kernel/asm-offsets.c
+>>>> @@ -30,7 +30,6 @@
+>>>>  void common(void) {
+>>>>         BLANK();
+>>>>         OFFSET(TI_flags, thread_info, flags);
+>>>> -       OFFSET(TI_status, thread_info, status);
+>>>
+>>> TI_status can be deleted.  It's last users were removed in commit ee08c6bd.
 >>
->> thread_info may move in the future, so use the accessors.
+>> Indeed.
 >>
->> [changelog written by Andy]
->> Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> ---
->>  arch/x86/um/ptrace_32.c | 8 ++++----
->>  1 file changed, 4 insertions(+), 4 deletions(-)
->>
->> diff --git a/arch/x86/um/ptrace_32.c b/arch/x86/um/ptrace_32.c
->> index ebd4dd6ef73b..14e8f6a628c2 100644
->> --- a/arch/x86/um/ptrace_32.c
->> +++ b/arch/x86/um/ptrace_32.c
->> @@ -191,7 +191,7 @@ int peek_user(struct task_struct *child, long addr, long data)
->>
->>  static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
->>  {
->> -       int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
->> +       int err, n, cpu = task_thread_info(child)->cpu;
+>> Just to double-check: are you saying that this patch is okay?
 >
-> Shouldn't this use task_cpu() like in patch 23?
->
+> It looks OK to me, but I haven't tested it.  Another suggestion is to
+> change the compat flag to a bitfield, since there is only one TS_*
+> flag now and it's not referenced from asm.
 
-Indeed.  But blame Linus -- he wrote it :)
+That could also work.
 
-If I send a v5, I'll fix this in this patch.  Otherwise I'll send a
-followup patch when this lands.  It doesn't matter immediately because
-I'm not opting um into THREAD_INFO_IN_TASK.
+As a silly alternative thought: we just might be able to get away with
+shoving the "is ia32" flag into one of the high bits of
+pt_regs->orig_ax.  It wouldn't break any 32-bit ptrace users because
+they can't see the high bits.  It wouldn't break most 64-bit ptrace
+users because they use the silly PTRACE_GETREGSET API that doesn't
+show the high bits if the tracee is "32-bit".  It would change
+behavior when a 64-bit tracer traces a 64-bit process that does int
+$0x80, but at least strace already gets that case completely wrong.
+
+Of course, this proposal has all kinds of problems.
 
 --Andy
