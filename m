@@ -1,60 +1,134 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 01/29] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
-Date: Mon, 27 Jun 2016 15:33:39 -0700
-Message-ID: <CALCETrVx6PDUb+5S9eYuB+Dhu2VEkz-iz=hpRJdzxRfXypwK8A@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1466974736.git.luto@kernel.org>
- <8C5360E3-94EE-4869-B9B9-AF9D41B5A3AC@holtmann.org> <20160627085403.GA26865@gmail.com>
- <2833CC26-7306-4803-A5DB-4CBECCF35C08@holtmann.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: [RFC/PATCH v2] ftrace: Reduce size of function graph entries
+Date: Tue, 28 Jun 2016 14:30:40 +0900
+Message-ID: <1467091840-4625-1-git-send-email-namhyung@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f43.google.com ([209.85.213.43]:32845 "EHLO
-	mail-vk0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751875AbcF0Wd7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2016 18:33:59 -0400
-Received: by mail-vk0-f43.google.com with SMTP id j3so38594686vkb.0
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jun 2016 15:33:59 -0700 (PDT)
-In-Reply-To: <2833CC26-7306-4803-A5DB-4CBECCF35C08@holtmann.org>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36569 "EHLO
+	mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751118AbcF1FbZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2016 01:31:25 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marcel Holtmann <marcel@holtmann.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, Network Development <netdev@vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Mon, Jun 27, 2016 at 3:30 PM, Marcel Holtmann <marcel@holtmann.org> wrote:
-> Hi Ingo,
->
->>>> SMP does ECB crypto on stack buffers.  This is complicated and
->>>> fragile, and it will not work if the stack is virtually allocated.
->>>>
->>>> Switch to the crypto_cipher interface, which is simpler and safer.
->>>>
->>>> Cc: Marcel Holtmann <marcel@holtmann.org>
->>>> Cc: Gustavo Padovan <gustavo@padovan.org>
->>>> Cc: Johan Hedberg <johan.hedberg@gmail.com>
->>>> Cc: "David S. Miller" <davem@davemloft.net>
->>>> Cc: linux-bluetooth@vger.kernel.org
->>>> Cc: netdev@vger.kernel.org
->>>> Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
->>>> Acked-and-tested-by: Johan Hedberg <johan.hedberg@intel.com>
->>>> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->>>> ---
->>>> net/bluetooth/smp.c | 67 ++++++++++++++++++++++-------------------------------
->>>> 1 file changed, 28 insertions(+), 39 deletions(-)
->>>
->>> patch has been applied to bluetooth-next tree.
->>
->> Sadly carrying this separately will delay the virtual kernel stacks feature by a
->> kernel cycle, because it's a must-have prerequisite.
->
-> I can take it back out, but then I have the fear the the ECDH change to use KPP for SMP might be the one that has to wait a kernel cycle. Either way is fine with me, but I want to avoid nasty merge conflicts in the Bluetooth SMP code.
+Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
+can have padding bytes at the end due to alignment in 64-bit data type.
+As these data are recorded so frequently, those paddings waste
+non-negligible space.  As some archs can have efficient unaligned
+accesses, reducing the alignment can save ~10% of data size:
 
-Nothing goes wrong if an identical patch is queued in both places,
-right?  Or, if you prefer not to duplicate it, could one of you commit
-it and the other one pull it?  Ingo, given that this is patch 1 in the
-series and unlikely to change, if you want to make this whole thing
-have a separate branch in -tip, this could live there for starters.
-(But, if you do so, please make sure you base off a very new copy of
-Linus' tree -- the series is heavily dependent on the thread_info
-change he applied a few days ago.)
+  ftrace_graph_ent_entry:  24 -> 20
+  ftrace_graph_ret_entry:  48 -> 44
 
---Andy
+Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
+the padding.  I think the FTRACE_ALIGNMENT still needs to have proper
+alignment (even if ring buffer handles the alignment after all) since
+the ftrace_graph_ent/ret struct is located on stack before copying to
+the ring buffer.
+
+Tested on x86_64 only.
+
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Namhyung Kim <namhyung@kernel.org>
+---
+ include/linux/ftrace.h       | 16 ++++++++++++----
+ kernel/trace/trace.h         | 11 +++++++++++
+ kernel/trace/trace_entries.h |  4 ++--
+ 3 files changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index dea12a6e413b..a86cdf167419 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -751,25 +751,33 @@ extern void ftrace_init(void);
+ static inline void ftrace_init(void) { }
+ #endif
+ 
++#ifdef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
++# define FTRACE_ALIGNMENT	8
++#else
++# define FTRACE_ALIGNMENT	4
++#endif
++
++#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))
++
+ /*
+  * Structure that defines an entry function trace.
+  */
+ struct ftrace_graph_ent {
+ 	unsigned long func; /* Current function */
+ 	int depth;
+-};
++} FTRACE_ALIGN_DATA;
+ 
+ /*
+  * Structure that defines a return function trace.
+  */
+ struct ftrace_graph_ret {
+ 	unsigned long func; /* Current function */
+-	unsigned long long calltime;
+-	unsigned long long rettime;
+ 	/* Number of functions that overran the depth limit for current task */
+ 	unsigned long overrun;
++	unsigned long long calltime;
++	unsigned long long rettime;
+ 	int depth;
+-};
++} FTRACE_ALIGN_DATA;
+ 
+ /* Type of the callback handlers for tracing function graph*/
+ typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
+diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+index 5167c366d6b7..d2dd49ca55ee 100644
+--- a/kernel/trace/trace.h
++++ b/kernel/trace/trace.h
+@@ -80,6 +80,12 @@ enum trace_type {
+ 	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+ 		     filter)
+ 
++#undef FTRACE_ENTRY_PACKED
++#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
++			    filter)					\
++	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
++		     filter) FTRACE_ALIGN_DATA
++
+ #include "trace_entries.h"
+ 
+ /*
+@@ -1600,6 +1606,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
+ #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
+ 	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+ 		     filter)
++#undef FTRACE_ENTRY_PACKED
++#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
++	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
++		     filter)
++
+ #include "trace_entries.h"
+ 
+ #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
+diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
+index ee7b94a4810a..5c30efcda5e6 100644
+--- a/kernel/trace/trace_entries.h
++++ b/kernel/trace/trace_entries.h
+@@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
+ );
+ 
+ /* Function call entry */
+-FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
++FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
+ 
+ 	TRACE_GRAPH_ENT,
+ 
+@@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+ );
+ 
+ /* Function return entry */
+-FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
++FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
+ 
+ 	TRACE_GRAPH_RET,
+ 
+-- 
+2.8.0
