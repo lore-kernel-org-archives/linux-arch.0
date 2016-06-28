@@ -1,122 +1,497 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: [PATCH 12/92] clocksource/drivers/clksrc-probe: Introduce init functions with return code
-Date: Tue, 28 Jun 2016 12:30:31 +0200
-Message-ID: <1467109911-11060-12-git-send-email-daniel.lezcano@linaro.org>
-References: <577251A4.7030508@linaro.org>
- <1467109911-11060-1-git-send-email-daniel.lezcano@linaro.org>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v4 02/29] rxrpc: Avoid using stack memory in SG lists in rxkad
+Date: Tue, 28 Jun 2016 14:23:47 +0100
+Message-ID: <28125.1467120227@warthog.procyon.org.uk>
+References: <14865.1467108030@warthog.procyon.org.uk> <20160628094357.GA16467@gondor.apana.org.au> <20160628075546.GA15690@gondor.apana.org.au> <1eeb00c5098d8096cdb61dc7ee1ddc61b3e80f9e.1466974736.git.luto@kernel.org> <cover.1466974736.git.luto@kernel.org> <cover.1466974736.git.luto@kernel.org> <699.1467100340@warthog.procyon.org.uk> <4339.1467104063@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:38399 "EHLO
-	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752673AbcF1KdE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2016 06:33:04 -0400
-Received: by mail-wm0-f48.google.com with SMTP id r201so20881295wme.1
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jun 2016 03:33:03 -0700 (PDT)
-In-Reply-To: <1467109911-11060-1-git-send-email-daniel.lezcano@linaro.org>
+Received: from mx1.redhat.com ([209.132.183.28]:56131 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752301AbcF1NXw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2016 09:23:52 -0400
+In-Reply-To: <14865.1467108030@warthog.procyon.org.uk>
+Content-ID: <28123.1467120227.1@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: daniel.lezcano@linaro.org, tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Herbert Xu <herbert@gondor.apana.org.au>, Andy Lutomirski <luto@kernel.org>
+Cc: dhowells@redhat.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Currently, the clksrc-probe is not able to handle any error from the init
-functions. There are different issues with the current code:
- - the code is duplicated in the init functions by writing error
- - every driver tends to panic in its own init function
- - counting the number of clocksources is not reliable
+I'm going to commit this patch to my tree.  Hopefully, this should appear in
+net-next shortly.
 
-This patch adds another table to store the functions returning an error.
-The table is temporary while we convert all the drivers to return an error
-and will disappear.
-
-Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
+David
 ---
- drivers/clocksource/clksrc-probe.c | 22 ++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h  |  2 ++
- include/linux/clocksource.h        |  3 +++
- 3 files changed, 27 insertions(+)
+commit 4da137ed8a467d01f87ac84ceb2a7af8719e0136
+Author: Herbert Xu <herbert@gondor.apana.org.au>
+Date:   Sun Jun 26 14:55:24 2016 -0700
 
-diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
-index 7cb6c92..5fa6a55 100644
---- a/drivers/clocksource/clksrc-probe.c
-+++ b/drivers/clocksource/clksrc-probe.c
-@@ -20,16 +20,22 @@
- #include <linux/clocksource.h>
+    rxrpc: Avoid using stack memory in SG lists in rxkad
+    
+    rxkad uses stack memory in SG lists which would not work if stacks were
+    allocated from vmalloc memory.  In fact, in most cases this isn't even
+    necessary as the stack memory ends up getting copied over to kmalloc
+    memory.
+    
+    This patch eliminates all the unnecessary stack memory uses by supplying
+    the final destination directly to the crypto API.  In two instances where a
+    temporary buffer is actually needed we also switch use a scratch area in
+    the rxrpc_call struct (only one DATA packet will be being secured or
+    verified at a time).
+    
+    Finally there is no need to split a split-page buffer into two SG entries
+    so code dealing with that has been removed.
+    
+    Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+    Signed-off-by: Andy Lutomirski <luto@kernel.org>
+    Signed-off-by: David Howells <dhowells@redhat.com>
+
+diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
+index 702db72196fb..796368d1fb25 100644
+--- a/net/rxrpc/ar-internal.h
++++ b/net/rxrpc/ar-internal.h
+@@ -141,17 +141,16 @@ struct rxrpc_security {
+ 	int (*init_connection_security)(struct rxrpc_connection *);
  
- extern struct of_device_id __clksrc_of_table[];
-+extern struct of_device_id __clksrc_ret_of_table[];
+ 	/* prime a connection's packet security */
+-	void (*prime_packet_security)(struct rxrpc_connection *);
++	int (*prime_packet_security)(struct rxrpc_connection *);
  
- static const struct of_device_id __clksrc_of_table_sentinel
- 	__used __section(__clksrc_of_table_end);
+ 	/* impose security on a packet */
+-	int (*secure_packet)(const struct rxrpc_call *,
++	int (*secure_packet)(struct rxrpc_call *,
+ 			     struct sk_buff *,
+ 			     size_t,
+ 			     void *);
  
-+static const struct of_device_id __clksrc_ret_of_table_sentinel
-+	__used __section(__clksrc_ret_of_table_end);
+ 	/* verify the security on a received packet */
+-	int (*verify_packet)(const struct rxrpc_call *, struct sk_buff *,
+-			     u32 *);
++	int (*verify_packet)(struct rxrpc_call *, struct sk_buff *, u32 *);
+ 
+ 	/* issue a challenge */
+ 	int (*issue_challenge)(struct rxrpc_connection *);
+@@ -399,6 +398,7 @@ struct rxrpc_call {
+ 	struct sk_buff_head	rx_oos_queue;	/* packets received out of sequence */
+ 	struct sk_buff		*tx_pending;	/* Tx socket buffer being filled */
+ 	wait_queue_head_t	tx_waitq;	/* wait for Tx window space to become available */
++	__be32			crypto_buf[2];	/* Temporary packet crypto buffer */
+ 	unsigned long		user_call_ID;	/* user-defined call ID */
+ 	unsigned long		creation_jif;	/* time of call creation */
+ 	unsigned long		flags;
+diff --git a/net/rxrpc/conn_event.c b/net/rxrpc/conn_event.c
+index bf6971555eac..6a3c96707831 100644
+--- a/net/rxrpc/conn_event.c
++++ b/net/rxrpc/conn_event.c
+@@ -188,7 +188,10 @@ static int rxrpc_process_event(struct rxrpc_connection *conn,
+ 		if (ret < 0)
+ 			return ret;
+ 
+-		conn->security->prime_packet_security(conn);
++		ret = conn->security->prime_packet_security(conn);
++		if (ret < 0)
++			return ret;
 +
- void __init clocksource_probe(void)
- {
- 	struct device_node *np;
- 	const struct of_device_id *match;
- 	of_init_fn_1 init_func;
-+	of_init_fn_1_ret init_func_ret;
- 	unsigned clocksources = 0;
-+	int ret;
+ 		read_lock_bh(&conn->lock);
+ 		spin_lock(&conn->state_lock);
  
- 	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
- 		if (!of_device_is_available(np))
-@@ -40,6 +46,22 @@ void __init clocksource_probe(void)
- 		clocksources++;
+diff --git a/net/rxrpc/conn_object.c b/net/rxrpc/conn_object.c
+index 4bfad7cf96cb..35b36beb4684 100644
+--- a/net/rxrpc/conn_object.c
++++ b/net/rxrpc/conn_object.c
+@@ -138,7 +138,9 @@ rxrpc_alloc_client_connection(struct rxrpc_conn_parameters *cp, gfp_t gfp)
+ 	if (ret < 0)
+ 		goto error_1;
+ 
+-	conn->security->prime_packet_security(conn);
++	ret = conn->security->prime_packet_security(conn);
++	if (ret < 0)
++		goto error_2;
+ 
+ 	write_lock(&rxrpc_connection_lock);
+ 	list_add_tail(&conn->link, &rxrpc_connections);
+@@ -152,6 +154,8 @@ rxrpc_alloc_client_connection(struct rxrpc_conn_parameters *cp, gfp_t gfp)
+ 	_leave(" = %p", conn);
+ 	return conn;
+ 
++error_2:
++	conn->security->clear(conn);
+ error_1:
+ 	rxrpc_put_client_connection_id(conn);
+ error_0:
+diff --git a/net/rxrpc/insecure.c b/net/rxrpc/insecure.c
+index e571403613c1..c21ad213b337 100644
+--- a/net/rxrpc/insecure.c
++++ b/net/rxrpc/insecure.c
+@@ -17,11 +17,12 @@ static int none_init_connection_security(struct rxrpc_connection *conn)
+ 	return 0;
+ }
+ 
+-static void none_prime_packet_security(struct rxrpc_connection *conn)
++static int none_prime_packet_security(struct rxrpc_connection *conn)
+ {
++	return 0;
+ }
+ 
+-static int none_secure_packet(const struct rxrpc_call *call,
++static int none_secure_packet(struct rxrpc_call *call,
+ 			       struct sk_buff *skb,
+ 			       size_t data_size,
+ 			       void *sechdr)
+@@ -29,7 +30,7 @@ static int none_secure_packet(const struct rxrpc_call *call,
+ 	return 0;
+ }
+ 
+-static int none_verify_packet(const struct rxrpc_call *call,
++static int none_verify_packet(struct rxrpc_call *call,
+ 			       struct sk_buff *skb,
+ 			       u32 *_abort_code)
+ {
+diff --git a/net/rxrpc/rxkad.c b/net/rxrpc/rxkad.c
+index 23c05ec6fa28..3acc7c1241d4 100644
+--- a/net/rxrpc/rxkad.c
++++ b/net/rxrpc/rxkad.c
+@@ -103,43 +103,43 @@ error:
+  * prime the encryption state with the invariant parts of a connection's
+  * description
+  */
+-static void rxkad_prime_packet_security(struct rxrpc_connection *conn)
++static int rxkad_prime_packet_security(struct rxrpc_connection *conn)
+ {
+ 	struct rxrpc_key_token *token;
+ 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
+-	struct scatterlist sg[2];
++	struct scatterlist sg;
+ 	struct rxrpc_crypt iv;
+-	struct {
+-		__be32 x[4];
+-	} tmpbuf __attribute__((aligned(16))); /* must all be in same page */
++	__be32 *tmpbuf;
++	size_t tmpsize = 4 * sizeof(__be32);
+ 
+ 	_enter("");
+ 
+ 	if (!conn->params.key)
+-		return;
++		return 0;
++
++	tmpbuf = kmalloc(tmpsize, GFP_KERNEL);
++	if (!tmpbuf)
++		return -ENOMEM;
+ 
+ 	token = conn->params.key->payload.data[0];
+ 	memcpy(&iv, token->kad->session_key, sizeof(iv));
+ 
+-	tmpbuf.x[0] = htonl(conn->proto.epoch);
+-	tmpbuf.x[1] = htonl(conn->proto.cid);
+-	tmpbuf.x[2] = 0;
+-	tmpbuf.x[3] = htonl(conn->security_ix);
+-
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	tmpbuf[0] = htonl(conn->proto.epoch);
++	tmpbuf[1] = htonl(conn->proto.cid);
++	tmpbuf[2] = 0;
++	tmpbuf[3] = htonl(conn->security_ix);
+ 
++	sg_init_one(&sg, tmpbuf, tmpsize);
+ 	skcipher_request_set_tfm(req, conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
+-
++	skcipher_request_set_crypt(req, &sg, &sg, tmpsize, iv.x);
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	memcpy(&conn->csum_iv, &tmpbuf.x[2], sizeof(conn->csum_iv));
+-	ASSERTCMP((u32 __force)conn->csum_iv.n[0], ==, (u32 __force)tmpbuf.x[2]);
+-
+-	_leave("");
++	memcpy(&conn->csum_iv, tmpbuf + 2, sizeof(conn->csum_iv));
++	kfree(tmpbuf);
++	_leave(" = 0");
++	return 0;
+ }
+ 
+ /*
+@@ -152,12 +152,9 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
+ {
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
++	struct rxkad_level1_hdr hdr;
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
+-		struct rxkad_level1_hdr hdr;
+-		__be32	first;	/* first four bytes of data and padding */
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++	struct scatterlist sg;
+ 	u16 check;
+ 
+ 	sp = rxrpc_skb(skb);
+@@ -167,24 +164,19 @@ static int rxkad_secure_packet_auth(const struct rxrpc_call *call,
+ 	check = sp->hdr.seq ^ sp->hdr.callNumber;
+ 	data_size |= (u32)check << 16;
+ 
+-	tmpbuf.hdr.data_size = htonl(data_size);
+-	memcpy(&tmpbuf.first, sechdr + 4, sizeof(tmpbuf.first));
++	hdr.data_size = htonl(data_size);
++	memcpy(sechdr, &hdr, sizeof(hdr));
+ 
+ 	/* start the encryption afresh */
+ 	memset(&iv, 0, sizeof(iv));
+ 
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
+-
++	sg_init_one(&sg, sechdr, 8);
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
+-
++	skcipher_request_set_crypt(req, &sg, &sg, 8, iv.x);
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	memcpy(sechdr, &tmpbuf, sizeof(tmpbuf));
+-
+ 	_leave(" = 0");
+ 	return 0;
+ }
+@@ -198,8 +190,7 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
+ 				       void *sechdr)
+ {
+ 	const struct rxrpc_key_token *token;
+-	struct rxkad_level2_hdr rxkhdr
+-		__attribute__((aligned(8))); /* must be all on one page */
++	struct rxkad_level2_hdr rxkhdr;
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_crypt iv;
+@@ -218,18 +209,16 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
+ 
+ 	rxkhdr.data_size = htonl(data_size | (u32)check << 16);
+ 	rxkhdr.checksum = 0;
++	memcpy(sechdr, &rxkhdr, sizeof(rxkhdr));
+ 
+ 	/* encrypt from the session key */
+ 	token = call->conn->params.key->payload.data[0];
+ 	memcpy(&iv, token->kad->session_key, sizeof(iv));
+ 
+ 	sg_init_one(&sg[0], sechdr, sizeof(rxkhdr));
+-	sg_init_one(&sg[1], &rxkhdr, sizeof(rxkhdr));
+-
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(rxkhdr), iv.x);
+-
++	skcipher_request_set_crypt(req, &sg[0], &sg[0], sizeof(rxkhdr), iv.x);
+ 	crypto_skcipher_encrypt(req);
+ 
+ 	/* we want to encrypt the skbuff in-place */
+@@ -243,9 +232,7 @@ static int rxkad_secure_packet_encrypt(const struct rxrpc_call *call,
+ 
+ 	sg_init_table(sg, nsg);
+ 	skb_to_sgvec(skb, sg, 0, len);
+-
+ 	skcipher_request_set_crypt(req, sg, sg, len, iv.x);
+-
+ 	crypto_skcipher_encrypt(req);
+ 
+ 	_leave(" = 0");
+@@ -259,7 +246,7 @@ out:
+ /*
+  * checksum an RxRPC packet header
+  */
+-static int rxkad_secure_packet(const struct rxrpc_call *call,
++static int rxkad_secure_packet(struct rxrpc_call *call,
+ 			       struct sk_buff *skb,
+ 			       size_t data_size,
+ 			       void *sechdr)
+@@ -267,10 +254,7 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
+ 	struct rxrpc_skb_priv *sp;
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
+-		__be32 x[2];
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++	struct scatterlist sg;
+ 	u32 x, y;
+ 	int ret;
+ 
+@@ -293,20 +277,17 @@ static int rxkad_secure_packet(const struct rxrpc_call *call,
+ 	/* calculate the security checksum */
+ 	x = call->channel << (32 - RXRPC_CIDSHIFT);
+ 	x |= sp->hdr.seq & 0x3fffffff;
+-	tmpbuf.x[0] = htonl(sp->hdr.callNumber);
+-	tmpbuf.x[1] = htonl(x);
+-
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	call->crypto_buf[0] = htonl(sp->hdr.callNumber);
++	call->crypto_buf[1] = htonl(x);
+ 
++	sg_init_one(&sg, call->crypto_buf, 8);
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
+-
++	skcipher_request_set_crypt(req, &sg, &sg, 8, iv.x);
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	y = ntohl(tmpbuf.x[1]);
++	y = ntohl(call->crypto_buf[1]);
+ 	y = (y >> 16) & 0xffff;
+ 	if (y == 0)
+ 		y = 1; /* zero checksums are not permitted */
+@@ -367,7 +348,6 @@ static int rxkad_verify_packet_auth(const struct rxrpc_call *call,
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+ 	skcipher_request_set_crypt(req, sg, sg, 8, iv.x);
+-
+ 	crypto_skcipher_decrypt(req);
+ 	skcipher_request_zero(req);
+ 
+@@ -452,7 +432,6 @@ static int rxkad_verify_packet_encrypt(const struct rxrpc_call *call,
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+ 	skcipher_request_set_crypt(req, sg, sg, skb->len, iv.x);
+-
+ 	crypto_skcipher_decrypt(req);
+ 	skcipher_request_zero(req);
+ 	if (sg != _sg)
+@@ -498,17 +477,14 @@ nomem:
+ /*
+  * verify the security on a received packet
+  */
+-static int rxkad_verify_packet(const struct rxrpc_call *call,
++static int rxkad_verify_packet(struct rxrpc_call *call,
+ 			       struct sk_buff *skb,
+ 			       u32 *_abort_code)
+ {
+ 	SKCIPHER_REQUEST_ON_STACK(req, call->conn->cipher);
+ 	struct rxrpc_skb_priv *sp;
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
+-	struct {
+-		__be32 x[2];
+-	} tmpbuf __attribute__((aligned(8))); /* must all be in same page */
++	struct scatterlist sg;
+ 	u16 cksum;
+ 	u32 x, y;
+ 	int ret;
+@@ -533,20 +509,17 @@ static int rxkad_verify_packet(const struct rxrpc_call *call,
+ 	/* validate the security checksum */
+ 	x = call->channel << (32 - RXRPC_CIDSHIFT);
+ 	x |= sp->hdr.seq & 0x3fffffff;
+-	tmpbuf.x[0] = htonl(call->call_id);
+-	tmpbuf.x[1] = htonl(x);
+-
+-	sg_init_one(&sg[0], &tmpbuf, sizeof(tmpbuf));
+-	sg_init_one(&sg[1], &tmpbuf, sizeof(tmpbuf));
++	call->crypto_buf[0] = htonl(call->call_id);
++	call->crypto_buf[1] = htonl(x);
+ 
++	sg_init_one(&sg, call->crypto_buf, 8);
+ 	skcipher_request_set_tfm(req, call->conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg[1], &sg[0], sizeof(tmpbuf), iv.x);
+-
++	skcipher_request_set_crypt(req, &sg, &sg, 8, iv.x);
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ 
+-	y = ntohl(tmpbuf.x[1]);
++	y = ntohl(call->crypto_buf[1]);
+ 	cksum = (y >> 16) & 0xffff;
+ 	if (cksum == 0)
+ 		cksum = 1; /* zero checksums are not permitted */
+@@ -710,29 +683,6 @@ static void rxkad_calc_response_checksum(struct rxkad_response *response)
+ }
+ 
+ /*
+- * load a scatterlist with a potentially split-page buffer
+- */
+-static void rxkad_sg_set_buf2(struct scatterlist sg[2],
+-			      void *buf, size_t buflen)
+-{
+-	int nsg = 1;
+-
+-	sg_init_table(sg, 2);
+-
+-	sg_set_buf(&sg[0], buf, buflen);
+-	if (sg[0].offset + buflen > PAGE_SIZE) {
+-		/* the buffer was split over two pages */
+-		sg[0].length = PAGE_SIZE - sg[0].offset;
+-		sg_set_buf(&sg[1], buf + sg[0].length, buflen - sg[0].length);
+-		nsg++;
+-	}
+-
+-	sg_mark_end(&sg[nsg - 1]);
+-
+-	ASSERTCMP(sg[0].length + sg[1].length, ==, buflen);
+-}
+-
+-/*
+  * encrypt the response packet
+  */
+ static void rxkad_encrypt_response(struct rxrpc_connection *conn,
+@@ -741,17 +691,16 @@ static void rxkad_encrypt_response(struct rxrpc_connection *conn,
+ {
+ 	SKCIPHER_REQUEST_ON_STACK(req, conn->cipher);
+ 	struct rxrpc_crypt iv;
+-	struct scatterlist sg[2];
++	struct scatterlist sg[1];
+ 
+ 	/* continue encrypting from where we left off */
+ 	memcpy(&iv, s2->session_key, sizeof(iv));
+ 
+-	rxkad_sg_set_buf2(sg, &resp->encrypted, sizeof(resp->encrypted));
+-
++	sg_init_table(sg, 1);
++	sg_set_buf(sg, &resp->encrypted, sizeof(resp->encrypted));
+ 	skcipher_request_set_tfm(req, conn->cipher);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+ 	skcipher_request_set_crypt(req, sg, sg, sizeof(resp->encrypted), iv.x);
+-
+ 	crypto_skcipher_encrypt(req);
+ 	skcipher_request_zero(req);
+ }
+@@ -887,10 +836,8 @@ static int rxkad_decrypt_ticket(struct rxrpc_connection *conn,
  	}
  
-+	for_each_matching_node_and_match(np, __clksrc_ret_of_table, &match) {
-+		if (!of_device_is_available(np))
-+			continue;
-+
-+		init_func_ret = match->data;
-+
-+		ret = init_func_ret(np);
-+		if (ret) {
-+			pr_err("Failed to initialize '%s': %d",
-+			       of_node_full_name(np), ret);
-+			continue;
-+		}
-+
-+		clocksources++;
-+	}
-+
- 	clocksources += acpi_probe_device_table(clksrc);
+ 	sg_init_one(&sg[0], ticket, ticket_len);
+-
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+ 	skcipher_request_set_crypt(req, sg, sg, ticket_len, iv.x);
+-
+ 	crypto_skcipher_decrypt(req);
+ 	skcipher_request_free(req);
  
- 	if (!clocksources)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..8c6c626 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -173,6 +173,7 @@
- 	*(__##name##_of_table_end)
+@@ -1001,7 +948,7 @@ static void rxkad_decrypt_response(struct rxrpc_connection *conn,
+ 				   const struct rxrpc_crypt *session_key)
+ {
+ 	SKCIPHER_REQUEST_ON_STACK(req, rxkad_ci);
+-	struct scatterlist sg[2];
++	struct scatterlist sg[1];
+ 	struct rxrpc_crypt iv;
  
- #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define CLKSRC_RET_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc_ret)
- #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
- #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
- #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
-@@ -531,6 +532,7 @@
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
- 	CLKSRC_OF_TABLES()						\
-+	CLKSRC_RET_OF_TABLES()						\
- 	IOMMU_OF_TABLES()						\
- 	CPU_METHOD_OF_TABLES()						\
- 	CPUIDLE_METHOD_OF_TABLES()					\
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index 44a1aff..15c3839 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -246,6 +246,9 @@ extern int clocksource_i8253_init(void);
- #define CLOCKSOURCE_OF_DECLARE(name, compat, fn) \
- 	OF_DECLARE_1(clksrc, name, compat, fn)
+ 	_enter(",,%08x%08x",
+@@ -1016,12 +963,11 @@ static void rxkad_decrypt_response(struct rxrpc_connection *conn,
  
-+#define CLOCKSOURCE_OF_DECLARE_RET(name, compat, fn) \
-+	OF_DECLARE_1_RET(clksrc_ret, name, compat, fn)
-+
- #ifdef CONFIG_CLKSRC_PROBE
- extern void clocksource_probe(void);
- #else
--- 
-1.9.1
+ 	memcpy(&iv, session_key, sizeof(iv));
+ 
+-	rxkad_sg_set_buf2(sg, &resp->encrypted, sizeof(resp->encrypted));
+-
++	sg_init_table(sg, 1);
++	sg_set_buf(sg, &resp->encrypted, sizeof(resp->encrypted));
+ 	skcipher_request_set_tfm(req, rxkad_ci);
+ 	skcipher_request_set_callback(req, 0, NULL, NULL);
+ 	skcipher_request_set_crypt(req, sg, sg, sizeof(resp->encrypted), iv.x);
+-
+ 	crypto_skcipher_decrypt(req);
+ 	skcipher_request_zero(req);
+ 
