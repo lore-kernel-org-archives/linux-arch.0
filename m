@@ -1,68 +1,209 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f53.google.com ([209.85.213.53]:34715 "EHLO
-	mail-vk0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752128AbcF1TIT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2016 15:08:19 -0400
-Received: by mail-vk0-f53.google.com with SMTP id c2so35548445vkg.1
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jun 2016 12:07:58 -0700 (PDT)
+Received: from smtprelay0045.hostedemail.com ([216.40.44.45]:50715 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752370AbcF1XcG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Jun 2016 19:32:06 -0400
+Date: Tue, 28 Jun 2016 19:32:00 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC/PATCH v2] ftrace: Reduce size of function graph entries
+Message-ID: <20160628193200.71629fc5@gandalf.local.home>
+In-Reply-To: <1467091840-4625-1-git-send-email-namhyung@kernel.org>
+References: <1467091840-4625-1-git-send-email-namhyung@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20160628184810.GA2855@pd.tnic>
-References: <cover.1466974736.git.luto@kernel.org> <edf5c9e2572b2ea6e1a7f7b3f1c5e9968907b7fb.1466974736.git.luto@kernel.org>
- <20160628184810.GA2855@pd.tnic>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 28 Jun 2016 12:07:38 -0700
-Message-ID: <CALCETrV5aNcfdkNwJna-sOm84zzFccTBqv2KBn-p16U63rYUcQ@mail.gmail.com>
-Subject: Re: [PATCH v4 04/29] x86/cpa: In populate_pgd, don't set the pgd
- entry until it's populated
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160628190738.zPpz_rxOw6Dk3n8mbqYe-Mtg1N-Un6dFmG6x0Kgi2Bc@z>
+To: Namhyung Kim <namhyung@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20160628233200.-A5dRidcjROcIIUTMjiAveO7IGavM1qA0VznlELAIUE@z>
 
-On Tue, Jun 28, 2016 at 11:48 AM, Borislav Petkov <bp@alien8.de> wrote:
-> On Sun, Jun 26, 2016 at 02:55:26PM -0700, Andy Lutomirski wrote:
->> This avoids pointless races in which another CPU or task might see a
->> partially populated global pgd entry.  These races should normally
->> be harmless, but, if another CPU propagates the entry via
->> vmalloc_fault and then populate_pgd fails (due to memory allocation
->> failure, for example), this prevents a use-after-free of the pgd
->> entry.
->>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> ---
->>  arch/x86/mm/pageattr.c | 4 +++-
->>  1 file changed, 3 insertions(+), 1 deletion(-)
->>
->> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
->> index 7a1f7bbf4105..6a8026918bf6 100644
->> --- a/arch/x86/mm/pageattr.c
->> +++ b/arch/x86/mm/pageattr.c
->> @@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
->>
->>       ret = populate_pud(cpa, addr, pgd_entry, pgprot);
->>       if (ret < 0) {
->> -             unmap_pgd_range(cpa->pgd, addr,
->> +             if (pud)
->> +                     free_page((unsigned long)pud);
->> +             unmap_pud_range(pgd_entry, addr,
->>                               addr + (cpa->numpages << PAGE_SHIFT));
->>               return ret;
->>       }
->> --
->
-> So something's amiss here. Subject says:
->
-> "x86/cpa: In populate_pgd, don't set the pgd entry until it's populated"
->
-> but you haven't moved
->
->         set_pgd(pgd_entry, __pgd(__pa(pud) | _KERNPG_TABLE));
->
-> after populate_pud() succeeds... Which is a good catch but your patch
-> should do it too. :-)
+On Tue, 28 Jun 2016 14:30:40 +0900
+Namhyung Kim <namhyung@kernel.org> wrote:
 
-Good catch.  I'll fix this in the next version.
+> Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
+> can have padding bytes at the end due to alignment in 64-bit data type.
+> As these data are recorded so frequently, those paddings waste
+> non-negligible space.  As some archs can have efficient unaligned
+> accesses, reducing the alignment can save ~10% of data size:
+> 
+>   ftrace_graph_ent_entry:  24 -> 20
+>   ftrace_graph_ret_entry:  48 -> 44
+> 
+> Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
+> the padding.  I think the FTRACE_ALIGNMENT still needs to have proper
+> alignment (even if ring buffer handles the alignment after all) since
+> the ftrace_graph_ent/ret struct is located on stack before copying to
+> the ring buffer.
 
---Andy
+I don't know. I mean it doesn't hurt to keep the alignment, but I'm
+still thinking that it's overkill. All elements will start on their
+proper alignment anyway.
+
+Think about it, we have:
+
+For 32bit:
+
+  struct ftrace_graph_ret {
+  	unsigned long func; /* Current function */
+
+is at 0-3
+
+  	/* Number of functions that overran the depth limit for current task */
+  	unsigned long overrun;
+
+is at 4-7
+
+	unsigned long long calltime;
+
+is at 8-15
+
+	unsigned long long rettime;
+is at 16-23
+
+  	int depth;
+
+is at 24-28
+
+And for 64bit:
+
+  struct ftrace_graph_ret {
+  	unsigned long func; /* Current function */
+
+is at 0-7
+
+  	/* Number of functions that overran the depth limit for current task */
+  	unsigned long overrun;
+
+is at 8-15
+
+	unsigned long long calltime;
+
+is at 16-23
+
+	unsigned long long rettime;
+
+is at 24-31
+
+  	int depth;
+
+is at 32-37
+
+For a total of 38 bytes. I'm betting that without the packed, the 4
+extra bytes will always be at the end.
+
+If the compiler places it incorrectly without any attribute, it will
+fail to read the long long if the arch requires 64 bits to be 8 bytes
+aligned. The alignment is meaningless here. All we need is "packed" and
+be done with it. It's only going to truncate the 4 bytes at the end of
+the structure if that.
+
+
+-- Steve
+
+> 
+> Tested on x86_64 only.
+> 
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Namhyung Kim <namhyung@kernel.org>
+> ---
+>  include/linux/ftrace.h       | 16 ++++++++++++----
+>  kernel/trace/trace.h         | 11 +++++++++++
+>  kernel/trace/trace_entries.h |  4 ++--
+>  3 files changed, 25 insertions(+), 6 deletions(-)
+> 
+> diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+> index dea12a6e413b..a86cdf167419 100644
+> --- a/include/linux/ftrace.h
+> +++ b/include/linux/ftrace.h
+> @@ -751,25 +751,33 @@ extern void ftrace_init(void);
+>  static inline void ftrace_init(void) { }
+>  #endif
+>  
+> +#ifdef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
+> +# define FTRACE_ALIGNMENT	8
+> +#else
+> +# define FTRACE_ALIGNMENT	4
+> +#endif
+> +
+> +#define FTRACE_ALIGN_DATA	__attribute__((packed, aligned(FTRACE_ALIGNMENT)))
+> +
+>  /*
+>   * Structure that defines an entry function trace.
+>   */
+>  struct ftrace_graph_ent {
+>  	unsigned long func; /* Current function */
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /*
+>   * Structure that defines a return function trace.
+>   */
+>  struct ftrace_graph_ret {
+>  	unsigned long func; /* Current function */
+> -	unsigned long long calltime;
+> -	unsigned long long rettime;
+>  	/* Number of functions that overran the depth limit for current task */
+>  	unsigned long overrun;
+> +	unsigned long long calltime;
+> +	unsigned long long rettime;
+>  	int depth;
+> -};
+> +} FTRACE_ALIGN_DATA;
+>  
+>  /* Type of the callback handlers for tracing function graph*/
+>  typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
+> diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
+> index 5167c366d6b7..d2dd49ca55ee 100644
+> --- a/kernel/trace/trace.h
+> +++ b/kernel/trace/trace.h
+> @@ -80,6 +80,12 @@ enum trace_type {
+>  	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+>  
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
+> +			    filter)					\
+> +	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter) FTRACE_ALIGN_DATA
+> +
+>  #include "trace_entries.h"
+>  
+>  /*
+> @@ -1600,6 +1606,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
+>  #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
+>  	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+>  		     filter)
+> +#undef FTRACE_ENTRY_PACKED
+> +#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
+> +	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
+> +		     filter)
+> +
+>  #include "trace_entries.h"
+>  
+>  #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
+> diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
+> index ee7b94a4810a..5c30efcda5e6 100644
+> --- a/kernel/trace/trace_entries.h
+> +++ b/kernel/trace/trace_entries.h
+> @@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
+>  );
+>  
+>  /* Function call entry */
+> -FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
+>  
+>  	TRACE_GRAPH_ENT,
+>  
+> @@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
+>  );
+>  
+>  /* Function return entry */
+> -FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
+> +FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
+>  
+>  	TRACE_GRAPH_RET,
+>  
+
