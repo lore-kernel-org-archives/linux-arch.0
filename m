@@ -1,108 +1,67 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] locking/qrwlock: Let qrwlock has same layout
- regardless of the endian
-Date: Tue, 28 Jun 2016 18:16:07 +0100
-Message-ID: <20160628171606.GI5425@arm.com>
-References: <1465983109-3217-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
- <57644A39.9080509@hpe.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 04/29] x86/cpa: In populate_pgd, don't set the pgd
+ entry until it's populated
+Date: Tue, 28 Jun 2016 20:48:10 +0200
+Message-ID: <20160628184810.GA2855@pd.tnic>
+References: <cover.1466974736.git.luto@kernel.org>
+ <edf5c9e2572b2ea6e1a7f7b3f1c5e9968907b7fb.1466974736.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49328 "EHLO foss.arm.com"
+Received: from mail.skyhub.de ([78.46.96.112]:35554 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752639AbcF1RQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Jun 2016 13:16:03 -0400
+	id S1751158AbcF1S7v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Jun 2016 14:59:51 -0400
 Content-Disposition: inline
-In-Reply-To: <57644A39.9080509@hpe.com>
+In-Reply-To: <edf5c9e2572b2ea6e1a7f7b3f1c5e9968907b7fb.1466974736.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hpe.com>
-Cc: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ingo@redhat.com, peterz@infradead.org, arnd@arndb.de
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Fri, Jun 17, 2016 at 03:06:33PM -0400, Waiman Long wrote:
-> On 06/15/2016 05:31 AM, Pan Xinhui wrote:
-> >This patch aims to get rid of endianness in queued_write_unlock(). We
-> >want to set  __qrwlock->wmode to NULL, however the address is not
-> >&lock->cnts in big endian machine. That causes queued_write_unlock()
-> >write NULL to the wrong field of __qrwlock.
-> >
-> >Actually qrwlock can have same layout, IOW we can remove the #if
-> >__little_endian in struct __qrwlock. With such modification, we only
-> >need define some _QW* and _QR* with corresponding values in different
-> >endian systems.
-> >
-> >Suggested-by: Will Deacon<will.deacon@arm.com>
-> >Signed-off-by: Pan Xinhui<xinhui.pan@linux.vnet.ibm.com>
-> >---
-> >change from v1:
-> >	A typo fix which is really bad...
-> >	thanks Will for the carefull review. :)
-> >---
-> >  include/asm-generic/qrwlock.h | 15 +++++++++++----
-> >  kernel/locking/qrwlock.c      | 10 ++++------
-> >  2 files changed, 15 insertions(+), 10 deletions(-)
-> >
-> >diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> >index 54a8e65..28fb94a 100644
-> >--- a/include/asm-generic/qrwlock.h
-> >+++ b/include/asm-generic/qrwlock.h
-> >@@ -27,11 +27,18 @@
-> >  /*
-> >   * Writer states&  reader shift and bias
-> >   */
-> >-#define	_QW_WAITING	1		/* A writer is waiting	   */
-> >-#define	_QW_LOCKED	0xff		/* A writer holds the lock */
-> >-#define	_QW_WMASK	0xff		/* Writer mask		   */
-> >+#ifdef	__LITTLE_ENDIAN
-> >  #define	_QR_SHIFT	8		/* Reader count shift	   */
-> >-#define _QR_BIAS	(1U<<  _QR_SHIFT)
-> >+#define	_QW_SHIFT	0		/* Writer mode shift	*/
-> >+#else
-> >+#define	_QR_SHIFT	0		/* Reader count shift	   */
-> >+#define	_QW_SHIFT	24		/* Writer mode shift	*/
-> >+#endif
-> >+
-> >+#define	_QW_WAITING	(1U<<  _QW_SHIFT)	/* A writer is waiting	   */
-> >+#define	_QW_LOCKED	(0xffU<<  _QW_SHIFT)	/* A writer holds the lock */
-> >+#define	_QW_WMASK	(0xffU<<  _QW_SHIFT)	/* Writer mask		   */
-> >+#define	_QR_BIAS	(1U<<  _QR_SHIFT)
-> >
-> >  /*
-> >   * External function declarations
-> >diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> >index fec0823..57d66cf 100644
-> >--- a/kernel/locking/qrwlock.c
-> >+++ b/kernel/locking/qrwlock.c
-> >@@ -30,18 +30,15 @@ struct __qrwlock {
-> >  	union {
-> >  		atomic_t cnts;
-> >  		struct {
-> >-#ifdef __LITTLE_ENDIAN
-> >  			u8 wmode;	/* Writer mode   */
-> >  			u8 rcnts[3];	/* Reader counts */
-> >-#else
-> >-			u8 rcnts[3];	/* Reader counts */
-> >-			u8 wmode;	/* Writer mode   */
-> >-#endif
-> >  		};
-> >  	};
-> >  	arch_spinlock_t	lock;
-> >  };
-> >
-> >+#define	_QW_MODEVAL(v)	((v)>>  _QW_SHIFT)
+On Sun, Jun 26, 2016 at 02:55:26PM -0700, Andy Lutomirski wrote:
+> This avoids pointless races in which another CPU or task might see a
+> partially populated global pgd entry.  These races should normally
+> be harmless, but, if another CPU propagates the entry via
+> vmalloc_fault and then populate_pgd fails (due to memory allocation
+> failure, for example), this prevents a use-after-free of the pgd
+> entry.
 > 
-> I know what you are doing here, but it is a bit hard to understand it just
-> by looking at the name of the macro itself. Maybe some other names like
-> _QW_MASKVAL() or_QW_BYTEVAL(). You may also want to have a line of comment
-> about it. Other than that, I don't see any problem with it.
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  arch/x86/mm/pageattr.c | 4 +++-
+>  1 file changed, 3 insertions(+), 1 deletion(-)
 > 
-> Acked-by: Waiman Long <Waiman.Long@hpe.com>
+> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+> index 7a1f7bbf4105..6a8026918bf6 100644
+> --- a/arch/x86/mm/pageattr.c
+> +++ b/arch/x86/mm/pageattr.c
+> @@ -1113,7 +1113,9 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
+>  
+>  	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
+>  	if (ret < 0) {
+> -		unmap_pgd_range(cpa->pgd, addr,
+> +		if (pud)
+> +			free_page((unsigned long)pud);
+> +		unmap_pud_range(pgd_entry, addr,
+>  				addr + (cpa->numpages << PAGE_SHIFT));
+>  		return ret;
+>  	}
+> -- 
 
-I agree that the macro is ugly. I think I'd be inclined to drop it
-altogether.
+So something's amiss here. Subject says:
 
-That said, the code looks correct to me:
+"x86/cpa: In populate_pgd, don't set the pgd entry until it's populated"
 
-Reviewed-by: Will Deacon <will.deacon@arm.com>
+but you haven't moved
 
-Will
+	set_pgd(pgd_entry, __pgd(__pa(pud) | _KERNPG_TABLE));
+
+after populate_pud() succeeds... Which is a good catch but your patch
+should do it too. :-)
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
