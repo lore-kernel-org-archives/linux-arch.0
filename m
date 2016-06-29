@@ -1,35 +1,32 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC/PATCH v2] ftrace: Reduce size of function graph entries
-Date: Tue, 28 Jun 2016 23:22:31 -0400
-Message-ID: <20160628232231.54549d29@gandalf.local.home>
-References: <1467091840-4625-1-git-send-email-namhyung@kernel.org>
-	<20160628193200.71629fc5@gandalf.local.home>
-	<20160629013234.GA1628@sejong>
-	<20160628215738.6e4815dd@gandalf.local.home>
-	<20160629023837.GD1628@sejong>
+From: =?UTF-8?Q?Mika_Penttil=c3=a4?= <mika.penttila@nextfour.com>
+Subject: Re: [PATCH v4 00/29] virtually mapped stacks and thread_info cleanup
+Date: Wed, 29 Jun 2016 10:06:21 +0300
+Message-ID: <5773736D.40500@nextfour.com>
+References: <cover.1466974736.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0125.hostedemail.com ([216.40.44.125]:46900 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752449AbcF2DWe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Jun 2016 23:22:34 -0400
-In-Reply-To: <20160629023837.GD1628@sejong>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Namhyung Kim <namhyung@kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Return-path: <kernel-hardening-return-3782-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <cover.1466974736.git.luto@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Jun 2016 11:38:37 +0900
-Namhyung Kim <namhyung@kernel.org> wrote:
-
-> Ok then, I'll change it to use 'packed' only in v3.
+On 06/27/2016 12:55 AM, Andy Lutomirski wrote:
+> Hi all-
 > 
 
-I would add a comment that the structure is already packed and that the
-"packed" attribute is just to remove the extra padding at the end of
-the struct.
+> 
+> Known issues:
+>  - tcp md5, virtio_net, and virtio_console will have issues.  Eric Dumazet
+>    has a patch for tcp md5, and Michael Tsirkin says he'll fix virtio_net
+>    and virtio_console.
+> 
+ How about PTRACE_SETREGS, it's using the child stack's vmapped address to put regs?
 
--- Steve
+--Mika
