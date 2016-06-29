@@ -1,38 +1,68 @@
-From: =?UTF-8?Q?Mika_Penttil=c3=a4?= <mika.penttila@nextfour.com>
-Subject: Re: [PATCH v4 00/29] virtually mapped stacks and thread_info cleanup
-Date: Wed, 29 Jun 2016 20:24:16 +0300
-Message-ID: <57740440.9090302@nextfour.com>
-References: <cover.1466974736.git.luto@kernel.org>
- <5773736D.40500@nextfour.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Dmitry Vyukov <dvyukov@google.com>
+Subject: Re: [PATCH v3] vmlinux.lds: account for destructor sections
+Date: Wed, 29 Jun 2016 19:28:44 +0200
+Message-ID: <CACT4Y+ZnKniz2ojANqTEF709a01Ote-uuqsACL7SOWrDkUnJ_Q@mail.gmail.com>
+References: <1466782768-106896-1-git-send-email-dvyukov@google.com> <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-3785-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <5773736D.40500@nextfour.com>
-To: Andy Lutomirski <luto@kernel.org>, x86@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lf0-f41.google.com ([209.85.215.41]:34373 "EHLO
+	mail-lf0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751635AbcF2R3G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jun 2016 13:29:06 -0400
+Received: by mail-lf0-f41.google.com with SMTP id h129so38404548lfh.1
+        for <linux-arch@vger.kernel.org>; Wed, 29 Jun 2016 10:29:04 -0700 (PDT)
+In-Reply-To: <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrey Ryabinin <ryabinin.a.a@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, kasan-dev <kasan-dev@googlegroups.com>, Alexander Potapenko <glider@google.com>
 
-
-
-On 29.06.2016 10:06, Mika Penttilä wrote:
-> On 06/27/2016 12:55 AM, Andy Lutomirski wrote:
->> Hi all-
+On Fri, Jun 24, 2016 at 6:57 PM, Andrey Ryabinin <ryabinin.a.a@gmail.com> wrote:
+> 2016-06-24 18:39 GMT+03:00 Dmitry Vyukov <dvyukov@google.com>:
+>> If CONFIG_KASAN is enabled and gcc is configured with
+>> --disable-initfini-array and/or gold linker is used,
+>> gcc emits .ctors/.dtors and .text.startup/.text.exit
+>> sections instead of .init_array/.fini_array.
+>> .dtors section is not explicitly accounted in the linker
+>> script and messes vvar/percpu layout. Want:
 >>
->> Known issues:
->>  - tcp md5, virtio_net, and virtio_console will have issues.  Eric Dumazet
->>    has a patch for tcp md5, and Michael Tsirkin says he'll fix virtio_net
->>    and virtio_console.
+>> ffffffff822bfd80 D _edata
+>> ffffffff822c0000 D __vvar_beginning_hack
+>> ffffffff822c0000 A __vvar_page
+>> ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
+>> ffffffff822c1000 A __init_begin
+>> ffffffff822c1000 D init_per_cpu__irq_stack_union
+>> ffffffff822c1000 A __per_cpu_load
+>> ffffffff822d3000 D init_per_cpu__gdt_page
 >>
->  How about PTRACE_SETREGS, it's using the child stack's vmapped address to put regs?
+>> Got:
+>>
+>> ffffffff8279a600 D _edata
+>> ffffffff8279b000 A __vvar_page
+>> ffffffff8279c000 A __init_begin
+>> ffffffff8279c000 D init_per_cpu__irq_stack_union
+>> ffffffff8279c000 A __per_cpu_load
+>> ffffffff8279e000 D __vvar_beginning_hack
+>> ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
+>> ffffffff827ae000 D init_per_cpu__gdt_page
+>>
+>> This happens because __vvar_page and .vvar get different
+>> addresses in arch/x86/kernel/vmlinux.lds.S:
+>>
+>>         . = ALIGN(PAGE_SIZE);
+>>         __vvar_page = .;
+>>
+>>         .vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
+>>                 /* work around gold bug 13023 */
+>>                 __vvar_beginning_hack = .;
+>>
+>> Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
+>> Merge .text.startup into init text.
+>>
+>> Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
 >
-> --Mika
->
-PTRACE_SETREGS is ok of course.
+> Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
 
---Mika
+
+Who can take it to some tree?
