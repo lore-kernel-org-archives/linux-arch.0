@@ -1,54 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f51.google.com ([209.85.213.51]:35023 "EHLO
-	mail-vk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751900AbcF3Rki (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jun 2016 13:40:38 -0400
-Received: by mail-vk0-f51.google.com with SMTP id u68so77433527vkf.2
-        for <linux-arch@vger.kernel.org>; Thu, 30 Jun 2016 10:40:38 -0700 (PDT)
+Received: from mail.skyhub.de ([78.46.96.112]:35318 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752648AbcF3Th2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jun 2016 15:37:28 -0400
+Date: Thu, 30 Jun 2016 21:37:23 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 08/29] dma-api: Teach the "DMA-from-stack" check about
+ vmapped stacks
+Message-ID: <20160630193723.GE3932@pd.tnic>
+References: <cover.1466974736.git.luto@kernel.org>
+ <fbaa1409c74ddc7b29b52c87303d2af1db91e2ba.1466974736.git.luto@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <57754CEA.6070900@sr71.net>
-References: <20160609000117.71AC7623@viggo.jf.intel.com> <20160630094123.GA29268@gmail.com>
- <57754CEA.6070900@sr71.net>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Thu, 30 Jun 2016 10:40:17 -0700
-Message-ID: <CALCETrUgYxT7ts1HAtL6_49BY1N=FqzO1VDBHJZiG_=kBYHxRg@mail.gmail.com>
-Subject: Re: [PATCH 0/9] [v3] System Calls for Memory Protection Keys
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <fbaa1409c74ddc7b29b52c87303d2af1db91e2ba.1466974736.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
-Cc: Ingo Molnar <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, Mel Gorman <mgorman@techsingularity.net>, Hugh Dickins <hughd@google.com>
-Message-ID: <20160630174017.Tbgs0gIlUXPhJ2uJg6h_F4giOWuxE5RAWMkAaEGSeC0@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20160630193723.fVavkDW6hXyE7cESKSciso8T89AhbV6xw4CKQtqLg6k@z>
 
-On Thu, Jun 30, 2016 at 9:46 AM, Dave Hansen <dave@sr71.net> wrote:
-> On 06/30/2016 02:41 AM, Ingo Molnar wrote:
->> * Dave Hansen <dave@sr71.net> wrote:
->>> Are there any concerns with merging these into the x86 tree so
->>> that they go upstream for 4.8?  The updates here are pretty
->>> minor.
->>
->>>  include/linux/pkeys.h                         |   39 +-
->>>  include/uapi/asm-generic/mman-common.h        |    5 +
->>>  include/uapi/asm-generic/unistd.h             |   12 +-
->>>  mm/mprotect.c                                 |  134 +-
->>
->> So I'd love to have some high level MM review & ack for these syscall ABI
->> extensions.
->
-> That's a quite reasonable request, but I'm really surprised by it at
-> this point.  The proposed ABI is one very straightforward extension to
-> one existing system call, plus four others that you personally suggested.
->
+On Sun, Jun 26, 2016 at 02:55:30PM -0700, Andy Lutomirski wrote:
+> If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
+> at the stack, then either the sg page will be in highmem or sg_virt
+> will return the direct-map alias.  In neither case will the existing
+> check_for_stack() implementation realize that it's a stack page.
+> 
+> Fix it by explicitly checking for stack pages.
+> 
+> This has no effect by itself.  It's broken out for ease of review.
+> 
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
+>  1 file changed, 33 insertions(+), 6 deletions(-)
+> 
+> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+> index 51a76af25c66..5b2e63cba90e 100644
+> --- a/lib/dma-debug.c
+> +++ b/lib/dma-debug.c
+> @@ -22,6 +22,7 @@
+>  #include <linux/stacktrace.h>
+>  #include <linux/dma-debug.h>
+>  #include <linux/spinlock.h>
+> +#include <linux/vmalloc.h>
+>  #include <linux/debugfs.h>
+>  #include <linux/uaccess.h>
+>  #include <linux/export.h>
+> @@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
+>  	put_hash_bucket(bucket, &flags);
+>  }
+>  
+> -static void check_for_stack(struct device *dev, void *addr)
+> +static void check_for_stack(struct device *dev,
+> +			    struct page *page, size_t offset)
+>  {
+> -	if (object_is_on_stack(addr))
+> -		err_printk(dev, NULL, "DMA-API: device driver maps memory from "
+> -				"stack [addr=%p]\n", addr);
+> +	void *addr;
+> +	struct vm_struct *stack_vm_area = task_stack_vm_area(current);
 
-I apologize for the very late review, but (see other thread) I think
-we may need to make sure we've defined the signal delivery semantics
-in a useful way before enabling these.  I'm not convinced that the
-current behavior is helpful.  This may or may not require any change
-to the syscall signatures, but I can imagine that doing it right would
-involve adding another syscall to *read* the current signal-delivery
-state of a pkey or perhaps of all the pkeys.  That could potentially
-be achieved by adding an extra pointer parameter to pkey_get so
-pkey_get can return both the current state and the state at next
-signal delivery.
+lib/dma-debug.c: In function ‘check_for_stack’:
+lib/dma-debug.c:1170:36: error: implicit declaration of function ‘task_stack_vm_area’ [-Werror=implicit-function-declaration]
+  struct vm_struct *stack_vm_area = task_stack_vm_area(current);
+                                    ^
+lib/dma-debug.c:1170:36: warning: initialization makes pointer from integer without a cast [-Wint-conversion]
+cc1: some warnings being treated as errors
+make[1]: *** [lib/dma-debug.o] Error 1
+make: *** [lib] Error 2
+make: *** Waiting for unfinished jobs....
 
---Andy
+Probably reorder pieces from patch 9 to earlier ones...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
