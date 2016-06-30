@@ -1,68 +1,39 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH v3] vmlinux.lds: account for destructor sections
-Date: Wed, 29 Jun 2016 19:28:44 +0200
-Message-ID: <CACT4Y+ZnKniz2ojANqTEF709a01Ote-uuqsACL7SOWrDkUnJ_Q@mail.gmail.com>
-References: <1466782768-106896-1-git-send-email-dvyukov@google.com> <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/9] [v3] System Calls for Memory Protection Keys
+Date: Thu, 30 Jun 2016 11:41:23 +0200
+Message-ID: <20160630094123.GA29268@gmail.com>
+References: <20160609000117.71AC7623@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f41.google.com ([209.85.215.41]:34373 "EHLO
-	mail-lf0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751635AbcF2R3G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jun 2016 13:29:06 -0400
-Received: by mail-lf0-f41.google.com with SMTP id h129so38404548lfh.1
-        for <linux-arch@vger.kernel.org>; Wed, 29 Jun 2016 10:29:04 -0700 (PDT)
-In-Reply-To: <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, kasan-dev <kasan-dev@googlegroups.com>, Alexander Potapenko <glider@google.com>
-
-On Fri, Jun 24, 2016 at 6:57 PM, Andrey Ryabinin <ryabinin.a.a@gmail.com> wrote:
-> 2016-06-24 18:39 GMT+03:00 Dmitry Vyukov <dvyukov@google.com>:
->> If CONFIG_KASAN is enabled and gcc is configured with
->> --disable-initfini-array and/or gold linker is used,
->> gcc emits .ctors/.dtors and .text.startup/.text.exit
->> sections instead of .init_array/.fini_array.
->> .dtors section is not explicitly accounted in the linker
->> script and messes vvar/percpu layout. Want:
->>
->> ffffffff822bfd80 D _edata
->> ffffffff822c0000 D __vvar_beginning_hack
->> ffffffff822c0000 A __vvar_page
->> ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
->> ffffffff822c1000 A __init_begin
->> ffffffff822c1000 D init_per_cpu__irq_stack_union
->> ffffffff822c1000 A __per_cpu_load
->> ffffffff822d3000 D init_per_cpu__gdt_page
->>
->> Got:
->>
->> ffffffff8279a600 D _edata
->> ffffffff8279b000 A __vvar_page
->> ffffffff8279c000 A __init_begin
->> ffffffff8279c000 D init_per_cpu__irq_stack_union
->> ffffffff8279c000 A __per_cpu_load
->> ffffffff8279e000 D __vvar_beginning_hack
->> ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
->> ffffffff827ae000 D init_per_cpu__gdt_page
->>
->> This happens because __vvar_page and .vvar get different
->> addresses in arch/x86/kernel/vmlinux.lds.S:
->>
->>         . = ALIGN(PAGE_SIZE);
->>         __vvar_page = .;
->>
->>         .vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
->>                 /* work around gold bug 13023 */
->>                 __vvar_beginning_hack = .;
->>
->> Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
->> Merge .text.startup into init text.
->>
->> Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
->
-> Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20160609000117.71AC7623@viggo.jf.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, arnd@arndb.de, Al Viro <viro@zeniv.linux.org.uk>, Mel Gorman <mgorman@techsingularity.net>, Hugh Dickins <hughd@google.com>
+List-Id: linux-arch.vger.kernel.org
 
 
-Who can take it to some tree?
+* Dave Hansen <dave@sr71.net> wrote:
+
+> Are there any concerns with merging these into the x86 tree so
+> that they go upstream for 4.8?  The updates here are pretty
+> minor.
+
+>  include/linux/pkeys.h                         |   39 +-
+>  include/uapi/asm-generic/mman-common.h        |    5 +
+>  include/uapi/asm-generic/unistd.h             |   12 +-
+>  mm/mprotect.c                                 |  134 +-
+
+So I'd love to have some high level MM review & ack for these syscall ABI 
+extensions.
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
