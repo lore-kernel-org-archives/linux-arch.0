@@ -1,74 +1,46 @@
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: Re: [PATCH v3] vmlinux.lds: account for destructor sections
-Date: Thu, 30 Jun 2016 12:16:27 +0200
-Message-ID: <CACT4Y+bbnUATLTavsMm8HMqycUt0xt5XTnVt8g5fdrnvgTnUdA@mail.gmail.com>
-References: <1466782768-106896-1-git-send-email-dvyukov@google.com>
- <CAPAsAGxojhprvmrXF4vuPTN73t5CYVR-919GDJmm39uC+5-ZLA@mail.gmail.com> <CACT4Y+ZnKniz2ojANqTEF709a01Ote-uuqsACL7SOWrDkUnJ_Q@mail.gmail.com>
+From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Subject: Re: [PATCH 0/9] [v3] System Calls for Memory Protection Keys
+Date: Thu, 30 Jun 2016 09:46:34 -0700
+Message-ID: <57754CEA.6070900@sr71.net>
+References: <20160609000117.71AC7623@viggo.jf.intel.com>
+ <20160630094123.GA29268@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f41.google.com ([209.85.215.41]:34330 "EHLO
-	mail-lf0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751646AbcF3KRF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jun 2016 06:17:05 -0400
-Received: by mail-lf0-f41.google.com with SMTP id h129so52017574lfh.1
-        for <linux-arch@vger.kernel.org>; Thu, 30 Jun 2016 03:16:47 -0700 (PDT)
-In-Reply-To: <CACT4Y+ZnKniz2ojANqTEF709a01Ote-uuqsACL7SOWrDkUnJ_Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrey Ryabinin <ryabinin.a.a@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, kasan-dev <kasan-dev@googlegroups.com>, Alexander Potapenko <glider@google.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20160630094123.GA29268-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Mel Gorman <mgorman-3eNAlZScCAx27rWaFMvyedHuzzzSOjJt@public.gmane.org>, Hugh Dickins <hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 29, 2016 at 7:28 PM, Dmitry Vyukov <dvyukov@google.com> wrote:
-> On Fri, Jun 24, 2016 at 6:57 PM, Andrey Ryabinin <ryabinin.a.a@gmail.com> wrote:
->> 2016-06-24 18:39 GMT+03:00 Dmitry Vyukov <dvyukov@google.com>:
->>> If CONFIG_KASAN is enabled and gcc is configured with
->>> --disable-initfini-array and/or gold linker is used,
->>> gcc emits .ctors/.dtors and .text.startup/.text.exit
->>> sections instead of .init_array/.fini_array.
->>> .dtors section is not explicitly accounted in the linker
->>> script and messes vvar/percpu layout. Want:
->>>
->>> ffffffff822bfd80 D _edata
->>> ffffffff822c0000 D __vvar_beginning_hack
->>> ffffffff822c0000 A __vvar_page
->>> ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
->>> ffffffff822c1000 A __init_begin
->>> ffffffff822c1000 D init_per_cpu__irq_stack_union
->>> ffffffff822c1000 A __per_cpu_load
->>> ffffffff822d3000 D init_per_cpu__gdt_page
->>>
->>> Got:
->>>
->>> ffffffff8279a600 D _edata
->>> ffffffff8279b000 A __vvar_page
->>> ffffffff8279c000 A __init_begin
->>> ffffffff8279c000 D init_per_cpu__irq_stack_union
->>> ffffffff8279c000 A __per_cpu_load
->>> ffffffff8279e000 D __vvar_beginning_hack
->>> ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
->>> ffffffff827ae000 D init_per_cpu__gdt_page
->>>
->>> This happens because __vvar_page and .vvar get different
->>> addresses in arch/x86/kernel/vmlinux.lds.S:
->>>
->>>         . = ALIGN(PAGE_SIZE);
->>>         __vvar_page = .;
->>>
->>>         .vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
->>>                 /* work around gold bug 13023 */
->>>                 __vvar_beginning_hack = .;
->>>
->>> Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
->>> Merge .text.startup into init text.
->>>
->>> Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
->>
->> Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
->
->
-> Who can take it to some tree?
+On 06/30/2016 02:41 AM, Ingo Molnar wrote:
+> * Dave Hansen <dave-gkUM19QKKo4@public.gmane.org> wrote:
+>> Are there any concerns with merging these into the x86 tree so
+>> that they go upstream for 4.8?  The updates here are pretty
+>> minor.
+> 
+>>  include/linux/pkeys.h                         |   39 +-
+>>  include/uapi/asm-generic/mman-common.h        |    5 +
+>>  include/uapi/asm-generic/unistd.h             |   12 +-
+>>  mm/mprotect.c                                 |  134 +-
+> 
+> So I'd love to have some high level MM review & ack for these syscall ABI 
+> extensions.
 
+That's a quite reasonable request, but I'm really surprised by it at
+this point.  The proposed ABI is one very straightforward extension to
+one existing system call, plus four others that you personally suggested.
 
-Arnd, you are listed as maintainer of this file. How can I get this
-into mainline?
+They haven't *changed* since last November:
+
+	http://lkml.iu.edu/hypermail/linux/kernel/1511.2/00985.html
+
+I see you added Mel and Hugh to the cc.  Is that who you'd like to see
+review it?  Is there anyone else?  I'd expect Mel and Hugh's review time
+to be highly contended, and I'd rather not gate these on them.
+
+If it helps anyone review these more easily, I've html-ized the affected
+manpages and published them:
+
+	https://www.sr71.net/~dave/intel/manpages/
