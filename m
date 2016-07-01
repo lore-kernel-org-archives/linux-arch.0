@@ -1,97 +1,215 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
-Date: Fri, 1 Jul 2016 07:53:44 -0500
-Message-ID: <20160701125344.usuovsvbpilzen4m@treble>
-References: <20160627151500.2247A68D20@newverein.lst.de>
- <20160627151717.BD25468D26@newverein.lst.de>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 09/29] fork: Add generic vmalloced stack support
+Date: Fri, 1 Jul 2016 16:59:20 +0200
+Message-ID: <20160701145920.GF4593@pd.tnic>
+References: <cover.1466974736.git.luto@kernel.org>
+ <fa7bc42def35d37f8237d8f9b2f1b1e05eb885b8.1466974736.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Return-path: <linux-sparse-owner@vger.kernel.org>
+Return-path: <kernel-hardening-return-3797-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 Content-Disposition: inline
-In-Reply-To: <20160627151717.BD25468D26@newverein.lst.de>
-Sender: linux-sparse-owner@vger.kernel.org
-To: Torsten Duwe <duwe@lst.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+In-Reply-To: <fa7bc42def35d37f8237d8f9b2f1b1e05eb885b8.1466974736.git.luto@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 27, 2016 at 05:17:17PM +0200, Torsten Duwe wrote:
-> Once gcc is enhanced to optionally generate NOPs at the beginning
-> of each function, like the concept proven in
-> https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01671.html
-> (sans the "fprintf (... pad_size);", which spoils the data structure
-> for kernel use), the generated pads can nicely be used to reroute
-> function calls for tracing/profiling, or live patching.
+On Sun, Jun 26, 2016 at 02:55:31PM -0700, Andy Lutomirski wrote:
+> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
+> vmalloc_node.
 > 
-> The pads look like
-> fffffc00081335f0 <hrtimer_init>:
-> fffffc00081335f0:       d503201f        nop
-> fffffc00081335f4:       d503201f        nop
-> fffffc00081335f8:       a9bd7bfd        stp     x29, x30, [sp,#-48]!
-> fffffc00081335fc:       910003fd        mov     x29, sp
-> [...]
+> grsecurity has had a similar feature (called
+> GRKERNSEC_KSTACKOVERFLOW) for a long time.
 > 
-> This patch gets the pad locations from the compiler-generated
-> __prolog_pads_loc into the _mcount_loc array, and provides the
-> code patching functions to turn the pads at runtime into
-> 
-> fffffc00081335f0     mov     x9, x30
-> fffffc00081335f4     bl      0xfffffc00080a08c0 <ftrace_caller>
-> fffffc00081335f8     stp     x29, x30, [sp,#-48]!
-> fffffc00081335fc     mov     x29, sp
-> 
-> as well as an ftrace_caller that can handle these call sites.
-> Now ARCH_SUPPORTS_FTRACE_OPS as a benefit, and the graph caller
-> still works, too.
-> 
-> Signed-off-by: Li Bin <huawei.libin@huawei.com>
-> Signed-off-by: Torsten Duwe <duwe@suse.de>
+> Cc: Oleg Nesterov <oleg@redhat.com>
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 > ---
->  arch/arm64/Kconfig                |  1 +
->  arch/arm64/Makefile               |  4 ++
->  arch/arm64/include/asm/ftrace.h   |  8 ++++
->  arch/arm64/kernel/Makefile        |  6 +--
->  arch/arm64/kernel/entry-ftrace.S  | 89 +++++++++++++++++++++++++++++++++++++++
->  arch/arm64/kernel/ftrace.c        | 43 +++++++++++++++++--
->  include/asm-generic/vmlinux.lds.h |  2 +-
->  include/linux/compiler.h          |  4 ++
->  8 files changed, 150 insertions(+), 7 deletions(-)
+>  arch/Kconfig                        | 29 +++++++++++++
+>  arch/ia64/include/asm/thread_info.h |  2 +-
+>  include/linux/sched.h               | 15 +++++++
+>  kernel/fork.c                       | 87 +++++++++++++++++++++++++++++--------
+>  4 files changed, 113 insertions(+), 20 deletions(-)
 > 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 5a0a691..36a0e26 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -72,6 +72,7 @@ config ARM64
->  	select HAVE_DMA_API_DEBUG
->  	select HAVE_DMA_CONTIGUOUS
->  	select HAVE_DYNAMIC_FTRACE
-> +	select HAVE_DYNAMIC_FTRACE_WITH_REGS
->  	select HAVE_EFFICIENT_UNALIGNED_ACCESS
->  	select HAVE_FTRACE_MCOUNT_RECORD
->  	select HAVE_FUNCTION_TRACER
-> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-> index 648a32c..e5e335c 100644
-> --- a/arch/arm64/Makefile
-> +++ b/arch/arm64/Makefile
-> @@ -35,6 +35,10 @@ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
->  KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
->  KBUILD_AFLAGS	+= $(lseinstr)
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 15996290fed4..18a2c3a7b460 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -661,4 +661,33 @@ config ARCH_NO_COHERENT_DMA_MMAP
+>  config CPU_NO_EFFICIENT_FFS
+>  	def_bool n
 >  
-> +ifeq ($(CONFIG_DYNAMIC_FTRACE_WITH_REGS), y)
-> +CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
-> +endif
+> +config HAVE_ARCH_VMAP_STACK
+> +	def_bool n
+> +	help
+> +	  An arch should select this symbol if it can support kernel stacks
+> +	  in vmalloc space.  This means:
 > +
+> +	  - vmalloc space must be large enough to hold many kernel stacks.
+> +	    This may rule out many 32-bit architectures.
+> +
+> +	  - Stacks in vmalloc space need to work reliably.  For example, if
+> +	    vmap page tables are created on demand, either this mechanism
+> +	    needs to work while the stack points to a virtual address with
+> +	    unpopulated page tables or arch code (switch_to and switch_mm,
+> +	    most likely) needs to ensure that the stack's page table entries
+> +	    are populated before running on a possibly unpopulated stack.
+> +
+> +	  - If the stack overflows into a guard page, something reasonable
+> +	    should happen.  The definition of "reasonable" is flexible, but
+> +	    instantly rebooting without logging anything would be unfriendly.
 
-It would probably be good to print a warning for older gccs which don't
-support this option, so that when the build fails, there's at least a
-warning to indicate why.  Something like:
+Nice, I wish more people would actually *explain* their Kconfig options
+properly.
 
-  ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
-    CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
-    ifeq ($(call cc-option,-fprolog-pad=2),)
-      $(warning Cannot use CONFIG_DYNAMIC_FTRACE_WITH_REGS: \
-               -fprolog-pad not supported by compiler)
-    endif
-  endif
+...
 
+> diff --git a/kernel/fork.c b/kernel/fork.c
+> index 146c9840c079..06761de69360 100644
+> --- a/kernel/fork.c
+> +++ b/kernel/fork.c
+> @@ -158,19 +158,37 @@ void __weak arch_release_thread_stack(unsigned long *stack)
+>   * Allocate pages if THREAD_SIZE is >= PAGE_SIZE, otherwise use a
+>   * kmemcache based allocator.
+>   */
+> -# if THREAD_SIZE >= PAGE_SIZE
+> -static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
+> -						  int node)
+> +# if THREAD_SIZE >= PAGE_SIZE || defined(CONFIG_VMAP_STACK)
+> +static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
+>  {
+> +#ifdef CONFIG_VMAP_STACK
+> +	void *stack = __vmalloc_node_range(
+> +		THREAD_SIZE, THREAD_SIZE, VMALLOC_START, VMALLOC_END,
+> +		THREADINFO_GFP | __GFP_HIGHMEM, PAGE_KERNEL,
+> +		0, node, __builtin_return_address(0));
+
+Reformat:
+
+        void *stack = __vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
+                                           VMALLOC_START, VMALLOC_END,
+                                           THREADINFO_GFP | __GFP_HIGHMEM,
+                                           PAGE_KERNEL,
+                                           0, node, __builtin_return_address(0));
+
+
+> +
+> +	/*
+> +	 * We can't call find_vm_area() in interrupt context, and
+> +	 * free_thread_info can be called in interrupt context, so cache
+
+free_thread_stack() ?
+
+> +	 * the vm_struct.
+> +	 */
+> +	if (stack)
+> +		tsk->stack_vm_area = find_vm_area(stack);
+> +	return stack;
+> +#else
+>  	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
+>  						  THREAD_SIZE_ORDER);
+>  
+>  	return page ? page_address(page) : NULL;
+> +#endif
+>  }
+>  
+> -static inline void free_thread_stack(unsigned long *stack)
+> +static inline void free_thread_stack(struct task_struct *tsk)
+>  {
+> -	free_kmem_pages((unsigned long)stack, THREAD_SIZE_ORDER);
+> +	if (task_stack_vm_area(tsk))
+> +		vfree(tsk->stack);
+> +	else
+> +		free_kmem_pages((unsigned long)tsk->stack, THREAD_SIZE_ORDER);
+>  }
+>  # else
+>  static struct kmem_cache *thread_stack_cache;
+> @@ -181,9 +199,9 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
+>  	return kmem_cache_alloc_node(thread_stack_cache, THREADINFO_GFP, node);
+>  }
+>  
+> -static void free_thread_stack(unsigned long *stack)
+> +static void free_thread_stack(struct task_struct *tsk)
+>  {
+> -	kmem_cache_free(thread_stack_cache, stack);
+> +	kmem_cache_free(thread_stack_cache, tsk->stack);
+>  }
+>  
+>  void thread_stack_cache_init(void)
+> @@ -213,24 +231,49 @@ struct kmem_cache *vm_area_cachep;
+>  /* SLAB cache for mm_struct structures (tsk->mm) */
+>  static struct kmem_cache *mm_cachep;
+>  
+> -static void account_kernel_stack(unsigned long *stack, int account)
+> +static void account_kernel_stack(struct task_struct *tsk, int account)
+>  {
+> -	/* All stack pages are in the same zone and belong to the same memcg. */
+> -	struct page *first_page = virt_to_page(stack);
+> +	void *stack = task_stack_page(tsk);
+> +	struct vm_struct *vm = task_stack_vm_area(tsk);
+> +
+> +	BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
+> +
+> +	if (vm) {
+> +		int i;
+>  
+> -	mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
+> -			    THREAD_SIZE / 1024 * account);
+> +		BUG_ON(vm->nr_pages != THREAD_SIZE / PAGE_SIZE);
+>  
+> -	memcg_kmem_update_page_stat(
+> -		first_page, MEMCG_KERNEL_STACK_KB,
+> -		account * (THREAD_SIZE / 1024));
+> +		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
+> +			mod_zone_page_state(page_zone(vm->pages[i]),
+> +					    NR_KERNEL_STACK_KB,
+> +					    PAGE_SIZE / 1024 * account);
+> +		}
+> +
+> +		/* All stack pages belong to the same memcg. */
+> +		memcg_kmem_update_page_stat(
+> +			vm->pages[0], MEMCG_KERNEL_STACK_KB,
+> +			account * (THREAD_SIZE / 1024));
+
+Formatting:
+
+		function_name(arg0, arg1,
+			      arg2, arg3, ...);
+
+> +	} else {
+> +		/*
+> +		 * All stack pages are in the same zone and belong to the
+> +		 * same memcg.
+> +		 */
+> +		struct page *first_page = virt_to_page(stack);
+> +
+> +		mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
+> +				    THREAD_SIZE / 1024 * account);
+> +
+> +		memcg_kmem_update_page_stat(
+> +			first_page, MEMCG_KERNEL_STACK_KB,
+> +			account * (THREAD_SIZE / 1024));
+
+Ditto.
+
+> +	}
+>  }
+>  
+>  void free_task(struct task_struct *tsk)
+>  {
+> -	account_kernel_stack(tsk->stack, -1);
+> +	account_kernel_stack(tsk, -1);
+>  	arch_release_thread_stack(tsk->stack);
+> -	free_thread_stack(tsk->stack);
+> +	free_thread_stack(tsk);
+>  	rt_mutex_debug_task_free(tsk);
+>  	ftrace_graph_exit_task(tsk);
+>  	put_seccomp_filter(tsk);
 -- 
-Josh
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
