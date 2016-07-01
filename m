@@ -1,82 +1,97 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v4 08/29] dma-api: Teach the "DMA-from-stack" check about
- vmapped stacks
-Date: Thu, 30 Jun 2016 21:37:23 +0200
-Message-ID: <20160630193723.GE3932@pd.tnic>
-References: <cover.1466974736.git.luto@kernel.org>
- <fbaa1409c74ddc7b29b52c87303d2af1db91e2ba.1466974736.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
+Date: Fri, 1 Jul 2016 07:53:44 -0500
+Message-ID: <20160701125344.usuovsvbpilzen4m@treble>
+References: <20160627151500.2247A68D20@newverein.lst.de>
+ <20160627151717.BD25468D26@newverein.lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-3792-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-sparse-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <fbaa1409c74ddc7b29b52c87303d2af1db91e2ba.1466974736.git.luto@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+In-Reply-To: <20160627151717.BD25468D26@newverein.lst.de>
+Sender: linux-sparse-owner@vger.kernel.org
+To: Torsten Duwe <duwe@lst.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jun 26, 2016 at 02:55:30PM -0700, Andy Lutomirski wrote:
-> If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
-> at the stack, then either the sg page will be in highmem or sg_virt
-> will return the direct-map alias.  In neither case will the existing
-> check_for_stack() implementation realize that it's a stack page.
+On Mon, Jun 27, 2016 at 05:17:17PM +0200, Torsten Duwe wrote:
+> Once gcc is enhanced to optionally generate NOPs at the beginning
+> of each function, like the concept proven in
+> https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01671.html
+> (sans the "fprintf (... pad_size);", which spoils the data structure
+> for kernel use), the generated pads can nicely be used to reroute
+> function calls for tracing/profiling, or live patching.
 > 
-> Fix it by explicitly checking for stack pages.
+> The pads look like
+> fffffc00081335f0 <hrtimer_init>:
+> fffffc00081335f0:       d503201f        nop
+> fffffc00081335f4:       d503201f        nop
+> fffffc00081335f8:       a9bd7bfd        stp     x29, x30, [sp,#-48]!
+> fffffc00081335fc:       910003fd        mov     x29, sp
+> [...]
 > 
-> This has no effect by itself.  It's broken out for ease of review.
+> This patch gets the pad locations from the compiler-generated
+> __prolog_pads_loc into the _mcount_loc array, and provides the
+> code patching functions to turn the pads at runtime into
 > 
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> fffffc00081335f0     mov     x9, x30
+> fffffc00081335f4     bl      0xfffffc00080a08c0 <ftrace_caller>
+> fffffc00081335f8     stp     x29, x30, [sp,#-48]!
+> fffffc00081335fc     mov     x29, sp
+> 
+> as well as an ftrace_caller that can handle these call sites.
+> Now ARCH_SUPPORTS_FTRACE_OPS as a benefit, and the graph caller
+> still works, too.
+> 
+> Signed-off-by: Li Bin <huawei.libin@huawei.com>
+> Signed-off-by: Torsten Duwe <duwe@suse.de>
 > ---
->  lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
->  1 file changed, 33 insertions(+), 6 deletions(-)
+>  arch/arm64/Kconfig                |  1 +
+>  arch/arm64/Makefile               |  4 ++
+>  arch/arm64/include/asm/ftrace.h   |  8 ++++
+>  arch/arm64/kernel/Makefile        |  6 +--
+>  arch/arm64/kernel/entry-ftrace.S  | 89 +++++++++++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/ftrace.c        | 43 +++++++++++++++++--
+>  include/asm-generic/vmlinux.lds.h |  2 +-
+>  include/linux/compiler.h          |  4 ++
+>  8 files changed, 150 insertions(+), 7 deletions(-)
 > 
-> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-> index 51a76af25c66..5b2e63cba90e 100644
-> --- a/lib/dma-debug.c
-> +++ b/lib/dma-debug.c
-> @@ -22,6 +22,7 @@
->  #include <linux/stacktrace.h>
->  #include <linux/dma-debug.h>
->  #include <linux/spinlock.h>
-> +#include <linux/vmalloc.h>
->  #include <linux/debugfs.h>
->  #include <linux/uaccess.h>
->  #include <linux/export.h>
-> @@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
->  	put_hash_bucket(bucket, &flags);
->  }
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 5a0a691..36a0e26 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -72,6 +72,7 @@ config ARM64
+>  	select HAVE_DMA_API_DEBUG
+>  	select HAVE_DMA_CONTIGUOUS
+>  	select HAVE_DYNAMIC_FTRACE
+> +	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+>  	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+>  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_FUNCTION_TRACER
+> diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+> index 648a32c..e5e335c 100644
+> --- a/arch/arm64/Makefile
+> +++ b/arch/arm64/Makefile
+> @@ -35,6 +35,10 @@ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
+>  KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
+>  KBUILD_AFLAGS	+= $(lseinstr)
 >  
-> -static void check_for_stack(struct device *dev, void *addr)
-> +static void check_for_stack(struct device *dev,
-> +			    struct page *page, size_t offset)
->  {
-> -	if (object_is_on_stack(addr))
-> -		err_printk(dev, NULL, "DMA-API: device driver maps memory from "
-> -				"stack [addr=%p]\n", addr);
-> +	void *addr;
-> +	struct vm_struct *stack_vm_area = task_stack_vm_area(current);
+> +ifeq ($(CONFIG_DYNAMIC_FTRACE_WITH_REGS), y)
+> +CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
+> +endif
+> +
 
-lib/dma-debug.c: In function ‘check_for_stack’:
-lib/dma-debug.c:1170:36: error: implicit declaration of function ‘task_stack_vm_area’ [-Werror=implicit-function-declaration]
-  struct vm_struct *stack_vm_area = task_stack_vm_area(current);
-                                    ^
-lib/dma-debug.c:1170:36: warning: initialization makes pointer from integer without a cast [-Wint-conversion]
-cc1: some warnings being treated as errors
-make[1]: *** [lib/dma-debug.o] Error 1
-make: *** [lib] Error 2
-make: *** Waiting for unfinished jobs....
+It would probably be good to print a warning for older gccs which don't
+support this option, so that when the build fails, there's at least a
+warning to indicate why.  Something like:
 
-Probably reorder pieces from patch 9 to earlier ones...
+  ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
+    CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
+    ifeq ($(call cc-option,-fprolog-pad=2),)
+      $(warning Cannot use CONFIG_DYNAMIC_FTRACE_WITH_REGS: \
+               -fprolog-pad not supported by compiler)
+    endif
+  endif
 
 -- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+Josh
