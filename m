@@ -1,105 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f53.google.com ([74.125.82.53]:37718 "EHLO
-	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751960AbcGAPTe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jul 2016 11:19:34 -0400
-Received: by mail-wm0-f53.google.com with SMTP id a66so33821184wme.0
-        for <linux-arch@vger.kernel.org>; Fri, 01 Jul 2016 08:19:33 -0700 (PDT)
-From: Dmitry Vyukov <dvyukov@google.com>
-Subject: [PATCH v4] vmlinux.lds: account for destructor sections
-Date: Fri,  1 Jul 2016 17:19:23 +0200
-Message-ID: <1467386363-120030-1-git-send-email-dvyukov@google.com>
+Received: from mail.skyhub.de ([78.46.96.112]:38592 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752246AbcGBRZL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Jul 2016 13:25:11 -0400
+Date: Sat, 2 Jul 2016 19:24:41 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 10/29] x86/die: Don't try to recover from an OOPS on a
+ non-default stack
+Message-ID: <20160702172441.GA22748@pd.tnic>
+References: <cover.1466974736.git.luto@kernel.org>
+ <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, ryabinin.a.a@gmail.com
-Cc: kasan-dev@googlegroups.com, glider@google.com, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160701151923.yNxfUVsVdArFTg5QopC6fD8BHWJRMSG0n4PYQRInC8I@z>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20160702172441.ZQwV6Wbcldp8THfZ3nAZFi4RPIrXr7JHBRBt6R1skyY@z>
 
-If CONFIG_KASAN is enabled and gcc is configured with
---disable-initfini-array and/or gold linker is used,
-gcc emits .ctors/.dtors and .text.startup/.text.exit
-sections instead of .init_array/.fini_array.
-.dtors section is not explicitly accounted in the linker
-script and messes vvar/percpu layout. Want:
+On Sun, Jun 26, 2016 at 02:55:32PM -0700, Andy Lutomirski wrote:
+> It's not going to work, because the scheduler will explode if we try
+> to schedule when running on an IST stack or similar.
+> 
+> This will matter when we let kernel stack overflows (which are #DF)
+> call die().
+> 
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  arch/x86/kernel/dumpstack.c | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+> index ef8017ca5ba9..352f022cfd5b 100644
+> --- a/arch/x86/kernel/dumpstack.c
+> +++ b/arch/x86/kernel/dumpstack.c
+> @@ -245,6 +245,9 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+>  		return;
+>  	if (in_interrupt())
+>  		panic("Fatal exception in interrupt");
+> +	if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
+> +	     & ~(THREAD_SIZE - 1)) != 0)
 
-ffffffff822bfd80 D _edata
-ffffffff822c0000 D __vvar_beginning_hack
-ffffffff822c0000 A __vvar_page
-ffffffff822c0080 0000000000000098 D vsyscall_gtod_data
-ffffffff822c1000 A __init_begin
-ffffffff822c1000 D init_per_cpu__irq_stack_union
-ffffffff822c1000 A __per_cpu_load
-ffffffff822d3000 D init_per_cpu__gdt_page
+Ugh, that's hard to parse. You could remove the "!= 0" at least to
+shorten it a bit and have one less braces level.
 
-Got:
+Or maybe even do something like that to make it a bit more readable:
 
-ffffffff8279a600 D _edata
-ffffffff8279b000 A __vvar_page
-ffffffff8279c000 A __init_begin
-ffffffff8279c000 D init_per_cpu__irq_stack_union
-ffffffff8279c000 A __per_cpu_load
-ffffffff8279e000 D __vvar_beginning_hack
-ffffffff8279e080 0000000000000098 D vsyscall_gtod_data
-ffffffff827ae000 D init_per_cpu__gdt_page
+        if ((current_stack_pointer() ^ (current_top_of_stack() - 1))
+                        &
+             ~(THREAD_SIZE - 1))
+                panic("Fatal exception on non-default stack");
 
-This happens because __vvar_page and .vvar get different
-addresses in arch/x86/kernel/vmlinux.lds.S:
+Meh.
 
-	. = ALIGN(PAGE_SIZE);
-	__vvar_page = .;
+> +		panic("Fatal exception on special stack");
 
-	.vvar : AT(ADDR(.vvar) - LOAD_OFFSET) {
-		/* work around gold bug 13023 */
-		__vvar_beginning_hack = .;
+			"Fatal exception on non-default stack"
 
-Discard .dtors/.fini_array/.text.exit, since we don't call dtors.
-Merge .text.startup into init text.
+maybe?
 
-Cc: <stable@vger.kernel.org> # v4.0+
-Reviewed-by: Andrey Ryabinin <aryabinin@virtuozzo.com>
-Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
-
----
-
-Changes since v1:
- - discard .dtors
- - don't define .mem sections
-
-Changes since v2:
- - use 'vmlinux.lds' subsystem prefix instead of 'kasan'
-
-Changes since v3:
- - add 'Cc: <stable@vger.kernel.org> # v4.0+' tag
- - CC linux-kernel@vger.kernel.org,akpm@linux-foundation.org
-
----
- include/asm-generic/vmlinux.lds.h | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..081d0f2 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -542,15 +542,19 @@
- 
- #define INIT_TEXT							\
- 	*(.init.text)							\
-+	*(.text.startup)						\
- 	MEM_DISCARD(init.text)
- 
- #define EXIT_DATA							\
- 	*(.exit.data)							\
-+	*(.fini_array)							\
-+	*(.dtors)							\
- 	MEM_DISCARD(exit.data)						\
- 	MEM_DISCARD(exit.rodata)
- 
- #define EXIT_TEXT							\
- 	*(.exit.text)							\
-+	*(.text.exit)							\
- 	MEM_DISCARD(exit.text)
- 
- #define EXIT_CALL							\
 -- 
-2.8.0.rc3.226.g39d4020
+Regards/Gruss,
+    Boris.
 
+ECO tip #101: Trim your mails when you reply.
