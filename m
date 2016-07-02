@@ -1,28 +1,67 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 09/29] fork: Add generic vmalloced stack support
-Date: Fri, 1 Jul 2016 09:30:12 -0700
-Message-ID: <CALCETrUmZbL3CquXPXftg3nve0Bk22qmPZSoYBvYnUeJZPenEA@mail.gmail.com>
-References: <cover.1466974736.git.luto@kernel.org> <fa7bc42def35d37f8237d8f9b2f1b1e05eb885b8.1466974736.git.luto@kernel.org>
- <20160701145920.GF4593@pd.tnic>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 10/29] x86/die: Don't try to recover from an OOPS on a
+ non-default stack
+Date: Sat, 2 Jul 2016 19:24:41 +0200
+Message-ID: <20160702172441.GA22748@pd.tnic>
+References: <cover.1466974736.git.luto@kernel.org>
+ <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f54.google.com ([209.85.213.54]:36622 "EHLO
-	mail-vk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751673AbcGAQah (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jul 2016 12:30:37 -0400
-Received: by mail-vk0-f54.google.com with SMTP id m127so100221699vkb.3
-        for <linux-arch@vger.kernel.org>; Fri, 01 Jul 2016 09:30:36 -0700 (PDT)
-In-Reply-To: <20160701145920.GF4593@pd.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>
+Content-Type: text/plain; charset=utf-8
+Return-path: <kernel-hardening-return-3801-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 1, 2016 at 7:59 AM, Borislav Petkov <bp@alien8.de> wrote:
-> On Sun, Jun 26, 2016 at 02:55:31PM -0700, Andy Lutomirski wrote:
->> If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
->> vmalloc_node.
->>
+On Sun, Jun 26, 2016 at 02:55:32PM -0700, Andy Lutomirski wrote:
+> It's not going to work, because the scheduler will explode if we try
+> to schedule when running on an IST stack or similar.
+> 
+> This will matter when we let kernel stack overflows (which are #DF)
+> call die().
+> 
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  arch/x86/kernel/dumpstack.c | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+> index ef8017ca5ba9..352f022cfd5b 100644
+> --- a/arch/x86/kernel/dumpstack.c
+> +++ b/arch/x86/kernel/dumpstack.c
+> @@ -245,6 +245,9 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+>  		return;
+>  	if (in_interrupt())
+>  		panic("Fatal exception in interrupt");
+> +	if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
+> +	     & ~(THREAD_SIZE - 1)) != 0)
 
-All done.
+Ugh, that's hard to parse. You could remove the "!= 0" at least to
+shorten it a bit and have one less braces level.
+
+Or maybe even do something like that to make it a bit more readable:
+
+        if ((current_stack_pointer() ^ (current_top_of_stack() - 1))
+                        &
+             ~(THREAD_SIZE - 1))
+                panic("Fatal exception on non-default stack");
+
+Meh.
+
+> +		panic("Fatal exception on special stack");
+
+			"Fatal exception on non-default stack"
+
+maybe?
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
