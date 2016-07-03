@@ -1,45 +1,73 @@
-From: Borislav Petkov <bp@alien8.de>
+From: Andy Lutomirski <luto@amacapital.net>
 Subject: Re: [PATCH v4 10/29] x86/die: Don't try to recover from an OOPS on a
  non-default stack
-Date: Sun, 3 Jul 2016 11:40:38 +0200
-Message-ID: <20160703094038.GA1781@pd.tnic>
-References: <cover.1466974736.git.luto@kernel.org>
- <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
- <20160702172441.GA22748@pd.tnic>
- <20160702183451.e2nlfkfxlsuicbqd@treble>
+Date: Sun, 3 Jul 2016 07:25:05 -0700
+Message-ID: <CALCETrVowqk90fmsg9eJG7Fvk0EMVFS0azCbJ89dioRtuXZOKQ@mail.gmail.com>
+References: <cover.1466974736.git.luto@kernel.org> <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
+ <20160702172441.GA22748@pd.tnic> <20160702183451.e2nlfkfxlsuicbqd@treble>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:38238 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750955AbcGCJkr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Jul 2016 05:40:47 -0400
-Content-Disposition: inline
+Content-Type: text/plain; charset=UTF-8
+Return-path: <kernel-hardening-return-3804-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <20160702183451.e2nlfkfxlsuicbqd@treble>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
 To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Andy Lutomirski <luto@kernel.org>, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jul 02, 2016 at 01:34:51PM -0500, Josh Poimboeuf wrote:
+On Sat, Jul 2, 2016 at 11:34 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> On Sat, Jul 02, 2016 at 07:24:41PM +0200, Borislav Petkov wrote:
+>> On Sun, Jun 26, 2016 at 02:55:32PM -0700, Andy Lutomirski wrote:
+>> > It's not going to work, because the scheduler will explode if we try
+>> > to schedule when running on an IST stack or similar.
+>> >
+>> > This will matter when we let kernel stack overflows (which are #DF)
+>> > call die().
+>> >
+>> > Signed-off-by: Andy Lutomirski <luto@kernel.org>
+>> > ---
+>> >  arch/x86/kernel/dumpstack.c | 3 +++
+>> >  1 file changed, 3 insertions(+)
+>> >
+>> > diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+>> > index ef8017ca5ba9..352f022cfd5b 100644
+>> > --- a/arch/x86/kernel/dumpstack.c
+>> > +++ b/arch/x86/kernel/dumpstack.c
+>> > @@ -245,6 +245,9 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
+>> >             return;
+>> >     if (in_interrupt())
+>> >             panic("Fatal exception in interrupt");
+>> > +   if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
+>> > +        & ~(THREAD_SIZE - 1)) != 0)
+>>
+>> Ugh, that's hard to parse. You could remove the "!= 0" at least to
+>> shorten it a bit and have one less braces level.
+>>
+>> Or maybe even do something like that to make it a bit more readable:
+>>
+>>         if ((current_stack_pointer() ^ (current_top_of_stack() - 1))
+>>                         &
+>>              ~(THREAD_SIZE - 1))
+>>                 panic("Fatal exception on non-default stack");
+>>
+>> Meh.
+>
+> A helper function would be even better.
+>
 > The existing 'object_is_on_stack()' can probably be used:
-> 
-> 	if (!object_is_on_stack(current_top_of_stack()))
-> 		panic("...");
-> 
+>
+>         if (!object_is_on_stack(current_top_of_stack()))
+>                 panic("...");
+>
 > Though that function isn't quite accurately named.  It should really
 > have 'task_stack' in its name, like 'object_is_on_task_stack()'.  Or
 > even better, something more concise like 'on_task_stack()'.
+>
 
-So I'm obviously missing something here:
+Given that the very next patch deletes this code, I vote for leaving
+it alone.  Or I could fold the patches together.
 
-object_is_on_stack() uses task_stack_page(current) -> task_struct.stack
-while current_stack_pointer() reads %rsp directly.
-
-I'm guessing %rsp and task_struct.stack are in sync?
-
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+--Andy
