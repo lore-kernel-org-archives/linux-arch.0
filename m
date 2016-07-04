@@ -1,76 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f41.google.com ([209.85.213.41]:33815 "EHLO
-	mail-vk0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752669AbcGCOZZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jul 2016 10:25:25 -0400
-Received: by mail-vk0-f41.google.com with SMTP id c2so205747010vkg.1
-        for <linux-arch@vger.kernel.org>; Sun, 03 Jul 2016 07:25:25 -0700 (PDT)
+Received: from verein.lst.de ([213.95.11.211]:46094 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932412AbcGDJSn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Jul 2016 05:18:43 -0400
+Date: Mon, 4 Jul 2016 11:18:41 +0200
+From: Torsten Duwe <duwe@lst.de>
+Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
+Message-ID: <20160704091841.GB19960@lst.de>
+References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151717.BD25468D26@newverein.lst.de> <20160701125344.usuovsvbpilzen4m@treble>
 MIME-Version: 1.0
-In-Reply-To: <20160702183451.e2nlfkfxlsuicbqd@treble>
-References: <cover.1466974736.git.luto@kernel.org> <37ac7589ff0ea147e8a21cda5eb84d3af1f6cd60.1466974736.git.luto@kernel.org>
- <20160702172441.GA22748@pd.tnic> <20160702183451.e2nlfkfxlsuicbqd@treble>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Sun, 3 Jul 2016 07:25:05 -0700
-Message-ID: <CALCETrVowqk90fmsg9eJG7Fvk0EMVFS0azCbJ89dioRtuXZOKQ@mail.gmail.com>
-Subject: Re: [PATCH v4 10/29] x86/die: Don't try to recover from an OOPS on a
- non-default stack
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160701125344.usuovsvbpilzen4m@treble>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160703142505.-TZ3lvFA5i6_ZNqSy2BTNjL8RICm-LZWlsYJ2wY4KGs@z>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20160704091841.mXLIj3lV8LuEPzyP4NHrjN1aDqkz1CDEeI_G8tRGlUo@z>
 
-On Sat, Jul 2, 2016 at 11:34 AM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
-> On Sat, Jul 02, 2016 at 07:24:41PM +0200, Borislav Petkov wrote:
->> On Sun, Jun 26, 2016 at 02:55:32PM -0700, Andy Lutomirski wrote:
->> > It's not going to work, because the scheduler will explode if we try
->> > to schedule when running on an IST stack or similar.
->> >
->> > This will matter when we let kernel stack overflows (which are #DF)
->> > call die().
->> >
->> > Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> > ---
->> >  arch/x86/kernel/dumpstack.c | 3 +++
->> >  1 file changed, 3 insertions(+)
->> >
->> > diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
->> > index ef8017ca5ba9..352f022cfd5b 100644
->> > --- a/arch/x86/kernel/dumpstack.c
->> > +++ b/arch/x86/kernel/dumpstack.c
->> > @@ -245,6 +245,9 @@ void oops_end(unsigned long flags, struct pt_regs *regs, int signr)
->> >             return;
->> >     if (in_interrupt())
->> >             panic("Fatal exception in interrupt");
->> > +   if (((current_stack_pointer() ^ (current_top_of_stack() - 1))
->> > +        & ~(THREAD_SIZE - 1)) != 0)
->>
->> Ugh, that's hard to parse. You could remove the "!= 0" at least to
->> shorten it a bit and have one less braces level.
->>
->> Or maybe even do something like that to make it a bit more readable:
->>
->>         if ((current_stack_pointer() ^ (current_top_of_stack() - 1))
->>                         &
->>              ~(THREAD_SIZE - 1))
->>                 panic("Fatal exception on non-default stack");
->>
->> Meh.
->
-> A helper function would be even better.
->
-> The existing 'object_is_on_stack()' can probably be used:
->
->         if (!object_is_on_stack(current_top_of_stack()))
->                 panic("...");
->
-> Though that function isn't quite accurately named.  It should really
-> have 'task_stack' in its name, like 'object_is_on_task_stack()'.  Or
-> even better, something more concise like 'on_task_stack()'.
->
+On Fri, Jul 01, 2016 at 07:53:44AM -0500, Josh Poimboeuf wrote:
+> On Mon, Jun 27, 2016 at 05:17:17PM +0200, Torsten Duwe wrote:
+> > Once gcc is enhanced to optionally generate NOPs at the beginning
+> > of each function, like the concept proven in
+> > https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01671.html
+> > (sans the "fprintf (... pad_size);", which spoils the data structure
+> > for kernel use), the generated pads can nicely be used to reroute
+> > function calls for tracing/profiling, or live patching.
 
-Given that the very next patch deletes this code, I vote for leaving
-it alone.  Or I could fold the patches together.
+[...]
 
---Andy
+> > @@ -35,6 +35,10 @@ KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables
+> >  KBUILD_CFLAGS	+= $(call cc-option, -mpc-relative-literal-loads)
+> >  KBUILD_AFLAGS	+= $(lseinstr)
+> >  
+> > +ifeq ($(CONFIG_DYNAMIC_FTRACE_WITH_REGS), y)
+> > +CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
+> > +endif
+> > +
+> 
+> It would probably be good to print a warning for older gccs which don't
+> support this option, so that when the build fails, there's at least a
+> warning to indicate why.  Something like:
+> 
+>   ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
+>     CC_FLAGS_FTRACE := -fprolog-pad=2 -DCC_USING_PROLOG_PAD
+>     ifeq ($(call cc-option,-fprolog-pad=2),)
+>       $(warning Cannot use CONFIG_DYNAMIC_FTRACE_WITH_REGS: \
+>                -fprolog-pad not supported by compiler)
+>     endif
+>   endif
+
+Yes. Ideally, compiler support could be checked even before the option is
+offered, but your explicit warning is better than just failing obscurely.
+
+What do you think about prolog-pad in general? If we can convince the
+gcc people to include it, it could become the default mechanism for all
+architectures that do not require special treatment (e.g. like ABIv2
+dual entry on ppc64le).
+
+	Torsten
+
