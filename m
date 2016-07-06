@@ -1,103 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f171.google.com ([209.85.192.171]:36528 "EHLO
-	mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755904AbcGFWZr (ORCPT
+Received: from mail-pf0-f180.google.com ([209.85.192.180]:36528 "EHLO
+	mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755908AbcGFWZr (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2016 18:25:47 -0400
-Received: by mail-pf0-f171.google.com with SMTP id t190so106766pfb.3
-        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 15:25:46 -0700 (PDT)
+Received: by mail-pf0-f180.google.com with SMTP id t190so106787pfb.3
+        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 15:25:47 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 6/9] powerpc/uaccess: Enable hardened usercopy
-Date: Wed,  6 Jul 2016 15:25:25 -0700
-Message-ID: <1467843928-29351-7-git-send-email-keescook@chromium.org>
+Subject: [PATCH 8/9] mm: SLAB hardened usercopy support
+Date: Wed,  6 Jul 2016 15:25:27 -0700
+Message-ID: <1467843928-29351-9-git-send-email-keescook@chromium.org>
 In-Reply-To: <1467843928-29351-1-git-send-email-keescook@chromium.org>
 References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160706222525.c0a6NZifCdKjdNoyO-5FhgZt13FJ2MJIxOGE3Bm4I30@z>
+Message-ID: <20160706222527.M5zbbkxSUGuMhAsU2RHU8IFixTxHrKol0dED4uacWRM@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on powerpc.
+Under CONFIG_HARDENED_USERCOPY, this adds object size checking to the
+SLAB allocator to catch any copies that may span objects.
 
 Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/powerpc/Kconfig               |  1 +
- arch/powerpc/include/asm/uaccess.h | 21 +++++++++++++++++++--
- 2 files changed, 20 insertions(+), 2 deletions(-)
+ init/Kconfig |  1 +
+ mm/slab.c    | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 01f7464d9fea..b7a18b2604be 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -164,6 +164,7 @@ config PPC
- 	select ARCH_HAS_UBSAN_SANITIZE_ALL
- 	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
- 	select HAVE_LIVEPATCH if HAVE_DYNAMIC_FTRACE_WITH_REGS
-+	select HAVE_ARCH_HARDENED_USERCOPY
+diff --git a/init/Kconfig b/init/Kconfig
+index f755a602d4a1..798c2020ee7c 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1757,6 +1757,7 @@ choice
  
- config GENERIC_CSUM
- 	def_bool CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-index b7c20f0b8fbe..c1dc6c14deb8 100644
---- a/arch/powerpc/include/asm/uaccess.h
-+++ b/arch/powerpc/include/asm/uaccess.h
-@@ -310,10 +310,15 @@ static inline unsigned long copy_from_user(void *to,
- {
- 	unsigned long over;
+ config SLAB
+ 	bool "SLAB"
++	select HAVE_HARDENED_USERCOPY_ALLOCATOR
+ 	help
+ 	  The regular slab allocator that is established and known to work
+ 	  well in all environments. It organizes cache hot objects in
+diff --git a/mm/slab.c b/mm/slab.c
+index cc8bbc1e6bc9..5e2d5f349aca 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -4477,6 +4477,36 @@ static int __init slab_proc_init(void)
+ module_init(slab_proc_init);
+ #endif
  
--	if (access_ok(VERIFY_READ, from, n))
-+	if (access_ok(VERIFY_READ, from, n)) {
-+		if (!__builtin_constant_p(n))
-+			check_object_size(to, n, false);
- 		return __copy_tofrom_user((__force void __user *)to, from, n);
-+	}
- 	if ((unsigned long)from < TASK_SIZE) {
- 		over = (unsigned long)from + n - TASK_SIZE;
-+		if (!__builtin_constant_p(n - over))
-+			check_object_size(to, n - over, false);
- 		return __copy_tofrom_user((__force void __user *)to, from,
- 				n - over) + over;
- 	}
-@@ -325,10 +330,15 @@ static inline unsigned long copy_to_user(void __user *to,
- {
- 	unsigned long over;
- 
--	if (access_ok(VERIFY_WRITE, to, n))
-+	if (access_ok(VERIFY_WRITE, to, n)) {
-+		if (!__builtin_constant_p(n))
-+			check_object_size(from, n, true);
- 		return __copy_tofrom_user(to, (__force void __user *)from, n);
-+	}
- 	if ((unsigned long)to < TASK_SIZE) {
- 		over = (unsigned long)to + n - TASK_SIZE;
-+		if (!__builtin_constant_p(n))
-+			check_object_size(from, n - over, true);
- 		return __copy_tofrom_user(to, (__force void __user *)from,
- 				n - over) + over;
- 	}
-@@ -372,6 +382,10 @@ static inline unsigned long __copy_from_user_inatomic(void *to,
- 		if (ret == 0)
- 			return 0;
- 	}
++#ifdef CONFIG_HARDENED_USERCOPY
++/*
++ * Rejects objects that are incorrectly sized.
++ *
++ * Returns NULL if check passes, otherwise const char * to name of cache
++ * to indicate an error.
++ */
++const char *__check_heap_object(const void *ptr, unsigned long n,
++				struct page *page)
++{
++	struct kmem_cache *cachep;
++	unsigned int objnr;
++	unsigned long offset;
 +
-+	if (!__builtin_constant_p(n))
-+		check_object_size(to, n, false);
++	/* Find and validate object. */
++	cachep = page->slab_cache;
++	objnr = obj_to_index(cachep, page, (void *)ptr);
++	BUG_ON(objnr >= cachep->num);
 +
- 	return __copy_tofrom_user((__force void __user *)to, from, n);
- }
- 
-@@ -398,6 +412,9 @@ static inline unsigned long __copy_to_user_inatomic(void __user *to,
- 		if (ret == 0)
- 			return 0;
- 	}
-+	if (!__builtin_constant_p(n))
-+		check_object_size(from, n, true);
++	/* Find offset within object. */
++	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
 +
- 	return __copy_tofrom_user(to, (__force const void __user *)from, n);
- }
- 
++	/* Allow address range falling entirely within object size. */
++	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
++		return NULL;
++
++	return cachep->name;
++}
++#endif /* CONFIG_HARDENED_USERCOPY */
++
+ /**
+  * ksize - get the actual amount of memory allocated for a given object
+  * @objp: Pointer to the object
 -- 
 2.7.4
 
