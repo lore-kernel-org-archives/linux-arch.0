@@ -1,92 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:36047 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755783AbcGFWZo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2016 18:25:44 -0400
-Received: by mail-pa0-f48.google.com with SMTP id uj8so101235pab.3
-        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 15:25:44 -0700 (PDT)
+Received: from mail-pf0-f171.google.com ([209.85.192.171]:36528 "EHLO
+	mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755904AbcGFWZr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2016 18:25:47 -0400
+Received: by mail-pf0-f171.google.com with SMTP id t190so106766pfb.3
+        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 15:25:46 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 0/9] mm: Hardened usercopy
-Date: Wed,  6 Jul 2016 15:25:19 -0700
-Message-ID: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH 6/9] powerpc/uaccess: Enable hardened usercopy
+Date: Wed,  6 Jul 2016 15:25:25 -0700
+Message-ID: <1467843928-29351-7-git-send-email-keescook@chromium.org>
+In-Reply-To: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160706222519.lS0uenDT-cDpv-ph-2lRSto20rKgSM4-Vp6dUtC2MAU@z>
+Message-ID: <20160706222525.c0a6NZifCdKjdNoyO-5FhgZt13FJ2MJIxOGE3Bm4I30@z>
 
-Hi,
+Enables CONFIG_HARDENED_USERCOPY checks on powerpc.
 
-This is a start of the mainline port of PAX_USERCOPY[1]. After I started
-writing tests (now in lkdtm in -next) for Casey's earlier port[2], I
-kept tweaking things further and further until I ended up with a whole
-new patch series. To that end, I took Rik's feedback and made a number
-of other changes and clean-ups as well.
+Based on code from PaX and grsecurity.
 
-Based on my understanding, PAX_USERCOPY was designed to catch a few
-classes of flaws around the use of copy_to_user()/copy_from_user(). These
-changes don't touch get_user() and put_user(), since these operate on
-constant sized lengths, and tend to be much less vulnerable. There
-are effectively three distinct protections in the whole series,
-each of which I've given a separate CONFIG, though this patch set is
-only the first of the three intended protections. (Generally speaking,
-PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY (this) and
-CONFIG_HARDENED_USERCOPY_WHITELIST (future), and PAX_USERCOPY_SLABS covers
-CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC (future).)
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/powerpc/Kconfig               |  1 +
+ arch/powerpc/include/asm/uaccess.h | 21 +++++++++++++++++++--
+ 2 files changed, 20 insertions(+), 2 deletions(-)
 
-This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
-being copied to/from userspace meet certain criteria:
-- if address is a heap object, the size must not exceed the object's
-  allocated size. (This will catch all kinds of heap overflow flaws.)
-- if address range is in the current process stack, it must be within the
-  current stack frame (if such checking is possible) or at least entirely
-  within the current process's stack. (This could catch large lengths that
-  would have extended beyond the current process stack, or overflows if
-  their length extends back into the original stack.)
-- if the address range is part of kernel data, rodata, or bss, allow it.
-- if address range is page-allocated, that it doesn't span multiple
-  allocations.
-- if address is within the kernel text, reject it.
-- everything else is accepted
-
-The patches in the series are:
-- The core copy_to/from_user() checks, without the slab object checks:
-	1- mm: Hardened usercopy
-- Per-arch enablement of the protection:
-	2- x86/uaccess: Enable hardened usercopy
-	3- ARM: uaccess: Enable hardened usercopy
-	4- arm64/uaccess: Enable hardened usercopy
-	5- ia64/uaccess: Enable hardened usercopy
-	6- powerpc/uaccess: Enable hardened usercopy
-	7- sparc/uaccess: Enable hardened usercopy
-- The heap allocator implementation of object size checking:
-	8- mm: SLAB hardened usercopy support
-	9- mm: SLUB hardened usercopy support
-
-Some notes:
-
-- This is expected to apply on top of -next which contains fixes for the
-  position of _etext on both arm and arm64.
-
-- I couldn't detect a measurable performance change with these features
-  enabled. Kernel build times were unchanged, hackbench was unchanged,
-  etc. I think we could flip this to "on by default" at some point.
-
-- The SLOB support extracted from grsecurity seems entirely broken. I
-  have no idea what's going on there, I spent my time testing SLAB and
-  SLUB. Having someone else look at SLOB would be nice, but this series
-  doesn't depend on it.
-
-Additional features that would be nice, but aren't blocking this series:
-
-- Needs more architecture support for stack frame checking (only x86 now).
-
-
-Thanks!
-
--Kees
-
-[1] https://grsecurity.net/download.php "grsecurity - test kernel patch"
-[2] http://www.openwall.com/lists/kernel-hardening/2016/05/19/5
-
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 01f7464d9fea..b7a18b2604be 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -164,6 +164,7 @@ config PPC
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
+ 	select HAVE_LIVEPATCH if HAVE_DYNAMIC_FTRACE_WITH_REGS
++	select HAVE_ARCH_HARDENED_USERCOPY
+ 
+ config GENERIC_CSUM
+ 	def_bool CPU_LITTLE_ENDIAN
+diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+index b7c20f0b8fbe..c1dc6c14deb8 100644
+--- a/arch/powerpc/include/asm/uaccess.h
++++ b/arch/powerpc/include/asm/uaccess.h
+@@ -310,10 +310,15 @@ static inline unsigned long copy_from_user(void *to,
+ {
+ 	unsigned long over;
+ 
+-	if (access_ok(VERIFY_READ, from, n))
++	if (access_ok(VERIFY_READ, from, n)) {
++		if (!__builtin_constant_p(n))
++			check_object_size(to, n, false);
+ 		return __copy_tofrom_user((__force void __user *)to, from, n);
++	}
+ 	if ((unsigned long)from < TASK_SIZE) {
+ 		over = (unsigned long)from + n - TASK_SIZE;
++		if (!__builtin_constant_p(n - over))
++			check_object_size(to, n - over, false);
+ 		return __copy_tofrom_user((__force void __user *)to, from,
+ 				n - over) + over;
+ 	}
+@@ -325,10 +330,15 @@ static inline unsigned long copy_to_user(void __user *to,
+ {
+ 	unsigned long over;
+ 
+-	if (access_ok(VERIFY_WRITE, to, n))
++	if (access_ok(VERIFY_WRITE, to, n)) {
++		if (!__builtin_constant_p(n))
++			check_object_size(from, n, true);
+ 		return __copy_tofrom_user(to, (__force void __user *)from, n);
++	}
+ 	if ((unsigned long)to < TASK_SIZE) {
+ 		over = (unsigned long)to + n - TASK_SIZE;
++		if (!__builtin_constant_p(n))
++			check_object_size(from, n - over, true);
+ 		return __copy_tofrom_user(to, (__force void __user *)from,
+ 				n - over) + over;
+ 	}
+@@ -372,6 +382,10 @@ static inline unsigned long __copy_from_user_inatomic(void *to,
+ 		if (ret == 0)
+ 			return 0;
+ 	}
++
++	if (!__builtin_constant_p(n))
++		check_object_size(to, n, false);
++
+ 	return __copy_tofrom_user((__force void __user *)to, from, n);
+ }
+ 
+@@ -398,6 +412,9 @@ static inline unsigned long __copy_to_user_inatomic(void __user *to,
+ 		if (ret == 0)
+ 			return 0;
+ 	}
++	if (!__builtin_constant_p(n))
++		check_object_size(from, n, true);
++
+ 	return __copy_tofrom_user(to, (__force const void __user *)from, n);
+ }
+ 
+-- 
+2.7.4
 
