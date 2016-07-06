@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 4/9] arm64/uaccess: Enable hardened usercopy
-Date: Wed,  6 Jul 2016 15:25:23 -0700
-Message-ID: <1467843928-29351-5-git-send-email-keescook@chromium.org>
+Subject: [PATCH 7/9] sparc/uaccess: Enable hardened usercopy
+Date: Wed,  6 Jul 2016 15:25:26 -0700
+Message-ID: <1467843928-29351-8-git-send-email-keescook@chromium.org>
 References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1467843928-29351-1-git-send-email-keescook@chromium.org>
@@ -10,127 +10,97 @@ To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-Enables CONFIG_HARDENED_USERCOPY checks on arm64. As done by KASAN in -next,
-renames the low-level functions to __arch_copy_*_user() so a static inline
-can do additional work before the copy.
+Enables CONFIG_HARDENED_USERCOPY checks on sparc.
+
+Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig               |  2 ++
- arch/arm64/include/asm/uaccess.h | 18 ++++++++++++++++--
- arch/arm64/kernel/arm64ksyms.c   |  4 ++--
- arch/arm64/lib/copy_from_user.S  |  4 ++--
- arch/arm64/lib/copy_to_user.S    |  4 ++--
- 5 files changed, 24 insertions(+), 8 deletions(-)
+ arch/sparc/Kconfig                  |  1 +
+ arch/sparc/include/asm/uaccess_32.h | 14 ++++++++++----
+ arch/sparc/include/asm/uaccess_64.h | 11 +++++++++--
+ 3 files changed, 20 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 5a0a691d4220..b771cd97f74b 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -51,10 +51,12 @@ config ARM64
- 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_BITREVERSE
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 546293d9e6c5..59b09600dd32 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -43,6 +43,7 @@ config SPARC
+ 	select OLD_SIGSUSPEND
+ 	select ARCH_HAS_SG_CHAIN
+ 	select CPU_NO_EFFICIENT_FFS
 +	select HAVE_ARCH_HARDENED_USERCOPY
- 	select HAVE_ARCH_HUGE_VMAP
- 	select HAVE_ARCH_JUMP_LABEL
- 	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
- 	select HAVE_ARCH_KGDB
-+	select HAVE_ARCH_LINEAR_KERNEL_MAPPING
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
- 	select HAVE_ARCH_SECCOMP_FILTER
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 9e397a542756..6d0f86300936 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -256,11 +256,25 @@ do {									\
- 		-EFAULT;						\
- })
  
--extern unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n);
--extern unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
- extern unsigned long __must_check __copy_in_user(void __user *to, const void __user *from, unsigned long n);
- extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
+ config SPARC32
+ 	def_bool !64BIT
+diff --git a/arch/sparc/include/asm/uaccess_32.h b/arch/sparc/include/asm/uaccess_32.h
+index 57aca2792d29..341a5a133f48 100644
+--- a/arch/sparc/include/asm/uaccess_32.h
++++ b/arch/sparc/include/asm/uaccess_32.h
+@@ -248,22 +248,28 @@ unsigned long __copy_user(void __user *to, const void __user *from, unsigned lon
  
-+static inline unsigned long __must_check
-+__copy_from_user(void *to, const void __user *from, unsigned long n)
-+{
-+	check_object_size(to, n, false);
-+	return __arch_copy_from_user(to, from, n);
-+}
-+
-+static inline unsigned long __must_check
-+__copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	check_object_size(from, n, true);
-+	return __arch_copy_to_user(to, from, n);
-+}
-+
- static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
+ static inline unsigned long copy_to_user(void __user *to, const void *from, unsigned long n)
  {
- 	if (access_ok(VERIFY_READ, from, n))
-diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
-index 678f30b05a45..2dc44406a7ad 100644
---- a/arch/arm64/kernel/arm64ksyms.c
-+++ b/arch/arm64/kernel/arm64ksyms.c
-@@ -34,8 +34,8 @@ EXPORT_SYMBOL(copy_page);
- EXPORT_SYMBOL(clear_page);
+-	if (n && __access_ok((unsigned long) to, n))
++	if (n && __access_ok((unsigned long) to, n)) {
++		if (!__builtin_constant_p(n))
++			check_object_size(from, n, true);
+ 		return __copy_user(to, (__force void __user *) from, n);
+-	else
++	} else
+ 		return n;
+ }
  
- 	/* user mem (segment) */
--EXPORT_SYMBOL(__copy_from_user);
--EXPORT_SYMBOL(__copy_to_user);
-+EXPORT_SYMBOL(__arch_copy_from_user);
-+EXPORT_SYMBOL(__arch_copy_to_user);
- EXPORT_SYMBOL(__clear_user);
- EXPORT_SYMBOL(__copy_in_user);
+ static inline unsigned long __copy_to_user(void __user *to, const void *from, unsigned long n)
+ {
++	if (!__builtin_constant_p(n))
++		check_object_size(from, n, true);
+ 	return __copy_user(to, (__force void __user *) from, n);
+ }
  
-diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_user.S
-index 17e8306dca29..0b90497d4424 100644
---- a/arch/arm64/lib/copy_from_user.S
-+++ b/arch/arm64/lib/copy_from_user.S
-@@ -66,7 +66,7 @@
- 	.endm
+ static inline unsigned long copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+-	if (n && __access_ok((unsigned long) from, n))
++	if (n && __access_ok((unsigned long) from, n)) {
++		if (!__builtin_constant_p(n))
++			check_object_size(to, n, false);
+ 		return __copy_user((__force void __user *) to, from, n);
+-	else
++	} else
+ 		return n;
+ }
  
- end	.req	x5
--ENTRY(__copy_from_user)
-+ENTRY(__arch_copy_from_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -75,7 +75,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0				// Nothing to copy
- 	ret
--ENDPROC(__copy_from_user)
-+ENDPROC(__arch_copy_from_user)
+diff --git a/arch/sparc/include/asm/uaccess_64.h b/arch/sparc/include/asm/uaccess_64.h
+index e9a51d64974d..8bda94fab8e8 100644
+--- a/arch/sparc/include/asm/uaccess_64.h
++++ b/arch/sparc/include/asm/uaccess_64.h
+@@ -210,8 +210,12 @@ unsigned long copy_from_user_fixup(void *to, const void __user *from,
+ static inline unsigned long __must_check
+ copy_from_user(void *to, const void __user *from, unsigned long size)
+ {
+-	unsigned long ret = ___copy_from_user(to, from, size);
++	unsigned long ret;
  
- 	.section .fixup,"ax"
- 	.align	2
-diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
-index 21faae60f988..7a7efe255034 100644
---- a/arch/arm64/lib/copy_to_user.S
-+++ b/arch/arm64/lib/copy_to_user.S
-@@ -65,7 +65,7 @@
- 	.endm
++	if (!__builtin_constant_p(size))
++		check_object_size(to, size, false);
++
++	ret = ___copy_from_user(to, from, size);
+ 	if (unlikely(ret))
+ 		ret = copy_from_user_fixup(to, from, size);
  
- end	.req	x5
--ENTRY(__copy_to_user)
-+ENTRY(__arch_copy_to_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -74,7 +74,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0
- 	ret
--ENDPROC(__copy_to_user)
-+ENDPROC(__arch_copy_to_user)
+@@ -227,8 +231,11 @@ unsigned long copy_to_user_fixup(void __user *to, const void *from,
+ static inline unsigned long __must_check
+ copy_to_user(void __user *to, const void *from, unsigned long size)
+ {
+-	unsigned long ret = ___copy_to_user(to, from, size);
++	unsigned long ret;
  
- 	.section .fixup,"ax"
- 	.align	2
++	if (!__builtin_constant_p(size))
++		check_object_size(from, size, true);
++	ret = ___copy_to_user(to, from, size);
+ 	if (unlikely(ret))
+ 		ret = copy_to_user_fixup(to, from, size);
+ 	return ret;
 -- 
 2.7.4
 
