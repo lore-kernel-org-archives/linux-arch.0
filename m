@@ -1,84 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f44.google.com ([209.85.213.44]:32989 "EHLO
-	mail-vk0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752644AbcGFNVH convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2016 09:21:07 -0400
-Received: by mail-vk0-f44.google.com with SMTP id b192so4564267vke.0
-        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 06:21:06 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20160630193723.GE3932@pd.tnic>
-References: <cover.1466974736.git.luto@kernel.org> <fbaa1409c74ddc7b29b52c87303d2af1db91e2ba.1466974736.git.luto@kernel.org>
- <20160630193723.GE3932@pd.tnic>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 6 Jul 2016 06:20:46 -0700
-Message-ID: <CALCETrVGhXiZqGMNkdeebjLTR6MdnvVqzcDikzGHp9JehuzHKQ@mail.gmail.com>
-Subject: Re: [PATCH v4 08/29] dma-api: Teach the "DMA-from-stack" check about
- vmapped stacks
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Received: from mail-pf0-f180.google.com ([209.85.192.180]:35242 "EHLO
+	mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755788AbcGFWZp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2016 18:25:45 -0400
+Received: by mail-pf0-f180.google.com with SMTP id c2so121147pfa.2
+        for <linux-arch@vger.kernel.org>; Wed, 06 Jul 2016 15:25:44 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH 3/9] ARM: uaccess: Enable hardened usercopy
+Date: Wed,  6 Jul 2016 15:25:22 -0700
+Message-ID: <1467843928-29351-4-git-send-email-keescook@chromium.org>
+In-Reply-To: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20160706132046.cryuqp8vuRs07npuNWLJcgVtGDR7g85vWVojSXFLNlY@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20160706222522.YhDXhYrRPVDQxuk8ZdtIdrtt746d2UbINeonfV-rHc4@z>
 
-On Thu, Jun 30, 2016 at 12:37 PM, Borislav Petkov <bp@alien8.de> wrote:
-> On Sun, Jun 26, 2016 at 02:55:30PM -0700, Andy Lutomirski wrote:
->> If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
->> at the stack, then either the sg page will be in highmem or sg_virt
->> will return the direct-map alias.  In neither case will the existing
->> check_for_stack() implementation realize that it's a stack page.
->>
->> Fix it by explicitly checking for stack pages.
->>
->> This has no effect by itself.  It's broken out for ease of review.
->>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> ---
->>  lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
->>  1 file changed, 33 insertions(+), 6 deletions(-)
->>
->> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
->> index 51a76af25c66..5b2e63cba90e 100644
->> --- a/lib/dma-debug.c
->> +++ b/lib/dma-debug.c
->> @@ -22,6 +22,7 @@
->>  #include <linux/stacktrace.h>
->>  #include <linux/dma-debug.h>
->>  #include <linux/spinlock.h>
->> +#include <linux/vmalloc.h>
->>  #include <linux/debugfs.h>
->>  #include <linux/uaccess.h>
->>  #include <linux/export.h>
->> @@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
->>       put_hash_bucket(bucket, &flags);
->>  }
->>
->> -static void check_for_stack(struct device *dev, void *addr)
->> +static void check_for_stack(struct device *dev,
->> +                         struct page *page, size_t offset)
->>  {
->> -     if (object_is_on_stack(addr))
->> -             err_printk(dev, NULL, "DMA-API: device driver maps memory from "
->> -                             "stack [addr=%p]\n", addr);
->> +     void *addr;
->> +     struct vm_struct *stack_vm_area = task_stack_vm_area(current);
->
-> lib/dma-debug.c: In function ‘check_for_stack’:
-> lib/dma-debug.c:1170:36: error: implicit declaration of function ‘task_stack_vm_area’ [-Werror=implicit-function-declaration]
->   struct vm_struct *stack_vm_area = task_stack_vm_area(current);
->                                     ^
-> lib/dma-debug.c:1170:36: warning: initialization makes pointer from integer without a cast [-Wint-conversion]
-> cc1: some warnings being treated as errors
-> make[1]: *** [lib/dma-debug.o] Error 1
-> make: *** [lib] Error 2
-> make: *** Waiting for unfinished jobs....
->
-> Probably reorder pieces from patch 9 to earlier ones...
+Enables CONFIG_HARDENED_USERCOPY checks on arm.
 
-I'll address this by reordering it later in the series.  The temporary
-loss of functionality will be unobservable.
+Based on code from PaX and grsecurity.
 
---Andy
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/Kconfig               |  1 +
+ arch/arm/include/asm/uaccess.h | 11 +++++++++--
+ 2 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 90542db1220d..f56b29b3f57e 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -35,6 +35,7 @@ config ARM
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
++	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_MMAP_RND_BITS if MMU
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index 35c9db857ebe..7fb59199c6bb 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -496,7 +496,10 @@ arm_copy_from_user(void *to, const void __user *from, unsigned long n);
+ static inline unsigned long __must_check
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
++	check_object_size(to, n, false);
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_from_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+@@ -511,11 +514,15 @@ static inline unsigned long __must_check
+ __copy_to_user(void __user *to, const void *from, unsigned long n)
+ {
+ #ifndef CONFIG_UACCESS_WITH_MEMCPY
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
++	check_object_size(from, n, true);
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_to_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+ #else
++	check_object_size(from, n, true);
+ 	return arm_copy_to_user(to, from, n);
+ #endif
+ }
+-- 
+2.7.4
+
