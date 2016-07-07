@@ -1,116 +1,162 @@
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
-Subject: [PATCH 12/93] clocksource/drivers/clksrc-probe: Introduce init functions with return code
-Date: Thu,  7 Jul 2016 10:00:45 +0200
-Message-ID: <1467878526-1238-12-git-send-email-daniel.lezcano@linaro.org>
-References: <577E0BED.3020608@linaro.org>
- <1467878526-1238-1-git-send-email-daniel.lezcano@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1467878526-1238-1-git-send-email-daniel.lezcano@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, daniel.lezcano@linaro.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 4/9] arm64/uaccess: Enable hardened usercopy
+Date: Thu, 7 Jul 2016 11:07:18 +0100
+Message-ID: <20160707100717.GB8306@leverpostej>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+ <1467843928-29351-5-git-send-email-keescook@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1467843928-29351-5-git-send-email-keescook@chromium.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Jan Kara <jack@suse.cz>, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, Vitaly Wool <vitalywool@gmail.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.co>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, the clksrc-probe is not able to handle any error from the init
-functions. There are different issues with the current code:
- - the code is duplicated in the init functions by writing error
- - every driver tends to panic in its own init function
- - counting the number of clocksources is not reliable
+Hi,
 
-This patch adds another table to store the functions returning an error.
-The table is temporary while we convert all the drivers to return an error
-and will disappear.
+On Wed, Jul 06, 2016 at 03:25:23PM -0700, Kees Cook wrote:
+> Enables CONFIG_HARDENED_USERCOPY checks on arm64. As done by KASAN in -next,
+> renames the low-level functions to __arch_copy_*_user() so a static inline
+> can do additional work before the copy.
 
-Signed-off-by: Daniel Lezcano <daniel.lezcano@linaro.org>
----
- drivers/clocksource/clksrc-probe.c | 22 ++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h  |  2 ++
- include/linux/clocksource.h        |  3 +++
- 3 files changed, 27 insertions(+)
+The checks themselves look fine, but as with the KASAN checks, it seems
+a shame that this logic is duplicated per arch, integrated in subtly
+different ways.
 
-diff --git a/drivers/clocksource/clksrc-probe.c b/drivers/clocksource/clksrc-probe.c
-index 7cb6c92..5fa6a55 100644
---- a/drivers/clocksource/clksrc-probe.c
-+++ b/drivers/clocksource/clksrc-probe.c
-@@ -20,16 +20,22 @@
- #include <linux/clocksource.h>
- 
- extern struct of_device_id __clksrc_of_table[];
-+extern struct of_device_id __clksrc_ret_of_table[];
- 
- static const struct of_device_id __clksrc_of_table_sentinel
- 	__used __section(__clksrc_of_table_end);
- 
-+static const struct of_device_id __clksrc_ret_of_table_sentinel
-+	__used __section(__clksrc_ret_of_table_end);
-+
- void __init clocksource_probe(void)
- {
- 	struct device_node *np;
- 	const struct of_device_id *match;
- 	of_init_fn_1 init_func;
-+	of_init_fn_1_ret init_func_ret;
- 	unsigned clocksources = 0;
-+	int ret;
- 
- 	for_each_matching_node_and_match(np, __clksrc_of_table, &match) {
- 		if (!of_device_is_available(np))
-@@ -40,6 +46,22 @@ void __init clocksource_probe(void)
- 		clocksources++;
- 	}
- 
-+	for_each_matching_node_and_match(np, __clksrc_ret_of_table, &match) {
-+		if (!of_device_is_available(np))
-+			continue;
-+
-+		init_func_ret = match->data;
-+
-+		ret = init_func_ret(np);
-+		if (ret) {
-+			pr_err("Failed to initialize '%s': %d",
-+			       of_node_full_name(np), ret);
-+			continue;
-+		}
-+
-+		clocksources++;
-+	}
-+
- 	clocksources += acpi_probe_device_table(clksrc);
- 
- 	if (!clocksources)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 6a67ab9..8c6c626 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -173,6 +173,7 @@
- 	*(__##name##_of_table_end)
- 
- #define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define CLKSRC_RET_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc_ret)
- #define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
- #define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
- #define IOMMU_OF_TABLES()	OF_TABLE(CONFIG_OF_IOMMU, iommu)
-@@ -531,6 +532,7 @@
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
- 	CLKSRC_OF_TABLES()						\
-+	CLKSRC_RET_OF_TABLES()						\
- 	IOMMU_OF_TABLES()						\
- 	CPU_METHOD_OF_TABLES()						\
- 	CPUIDLE_METHOD_OF_TABLES()					\
-diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-index 44a1aff..15c3839 100644
---- a/include/linux/clocksource.h
-+++ b/include/linux/clocksource.h
-@@ -246,6 +246,9 @@ extern int clocksource_i8253_init(void);
- #define CLOCKSOURCE_OF_DECLARE(name, compat, fn) \
- 	OF_DECLARE_1(clksrc, name, compat, fn)
- 
-+#define CLOCKSOURCE_OF_DECLARE_RET(name, compat, fn) \
-+	OF_DECLARE_1_RET(clksrc_ret, name, compat, fn)
-+
- #ifdef CONFIG_CLKSRC_PROBE
- extern void clocksource_probe(void);
- #else
--- 
-1.9.1
+Can we not __arch prefix all the arch uaccess helpers, and place
+kasan_check_*() and check_object_size() calls in generic wrappers?
+
+If we're going to update all the arch uaccess helpers anyway, doing that
+would make it easier to fix things up, or to add new checks in future.
+
+Thanks,
+Mark.
+
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  arch/arm64/Kconfig               |  2 ++
+>  arch/arm64/include/asm/uaccess.h | 18 ++++++++++++++++--
+>  arch/arm64/kernel/arm64ksyms.c   |  4 ++--
+>  arch/arm64/lib/copy_from_user.S  |  4 ++--
+>  arch/arm64/lib/copy_to_user.S    |  4 ++--
+>  5 files changed, 24 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 5a0a691d4220..b771cd97f74b 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -51,10 +51,12 @@ config ARM64
+>  	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
+>  	select HAVE_ARCH_AUDITSYSCALL
+>  	select HAVE_ARCH_BITREVERSE
+> +	select HAVE_ARCH_HARDENED_USERCOPY
+>  	select HAVE_ARCH_HUGE_VMAP
+>  	select HAVE_ARCH_JUMP_LABEL
+>  	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
+>  	select HAVE_ARCH_KGDB
+> +	select HAVE_ARCH_LINEAR_KERNEL_MAPPING
+>  	select HAVE_ARCH_MMAP_RND_BITS
+>  	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
+>  	select HAVE_ARCH_SECCOMP_FILTER
+> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> index 9e397a542756..6d0f86300936 100644
+> --- a/arch/arm64/include/asm/uaccess.h
+> +++ b/arch/arm64/include/asm/uaccess.h
+> @@ -256,11 +256,25 @@ do {									\
+>  		-EFAULT;						\
+>  })
+>  
+> -extern unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n);
+> -extern unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n);
+> +extern unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
+> +extern unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
+>  extern unsigned long __must_check __copy_in_user(void __user *to, const void __user *from, unsigned long n);
+>  extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
+>  
+> +static inline unsigned long __must_check
+> +__copy_from_user(void *to, const void __user *from, unsigned long n)
+> +{
+> +	check_object_size(to, n, false);
+> +	return __arch_copy_from_user(to, from, n);
+> +}
+> +
+> +static inline unsigned long __must_check
+> +__copy_to_user(void __user *to, const void *from, unsigned long n)
+> +{
+> +	check_object_size(from, n, true);
+> +	return __arch_copy_to_user(to, from, n);
+> +}
+> +
+>  static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
+>  {
+>  	if (access_ok(VERIFY_READ, from, n))
+> diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
+> index 678f30b05a45..2dc44406a7ad 100644
+> --- a/arch/arm64/kernel/arm64ksyms.c
+> +++ b/arch/arm64/kernel/arm64ksyms.c
+> @@ -34,8 +34,8 @@ EXPORT_SYMBOL(copy_page);
+>  EXPORT_SYMBOL(clear_page);
+>  
+>  	/* user mem (segment) */
+> -EXPORT_SYMBOL(__copy_from_user);
+> -EXPORT_SYMBOL(__copy_to_user);
+> +EXPORT_SYMBOL(__arch_copy_from_user);
+> +EXPORT_SYMBOL(__arch_copy_to_user);
+>  EXPORT_SYMBOL(__clear_user);
+>  EXPORT_SYMBOL(__copy_in_user);
+>  
+> diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_user.S
+> index 17e8306dca29..0b90497d4424 100644
+> --- a/arch/arm64/lib/copy_from_user.S
+> +++ b/arch/arm64/lib/copy_from_user.S
+> @@ -66,7 +66,7 @@
+>  	.endm
+>  
+>  end	.req	x5
+> -ENTRY(__copy_from_user)
+> +ENTRY(__arch_copy_from_user)
+>  ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
+>  	    CONFIG_ARM64_PAN)
+>  	add	end, x0, x2
+> @@ -75,7 +75,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
+>  	    CONFIG_ARM64_PAN)
+>  	mov	x0, #0				// Nothing to copy
+>  	ret
+> -ENDPROC(__copy_from_user)
+> +ENDPROC(__arch_copy_from_user)
+>  
+>  	.section .fixup,"ax"
+>  	.align	2
+> diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
+> index 21faae60f988..7a7efe255034 100644
+> --- a/arch/arm64/lib/copy_to_user.S
+> +++ b/arch/arm64/lib/copy_to_user.S
+> @@ -65,7 +65,7 @@
+>  	.endm
+>  
+>  end	.req	x5
+> -ENTRY(__copy_to_user)
+> +ENTRY(__arch_copy_to_user)
+>  ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
+>  	    CONFIG_ARM64_PAN)
+>  	add	end, x0, x2
+> @@ -74,7 +74,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
+>  	    CONFIG_ARM64_PAN)
+>  	mov	x0, #0
+>  	ret
+> -ENDPROC(__copy_to_user)
+> +ENDPROC(__arch_copy_to_user)
+>  
+>  	.section .fixup,"ax"
+>  	.align	2
+> -- 
+> 2.7.4
+> 
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+> 
