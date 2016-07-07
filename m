@@ -1,167 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35267 "EHLO foss.arm.com"
+Received: from mga02.intel.com ([134.134.136.20]:47740 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751426AbcGGKHc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Jul 2016 06:07:32 -0400
-Date: Thu, 7 Jul 2016 11:07:18 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 4/9] arm64/uaccess: Enable hardened usercopy
-Message-ID: <20160707100717.GB8306@leverpostej>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
- <1467843928-29351-5-git-send-email-keescook@chromium.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1467843928-29351-5-git-send-email-keescook@chromium.org>
+	id S1752475AbcGGMrV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Jul 2016 08:47:21 -0400
+Subject: [PATCH 0/9] [REVIEW-REQUEST] [v4] System Calls for Memory Protection Keys
+From: Dave Hansen <dave@sr71.net>
+Date: Thu, 07 Jul 2016 05:47:19 -0700
+Message-ID: <20160707124719.3F04C882@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Jan Kara <jack@suse.cz>, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, Vitaly Wool <vitalywool@gmail.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Pekka Enberg <penberg@kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160707100718.Rc5F9-LevDIDM7efUM9TCiT3DHDGg_7lhPcxdjPju3w@z>
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, Dave Hansen <dave@sr71.net>, arnd@arndb.de, mgorman@techsingularity.net, hughd@google.com, viro@zeniv.linux.org.uk
+Message-ID: <20160707124719.ah9OGVaNWGBZdiTSAffRKoRnBnE2r9tTKuDtnV4dt-c@z>
 
-Hi,
+I'm resending these because Ingo has said that he'd "love to have
+some high level MM review & ack for these syscall ABI extensions."
+The only changes to the code in months have been in the selftests.
+So, if anyone has been putting off taking a look at these, I'd
+appreciate a look now.
 
-On Wed, Jul 06, 2016 at 03:25:23PM -0700, Kees Cook wrote:
-> Enables CONFIG_HARDENED_USERCOPY checks on arm64. As done by KASAN in -next,
-> renames the low-level functions to __arch_copy_*_user() so a static inline
-> can do additional work before the copy.
+I also feel compelled to mention this, since I haven't before and
+it gives me confidence that these interfaces are good enough:
 
-The checks themselves look fine, but as with the KASAN checks, it seems
-a shame that this logic is duplicated per arch, integrated in subtly
-different ways.
+Among other things, this feature was designed to help fix a class
+of bugs in long-running applications where data corruption is
+detected long after it occurs.  Today, applications either live
+with the corruption, or eat a huge performance penalty from
+calling mprotect() frequently.  The developers of these
+applications are already running *this* *code* and are very eager
+to see this feature merged and picked up in future distributions
+where their customers can use it.
 
-Can we not __arch prefix all the arch uaccess helpers, and place
-kasan_check_*() and check_object_size() calls in generic wrappers?
+Other than this message, a good place to start with a review
+is in the pkey(7) manpage, which I've published in HTML form here:
 
-If we're going to update all the arch uaccess helpers anyway, doing that
-would make it easier to fix things up, or to add new checks in future.
+	https://www.sr71.net/~dave/intel/manpages/
 
-Thanks,
-Mark.
+--
 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  arch/arm64/Kconfig               |  2 ++
->  arch/arm64/include/asm/uaccess.h | 18 ++++++++++++++++--
->  arch/arm64/kernel/arm64ksyms.c   |  4 ++--
->  arch/arm64/lib/copy_from_user.S  |  4 ++--
->  arch/arm64/lib/copy_to_user.S    |  4 ++--
->  5 files changed, 24 insertions(+), 8 deletions(-)
-> 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 5a0a691d4220..b771cd97f74b 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -51,10 +51,12 @@ config ARM64
->  	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
->  	select HAVE_ARCH_AUDITSYSCALL
->  	select HAVE_ARCH_BITREVERSE
-> +	select HAVE_ARCH_HARDENED_USERCOPY
->  	select HAVE_ARCH_HUGE_VMAP
->  	select HAVE_ARCH_JUMP_LABEL
->  	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
->  	select HAVE_ARCH_KGDB
-> +	select HAVE_ARCH_LINEAR_KERNEL_MAPPING
->  	select HAVE_ARCH_MMAP_RND_BITS
->  	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
->  	select HAVE_ARCH_SECCOMP_FILTER
-> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-> index 9e397a542756..6d0f86300936 100644
-> --- a/arch/arm64/include/asm/uaccess.h
-> +++ b/arch/arm64/include/asm/uaccess.h
-> @@ -256,11 +256,25 @@ do {									\
->  		-EFAULT;						\
->  })
->  
-> -extern unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n);
-> -extern unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n);
-> +extern unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
-> +extern unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
->  extern unsigned long __must_check __copy_in_user(void __user *to, const void __user *from, unsigned long n);
->  extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
->  
-> +static inline unsigned long __must_check
-> +__copy_from_user(void *to, const void __user *from, unsigned long n)
-> +{
-> +	check_object_size(to, n, false);
-> +	return __arch_copy_from_user(to, from, n);
-> +}
-> +
-> +static inline unsigned long __must_check
-> +__copy_to_user(void __user *to, const void *from, unsigned long n)
-> +{
-> +	check_object_size(from, n, true);
-> +	return __arch_copy_to_user(to, from, n);
-> +}
-> +
->  static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
->  {
->  	if (access_ok(VERIFY_READ, from, n))
-> diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
-> index 678f30b05a45..2dc44406a7ad 100644
-> --- a/arch/arm64/kernel/arm64ksyms.c
-> +++ b/arch/arm64/kernel/arm64ksyms.c
-> @@ -34,8 +34,8 @@ EXPORT_SYMBOL(copy_page);
->  EXPORT_SYMBOL(clear_page);
->  
->  	/* user mem (segment) */
-> -EXPORT_SYMBOL(__copy_from_user);
-> -EXPORT_SYMBOL(__copy_to_user);
-> +EXPORT_SYMBOL(__arch_copy_from_user);
-> +EXPORT_SYMBOL(__arch_copy_to_user);
->  EXPORT_SYMBOL(__clear_user);
->  EXPORT_SYMBOL(__copy_in_user);
->  
-> diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_user.S
-> index 17e8306dca29..0b90497d4424 100644
-> --- a/arch/arm64/lib/copy_from_user.S
-> +++ b/arch/arm64/lib/copy_from_user.S
-> @@ -66,7 +66,7 @@
->  	.endm
->  
->  end	.req	x5
-> -ENTRY(__copy_from_user)
-> +ENTRY(__arch_copy_from_user)
->  ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
->  	    CONFIG_ARM64_PAN)
->  	add	end, x0, x2
-> @@ -75,7 +75,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
->  	    CONFIG_ARM64_PAN)
->  	mov	x0, #0				// Nothing to copy
->  	ret
-> -ENDPROC(__copy_from_user)
-> +ENDPROC(__arch_copy_from_user)
->  
->  	.section .fixup,"ax"
->  	.align	2
-> diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
-> index 21faae60f988..7a7efe255034 100644
-> --- a/arch/arm64/lib/copy_to_user.S
-> +++ b/arch/arm64/lib/copy_to_user.S
-> @@ -65,7 +65,7 @@
->  	.endm
->  
->  end	.req	x5
-> -ENTRY(__copy_to_user)
-> +ENTRY(__arch_copy_to_user)
->  ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
->  	    CONFIG_ARM64_PAN)
->  	add	end, x0, x2
-> @@ -74,7 +74,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
->  	    CONFIG_ARM64_PAN)
->  	mov	x0, #0
->  	ret
-> -ENDPROC(__copy_to_user)
-> +ENDPROC(__arch_copy_to_user)
->  
->  	.section .fixup,"ax"
->  	.align	2
-> -- 
-> 2.7.4
-> 
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-> 
+Memory Protection Keys for User pages (pkeys) is a CPU feature
+which will first appear on Skylake Servers, but will also be
+supported on future non-server parts.  It provides a mechanism
+for enforcing page-based protections, but without requiring
+modification of the page tables when an application changes
+wishes to change permissions.
+
+Among other things, this feature was designed to help fix a class
+of bugs in long-running applications where data corruption is
+detected long after it occurs.  Applications today either live
+with the corruption, or eat a huge performance penalty from
+calling mprotect() frequently.  The developers of these
+applications are already running this code and are very eager to
+see this feature merged and picked up in future distributions
+where their customers can use it.
+
+Patches to implement execute-only mapping support using pkeys
+were merged in to 4.6.  But, to do anything else useful with
+pkeys, an application needs to be able to set the pkey field in
+the PTE (obviously has to be done in-kernel) and make changes to
+the "rights" register (using unprivileged instructions).
+
+An application also needs to have an an allocator for the keys
+themselves.  If two different parts of an application both want
+to protect their data with pkeys, they first need to know which
+key to use for their individual purposes.
+
+This set introduces 5 system calls, in 3 logical groups:
+
+1. PTE pkey setting (sys_pkey_mprotect(), patches #1-3)
+2. Key allocation (sys_pkey_alloc() / sys_pkey_free(), patch #4)
+3. Rights register manipulation (sys_pkey_set/get(), patch #5)
+
+I have manpages written for some of these syscalls, and have
+had multiple rounds of reviews on the manpages list.
+
+This set is also available here:
+
+	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v040
+
+I've written a set of unit tests for these interfaces, which is
+available as the last patch in the series and integrated in to
+kselftests.
+
+=== diffstat ===
+
+Dave Hansen (9):
+      x86, pkeys: add fault handling for PF_PK page fault bit
+      mm: implement new pkey_mprotect() system call
+      x86, pkeys: make mprotect_key() mask off additional vm_flags
+      x86: wire up mprotect_key() system call
+      x86, pkeys: allocation/free syscalls
+      x86, pkeys: add pkey set/get syscalls
+      generic syscalls: wire up memory protection keys syscalls
+      pkeys: add details of system call use to Documentation/
+      x86, pkeys: add self-tests
+
+ Documentation/x86/protection-keys.txt         |   63 +
+ arch/alpha/include/uapi/asm/mman.h            |    5 +
+ arch/mips/include/uapi/asm/mman.h             |    5 +
+ arch/parisc/include/uapi/asm/mman.h           |    5 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |    5 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |    5 +
+ arch/x86/include/asm/mmu.h                    |    8 +
+ arch/x86/include/asm/mmu_context.h            |   25 +-
+ arch/x86/include/asm/pgtable.h                |   13 +-
+ arch/x86/include/asm/pgtable_64.h             |   26 +-
+ arch/x86/include/asm/pgtable_types.h          |    6 -
+ arch/x86/include/asm/pkeys.h                  |   80 +-
+ arch/x86/kernel/fpu/xstate.c                  |   73 +-
+ arch/x86/mm/fault.c                           |    9 +
+ arch/x86/mm/pkeys.c                           |   38 +-
+ arch/xtensa/include/uapi/asm/mman.h           |    5 +
+ include/linux/pkeys.h                         |   39 +-
+ include/linux/syscalls.h                      |    8 +
+ include/uapi/asm-generic/mman-common.h        |    5 +
+ include/uapi/asm-generic/unistd.h             |   12 +-
+ mm/mprotect.c                                 |  134 +-
+ tools/testing/selftests/x86/Makefile          |    3 +-
+ tools/testing/selftests/x86/pkey-helpers.h    |  191 +++
+ tools/testing/selftests/x86/protection_keys.c | 1316 +++++++++++++++++
+ 24 files changed, 2012 insertions(+), 67 deletions(-)
+
+=== changelog ===
+
+Changes from v3:
+ * added generic syscalls declarations to include/linux/syscalls.h
+   to fix arm64 compile issue.
+
+Changes from v2:
+ * selftest updates:
+  * formatting changes like what Ingo asked for with MPX
+  * actually call WRPKRU in __wrpkru()
+  * once __wrpkru() was fixed, revealed a bug in the ptrace
+    test where we were testing against the wrong pointer during
+    the "baseline" test
+ * Man-pages that match this set are here:
+ 	 http://marc.info/?l=linux-man&m=146540723525616&w=2
+
+Changes from v1:
+ * updates to alloc/free patch description calling out that
+   "in-use" pkeys may still be pkey_free()'d successfully.
+ * Fixed a bug in the selftest where the 'flags' argument was
+   not passed to pkey_get().
+ * Added all syscalls to generic syscalls header
+ * Added extra checking to selftests so it doesn't fall over
+   when 1G pages are made the hugetlbfs default.
+
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: x86@kernel.org
+Cc: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: mgorman@techsingularity.net
+Cc: hughd@google.com
+Cc: viro@zeniv.linux.org.uk
