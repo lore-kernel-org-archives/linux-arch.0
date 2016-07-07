@@ -1,69 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-smtp02.blacknight.com ([81.17.249.8]:58186 "EHLO
-	outbound-smtp02.blacknight.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751655AbcGGOwp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jul 2016 10:52:45 -0400
-Received: from mail.blacknight.com (pemlinmail03.blacknight.ie [81.17.254.16])
-	by outbound-smtp02.blacknight.com (Postfix) with ESMTPS id 6591799743
-	for <linux-arch@vger.kernel.org>; Thu,  7 Jul 2016 14:45:10 +0000 (UTC)
-Date: Thu, 7 Jul 2016 15:45:08 +0100
-From: Mel Gorman <mgorman@techsingularity.net>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Message-ID: <20160707144508.GZ11498@techsingularity.net>
+Received: from mga14.intel.com ([192.55.52.115]:17451 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753108AbcGGPi1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Jul 2016 11:38:27 -0400
+Subject: Re: [PATCH 5/9] x86, pkeys: allocation/free syscalls
 References: <20160707124719.3F04C882@viggo.jf.intel.com>
- <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707124727.62F2BEE0@viggo.jf.intel.com>
+ <20160707144017.GW11498@techsingularity.net>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <577E7762.1010003@intel.com>
+Date: Thu, 7 Jul 2016 08:38:10 -0700
 MIME-Version: 1.0
+In-Reply-To: <20160707144017.GW11498@techsingularity.net>
 Content-Type: text/plain; charset=iso-8859-15
-Content-Disposition: inline
-In-Reply-To: <20160707124728.C1116BB1@viggo.jf.intel.com>
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
+To: Mel Gorman <mgorman@techsingularity.net>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk
-Message-ID: <20160707144508.uJ5DrKY5jdiBd5_7FFt2YpwCMkuxoW_Nv9JjuTHU-iQ@z>
+Message-ID: <20160707153810.uGKMZS2emIKX4IWKR-yHyqxm5-pcZuM-HbS5tPFQeeU@z>
 
-On Thu, Jul 07, 2016 at 05:47:28AM -0700, Dave Hansen wrote:
-> 
-> From: Dave Hansen <dave.hansen@linux.intel.com>
-> 
-> This establishes two more system calls for protection key management:
-> 
-> 	unsigned long pkey_get(int pkey);
-> 	int pkey_set(int pkey, unsigned long access_rights);
-> 
-> The return value from pkey_get() and the 'access_rights' passed
-> to pkey_set() are the same format: a bitmask containing
-> PKEY_DENY_WRITE and/or PKEY_DENY_ACCESS, or nothing set at all.
-> 
-> These can replace userspace's direct use of the new rdpkru/wrpkru
-> instructions.
-> 
-> With current hardware, the kernel can not enforce that it has
-> control over a given key.  But, this at least allows the kernel
-> to indicate to userspace that userspace does not control a given
-> protection key.  This makes it more likely that situations like
-> using a pkey after sys_pkey_free() can be detected.
-> 
-> The kernel does _not_ enforce that this interface must be used for
-> changes to PKRU, whether or not a key has been "allocated".
-> 
-> This syscall interface could also theoretically be replaced with a
-> pair of vsyscalls.  The vsyscalls would just call WRPKRU/RDPKRU
-> directly in situations where they are drop-in equivalents for
-> what the kernel would be doing.
-> 
+On 07/07/2016 07:40 AM, Mel Gorman wrote:
+> Ok, so the last patch wired up the system call before the kernel was
+> tracking which numbers were in use. It doesn't really matter as such but
+> the patches should be swapped around and only expose the systemcall when
+> it's actually safe.
 
-This one feels like something that can or should be implemented in
-glibc.
+I can do that.
 
-There is no real enforcement of the values yet looking them up or
-setting them takes mmap_sem for write. Applications that frequently get
-called will get hammed into the ground with serialisation on mmap_sem
-not to mention the cost of the syscall entry/exit.
+>> These system calls are also very important given the kernel's use
+>> of pkeys to implement execute-only support.  These help ensure
+>> that userspace can never assume that it has control of a key
+>> unless it first asks the kernel.
+>>
+>> The 'init_access_rights' argument to pkey_alloc() specifies the
+>> rights that will be established for the returned pkey.  For
+>> instance:
+>>
+>> 	pkey = pkey_alloc(flags, PKEY_DENY_WRITE);
+>>
+>> will allocate 'pkey', but also sets the bits in PKRU[1] such that
+>> writing to 'pkey' is already denied.  This keeps userspace from
+>> needing to have knowledge about manipulating PKRU with the
+>> RDPKRU/WRPKRU instructions.  Userspace is still free to use these
+>> instructions as it wishes, but this facility ensures it is no
+>> longer required.
+>>
+>> The kernel does _not_ enforce that this interface must be used for
+>> changes to PKRU, even for keys it does not control.
+>>
+>> The kernel does not prevent pkey_free() from successfully freeing
+>> in-use pkeys (those still assigned to a memory range by
+>> pkey_mprotect()).  It would be expensive to implement the checks
+>> for this, so we instead say, "Just don't do it" since sane
+>> software will never do it anyway.
+> 
+> Unfortunately, it could manifest as either corruption due to an area
+> expected to be protected being accessible or an unexpected SEGV.
+> 
+> I accept the expensive arguement but it opens a new class of problems
+> that userspace debuggers will need to evaluate.
 
-RIght now, I'm seeing a lot of cost and not much benefit with this
-specific patch.
+Yeah.  I guess it would be good to have a debugging mechanism here at least.
 
--- 
-Mel Gorman
-SUSE Labs
+>> +static inline
+>> +bool mm_pkey_is_allocated(struct mm_struct *mm, unsigned long pkey)
+>> +{
+>> +	if (!validate_pkey(pkey))
+>> +		return true;
+>> +
+>> +	return mm_pkey_allocation_map(mm) & (1 << pkey);
+>> +}
+>> +
+> 
+> We flip-flop between whether pkey is signed or unsigned.
+
+Yeah, I can add some consistency here, for sure.
+
+>> +SYSCALL_DEFINE2(pkey_alloc, unsigned long, flags, unsigned long, init_val)
+>> +{
+>> +	int pkey;
+>> +	int ret;
+>> +
+>> +	/* No flags supported yet. */
+>> +	if (flags)
+>> +		return -EINVAL;
+>> +	/* check for unsupported init values */
+>> +	if (init_val & ~PKEY_ACCESS_MASK)
+>> +		return -EINVAL;
+>> +
+>> +	down_write(&current->mm->mmap_sem);
+>> +	pkey = mm_pkey_alloc(current->mm);
+>> +
+>> +	ret = -ENOSPC;
+>> +	if (pkey == -1)
+>> +		goto out;
+>> +
+>> +	ret = arch_set_user_pkey_access(current, pkey, init_val);
+>> +	if (ret) {
+>> +		mm_pkey_free(current->mm, pkey);
+>> +		goto out;
+>> +	}
+>> +	ret = pkey;
+>> +out:
+>> +	up_write(&current->mm->mmap_sem);
+>> +	return ret;
+>> +}
+> 
+> It's not wrong as such but mmap_sem taken for write seems *extremely*
+> heavy to protect the allocation mask. If userspace is racing a key
+> allocation with mprotect, it's already game over in terms of random
+> behaviour.
+> 
+> I've no idea what the frequency of pkey alloc/free is expected to be. If
+> it's really low then maybe it doesn't matter but if it's high this is
+> going to be a bottleneck later.
+
+I think pkey_alloc() is fundamentally less frequent than mprotect().  If
+you're doing a pkey_alloc() it's because you want to set it on at least
+one memory area, which means at least one mprotect().  So, at _worst_,
+it's 1:1.  If you've got more than one thing you're protecting, you'll
+have many mprotect()s for each pkey_alloc().
+
+The real reason I did this, though, was to avoid having _some_ other
+lock.  It'll cost more storage space, have more locking rules and I need
+exclusion against pkey_mprotect() which already holds mmap_sem for
+write.  IOW, I think this was the simplest thing to do.
+
