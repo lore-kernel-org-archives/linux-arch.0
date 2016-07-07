@@ -1,30 +1,39 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/9] mm: Hardened usercopy
-Date: Thu, 7 Jul 2016 21:34:53 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1607072133550.4083@nanos>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <1467843928-29351-2-git-send-email-keescook@chromium.org> <alpine.DEB.2.11.1607070938430.4083@nanos> <CAGXu5jJWVow4i_M7Qg4ZFgZh3k_fUxUs4pDJSf5Yc8Q-FK9HoQ@mail.gmail.com>
+From: Mrs Susan <online689169@telkomsa.net>
+Subject: TELEGRAPHIC TRANSFER NOTICE OF US$17.5 MILLION TRANSFER RELEASE
+ UPDATE
+Date: Fri, 8 Jul 2016 00:26:33 +0200 (SAST)
+Message-ID: <920595692.52127755.1467930393862.JavaMail.root@telkomsa.net>
+Reply-To: Mrs Susan <westernunionoffice153@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jJWVow4i_M7Qg4ZFgZh3k_fUxUs4pDJSf5Yc8Q-FK9HoQ@mail.gmail.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>J
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from draco.telkomsa.net ([196.25.211.120]:49628 "EHLO
+	draco.telkomsa.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751980AbcGGWdn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jul 2016 18:33:43 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, 7 Jul 2016, Kees Cook wrote:
-> On Thu, Jul 7, 2016 at 3:42 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > I'd rather make that a weak function returning 1 which can be replaced by
-> > x86 for CONFIG_FRAME_POINTER=y. That also allows other architectures to
-> > implement their specific frame checks.
-> 
-> Yeah, though I prefer CONFIG-controlled stuff over weak functions, but
-> I agree, something like arch_check_stack_frame(...) or similar. I'll
-> build something for this on the next revision.
+ATTENTION!!!
 
-I'm fine with CONFIG_CONTROLLED as long as the ifdeffery is limited to header
-files.
+This is to notify you that your $17.5million funds are currently being lodged into wood forest national bank in dayton ohio branch
+because we held meeting today with the (united nation) because they totally gives beneficiaries like you the opportunity to transfer funds via telephone banking to be able to escape international monetary policies against transfer of funds above million us dollars.
 
-Thanks,
+However, this new payment arrangement is designed to help you get access to global telephone banking and complete transfer of funds without any delay.
 
-	tglx
+Finally, furnish us with your full name and your mobile telephone number and a copy of your id, is all we need and your account will be activated, this is to make sure you are the right person.
+
+So can you please furnish us with your details again, so as to facilitate the transfer of your fund immediately to your designated bank account? The details are as follows:
+-	
+Name and address of bank:
+Account name:
+Account no.:
+Swift code:
+
+As soon as we receive these details, we will proceed with the fund transfer process.once again i apologize for the delay, i promise we will strive to make it up to you.
+
+Regards,
+Mr. Rick Cordes
+
+EMAIL:consultconsult121@gmail.com
