@@ -1,91 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.135]:60772 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752008AbcGHJU1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 05:20:27 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/9] mm: Hardened usercopy
-Date: Fri, 08 Jul 2016 11:22:28 +0200
-Message-ID: <9920033.q6Ud9av8s4@wuerfel>
-In-Reply-To: <CAGXu5jLyBfqXJKxohHiZgztRVrFyqwbta1W_Dw6KyyGM3LzshQ@mail.gmail.com>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <3418914.byvl8Wuxlf@wuerfel> <CAGXu5jLyBfqXJKxohHiZgztRVrFyqwbta1W_Dw6KyyGM3LzshQ@mail.gmail.com>
+Received: from outbound-smtp07.blacknight.com ([46.22.139.12]:49504 "EHLO
+	outbound-smtp07.blacknight.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754038AbcGHKQV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 06:16:21 -0400
+Received: from mail.blacknight.com (pemlinmail03.blacknight.ie [81.17.254.16])
+	by outbound-smtp07.blacknight.com (Postfix) with ESMTPS id 94D5C1C261D
+	for <linux-arch@vger.kernel.org>; Fri,  8 Jul 2016 11:15:32 +0100 (IST)
+Date: Fri, 8 Jul 2016 11:15:31 +0100
+From: Mel Gorman <mgorman@techsingularity.net>
+Subject: Re: [PATCH 2/9] mm: implement new pkey_mprotect() system call
+Message-ID: <20160708101530.GE11498@techsingularity.net>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124722.DE1EE343@viggo.jf.intel.com>
+ <20160707144031.GY11498@techsingularity.net>
+ <577E88A8.8030909@sr71.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=iso-8859-15
+Content-Disposition: inline
+In-Reply-To: <577E88A8.8030909@sr71.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, LKML <linux-kernel@vger.kernel.org>, Jan Kara <jack@suse.cz>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, PaX Team <pageexec@freemail.hu>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Pekka Enberg <penberg@kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160708092228.Vzs72Bsy-2JO8nnToEqXayp2zU2unoBHU8ah0jWFQ4k@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk
+Message-ID: <20160708101531.fqX2GlX_DAnypt8KjFhAH6nByaoN8kzX8IVrVzi_KEA@z>
 
-On Thursday, July 7, 2016 1:37:43 PM CEST Kees Cook wrote:
-> >
-> >> +     /* Allow kernel bss region (if not marked as Reserved). */
-> >> +     if (ptr >= (const void *)__bss_start &&
-> >> +         end <= (const void *)__bss_stop)
-> >> +             return NULL;
-> >
-> > accesses to .data/.rodata/.bss are probably not performance critical,
-> > so we could go further here and check the kallsyms table to ensure
-> > that we are not spanning multiple symbols here.
+On Thu, Jul 07, 2016 at 09:51:52AM -0700, Dave Hansen wrote:
+> > Looks like MASK could have been statically defined and be a simple shift
+> > and mask known at compile time. Minor though.
 > 
-> Oh, interesting! Yeah, would you be willing to put together that patch
-> and test it?
+> The VM_PKEY_BIT*'s are only ever defined as masks and not bit numbers.
+> So, if you want to use a mask, you end up doing something like:
+> 
+> 	unsigned long mask = (NR_PKEYS-1) << ffz(~VM_PKEY_BIT0);
+> 
+> Which ends up with the same thing, but I think ends up being pretty on
+> par for ugliness.
+> 
 
-Not at the moment, sorry.
+Fair enough.
 
-I've given it a closer look and unfortunately realized that kallsyms
-today only covers .text and .init.text, so it's currently useless because
-those sections are already disallowed.
+> >> +/*
+> >> + * When setting a userspace-provided value, we need to ensure
+> >> + * that it is valid.  The __ version can get used by
+> >> + * kernel-internal uses like the execute-only support.
+> >> + */
+> >> +int arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+> >> +		unsigned long init_val)
+> >> +{
+> >> +	if (!validate_pkey(pkey))
+> >> +		return -EINVAL;
+> >> +	return __arch_set_user_pkey_access(tsk, pkey, init_val);
+> >> +}
+> > 
+> > There appears to be a subtle bug fixed for validate_key. It appears
+> > there wasn't protection of the dedicated key before but nothing could
+> > reach it.
+> 
+> Right.  There was no user interface that took a key and we trusted that
+> the kernel knew what it was doing.
+> 
 
-We could extend kallsyms to also cover all other sections, but doing
-that right will likely cause a number of problems (most likely
-kallsyms size mismatch) that will have to be debugged first.\
+Ok. I was fairly sure that was the thinking behind it but wanted to be suire.
 
-I think it's doable but time-consuming. The check function should
-actually be trivial:
+> > The arch_max_pkey and PKEY_DEDICATE_EXECUTE_ONLY interaction is subtle
+> > but I can't find a problem with it either.
+> > 
+> > That aside, the validate_pkey check looks weak. It might be a number
+> > that works but no guarantee it's an allocated key or initialised
+> > properly. At this point, garbage can be handed into the system call
+> > potentially but maybe that gets fixed later.
+> 
+> It's called in three paths:
+> 1. by the kernel when setting up execute-only support
+> 2. by pkey_alloc() on the pkey we just allocated
+> 3. by pkey_set() on a pkey we just checked was allocated
+> 
+> So, it isn't broken, but it's also not clear at all why it is safe and
+> what validate_pkey() is actually validating.
+> 
+> But, that said, this does make me realize that with
+> pkey_alloc()/pkey_free(), this is probably redundant.  We verify that
+> the key is allocated, and we only allow valid keys to be allocated.
+> 
+> IOW, I think I can remove validate_pkey(), but only if we keep pkey_alloc().
+> 
 
-static bool usercopy_spans_multiple_symbols(void *ptr, size_t len)
-{
-	unsigned long size, offset;	
+Ok, it's not a major problem. I simply worried that the protection of
+key slots is pretty weak as it can be interfered with from userspace.
+On the other hand, the kernel never interprets the information so it's
+unlikely to cause a security problem. Applications can still shoot
+themselves in the foot but hopefully the developers are aware that the
+protection they get with keys is not absolute.
 
-	if (kallsyms_lookup_size_offset((unsigned long)ptr, &size, &offset))
-		return 0; /* no symbol found or kallsyms disabled */
+> ...
+> >> -		newflags = calc_vm_prot_bits(prot, pkey);
+> >> +		new_vma_pkey = arch_override_mprotect_pkey(vma, prot, pkey);
+> >> +		newflags = calc_vm_prot_bits(prot, new_vma_pkey);
+> >>  		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
+> >>  
+> > 
+> > On CPUs that do not support the feature, arch_override_mprotect_pkey
+> > returns 0 and the normal protections are used. It's not clear how an
+> > application is meant to detect if the operation succeeded or not. What
+> > if the application relies on pkeys to be working?
+> 
+> It actually shows up as -ENOSPC from pkey_alloc().  This sounds goofy,
+> but it teaches programs something very important: they always have to
+> look for ENOSPC, and must always be prepared to function without
+> protection keys.
 
-	if (size - offset <= len)
-		return 0; /* range is within one symbol */
+Ok, that makes sense. I don't think it's goofy. Sure, they cannot detect
+the CPU support directly from the interface but it's close enough.
 
-	return 1;
-}
-
-This part would also be trivial:
-
-diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
-index 1f22a186c18c..e0f37212e2a9 100644
---- a/scripts/kallsyms.c
-+++ b/scripts/kallsyms.c
-@@ -50,6 +50,11 @@ static struct addr_range text_ranges[] = {
- 	{ "_sinittext", "_einittext" },
- 	{ "_stext_l1",  "_etext_l1"  },	/* Blackfin on-chip L1 inst SRAM */
- 	{ "_stext_l2",  "_etext_l2"  },	/* Blackfin on-chip L2 SRAM */
-+#ifdef CONFIG_HARDENED_USERCOPY
-+	{ "_sdata",	"_edata"     },
-+	{ "__bss_start", "__bss_stop" },
-+	{ "__start_rodata", "__end_rodata" },
-+#endif
- };
- #define text_range_text     (&text_ranges[0])
- #define text_range_inittext (&text_ranges[1])
-
-but I fear that if you actually try that, things start falling apart
-in a big way, so I didn't try ;-)
-
-> I wonder if there are any cases where there are
-> legitimate usercopys across multiple symbols.
-
-The only possible use case I can think of is for reading out the entire
-kernel memory from /dev/kmem, but your other checks in here already
-define that as illegitimate. On that subject, we probably want to
-make CONFIG_DEVKMEM mutually exclusive with CONFIG_HARDENED_USERCOPY.
-
-	Arnd
+-- 
+Mel Gorman
+SUSE Labs
