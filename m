@@ -1,30 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from resqmta-ch2-07v.sys.comcast.net ([69.252.207.39]:41644 "EHLO
-	resqmta-ch2-07v.sys.comcast.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754985AbcGHNyJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 09:54:09 -0400
-Date: Fri, 8 Jul 2016 08:45:54 -0500 (CDT)
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy
- support
-In-Reply-To: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com>
-Message-ID: <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org>
-References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com>
-Content-Type: text/plain; charset=US-ASCII
+Received: from mx2.suse.de ([195.135.220.15]:60542 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755247AbcGHO6D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jul 2016 10:58:03 -0400
+Date: Fri, 8 Jul 2016 16:58:00 +0200
+From: Petr Mladek <pmladek@suse.com>
+Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
+Message-ID: <20160708145800.GE3556@pathway.suse.cz>
+References: <20160627151500.2247A68D20@newverein.lst.de>
+ <20160627151717.BD25468D26@newverein.lst.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160627151717.BD25468D26@newverein.lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, lin <ux-arm-kernel@lists.infradead.org>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Pekka Enberg <penberg@kernel.org>, Case y Schauf ler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160708134554.CtMcIuvKVZVdrSK5FwO26Bbj8HHnbRHjRRFMq7vN7NA@z>
+To: Torsten Duwe <duwe@lst.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20160708145800.qRzLu_FlcvRu3lRfYBrkjhi2XqiS669lpcSFWGmO9IQ@z>
 
-On Fri, 8 Jul 2016, Michael Ellerman wrote:
+On Mon 2016-06-27 17:17:17, Torsten Duwe wrote:
+> Once gcc is enhanced to optionally generate NOPs at the beginning
+> of each function, like the concept proven in
+> https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01671.html
+> (sans the "fprintf (... pad_size);", which spoils the data structure
+> for kernel use), the generated pads can nicely be used to reroute
+> function calls for tracing/profiling, or live patching.
+> diff --git a/arch/arm64/kernel/ftrace.c b/arch/arm64/kernel/ftrace.c
+> index ebecf9a..917065c 100644
+> --- a/arch/arm64/kernel/ftrace.c
+> +++ b/arch/arm64/kernel/ftrace.c
+> @@ -39,6 +39,12 @@ static int ftrace_modify_code(unsigned long pc, u32 old, u32 new,
+>  		if (aarch64_insn_read((void *)pc, &replaced))
+>  			return -EFAULT;
+>  
+> +		/* If we already have what we'll finally want,
+> +		 * report success. This is needed on startup.
+> +		 */
+> +		if (replaced == new)
+> +			return 0;
 
-> > I wonder if this code should be using size_from_object() instead of s->size?
->
-> Hmm, not sure. Who's SLUB maintainer? :)
+This looks strange. I wonder if it actually hides a real bug that we
+modify the code twice or so.
 
-Me.
+I wanted to try it myself but I haven't succeeded with creating an ARM test
+system yet.
 
-s->size is the size of the whole object including debugging info etc.
-ksize() gives you the actual usable size of an object.
-
+Best Regards,
+Petr
