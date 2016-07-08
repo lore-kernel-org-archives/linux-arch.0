@@ -1,70 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:34591 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755769AbcGHSYa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 14:24:30 -0400
-Date: Fri, 8 Jul 2016 20:23:44 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/9] mm: Hardened usercopy
-Message-ID: <20160708182344.GC4429@gmail.com>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
- <20160708084639.GA4562@gmail.com>
- <CA+55aFzv4kQitzhWgxRAi5XXM30f70d4dbTGkr7t=fZSh4r3Ow@mail.gmail.com>
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:34021 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755694AbcGHSi0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 14:38:26 -0400
+Received: by mail-pa0-f53.google.com with SMTP id fi15so1460382pac.1
+        for <linux-arch@vger.kernel.org>; Fri, 08 Jul 2016 11:38:26 -0700 (PDT)
+Date: Fri, 8 Jul 2016 11:38:17 -0700 (PDT)
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: [PATCH 0/9] [REVIEW-REQUEST] [v4] System Calls for Memory
+ Protection Keys
+In-Reply-To: <20160707124719.3F04C882@viggo.jf.intel.com>
+Message-ID: <alpine.LSU.2.11.1607081131350.28868@eggly.anvils>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzv4kQitzhWgxRAi5XXM30f70d4dbTGkr7t=fZSh4r3Ow@mail.gmail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, the arch/x86 maintainers <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, sparclinux@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20160708182344.MIjY7v5KL9aCT_nSw0UUmr8ijIwmHwhhDDggzhuMrUc@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, arnd@arndb.de, mgorman@techsingularity.net, hughd@google.com, viro@zeniv.linux.org.uk
+Message-ID: <20160708183817.tXAoE2Da1UfUF5pm2zhnqdVa8ub7LPDqcBTQlv1z-Eo@z>
 
+On Thu, 7 Jul 2016, Dave Hansen wrote:
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> I'm resending these because Ingo has said that he'd "love to have
+> some high level MM review & ack for these syscall ABI extensions."
+> The only changes to the code in months have been in the selftests.
+> So, if anyone has been putting off taking a look at these, I'd
+> appreciate a look now.
 
-> On Fri, Jul 8, 2016 at 1:46 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >
-> > Could you please try to find some syscall workload that does many small user
-> > copies and thus excercises this code path aggressively?
-> 
-> Any stat()-heavy path will hit cp_new_stat() very heavily. Think the
-> usual kind of "traverse the whole tree looking for something". "git
-> diff" will do it, just checking that everything is up-to-date.
-> 
-> That said, other things tend to dominate.
+Please expect nothing from me.  I've paid no attention to memory
+protection keys, and they're way off my radar of interest.  Sorry,
+if I spend my time looking at stuff I have little to contribute to,
+then I'm left with no time at all for what I should really be doing.
 
-So I think a cached 'find /usr >/dev/null' might be a good one as well:
-
- triton:~/tip> strace -c find /usr >/dev/null
- % time     seconds  usecs/call     calls    errors syscall
- ------ ----------- ----------- --------- --------- ----------------
-  47.09    0.006518           0    254697           newfstatat
-  26.20    0.003627           0    254795           getdents
-  14.45    0.002000           0   1147411           fcntl
-   7.33    0.001014           0    509811           close
-   3.28    0.000454           0    128220         1 openat
-   1.52    0.000210           0    128230           fstat
-   0.27    0.000016           0     12810           write
-   0.00    0.000000           0        10           read
-
- triton:~/tip> perf stat --repeat 3 -e cycles:u,cycles:k,cycles find /usr >/dev/null
-
- Performance counter stats for 'find /usr' (3 runs):
-
-     1,594,437,143      cycles:u                                                      ( +-  2.76% )
-     2,570,544,009      cycles:k                                                      ( +-  2.50% )
-     4,164,981,152      cycles                                                        ( +-  2.59% )
-
-       0.929883686 seconds time elapsed                                          ( +-  2.57% )
-
-... and it's dominated by kernel overhead, with a fair amount of memcpy overhead 
-as well:
-
-   1.22%  find     [kernel.kallsyms]   [k] copy_user_enhanced_fast_string                                                                                                            
-
-But maybe there are simple shell commands that are even more user-memcpy intense? 
-
-Thanks,
-
-	Ingo
+Hugh
