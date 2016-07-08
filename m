@@ -1,35 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:46217 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750985AbcGGThq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jul 2016 15:37:46 -0400
-Date: Thu, 7 Jul 2016 21:34:53 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/9] mm: Hardened usercopy
-In-Reply-To: <CAGXu5jJWVow4i_M7Qg4ZFgZh3k_fUxUs4pDJSf5Yc8Q-FK9HoQ@mail.gmail.com>
-Message-ID: <alpine.DEB.2.11.1607072133550.4083@nanos>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <1467843928-29351-2-git-send-email-keescook@chromium.org> <alpine.DEB.2.11.1607070938430.4083@nanos> <CAGXu5jJWVow4i_M7Qg4ZFgZh3k_fUxUs4pDJSf5Yc8Q-FK9HoQ@mail.gmail.com>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36049 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751016AbcGHHSQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 03:18:16 -0400
+Date: Fri, 8 Jul 2016 09:18:10 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Message-ID: <20160708071810.GA27457@gmail.com>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <577E924C.6010406@sr71.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20160707193453.gZ6fBUQQgDa5uxMR_XqXffVFPwerw5r4EKd7dlEDHVA@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: Mel Gorman <mgorman@techsingularity.net>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk
+Message-ID: <20160708071810.rHXVlXl-xblPGTWyI2bzRBEOhjW-fXe7dJOtQv4orjs@z>
 
-On Thu, 7 Jul 2016, Kees Cook wrote:
-> On Thu, Jul 7, 2016 at 3:42 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > I'd rather make that a weak function returning 1 which can be replaced by
-> > x86 for CONFIG_FRAME_POINTER=y. That also allows other architectures to
-> > implement their specific frame checks.
-> 
-> Yeah, though I prefer CONFIG-controlled stuff over weak functions, but
-> I agree, something like arch_check_stack_frame(...) or similar. I'll
-> build something for this on the next revision.
 
-I'm fine with CONFIG_CONTROLLED as long as the ifdeffery is limited to header
-files.
+* Dave Hansen <dave@sr71.net> wrote:
+
+> > Applications that frequently get called will get hammed into the ground with 
+> > serialisation on mmap_sem not to mention the cost of the syscall entry/exit.
+>
+> I think we can do both of them without mmap_sem, as long as we resign ourselves 
+> to this just being fundamentally racy (which it is already, I think).  But, is 
+> it worth performance-tuning things that we don't expect performance-sensitive 
+> apps to be using in the first place?  They'll just use the RDPKRU/WRPKRU 
+> instructions directly.
+>
+> Ingo, do you still feel strongly that these syscalls (pkey_set/get()) should be 
+> included?  Of the 5, they're definitely the two with the weakest justification.
+
+Firstly, I'd like to thank Mel for the review, having this kind of high level 
+interface discussion was exactly what I was hoping for before we merged any ABI 
+patches.
+
+So my hope was that we'd also grow some debugging features: such as a periodic 
+watchdog timer clearing all non-allocated pkeys of a task and re-setting them to 
+their (kernel-)known values and thus forcing user-space to coordinate key 
+allocation/freeing.
+
+While allocation/freeing of keys is very likely a slow path in any reasonable 
+workload, _setting_ the values of pkeys could easily be a fast path. The whole 
+point of pkeys is to allow both thread local and dynamic mapping and unmapping of 
+memory ranges, without having to touch any page table attributes in the hot path.
+
+Now another, more fundamental question is that pkeys are per-CPU (per thread) on 
+the hardware side - so why do we even care about the mmap_sem in the syscalls in 
+the first place? If we want any serialization wouldn't a pair of 
+get_cpu()/put_cpu() preemption control calls be enough? Those would also be much 
+cheaper.
+
+The idea behind my suggestion to manage all pkey details via a kernel interface 
+and 'shadow' the pkeys state in the kernel was that if we don't even offer a 
+complete system call interface then user-space is _forced_ into using the raw 
+instructions and into implementing a (potentially crappy) uncoordinated API or not 
+implementing any API at all but randomly using fixed pkey indices.
+
+My hope was to avoid that, especially since currently _all_ memory mapping details 
+on x86 are controlled via system calls. If we don't offer that kind of facility 
+then we force user-space into using the raw instructions and will likely end up 
+with a poor user-space interface.
+
+So the question is, what is user-space going to do? Do any glibc patches exist? 
+How are the user-space library side APIs going to look like?
 
 Thanks,
 
-	tglx
+	Ingo
