@@ -1,39 +1,41 @@
-From: Mrs Susan <online689169@telkomsa.net>
-Subject: TELEGRAPHIC TRANSFER NOTICE OF US$17.5 MILLION TRANSFER RELEASE
- UPDATE
-Date: Fri, 8 Jul 2016 00:26:33 +0200 (SAST)
-Message-ID: <920595692.52127755.1467930393862.JavaMail.root@telkomsa.net>
-Reply-To: Mrs Susan <westernunionoffice153@gmail.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 1/9] mm: Hardened usercopy
+Date: Fri, 08 Jul 2016 15:34:19 +1000
+Message-ID: <577f3b5f.e8036b0a.83487.ffffc9d3SMTPIN_ADDED_BROKEN@mx.google.com>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <1467843928-29351-2-git-send-email-keescook@chromium.org> <3418914.byvl8Wuxlf@wuerfel> <CAGXu5jLyBfqXJKxohHiZgztRVrFyqwbta1W_Dw6KyyGM3LzshQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from draco.telkomsa.net ([196.25.211.120]:49628 "EHLO
-	draco.telkomsa.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751980AbcGGWdn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jul 2016 18:33:43 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CAGXu5jLyBfqXJKxohHiZgztRVrFyqwbta1W_Dw6KyyGM3LzshQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Jan Kara <jack@suse.cz>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, Dmitry Vyukov <dvyukov@google.com>, David Rientjes <rientjes@google.com>, PaX Team <pageexec@freemail.hu>, Mathias Krause <minipli@googlemail.com>, linux-arch <linux-arch@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Brad Spengler <spender@grsecurity.net>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.inf
+ radead.org" <linux-arm-kernel@lists.infradead.org>, Laura Abbott <labbott@fedoraproject.org>, Tony
+List-Id: linux-arch.vger.kernel.org
 
-ATTENTION!!!
+Kees Cook <keescook@chromium.org> writes:
 
-This is to notify you that your $17.5million funds are currently being lodged into wood forest national bank in dayton ohio branch
-because we held meeting today with the (united nation) because they totally gives beneficiaries like you the opportunity to transfer funds via telephone banking to be able to escape international monetary policies against transfer of funds above million us dollars.
+> On Thu, Jul 7, 2016 at 4:01 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Wednesday, July 6, 2016 3:25:20 PM CEST Kees Cook wrote:
+>>> +
+>>> +     /* Allow kernel rodata region (if not marked as Reserved). */
+>>> +     if (ptr >= (const void *)__start_rodata &&
+>>> +         end <= (const void *)__end_rodata)
+>>> +             return NULL;
+>>
+>> Should we explicitly forbid writing to rodata, or is it enough to
+>> rely on page protection here?
+>
+> Hm, interesting. That's a very small check to add. My knee-jerk is to
+> just leave it up to page protection. I'm on the fence. :)
 
-However, this new payment arrangement is designed to help you get access to global telephone banking and complete transfer of funds without any delay.
+There are platforms that don't have page protection, so it would be nice
+if they could at least opt-in to checking for it here.
 
-Finally, furnish us with your full name and your mobile telephone number and a copy of your id, is all we need and your account will be activated, this is to make sure you are the right person.
+cheers
 
-So can you please furnish us with your details again, so as to facilitate the transfer of your fund immediately to your designated bank account? The details are as follows:
--	
-Name and address of bank:
-Account name:
-Account no.:
-Swift code:
-
-As soon as we receive these details, we will proceed with the fund transfer process.once again i apologize for the delay, i promise we will strive to make it up to you.
-
-Regards,
-Mr. Rick Cordes
-
-EMAIL:consultconsult121@gmail.com
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
