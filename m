@@ -1,67 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56687 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754902AbcGHPs3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jul 2016 11:48:29 -0400
-Date: Fri, 8 Jul 2016 10:48:24 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
-Message-ID: <20160708154824.ikq45dgk2auigqn7@treble>
-References: <20160627151500.2247A68D20@newverein.lst.de>
- <20160627151717.BD25468D26@newverein.lst.de>
- <20160708145800.GE3556@pathway.suse.cz>
- <20160708150709.GA8979@lst.de>
- <20160708152421.GG3556@pathway.suse.cz>
+Received: from mail-wm0-f41.google.com ([74.125.82.41]:38347 "EHLO
+	mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755172AbcGHQH5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jul 2016 12:07:57 -0400
+Received: by mail-wm0-f41.google.com with SMTP id n127so15849405wme.1
+        for <linux-arch@vger.kernel.org>; Fri, 08 Jul 2016 09:07:56 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20160708152421.GG3556@pathway.suse.cz>
+In-Reply-To: <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org>
+References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com> <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org>
+From: Kees Cook <keescook@chromium.org>
+Date: Fri, 8 Jul 2016 12:07:54 -0400
+Message-ID: <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy support
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Mladek <pmladek@suse.com>
-Cc: Torsten Duwe <duwe@lst.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20160708154824.u58ocirImyWoudGG_hA9QZ1848MU1gYVjbyg8s7l_2A@z>
+To: Christoph Lameter <cl@linux.com>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, lin <ux-arm-kernel@lists.infradead.org>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Pekka Enberg <penberg@kernel.org>, Case y Schauf ler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20160708160754.9H6ld9WEHlWU2AOzic-S4kIY1wYGwdLjP35M93fwDb8@z>
 
-On Fri, Jul 08, 2016 at 05:24:21PM +0200, Petr Mladek wrote:
-> On Fri 2016-07-08 17:07:09, Torsten Duwe wrote:
-> > On Fri, Jul 08, 2016 at 04:58:00PM +0200, Petr Mladek wrote:
-> > > On Mon 2016-06-27 17:17:17, Torsten Duwe wrote:
-> > > > Once gcc is enhanced to optionally generate NOPs at the beginning
-> > > > of each function, like the concept proven in
-> > > > https://gcc.gnu.org/ml/gcc-patches/2016-04/msg01671.html
-> > > > (sans the "fprintf (... pad_size);", which spoils the data structure
-> > > > for kernel use), the generated pads can nicely be used to reroute
-> > > > function calls for tracing/profiling, or live patching.
-> > > > diff --git a/arch/arm64/kernel/ftrace.c b/arch/arm64/kernel/ftrace.c
-> > > > index ebecf9a..917065c 100644
-> > > > --- a/arch/arm64/kernel/ftrace.c
-> > > > +++ b/arch/arm64/kernel/ftrace.c
-> > > > @@ -39,6 +39,12 @@ static int ftrace_modify_code(unsigned long pc, u32 old, u32 new,
-> > > >  		if (aarch64_insn_read((void *)pc, &replaced))
-> > > >  			return -EFAULT;
-> > > >  
-> > > > +		/* If we already have what we'll finally want,
-> > > > +		 * report success. This is needed on startup.
-> > > > +		 */
-> > > > +		if (replaced == new)
-> > > > +			return 0;
-> > > 
-> > > This looks strange. I wonder if it actually hides a real bug that we
-> > > modify the code twice or so.
-> > 
-> > Not at all. All "profilers" we abused so far generate code that needs to
-> > be disabled on boot first. prolog-pad generates nops, initially.
-> 
-> Yeah, but I cannot find this kind of check in other architectures.
-> I checked arch/x86/kernel/ftrace.c, arch/s390/kernel/ftrace.c, and
-> arch/powerpc/kernel/ftrace.c. These all support ftrace with
-> regs and livepatching.
+On Fri, Jul 8, 2016 at 9:45 AM, Christoph Lameter <cl@linux.com> wrote:
+> On Fri, 8 Jul 2016, Michael Ellerman wrote:
+>
+>> > I wonder if this code should be using size_from_object() instead of s->size?
 
-My understanding is that other arches don't need this check because they
-use -mfentry, so they have to modify the "call fentry" instruction to a
-nop on startup.
+BTW, I can't reproduce this on x86 yet...
 
-Here, with -fprolog-pad, it's already a nop, so no change is needed.
+>>
+>> Hmm, not sure. Who's SLUB maintainer? :)
+>
+> Me.
+>
+> s->size is the size of the whole object including debugging info etc.
+> ksize() gives you the actual usable size of an object.
+
+Is check_valid_pointer() making sure the pointer is within the usable
+size? It seemed like it was checking that it was within the slub
+object (checks against s->size, wants it above base after moving
+pointer to include redzone, etc).
+
+I think a potential problem with Michael's fix is that the ptr in
+__check_heap_object() may not point at the _start_ of the usable
+object, so doing the red zone shift isn't quite right.
+
+This finds the ptr's offset within the slub object (since s->size is
+the slub object size):
+
+        offset = (ptr - page_address(page)) % s->size;
+
+But this looks at object_size and doesn't take into account actual size:
+
+        if (offset <= s->object_size && n <= s->object_size - offset)
+                return NULL;
+
+I think offset needs to be adjusted by the size of padding, which the
+restore_red_left() call had the same effect, but may not cover all
+padding conditions? I'm not sure.
+
+Should it be:
+
+        /* Find offset within slab object. */
+        offset = (ptr - page_address(page)) % s->size;
+
+        /* Adjust offset for meta data and padding. */
+        offset -= s->size - s->object_size;
+
+        /* Make sure offset and size are within bounds of the
+allocation size. */
+        if (offset <= s->object_size && n <= s->object_size - offset)
+                return NULL;
+
+?
+
+-Kees
 
 -- 
-Josh
+Kees Cook
+Chrome OS & Brillo Security
