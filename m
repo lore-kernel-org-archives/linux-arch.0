@@ -1,34 +1,40 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Date: Fri, 8 Jul 2016 12:26:13 -0700
-Message-ID: <577FFE55.7040209@sr71.net>
-References: <20160707124719.3F04C882@viggo.jf.intel.com>
- <20160707124728.C1116BB1@viggo.jf.intel.com>
- <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com>
+From: Torsten Duwe <duwe@lst.de>
+Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
+Date: Fri, 8 Jul 2016 22:24:55 +0200
+Message-ID: <20160708202455.GA4580@lst.de>
+References: <20160627151500.2247A68D20@newverein.lst.de>
+ <20160627151717.BD25468D26@newverein.lst.de>
+ <20160708145800.GE3556@pathway.suse.cz>
+ <20160708150709.GA8979@lst.de>
+ <20160708152421.GG3556@pathway.suse.cz>
+ <20160708154824.ikq45dgk2auigqn7@treble>
+ <20160708115710.5c657b5f@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160708071810.GA27457@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Mel Gorman <mgorman@techsingularity.net>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-sparse-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160708115710.5c657b5f@gandalf.local.home>
+Sender: linux-sparse-owner@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Petr Mladek <pmladek@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 07/08/2016 12:18 AM, Ingo Molnar wrote:
-> So my hope was that we'd also grow some debugging features: such as a periodic 
-> watchdog timer clearing all non-allocated pkeys of a task and re-setting them to 
-> their (kernel-)known values and thus forcing user-space to coordinate key 
-> allocation/freeing.
+On Fri, Jul 08, 2016 at 11:57:10AM -0400, Steven Rostedt wrote:
+> On Fri, 8 Jul 2016 10:48:24 -0500
+> Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> > 
+> > Here, with -fprolog-pad, it's already a nop, so no change is needed.
+> > 
 
-I'm glad you mentioned this.  I've explicitly called out this behavior
-in the manpages now, or at least called out the fact that the kernel
-will not preserve PKRU contents for unallocated keys.
+Yes, exactly.
 
+> That's what I was thinking. But as I stated in another email (probably
+> in the air when you wrote this), the call to ftrace_modify_code() may be
+> completely circumvented by ftrace_make_nop() if the addr is MCOUNT_ADDR.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Only on the _first_ invocation. Later on, tracing can be switched on and off,
+and then the instructions need to be changed just like with fentry (or
+profile-kernel ;-)
+
+	Torsten
+
