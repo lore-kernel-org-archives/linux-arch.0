@@ -1,28 +1,35 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: Re: [PATCH 9/9] mm: SLUB hardened usercopy
- support
-Date: Fri, 8 Jul 2016 11:20:47 -0500 (CDT)
-Message-ID: <alpine.DEB.2.20.1607081119170.6192@east.gentwo.org>
-References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com> <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org> <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <kernel-hardening-return-3858-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
-To: Kees Cook <keescook@chromium.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, lin <ux-arm-kernel@lists.infradead.org>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry
+From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Fri, 8 Jul 2016 09:32:07 -0700
+Message-ID: <577FD587.6050101@sr71.net>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20160708071810.GA27457-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Mel Gorman <mgorman-3eNAlZScCAx27rWaFMvyedHuzzzSOjJt@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 8 Jul 2016, Kees Cook wrote:
+On 07/08/2016 12:18 AM, Ingo Molnar wrote:
+> So the question is, what is user-space going to do? Do any glibc
+> patches exist? How are the user-space library side APIs going to look
+> like?
 
-> Is check_valid_pointer() making sure the pointer is within the usable
-> size? It seemed like it was checking that it was within the slub
-> object (checks against s->size, wants it above base after moving
-> pointer to include redzone, etc).
+My goal at the moment is to get folks enabled to the point that they can
+start modifying apps to use pkeys without having to patch their kernels.
+ I don't have confidence that we can design good high-level userspace
+interfaces without seeing some real apps try to use the low-level ones
+and seeing how they struggle.
 
-check_valid_pointer verifies that a pointer is pointing to the start of an
-object. It is used to verify the internal points that SLUB used and
-should not be modified to do anything different.
+I had some glibc code to do the pkey alloc/free operations, but those
+aren't necessary if we're doing it in the kernel.  Other than getting
+the syscall wrappers in place, I don't have any immediate plans to do
+anything in glibc.
+
+Was there something you were expecting to see?
