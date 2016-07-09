@@ -1,78 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:39425 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932860AbcGIJGs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Jul 2016 05:06:48 -0400
-Date: Sat, 9 Jul 2016 11:06:32 +0200
-From: Torsten Duwe <duwe@lst.de>
-Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
-Message-ID: <20160709090632.GA2598@lst.de>
-References: <20160627151500.2247A68D20@newverein.lst.de>
- <20160627151717.BD25468D26@newverein.lst.de>
- <20160708145800.GE3556@pathway.suse.cz>
- <20160708150709.GA8979@lst.de>
- <20160708152421.GG3556@pathway.suse.cz>
- <20160708154824.ikq45dgk2auigqn7@treble>
- <20160708115710.5c657b5f@gandalf.local.home>
- <20160708202455.GA4580@lst.de>
- <20160708170808.1ab70ce3@gandalf.local.home>
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:37680 "EHLO
+	mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933094AbcGIRB1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 13:01:27 -0400
+Received: by mail-wm0-f45.google.com with SMTP id k123so45581786wme.0
+        for <linux-arch@vger.kernel.org>; Sat, 09 Jul 2016 10:01:21 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160708170808.1ab70ce3@gandalf.local.home>
+In-Reply-To: <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
+From: Kees Cook <keescook@chromium.org>
+Date: Sat, 9 Jul 2016 10:01:18 -0700
+Message-ID: <CAGXu5jJVQCMZQm-zT07Siniiic9DSK7ZC=qdDMgFLwBpfEqYSg@mail.gmail.com>
+Subject: Re: [PATCH 0/9] mm: Hardened usercopy
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Petr Mladek <pmladek@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20160709090632.XpZAS-g_e8bsh3T9GsOI5hFH9FOjgd13HTIr6FlLdYs@z>
+To: Laura Abbott <labbott@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20160709170118.0ji-zGXfYlH2qTbCXYuC5ze-2n1boph1-CUWcvovdKc@z>
 
-On Fri, Jul 08, 2016 at 05:08:08PM -0400, Steven Rostedt wrote:
-> On Fri, 8 Jul 2016 22:24:55 +0200
-> Torsten Duwe <duwe@lst.de> wrote:
-> 
-> > On Fri, Jul 08, 2016 at 11:57:10AM -0400, Steven Rostedt wrote:
-> > > On Fri, 8 Jul 2016 10:48:24 -0500
-> > > Josh Poimboeuf <jpoimboe@redhat.com> wrote:  
-> > > > 
-> > > > Here, with -fprolog-pad, it's already a nop, so no change is needed.
-> > > >   
-> > 
-> > Yes, exactly.
-> > 
-> > > That's what I was thinking. But as I stated in another email (probably
-> > > in the air when you wrote this), the call to ftrace_modify_code() may be
-> > > completely circumvented by ftrace_make_nop() if the addr is MCOUNT_ADDR.  
-> > 
-> > Only on the _first_ invocation. Later on, tracing can be switched on and off,
-> > and then the instructions need to be changed just like with fentry (or
-> > profile-kernel ;-)
-> > 
-> 
-> Understood, but ftrace_modify_code() will only receive addr ==
-> MCOUNT_ADDR on boot up or when a module is loaded. In both cases, with
-> -fprolog-pad it will already be a nop, hence no need to call
-> ftrace_modify_code(), in those cases.
-> 
-> In all other cases, addr will point to a ftrace trampoline.
+On Fri, Jul 8, 2016 at 7:22 PM, Laura Abbott <labbott@redhat.com> wrote:
+> On 07/06/2016 03:25 PM, Kees Cook wrote:
+>>
+>> Hi,
+>>
+>> This is a start of the mainline port of PAX_USERCOPY[1]. After I started
+>> writing tests (now in lkdtm in -next) for Casey's earlier port[2], I
+>> kept tweaking things further and further until I ended up with a whole
+>> new patch series. To that end, I took Rik's feedback and made a number
+>> of other changes and clean-ups as well.
+>>
+>> Based on my understanding, PAX_USERCOPY was designed to catch a few
+>> classes of flaws around the use of copy_to_user()/copy_from_user(). These
+>> changes don't touch get_user() and put_user(), since these operate on
+>> constant sized lengths, and tend to be much less vulnerable. There
+>> are effectively three distinct protections in the whole series,
+>> each of which I've given a separate CONFIG, though this patch set is
+>> only the first of the three intended protections. (Generally speaking,
+>> PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY (this) and
+>> CONFIG_HARDENED_USERCOPY_WHITELIST (future), and PAX_USERCOPY_SLABS covers
+>> CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC (future).)
+>>
+>> This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
+>> being copied to/from userspace meet certain criteria:
+>> - if address is a heap object, the size must not exceed the object's
+>>   allocated size. (This will catch all kinds of heap overflow flaws.)
+>> - if address range is in the current process stack, it must be within the
+>>   current stack frame (if such checking is possible) or at least entirely
+>>   within the current process's stack. (This could catch large lengths that
+>>   would have extended beyond the current process stack, or overflows if
+>>   their length extends back into the original stack.)
+>> - if the address range is part of kernel data, rodata, or bss, allow it.
+>> - if address range is page-allocated, that it doesn't span multiple
+>>   allocations.
+>> - if address is within the kernel text, reject it.
+>> - everything else is accepted
+>>
+>> The patches in the series are:
+>> - The core copy_to/from_user() checks, without the slab object checks:
+>>         1- mm: Hardened usercopy
+>> - Per-arch enablement of the protection:
+>>         2- x86/uaccess: Enable hardened usercopy
+>>         3- ARM: uaccess: Enable hardened usercopy
+>>         4- arm64/uaccess: Enable hardened usercopy
+>>         5- ia64/uaccess: Enable hardened usercopy
+>>         6- powerpc/uaccess: Enable hardened usercopy
+>>         7- sparc/uaccess: Enable hardened usercopy
+>> - The heap allocator implementation of object size checking:
+>>         8- mm: SLAB hardened usercopy support
+>>         9- mm: SLUB hardened usercopy support
+>>
+>> Some notes:
+>>
+>> - This is expected to apply on top of -next which contains fixes for the
+>>   position of _etext on both arm and arm64.
+>>
+>> - I couldn't detect a measurable performance change with these features
+>>   enabled. Kernel build times were unchanged, hackbench was unchanged,
+>>   etc. I think we could flip this to "on by default" at some point.
+>>
+>> - The SLOB support extracted from grsecurity seems entirely broken. I
+>>   have no idea what's going on there, I spent my time testing SLAB and
+>>   SLUB. Having someone else look at SLOB would be nice, but this series
+>>   doesn't depend on it.
+>>
+>> Additional features that would be nice, but aren't blocking this series:
+>>
+>> - Needs more architecture support for stack frame checking (only x86 now).
+>>
+>>
+>
+> Even with the SLUB fixup I'm still seeing this blow up on my arm64 system.
+> This is a
+> Fedora rawhide kernel + the patches
 
-Maybe the code in question can be replaced with the change below, now that
-there is a preprocessor define in V2?
-(untested)
+Is this on top of -next? The recent _etext change ("arm64: mm: fix
+location of _etext") is needed to fix the kernel text test for arm64.
 
-diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 3f743b1..695a646 100644
---- a/kernel/trace/ftrace.c
-+++ b/kernel/trace/ftrace.c
-@@ -2423,6 +2423,12 @@ ftrace_code_disable(struct module *mod, struct dyn_ftrace *rec)
- 	if (unlikely(ftrace_disabled))
- 		return 0;
- 
-+#ifdef CC_USING_PROLOG_PAD
-+	/* If the compiler already generated NOPs instead of
-+	 * calls to mcount, we're done here.
-+	*/
-+	return 1;
-+#endif
- 	ret = ftrace_make_nop(mod, rec, MCOUNT_ADDR);
- 	if (ret) {
- 		ftrace_bug(ret, rec);
+-Kees
+
+>
+> [    0.666700] usercopy: kernel memory exposure attempt detected from
+> fffffc0008b4dd58 (<kernel text>) (8 bytes)
+> [    0.666720] CPU: 2 PID: 79 Comm: modprobe Tainted: G        W
+> 4.7.0-0.rc6.git1.1.hardenedusercopy.fc25.aarch64 #1
+> [    0.666733] Hardware name: AppliedMicro Mustang/Mustang, BIOS 1.1.0 Nov
+> 24 2015
+> [    0.666744] Call trace:
+> [    0.666756] [<fffffc0008088a20>] dump_backtrace+0x0/0x1e8
+> [    0.666765] [<fffffc0008088c2c>] show_stack+0x24/0x30
+> [    0.666775] [<fffffc0008455344>] dump_stack+0xa4/0xe0
+> [    0.666785] [<fffffc000828d874>] __check_object_size+0x6c/0x230
+> [    0.666795] [<fffffc00083a5748>] create_elf_tables+0x74/0x420
+> [    0.666805] [<fffffc00082fb1f0>] load_elf_binary+0x828/0xb70
+> [    0.666814] [<fffffc0008298b4c>] search_binary_handler+0xb4/0x240
+> [    0.666823] [<fffffc0008299864>] do_execveat_common+0x63c/0x950
+> [    0.666832] [<fffffc0008299bb4>] do_execve+0x3c/0x50
+> [    0.666841] [<fffffc00080e3720>]
+> call_usermodehelper_exec_async+0xe8/0x148
+> [    0.666850] [<fffffc0008084a80>] ret_from_fork+0x10/0x50
+>
+> This happens on every call to execve. This seems to be the first
+> copy_to_user in
+> create_elf_tables. I didn't get a chance to debug and I'm going out of town
+> all of next week so all I have is the report unfortunately. config attached.
+>
+> Thanks,
+> Laura
+
+
+
+-- 
+Kees Cook
+Chrome OS & Brillo Security
