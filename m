@@ -1,42 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f41.google.com ([74.125.82.41]:35474 "EHLO
-	mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752026AbcGIRHh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 13:07:37 -0400
-Received: by mail-wm0-f41.google.com with SMTP id f65so19831798wmi.0
-        for <linux-arch@vger.kernel.org>; Sat, 09 Jul 2016 10:07:36 -0700 (PDT)
+Received: from mail-vk0-f42.google.com ([209.85.213.42]:34917 "EHLO
+	mail-vk0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756865AbcGIV1p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 17:27:45 -0400
+Received: by mail-vk0-f42.google.com with SMTP id v6so95895686vkb.2
+        for <linux-arch@vger.kernel.org>; Sat, 09 Jul 2016 14:27:45 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <24451.1468045037@turing-police.cc.vt.edu>
-References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com>
- <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org> <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
- <alpine.DEB.2.20.1607081119170.6192@east.gentwo.org> <CAGXu5j+UdkQA+k39GNLe5CwBPVD5ZbRGTCQLqS8VF=kWx+PtsQ@mail.gmail.com>
- <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
- <57809299.84b3370a.5390c.ffff9e58SMTPIN_ADDED_BROKEN@mx.google.com> <24451.1468045037@turing-police.cc.vt.edu>
-From: Kees Cook <keescook@chromium.org>
-Date: Sat, 9 Jul 2016 10:07:34 -0700
-Message-ID: <CAGXu5jJhnTDDhun6U9rV8H9YzuiTcqSD035Uvdv3MXB+S-LtsA@mail.gmail.com>
-Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy support
+In-Reply-To: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Sat, 9 Jul 2016 14:27:25 -0700
+Message-ID: <CALCETrU5Emr7jZNH5bh7Z+C8fLOcAah9SzeJbDjqW7N-xWGxHA@mail.gmail.com>
+Subject: Re: [PATCH 0/9] mm: Hardened usercopy
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis Kletnieks <Valdis.Kletnieks@vt.edu>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Christoph Lameter <cl@linux.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Pekka Enberg <penberg@kernel.org>, Case y Sc hauf ler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20160709170734.hzfU_BWU1aaTnb7Z9qWzSyOQVE-K_UmD_ix7ekxlgVI@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Christoph Lameter <cl@linux.com>, Andrew Morton <akpm@linux-foundation.org>, Brad Spengler <spender@grsecurity.net>, Pekka Enberg <penberg@kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Casey Schaufler <casey@schaufler-ca.com>, Will Deacon <will.deacon@arm.com>, Rik van Riel <riel@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dmitry Vyukov <dvyukov@google.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, X86 ML <x86@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch <linux-arch@vger.kernel.org>, David Rientjes <rientjes@google.com>, Mathias Krause <minipli@googlemail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "David S. Miller" <davem@davemloft.net>, Laura Abbott <labbott@fedoraproject.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Jan Kara <jack@suse.cz>, Russell King <linux@armlinux.org.uk>, Michael Ellerman <mpe@ellerman.id.au>, Andrea Arcangeli <aarcange@redhat.com>, Fenghua Yu <fenghua.yu@intel.com>, linuxppc-dev@lists.ozlabs.org, Vitaly Wool <vitalywool@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Borislav Petkov <bp@suse.de>, Tony Luck <tony.luck@intel.com>, PaX Team <pageexec@freemail.hu>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, sparclinux@vger.kernel.org
+Message-ID: <20160709212725.GhBUuvVKLB1gA1AIwHVHhTwySSfIRPTw-bq7QnDUx3g@z>
 
-On Fri, Jul 8, 2016 at 11:17 PM,  <Valdis.Kletnieks@vt.edu> wrote:
-> Yeah, 'ping' dies with a similar traceback going to rawv6_setsockopt(),
-> and 'trinity' dies a horrid death during initialization because it creates
-> some sctp sockets to fool around with.  The problem in all these cases is that
-> setsockopt uses copy_from_user() to pull in the option value, and the allocation
-> isn't tagged with USERCOPY to whitelist it.
+On Jul 6, 2016 6:25 PM, "Kees Cook" <keescook@chromium.org> wrote:
+>
+> Hi,
+>
+> This is a start of the mainline port of PAX_USERCOPY[1]. After I started
+> writing tests (now in lkdtm in -next) for Casey's earlier port[2], I
+> kept tweaking things further and further until I ended up with a whole
+> new patch series. To that end, I took Rik's feedback and made a number
+> of other changes and clean-ups as well.
+>
 
-Just a note to clear up confusion: this series doesn't include the
-whitelist protection, so this appears to be either bugs in the slub
-checker or bugs in the code using the cfq_io_cq cache. I suspect the
-former. :)
-
--Kees
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+I like the series, but I have one minor nit to pick.  The effect of
+this series is to harden usercopy, but most of the code is really
+about infrastructure to validate that a pointed-to object is valid.
+Might it make sense to call the infrastructure part something else?
+After all, this could be extended in the future for memcpy or even for
+some GCC plugin to check pointers passed to ordinary (non-allocator)
+functions.
