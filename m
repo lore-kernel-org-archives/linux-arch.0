@@ -1,136 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f53.google.com ([74.125.82.53]:38268 "EHLO
-	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750768AbcGIIhV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 04:37:21 -0400
-Date: Sat, 9 Jul 2016 10:37:15 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Message-ID: <20160709083715.GA29939@gmail.com>
-References: <20160707124719.3F04C882@viggo.jf.intel.com>
- <20160707124728.C1116BB1@viggo.jf.intel.com>
- <20160707144508.GZ11498@techsingularity.net>
- <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com>
- <577FD587.6050101@sr71.net>
+Received: from verein.lst.de ([213.95.11.211]:39425 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932860AbcGIJGs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 9 Jul 2016 05:06:48 -0400
+Date: Sat, 9 Jul 2016 11:06:32 +0200
+From: Torsten Duwe <duwe@lst.de>
+Subject: Re: [PATCH v2 1/2] arm64: implement FTRACE_WITH_REGS
+Message-ID: <20160709090632.GA2598@lst.de>
+References: <20160627151500.2247A68D20@newverein.lst.de>
+ <20160627151717.BD25468D26@newverein.lst.de>
+ <20160708145800.GE3556@pathway.suse.cz>
+ <20160708150709.GA8979@lst.de>
+ <20160708152421.GG3556@pathway.suse.cz>
+ <20160708154824.ikq45dgk2auigqn7@treble>
+ <20160708115710.5c657b5f@gandalf.local.home>
+ <20160708202455.GA4580@lst.de>
+ <20160708170808.1ab70ce3@gandalf.local.home>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <577FD587.6050101@sr71.net>
+In-Reply-To: <20160708170808.1ab70ce3@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
-Cc: Mel Gorman <mgorman@techsingularity.net>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20160709083715.iHffQxC7eY2FSfxj2N5f5cmoEd6GaTd508TBx1I_lbc@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>, Petr Mladek <pmladek@suse.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20160709090632.XpZAS-g_e8bsh3T9GsOI5hFH9FOjgd13HTIr6FlLdYs@z>
 
-
-* Dave Hansen <dave@sr71.net> wrote:
-
-> On 07/08/2016 12:18 AM, Ingo Molnar wrote:
->
-> > So the question is, what is user-space going to do? Do any glibc patches 
-> > exist? How are the user-space library side APIs going to look like?
+On Fri, Jul 08, 2016 at 05:08:08PM -0400, Steven Rostedt wrote:
+> On Fri, 8 Jul 2016 22:24:55 +0200
+> Torsten Duwe <duwe@lst.de> wrote:
 > 
-> My goal at the moment is to get folks enabled to the point that they can start 
-> modifying apps to use pkeys without having to patch their kernels.
->  I don't have confidence that we can design good high-level userspace interfaces 
-> without seeing some real apps try to use the low-level ones and seeing how they 
-> struggle.
+> > On Fri, Jul 08, 2016 at 11:57:10AM -0400, Steven Rostedt wrote:
+> > > On Fri, 8 Jul 2016 10:48:24 -0500
+> > > Josh Poimboeuf <jpoimboe@redhat.com> wrote:  
+> > > > 
+> > > > Here, with -fprolog-pad, it's already a nop, so no change is needed.
+> > > >   
+> > 
+> > Yes, exactly.
+> > 
+> > > That's what I was thinking. But as I stated in another email (probably
+> > > in the air when you wrote this), the call to ftrace_modify_code() may be
+> > > completely circumvented by ftrace_make_nop() if the addr is MCOUNT_ADDR.  
+> > 
+> > Only on the _first_ invocation. Later on, tracing can be switched on and off,
+> > and then the instructions need to be changed just like with fentry (or
+> > profile-kernel ;-)
+> > 
 > 
-> I had some glibc code to do the pkey alloc/free operations, but those aren't 
-> necessary if we're doing it in the kernel.  Other than getting the syscall 
-> wrappers in place, I don't have any immediate plans to do anything in glibc.
+> Understood, but ftrace_modify_code() will only receive addr ==
+> MCOUNT_ADDR on boot up or when a module is loaded. In both cases, with
+> -fprolog-pad it will already be a nop, hence no need to call
+> ftrace_modify_code(), in those cases.
 > 
-> Was there something you were expecting to see?
+> In all other cases, addr will point to a ftrace trampoline.
 
-Yeah, so (as you probably guessed!) I'm starting to have second thoughts about the 
-complexity of the alloc/free/set/get interface I suggested, and Mel's review 
-certainly strengthened that feeling.
+Maybe the code in question can be replaced with the change below, now that
+there is a preprocessor define in V2?
+(untested)
 
-I have two worries:
-
-1)
-
-A technical worry I have is that the 'pkey allocation interface' does not seem to 
-be taking the per thread property of pkeys into account - while that property 
-would be useful for apps. That is a limitation that seems unjustified.
-
-The reason for this is that we are storing the key allocation bitmap in struct_mm, 
-in mm->context.pkey_allocation_map - while we should be storing it in task_struct 
-or thread_info.
-
-We could solve this by moving the allocation bitmap to the task struct, but:
-
-2)
-
-My main worry is that it appears at this stage that we are still pretty far away 
-from completely shadowing the hardware pkey state in the kernel - and without that 
-we cannot really force user-space to use the 'proper' APIs. They can just use the 
-raw instructions, condition them on a CPUID and be done with it: everything can be 
-organized in user-space.
-
-Furthermore, implementing it in a high performance fashion would be pretty complex 
-- at minimum we'd have to register a per thread read-write user-space data area 
-where the kernel could store pkeys management data so that vsyscalls can access it 
-... None of that facility exists today.
-
-And without vsyscall optimizations user-space might legitimately use its own 
-implementation for performance reasons and we'd end up with twice the complexity 
-and a largely unused piece of kernel infrastructure ...
-
-So how about the following minimalistic approach instead, to get the ball rolling 
-without making ABI decisions we might regret:
-
- - There are 16 pkey indices on x86 currently. We already use index 15 for the 
-   true PROT_EXEC implementation. Let's set aside another pkey index for the 
-   kernel's potential future use (index 14), and clear it explicitly in the 
-   FPU context on every context switch if CONFIG_X86_DEBUG_FPU is enabled to make 
-   sure it remains unallocated.
-
- - Expose just the new mprotect_pkey() system call to install a pkey index into 
-   the page tables - but we let user-space organize its key allocations.
-
- - Give user-space an idea about limits:
-
-     "ALL THESE WORLDS ARE YOURS—EXCEPT EUROPA ATTEMPT NO LANDING THERE"
-
-   Ooops, wrong one. Lets try this instead:
-
-     Expose the current maximum user-space usable pkeys index in some
-     programmatically accessible fashion. Maybe mprotect_pkey() could reject a 
-     permanently allocated kernel pkey index via a distinctive error code?
-
-   I.e. this pattern:
-
-     ret = pkey_mprotect(NULL, PAGE_SIZE, real_prot, pkey);
-
-   ... would validate the pkey and we'd return -EOPNOTSUPP for pkey that is not 
-   available? This would allow maximum future flexibility as it would not define 
-   kernel allocated pkeys as a 'range'.
-
- - ... and otherwise leave the remaining 14 pkey indices for user-space to manage.
-
-If in the future user-space pkeys usage grows to such a level that kernel 
-arbitration becomes desirable then we can still implement the get/set/alloc/free 
-system calls as well: the first use of those system calls would switch on the 
-kernel's pkey management facilities and from that point on user-space is supposed 
-to use the published system calls only. Applications using pkey instructions 
-directly would still work just fine: they'd never use the new system calls.
-
-I.e. we can actually keep a bigger ABI flexibility by introducing the simplest 
-possible ABI at this stage. Maybe user-space usage of this hardware feature will 
-never grow beyond that simple ABI - in which case we've saved quite a bit of 
-ongoing maintenance complexity...
-
-And yes, I realize that we've come a full round since the very first version of 
-this patch set, but I think the extra hoops were still worth it, because the 
-true-PROT_EXEC feature came out of it which is very useful IMHO. But my more 
-complex pkey management syscall ideas don't seem to be all that useful anymore.
-
-So what do you think about this direction? This would simplify the patch set quite 
-a bit and would touch very little MM code beyond the mprotect_pkey() bits.
-
-Thanks,
-
-	Ingo
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index 3f743b1..695a646 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -2423,6 +2423,12 @@ ftrace_code_disable(struct module *mod, struct dyn_ftrace *rec)
+ 	if (unlikely(ftrace_disabled))
+ 		return 0;
+ 
++#ifdef CC_USING_PROLOG_PAD
++	/* If the compiler already generated NOPs instead of
++	 * calls to mcount, we're done here.
++	*/
++	return 1;
++#endif
+ 	ret = ftrace_make_nop(mod, rec, MCOUNT_ADDR);
+ 	if (ret) {
+ 		ftrace_bug(ret, rec);
