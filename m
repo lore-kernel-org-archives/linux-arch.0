@@ -1,136 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53449 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932844AbcGICoO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jul 2016 22:44:14 -0400
-Message-ID: <1468032243.13253.59.camel@redhat.com>
-Subject: Re: [PATCH 0/9] mm: Hardened usercopy
-From: Rik van Riel <riel@redhat.com>
-Date: Fri, 08 Jul 2016 22:44:03 -0400
-In-Reply-To: <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org>
-	 <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-WDIYwW63/yu0AaqYDmjB"
+Received: from outbound.smtp.vt.edu ([198.82.183.121]:38550 "EHLO
+	omr2.cc.vt.edu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750731AbcGIGTb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 02:19:31 -0400
+Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy support
+From: Valdis.Kletnieks@vt.edu
+In-Reply-To: <57809299.84b3370a.5390c.ffff9e58SMTPIN_ADDED_BROKEN@mx.google.com>
+References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com> <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org> <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com> <alpine.DEB.2.20.1607081119170.6192@east.gentwo.org> <CAGXu5j+UdkQA+k39GNLe5CwBPVD5ZbRGTCQLqS8VF=kWx+PtsQ@mail.gmail.com> <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
+ <57809299.84b3370a.5390c.ffff9e58SMTPIN_ADDED_BROKEN@mx.google.com>
 Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="==_Exmh_1468045037_2093P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7bit
+Date: Sat, 09 Jul 2016 02:17:17 -0400
+Message-ID: <24451.1468045037@turing-police.cc.vt.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org
-Cc: Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160709024403.2OEBsPs3Qp4H9sRp2N9J7vYH4lTEdVi6-ud1Ks60KNg@z>
+To: kernel-hardening@lists.openwall.com
+Cc: Kees Cook <keescook@chromium.org>, Christoph Lameter <cl@linux.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, Pekka Enberg <penberg@kernel.org>, Case y Sc hauf ler <casey@schaufler-ca.com>, Andrew Morton <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "David S. Miller" <davem@davemloft.net>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20160709061717.9eAGgzuX3Ule_KhevQ7plfRwcMrOl3zdg526vm21kNA@z>
+
+--==_Exmh_1468045037_2093P
+Content-Type: text/plain; charset=us-ascii
+
+On Sat, 09 Jul 2016 15:58:20 +1000, Michael Ellerman said:
+
+> I then get two hits, which may or may not be valid:
+>
+> [    2.309556] usercopy: kernel memory overwrite attempt detected to d000000003510028 (kernfs_node_cache) (64 bytes)
+> [    2.309995] CPU: 7 PID: 2241 Comm: wait-for-root Not tainted 4.7.0-rc3-00099-g97872fc89d41 #64
+> [    2.310480] Call Trace:
+> [    2.310556] [c0000001f4773bf0] [c0000000009bdbe8] dump_stack+0xb0/0xf0 (unreliable)
+> [    2.311016] [c0000001f4773c30] [c00000000029cf44] __check_object_size+0x74/0x320
+> [    2.311472] [c0000001f4773cb0] [c00000000005d4d0] copy_from_user+0x60/0xd4
+> [    2.311873] [c0000001f4773cf0] [c0000000008b38f4] __get_filter+0x74/0x160
+> [    2.312230] [c0000001f4773d30] [c0000000008b408c] sk_attach_filter+0x2c/0xc0
+> [    2.312596] [c0000001f4773d60] [c000000000871c34] sock_setsockopt+0x954/0xc00
+> [    2.313021] [c0000001f4773dd0] [c00000000086ac44] SyS_setsockopt+0x134/0x150
+> [    2.313380] [c0000001f4773e30] [c000000000009260] system_call+0x38/0x108
+
+Yeah, 'ping' dies with a similar traceback going to rawv6_setsockopt(),
+and 'trinity' dies a horrid death during initialization because it creates
+some sctp sockets to fool around with.  The problem in all these cases is that
+setsockopt uses copy_from_user() to pull in the option value, and the allocation
+isn't tagged with USERCOPY to whitelist it.
+
+Unfortunately, I haven't been able to track down where in net/ the memory is
+allocated, nor is there any good hint in the grsecurity patch that I can find
+where they do the tagging.
+
+And the fact that so far, I'm only had ping and trinity killed in setsockopt()
+hints that *most* setsockopt() calls must be going through a code path that
+does allocate suitable memory, and these two have different paths.  I can't
+believe they're the only two binaries that call setsockopt().....
+
+Just saw your second mail, now I'm wondering why *my* laptop doesn't die a
+horrid death when systemd starts up.  Mine is
+systemd-230-3.gitea68351.fc25.x86_64 - maybe there's something
+release-dependent going on?
 
 
---=-WDIYwW63/yu0AaqYDmjB
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Fri, 2016-07-08 at 19:22 -0700, Laura Abbott wrote:
->=C2=A0
-> Even with the SLUB fixup I'm still seeing this blow up on my arm64
-> system. This is a
-> Fedora rawhide kernel + the patches
->=20
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666700] usercopy: kernel memory exposure attem=
-pt detected from
-> fffffc0008b4dd58 (<kernel text>) (8 bytes)
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666720] CPU: 2 PID: 79 Comm: modprobe Tainted:
-> G=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0W=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A04.7.0-0.rc6.git1.1.hardenedusercopy.fc25.aarch64 #1
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666733] Hardware name: AppliedMicro Mustang/Mu=
-stang, BIOS
-> 1.1.0 Nov 24 2015
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666744] Call trace:
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666756] [<fffffc0008088a20>] dump_backtrace+0x=
-0/0x1e8
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666765] [<fffffc0008088c2c>] show_stack+0x24/0=
-x30
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666775] [<fffffc0008455344>] dump_stack+0xa4/0=
-xe0
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666785] [<fffffc000828d874>] __check_object_si=
-ze+0x6c/0x230
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666795] [<fffffc00083a5748>] create_elf_tables=
-+0x74/0x420
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666805] [<fffffc00082fb1f0>] load_elf_binary+0=
-x828/0xb70
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666814] [<fffffc0008298b4c>] search_binary_han=
-dler+0xb4/0x240
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666823] [<fffffc0008299864>] do_execveat_commo=
-n+0x63c/0x950
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666832] [<fffffc0008299bb4>] do_execve+0x3c/0x=
-50
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666841] [<fffffc00080e3720>]
-> call_usermodehelper_exec_async+0xe8/0x148
-> [=C2=A0=C2=A0=C2=A0=C2=A00.666850] [<fffffc0008084a80>] ret_from_fork+0x1=
-0/0x50
->=20
-> This happens on every call to execve. This seems to be the first
-> copy_to_user in
-> create_elf_tables. I didn't get a chance to debug and I'm going out
-> of town
-> all of next week so all I have is the report unfortunately. config
-> attached.
-
-That's odd, this should be copying a piece of kernel data (not text)
-to userspace.
-
-from fs/binfmt_elf.c
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 const char *k_platform =3D ELF_PLATFORM;
-
-...
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 size_t len =3D strl=
-en(k_platform) + 1;
-	=09
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 u_platform =3D (elf=
-_addr_t __user *)STACK_ALLOC(p, len);
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0if (__copy_to_user(u_platform, k_platform, len))
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return=
- -EFAULT;
-
-from arch/arm/include/asm/elf.h:
-
-#define ELF_PLATFORM_SIZE 8
-#define ELF_PLATFORM=C2=A0=C2=A0=C2=A0=C2=A0(elf_platform)
-
-extern char elf_platform[];
-
-from arch/arm/kernel/setup.c:
-
-char elf_platform[ELF_PLATFORM_SIZE];
-EXPORT_SYMBOL(elf_platform);
-
-...
-
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0snprintf(elf_platform, ELF_=
-PLATFORM_SIZE, "%s%c",
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0list->elf_name, ENDIANNESS);
-
-How does that end up in the .text section of the
-image, instead of in one of the various data sections?
-
-What kind of linker oddity is going on with ARM?
-
---=C2=A0	=09
-All Rights Reversed.
---=-WDIYwW63/yu0AaqYDmjB
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
+--==_Exmh_1468045037_2093P
+Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+Version: GnuPG v1
+Comment: Exmh version 2.5 07/13/2001
 
-iQEcBAABCAAGBQJXgGT0AAoJEM553pKExN6DH7wH/0znCffUzWBhau8KJMvAnoPK
-2C47QOWO1LqeYiuIoC3yiTbqFOhHvoqLSNvBp6YmLJDnSDgYPI8/BYHsu4kLLI0e
-yB0Gdczy2FQvfp5C3wvahbLkD8llhl/W4DOKfR7BtU3oUWHlQV00rz4qgV1H5uvf
-7mied4PFhk8Eabnl1GDcyIm4YZN93P17xqQzYLDc7IL79I79f5wSysmjLGD/slIN
-BP+5skId75PKMBrKkLdvD6y02VIgj0gILZyCsHlJRJ/LRfCmN1c9VXShmwd0FO0r
-oWiYUCRSZePuKHGuJh67xJknHH7PVvvUDyCrRRSS0dqNO3I/0AD1v9yuyt2eX2E=
-=+yIR
+iQIVAwUBV4CW7QdmEQWDXROgAQLUag/+Iz4v6YO8so3dhT9TGomJm5+Bo2odFdZ1
+/d6anx4xLfnrK4GDl86bGR8mz44oNOBd1yBIAXqB1VAcEgCGwtg80TCrU5H88DSv
+gW6b5q9Vs+zhisKFu+x14yrjnb6hM7Y5In5FNCe5R+TJwyyjxFGs+qVfaMsEuXDi
+39Xb1SWwkP7TRF9T7xRBpHmV+MMbEae3SH7uoc428Ovgskm+3nZI3IrO+p2ffFkH
+6U5dD0s4dUQrH5EsO0+IkzdyVdL8VRDgmy194qRo9pJ0/zIXqSpvV2KM46CvfX9V
+pY32EsB0yRIsZZMiOTgIQMWJA0lg/+p/6CmJ1O26sYbJ0ibSxyTgQVeNH8U+odAJ
+dckvMyKDZ9LEqw0PUFMByABJ8NY8O5Y0U0+Bhk48We/MZlrtu/kX4469rYplsEzw
+cbCH8xOngJyUw/jrj0XDoNp0oB+eVH59StP0iXsDzGvoj3sNlPwlI2Q027THJzD0
+P9XNgPzpQjV2txNYZ5veGY78yaP86JlikhO3zrv9DO+yXDV3F7vOMeLs8yB8p+D9
+I0mhBtNaB53vG2LYh2ycqKYDsFw3pALfi1Boz58kZ7xcvsSDQDf8cIXq/9lpeRbY
+hHCkLjQlAbNg2N3nIdE0/Vl+9zzo3XP4n8IugFwyJCPkufCfKpfGdhZpZKFexHsV
+vS7IPe5s4BQ=
+=RRF1
 -----END PGP SIGNATURE-----
 
---=-WDIYwW63/yu0AaqYDmjB--
-
+--==_Exmh_1468045037_2093P--
