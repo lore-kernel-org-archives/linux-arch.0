@@ -1,143 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f176.google.com ([209.85.223.176]:36024 "EHLO
-	mail-io0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756589AbcGIIZD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 04:25:03 -0400
-Received: by mail-io0-f176.google.com with SMTP id s93so20023110ioi.3
-        for <linux-arch@vger.kernel.org>; Sat, 09 Jul 2016 01:25:01 -0700 (PDT)
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:38268 "EHLO
+	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750768AbcGIIhV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jul 2016 04:37:21 -0400
+Date: Sat, 9 Jul 2016 10:37:15 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Message-ID: <20160709083715.GA29939@gmail.com>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+ <577FD587.6050101@sr71.net>
 MIME-Version: 1.0
-In-Reply-To: <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
-References: <1467843928-29351-1-git-send-email-keescook@chromium.org> <b113b487-acc6-24b8-d58c-425d3c884f4c@redhat.com>
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date: Sat, 9 Jul 2016 10:25:00 +0200
-Message-ID: <CAKv+Gu_F03ncqT2wWFte2bFWQ7tSruL0ZaxTBLT9_NEs-1SioQ@mail.gmail.com>
-Subject: Re: [PATCH 0/9] mm: Hardened usercopy
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <577FD587.6050101@sr71.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, sparclinux@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, kernel-hardening@lists.openwall.com
-Message-ID: <20160709082500.kVFl5ndX07ibHP_sZI7qTqY3hFba17Y-lO_33H2kEwo@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: Mel Gorman <mgorman@techsingularity.net>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20160709083715.iHffQxC7eY2FSfxj2N5f5cmoEd6GaTd508TBx1I_lbc@z>
 
-On 9 July 2016 at 04:22, Laura Abbott <labbott@redhat.com> wrote:
-> On 07/06/2016 03:25 PM, Kees Cook wrote:
->>
->> Hi,
->>
->> This is a start of the mainline port of PAX_USERCOPY[1]. After I started
->> writing tests (now in lkdtm in -next) for Casey's earlier port[2], I
->> kept tweaking things further and further until I ended up with a whole
->> new patch series. To that end, I took Rik's feedback and made a number
->> of other changes and clean-ups as well.
->>
->> Based on my understanding, PAX_USERCOPY was designed to catch a few
->> classes of flaws around the use of copy_to_user()/copy_from_user(). These
->> changes don't touch get_user() and put_user(), since these operate on
->> constant sized lengths, and tend to be much less vulnerable. There
->> are effectively three distinct protections in the whole series,
->> each of which I've given a separate CONFIG, though this patch set is
->> only the first of the three intended protections. (Generally speaking,
->> PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY (this) and
->> CONFIG_HARDENED_USERCOPY_WHITELIST (future), and PAX_USERCOPY_SLABS covers
->> CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC (future).)
->>
->> This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
->> being copied to/from userspace meet certain criteria:
->> - if address is a heap object, the size must not exceed the object's
->>   allocated size. (This will catch all kinds of heap overflow flaws.)
->> - if address range is in the current process stack, it must be within the
->>   current stack frame (if such checking is possible) or at least entirely
->>   within the current process's stack. (This could catch large lengths that
->>   would have extended beyond the current process stack, or overflows if
->>   their length extends back into the original stack.)
->> - if the address range is part of kernel data, rodata, or bss, allow it.
->> - if address range is page-allocated, that it doesn't span multiple
->>   allocations.
->> - if address is within the kernel text, reject it.
->> - everything else is accepted
->>
->> The patches in the series are:
->> - The core copy_to/from_user() checks, without the slab object checks:
->>         1- mm: Hardened usercopy
->> - Per-arch enablement of the protection:
->>         2- x86/uaccess: Enable hardened usercopy
->>         3- ARM: uaccess: Enable hardened usercopy
->>         4- arm64/uaccess: Enable hardened usercopy
->>         5- ia64/uaccess: Enable hardened usercopy
->>         6- powerpc/uaccess: Enable hardened usercopy
->>         7- sparc/uaccess: Enable hardened usercopy
->> - The heap allocator implementation of object size checking:
->>         8- mm: SLAB hardened usercopy support
->>         9- mm: SLUB hardened usercopy support
->>
->> Some notes:
->>
->> - This is expected to apply on top of -next which contains fixes for the
->>   position of _etext on both arm and arm64.
->>
->> - I couldn't detect a measurable performance change with these features
->>   enabled. Kernel build times were unchanged, hackbench was unchanged,
->>   etc. I think we could flip this to "on by default" at some point.
->>
->> - The SLOB support extracted from grsecurity seems entirely broken. I
->>   have no idea what's going on there, I spent my time testing SLAB and
->>   SLUB. Having someone else look at SLOB would be nice, but this series
->>   doesn't depend on it.
->>
->> Additional features that would be nice, but aren't blocking this series:
->>
->> - Needs more architecture support for stack frame checking (only x86 now).
->>
->>
+
+* Dave Hansen <dave@sr71.net> wrote:
+
+> On 07/08/2016 12:18 AM, Ingo Molnar wrote:
 >
-> Even with the SLUB fixup I'm still seeing this blow up on my arm64 system.
-> This is a
-> Fedora rawhide kernel + the patches
->
-> [ 0.666700] usercopy: kernel memory exposure attempt detected from
-> fffffc0008b4dd58 (<kernel text>) (8 bytes)
-> [ 0.666720] CPU: 2 PID: 79 Comm: modprobe Tainted: G        W
-> 4.7.0-0.rc6.git1.1.hardenedusercopy.fc25.aarch64 #1
-> [ 0.666733] Hardware name: AppliedMicro Mustang/Mustang, BIOS 1.1.0 Nov 24
-> 2015
-> [ 0.666744] Call trace:
-> [ 0.666756] [<fffffc0008088a20>] dump_backtrace+0x0/0x1e8
-> [ 0.666765] [<fffffc0008088c2c>] show_stack+0x24/0x30
-> [ 0.666775] [<fffffc0008455344>] dump_stack+0xa4/0xe0
-> [ 0.666785] [<fffffc000828d874>] __check_object_size+0x6c/0x230
-> [ 0.666795] [<fffffc00083a5748>] create_elf_tables+0x74/0x420
-> [ 0.666805] [<fffffc00082fb1f0>] load_elf_binary+0x828/0xb70
-> [ 0.666814] [<fffffc0008298b4c>] search_binary_handler+0xb4/0x240
-> [ 0.666823] [<fffffc0008299864>] do_execveat_common+0x63c/0x950
-> [ 0.666832] [<fffffc0008299bb4>] do_execve+0x3c/0x50
-> [ 0.666841] [<fffffc00080e3720>] call_usermodehelper_exec_async+0xe8/0x148
-> [ 0.666850] [<fffffc0008084a80>] ret_from_fork+0x10/0x50
->
-> This happens on every call to execve. This seems to be the first
-> copy_to_user in
-> create_elf_tables. I didn't get a chance to debug and I'm going out of town
-> all of next week so all I have is the report unfortunately. config attached.
->
+> > So the question is, what is user-space going to do? Do any glibc patches 
+> > exist? How are the user-space library side APIs going to look like?
+> 
+> My goal at the moment is to get folks enabled to the point that they can start 
+> modifying apps to use pkeys without having to patch their kernels.
+>  I don't have confidence that we can design good high-level userspace interfaces 
+> without seeing some real apps try to use the low-level ones and seeing how they 
+> struggle.
+> 
+> I had some glibc code to do the pkey alloc/free operations, but those aren't 
+> necessary if we're doing it in the kernel.  Other than getting the syscall 
+> wrappers in place, I don't have any immediate plans to do anything in glibc.
+> 
+> Was there something you were expecting to see?
 
-This is a known issue, and a fix is already queued for v4.8 in the arm64 tree:
+Yeah, so (as you probably guessed!) I'm starting to have second thoughts about the 
+complexity of the alloc/free/set/get interface I suggested, and Mel's review 
+certainly strengthened that feeling.
 
-9fdc14c55c arm64: mm: fix location of _etext [0]
+I have two worries:
 
-which moves _etext up in the linker script so that it does not cover .rodata
+1)
 
-ARM was suffering from the same problem, and Kees proposed a fix for
-it. I don't know what the status of that patch is, though.
+A technical worry I have is that the 'pkey allocation interface' does not seem to 
+be taking the per thread property of pkeys into account - while that property 
+would be useful for apps. That is a limitation that seems unjustified.
 
-Note that on arm64, we have
+The reason for this is that we are storing the key allocation bitmap in struct_mm, 
+in mm->context.pkey_allocation_map - while we should be storing it in task_struct 
+or thread_info.
 
-  #define ELF_PLATFORM            ("aarch64")
+We could solve this by moving the allocation bitmap to the task struct, but:
 
-which explains why k_platform points into .rodata in this case. On
-ARM, it points to a writable string (as the code quoted by Rik shows),
-so there it will likely explode elsewhere without the linker script
-fix.
+2)
 
-[0] https://git.kernel.org/cgit/linux/kernel/git/arm64/linux.git/commit/?h=for-next/core&id=9fdc14c55c
+My main worry is that it appears at this stage that we are still pretty far away 
+from completely shadowing the hardware pkey state in the kernel - and without that 
+we cannot really force user-space to use the 'proper' APIs. They can just use the 
+raw instructions, condition them on a CPUID and be done with it: everything can be 
+organized in user-space.
 
--- 
-Ard.
+Furthermore, implementing it in a high performance fashion would be pretty complex 
+- at minimum we'd have to register a per thread read-write user-space data area 
+where the kernel could store pkeys management data so that vsyscalls can access it 
+... None of that facility exists today.
+
+And without vsyscall optimizations user-space might legitimately use its own 
+implementation for performance reasons and we'd end up with twice the complexity 
+and a largely unused piece of kernel infrastructure ...
+
+So how about the following minimalistic approach instead, to get the ball rolling 
+without making ABI decisions we might regret:
+
+ - There are 16 pkey indices on x86 currently. We already use index 15 for the 
+   true PROT_EXEC implementation. Let's set aside another pkey index for the 
+   kernel's potential future use (index 14), and clear it explicitly in the 
+   FPU context on every context switch if CONFIG_X86_DEBUG_FPU is enabled to make 
+   sure it remains unallocated.
+
+ - Expose just the new mprotect_pkey() system call to install a pkey index into 
+   the page tables - but we let user-space organize its key allocations.
+
+ - Give user-space an idea about limits:
+
+     "ALL THESE WORLDS ARE YOURS—EXCEPT EUROPA ATTEMPT NO LANDING THERE"
+
+   Ooops, wrong one. Lets try this instead:
+
+     Expose the current maximum user-space usable pkeys index in some
+     programmatically accessible fashion. Maybe mprotect_pkey() could reject a 
+     permanently allocated kernel pkey index via a distinctive error code?
+
+   I.e. this pattern:
+
+     ret = pkey_mprotect(NULL, PAGE_SIZE, real_prot, pkey);
+
+   ... would validate the pkey and we'd return -EOPNOTSUPP for pkey that is not 
+   available? This would allow maximum future flexibility as it would not define 
+   kernel allocated pkeys as a 'range'.
+
+ - ... and otherwise leave the remaining 14 pkey indices for user-space to manage.
+
+If in the future user-space pkeys usage grows to such a level that kernel 
+arbitration becomes desirable then we can still implement the get/set/alloc/free 
+system calls as well: the first use of those system calls would switch on the 
+kernel's pkey management facilities and from that point on user-space is supposed 
+to use the published system calls only. Applications using pkey instructions 
+directly would still work just fine: they'd never use the new system calls.
+
+I.e. we can actually keep a bigger ABI flexibility by introducing the simplest 
+possible ABI at this stage. Maybe user-space usage of this hardware feature will 
+never grow beyond that simple ABI - in which case we've saved quite a bit of 
+ongoing maintenance complexity...
+
+And yes, I realize that we've come a full round since the very first version of 
+this patch set, but I think the extra hoops were still worth it, because the 
+true-PROT_EXEC feature came out of it which is very useful IMHO. But my more 
+complex pkey management syscall ideas don't seem to be all that useful anymore.
+
+So what do you think about this direction? This would simplify the patch set quite 
+a bit and would touch very little MM code beyond the mprotect_pkey() bits.
+
+Thanks,
+
+	Ingo
