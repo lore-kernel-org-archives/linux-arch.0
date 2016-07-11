@@ -1,64 +1,43 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 12/32] x86/dumpstack/64: Handle faults when printing the "Stack:" part of an OOPS
-Date: Mon, 11 Jul 2016 13:53:45 -0700
-Message-ID: <8230a6f98a1646041c783350e099994bf2ccfcc4.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 30/32] x86/dumpstack: Pin the target stack in save_stack_trace_tsk()
+Date: Mon, 11 Jul 2016 13:54:03 -0700
+Message-ID: <e3696f6ad079ee12ce50317a53f14ff3adb84ad1.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3910-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-If we overflow the stack into a guard page, we'll recursively fault
-when trying to dump the contents of the guard page.  Use
-probe_kernel_address so we can recover if this happens.
+This will prevent a crash if the target task dies before or while
+dumping its stack once we start freeing task stacks early.
 
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/kernel/dumpstack_64.c | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ arch/x86/kernel/stacktrace.c | 5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index a81e1ef73bf2..6dede08dd98b 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -274,6 +274,8 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
+diff --git a/arch/x86/kernel/stacktrace.c b/arch/x86/kernel/stacktrace.c
+index 9ee98eefc44d..cc0826409a21 100644
+--- a/arch/x86/kernel/stacktrace.c
++++ b/arch/x86/kernel/stacktrace.c
+@@ -79,9 +79,14 @@ void save_stack_trace_regs(struct pt_regs *regs, struct stack_trace *trace)
  
- 	stack = sp;
- 	for (i = 0; i < kstack_depth_to_print; i++) {
-+		unsigned long word;
+ void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
+ {
++	if (!try_get_task_stack(tsk))
++		return;
 +
- 		if (stack >= irq_stack && stack <= irq_stack_end) {
- 			if (stack == irq_stack_end) {
- 				stack = (unsigned long *) (irq_stack_end[-1]);
-@@ -283,12 +285,18 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		if (kstack_end(stack))
- 			break;
- 		}
+ 	dump_trace(tsk, NULL, NULL, 0, &save_stack_ops_nosched, trace);
+ 	if (trace->nr_entries < trace->max_entries)
+ 		trace->entries[trace->nr_entries++] = ULONG_MAX;
 +
-+		if (probe_kernel_address(stack, word))
-+			break;
-+
- 		if ((i % STACKSLOTS_PER_LINE) == 0) {
- 			if (i != 0)
- 				pr_cont("\n");
--			printk("%s %016lx", log_lvl, *stack++);
-+			printk("%s %016lx", log_lvl, word);
- 		} else
--			pr_cont(" %016lx", *stack++);
-+			pr_cont(" %016lx", word);
-+
-+		stack++;
- 		touch_nmi_watchdog();
- 	}
- 	preempt_enable();
++	put_task_stack(tsk);
+ }
+ EXPORT_SYMBOL_GPL(save_stack_trace_tsk);
+ 
 -- 
 2.7.4
