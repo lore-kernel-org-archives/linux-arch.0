@@ -1,98 +1,84 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Date: Sun, 10 Jul 2016 21:25:40 -0700
-Message-ID: <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
-References: <20160707124719.3F04C882@viggo.jf.intel.com> <20160707124728.C1116BB1@viggo.jf.intel.com>
- <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net> <20160709083715.GA29939@gmail.com>
+From: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy
+ support
+Date: Mon, 11 Jul 2016 15:08:29 +0900
+Message-ID: <20160711060829.GB14107@js1304-P5Q-DELUXE>
+References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com>
+ <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org>
+ <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
+ <alpine.DEB.2.20.1607081119170.6192@east.gentwo.org>
+ <CAGXu5j+UdkQA+k39GNLe5CwBPVD5ZbRGTCQLqS8VF=kWx+PtsQ@mail.gmail.com>
+ <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160709083715.GA29939@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Dave Hansen <dave@sr71.net>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <sparclinux-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Christoph Lameter <cl@linux.com>, Michael Ellerman <mpe@ellerman.id.au>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad
 List-Id: linux-arch.vger.kernel.org
 
-On Jul 9, 2016 1:37 AM, "Ingo Molnar" <mingo@kernel.org> wrote:
->
->
-> * Dave Hansen <dave@sr71.net> wrote:
->
-> > On 07/08/2016 12:18 AM, Ingo Molnar wrote:
+On Fri, Jul 08, 2016 at 04:48:38PM -0400, Kees Cook wrote:
+> On Fri, Jul 8, 2016 at 1:41 PM, Kees Cook <keescook@chromium.org> wrote:
+> > On Fri, Jul 8, 2016 at 12:20 PM, Christoph Lameter <cl@linux.com> wrote:
+> >> On Fri, 8 Jul 2016, Kees Cook wrote:
+> >>
+> >>> Is check_valid_pointer() making sure the pointer is within the usable
+> >>> size? It seemed like it was checking that it was within the slub
+> >>> object (checks against s->size, wants it above base after moving
+> >>> pointer to include redzone, etc).
+> >>
+> >> check_valid_pointer verifies that a pointer is pointing to the start of an
+> >> object. It is used to verify the internal points that SLUB used and
+> >> should not be modified to do anything different.
 > >
-> > > So the question is, what is user-space going to do? Do any glibc patches
-> > > exist? How are the user-space library side APIs going to look like?
+> > Yup, no worries -- I won't touch it. :) I just wanted to verify my
+> > understanding.
 > >
-> > My goal at the moment is to get folks enabled to the point that they can start
-> > modifying apps to use pkeys without having to patch their kernels.
-> >  I don't have confidence that we can design good high-level userspace interfaces
-> > without seeing some real apps try to use the low-level ones and seeing how they
-> > struggle.
+> > And after playing a bit more, I see that the only thing to the left is
+> > padding and redzone. SLUB layout, from what I saw:
 > >
-> > I had some glibc code to do the pkey alloc/free operations, but those aren't
-> > necessary if we're doing it in the kernel.  Other than getting the syscall
-> > wrappers in place, I don't have any immediate plans to do anything in glibc.
+> > offset: what's there
+> > -------
+> > start: padding, redzone
+> > red_left_pad: object itself
+> > inuse: rest of metadata
+> > size: start of next slub object
 > >
-> > Was there something you were expecting to see?
->
-> Yeah, so (as you probably guessed!) I'm starting to have second thoughts about the
-> complexity of the alloc/free/set/get interface I suggested, and Mel's review
-> certainly strengthened that feeling.
->
-> I have two worries:
->
-> 1)
->
-> A technical worry I have is that the 'pkey allocation interface' does not seem to
-> be taking the per thread property of pkeys into account - while that property
-> would be useful for apps. That is a limitation that seems unjustified.
->
-> The reason for this is that we are storing the key allocation bitmap in struct_mm,
-> in mm->context.pkey_allocation_map - while we should be storing it in task_struct
-> or thread_info.
+> > (and object_size == inuse - red_left_pad)
+> >
+> > i.e. a pointer must be between red_left_pad and inuse, which is the
+> > same as pointer - ref_left_pad being less than object_size.
+> >
+> > So, as found already, the position in the usercopy check needs to be
+> > bumped down by red_left_pad, which is what Michael's fix does, so I'll
+> > include it in the next version.
+> 
+> Actually, after some offline chats, I think this is better, since it
+> makes sure the ptr doesn't end up somewhere weird before we start the
+> calculations. This leaves the pointer as-is, but explicitly handles
+> the redzone on the offset instead, with no wrapping, etc:
+> 
+>         /* Find offset within object. */
+>         offset = (ptr - page_address(page)) % s->size;
+> 
+> +       /* Adjust for redzone and reject if within the redzone. */
+> +       if (s->flags & SLAB_RED_ZONE) {
+> +               if (offset < s->red_left_pad)
+> +                       return s->name;
+> +               offset -= s->red_left_pad;
+> +       }
+> +
+>         /* Allow address range falling entirely within object size. */
+>         if (offset <= s->object_size && n <= s->object_size - offset)
+>                 return NULL;
+> 
 
-Huh?  Doesn't this have to be per mm?  Sure, PKRU is per thread, but
-the page tables are shared.
+As Christoph saids, please use slab_ksize() rather than
+s->object_size.
 
-> 2)
->
-> My main worry is that it appears at this stage that we are still pretty far away
-> from completely shadowing the hardware pkey state in the kernel - and without that
-> we cannot really force user-space to use the 'proper' APIs. They can just use the
-> raw instructions, condition them on a CPUID and be done with it: everything can be
-> organized in user-space.
->
+Otherwise, looks good to me.
 
-My vote would be to keep the allocation mechanism but get rid of pkey_set.
+Thanks.
 
-Also, I think the debug poisoning feature is overcomplicated.  Let's
-just forbid mprotect_key with an unallocated key.
-
-There are still two issues that I think we need to address, though:
-
-1. Signal delivery shouldn't unconditionally clear PKRU.  That's what
-the current patches do, and it's unsafe.  I'd rather set PKRU to the
-maximally locked down state on signal delivery (except for the
-PROT_EXEC key), although that might cause its own set of problems.
-
-2. When thread A allocates a pkey, how does it lock down thread B?
-
-#2 could be addressed by using fully-locked-down as the initial state
-post-exec() and copying the state on clone().  Dave, are there any
-cases in practice where one thread would allocate a pkey and want
-other threads to immediately have access to the memory with that key?
-
-I find myself wondering whether we should stop using XSAVE for PKRU
-sooner rather than later.  If we do anything like the above, we
-completely lose the init optimization, and the code would be a good
-deal simpler if we switched PKRU directly in switch_to and could
-therefore treat it like a normal register everywhere else.
-
---Andy
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
