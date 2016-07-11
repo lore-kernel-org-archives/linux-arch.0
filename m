@@ -1,112 +1,80 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 08/32] dma-api: Teach the "DMA-from-stack" check about vmapped stacks
-Date: Mon, 11 Jul 2016 13:53:41 -0700
-Message-ID: <4a1d5fa16a28b32509ece3611690be48a8746778.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 28/32] sched: Add try_get_task_stack() and put_task_stack()
+Date: Mon, 11 Jul 2016 13:54:01 -0700
+Message-ID: <cd442c3780f7aa2bb1b1f4d43fb61761f4d0f128.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3902-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
-at the stack, then either the sg page will be in highmem or sg_virt
-will return the direct-map alias.  In neither case will the existing
-check_for_stack() implementation realize that it's a stack page.
+There are a few places in the kernel that access stack memory
+belonging to a different task.  Before we can start freeing task
+stacks before the task_struct is freed, we need a way for those code
+paths to pin the stack.
 
-Fix it by explicitly checking for stack pages.
-
-This has no effect by itself.  It's broken out for ease of review.
-
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
- 1 file changed, 33 insertions(+), 6 deletions(-)
+ include/linux/sched.h | 16 ++++++++++++++++
+ init/Kconfig          |  3 +++
+ 2 files changed, 19 insertions(+)
 
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index 51a76af25c66..5b2e63cba90e 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -22,6 +22,7 @@
- #include <linux/stacktrace.h>
- #include <linux/dma-debug.h>
- #include <linux/spinlock.h>
-+#include <linux/vmalloc.h>
- #include <linux/debugfs.h>
- #include <linux/uaccess.h>
- #include <linux/export.h>
-@@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
- 	put_hash_bucket(bucket, &flags);
- }
- 
--static void check_for_stack(struct device *dev, void *addr)
-+static void check_for_stack(struct device *dev,
-+			    struct page *page, size_t offset)
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 4108b4880b86..18bef18fef88 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -3063,11 +3063,19 @@ static inline struct thread_info *task_thread_info(struct task_struct *task)
  {
--	if (object_is_on_stack(addr))
--		err_printk(dev, NULL, "DMA-API: device driver maps memory from "
--				"stack [addr=%p]\n", addr);
-+	void *addr;
-+	struct vm_struct *stack_vm_area = task_stack_vm_area(current);
+ 	return &task->thread_info;
+ }
 +
-+	if (!stack_vm_area) {
-+		/* Stack is direct-mapped. */
-+		if (PageHighMem(page))
-+			return;
-+		addr = page_address(page) + offset;
-+		if (object_is_on_stack(addr))
-+			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [addr=%p]\n",
-+				   addr);
-+	} else {
-+		/* Stack is vmalloced. */
-+		int i;
++/*
++ * When accessing the stack of a non-current task that might exit, use
++ * try_get_task_stack() instead.  task_stack_page will return a pointer
++ * that could get freed out from under you.
++ */
+ static inline void *task_stack_page(const struct task_struct *task)
+ {
+ 	return task->stack;
+ }
 +
-+		for (i = 0; i < stack_vm_area->nr_pages; i++) {
-+			if (page != stack_vm_area->pages[i])
-+				continue;
+ #define setup_thread_stack(new,old)	do { } while(0)
 +
-+			addr = (u8 *)current->stack + i * PAGE_SIZE +
-+				offset;
-+			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [probable addr=%p]\n",
-+				   addr);
-+			break;
-+		}
-+	}
+ static inline unsigned long *end_of_stack(const struct task_struct *task)
+ {
+ 	return task->stack;
+@@ -3103,6 +3111,14 @@ static inline unsigned long *end_of_stack(struct task_struct *p)
  }
  
- static inline bool overlap(void *addr, unsigned long len, void *start, void *end)
-@@ -1289,10 +1314,11 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
- 	if (map_single)
- 		entry->type = dma_debug_single;
- 
-+	check_for_stack(dev, page, offset);
+ #endif
 +
- 	if (!PageHighMem(page)) {
- 		void *addr = page_address(page) + offset;
- 
--		check_for_stack(dev, addr);
- 		check_for_illegal_area(dev, addr, size);
- 	}
- 
-@@ -1384,8 +1410,9 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 		entry->sg_call_ents   = nents;
- 		entry->sg_mapped_ents = mapped_ents;
- 
-+		check_for_stack(dev, sg_page(s), s->offset);
++static inline void *try_get_task_stack(struct task_struct *tsk)
++{
++	return task_stack_page(tsk);
++}
 +
- 		if (!PageHighMem(sg_page(s))) {
--			check_for_stack(dev, sg_virt(s));
- 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
- 		}
++static inline void put_task_stack(struct task_struct *tsk) {}
++
+ #define task_stack_end_corrupted(task) \
+ 		(*(end_of_stack(task)) != STACK_END_MAGIC)
  
+diff --git a/init/Kconfig b/init/Kconfig
+index 2cdf20e03b1f..8823df60d312 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -33,6 +33,9 @@ config THREAD_INFO_IN_TASK
+ 	  make this work, an arch will need to remove all thread_info fields
+ 	  except flags and fix any runtime bugs.
+ 
++	  One subtle change that will be needed is to use try_get_task_stack()
++	  and put_task_stack() in save_thread_stack_tsk().
++
+ menu "General setup"
+ 
+ config BROKEN
 -- 
 2.7.4
