@@ -1,73 +1,105 @@
-From: Miroslav Benes <mbenes@suse.cz>
-Subject: Re: [PATCH v2 2/2] arm64: implement live patching
-Date: Mon, 11 Jul 2016 16:03:08 +0200 (CEST)
-Message-ID: <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz>
-References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151722.B81C968D29@newverein.lst.de>
+From: Dave Hansen <dave@sr71.net>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Mon, 11 Jul 2016 07:28:53 -0700
+Message-ID: <5783AD25.8020303@sr71.net>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <20160711073534.GA19615@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-sparse-owner@vger.kernel.org>
-In-Reply-To: <20160627151722.B81C968D29@newverein.lst.de>
-Sender: linux-sparse-owner@vger.kernel.org
-To: Torsten Duwe <duwe@lst.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org, jeyu@redhat.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.sr71.net ([198.145.64.142]:39873 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754541AbcGKO26 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 10:28:58 -0400
+In-Reply-To: <20160711073534.GA19615@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>, Andy Lutomirski <luto@amacapital.net>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
 
-On Mon, 27 Jun 2016, Torsten Duwe wrote:
+On 07/11/2016 12:35 AM, Ingo Molnar wrote:
+> * Andy Lutomirski <luto@amacapital.net> wrote:
+> mprotect_pkey()'s effects are per MM, but the system calls related to managing the 
+> keys (alloc/free/get/set) are fundamentally per CPU.
+> 
+> Here's an example of how this could matter to applications:
+> 
+>  - 'writer thread' gets a RW- key into index 1 to a specific data area
+>  - a pool of 'reader threads' may get the same pkey index 1 R-- to read the data 
+>    area.
+> 
+> Same page tables, same index, two protections and two purposes.
+> 
+> With a global, per MM allocation of keys we'd have to use two indices: index 1 and 2.
 
-> diff --git a/arch/arm64/include/asm/livepatch.h b/arch/arm64/include/asm/livepatch.h
-> new file mode 100644
-> index 0000000..6b9a3d1
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/livepatch.h
-> @@ -0,0 +1,37 @@
-> +/*
-> + * livepatch.h - arm64-specific Kernel Live Patching Core
-> + *
-> + * Copyright (C) 2016 SUSE
-> + *
-> + * This program is free software; you can redistribute it and/or
-> + * modify it under the terms of the GNU General Public License
-> + * as published by the Free Software Foundation; either version 2
-> + * of the License, or (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see <http://www.gnu.org/licenses/>.
-> + */
-> +#ifndef _ASM_ARM64_LIVEPATCH_H
-> +#define _ASM_ARM64_LIVEPATCH_H
-> +
-> +#include <linux/module.h>
-> +#include <linux/ftrace.h>
-> +
-> +#ifdef CONFIG_LIVEPATCH
+I'm not sure how this would work.  A piece of data mapped at only one
+virtual address can have only one key associated with it.  For a data
+area, you would need to indicate between threads which key they needed
+in order to access the data.  Both threads need to agree on the virtual
+address *and* the key used for access.
 
-A nit but we removed such guards in the other header files.
+Remember, PKRU is just a *bitmap*.  The only place keys are stored is in
+the page tables.
 
-> +static inline int klp_check_compiler_support(void)
-> +{
-> +	return 0;
-> +}
-> +
-> +static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-> +{
-> +	regs->pc = ip;
-> +}
-> +#endif /* CONFIG_LIVEPATCH */
+Here's how this ends up looking in practice when we have an initializer,
+a reader and a writer:
 
-I also checked mod_arch_specific structure because of the way we deal 
-with relocations. It is defined only if CONFIG_ARM64_MODULE_PLTS is 
-enabled and there is a pointer to 'struct elf64_shdr' called plt. It is 
-used indirectly in apply_relocate_add() so we need it to stay. However it 
-points to an existing Elf section and SHF_ALLOC is added to its sh_flags 
-in module_frob_arch_sections() (arch/arm64/kernel/module-plts.c). 
-Therefore we should be ok.
+	/* allocator: */
+	pkey = pkey_alloc();
+	data = mmap(PAGE_SIZE, PROT_NONE, ...);
+	pkey_mprotect(data, PROT_WRITE|PROT_READ, pkey);
+	metadata[data].pkey = pkey;
 
-Jessica, could you check it as well, please?
+	/* reader */
+	pkey_set(metadata[data].pkey, PKEY_DENY_WRITE);
+	readerfoo = *data;
+	pkey_set(metadata[data].pkey, PKEY_DENY_WRITE|ACCESS);
 
-Thanks,
-Miroslav
+	/* writer */
+	pkey_set(metadata[data].pkey, 0); /* 0 == deny nothing */
+	*data = bar;
+	pkey_set(metadata[data].pkey, PKEY_DENY_WRITE|ACCESS);
+
+
+I'm also not sure what the indexes are that you're referring to.
+
+> Depending on how scarce the index space turns out to be making the key indices per 
+> thread is probably the right model.
+
+Yeah, I'm totally confused about what you mean by indexes.
+
+>> There are still two issues that I think we need to address, though:
+>>
+>> 1. Signal delivery shouldn't unconditionally clear PKRU.  That's what
+>> the current patches do, and it's unsafe.  I'd rather set PKRU to the
+>> maximally locked down state on signal delivery (except for the
+>> PROT_EXEC key), although that might cause its own set of problems.
+> 
+> Right now the historic pattern for signal handlers is that they safely and 
+> transparently stack on top of existing FPU related resources and do a save/restore 
+> of them. In that sense saving+clearing+restoring the pkeys state would be the 
+> correct approach that follows that pattern. There are two extra considerations:
+> 
+> - If we think of pkeys as a temporary register that can be used to access/unaccess 
+>   normally unaccessible memory regions then this makes sense, in fact it's more 
+>   secure: signal handlers cannot accidentally stomp on an encryption key or on a
+>   database area, unless they intentionally gain access to them.
+> 
+> - If we think of pkeys as permanent memory mappings that enhance existing MM
+>   permissions then it would be correct to let them leak into signal handler state. 
+>   The globl true-PROT_EXEC key would fall into this category.
+> 
+> So I agree, mostly: the correct approach is to save+clear+restore the first 14 
+> pkey indices, and to leave alone the two 'global' indices.
+
+The current scheme is the most permissive, but it has an important
+property: it's the most _flexible_.  You can implement almost any scheme
+you want in userspace on top of it.  The first userspace instruction of
+the handler could easily be WRKRU to fully lock down access in whatever
+scheme a program wants.
