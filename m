@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34428 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:34312 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751153AbcGKUy0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:26 -0400
+	id S1753915AbcGKUy2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:28 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 10/32] x86/dumpstack: Honor supplied @regs arg
-Date: Mon, 11 Jul 2016 13:53:43 -0700
-Message-ID: <7207ea4229bf55bbfad565f693f33151d9e7c006.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 08/32] dma-api: Teach the "DMA-from-stack" check about vmapped stacks
+Date: Mon, 11 Jul 2016 13:53:41 -0700
+Message-ID: <4a1d5fa16a28b32509ece3611690be48a8746778.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -14,68 +14,101 @@ References: <cover.1468270393.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Denys Vlasenko <dvlasenk@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20160711205343.OGJN4zXJ2w4pZU_3wCkhtWwBvxNV5rUbJtgdJDGoiOc@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20160711205341.ncVu4ZB_tOTPjYr_uwxlqGFr5__NSjH6t-4d3NfzJjI@z>
 
-[cherry-picked from ef16dd0c2a523d2e3975bb1bea9f5727e3e7146f to
- avoid tangling the trees too much.]
+If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
+at the stack, then either the sg page will be in highmem or sg_virt
+will return the direct-map alias.  In neither case will the existing
+check_for_stack() implementation realize that it's a stack page.
 
-The comment suggests that show_stack(NULL, NULL) should backtrace the
-current context, but the code doesn't match the comment. If regs are
-given, start the "Stack:" hexdump at regs->sp.
+Fix it by explicitly checking for stack pages.
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
-Signed-off-by: Borislav Petkov <bp@suse.de>
+This has no effect by itself.  It's broken out for ease of review.
+
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Josh Poimboeuf <jpoimboe@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Link: http://lkml.kernel.org/r/1467671487-10344-2-git-send-email-bp@alien8.de
-Link: http://lkml.kernel.org/r/efcd79bf4106d61f1cd258c2caa87f3a0618eeac.1466036668.git.luto@kernel.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/kernel/dumpstack_32.c | 4 +++-
- arch/x86/kernel/dumpstack_64.c | 4 +++-
- 2 files changed, 6 insertions(+), 2 deletions(-)
+ lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/kernel/dumpstack_32.c b/arch/x86/kernel/dumpstack_32.c
-index fef917e79b9d..948d77da3881 100644
---- a/arch/x86/kernel/dumpstack_32.c
-+++ b/arch/x86/kernel/dumpstack_32.c
-@@ -96,7 +96,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 	int i;
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index 51a76af25c66..5b2e63cba90e 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -22,6 +22,7 @@
+ #include <linux/stacktrace.h>
+ #include <linux/dma-debug.h>
+ #include <linux/spinlock.h>
++#include <linux/vmalloc.h>
+ #include <linux/debugfs.h>
+ #include <linux/uaccess.h>
+ #include <linux/export.h>
+@@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
+ 	put_hash_bucket(bucket, &flags);
+ }
  
- 	if (sp == NULL) {
--		if (task)
-+		if (regs)
-+			sp = (unsigned long *)regs->sp;
-+		else if (task)
- 			sp = (unsigned long *)task->thread.sp;
- 		else
- 			sp = (unsigned long *)&sp;
-diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
-index d558a8a49016..a81e1ef73bf2 100644
---- a/arch/x86/kernel/dumpstack_64.c
-+++ b/arch/x86/kernel/dumpstack_64.c
-@@ -264,7 +264,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 	 * back trace for this cpu:
- 	 */
- 	if (sp == NULL) {
--		if (task)
-+		if (regs)
-+			sp = (unsigned long *)regs->sp;
-+		else if (task)
- 			sp = (unsigned long *)task->thread.sp;
- 		else
- 			sp = (unsigned long *)&sp;
+-static void check_for_stack(struct device *dev, void *addr)
++static void check_for_stack(struct device *dev,
++			    struct page *page, size_t offset)
+ {
+-	if (object_is_on_stack(addr))
+-		err_printk(dev, NULL, "DMA-API: device driver maps memory from "
+-				"stack [addr=%p]\n", addr);
++	void *addr;
++	struct vm_struct *stack_vm_area = task_stack_vm_area(current);
++
++	if (!stack_vm_area) {
++		/* Stack is direct-mapped. */
++		if (PageHighMem(page))
++			return;
++		addr = page_address(page) + offset;
++		if (object_is_on_stack(addr))
++			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [addr=%p]\n",
++				   addr);
++	} else {
++		/* Stack is vmalloced. */
++		int i;
++
++		for (i = 0; i < stack_vm_area->nr_pages; i++) {
++			if (page != stack_vm_area->pages[i])
++				continue;
++
++			addr = (u8 *)current->stack + i * PAGE_SIZE +
++				offset;
++			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [probable addr=%p]\n",
++				   addr);
++			break;
++		}
++	}
+ }
+ 
+ static inline bool overlap(void *addr, unsigned long len, void *start, void *end)
+@@ -1289,10 +1314,11 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+ 	if (map_single)
+ 		entry->type = dma_debug_single;
+ 
++	check_for_stack(dev, page, offset);
++
+ 	if (!PageHighMem(page)) {
+ 		void *addr = page_address(page) + offset;
+ 
+-		check_for_stack(dev, addr);
+ 		check_for_illegal_area(dev, addr, size);
+ 	}
+ 
+@@ -1384,8 +1410,9 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
+ 		entry->sg_call_ents   = nents;
+ 		entry->sg_mapped_ents = mapped_ents;
+ 
++		check_for_stack(dev, sg_page(s), s->offset);
++
+ 		if (!PageHighMem(sg_page(s))) {
+-			check_for_stack(dev, sg_virt(s));
+ 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
+ 		}
+ 
 -- 
 2.7.4
 
