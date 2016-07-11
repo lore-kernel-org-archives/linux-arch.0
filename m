@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35136 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:35224 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754134AbcGKUys (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:48 -0400
+	id S932511AbcGKUyv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:51 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 24/32] x86/entry: Get rid of pt_regs_to_thread_info()
-Date: Mon, 11 Jul 2016 13:53:57 -0700
-Message-ID: <0beec068e1d2a4a510087332f4442d8c3c23b85e.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 26/32] sched: Allow putting thread_info into task_struct
+Date: Mon, 11 Jul 2016 13:53:59 -0700
+Message-ID: <50b235ef4cb5246041d111ebdc812c70fdf88e34.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -15,107 +15,213 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160711205357.ThsNkKI_peDfgAvNhIiHfL_Po_RfRaNyZm3SNn8K96I@z>
+Message-ID: <20160711205359.Xzz6ith0EXsbaNT--XovYjpr9RUfvu7ZP1GuQ61T9x0@z>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+If an arch opts in by setting CONFIG_THREAD_INFO_IN_TASK_STRUCT,
+then thread_info is defined as a single 'u32 flags' and is the first
+entry of task_struct.  thread_info::task is removed (it serves no
+purpose if thread_info is embedded in task_struct), and
+thread_info::cpu gets its own slot in task_struct.
 
-It was a nice optimization while it lasted, but thread_info is moving
-and this optimization will no longer work.
+This is heavily based on a patch written by Linus.
 
-Quoting Linus:
-
-    Oh Gods, Andy. That pt_regs_to_thread_info() thing made me want
-    to do unspeakable acts on a poor innocent wax figure that looked
-    _exactly_ like you.
-
-[changelog written by Andy]
-Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/entry/common.c | 21 +++++++--------------
- 1 file changed, 7 insertions(+), 14 deletions(-)
+ include/linux/init_task.h   |  9 +++++++++
+ include/linux/sched.h       | 36 ++++++++++++++++++++++++++++++++++--
+ include/linux/thread_info.h | 15 +++++++++++++++
+ init/Kconfig                |  7 +++++++
+ init/init_task.c            |  7 +++++--
+ kernel/sched/sched.h        |  4 ++++
+ 6 files changed, 74 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index c4150bec7982..804487f126cb 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -31,13 +31,6 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index f8834f820ec2..9c04d44eeb3c 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -15,6 +15,8 @@
+ #include <net/net_namespace.h>
+ #include <linux/sched/rt.h>
  
--static struct thread_info *pt_regs_to_thread_info(struct pt_regs *regs)
--{
--	unsigned long top_of_stack =
--		(unsigned long)(regs + 1) + TOP_OF_KERNEL_STACK_PADDING;
--	return (struct thread_info *)(top_of_stack - THREAD_SIZE);
--}
--
- #ifdef CONFIG_CONTEXT_TRACKING
- /* Called on entry from user mode with IRQs off. */
- __visible void enter_from_user_mode(void)
-@@ -78,7 +71,7 @@ static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
++#include <asm/thread_info.h>
++
+ #ifdef CONFIG_SMP
+ # define INIT_PUSHABLE_TASKS(tsk)					\
+ 	.pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO),
+@@ -183,12 +185,19 @@ extern struct task_group root_task_group;
+ # define INIT_KASAN(tsk)
+ #endif
+ 
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++# define INIT_TASK_TI(tsk) .thread_info = INIT_THREAD_INFO(tsk),
++#else
++# define INIT_TASK_TI(tsk)
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
   */
- unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
+ #define INIT_TASK(tsk)	\
+ {									\
++	INIT_TASK_TI(tsk)						\
+ 	.state		= 0,						\
+ 	.stack		= init_stack,					\
+ 	.usage		= ATOMIC_INIT(2),				\
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 569df670407a..4108b4880b86 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1456,6 +1456,13 @@ struct tlbflush_unmap_batch {
+ };
+ 
+ struct task_struct {
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	/*
++	 * For reasons of header soup (see current_thread_info()), this
++	 * must be the first element of task_struct.
++	 */
++	struct thread_info thread_info;
++#endif
+ 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+ 	void *stack;
+ 	atomic_t usage;
+@@ -1465,6 +1472,9 @@ struct task_struct {
+ #ifdef CONFIG_SMP
+ 	struct llist_node wake_entry;
+ 	int on_cpu;
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	unsigned int cpu;	/* current CPU */
++#endif
+ 	unsigned int wakee_flips;
+ 	unsigned long wakee_flip_decay_ts;
+ 	struct task_struct *last_wakee;
+@@ -2557,7 +2567,9 @@ extern void set_curr_task(int cpu, struct task_struct *p);
+ void yield(void);
+ 
+ union thread_union {
++#ifndef CONFIG_THREAD_INFO_IN_TASK
+ 	struct thread_info thread_info;
++#endif
+ 	unsigned long stack[THREAD_SIZE/sizeof(long)];
+ };
+ 
+@@ -3045,10 +3057,26 @@ static inline void threadgroup_change_end(struct task_struct *tsk)
+ 	cgroup_threadgroup_change_end(tsk);
+ }
+ 
+-#ifndef __HAVE_THREAD_FUNCTIONS
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++
++static inline struct thread_info *task_thread_info(struct task_struct *task)
++{
++	return &task->thread_info;
++}
++static inline void *task_stack_page(const struct task_struct *task)
++{
++	return task->stack;
++}
++#define setup_thread_stack(new,old)	do { } while(0)
++static inline unsigned long *end_of_stack(const struct task_struct *task)
++{
++	return task->stack;
++}
++
++#elif !defined(__HAVE_THREAD_FUNCTIONS)
+ 
+ #define task_thread_info(task)	((struct thread_info *)(task)->stack)
+-#define task_stack_page(task)	((task)->stack)
++#define task_stack_page(task)	((void *)(task)->stack)
+ 
+ static inline void setup_thread_stack(struct task_struct *p, struct task_struct *org)
  {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned long ret = 0;
- 	u32 work;
+@@ -3348,7 +3376,11 @@ static inline void ptrace_signal_wake_up(struct task_struct *t, bool resume)
  
-@@ -156,7 +149,7 @@ unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
- long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
- 				unsigned long phase1_result)
+ static inline unsigned int task_cpu(const struct task_struct *p)
  {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	long ret = 0;
- 	u32 work = ACCESS_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY;
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	return p->cpu;
++#else
+ 	return task_thread_info(p)->cpu;
++#endif
+ }
  
-@@ -239,7 +232,7 @@ static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
- 		/* Disable IRQs and retry */
- 		local_irq_disable();
+ static inline int task_node(const struct task_struct *p)
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index 352b1542f5cc..b2b32d63bc8e 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -13,6 +13,21 @@
+ struct timespec;
+ struct compat_timespec;
  
--		cached_flags = READ_ONCE(pt_regs_to_thread_info(regs)->flags);
-+		cached_flags = READ_ONCE(current_thread_info()->flags);
- 
- 		if (!(cached_flags & EXIT_TO_USERMODE_LOOP_FLAGS))
- 			break;
-@@ -250,7 +243,7 @@ static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
- /* Called with IRQs disabled. */
- __visible inline void prepare_exit_to_usermode(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	u32 cached_flags;
- 
- 	if (IS_ENABLED(CONFIG_PROVE_LOCKING) && WARN_ON(!irqs_disabled()))
-@@ -309,7 +302,7 @@ static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++struct thread_info {
++	u32			flags;		/* low level flags */
++};
++
++#define INIT_THREAD_INFO(tsk)			\
++{						\
++	.flags		= 0,			\
++}
++#endif
++
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++#define current_thread_info() ((struct thread_info *)current)
++#endif
++
+ /*
+  * System call restart block.
   */
- __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	u32 cached_flags = READ_ONCE(ti->flags);
+diff --git a/init/Kconfig b/init/Kconfig
+index f755a602d4a1..2cdf20e03b1f 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -26,6 +26,13 @@ config IRQ_WORK
+ config BUILDTIME_EXTABLE_SORT
+ 	bool
  
- 	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
-@@ -332,7 +325,7 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- #ifdef CONFIG_X86_64
- __visible void do_syscall_64(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned long nr = regs->orig_ax;
++config THREAD_INFO_IN_TASK
++	bool
++	help
++	  Select this to move thread_info off the stack into task_struct.  To
++	  make this work, an arch will need to remove all thread_info fields
++	  except flags and fix any runtime bugs.
++
+ menu "General setup"
  
- 	enter_from_user_mode();
-@@ -365,7 +358,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
+ config BROKEN
+diff --git a/init/init_task.c b/init/init_task.c
+index ba0a7f362d9e..11f83be1fa79 100644
+--- a/init/init_task.c
++++ b/init/init_task.c
+@@ -22,5 +22,8 @@ EXPORT_SYMBOL(init_task);
+  * Initial thread structure. Alignment of this is handled by a special
+  * linker map entry.
   */
- static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned int nr = (unsigned int)regs->orig_ax;
- 
- #ifdef CONFIG_IA32_EMULATION
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
++union thread_union init_thread_union __init_task_data = {
++#ifndef CONFIG_THREAD_INFO_IN_TASK
++	INIT_THREAD_INFO(init_task)
++#endif
++};
+diff --git a/kernel/sched/sched.h b/kernel/sched/sched.h
+index 7cbeb92a1cb9..a1cabcea4c54 100644
+--- a/kernel/sched/sched.h
++++ b/kernel/sched/sched.h
+@@ -999,7 +999,11 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
+ 	 * per-task data have been completed by this moment.
+ 	 */
+ 	smp_wmb();
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	p->cpu = cpu;
++#else
+ 	task_thread_info(p)->cpu = cpu;
++#endif
+ 	p->wake_cpu = cpu;
+ #endif
+ }
 -- 
 2.7.4
 
