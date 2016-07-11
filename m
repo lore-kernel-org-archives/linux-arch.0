@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34692 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:34750 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932393AbcGKUyd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:33 -0400
+	id S1751153AbcGKUyf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:35 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 15/32] x86/mm: Improve stack-overflow #PF handling
-Date: Mon, 11 Jul 2016 13:53:48 -0700
-Message-ID: <6ec969dbe40e32a004d4ef6da623bab4881411f7.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 16/32] x86: Move uaccess_err and sig_on_uaccess_err to thread_struct
+Date: Mon, 11 Jul 2016 13:53:49 -0700
+Message-ID: <5ceb9aa1bf1ab75af8f9bbde73e93d6d4ce7475f.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -15,100 +15,118 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160711205348.1XTYfqBnnQQ1HbNew_jT9JEKUPiX38Xv3R1f6WWeccY@z>
+Message-ID: <20160711205349.bbLUgkrgQ0cWCWgbWoKEfZ1VO-oxcQNEZoQJp-H0gRM@z>
 
-If we get a page fault indicating kernel stack overflow, invoke
-handle_stack_overflow().  To prevent us from overflowing the stack
-again while handling the overflow (because we are likely to have
-very little stack space left), call handle_stack_overflow() on the
-double-fault stack
+thread_info is a legacy mess.  To prepare for its partial removal,
+move the uaccess control fields out -- they're straightforward.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/traps.h |  6 ++++++
- arch/x86/kernel/traps.c      |  6 +++---
- arch/x86/mm/fault.c          | 34 ++++++++++++++++++++++++++++++++++
- 3 files changed, 43 insertions(+), 3 deletions(-)
+ arch/x86/entry/vsyscall/vsyscall_64.c | 6 +++---
+ arch/x86/include/asm/processor.h      | 3 +++
+ arch/x86/include/asm/thread_info.h    | 2 --
+ arch/x86/include/asm/uaccess.h        | 4 ++--
+ arch/x86/mm/extable.c                 | 2 +-
+ arch/x86/mm/fault.c                   | 2 +-
+ 6 files changed, 10 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index c3496619740a..01fd0a7f48cd 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -117,6 +117,12 @@ extern void ist_exit(struct pt_regs *regs);
- extern void ist_begin_non_atomic(struct pt_regs *regs);
- extern void ist_end_non_atomic(void);
+diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
+index 174c2549939d..3aba2b043050 100644
+--- a/arch/x86/entry/vsyscall/vsyscall_64.c
++++ b/arch/x86/entry/vsyscall/vsyscall_64.c
+@@ -221,8 +221,8 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
+ 	 * With a real vsyscall, page faults cause SIGSEGV.  We want to
+ 	 * preserve that behavior to make writing exploits harder.
+ 	 */
+-	prev_sig_on_uaccess_error = current_thread_info()->sig_on_uaccess_error;
+-	current_thread_info()->sig_on_uaccess_error = 1;
++	prev_sig_on_uaccess_error = current->thread.sig_on_uaccess_error;
++	current->thread.sig_on_uaccess_error = 1;
  
-+#ifdef CONFIG_VMAP_STACK
-+void __noreturn handle_stack_overflow(const char *message,
-+				      struct pt_regs *regs,
-+				      unsigned long fault_address);
-+#endif
-+
- /* Interrupts/Exceptions */
- enum {
- 	X86_TRAP_DE = 0,	/*  0, Divide-by-zero */
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index f0345284c30b..33d4e7629a42 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -293,9 +293,9 @@ DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
- DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
- 
- #ifdef CONFIG_VMAP_STACK
--static void __noreturn handle_stack_overflow(const char *message,
--					     struct pt_regs *regs,
--					     unsigned long fault_address)
-+__visible void __noreturn handle_stack_overflow(const char *message,
-+						struct pt_regs *regs,
-+						unsigned long fault_address)
- {
- 	printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
- 		 (void *)fault_address, current->stack,
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index ca44e2e7fd00..76c58fdcfb29 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -753,6 +753,40 @@ no_context(struct pt_regs *regs, unsigned long error_code,
- 		return;
+ 	ret = -EFAULT;
+ 	switch (vsyscall_nr) {
+@@ -243,7 +243,7 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
+ 		break;
  	}
  
-+#ifdef CONFIG_VMAP_STACK
-+	/*
-+	 * Stack overflow?  During boot, we can fault near the initial
-+	 * stack in the direct map, but that's not an overflow -- check
-+	 * that we're in vmalloc space to avoid this.
-+	 */
-+	if (is_vmalloc_addr((void *)address) &&
-+	    (((unsigned long)tsk->stack - 1 - address < PAGE_SIZE) ||
-+	     address - ((unsigned long)tsk->stack + THREAD_SIZE) < PAGE_SIZE)) {
-+		register void *__sp asm("rsp");
-+		unsigned long stack =
-+			this_cpu_read(orig_ist.ist[DOUBLEFAULT_STACK]) -
-+			sizeof(void *);
-+		/*
-+		 * We're likely to be running with very little stack space
-+		 * left.  It's plausible that we'd hit this condition but
-+		 * double-fault even before we get this far, in which case
-+		 * we're fine: the double-fault handler will deal with it.
-+		 *
-+		 * We don't want to make it all the way into the oops code
-+		 * and then double-fault, though, because we're likely to
-+		 * break the console driver and lose most of the stack dump.
-+		 */
-+		asm volatile ("movq %[stack], %%rsp\n\t"
-+			      "call handle_stack_overflow\n\t"
-+			      "1: jmp 1b"
-+			      : "+r" (__sp)
-+			      : "D" ("kernel stack overflow (page fault)"),
-+				"S" (regs), "d" (address),
-+				[stack] "rm" (stack));
-+		unreachable();
-+	}
-+#endif
+-	current_thread_info()->sig_on_uaccess_error = prev_sig_on_uaccess_error;
++	current->thread.sig_on_uaccess_error = prev_sig_on_uaccess_error;
+ 
+ check_fault:
+ 	if (ret == -EFAULT) {
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 62c6cc3cc5d3..f53ae57bd985 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -419,6 +419,9 @@ struct thread_struct {
+ 	/* Max allowed port in the bitmap, in bytes: */
+ 	unsigned		io_bitmap_max;
+ 
++	unsigned int		sig_on_uaccess_error:1;
++	unsigned int		uaccess_err:1;	/* uaccess failed */
 +
+ 	/* Floating point and extended processor state */
+ 	struct fpu		fpu;
  	/*
- 	 * 32-bit:
- 	 *
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index 30c133ac05cd..7c47bb659ecd 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -58,8 +58,6 @@ struct thread_info {
+ 	__u32			status;		/* thread synchronous flags */
+ 	__u32			cpu;		/* current CPU */
+ 	mm_segment_t		addr_limit;
+-	unsigned int		sig_on_uaccess_error:1;
+-	unsigned int		uaccess_err:1;	/* uaccess failed */
+ };
+ 
+ #define INIT_THREAD_INFO(tsk)			\
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index 2982387ba817..4d2a726e8e6d 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -468,13 +468,13 @@ struct __large_struct { unsigned long buf[100]; };
+  * uaccess_try and catch
+  */
+ #define uaccess_try	do {						\
+-	current_thread_info()->uaccess_err = 0;				\
++	current->thread.uaccess_err = 0;				\
+ 	__uaccess_begin();						\
+ 	barrier();
+ 
+ #define uaccess_catch(err)						\
+ 	__uaccess_end();						\
+-	(err) |= (current_thread_info()->uaccess_err ? -EFAULT : 0);	\
++	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
+ } while (0)
+ 
+ /**
+diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
+index 4bb53b89f3c5..0f90cc218d04 100644
+--- a/arch/x86/mm/extable.c
++++ b/arch/x86/mm/extable.c
+@@ -37,7 +37,7 @@ bool ex_handler_ext(const struct exception_table_entry *fixup,
+ 		   struct pt_regs *regs, int trapnr)
+ {
+ 	/* Special hack for uaccess_err */
+-	current_thread_info()->uaccess_err = 1;
++	current->thread.uaccess_err = 1;
+ 	regs->ip = ex_fixup_addr(fixup);
+ 	return true;
+ }
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 76c58fdcfb29..c4c8b4938e93 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -737,7 +737,7 @@ no_context(struct pt_regs *regs, unsigned long error_code,
+ 		 * In this case we need to make sure we're not recursively
+ 		 * faulting through the emulate_vsyscall() logic.
+ 		 */
+-		if (current_thread_info()->sig_on_uaccess_error && signal) {
++		if (current->thread.sig_on_uaccess_error && signal) {
+ 			tsk->thread.trap_nr = X86_TRAP_PF;
+ 			tsk->thread.error_code = error_code | PF_USER;
+ 			tsk->thread.cr2 = address;
 -- 
 2.7.4
 
