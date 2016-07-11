@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35058 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:35172 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754123AbcGKUyp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:45 -0400
+	id S932503AbcGKUyt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:49 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 22/32] kdb: Use task_cpu() instead of task_thread_info()->cpu
-Date: Mon, 11 Jul 2016 13:53:55 -0700
-Message-ID: <c72cd2d7896c80f4398f685af5a78f2111fbda78.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 25/32] um: Stop conflating task_struct::stack with thread_info
+Date: Mon, 11 Jul 2016 13:53:58 -0700
+Message-ID: <e6a9327942cc033f7d225b8202ecfc3ec3c6dec8.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -14,31 +14,62 @@ References: <cover.1468270393.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Jason Wessel <jason.wessel@windriver.com>
-Message-ID: <20160711205355.9-WN2V5BoYeUkbBlqbYYj55Cyz98PciAbVFHjP-CCy0@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160711205358.FmfpvfF2TA3jWxPD_OpYwCdkHSUaw13bqYO2eRWWKkA@z>
 
-We'll need this cleanup to make the cpu field in thread_info be
-optional.
+From: Linus Torvalds <torvalds@linux-foundation.org>
 
-Cc: Jason Wessel <jason.wessel@windriver.com>
+thread_info may move in the future, so use the accessors.
+
+Andy Lutomirski wrote this changelog message and changed
+"task_thread_info(child)->cpu" to "task_cpu(child)".
+
+Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/kdb.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/um/ptrace_32.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/kdb.h b/include/linux/kdb.h
-index a19bcf9e762e..410decacff8f 100644
---- a/include/linux/kdb.h
-+++ b/include/linux/kdb.h
-@@ -177,7 +177,7 @@ extern int kdb_get_kbd_char(void);
- static inline
- int kdb_process_cpu(const struct task_struct *p)
+diff --git a/arch/x86/um/ptrace_32.c b/arch/x86/um/ptrace_32.c
+index ebd4dd6ef73b..2a6f781ce9cf 100644
+--- a/arch/x86/um/ptrace_32.c
++++ b/arch/x86/um/ptrace_32.c
+@@ -191,7 +191,7 @@ int peek_user(struct task_struct *child, long addr, long data)
+ 
+ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
  {
--	unsigned int cpu = task_thread_info(p)->cpu;
-+	unsigned int cpu = task_cpu(p);
- 	if (cpu > num_possible_cpus())
- 		cpu = 0;
- 	return cpu;
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_cpu(child);
+ 	struct user_i387_struct fpregs;
+ 
+ 	err = save_i387_registers(userspace_pid[cpu],
+@@ -208,7 +208,7 @@ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
+ 
+ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_cpu(child);
+ 	struct user_i387_struct fpregs;
+ 
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
+@@ -221,7 +221,7 @@ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
+ 
+ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_cpu(child);
+ 	struct user_fxsr_struct fpregs;
+ 
+ 	err = save_fpx_registers(userspace_pid[cpu], (unsigned long *) &fpregs);
+@@ -237,7 +237,7 @@ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *
+ 
+ static int set_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_cpu(child);
+ 	struct user_fxsr_struct fpregs;
+ 
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
 -- 
 2.7.4
 
