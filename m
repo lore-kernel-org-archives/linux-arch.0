@@ -1,84 +1,117 @@
-From: Joonsoo Kim <iamjoonsoo.kim@lge.com>
-Subject: Re: [kernel-hardening] Re: [PATCH 9/9] mm: SLUB hardened usercopy
- support
-Date: Mon, 11 Jul 2016 15:08:29 +0900
-Message-ID: <20160711060829.GB14107@js1304-P5Q-DELUXE>
-References: <577f7e55.4668420a.84f17.5cb9SMTPIN_ADDED_MISSING@mx.google.com>
- <alpine.DEB.2.20.1607080844370.3379@east.gentwo.org>
- <CAGXu5jKE=h32tHVLsDeaPN1GfC+BB3YbFvC+5TE5TK1oR-xU3A@mail.gmail.com>
- <alpine.DEB.2.20.1607081119170.6192@east.gentwo.org>
- <CAGXu5j+UdkQA+k39GNLe5CwBPVD5ZbRGTCQLqS8VF=kWx+PtsQ@mail.gmail.com>
- <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
+From: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Mon, 11 Jul 2016 09:35:35 +0200
+Message-ID: <20160711073534.GA19615@gmail.com>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+ <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <CAGXu5jKxw3RxWNKLX4XVCwJ6x_zA=_RwiU9jLDm2+VRO79G7+w@mail.gmail.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Christoph Lameter <cl@linux.com>, Michael Ellerman <mpe@ellerman.id.au>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Jan Kara <jack@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Linux-MM <linux-mm@kvack.org>, sparclinux <sparclinux@vger.kernel.org>, linux-ia64@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, Russell King <linux@armlinux.org.uk>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad
+In-Reply-To: <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
+Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Mel Gorman <mgorman-3eNAlZScCAx27rWaFMvyedHuzzzSOjJt@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Peter Zijlstra <a.p.zijlstra-/NLkJaSkS4VmR6Xm/wNWPw@public.gmane.org>, Hugh Dickins <hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 08, 2016 at 04:48:38PM -0400, Kees Cook wrote:
-> On Fri, Jul 8, 2016 at 1:41 PM, Kees Cook <keescook@chromium.org> wrote:
-> > On Fri, Jul 8, 2016 at 12:20 PM, Christoph Lameter <cl@linux.com> wrote:
-> >> On Fri, 8 Jul 2016, Kees Cook wrote:
-> >>
-> >>> Is check_valid_pointer() making sure the pointer is within the usable
-> >>> size? It seemed like it was checking that it was within the slub
-> >>> object (checks against s->size, wants it above base after moving
-> >>> pointer to include redzone, etc).
-> >>
-> >> check_valid_pointer verifies that a pointer is pointing to the start of an
-> >> object. It is used to verify the internal points that SLUB used and
-> >> should not be modified to do anything different.
-> >
-> > Yup, no worries -- I won't touch it. :) I just wanted to verify my
-> > understanding.
-> >
-> > And after playing a bit more, I see that the only thing to the left is
-> > padding and redzone. SLUB layout, from what I saw:
-> >
-> > offset: what's there
-> > -------
-> > start: padding, redzone
-> > red_left_pad: object itself
-> > inuse: rest of metadata
-> > size: start of next slub object
-> >
-> > (and object_size == inuse - red_left_pad)
-> >
-> > i.e. a pointer must be between red_left_pad and inuse, which is the
-> > same as pointer - ref_left_pad being less than object_size.
-> >
-> > So, as found already, the position in the usercopy check needs to be
-> > bumped down by red_left_pad, which is what Michael's fix does, so I'll
-> > include it in the next version.
-> 
-> Actually, after some offline chats, I think this is better, since it
-> makes sure the ptr doesn't end up somewhere weird before we start the
-> calculations. This leaves the pointer as-is, but explicitly handles
-> the redzone on the offset instead, with no wrapping, etc:
-> 
->         /* Find offset within object. */
->         offset = (ptr - page_address(page)) % s->size;
-> 
-> +       /* Adjust for redzone and reject if within the redzone. */
-> +       if (s->flags & SLAB_RED_ZONE) {
-> +               if (offset < s->red_left_pad)
-> +                       return s->name;
-> +               offset -= s->red_left_pad;
-> +       }
-> +
->         /* Allow address range falling entirely within object size. */
->         if (offset <= s->object_size && n <= s->object_size - offset)
->                 return NULL;
-> 
 
-As Christoph saids, please use slab_ksize() rather than
-s->object_size.
+* Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org> wrote:
 
-Otherwise, looks good to me.
+> On Jul 9, 2016 1:37 AM, "Ingo Molnar" <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
+> >
+> >
+> > * Dave Hansen <dave-gkUM19QKKo4@public.gmane.org> wrote:
+> >
+> > > On 07/08/2016 12:18 AM, Ingo Molnar wrote:
+> > >
+> > > > So the question is, what is user-space going to do? Do any glibc patches
+> > > > exist? How are the user-space library side APIs going to look like?
+> > >
+> > > My goal at the moment is to get folks enabled to the point that they can start
+> > > modifying apps to use pkeys without having to patch their kernels.
+> > >  I don't have confidence that we can design good high-level userspace interfaces
+> > > without seeing some real apps try to use the low-level ones and seeing how they
+> > > struggle.
+> > >
+> > > I had some glibc code to do the pkey alloc/free operations, but those aren't
+> > > necessary if we're doing it in the kernel.  Other than getting the syscall
+> > > wrappers in place, I don't have any immediate plans to do anything in glibc.
+> > >
+> > > Was there something you were expecting to see?
+> >
+> > Yeah, so (as you probably guessed!) I'm starting to have second thoughts about the
+> > complexity of the alloc/free/set/get interface I suggested, and Mel's review
+> > certainly strengthened that feeling.
+> >
+> > I have two worries:
+> >
+> > 1)
+> >
+> > A technical worry I have is that the 'pkey allocation interface' does not seem to
+> > be taking the per thread property of pkeys into account - while that property
+> > would be useful for apps. That is a limitation that seems unjustified.
+> >
+> > The reason for this is that we are storing the key allocation bitmap in struct_mm,
+> > in mm->context.pkey_allocation_map - while we should be storing it in task_struct
+> > or thread_info.
+> 
+> Huh?  Doesn't this have to be per mm?  Sure, PKRU is per thread, but
+> the page tables are shared.
 
-Thanks.
+But the keys are not shared, and they carry meaningful per thread information.
 
+mprotect_pkey()'s effects are per MM, but the system calls related to managing the 
+keys (alloc/free/get/set) are fundamentally per CPU.
+
+Here's an example of how this could matter to applications:
+
+ - 'writer thread' gets a RW- key into index 1 to a specific data area
+ - a pool of 'reader threads' may get the same pkey index 1 R-- to read the data 
+   area.
+
+Same page tables, same index, two protections and two purposes.
+
+With a global, per MM allocation of keys we'd have to use two indices: index 1 and 2.
+
+Depending on how scarce the index space turns out to be making the key indices per 
+thread is probably the right model.
+
+> There are still two issues that I think we need to address, though:
+> 
+> 1. Signal delivery shouldn't unconditionally clear PKRU.  That's what
+> the current patches do, and it's unsafe.  I'd rather set PKRU to the
+> maximally locked down state on signal delivery (except for the
+> PROT_EXEC key), although that might cause its own set of problems.
+
+Right now the historic pattern for signal handlers is that they safely and 
+transparently stack on top of existing FPU related resources and do a save/restore 
+of them. In that sense saving+clearing+restoring the pkeys state would be the 
+correct approach that follows that pattern. There are two extra considerations:
+
+- If we think of pkeys as a temporary register that can be used to access/unaccess 
+  normally unaccessible memory regions then this makes sense, in fact it's more 
+  secure: signal handlers cannot accidentally stomp on an encryption key or on a
+  database area, unless they intentionally gain access to them.
+
+- If we think of pkeys as permanent memory mappings that enhance existing MM
+  permissions then it would be correct to let them leak into signal handler state. 
+  The globl true-PROT_EXEC key would fall into this category.
+
+So I agree, mostly: the correct approach is to save+clear+restore the first 14 
+pkey indices, and to leave alone the two 'global' indices.
+
+> 2. When thread A allocates a pkey, how does it lock down thread B?
+
+So see above, I think the temporary key space should be per thread, so there would 
+be no inter thread interactions: each thread is responsible for its own key 
+management (via per thread management data in the library that implments it).
+
+Thanks,
+
+	Ingo
