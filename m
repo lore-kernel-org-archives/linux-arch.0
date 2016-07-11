@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34938 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:34982 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754066AbcGKUyl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:41 -0400
+	id S1754085AbcGKUym (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:42 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 19/32] x86/smp: Remove stack_smp_processor_id()
-Date: Mon, 11 Jul 2016 13:53:52 -0700
-Message-ID: <dd40401cc46d3baac0bc5dbf8c6c3e057ed20255.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 20/32] x86/smp: Remove unnecessary initialization of thread_info::cpu
+Date: Mon, 11 Jul 2016 13:53:53 -0700
+Message-ID: <94a4be63923478be9972ccf534f6f2cbb19ddbb7.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -15,60 +15,28 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160711205352.JDIyMYVcguKWDERrlb0tVBJ8ulKphcFU47u6-93URgI@z>
+Message-ID: <20160711205353.yJhO2bglsMzXPWMJO_-svscKGrzqOEafxVEgOp7hMFY@z>
 
-It serves no purpose -- raw_smp_processor_id() works fine.  This
-change will be needed to move thread_info off the stack.
+It's statically initialized to zero -- no need to dynamically
+initialize it to zero as well.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/cpu.h   | 1 -
- arch/x86/include/asm/smp.h   | 6 ------
- arch/x86/kernel/cpu/common.c | 2 +-
- 3 files changed, 1 insertion(+), 8 deletions(-)
+ arch/x86/kernel/smpboot.c | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/cpu.h b/arch/x86/include/asm/cpu.h
-index 678637ad7476..59d34c521d96 100644
---- a/arch/x86/include/asm/cpu.h
-+++ b/arch/x86/include/asm/cpu.h
-@@ -17,7 +17,6 @@ static inline void prefill_possible_map(void) {}
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index fafe8b923cac..0e91dbeca2fd 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -1285,7 +1285,6 @@ void __init native_smp_prepare_cpus(unsigned int max_cpus)
+ 	cpumask_copy(cpu_callin_mask, cpumask_of(0));
+ 	mb();
  
- #define cpu_physical_id(cpu)			boot_cpu_physical_apicid
- #define safe_smp_processor_id()			0
--#define stack_smp_processor_id()		0
- 
- #endif /* CONFIG_SMP */
- 
-diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
-index 66b057306f40..0576b6157f3a 100644
---- a/arch/x86/include/asm/smp.h
-+++ b/arch/x86/include/asm/smp.h
-@@ -172,12 +172,6 @@ extern int safe_smp_processor_id(void);
- #elif defined(CONFIG_X86_64_SMP)
- #define raw_smp_processor_id() (this_cpu_read(cpu_number))
- 
--#define stack_smp_processor_id()					\
--({								\
--	struct thread_info *ti;						\
--	__asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (CURRENT_MASK));	\
--	ti->cpu;							\
--})
- #define safe_smp_processor_id()		smp_processor_id()
- 
- #endif
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index 0fe6953f421c..d22a7b9c4f0e 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -1452,7 +1452,7 @@ void cpu_init(void)
- 	struct task_struct *me;
- 	struct tss_struct *t;
- 	unsigned long v;
--	int cpu = stack_smp_processor_id();
-+	int cpu = raw_smp_processor_id();
- 	int i;
- 
- 	wait_for_master_cpu(cpu);
+-	current_thread_info()->cpu = 0;  /* needed? */
+ 	for_each_possible_cpu(i) {
+ 		zalloc_cpumask_var(&per_cpu(cpu_sibling_map, i), GFP_KERNEL);
+ 		zalloc_cpumask_var(&per_cpu(cpu_core_map, i), GFP_KERNEL);
 -- 
 2.7.4
 
