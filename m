@@ -1,10 +1,10 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 16/32] x86: Move uaccess_err and sig_on_uaccess_err to thread_struct
-Date: Mon, 11 Jul 2016 13:53:49 -0700
-Message-ID: <5ceb9aa1bf1ab75af8f9bbde73e93d6d4ce7475f.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 25/32] um: Stop conflating task_struct::stack with thread_info
+Date: Mon, 11 Jul 2016 13:53:58 -0700
+Message-ID: <e6a9327942cc033f7d225b8202ecfc3ec3c6dec8.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3915-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-3918-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
@@ -16,115 +16,58 @@ To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-thread_info is a legacy mess.  To prepare for its partial removal,
-move the uaccess control fields out -- they're straightforward.
+From: Linus Torvalds <torvalds@linux-foundation.org>
 
+thread_info may move in the future, so use the accessors.
+
+Andy Lutomirski wrote this changelog message and changed
+"task_thread_info(child)->cpu" to "task_cpu(child)".
+
+Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/entry/vsyscall/vsyscall_64.c | 6 +++---
- arch/x86/include/asm/processor.h      | 3 +++
- arch/x86/include/asm/thread_info.h    | 2 --
- arch/x86/include/asm/uaccess.h        | 4 ++--
- arch/x86/mm/extable.c                 | 2 +-
- arch/x86/mm/fault.c                   | 2 +-
- 6 files changed, 10 insertions(+), 9 deletions(-)
+ arch/x86/um/ptrace_32.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
-index 174c2549939d..3aba2b043050 100644
---- a/arch/x86/entry/vsyscall/vsyscall_64.c
-+++ b/arch/x86/entry/vsyscall/vsyscall_64.c
-@@ -221,8 +221,8 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
- 	 * With a real vsyscall, page faults cause SIGSEGV.  We want to
- 	 * preserve that behavior to make writing exploits harder.
- 	 */
--	prev_sig_on_uaccess_error = current_thread_info()->sig_on_uaccess_error;
--	current_thread_info()->sig_on_uaccess_error = 1;
-+	prev_sig_on_uaccess_error = current->thread.sig_on_uaccess_error;
-+	current->thread.sig_on_uaccess_error = 1;
+diff --git a/arch/x86/um/ptrace_32.c b/arch/x86/um/ptrace_32.c
+index ebd4dd6ef73b..2a6f781ce9cf 100644
+--- a/arch/x86/um/ptrace_32.c
++++ b/arch/x86/um/ptrace_32.c
+@@ -191,7 +191,7 @@ int peek_user(struct task_struct *child, long addr, long data)
  
- 	ret = -EFAULT;
- 	switch (vsyscall_nr) {
-@@ -243,7 +243,7 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
- 		break;
- 	}
- 
--	current_thread_info()->sig_on_uaccess_error = prev_sig_on_uaccess_error;
-+	current->thread.sig_on_uaccess_error = prev_sig_on_uaccess_error;
- 
- check_fault:
- 	if (ret == -EFAULT) {
-diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
-index 62c6cc3cc5d3..f53ae57bd985 100644
---- a/arch/x86/include/asm/processor.h
-+++ b/arch/x86/include/asm/processor.h
-@@ -419,6 +419,9 @@ struct thread_struct {
- 	/* Max allowed port in the bitmap, in bytes: */
- 	unsigned		io_bitmap_max;
- 
-+	unsigned int		sig_on_uaccess_error:1;
-+	unsigned int		uaccess_err:1;	/* uaccess failed */
-+
- 	/* Floating point and extended processor state */
- 	struct fpu		fpu;
- 	/*
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index 30c133ac05cd..7c47bb659ecd 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -58,8 +58,6 @@ struct thread_info {
- 	__u32			status;		/* thread synchronous flags */
- 	__u32			cpu;		/* current CPU */
- 	mm_segment_t		addr_limit;
--	unsigned int		sig_on_uaccess_error:1;
--	unsigned int		uaccess_err:1;	/* uaccess failed */
- };
- 
- #define INIT_THREAD_INFO(tsk)			\
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 2982387ba817..4d2a726e8e6d 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -468,13 +468,13 @@ struct __large_struct { unsigned long buf[100]; };
-  * uaccess_try and catch
-  */
- #define uaccess_try	do {						\
--	current_thread_info()->uaccess_err = 0;				\
-+	current->thread.uaccess_err = 0;				\
- 	__uaccess_begin();						\
- 	barrier();
- 
- #define uaccess_catch(err)						\
- 	__uaccess_end();						\
--	(err) |= (current_thread_info()->uaccess_err ? -EFAULT : 0);	\
-+	(err) |= (current->thread.uaccess_err ? -EFAULT : 0);		\
- } while (0)
- 
- /**
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index 4bb53b89f3c5..0f90cc218d04 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -37,7 +37,7 @@ bool ex_handler_ext(const struct exception_table_entry *fixup,
- 		   struct pt_regs *regs, int trapnr)
+ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
  {
- 	/* Special hack for uaccess_err */
--	current_thread_info()->uaccess_err = 1;
-+	current->thread.uaccess_err = 1;
- 	regs->ip = ex_fixup_addr(fixup);
- 	return true;
- }
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 76c58fdcfb29..c4c8b4938e93 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -737,7 +737,7 @@ no_context(struct pt_regs *regs, unsigned long error_code,
- 		 * In this case we need to make sure we're not recursively
- 		 * faulting through the emulate_vsyscall() logic.
- 		 */
--		if (current_thread_info()->sig_on_uaccess_error && signal) {
-+		if (current->thread.sig_on_uaccess_error && signal) {
- 			tsk->thread.trap_nr = X86_TRAP_PF;
- 			tsk->thread.error_code = error_code | PF_USER;
- 			tsk->thread.cr2 = address;
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_cpu(child);
+ 	struct user_i387_struct fpregs;
+ 
+ 	err = save_i387_registers(userspace_pid[cpu],
+@@ -208,7 +208,7 @@ static int get_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
+ 
+ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_cpu(child);
+ 	struct user_i387_struct fpregs;
+ 
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
+@@ -221,7 +221,7 @@ static int set_fpregs(struct user_i387_struct __user *buf, struct task_struct *c
+ 
+ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int err, n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int err, n, cpu = task_cpu(child);
+ 	struct user_fxsr_struct fpregs;
+ 
+ 	err = save_fpx_registers(userspace_pid[cpu], (unsigned long *) &fpregs);
+@@ -237,7 +237,7 @@ static int get_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *
+ 
+ static int set_fpxregs(struct user_fxsr_struct __user *buf, struct task_struct *child)
+ {
+-	int n, cpu = ((struct thread_info *) child->stack)->cpu;
++	int n, cpu = task_cpu(child);
+ 	struct user_fxsr_struct fpregs;
+ 
+ 	n = copy_from_user(&fpregs, buf, sizeof(fpregs));
 -- 
 2.7.4
