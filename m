@@ -1,112 +1,74 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 15/32] x86/mm: Improve stack-overflow #PF handling
-Date: Mon, 11 Jul 2016 13:53:48 -0700
-Message-ID: <6ec969dbe40e32a004d4ef6da623bab4881411f7.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 29/32] kthread: to_live_kthread() needs try_get_task_stack()
+Date: Mon, 11 Jul 2016 13:54:02 -0700
+Message-ID: <00535b14d078b4e581911a87672eaf9766539dbd.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-3901-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-If we get a page fault indicating kernel stack overflow, invoke
-handle_stack_overflow().  To prevent us from overflowing the stack
-again while handling the overflow (because we are likely to have
-very little stack space left), call handle_stack_overflow() on the
-double-fault stack
+From: Oleg Nesterov <oleg@redhat.com>
 
+get_task_struct(tsk) no longer pins tsk->stack so all users of
+to_live_kthread() should do try_get_task_stack/put_task_stack to protect
+"struct kthread" which lives on kthread's stack.
+
+TODO: Kill to_live_kthread(), perhaps we can even kill "struct kthread" too,
+and rework kthread_stop(), it can use task_work_add() to sync with the exiting
+kernel thread.
+
+Message-Id: <20160629180357.GA7178@redhat.com>
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/traps.h |  6 ++++++
- arch/x86/kernel/traps.c      |  6 +++---
- arch/x86/mm/fault.c          | 34 ++++++++++++++++++++++++++++++++++
- 3 files changed, 43 insertions(+), 3 deletions(-)
+ kernel/kthread.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
-index c3496619740a..01fd0a7f48cd 100644
---- a/arch/x86/include/asm/traps.h
-+++ b/arch/x86/include/asm/traps.h
-@@ -117,6 +117,12 @@ extern void ist_exit(struct pt_regs *regs);
- extern void ist_begin_non_atomic(struct pt_regs *regs);
- extern void ist_end_non_atomic(void);
- 
-+#ifdef CONFIG_VMAP_STACK
-+void __noreturn handle_stack_overflow(const char *message,
-+				      struct pt_regs *regs,
-+				      unsigned long fault_address);
-+#endif
-+
- /* Interrupts/Exceptions */
- enum {
- 	X86_TRAP_DE = 0,	/*  0, Divide-by-zero */
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index f0345284c30b..33d4e7629a42 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -293,9 +293,9 @@ DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
- DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
- 
- #ifdef CONFIG_VMAP_STACK
--static void __noreturn handle_stack_overflow(const char *message,
--					     struct pt_regs *regs,
--					     unsigned long fault_address)
-+__visible void __noreturn handle_stack_overflow(const char *message,
-+						struct pt_regs *regs,
-+						unsigned long fault_address)
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 9ff173dca1ae..4ab4c3766a80 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -64,7 +64,7 @@ static inline struct kthread *to_kthread(struct task_struct *k)
+ static struct kthread *to_live_kthread(struct task_struct *k)
  {
- 	printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
- 		 (void *)fault_address, current->stack,
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index ca44e2e7fd00..76c58fdcfb29 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -753,6 +753,40 @@ no_context(struct pt_regs *regs, unsigned long error_code,
- 		return;
- 	}
+ 	struct completion *vfork = ACCESS_ONCE(k->vfork_done);
+-	if (likely(vfork))
++	if (likely(vfork) && try_get_task_stack(k))
+ 		return __to_kthread(vfork);
+ 	return NULL;
+ }
+@@ -425,8 +425,10 @@ void kthread_unpark(struct task_struct *k)
+ {
+ 	struct kthread *kthread = to_live_kthread(k);
  
-+#ifdef CONFIG_VMAP_STACK
-+	/*
-+	 * Stack overflow?  During boot, we can fault near the initial
-+	 * stack in the direct map, but that's not an overflow -- check
-+	 * that we're in vmalloc space to avoid this.
-+	 */
-+	if (is_vmalloc_addr((void *)address) &&
-+	    (((unsigned long)tsk->stack - 1 - address < PAGE_SIZE) ||
-+	     address - ((unsigned long)tsk->stack + THREAD_SIZE) < PAGE_SIZE)) {
-+		register void *__sp asm("rsp");
-+		unsigned long stack =
-+			this_cpu_read(orig_ist.ist[DOUBLEFAULT_STACK]) -
-+			sizeof(void *);
-+		/*
-+		 * We're likely to be running with very little stack space
-+		 * left.  It's plausible that we'd hit this condition but
-+		 * double-fault even before we get this far, in which case
-+		 * we're fine: the double-fault handler will deal with it.
-+		 *
-+		 * We don't want to make it all the way into the oops code
-+		 * and then double-fault, though, because we're likely to
-+		 * break the console driver and lose most of the stack dump.
-+		 */
-+		asm volatile ("movq %[stack], %%rsp\n\t"
-+			      "call handle_stack_overflow\n\t"
-+			      "1: jmp 1b"
-+			      : "+r" (__sp)
-+			      : "D" ("kernel stack overflow (page fault)"),
-+				"S" (regs), "d" (address),
-+				[stack] "rm" (stack));
-+		unreachable();
+-	if (kthread)
++	if (kthread) {
+ 		__kthread_unpark(k, kthread);
++		put_task_stack(k);
 +	}
-+#endif
-+
- 	/*
- 	 * 32-bit:
- 	 *
+ }
+ EXPORT_SYMBOL_GPL(kthread_unpark);
+ 
+@@ -455,6 +457,7 @@ int kthread_park(struct task_struct *k)
+ 				wait_for_completion(&kthread->parked);
+ 			}
+ 		}
++		put_task_stack(k);
+ 		ret = 0;
+ 	}
+ 	return ret;
+@@ -490,6 +493,7 @@ int kthread_stop(struct task_struct *k)
+ 		__kthread_unpark(k, kthread);
+ 		wake_up_process(k);
+ 		wait_for_completion(&kthread->exited);
++		put_task_stack(k);
+ 	}
+ 	ret = k->exit_code;
+ 	put_task_struct(k);
 -- 
 2.7.4
