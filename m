@@ -1,115 +1,72 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 24/32] x86/entry: Get rid of pt_regs_to_thread_info()
-Date: Mon, 11 Jul 2016 13:53:57 -0700
-Message-ID: <0beec068e1d2a4a510087332f4442d8c3c23b85e.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 19/32] x86/smp: Remove stack_smp_processor_id()
+Date: Mon, 11 Jul 2016 13:53:52 -0700
+Message-ID: <dd40401cc46d3baac0bc5dbf8c6c3e057ed20255.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-3921-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+It serves no purpose -- raw_smp_processor_id() works fine.  This
+change will be needed to move thread_info off the stack.
 
-It was a nice optimization while it lasted, but thread_info is moving
-and this optimization will no longer work.
-
-Quoting Linus:
-
-    Oh Gods, Andy. That pt_regs_to_thread_info() thing made me want
-    to do unspeakable acts on a poor innocent wax figure that looked
-    _exactly_ like you.
-
-[changelog written by Andy]
-Message-Id: <CA+55aFxvZhBu9U1cqpVm4frv0p5mqu=0TxsSqE-=95ft8HvCVA@mail.gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/entry/common.c | 21 +++++++--------------
- 1 file changed, 7 insertions(+), 14 deletions(-)
+ arch/x86/include/asm/cpu.h   | 1 -
+ arch/x86/include/asm/smp.h   | 6 ------
+ arch/x86/kernel/cpu/common.c | 2 +-
+ 3 files changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/arch/x86/entry/common.c b/arch/x86/entry/common.c
-index c4150bec7982..804487f126cb 100644
---- a/arch/x86/entry/common.c
-+++ b/arch/x86/entry/common.c
-@@ -31,13 +31,6 @@
- #define CREATE_TRACE_POINTS
- #include <trace/events/syscalls.h>
+diff --git a/arch/x86/include/asm/cpu.h b/arch/x86/include/asm/cpu.h
+index 678637ad7476..59d34c521d96 100644
+--- a/arch/x86/include/asm/cpu.h
++++ b/arch/x86/include/asm/cpu.h
+@@ -17,7 +17,6 @@ static inline void prefill_possible_map(void) {}
  
--static struct thread_info *pt_regs_to_thread_info(struct pt_regs *regs)
--{
--	unsigned long top_of_stack =
--		(unsigned long)(regs + 1) + TOP_OF_KERNEL_STACK_PADDING;
--	return (struct thread_info *)(top_of_stack - THREAD_SIZE);
--}
--
- #ifdef CONFIG_CONTEXT_TRACKING
- /* Called on entry from user mode with IRQs off. */
- __visible void enter_from_user_mode(void)
-@@ -78,7 +71,7 @@ static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
-  */
- unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned long ret = 0;
- 	u32 work;
+ #define cpu_physical_id(cpu)			boot_cpu_physical_apicid
+ #define safe_smp_processor_id()			0
+-#define stack_smp_processor_id()		0
  
-@@ -156,7 +149,7 @@ unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
- long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
- 				unsigned long phase1_result)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	long ret = 0;
- 	u32 work = ACCESS_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY;
+ #endif /* CONFIG_SMP */
  
-@@ -239,7 +232,7 @@ static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
- 		/* Disable IRQs and retry */
- 		local_irq_disable();
+diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
+index 66b057306f40..0576b6157f3a 100644
+--- a/arch/x86/include/asm/smp.h
++++ b/arch/x86/include/asm/smp.h
+@@ -172,12 +172,6 @@ extern int safe_smp_processor_id(void);
+ #elif defined(CONFIG_X86_64_SMP)
+ #define raw_smp_processor_id() (this_cpu_read(cpu_number))
  
--		cached_flags = READ_ONCE(pt_regs_to_thread_info(regs)->flags);
-+		cached_flags = READ_ONCE(current_thread_info()->flags);
+-#define stack_smp_processor_id()					\
+-({								\
+-	struct thread_info *ti;						\
+-	__asm__("andq %%rsp,%0; ":"=r" (ti) : "0" (CURRENT_MASK));	\
+-	ti->cpu;							\
+-})
+ #define safe_smp_processor_id()		smp_processor_id()
  
- 		if (!(cached_flags & EXIT_TO_USERMODE_LOOP_FLAGS))
- 			break;
-@@ -250,7 +243,7 @@ static void exit_to_usermode_loop(struct pt_regs *regs, u32 cached_flags)
- /* Called with IRQs disabled. */
- __visible inline void prepare_exit_to_usermode(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	u32 cached_flags;
+ #endif
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 0fe6953f421c..d22a7b9c4f0e 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -1452,7 +1452,7 @@ void cpu_init(void)
+ 	struct task_struct *me;
+ 	struct tss_struct *t;
+ 	unsigned long v;
+-	int cpu = stack_smp_processor_id();
++	int cpu = raw_smp_processor_id();
+ 	int i;
  
- 	if (IS_ENABLED(CONFIG_PROVE_LOCKING) && WARN_ON(!irqs_disabled()))
-@@ -309,7 +302,7 @@ static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
-  */
- __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	u32 cached_flags = READ_ONCE(ti->flags);
- 
- 	CT_WARN_ON(ct_state() != CONTEXT_KERNEL);
-@@ -332,7 +325,7 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
- #ifdef CONFIG_X86_64
- __visible void do_syscall_64(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned long nr = regs->orig_ax;
- 
- 	enter_from_user_mode();
-@@ -365,7 +358,7 @@ __visible void do_syscall_64(struct pt_regs *regs)
-  */
- static __always_inline void do_syscall_32_irqs_on(struct pt_regs *regs)
- {
--	struct thread_info *ti = pt_regs_to_thread_info(regs);
-+	struct thread_info *ti = current_thread_info();
- 	unsigned int nr = (unsigned int)regs->orig_ax;
- 
- #ifdef CONFIG_IA32_EMULATION
+ 	wait_for_master_cpu(cpu);
 -- 
 2.7.4
