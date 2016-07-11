@@ -1,59 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f46.google.com ([209.85.213.46]:35584 "EHLO
-	mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933728AbcGKOzi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jul 2016 10:55:38 -0400
-Received: by mail-vk0-f46.google.com with SMTP id v6so141995711vkb.2
-        for <linux-arch@vger.kernel.org>; Mon, 11 Jul 2016 07:55:38 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20160711100808.GB31221@leverpostej>
-References: <cover.1466974736.git.luto@kernel.org> <aeea9c1c41e889065b2c9ecd6d0694e4dfb529c8.1466974736.git.luto@kernel.org>
- <20160711100808.GB31221@leverpostej>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Mon, 11 Jul 2016 07:55:17 -0700
-Message-ID: <CALCETrWnw0WjionuGAT1F8r5y_t5CbYh+TmDL4s2d=ZbiinspA@mail.gmail.com>
+Received: from foss.arm.com ([217.140.101.70]:54171 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752755AbcGKQbX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 12:31:23 -0400
+Date: Mon, 11 Jul 2016 17:31:11 +0100
+From: Mark Rutland <mark.rutland@arm.com>
 Subject: Re: [kernel-hardening] [PATCH v4 26/29] sched: Allow putting
  thread_info into task_struct
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20160711163110.GD7691@leverpostej>
+References: <cover.1466974736.git.luto@kernel.org>
+ <aeea9c1c41e889065b2c9ecd6d0694e4dfb529c8.1466974736.git.luto@kernel.org>
+ <20160711100808.GB31221@leverpostej>
+ <CALCETrWnw0WjionuGAT1F8r5y_t5CbYh+TmDL4s2d=ZbiinspA@mail.gmail.com>
+ <CA+55aFy2Sno+bS0A2k0cMWpEJy-bpXufSAw3+ufrfQYbp9rcMQ@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFy2Sno+bS0A2k0cMWpEJy-bpXufSAw3+ufrfQYbp9rcMQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Nadav Amit <nadav.amit@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Borislav Petkov <bp@alien8.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Brian Gerst <brgerst@gmail.com>, X86 ML <x86@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20160711145517.1cTnRw87ymswgwdSwBfjhr34oPRad0-14_uFkMAKj0I@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@alien8.de>, Josh Poimboeuf <jpoimboe@redhat.com>, X86 ML <x86@kernel.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20160711163111.7OUwyWV1TEoT2nj45XffQZNccjPygXHvDEggSJ5ujGI@z>
 
-On Jul 11, 2016 3:08 AM, "Mark Rutland" <mark.rutland@arm.com> wrote:
->
-> Hi,
->
-> On Sun, Jun 26, 2016 at 02:55:48PM -0700, Andy Lutomirski wrote:
-> > If an arch opts in by setting CONFIG_THREAD_INFO_IN_TASK_STRUCT,
-> > then thread_info is defined as a single 'u32 flags' and is the first
-> > entry of task_struct.  thread_info::task is removed (it serves no
-> > purpose if thread_info is embedded in task_struct), and
-> > thread_info::cpu gets its own slot in task_struct.
+On Mon, Jul 11, 2016 at 09:06:58AM -0700, Linus Torvalds wrote:
+> On Jul 11, 2016 7:55 AM, "Andy Lutomirski" <[1]luto@amacapital.net> wrote:
 > >
-> > This is heavily based on a patch written by Linus.
+> > How do you intend to find 'current' to get to the preempt count
+> > without first disabling preemption?
 >
-> I've been considering how we'd implement this for arm64, and I suspect
-> that we'll also need to fold our preempt_count into task_struct
-> (following from the style of asm-generic/preempt.h).
+> Actually, that is the classic case of "not a problem".
 >
-> As far as I can see, we can't make our preempt-count a percpu variable
-> as with x86, as our percpu ops themselves are based on disabling
-> preemption.
-
-How do you intend to find 'current' to get to the preempt count
-without first disabling preemption?
-
+> The thing is, it doesn't matter if you schedule away while looking up
+> current or the preempt count - because both values are idempotent wet
+> scheduling.
 >
-> To that end, would it be possible to keep the thread_info definition per
-> arch, even with CONFIG_THREAD_INFO_IN_TASK?
+> So until you do the wire that actually disables preemption you can
+> schedule away as much as you want, and after that write you no longer
+> will.
 
-In principal, yes, but could you alternatively put it in
-thread_struct?  My goal here is to encourage people to clean up their
-use of thread_info vs thread_struct at the same time.  For x86, that
-cleanup was trivial -- most of the work was addressing relative to
-current instead of the stack pointer, and that had to happen
-regardless.
+I was assuming a percpu pointer to current (or preempt count).
 
---Andy
+The percpu offset might be stale at the point you try to dereference
+that, even though current itself hasn't changed, and you may access the
+wrong CPU's value.
+
+> This is different wrt a per-cpu area - which is clearly not idempotent wrt
+> scheduling.
+>
+> The reason per-cpu works on x86 is that we have an atomic rmw operation
+> that is *also* atomic wrt the CPU lookup (thanks to the segment base)
+
+Sure, understood.
+
+Mark.
