@@ -1,7 +1,7 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 27/32] x86: Move thread_info into task_struct
-Date: Mon, 11 Jul 2016 13:54:00 -0700
-Message-ID: <d9e7ba98c2ca450660eb5990a2c492c19691f94e.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 31/32] sched: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
+Date: Mon, 11 Jul 2016 13:54:04 -0700
+Message-ID: <0adfb2c369747002dc8442f71987d1fb6eb9feb7.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -9,221 +9,161 @@ In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now that most of the thread_info users have been cleaned up,
-this is straightforward.
+We currently keep every task's stack around until the task_struct
+itself is freed.  This means that we keep the stack allocation alive
+for longer than necessary and that, under load, we free stacks in
+big batches whenever RCU drops the last task reference.  Neither of
+these is good for reuse of cache-hot memory, and freeing in batches
+prevents us from usefully caching small numbers of vmalloced stacks.
 
-Most of this code was written by Linus.
+On architectures that have thread_info on the stack, we can't easily
+change this, but on architectures that set THREAD_INFO_IN_TASK, we
+can free it as soon as the task is dead.
 
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/Kconfig                   |  1 +
- arch/x86/entry/entry_64.S          |  9 +++++---
- arch/x86/include/asm/switch_to.h   |  6 ++---
- arch/x86/include/asm/thread_info.h | 46 --------------------------------------
- arch/x86/kernel/asm-offsets.c      |  4 +---
- arch/x86/kernel/irq_64.c           |  3 +--
- arch/x86/kernel/process.c          |  6 ++---
- 7 files changed, 13 insertions(+), 62 deletions(-)
+ include/linux/init_task.h |  4 +++-
+ include/linux/sched.h     | 14 ++++++++++++++
+ kernel/fork.c             | 35 ++++++++++++++++++++++++++++++++++-
+ kernel/sched/core.c       |  4 ++++
+ 4 files changed, 55 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index afdcf96ef109..b3002c8efde2 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -155,6 +155,7 @@ config X86
- 	select SPARSE_IRQ
- 	select SRCU
- 	select SYSCTL_EXCEPTION_TRACE
-+	select THREAD_INFO_IN_TASK
- 	select USER_STACKTRACE_SUPPORT
- 	select VIRT_TO_BUS
- 	select X86_DEV_DMA_OPS			if X86_64
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index b846875aeea6..038d5e0fe940 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -179,7 +179,8 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
- 	 * If we need to do entry work or if we guess we'll need to do
- 	 * exit work, go straight to the slow path.
- 	 */
--	testl	$_TIF_WORK_SYSCALL_ENTRY|_TIF_ALLWORK_MASK, ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS)
-+	movq	PER_CPU_VAR(current_task), %r11
-+	testl	$_TIF_WORK_SYSCALL_ENTRY|_TIF_ALLWORK_MASK, TASK_TI_flags(%r11)
- 	jnz	entry_SYSCALL64_slow_path
+diff --git a/include/linux/init_task.h b/include/linux/init_task.h
+index 9c04d44eeb3c..325f649d77ff 100644
+--- a/include/linux/init_task.h
++++ b/include/linux/init_task.h
+@@ -186,7 +186,9 @@ extern struct task_group root_task_group;
+ #endif
  
- entry_SYSCALL_64_fastpath:
-@@ -217,7 +218,8 @@ entry_SYSCALL_64_fastpath:
- 	 */
- 	DISABLE_INTERRUPTS(CLBR_NONE)
- 	TRACE_IRQS_OFF
--	testl	$_TIF_ALLWORK_MASK, ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS)
-+	movq	PER_CPU_VAR(current_task), %r11
-+	testl	$_TIF_ALLWORK_MASK, TASK_TI_flags(%r11)
- 	jnz	1f
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-# define INIT_TASK_TI(tsk) .thread_info = INIT_THREAD_INFO(tsk),
++# define INIT_TASK_TI(tsk)			\
++	.thread_info = INIT_THREAD_INFO(tsk),	\
++	.stack_refcount = ATOMIC_INIT(1),
+ #else
+ # define INIT_TASK_TI(tsk)
+ #endif
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 18bef18fef88..cefd136248c4 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1934,6 +1934,10 @@ struct task_struct {
+ #ifdef CONFIG_VMAP_STACK
+ 	struct vm_struct *stack_vm_area;
+ #endif
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	/* A live task holds one reference. */
++	atomic_t stack_refcount;
++#endif
+ /* CPU-specific state of this task */
+ 	struct thread_struct thread;
+ /*
+@@ -3112,12 +3116,22 @@ static inline unsigned long *end_of_stack(struct task_struct *p)
  
- 	LOCKDEP_SYS_EXIT
-@@ -368,9 +370,10 @@ END(ptregs_\func)
-  * A newly forked process directly context switches into this address.
-  *
-  * rdi: prev task we switched from
-+ * rsi: task we're switching to
-  */
- ENTRY(ret_from_fork)
--	LOCK ; btr $TIF_FORK, TI_flags(%r8)
-+	LOCK ; btr $TIF_FORK, TASK_TI_flags(%rsi)
+ #endif
  
- 	call	schedule_tail			/* rdi: 'prev' task parameter */
- 
-diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
-index 14e4b20f0aaf..5194f4a680ab 100644
---- a/arch/x86/include/asm/switch_to.h
-+++ b/arch/x86/include/asm/switch_to.h
-@@ -136,18 +136,16 @@ do {									\
- 	     "call __switch_to\n\t"					  \
- 	     "movq "__percpu_arg([current_task])",%%rsi\n\t"		  \
- 	     __switch_canary						  \
--	     "movq %P[thread_info](%%rsi),%%r8\n\t"			  \
- 	     "movq %%rax,%%rdi\n\t" 					  \
--	     "testl  %[_tif_fork],%P[ti_flags](%%r8)\n\t"		  \
-+	     "testl  %[_tif_fork],%P[ti_flags](%%rsi)\n\t"		  \
- 	     "jnz   ret_from_fork\n\t"					  \
- 	     RESTORE_CONTEXT						  \
- 	     : "=a" (last)					  	  \
- 	       __switch_canary_oparam					  \
- 	     : [next] "S" (next), [prev] "D" (prev),			  \
- 	       [threadrsp] "i" (offsetof(struct task_struct, thread.sp)), \
--	       [ti_flags] "i" (offsetof(struct thread_info, flags)),	  \
-+	       [ti_flags] "i" (offsetof(struct task_struct, thread_info.flags)),	  \
- 	       [_tif_fork] "i" (_TIF_FORK),			  	  \
--	       [thread_info] "i" (offsetof(struct task_struct, stack)),   \
- 	       [current_task] "m" (current_task)			  \
- 	       __switch_canary_iparam					  \
- 	     : "memory", "cc" __EXTRA_CLOBBER)
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index 7b42c1e462ac..0afc37654ad1 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -52,20 +52,6 @@ struct task_struct;
- #include <asm/cpufeature.h>
- #include <linux/atomic.h>
- 
--struct thread_info {
--	struct task_struct	*task;		/* main task structure */
--	__u32			flags;		/* low level flags */
--	__u32			cpu;		/* current CPU */
--};
--
--#define INIT_THREAD_INFO(tsk)			\
--{						\
--	.task		= &tsk,			\
--	.flags		= 0,			\
--	.cpu		= 0,			\
--}
--
--#define init_thread_info	(init_thread_union.thread_info)
- #define init_stack		(init_thread_union.stack)
- 
- #else /* !__ASSEMBLY__ */
-@@ -159,11 +145,6 @@ struct thread_info {
-  */
- #ifndef __ASSEMBLY__
- 
--static inline struct thread_info *current_thread_info(void)
--{
--	return (struct thread_info *)(current_top_of_stack() - THREAD_SIZE);
--}
--
- static inline unsigned long current_stack_pointer(void)
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++static inline void *try_get_task_stack(struct task_struct *tsk)
++{
++	return atomic_inc_not_zero(&tsk->stack_refcount) ?
++		task_stack_page(tsk) : NULL;
++}
++
++extern void put_task_stack(struct task_struct *tsk);
++#else
+ static inline void *try_get_task_stack(struct task_struct *tsk)
  {
- 	unsigned long sp;
-@@ -181,33 +162,6 @@ static inline unsigned long current_stack_pointer(void)
- # define cpu_current_top_of_stack (cpu_tss + TSS_sp0)
+ 	return task_stack_page(tsk);
+ }
+ 
+ static inline void put_task_stack(struct task_struct *tsk) {}
++#endif
+ 
+ #define task_stack_end_corrupted(task) \
+ 		(*(end_of_stack(task)) != STACK_END_MAGIC)
+diff --git a/kernel/fork.c b/kernel/fork.c
+index d2a64a0413be..3003edae90fc 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -269,11 +269,40 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
+ 	}
+ }
+ 
+-void free_task(struct task_struct *tsk)
++static void release_task_stack(struct task_struct *tsk)
+ {
+ 	account_kernel_stack(tsk, -1);
+ 	arch_release_thread_stack(tsk->stack);
+ 	free_thread_stack(tsk);
++	tsk->stack = NULL;
++#ifdef CONFIG_VMAP_STACK
++	tsk->stack_vm_area = NULL;
++#endif
++}
++
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++void put_task_stack(struct task_struct *tsk)
++{
++	if (atomic_dec_and_test(&tsk->stack_refcount))
++		release_task_stack(tsk);
++}
++#endif
++
++void free_task(struct task_struct *tsk)
++{
++#ifndef CONFIG_THREAD_INFO_IN_TASK
++	/*
++	 * The task is finally done with both the stack and thread_info,
++	 * so free both.
++	 */
++	release_task_stack(tsk);
++#else
++	/*
++	 * If the task had a separate stack allocation, it should be gone
++	 * by now.
++	 */
++	WARN_ON_ONCE(atomic_read(&tsk->stack_refcount) != 0);
++#endif
+ 	rt_mutex_debug_task_free(tsk);
+ 	ftrace_graph_exit_task(tsk);
+ 	put_seccomp_filter(tsk);
+@@ -411,6 +440,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ #ifdef CONFIG_VMAP_STACK
+ 	tsk->stack_vm_area = stack_vm_area;
  #endif
++#ifdef CONFIG_THREAD_INFO_IN_TASK
++	atomic_set(&tsk->stack_refcount, 1);
++#endif
  
--/*
-- * ASM operand which evaluates to a 'thread_info' address of
-- * the current task, if it is known that "reg" is exactly "off"
-- * bytes below the top of the stack currently.
-- *
-- * ( The kernel stack's size is known at build time, it is usually
-- *   2 or 4 pages, and the bottom  of the kernel stack contains
-- *   the thread_info structure. So to access the thread_info very
-- *   quickly from assembly code we can calculate down from the
-- *   top of the kernel stack to the bottom, using constant,
-- *   build-time calculations only. )
-- *
-- * For example, to fetch the current thread_info->flags value into %eax
-- * on x86-64 defconfig kernels, in syscall entry code where RSP is
-- * currently at exactly SIZEOF_PTREGS bytes away from the top of the
-- * stack:
-- *
-- *      mov ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS), %eax
-- *
-- * will translate to:
-- *
-- *      8b 84 24 b8 c0 ff ff      mov    -0x3f48(%rsp), %eax
-- *
-- * which is below the current RSP by almost 16K.
-- */
--#define ASM_THREAD_INFO(field, reg, off) ((field)+(off)-THREAD_SIZE)(reg)
--
- #endif
+ 	if (err)
+ 		goto free_stack;
+@@ -1750,6 +1782,7 @@ bad_fork_cleanup_count:
+ 	atomic_dec(&p->cred->user->processes);
+ 	exit_creds(p);
+ bad_fork_free:
++	put_task_stack(p);
+ 	free_task(p);
+ fork_out:
+ 	return ERR_PTR(retval);
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 51d7105f529a..a2da85cbcbde 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -2742,6 +2742,10 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 		 * task and put them back on the free list.
+ 		 */
+ 		kprobe_flush_task(prev);
++
++		/* Task is done with its stack. */
++		put_task_stack(prev);
++
+ 		put_task_struct(prev);
+ 	}
  
- #ifndef __ASSEMBLY__
-diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
-index a91a6ead24a2..e900f5e13f22 100644
---- a/arch/x86/kernel/asm-offsets.c
-+++ b/arch/x86/kernel/asm-offsets.c
-@@ -29,9 +29,7 @@
- 
- void common(void) {
- 	BLANK();
--	OFFSET(TI_flags, thread_info, flags);
--
--	BLANK();
-+	OFFSET(TASK_TI_flags, task_struct, thread_info.flags);
- 	OFFSET(TASK_addr_limit, task_struct, thread.addr_limit);
- 
- 	BLANK();
-diff --git a/arch/x86/kernel/irq_64.c b/arch/x86/kernel/irq_64.c
-index 206d0b90a3ab..38f9f5678dc8 100644
---- a/arch/x86/kernel/irq_64.c
-+++ b/arch/x86/kernel/irq_64.c
-@@ -41,8 +41,7 @@ static inline void stack_overflow_check(struct pt_regs *regs)
- 	if (user_mode(regs))
- 		return;
- 
--	if (regs->sp >= curbase + sizeof(struct thread_info) +
--				  sizeof(struct pt_regs) + STACK_TOP_MARGIN &&
-+	if (regs->sp >= curbase + sizeof(struct pt_regs) + STACK_TOP_MARGIN &&
- 	    regs->sp <= curbase + THREAD_SIZE)
- 		return;
- 
-diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
-index 96becbbb52e0..8f60f810a9e7 100644
---- a/arch/x86/kernel/process.c
-+++ b/arch/x86/kernel/process.c
-@@ -536,9 +536,7 @@ unsigned long get_wchan(struct task_struct *p)
- 	 * PADDING
- 	 * ----------- top = topmax - TOP_OF_KERNEL_STACK_PADDING
- 	 * stack
--	 * ----------- bottom = start + sizeof(thread_info)
--	 * thread_info
--	 * ----------- start
-+	 * ----------- bottom = start
- 	 *
- 	 * The tasks stack pointer points at the location where the
- 	 * framepointer is stored. The data on the stack is:
-@@ -549,7 +547,7 @@ unsigned long get_wchan(struct task_struct *p)
- 	 */
- 	top = start + THREAD_SIZE - TOP_OF_KERNEL_STACK_PADDING;
- 	top -= 2 * sizeof(unsigned long);
--	bottom = start + sizeof(struct thread_info);
-+	bottom = start;
- 
- 	sp = READ_ONCE(p->thread.sp);
- 	if (sp < bottom || sp > top)
 -- 
 2.7.4
