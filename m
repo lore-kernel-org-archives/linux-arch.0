@@ -1,78 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:59185 "EHLO mx2.suse.de"
+Received: from www.sr71.net ([198.145.64.142]:39988 "EHLO blackbird.sr71.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758357AbcGKODT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 10:03:19 -0400
-Date: Mon, 11 Jul 2016 16:03:08 +0200 (CEST)
-From: Miroslav Benes <mbenes@suse.cz>
-Subject: Re: [PATCH v2 2/2] arm64: implement live patching
-In-Reply-To: <20160627151722.B81C968D29@newverein.lst.de>
-Message-ID: <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz>
-References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151722.B81C968D29@newverein.lst.de>
+	id S1759064AbcGKOe5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 10:34:57 -0400
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <5783AE8F.3@sr71.net>
+Date: Mon, 11 Jul 2016 07:34:55 -0700
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torsten Duwe <duwe@lst.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org, jeyu@redhat.com
-Message-ID: <20160711140308.r4Sik7jSwTk8huIPluFPbVJnvJkmhFwIt9VhzIpbS1A@z>
+To: Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <20160711143455.rvhCzS0kVG_xwxyUIkyjpjOMlaHCeNEe1apxMAeMJQI@z>
 
-On Mon, 27 Jun 2016, Torsten Duwe wrote:
+On 07/10/2016 09:25 PM, Andy Lutomirski wrote:
+> 2. When thread A allocates a pkey, how does it lock down thread B?
+> 
+> #2 could be addressed by using fully-locked-down as the initial state
+> post-exec() and copying the state on clone().  Dave, are there any
+> cases in practice where one thread would allocate a pkey and want
+> other threads to immediately have access to the memory with that key?
 
-> diff --git a/arch/arm64/include/asm/livepatch.h b/arch/arm64/include/asm/livepatch.h
-> new file mode 100644
-> index 0000000..6b9a3d1
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/livepatch.h
-> @@ -0,0 +1,37 @@
-> +/*
-> + * livepatch.h - arm64-specific Kernel Live Patching Core
-> + *
-> + * Copyright (C) 2016 SUSE
-> + *
-> + * This program is free software; you can redistribute it and/or
-> + * modify it under the terms of the GNU General Public License
-> + * as published by the Free Software Foundation; either version 2
-> + * of the License, or (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program; if not, see <http://www.gnu.org/licenses/>.
-> + */
-> +#ifndef _ASM_ARM64_LIVEPATCH_H
-> +#define _ASM_ARM64_LIVEPATCH_H
-> +
-> +#include <linux/module.h>
-> +#include <linux/ftrace.h>
-> +
-> +#ifdef CONFIG_LIVEPATCH
+The only one I can think of is a model where pkeys are used more in a
+"denial" mode rather than an "allow" mode.
 
-A nit but we removed such guards in the other header files.
+For instance, perhaps you don't want to modify your app to use pkeys,
+except for a small routine where you handle untrusted user data.  You
+would, in that routine, deny access to a bunch of keys, but otherwise
+allow access to all so you didn't have to change any other parts of the app.
 
-> +static inline int klp_check_compiler_support(void)
-> +{
-> +	return 0;
-> +}
-> +
-> +static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-> +{
-> +	regs->pc = ip;
-> +}
-> +#endif /* CONFIG_LIVEPATCH */
-
-I also checked mod_arch_specific structure because of the way we deal 
-with relocations. It is defined only if CONFIG_ARM64_MODULE_PLTS is 
-enabled and there is a pointer to 'struct elf64_shdr' called plt. It is 
-used indirectly in apply_relocate_add() so we need it to stay. However it 
-points to an existing Elf section and SHF_ALLOC is added to its sh_flags 
-in module_frob_arch_sections() (arch/arm64/kernel/module-plts.c). 
-Therefore we should be ok.
-
-Jessica, could you check it as well, please?
-
-Thanks,
-Miroslav
+Should we instead just recommend to userspace that they lock down access
+to keys by default in all threads as a best practice?
