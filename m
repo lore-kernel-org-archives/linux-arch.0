@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34218 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:34428 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753794AbcGKUyU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:20 -0400
+	id S1751153AbcGKUy0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:26 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 06/32] mm: Fix memcg stack accounting for sub-page stacks
-Date: Mon, 11 Jul 2016 13:53:39 -0700
-Message-ID: <a7755819f46c6895c3546af882741c511d58b167.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 10/32] x86/dumpstack: Honor supplied @regs arg
+Date: Mon, 11 Jul 2016 13:53:43 -0700
+Message-ID: <7207ea4229bf55bbfad565f693f33151d9e7c006.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -14,98 +14,68 @@ References: <cover.1468270393.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Vladimir Davydov <vdavydov@virtuozzo.com>, Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org
-Message-ID: <20160711205339.lc40NqgWqaYMMQLdc5C3H1ipPKs7YYLCemkTWh8PNRc@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Denys Vlasenko <dvlasenk@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, "H . Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20160711205343.OGJN4zXJ2w4pZU_3wCkhtWwBvxNV5rUbJtgdJDGoiOc@z>
 
-We should account for stacks regardless of stack size, and we need
-to account in sub-page units if THREAD_SIZE < PAGE_SIZE.  Change the
-units to kilobytes and Move it into account_kernel_stack().
+[cherry-picked from ef16dd0c2a523d2e3975bb1bea9f5727e3e7146f to
+ avoid tangling the trees too much.]
 
-Fixes: 12580e4b54ba8 ("mm: memcontrol: report kernel stack usage in cgroup2 memory.stat")
-Cc: Vladimir Davydov <vdavydov@virtuozzo.com>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Michal Hocko <mhocko@kernel.org>
-Cc: linux-mm@kvack.org
-Reviewed-by: Josh Poimboeuf <jpoimboe@redhat.com>
-Reviewed-by: Vladimir Davydov <vdavydov@virtuozzo.com>
-Acked-by: Michal Hocko <mhocko@suse.com>
+The comment suggests that show_stack(NULL, NULL) should backtrace the
+current context, but the code doesn't match the comment. If regs are
+given, start the "Stack:" hexdump at regs->sp.
+
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
+Signed-off-by: Borislav Petkov <bp@suse.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Brian Gerst <brgerst@gmail.com>
+Cc: Denys Vlasenko <dvlasenk@redhat.com>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Link: http://lkml.kernel.org/r/1467671487-10344-2-git-send-email-bp@alien8.de
+Link: http://lkml.kernel.org/r/efcd79bf4106d61f1cd258c2caa87f3a0618eeac.1466036668.git.luto@kernel.org
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- include/linux/memcontrol.h |  2 +-
- kernel/fork.c              | 19 ++++++++-----------
- mm/memcontrol.c            |  2 +-
- 3 files changed, 10 insertions(+), 13 deletions(-)
+ arch/x86/kernel/dumpstack_32.c | 4 +++-
+ arch/x86/kernel/dumpstack_64.c | 4 +++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
-index a805474df4ab..3b653b86bb8f 100644
---- a/include/linux/memcontrol.h
-+++ b/include/linux/memcontrol.h
-@@ -52,7 +52,7 @@ enum mem_cgroup_stat_index {
- 	MEM_CGROUP_STAT_SWAP,		/* # of pages, swapped out */
- 	MEM_CGROUP_STAT_NSTATS,
- 	/* default hierarchy stats */
--	MEMCG_KERNEL_STACK = MEM_CGROUP_STAT_NSTATS,
-+	MEMCG_KERNEL_STACK_KB = MEM_CGROUP_STAT_NSTATS,
- 	MEMCG_SLAB_RECLAIMABLE,
- 	MEMCG_SLAB_UNRECLAIMABLE,
- 	MEMCG_SOCK,
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 466ba8febe3b..146c9840c079 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -165,20 +165,12 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
- 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
- 						  THREAD_SIZE_ORDER);
+diff --git a/arch/x86/kernel/dumpstack_32.c b/arch/x86/kernel/dumpstack_32.c
+index fef917e79b9d..948d77da3881 100644
+--- a/arch/x86/kernel/dumpstack_32.c
++++ b/arch/x86/kernel/dumpstack_32.c
+@@ -96,7 +96,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 	int i;
  
--	if (page)
--		memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--					    1 << THREAD_SIZE_ORDER);
--
- 	return page ? page_address(page) : NULL;
- }
- 
- static inline void free_thread_stack(unsigned long *stack)
- {
--	struct page *page = virt_to_page(stack);
--
--	memcg_kmem_update_page_stat(page, MEMCG_KERNEL_STACK,
--				    -(1 << THREAD_SIZE_ORDER));
--	__free_kmem_pages(page, THREAD_SIZE_ORDER);
-+	free_kmem_pages((unsigned long)stack, THREAD_SIZE_ORDER);
- }
- # else
- static struct kmem_cache *thread_stack_cache;
-@@ -223,10 +215,15 @@ static struct kmem_cache *mm_cachep;
- 
- static void account_kernel_stack(unsigned long *stack, int account)
- {
--	struct zone *zone = page_zone(virt_to_page(stack));
-+	/* All stack pages are in the same zone and belong to the same memcg. */
-+	struct page *first_page = virt_to_page(stack);
- 
--	mod_zone_page_state(zone, NR_KERNEL_STACK_KB,
-+	mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
- 			    THREAD_SIZE / 1024 * account);
-+
-+	memcg_kmem_update_page_stat(
-+		first_page, MEMCG_KERNEL_STACK_KB,
-+		account * (THREAD_SIZE / 1024));
- }
- 
- void free_task(struct task_struct *tsk)
-diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index ac8664db3823..ee44afc1f2d0 100644
---- a/mm/memcontrol.c
-+++ b/mm/memcontrol.c
-@@ -5133,7 +5133,7 @@ static int memory_stat_show(struct seq_file *m, void *v)
- 	seq_printf(m, "file %llu\n",
- 		   (u64)stat[MEM_CGROUP_STAT_CACHE] * PAGE_SIZE);
- 	seq_printf(m, "kernel_stack %llu\n",
--		   (u64)stat[MEMCG_KERNEL_STACK] * PAGE_SIZE);
-+		   (u64)stat[MEMCG_KERNEL_STACK_KB] * 1024);
- 	seq_printf(m, "slab %llu\n",
- 		   (u64)(stat[MEMCG_SLAB_RECLAIMABLE] +
- 			 stat[MEMCG_SLAB_UNRECLAIMABLE]) * PAGE_SIZE);
+ 	if (sp == NULL) {
+-		if (task)
++		if (regs)
++			sp = (unsigned long *)regs->sp;
++		else if (task)
+ 			sp = (unsigned long *)task->thread.sp;
+ 		else
+ 			sp = (unsigned long *)&sp;
+diff --git a/arch/x86/kernel/dumpstack_64.c b/arch/x86/kernel/dumpstack_64.c
+index d558a8a49016..a81e1ef73bf2 100644
+--- a/arch/x86/kernel/dumpstack_64.c
++++ b/arch/x86/kernel/dumpstack_64.c
+@@ -264,7 +264,9 @@ show_stack_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 	 * back trace for this cpu:
+ 	 */
+ 	if (sp == NULL) {
+-		if (task)
++		if (regs)
++			sp = (unsigned long *)regs->sp;
++		else if (task)
+ 			sp = (unsigned long *)task->thread.sp;
+ 		else
+ 			sp = (unsigned long *)&sp;
 -- 
 2.7.4
 
