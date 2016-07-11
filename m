@@ -1,61 +1,75 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Date: Mon, 11 Jul 2016 08:48:00 -0700
-Message-ID: <5783BFB0.70203@intel.com>
-References: <20160707124719.3F04C882@viggo.jf.intel.com>
- <20160707124728.C1116BB1@viggo.jf.intel.com>
- <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
- <20160709083715.GA29939@gmail.com>
- <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
- <5783AE8F.3@sr71.net>
- <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v4 26/29] sched: Allow putting
+ thread_info into task_struct
+Date: Mon, 11 Jul 2016 09:06:58 -0700
+Message-ID: <CA+55aFy2Sno+bS0A2k0cMWpEJy-bpXufSAw3+ufrfQYbp9rcMQ@mail.gmail.com>
+References: <cover.1466974736.git.luto@kernel.org>
+	<aeea9c1c41e889065b2c9ecd6d0694e4dfb529c8.1466974736.git.luto@kernel.org>
+	<20160711100808.GB31221@leverpostej>
+	<CALCETrWnw0WjionuGAT1F8r5y_t5CbYh+TmDL4s2d=ZbiinspA@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:41913 "EHLO mga04.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753613AbcGKPsD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 11:48:03 -0400
-In-Reply-To: <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: multipart/alternative; boundary=001a11407a6488d3ba05375e571b
+Return-path: <kernel-hardening-return-3885-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: linus971@gmail.com
+In-Reply-To: <CALCETrWnw0WjionuGAT1F8r5y_t5CbYh+TmDL4s2d=ZbiinspA@mail.gmail.com>
 To: Andy Lutomirski <luto@amacapital.net>
-Cc: Ingo Molnar <mingo@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-arch@vger.kernel.org, Nadav Amit <nadav.amit@gmail.com>, Mark Rutland <mark.rutland@arm.com>, Kees Cook <keescook@chromium.org>, Borislav Petkov <bp@alien8.de>, Josh Poimboeuf <jpoimboe@redhat.com>, X86 ML <x86@kernel.org>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 07/11/2016 07:45 AM, Andy Lutomirski wrote:
-> On Mon, Jul 11, 2016 at 7:34 AM, Dave Hansen <dave@sr71.net> wrote:
->> Should we instead just recommend to userspace that they lock down access
->> to keys by default in all threads as a best practice?
-> 
-> Is that really better than doing it in-kernel?  My concern is that
-> we'll find library code that creates a thread, and that code could run
-> before the pkey-aware part of the program even starts running. 
+--001a11407a6488d3ba05375e571b
+Content-Type: text/plain; charset=UTF-8
 
-Yeah, so let's assume we have some pkey-unaware thread.  The upside of a
-scheme where the kernel preemptively (and transparently to the thread)
-locks down PKRU is that the thread can't go corrupting any non-zero-pkey
-structures that came from other threads.
+On Jul 11, 2016 7:55 AM, "Andy Lutomirski" <luto@amacapital.net> wrote:
+>
+> How do you intend to find 'current' to get to the preempt count
+> without first disabling preemption?
 
-But, the downside is that the thread can not access any non-zero-pkey
-structures without taking some kind of action with PKRU.  That obviously
-won't happen since the thread is pkeys-unaware to begin with.  Would
-that break these libraries unless everything using pkeys knows to only
-share pkey=0 data with those threads?
+Actually, that is the classic case of "not a problem".
 
-> So how is user code supposed lock down all of its threads?
-> 
-> seccomp has TSYNC for this, but I don't think that PKRU allows 
-> something like that.
+The thing is, it doesn't matter if you schedule away while looking up
+current or the preempt count - because both values are idempotent wet
+scheduling.
 
-I'm not sure this is possible for PKRU.  Think of a simple PKRU
-manipulation in userspace:
+So until you do the wire that actually disables preemption you can schedule
+away as much as you want, and after that write you no longer will.
 
-	pkru = rdpkru();
-	pkru |= PKEY_DENY_ACCESS<<key*2;
-	wrpkru(pkru);
+This is different wrt a per-cpu area - which is clearly not idempotent wrt
+scheduling.
 
-If we push a PKRU value into a thread between the rdpkru() and wrpkru(),
-we'll lose the content of that "push".  I'm not sure there's any way to
-guarantee this with a user-controlled register.
+The reason per-cpu works on x86 is that we have an atomic rmw operation
+that is *also* atomic wrt the CPU lookup (thanks to the segment base)
+
+     Linus
+
+--001a11407a6488d3ba05375e571b
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<p dir=3D"ltr"><br>
+On Jul 11, 2016 7:55 AM, &quot;Andy Lutomirski&quot; &lt;<a href=3D"mailto:=
+luto@amacapital.net">luto@amacapital.net</a>&gt; wrote:<br>
+&gt;<br>
+&gt; How do you intend to find &#39;current&#39; to get to the preempt coun=
+t<br>
+&gt; without first disabling preemption?</p>
+<p dir=3D"ltr">Actually, that is the classic case of &quot;not a problem&qu=
+ot;.</p>
+<p dir=3D"ltr">The thing is, it doesn&#39;t matter if you schedule away whi=
+le looking up current or the preempt count - because both values are idempo=
+tent wet scheduling. </p>
+<p dir=3D"ltr">So until you do the wire that actually disables preemption y=
+ou can schedule away as much as you want, and after that write you no longe=
+r will.</p>
+<p dir=3D"ltr">This is different wrt a per-cpu area - which is clearly not =
+idempotent wrt scheduling.</p>
+<p dir=3D"ltr">The reason per-cpu works on x86 is that we have an atomic rm=
+w operation that is *also* atomic wrt the CPU lookup (thanks to the segment=
+ base)</p>
+<p dir=3D"ltr">=C2=A0=C2=A0=C2=A0=C2=A0 Linus</p>
+
+--001a11407a6488d3ba05375e571b--
