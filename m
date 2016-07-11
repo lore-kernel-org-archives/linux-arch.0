@@ -1,49 +1,38 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 23/32] printk: When dumping regs, show the stack, not thread_info
-Date: Mon, 11 Jul 2016 13:53:56 -0700
-Message-ID: <3dcc5eccd7516153174c8e2c54387b73beb30bb6.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 22/32] kdb: Use task_cpu() instead of task_thread_info()->cpu
+Date: Mon, 11 Jul 2016 13:53:55 -0700
+Message-ID: <c72cd2d7896c80f4398f685af5a78f2111fbda78.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35096 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754131AbcGKUyq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:46 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Jason Wessel <jason.wessel@windriver.com>
+List-Id: linux-arch.vger.kernel.org
 
-We currently show:
+We'll need this cleanup to make the cpu field in thread_info be
+optional.
 
-  task: <current> ti: <current_thread_info()> task.ti: <task_thread_info(current)>"
-
-"ti" and "task.ti" are redundant, and neither is actually what we
-want to show, which the the base of the thread stack.  Change the
-display to show the stack pointer explicitly.
-
+Cc: Jason Wessel <jason.wessel@windriver.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- kernel/printk/printk.c | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ include/linux/kdb.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
-index 60cdf6386763..d4de33934dac 100644
---- a/kernel/printk/printk.c
-+++ b/kernel/printk/printk.c
-@@ -3177,9 +3177,8 @@ void show_regs_print_info(const char *log_lvl)
+diff --git a/include/linux/kdb.h b/include/linux/kdb.h
+index a19bcf9e762e..410decacff8f 100644
+--- a/include/linux/kdb.h
++++ b/include/linux/kdb.h
+@@ -177,7 +177,7 @@ extern int kdb_get_kbd_char(void);
+ static inline
+ int kdb_process_cpu(const struct task_struct *p)
  {
- 	dump_stack_print_info(log_lvl);
- 
--	printk("%stask: %p ti: %p task.ti: %p\n",
--	       log_lvl, current, current_thread_info(),
--	       task_thread_info(current));
-+	printk("%stask: %p task.stack: %p\n",
-+	       log_lvl, current, task_stack_page(current));
- }
- 
- #endif
+-	unsigned int cpu = task_thread_info(p)->cpu;
++	unsigned int cpu = task_cpu(p);
+ 	if (cpu > num_possible_cpus())
+ 		cpu = 0;
+ 	return cpu;
 -- 
 2.7.4
