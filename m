@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34108 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:35350 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753801AbcGKUyR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:17 -0400
+	id S932560AbcGKUyy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:54 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 04/32] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
-Date: Mon, 11 Jul 2016 13:53:37 -0700
-Message-ID: <8728874c5802014ba5c00a91c0961da20e38314e.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 29/32] kthread: to_live_kthread() needs try_get_task_stack()
+Date: Mon, 11 Jul 2016 13:54:02 -0700
+Message-ID: <00535b14d078b4e581911a87672eaf9766539dbd.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -14,152 +14,67 @@ References: <cover.1468270393.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Matt Fleming <matt@codeblueprint.co.uk>, linux-efi@vger.kernel.org
-Message-ID: <20160711205337._UQR55QojB1MDzBYxKSTqM20oMpNd06YQ7kxOPGt_60@z>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160711205402.LJ1qcguEQLdT06oAEsFgHbQI6Clfno39BpTtdNdodJ0@z>
 
-kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
-init_mm.pgd were to be cleared, callers would need to ensure that
-the pgd entry hadn't been propagated to any other pgd.
+From: Oleg Nesterov <oleg@redhat.com>
 
-Its only caller was efi_cleanup_page_tables(), and that, in turn,
-was unused, so just delete both functions.  This leaves a couple of
-other helpers unused, so delete them, too.
+get_task_struct(tsk) no longer pins tsk->stack so all users of
+to_live_kthread() should do try_get_task_stack/put_task_stack to protect
+"struct kthread" which lives on kthread's stack.
 
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: linux-efi@vger.kernel.org
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
-Acked-by: Borislav Petkov <bp@suse.de>
+TODO: Kill to_live_kthread(), perhaps we can even kill "struct kthread" too,
+and rework kthread_stop(), it can use task_work_add() to sync with the exiting
+kernel thread.
+
+Message-Id: <20160629180357.GA7178@redhat.com>
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/efi.h           |  1 -
- arch/x86/include/asm/pgtable_types.h |  2 --
- arch/x86/mm/pageattr.c               | 28 ----------------------------
- arch/x86/platform/efi/efi.c          |  2 --
- arch/x86/platform/efi/efi_32.c       |  3 ---
- arch/x86/platform/efi/efi_64.c       |  5 -----
- 6 files changed, 41 deletions(-)
+ kernel/kthread.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
-index 78d1e7467eae..45ea38df86d4 100644
---- a/arch/x86/include/asm/efi.h
-+++ b/arch/x86/include/asm/efi.h
-@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
- extern void efi_sync_low_kernel_mappings(void);
- extern int __init efi_alloc_page_tables(void);
- extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
--extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
- extern void __init old_map_region(efi_memory_desc_t *md);
- extern void __init runtime_code_page_mkexec(void);
- extern void __init efi_runtime_update_mappings(void);
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 7b5efe264eff..0b9f58ad10c8 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
- extern phys_addr_t slow_virt_to_phys(void *__address);
- extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
- 				   unsigned numpages, unsigned long page_flags);
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages);
- #endif	/* !__ASSEMBLY__ */
- 
- #endif /* _ASM_X86_PGTABLE_DEFS_H */
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 6088aa03de63..4a0bd4f35ca3 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
- 	return true;
- }
- 
--static bool try_to_free_pud_page(pud_t *pud)
--{
--	int i;
--
--	for (i = 0; i < PTRS_PER_PUD; i++)
--		if (!pud_none(pud[i]))
--			return false;
--
--	free_page((unsigned long)pud);
--	return true;
--}
--
- static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index 9ff173dca1ae..4ab4c3766a80 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -64,7 +64,7 @@ static inline struct kthread *to_kthread(struct task_struct *k)
+ static struct kthread *to_live_kthread(struct task_struct *k)
  {
- 	pte_t *pte = pte_offset_kernel(pmd, start);
-@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
- 	 */
+ 	struct completion *vfork = ACCESS_ONCE(k->vfork_done);
+-	if (likely(vfork))
++	if (likely(vfork) && try_get_task_stack(k))
+ 		return __to_kthread(vfork);
+ 	return NULL;
  }
- 
--static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
--{
--	pgd_t *pgd_entry = root + pgd_index(addr);
--
--	unmap_pud_range(pgd_entry, addr, end);
--
--	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
--		pgd_clear(pgd_entry);
--}
--
- static int alloc_pte_page(pmd_t *pmd)
+@@ -425,8 +425,10 @@ void kthread_unpark(struct task_struct *k)
  {
- 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
-@@ -1994,12 +1972,6 @@ out:
- 	return retval;
+ 	struct kthread *kthread = to_live_kthread(k);
+ 
+-	if (kthread)
++	if (kthread) {
+ 		__kthread_unpark(k, kthread);
++		put_task_stack(k);
++	}
  }
+ EXPORT_SYMBOL_GPL(kthread_unpark);
  
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages)
--{
--	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
--}
--
- /*
-  * The testcases use internal knowledge of the implementation that shouldn't
-  * be exposed to the rest of the kernel. Include these directly here.
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index f93545e7dc54..62986e5fbdba 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
- 	 * EFI mixed mode we need all of memory to be accessible when
- 	 * we pass parameters to the EFI runtime services in the
- 	 * thunking code.
--	 *
--	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
- 	 */
- 	free_pages((unsigned long)new_memmap, pg_shift);
- 
-diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
-index 338402b91d2e..cef39b097649 100644
---- a/arch/x86/platform/efi/efi_32.c
-+++ b/arch/x86/platform/efi/efi_32.c
-@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- {
- 	return 0;
- }
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--}
- 
- void __init efi_map_region(efi_memory_desc_t *md)
- {
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index b226b3f497f1..d288dcea1ffe 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	return 0;
- }
- 
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
--}
--
- static void __init __map_region(efi_memory_desc_t *md, u64 va)
- {
- 	unsigned long flags = _PAGE_RW;
+@@ -455,6 +457,7 @@ int kthread_park(struct task_struct *k)
+ 				wait_for_completion(&kthread->parked);
+ 			}
+ 		}
++		put_task_stack(k);
+ 		ret = 0;
+ 	}
+ 	return ret;
+@@ -490,6 +493,7 @@ int kthread_stop(struct task_struct *k)
+ 		__kthread_unpark(k, kthread);
+ 		wake_up_process(k);
+ 		wait_for_completion(&kthread->exited);
++		put_task_stack(k);
+ 	}
+ 	ret = k->exit_code;
+ 	put_task_struct(k);
 -- 
 2.7.4
 
