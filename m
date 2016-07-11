@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34642 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:34692 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932479AbcGKUyh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:37 -0400
+	id S932393AbcGKUyd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Jul 2016 16:54:33 -0400
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
-Date: Mon, 11 Jul 2016 13:53:47 -0700
-Message-ID: <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 15/32] x86/mm: Improve stack-overflow #PF handling
+Date: Mon, 11 Jul 2016 13:53:48 -0700
+Message-ID: <6ec969dbe40e32a004d4ef6da623bab4881411f7.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
@@ -15,225 +15,100 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: x86@kernel.org, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160711205347.D2ciP7G4Fwg5KEvpJEvFrYE9ByOqpWtn1X-WGTbhKcQ@z>
+Message-ID: <20160711205348.1XTYfqBnnQQ1HbNew_jT9JEKUPiX38Xv3R1f6WWeccY@z>
 
-This allows x86_64 kernels to enable vmapped stacks.  There are a
-couple of interesting bits.
+If we get a page fault indicating kernel stack overflow, invoke
+handle_stack_overflow().  To prevent us from overflowing the stack
+again while handling the overflow (because we are likely to have
+very little stack space left), call handle_stack_overflow() on the
+double-fault stack
 
-First, x86 lazily faults in top-level paging entries for the vmalloc
-area.  This won't work if we get a page fault while trying to access
-the stack: the CPU will promote it to a double-fault and we'll die.
-To avoid this problem, probe the new stack when switching stacks and
-forcibly populate the pgd entry for the stack when switching mms.
-
-Second, once we have guard pages around the stack, we'll want to
-detect and handle stack overflow.
-
-I didn't enable it on x86_32.  We'd need to rework the double-fault
-code a bit and I'm concerned about running out of vmalloc virtual
-addresses under some workloads.
-
-This patch, by itself, will behave somewhat erratically when the
-stack overflows while RSP is still more than a few tens of bytes
-above the bottom of the stack.  Specifically, we'll get #PF and make
-it to no_context and them oops without reliably triggering a
-double-fault, and no_context doesn't know about stack overflows.
-The next patch will improve that case.
-
-Thank you to Nadav and Brian for helping me pay enough attention to
-the SDM to hopefully get this right.
-
-Cc: Nadav Amit <nadav.amit@gmail.com>
-Cc: Brian Gerst <brgerst@gmail.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/Kconfig                 |  1 +
- arch/x86/include/asm/switch_to.h | 28 +++++++++++++++++-
- arch/x86/kernel/traps.c          | 62 ++++++++++++++++++++++++++++++++++++++++
- arch/x86/mm/tlb.c                | 15 ++++++++++
- 4 files changed, 105 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/traps.h |  6 ++++++
+ arch/x86/kernel/traps.c      |  6 +++---
+ arch/x86/mm/fault.c          | 34 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 43 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index d9a94da0c29f..afdcf96ef109 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -92,6 +92,7 @@ config X86
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_EBPF_JIT			if X86_64
-+	select HAVE_ARCH_VMAP_STACK		if X86_64
- 	select HAVE_CC_STACKPROTECTOR
- 	select HAVE_CMPXCHG_DOUBLE
- 	select HAVE_CMPXCHG_LOCAL
-diff --git a/arch/x86/include/asm/switch_to.h b/arch/x86/include/asm/switch_to.h
-index 8f321a1b03a1..14e4b20f0aaf 100644
---- a/arch/x86/include/asm/switch_to.h
-+++ b/arch/x86/include/asm/switch_to.h
-@@ -8,6 +8,28 @@ struct tss_struct;
- void __switch_to_xtra(struct task_struct *prev_p, struct task_struct *next_p,
- 		      struct tss_struct *tss);
+diff --git a/arch/x86/include/asm/traps.h b/arch/x86/include/asm/traps.h
+index c3496619740a..01fd0a7f48cd 100644
+--- a/arch/x86/include/asm/traps.h
++++ b/arch/x86/include/asm/traps.h
+@@ -117,6 +117,12 @@ extern void ist_exit(struct pt_regs *regs);
+ extern void ist_begin_non_atomic(struct pt_regs *regs);
+ extern void ist_end_non_atomic(void);
  
-+/* This runs runs on the previous thread's stack. */
-+static inline void prepare_switch_to(struct task_struct *prev,
-+				     struct task_struct *next)
-+{
 +#ifdef CONFIG_VMAP_STACK
-+	/*
-+	 * If we switch to a stack that has a top-level paging entry
-+	 * that is not present in the current mm, the resulting #PF will
-+	 * will be promoted to a double-fault and we'll panic.  Probe
-+	 * the new stack now so that vmalloc_fault can fix up the page
-+	 * tables if needed.  This can only happen if we use a stack
-+	 * in vmap space.
-+	 *
-+	 * We assume that the stack is aligned so that it never spans
-+	 * more than one top-level paging entry.
-+	 *
-+	 * To minimize cache pollution, just follow the stack pointer.
-+	 */
-+	READ_ONCE(*(unsigned char *)next->thread.sp);
++void __noreturn handle_stack_overflow(const char *message,
++				      struct pt_regs *regs,
++				      unsigned long fault_address);
 +#endif
-+}
 +
- #ifdef CONFIG_X86_32
- 
- #ifdef CONFIG_CC_STACKPROTECTOR
-@@ -39,6 +61,8 @@ do {									\
- 	 */								\
- 	unsigned long ebx, ecx, edx, esi, edi;				\
- 									\
-+	prepare_switch_to(prev, next);					\
-+									\
- 	asm volatile("pushl %%ebp\n\t"		/* save    EBP   */	\
- 		     "movl %%esp,%[prev_sp]\n\t"	/* save    ESP   */ \
- 		     "movl %[next_sp],%%esp\n\t"	/* restore ESP   */ \
-@@ -103,7 +127,9 @@ do {									\
-  * clean in kernel mode, with the possible exception of IOPL.  Kernel IOPL
-  * has no effect.
-  */
--#define switch_to(prev, next, last) \
-+#define switch_to(prev, next, last)					  \
-+	prepare_switch_to(prev, next);					  \
-+									  \
- 	asm volatile(SAVE_CONTEXT					  \
- 	     "movq %%rsp,%P[threadrsp](%[prev])\n\t" /* save RSP */	  \
- 	     "movq %P[threadrsp](%[next]),%%rsp\n\t" /* restore RSP */	  \
+ /* Interrupts/Exceptions */
+ enum {
+ 	X86_TRAP_DE = 0,	/*  0, Divide-by-zero */
 diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index 00f03d82e69a..f0345284c30b 100644
+index f0345284c30b..33d4e7629a42 100644
 --- a/arch/x86/kernel/traps.c
 +++ b/arch/x86/kernel/traps.c
-@@ -292,12 +292,30 @@ DO_ERROR(X86_TRAP_NP,     SIGBUS,  "segment not present",	segment_not_present)
- DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
+@@ -293,9 +293,9 @@ DO_ERROR(X86_TRAP_SS,     SIGBUS,  "stack segment",		stack_segment)
  DO_ERROR(X86_TRAP_AC,     SIGBUS,  "alignment check",		alignment_check)
  
-+#ifdef CONFIG_VMAP_STACK
-+static void __noreturn handle_stack_overflow(const char *message,
-+					     struct pt_regs *regs,
-+					     unsigned long fault_address)
-+{
-+	printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
-+		 (void *)fault_address, current->stack,
-+		 (char *)current->stack + THREAD_SIZE - 1);
-+	die(message, regs, 0);
-+
-+	/* Be absolutely certain we don't return. */
-+	panic(message);
-+}
-+#endif
-+
- #ifdef CONFIG_X86_64
- /* Runs on IST stack */
- dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
+ #ifdef CONFIG_VMAP_STACK
+-static void __noreturn handle_stack_overflow(const char *message,
+-					     struct pt_regs *regs,
+-					     unsigned long fault_address)
++__visible void __noreturn handle_stack_overflow(const char *message,
++						struct pt_regs *regs,
++						unsigned long fault_address)
  {
- 	static const char str[] = "double fault";
- 	struct task_struct *tsk = current;
-+#ifdef CONFIG_VMAP_STACK
-+	unsigned long cr2;
-+#endif
- 
- #ifdef CONFIG_X86_ESPFIX64
- 	extern unsigned char native_irq_return_iret[];
-@@ -332,6 +350,50 @@ dotraplinkage void do_double_fault(struct pt_regs *regs, long error_code)
- 	tsk->thread.error_code = error_code;
- 	tsk->thread.trap_nr = X86_TRAP_DF;
+ 	printk(KERN_EMERG "BUG: stack guard page was hit at %p (stack is %p..%p)\n",
+ 		 (void *)fault_address, current->stack,
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index ca44e2e7fd00..76c58fdcfb29 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -753,6 +753,40 @@ no_context(struct pt_regs *regs, unsigned long error_code,
+ 		return;
+ 	}
  
 +#ifdef CONFIG_VMAP_STACK
 +	/*
-+	 * If we overflow the stack into a guard page, the CPU will fail
-+	 * to deliver #PF and will send #DF instead.  Similarly, if we
-+	 * take any non-IST exception while too close to the bottom of
-+	 * the stack, the processor will get a page fault while
-+	 * delivering the exception and will generate a double fault.
-+	 *
-+	 * According to the SDM (footnote in 6.15 under "Interrupt 14 -
-+	 * Page-Fault Exception (#PF):
-+	 *
-+	 *   Processors update CR2 whenever a page fault is detected. If a
-+	 *   second page fault occurs while an earlier page fault is being
-+	 *   deliv- ered, the faulting linear address of the second fault will
-+	 *   overwrite the contents of CR2 (replacing the previous
-+	 *   address). These updates to CR2 occur even if the page fault
-+	 *   results in a double fault or occurs during the delivery of a
-+	 *   double fault.
-+	 *
-+	 * The logic below has a small possibility of incorrectly diagnosing
-+	 * some errors as stack overflows.  For example, if the IDT or GDT
-+	 * gets corrupted such that #GP delivery fails due to a bad descriptor
-+	 * causing #GP and we hit this condition while CR2 coincidentally
-+	 * points to the stack guard page, we'll think we overflowed the
-+	 * stack.  Given that we're going to panic one way or another
-+	 * if this happens, this isn't necessarily worth fixing.
-+	 *
-+	 * If necessary, we could improve the test by only diagnosing
-+	 * a stack overflow if the saved RSP points within 47 bytes of
-+	 * the bottom of the stack: if RSP == tsk_stack + 48 and we
-+	 * take an exception, the stack is already aligned and there
-+	 * will be enough room SS, RSP, RFLAGS, CS, RIP, and a
-+	 * possible error code, so a stack overflow would *not* double
-+	 * fault.  With any less space left, exception delivery could
-+	 * fail, and, as a practical matter, we've overflowed the
-+	 * stack even if the actual trigger for the double fault was
-+	 * something else.
++	 * Stack overflow?  During boot, we can fault near the initial
++	 * stack in the direct map, but that's not an overflow -- check
++	 * that we're in vmalloc space to avoid this.
 +	 */
-+	cr2 = read_cr2();
-+	if ((unsigned long)task_stack_page(tsk) - 1 - cr2 < PAGE_SIZE)
-+		handle_stack_overflow(
-+			"kernel stack overflow (double-fault)", regs, cr2);
++	if (is_vmalloc_addr((void *)address) &&
++	    (((unsigned long)tsk->stack - 1 - address < PAGE_SIZE) ||
++	     address - ((unsigned long)tsk->stack + THREAD_SIZE) < PAGE_SIZE)) {
++		register void *__sp asm("rsp");
++		unsigned long stack =
++			this_cpu_read(orig_ist.ist[DOUBLEFAULT_STACK]) -
++			sizeof(void *);
++		/*
++		 * We're likely to be running with very little stack space
++		 * left.  It's plausible that we'd hit this condition but
++		 * double-fault even before we get this far, in which case
++		 * we're fine: the double-fault handler will deal with it.
++		 *
++		 * We don't want to make it all the way into the oops code
++		 * and then double-fault, though, because we're likely to
++		 * break the console driver and lose most of the stack dump.
++		 */
++		asm volatile ("movq %[stack], %%rsp\n\t"
++			      "call handle_stack_overflow\n\t"
++			      "1: jmp 1b"
++			      : "+r" (__sp)
++			      : "D" ("kernel stack overflow (page fault)"),
++				"S" (regs), "d" (address),
++				[stack] "rm" (stack));
++		unreachable();
++	}
 +#endif
 +
- #ifdef CONFIG_DOUBLEFAULT
- 	df_debug(regs, error_code);
- #endif
-diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 5643fd0b1a7d..fbf036ae72ac 100644
---- a/arch/x86/mm/tlb.c
-+++ b/arch/x86/mm/tlb.c
-@@ -77,10 +77,25 @@ void switch_mm_irqs_off(struct mm_struct *prev, struct mm_struct *next,
- 	unsigned cpu = smp_processor_id();
- 
- 	if (likely(prev != next)) {
-+		if (IS_ENABLED(CONFIG_VMAP_STACK)) {
-+			/*
-+			 * If our current stack is in vmalloc space and isn't
-+			 * mapped in the new pgd, we'll double-fault.  Forcibly
-+			 * map it.
-+			 */
-+			unsigned int stack_pgd_index =
-+				pgd_index(current_stack_pointer());
-+			pgd_t *pgd = next->pgd + stack_pgd_index;
-+
-+			if (unlikely(pgd_none(*pgd)))
-+				set_pgd(pgd, init_mm.pgd[stack_pgd_index]);
-+		}
-+
- #ifdef CONFIG_SMP
- 		this_cpu_write(cpu_tlbstate.state, TLBSTATE_OK);
- 		this_cpu_write(cpu_tlbstate.active_mm, next);
- #endif
-+
- 		cpumask_set_cpu(cpu, mm_cpumask(next));
- 
- 		/*
+ 	/*
+ 	 * 32-bit:
+ 	 *
 -- 
 2.7.4
 
