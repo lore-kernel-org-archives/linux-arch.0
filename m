@@ -1,74 +1,112 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 29/32] kthread: to_live_kthread() needs try_get_task_stack()
-Date: Mon, 11 Jul 2016 13:54:02 -0700
-Message-ID: <00535b14d078b4e581911a87672eaf9766539dbd.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 08/32] dma-api: Teach the "DMA-from-stack" check about vmapped stacks
+Date: Mon, 11 Jul 2016 13:53:41 -0700
+Message-ID: <4a1d5fa16a28b32509ece3611690be48a8746778.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-3902-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Oleg Nesterov <oleg@redhat.com>
+If we're using CONFIG_VMAP_STACK and we manage to point an sg entry
+at the stack, then either the sg page will be in highmem or sg_virt
+will return the direct-map alias.  In neither case will the existing
+check_for_stack() implementation realize that it's a stack page.
 
-get_task_struct(tsk) no longer pins tsk->stack so all users of
-to_live_kthread() should do try_get_task_stack/put_task_stack to protect
-"struct kthread" which lives on kthread's stack.
+Fix it by explicitly checking for stack pages.
 
-TODO: Kill to_live_kthread(), perhaps we can even kill "struct kthread" too,
-and rework kthread_stop(), it can use task_work_add() to sync with the exiting
-kernel thread.
+This has no effect by itself.  It's broken out for ease of review.
 
-Message-Id: <20160629180357.GA7178@redhat.com>
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- kernel/kthread.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ lib/dma-debug.c | 39 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/kthread.c b/kernel/kthread.c
-index 9ff173dca1ae..4ab4c3766a80 100644
---- a/kernel/kthread.c
-+++ b/kernel/kthread.c
-@@ -64,7 +64,7 @@ static inline struct kthread *to_kthread(struct task_struct *k)
- static struct kthread *to_live_kthread(struct task_struct *k)
- {
- 	struct completion *vfork = ACCESS_ONCE(k->vfork_done);
--	if (likely(vfork))
-+	if (likely(vfork) && try_get_task_stack(k))
- 		return __to_kthread(vfork);
- 	return NULL;
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index 51a76af25c66..5b2e63cba90e 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -22,6 +22,7 @@
+ #include <linux/stacktrace.h>
+ #include <linux/dma-debug.h>
+ #include <linux/spinlock.h>
++#include <linux/vmalloc.h>
+ #include <linux/debugfs.h>
+ #include <linux/uaccess.h>
+ #include <linux/export.h>
+@@ -1162,11 +1163,35 @@ static void check_unmap(struct dma_debug_entry *ref)
+ 	put_hash_bucket(bucket, &flags);
  }
-@@ -425,8 +425,10 @@ void kthread_unpark(struct task_struct *k)
- {
- 	struct kthread *kthread = to_live_kthread(k);
  
--	if (kthread)
-+	if (kthread) {
- 		__kthread_unpark(k, kthread);
-+		put_task_stack(k);
+-static void check_for_stack(struct device *dev, void *addr)
++static void check_for_stack(struct device *dev,
++			    struct page *page, size_t offset)
+ {
+-	if (object_is_on_stack(addr))
+-		err_printk(dev, NULL, "DMA-API: device driver maps memory from "
+-				"stack [addr=%p]\n", addr);
++	void *addr;
++	struct vm_struct *stack_vm_area = task_stack_vm_area(current);
++
++	if (!stack_vm_area) {
++		/* Stack is direct-mapped. */
++		if (PageHighMem(page))
++			return;
++		addr = page_address(page) + offset;
++		if (object_is_on_stack(addr))
++			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [addr=%p]\n",
++				   addr);
++	} else {
++		/* Stack is vmalloced. */
++		int i;
++
++		for (i = 0; i < stack_vm_area->nr_pages; i++) {
++			if (page != stack_vm_area->pages[i])
++				continue;
++
++			addr = (u8 *)current->stack + i * PAGE_SIZE +
++				offset;
++			err_printk(dev, NULL, "DMA-API: device driver maps memory from stack [probable addr=%p]\n",
++				   addr);
++			break;
++		}
 +	}
  }
- EXPORT_SYMBOL_GPL(kthread_unpark);
  
-@@ -455,6 +457,7 @@ int kthread_park(struct task_struct *k)
- 				wait_for_completion(&kthread->parked);
- 			}
+ static inline bool overlap(void *addr, unsigned long len, void *start, void *end)
+@@ -1289,10 +1314,11 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+ 	if (map_single)
+ 		entry->type = dma_debug_single;
+ 
++	check_for_stack(dev, page, offset);
++
+ 	if (!PageHighMem(page)) {
+ 		void *addr = page_address(page) + offset;
+ 
+-		check_for_stack(dev, addr);
+ 		check_for_illegal_area(dev, addr, size);
+ 	}
+ 
+@@ -1384,8 +1410,9 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
+ 		entry->sg_call_ents   = nents;
+ 		entry->sg_mapped_ents = mapped_ents;
+ 
++		check_for_stack(dev, sg_page(s), s->offset);
++
+ 		if (!PageHighMem(sg_page(s))) {
+-			check_for_stack(dev, sg_virt(s));
+ 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
  		}
-+		put_task_stack(k);
- 		ret = 0;
- 	}
- 	return ret;
-@@ -490,6 +493,7 @@ int kthread_stop(struct task_struct *k)
- 		__kthread_unpark(k, kthread);
- 		wake_up_process(k);
- 		wait_for_completion(&kthread->exited);
-+		put_task_stack(k);
- 	}
- 	ret = k->exit_code;
- 	put_task_struct(k);
+ 
 -- 
 2.7.4
