@@ -1,159 +1,288 @@
-From: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: [PATCH v5 04/32] x86/mm: Remove kernel_unmap_pages_in_pgd() and efi_cleanup_page_tables()
-Date: Mon, 11 Jul 2016 13:53:37 -0700
-Message-ID: <8728874c5802014ba5c00a91c0961da20e38314e.1468270393.git.luto@kernel.org>
+From: Andy Lutomirski <luto@kernel.org>
+Subject: [PATCH v5 07/32] fork: Add generic vmalloced stack support
+Date: Mon, 11 Jul 2016 13:53:40 -0700
+Message-ID: <51f37059777910f989486657d1e27ded4c7edad2.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <cover.1468270393.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-In-Reply-To: <cover.1468270393.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-References: <cover.1468270393.git.luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Nadav Amit <nadav.amit-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Brian Gerst <brgerst-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org" <kernel-hardening-ZwoEplunGu1jrUoiu81ncdBPR1lH4CV8@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Poimboeuf <jpoimboe-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Jann Horn <jann-XZ1E9jl8jIdeoWH0uzbU5w@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1468270393.git.luto@kernel.org>
+In-Reply-To: <cover.1468270393.git.luto@kernel.org>
+References: <cover.1468270393.git.luto@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-kernel_unmap_pages_in_pgd() is dangerous: if a pgd entry in
-init_mm.pgd were to be cleared, callers would need to ensure that
-the pgd entry hadn't been propagated to any other pgd.
+If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
+vmalloc_node.
 
-Its only caller was efi_cleanup_page_tables(), and that, in turn,
-was unused, so just delete both functions.  This leaves a couple of
-other helpers unused, so delete them, too.
+grsecurity has had a similar feature (called
+GRKERNSEC_KSTACKOVERFLOW) for a long time.
 
-Cc: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Reviewed-by: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
-Acked-by: Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
-Signed-off-by: Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/efi.h           |  1 -
- arch/x86/include/asm/pgtable_types.h |  2 --
- arch/x86/mm/pageattr.c               | 28 ----------------------------
- arch/x86/platform/efi/efi.c          |  2 --
- arch/x86/platform/efi/efi_32.c       |  3 ---
- arch/x86/platform/efi/efi_64.c       |  5 -----
- 6 files changed, 41 deletions(-)
+ arch/Kconfig                        | 33 +++++++++++++
+ arch/ia64/include/asm/thread_info.h |  2 +-
+ include/linux/sched.h               | 15 ++++++
+ kernel/fork.c                       | 96 +++++++++++++++++++++++++++++--------
+ 4 files changed, 125 insertions(+), 21 deletions(-)
 
-diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
-index 78d1e7467eae..45ea38df86d4 100644
---- a/arch/x86/include/asm/efi.h
-+++ b/arch/x86/include/asm/efi.h
-@@ -125,7 +125,6 @@ extern void __init efi_map_region_fixed(efi_memory_desc_t *md);
- extern void efi_sync_low_kernel_mappings(void);
- extern int __init efi_alloc_page_tables(void);
- extern int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages);
--extern void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages);
- extern void __init old_map_region(efi_memory_desc_t *md);
- extern void __init runtime_code_page_mkexec(void);
- extern void __init efi_runtime_update_mappings(void);
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index 7b5efe264eff..0b9f58ad10c8 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -475,8 +475,6 @@ extern pmd_t *lookup_pmd_address(unsigned long address);
- extern phys_addr_t slow_virt_to_phys(void *__address);
- extern int kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,
- 				   unsigned numpages, unsigned long page_flags);
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages);
- #endif	/* !__ASSEMBLY__ */
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 15996290fed4..14398fcf8292 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -661,4 +661,37 @@ config ARCH_NO_COHERENT_DMA_MMAP
+ config CPU_NO_EFFICIENT_FFS
+ 	def_bool n
  
- #endif /* _ASM_X86_PGTABLE_DEFS_H */
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 6088aa03de63..4a0bd4f35ca3 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -746,18 +746,6 @@ static bool try_to_free_pmd_page(pmd_t *pmd)
- 	return true;
- }
++config HAVE_ARCH_VMAP_STACK
++	def_bool n
++	help
++	  An arch should select this symbol if it can support kernel stacks
++	  in vmalloc space.  This means:
++
++	  - vmalloc space must be large enough to hold many kernel stacks.
++	    This may rule out many 32-bit architectures.
++
++	  - Stacks in vmalloc space need to work reliably.  For example, if
++	    vmap page tables are created on demand, either this mechanism
++	    needs to work while the stack points to a virtual address with
++	    unpopulated page tables or arch code (switch_to and switch_mm,
++	    most likely) needs to ensure that the stack's page table entries
++	    are populated before running on a possibly unpopulated stack.
++
++	  - If the stack overflows into a guard page, something reasonable
++	    should happen.  The definition of "reasonable" is flexible, but
++	    instantly rebooting without logging anything would be unfriendly.
++
++config VMAP_STACK
++	bool "Use a virtually-mapped stack"
++	depends on HAVE_ARCH_VMAP_STACK && !KASAN
++	---help---
++	  Enable this if you want the use virtually-mapped kernel stacks
++	  with guard pages.  This causes kernel stack overflows to be
++	  caught immediately rather than causing difficult-to-diagnose
++	  corruption.
++
++	  This is presently incompatible with KASAN because KASAN expects
++	  the stack to map directly to the KASAN shadow map using a formula
++	  that is incorrect if the stack is in vmalloc space.
++
+ source "kernel/gcov/Kconfig"
+diff --git a/arch/ia64/include/asm/thread_info.h b/arch/ia64/include/asm/thread_info.h
+index d1212b84fb83..f0a72e98e5a4 100644
+--- a/arch/ia64/include/asm/thread_info.h
++++ b/arch/ia64/include/asm/thread_info.h
+@@ -56,7 +56,7 @@ struct thread_info {
+ #define alloc_thread_stack_node(tsk, node)	((unsigned long *) 0)
+ #define task_thread_info(tsk)	((struct thread_info *) 0)
+ #endif
+-#define free_thread_stack(ti)	/* nothing */
++#define free_thread_stack(tsk)	/* nothing */
+ #define task_stack_page(tsk)	((void *)(tsk))
  
--static bool try_to_free_pud_page(pud_t *pud)
--{
--	int i;
--
--	for (i = 0; i < PTRS_PER_PUD; i++)
--		if (!pud_none(pud[i]))
--			return false;
--
--	free_page((unsigned long)pud);
--	return true;
--}
--
- static bool unmap_pte_range(pmd_t *pmd, unsigned long start, unsigned long end)
- {
- 	pte_t *pte = pte_offset_kernel(pmd, start);
-@@ -871,16 +859,6 @@ static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
- 	 */
- }
- 
--static void unmap_pgd_range(pgd_t *root, unsigned long addr, unsigned long end)
--{
--	pgd_t *pgd_entry = root + pgd_index(addr);
--
--	unmap_pud_range(pgd_entry, addr, end);
--
--	if (try_to_free_pud_page((pud_t *)pgd_page_vaddr(*pgd_entry)))
--		pgd_clear(pgd_entry);
--}
--
- static int alloc_pte_page(pmd_t *pmd)
- {
- 	pte_t *pte = (pte_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
-@@ -1994,12 +1972,6 @@ out:
- 	return retval;
- }
- 
--void kernel_unmap_pages_in_pgd(pgd_t *root, unsigned long address,
--			       unsigned numpages)
--{
--	unmap_pgd_range(root, address, address + (numpages << PAGE_SHIFT));
--}
--
+ #define __HAVE_THREAD_FUNCTIONS
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 253538f29ade..26869dba21f1 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1918,6 +1918,9 @@ struct task_struct {
+ #ifdef CONFIG_MMU
+ 	struct task_struct *oom_reaper_list;
+ #endif
++#ifdef CONFIG_VMAP_STACK
++	struct vm_struct *stack_vm_area;
++#endif
+ /* CPU-specific state of this task */
+ 	struct thread_struct thread;
  /*
-  * The testcases use internal knowledge of the implementation that shouldn't
-  * be exposed to the rest of the kernel. Include these directly here.
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index f93545e7dc54..62986e5fbdba 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -978,8 +978,6 @@ static void __init __efi_enter_virtual_mode(void)
- 	 * EFI mixed mode we need all of memory to be accessible when
- 	 * we pass parameters to the EFI runtime services in the
- 	 * thunking code.
--	 *
--	 * efi_cleanup_page_tables(__pa(new_memmap), 1 << pg_shift);
- 	 */
- 	free_pages((unsigned long)new_memmap, pg_shift);
+@@ -1934,6 +1937,18 @@ extern int arch_task_struct_size __read_mostly;
+ # define arch_task_struct_size (sizeof(struct task_struct))
+ #endif
  
-diff --git a/arch/x86/platform/efi/efi_32.c b/arch/x86/platform/efi/efi_32.c
-index 338402b91d2e..cef39b097649 100644
---- a/arch/x86/platform/efi/efi_32.c
-+++ b/arch/x86/platform/efi/efi_32.c
-@@ -49,9 +49,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
++#ifdef CONFIG_VMAP_STACK
++static inline struct vm_struct *task_stack_vm_area(const struct task_struct *t)
++{
++	return t->stack_vm_area;
++}
++#else
++static inline struct vm_struct *task_stack_vm_area(const struct task_struct *t)
++{
++	return NULL;
++}
++#endif
++
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+ #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
+ 
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 146c9840c079..d2a64a0413be 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -158,19 +158,39 @@ void __weak arch_release_thread_stack(unsigned long *stack)
+  * Allocate pages if THREAD_SIZE is >= PAGE_SIZE, otherwise use a
+  * kmemcache based allocator.
+  */
+-# if THREAD_SIZE >= PAGE_SIZE
+-static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
+-						  int node)
++# if THREAD_SIZE >= PAGE_SIZE || defined(CONFIG_VMAP_STACK)
++static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
  {
- 	return 0;
++#ifdef CONFIG_VMAP_STACK
++	void *stack = __vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
++					   VMALLOC_START, VMALLOC_END,
++					   THREADINFO_GFP | __GFP_HIGHMEM,
++					   PAGE_KERNEL,
++					   0, node,
++					   __builtin_return_address(0));
++
++	/*
++	 * We can't call find_vm_area() in interrupt context, and
++	 * free_thread_stack can be called in interrupt context, so cache
++	 * the vm_struct.
++	 */
++	if (stack)
++		tsk->stack_vm_area = find_vm_area(stack);
++	return stack;
++#else
+ 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
+ 						  THREAD_SIZE_ORDER);
+ 
+ 	return page ? page_address(page) : NULL;
++#endif
  }
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--}
  
- void __init efi_map_region(efi_memory_desc_t *md)
+-static inline void free_thread_stack(unsigned long *stack)
++static inline void free_thread_stack(struct task_struct *tsk)
  {
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index b226b3f497f1..d288dcea1ffe 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -285,11 +285,6 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
- 	return 0;
+-	free_kmem_pages((unsigned long)stack, THREAD_SIZE_ORDER);
++	if (task_stack_vm_area(tsk))
++		vfree(tsk->stack);
++	else
++		free_kmem_pages((unsigned long)tsk->stack, THREAD_SIZE_ORDER);
+ }
+ # else
+ static struct kmem_cache *thread_stack_cache;
+@@ -181,9 +201,9 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
+ 	return kmem_cache_alloc_node(thread_stack_cache, THREADINFO_GFP, node);
  }
  
--void __init efi_cleanup_page_tables(unsigned long pa_memmap, unsigned num_pages)
--{
--	kernel_unmap_pages_in_pgd(efi_pgd, pa_memmap, num_pages);
--}
--
- static void __init __map_region(efi_memory_desc_t *md, u64 va)
+-static void free_thread_stack(unsigned long *stack)
++static void free_thread_stack(struct task_struct *tsk)
  {
- 	unsigned long flags = _PAGE_RW;
+-	kmem_cache_free(thread_stack_cache, stack);
++	kmem_cache_free(thread_stack_cache, tsk->stack);
+ }
+ 
+ void thread_stack_cache_init(void)
+@@ -213,24 +233,47 @@ struct kmem_cache *vm_area_cachep;
+ /* SLAB cache for mm_struct structures (tsk->mm) */
+ static struct kmem_cache *mm_cachep;
+ 
+-static void account_kernel_stack(unsigned long *stack, int account)
++static void account_kernel_stack(struct task_struct *tsk, int account)
+ {
+-	/* All stack pages are in the same zone and belong to the same memcg. */
+-	struct page *first_page = virt_to_page(stack);
++	void *stack = task_stack_page(tsk);
++	struct vm_struct *vm = task_stack_vm_area(tsk);
++
++	BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
++
++	if (vm) {
++		int i;
++
++		BUG_ON(vm->nr_pages != THREAD_SIZE / PAGE_SIZE);
++
++		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
++			mod_zone_page_state(page_zone(vm->pages[i]),
++					    NR_KERNEL_STACK_KB,
++					    PAGE_SIZE / 1024 * account);
++		}
+ 
+-	mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
+-			    THREAD_SIZE / 1024 * account);
++		/* All stack pages belong to the same memcg. */
++		memcg_kmem_update_page_stat(vm->pages[0], MEMCG_KERNEL_STACK_KB,
++					    account * (THREAD_SIZE / 1024));
++	} else {
++		/*
++		 * All stack pages are in the same zone and belong to the
++		 * same memcg.
++		 */
++		struct page *first_page = virt_to_page(stack);
++
++		mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
++				    THREAD_SIZE / 1024 * account);
+ 
+-	memcg_kmem_update_page_stat(
+-		first_page, MEMCG_KERNEL_STACK_KB,
+-		account * (THREAD_SIZE / 1024));
++		memcg_kmem_update_page_stat(first_page, MEMCG_KERNEL_STACK_KB,
++					    account * (THREAD_SIZE / 1024));
++	}
+ }
+ 
+ void free_task(struct task_struct *tsk)
+ {
+-	account_kernel_stack(tsk->stack, -1);
++	account_kernel_stack(tsk, -1);
+ 	arch_release_thread_stack(tsk->stack);
+-	free_thread_stack(tsk->stack);
++	free_thread_stack(tsk);
+ 	rt_mutex_debug_task_free(tsk);
+ 	ftrace_graph_exit_task(tsk);
+ 	put_seccomp_filter(tsk);
+@@ -342,6 +385,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ {
+ 	struct task_struct *tsk;
+ 	unsigned long *stack;
++	struct vm_struct *stack_vm_area;
+ 	int err;
+ 
+ 	if (node == NUMA_NO_NODE)
+@@ -354,11 +398,23 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ 	if (!stack)
+ 		goto free_tsk;
+ 
++	stack_vm_area = task_stack_vm_area(tsk);
++
+ 	err = arch_dup_task_struct(tsk, orig);
++
++	/*
++	 * arch_dup_task_struct clobbers the stack-related fields.  Make
++	 * sure they're properly initialized before using any stack-related
++	 * functions again.
++	 */
++	tsk->stack = stack;
++#ifdef CONFIG_VMAP_STACK
++	tsk->stack_vm_area = stack_vm_area;
++#endif
++
+ 	if (err)
+ 		goto free_stack;
+ 
+-	tsk->stack = stack;
+ #ifdef CONFIG_SECCOMP
+ 	/*
+ 	 * We must handle setting up seccomp filters once we're under
+@@ -390,14 +446,14 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+ 	tsk->task_frag.page = NULL;
+ 	tsk->wake_q.next = NULL;
+ 
+-	account_kernel_stack(stack, 1);
++	account_kernel_stack(tsk, 1);
+ 
+ 	kcov_task_init(tsk);
+ 
+ 	return tsk;
+ 
+ free_stack:
+-	free_thread_stack(stack);
++	free_thread_stack(tsk);
+ free_tsk:
+ 	free_task_struct(tsk);
+ 	return NULL;
 -- 
 2.7.4
