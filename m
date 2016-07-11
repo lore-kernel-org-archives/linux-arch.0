@@ -1,288 +1,284 @@
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 07/32] fork: Add generic vmalloced stack support
-Date: Mon, 11 Jul 2016 13:53:40 -0700
-Message-ID: <51f37059777910f989486657d1e27ded4c7edad2.1468270393.git.luto@kernel.org>
+Subject: [PATCH v5 01/32] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
+Date: Mon, 11 Jul 2016 13:53:34 -0700
+Message-ID: <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-3895-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 In-Reply-To: <cover.1468270393.git.luto@kernel.org>
 References: <cover.1468270393.git.luto@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
 To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Oleg Nesterov <oleg@redhat.com>
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>, Marcel Holtmann <marcel@holtmann.org>, Gustavo Padovan <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-bluetooth@vger.kernel.org, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-If CONFIG_VMAP_STACK is selected, kernel stacks are allocated with
-vmalloc_node.
+SMP does ECB crypto on stack buffers.  This is complicated and
+fragile, and it will not work if the stack is virtually allocated.
 
-grsecurity has had a similar feature (called
-GRKERNSEC_KSTACKOVERFLOW) for a long time.
+Switch to the crypto_cipher interface, which is simpler and safer.
 
-Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Marcel Holtmann <marcel@holtmann.org>
+Cc: Gustavo Padovan <gustavo@padovan.org>
+Cc: Johan Hedberg <johan.hedberg@gmail.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: linux-bluetooth@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+Acked-and-tested-by: Johan Hedberg <johan.hedberg@intel.com>
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/Kconfig                        | 33 +++++++++++++
- arch/ia64/include/asm/thread_info.h |  2 +-
- include/linux/sched.h               | 15 ++++++
- kernel/fork.c                       | 96 +++++++++++++++++++++++++++++--------
- 4 files changed, 125 insertions(+), 21 deletions(-)
+ net/bluetooth/smp.c | 67 ++++++++++++++++++++++-------------------------------
+ 1 file changed, 28 insertions(+), 39 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 15996290fed4..14398fcf8292 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -661,4 +661,37 @@ config ARCH_NO_COHERENT_DMA_MMAP
- config CPU_NO_EFFICIENT_FFS
- 	def_bool n
+diff --git a/net/bluetooth/smp.c b/net/bluetooth/smp.c
+index 50976a6481f3..4c1a16a96ae5 100644
+--- a/net/bluetooth/smp.c
++++ b/net/bluetooth/smp.c
+@@ -22,9 +22,9 @@
  
-+config HAVE_ARCH_VMAP_STACK
-+	def_bool n
-+	help
-+	  An arch should select this symbol if it can support kernel stacks
-+	  in vmalloc space.  This means:
-+
-+	  - vmalloc space must be large enough to hold many kernel stacks.
-+	    This may rule out many 32-bit architectures.
-+
-+	  - Stacks in vmalloc space need to work reliably.  For example, if
-+	    vmap page tables are created on demand, either this mechanism
-+	    needs to work while the stack points to a virtual address with
-+	    unpopulated page tables or arch code (switch_to and switch_mm,
-+	    most likely) needs to ensure that the stack's page table entries
-+	    are populated before running on a possibly unpopulated stack.
-+
-+	  - If the stack overflows into a guard page, something reasonable
-+	    should happen.  The definition of "reasonable" is flexible, but
-+	    instantly rebooting without logging anything would be unfriendly.
-+
-+config VMAP_STACK
-+	bool "Use a virtually-mapped stack"
-+	depends on HAVE_ARCH_VMAP_STACK && !KASAN
-+	---help---
-+	  Enable this if you want the use virtually-mapped kernel stacks
-+	  with guard pages.  This causes kernel stack overflows to be
-+	  caught immediately rather than causing difficult-to-diagnose
-+	  corruption.
-+
-+	  This is presently incompatible with KASAN because KASAN expects
-+	  the stack to map directly to the KASAN shadow map using a formula
-+	  that is incorrect if the stack is in vmalloc space.
-+
- source "kernel/gcov/Kconfig"
-diff --git a/arch/ia64/include/asm/thread_info.h b/arch/ia64/include/asm/thread_info.h
-index d1212b84fb83..f0a72e98e5a4 100644
---- a/arch/ia64/include/asm/thread_info.h
-+++ b/arch/ia64/include/asm/thread_info.h
-@@ -56,7 +56,7 @@ struct thread_info {
- #define alloc_thread_stack_node(tsk, node)	((unsigned long *) 0)
- #define task_thread_info(tsk)	((struct thread_info *) 0)
- #endif
--#define free_thread_stack(ti)	/* nothing */
-+#define free_thread_stack(tsk)	/* nothing */
- #define task_stack_page(tsk)	((void *)(tsk))
+ #include <linux/debugfs.h>
+ #include <linux/scatterlist.h>
++#include <linux/crypto.h>
+ #include <crypto/b128ops.h>
+ #include <crypto/hash.h>
+-#include <crypto/skcipher.h>
  
- #define __HAVE_THREAD_FUNCTIONS
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 253538f29ade..26869dba21f1 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1918,6 +1918,9 @@ struct task_struct {
- #ifdef CONFIG_MMU
- 	struct task_struct *oom_reaper_list;
- #endif
-+#ifdef CONFIG_VMAP_STACK
-+	struct vm_struct *stack_vm_area;
-+#endif
- /* CPU-specific state of this task */
- 	struct thread_struct thread;
- /*
-@@ -1934,6 +1937,18 @@ extern int arch_task_struct_size __read_mostly;
- # define arch_task_struct_size (sizeof(struct task_struct))
- #endif
+ #include <net/bluetooth/bluetooth.h>
+ #include <net/bluetooth/hci_core.h>
+@@ -88,7 +88,7 @@ struct smp_dev {
+ 	u8			min_key_size;
+ 	u8			max_key_size;
  
-+#ifdef CONFIG_VMAP_STACK
-+static inline struct vm_struct *task_stack_vm_area(const struct task_struct *t)
-+{
-+	return t->stack_vm_area;
-+}
-+#else
-+static inline struct vm_struct *task_stack_vm_area(const struct task_struct *t)
-+{
-+	return NULL;
-+}
-+#endif
-+
- /* Future-safe accessor for struct task_struct's cpus_allowed. */
- #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
+-	struct crypto_skcipher	*tfm_aes;
++	struct crypto_cipher	*tfm_aes;
+ 	struct crypto_shash	*tfm_cmac;
+ };
  
-diff --git a/kernel/fork.c b/kernel/fork.c
-index 146c9840c079..d2a64a0413be 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -158,19 +158,39 @@ void __weak arch_release_thread_stack(unsigned long *stack)
-  * Allocate pages if THREAD_SIZE is >= PAGE_SIZE, otherwise use a
-  * kmemcache based allocator.
+@@ -127,7 +127,7 @@ struct smp_chan {
+ 	u8			dhkey[32];
+ 	u8			mackey[16];
+ 
+-	struct crypto_skcipher	*tfm_aes;
++	struct crypto_cipher	*tfm_aes;
+ 	struct crypto_shash	*tfm_cmac;
+ };
+ 
+@@ -361,10 +361,8 @@ static int smp_h6(struct crypto_shash *tfm_cmac, const u8 w[16],
+  * s1 and ah.
   */
--# if THREAD_SIZE >= PAGE_SIZE
--static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
--						  int node)
-+# if THREAD_SIZE >= PAGE_SIZE || defined(CONFIG_VMAP_STACK)
-+static unsigned long *alloc_thread_stack_node(struct task_struct *tsk, int node)
+ 
+-static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
++static int smp_e(struct crypto_cipher *tfm, const u8 *k, u8 *r)
  {
-+#ifdef CONFIG_VMAP_STACK
-+	void *stack = __vmalloc_node_range(THREAD_SIZE, THREAD_SIZE,
-+					   VMALLOC_START, VMALLOC_END,
-+					   THREADINFO_GFP | __GFP_HIGHMEM,
-+					   PAGE_KERNEL,
-+					   0, node,
-+					   __builtin_return_address(0));
-+
-+	/*
-+	 * We can't call find_vm_area() in interrupt context, and
-+	 * free_thread_stack can be called in interrupt context, so cache
-+	 * the vm_struct.
-+	 */
-+	if (stack)
-+		tsk->stack_vm_area = find_vm_area(stack);
-+	return stack;
-+#else
- 	struct page *page = alloc_kmem_pages_node(node, THREADINFO_GFP,
- 						  THREAD_SIZE_ORDER);
- 
- 	return page ? page_address(page) : NULL;
-+#endif
- }
- 
--static inline void free_thread_stack(unsigned long *stack)
-+static inline void free_thread_stack(struct task_struct *tsk)
- {
--	free_kmem_pages((unsigned long)stack, THREAD_SIZE_ORDER);
-+	if (task_stack_vm_area(tsk))
-+		vfree(tsk->stack);
-+	else
-+		free_kmem_pages((unsigned long)tsk->stack, THREAD_SIZE_ORDER);
- }
- # else
- static struct kmem_cache *thread_stack_cache;
-@@ -181,9 +201,9 @@ static unsigned long *alloc_thread_stack_node(struct task_struct *tsk,
- 	return kmem_cache_alloc_node(thread_stack_cache, THREADINFO_GFP, node);
- }
- 
--static void free_thread_stack(unsigned long *stack)
-+static void free_thread_stack(struct task_struct *tsk)
- {
--	kmem_cache_free(thread_stack_cache, stack);
-+	kmem_cache_free(thread_stack_cache, tsk->stack);
- }
- 
- void thread_stack_cache_init(void)
-@@ -213,24 +233,47 @@ struct kmem_cache *vm_area_cachep;
- /* SLAB cache for mm_struct structures (tsk->mm) */
- static struct kmem_cache *mm_cachep;
- 
--static void account_kernel_stack(unsigned long *stack, int account)
-+static void account_kernel_stack(struct task_struct *tsk, int account)
- {
--	/* All stack pages are in the same zone and belong to the same memcg. */
--	struct page *first_page = virt_to_page(stack);
-+	void *stack = task_stack_page(tsk);
-+	struct vm_struct *vm = task_stack_vm_area(tsk);
-+
-+	BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
-+
-+	if (vm) {
-+		int i;
-+
-+		BUG_ON(vm->nr_pages != THREAD_SIZE / PAGE_SIZE);
-+
-+		for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++) {
-+			mod_zone_page_state(page_zone(vm->pages[i]),
-+					    NR_KERNEL_STACK_KB,
-+					    PAGE_SIZE / 1024 * account);
-+		}
- 
--	mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
--			    THREAD_SIZE / 1024 * account);
-+		/* All stack pages belong to the same memcg. */
-+		memcg_kmem_update_page_stat(vm->pages[0], MEMCG_KERNEL_STACK_KB,
-+					    account * (THREAD_SIZE / 1024));
-+	} else {
-+		/*
-+		 * All stack pages are in the same zone and belong to the
-+		 * same memcg.
-+		 */
-+		struct page *first_page = virt_to_page(stack);
-+
-+		mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
-+				    THREAD_SIZE / 1024 * account);
- 
--	memcg_kmem_update_page_stat(
--		first_page, MEMCG_KERNEL_STACK_KB,
--		account * (THREAD_SIZE / 1024));
-+		memcg_kmem_update_page_stat(first_page, MEMCG_KERNEL_STACK_KB,
-+					    account * (THREAD_SIZE / 1024));
-+	}
- }
- 
- void free_task(struct task_struct *tsk)
- {
--	account_kernel_stack(tsk->stack, -1);
-+	account_kernel_stack(tsk, -1);
- 	arch_release_thread_stack(tsk->stack);
--	free_thread_stack(tsk->stack);
-+	free_thread_stack(tsk);
- 	rt_mutex_debug_task_free(tsk);
- 	ftrace_graph_exit_task(tsk);
- 	put_seccomp_filter(tsk);
-@@ -342,6 +385,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
- {
- 	struct task_struct *tsk;
- 	unsigned long *stack;
-+	struct vm_struct *stack_vm_area;
+-	SKCIPHER_REQUEST_ON_STACK(req, tfm);
+-	struct scatterlist sg;
+ 	uint8_t tmp[16], data[16];
  	int err;
  
- 	if (node == NUMA_NO_NODE)
-@@ -354,11 +398,23 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
- 	if (!stack)
- 		goto free_tsk;
+@@ -378,7 +376,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
+ 	/* The most significant octet of key corresponds to k[0] */
+ 	swap_buf(k, tmp, 16);
  
-+	stack_vm_area = task_stack_vm_area(tsk);
-+
- 	err = arch_dup_task_struct(tsk, orig);
-+
-+	/*
-+	 * arch_dup_task_struct clobbers the stack-related fields.  Make
-+	 * sure they're properly initialized before using any stack-related
-+	 * functions again.
-+	 */
-+	tsk->stack = stack;
-+#ifdef CONFIG_VMAP_STACK
-+	tsk->stack_vm_area = stack_vm_area;
-+#endif
-+
- 	if (err)
- 		goto free_stack;
+-	err = crypto_skcipher_setkey(tfm, tmp, 16);
++	err = crypto_cipher_setkey(tfm, tmp, 16);
+ 	if (err) {
+ 		BT_ERR("cipher setkey failed: %d", err);
+ 		return err;
+@@ -387,16 +385,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
+ 	/* Most significant octet of plaintextData corresponds to data[0] */
+ 	swap_buf(r, data, 16);
  
--	tsk->stack = stack;
- #ifdef CONFIG_SECCOMP
- 	/*
- 	 * We must handle setting up seccomp filters once we're under
-@@ -390,14 +446,14 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
- 	tsk->task_frag.page = NULL;
- 	tsk->wake_q.next = NULL;
+-	sg_init_one(&sg, data, 16);
+-
+-	skcipher_request_set_tfm(req, tfm);
+-	skcipher_request_set_callback(req, 0, NULL, NULL);
+-	skcipher_request_set_crypt(req, &sg, &sg, 16, NULL);
+-
+-	err = crypto_skcipher_encrypt(req);
+-	skcipher_request_zero(req);
+-	if (err)
+-		BT_ERR("Encrypt data error %d", err);
++	crypto_cipher_encrypt_one(tfm, data, data);
  
--	account_kernel_stack(stack, 1);
-+	account_kernel_stack(tsk, 1);
+ 	/* Most significant octet of encryptedData corresponds to data[0] */
+ 	swap_buf(data, r, 16);
+@@ -406,7 +395,7 @@ static int smp_e(struct crypto_skcipher *tfm, const u8 *k, u8 *r)
+ 	return err;
+ }
  
- 	kcov_task_init(tsk);
+-static int smp_c1(struct crypto_skcipher *tfm_aes, const u8 k[16],
++static int smp_c1(struct crypto_cipher *tfm_aes, const u8 k[16],
+ 		  const u8 r[16], const u8 preq[7], const u8 pres[7], u8 _iat,
+ 		  const bdaddr_t *ia, u8 _rat, const bdaddr_t *ra, u8 res[16])
+ {
+@@ -455,7 +444,7 @@ static int smp_c1(struct crypto_skcipher *tfm_aes, const u8 k[16],
+ 	return err;
+ }
  
- 	return tsk;
+-static int smp_s1(struct crypto_skcipher *tfm_aes, const u8 k[16],
++static int smp_s1(struct crypto_cipher *tfm_aes, const u8 k[16],
+ 		  const u8 r1[16], const u8 r2[16], u8 _r[16])
+ {
+ 	int err;
+@@ -471,7 +460,7 @@ static int smp_s1(struct crypto_skcipher *tfm_aes, const u8 k[16],
+ 	return err;
+ }
  
- free_stack:
--	free_thread_stack(stack);
-+	free_thread_stack(tsk);
- free_tsk:
- 	free_task_struct(tsk);
- 	return NULL;
+-static int smp_ah(struct crypto_skcipher *tfm, const u8 irk[16],
++static int smp_ah(struct crypto_cipher *tfm, const u8 irk[16],
+ 		  const u8 r[3], u8 res[3])
+ {
+ 	u8 _res[16];
+@@ -759,7 +748,7 @@ static void smp_chan_destroy(struct l2cap_conn *conn)
+ 	kzfree(smp->slave_csrk);
+ 	kzfree(smp->link_key);
+ 
+-	crypto_free_skcipher(smp->tfm_aes);
++	crypto_free_cipher(smp->tfm_aes);
+ 	crypto_free_shash(smp->tfm_cmac);
+ 
+ 	/* Ensure that we don't leave any debug key around if debug key
+@@ -1359,9 +1348,9 @@ static struct smp_chan *smp_chan_create(struct l2cap_conn *conn)
+ 	if (!smp)
+ 		return NULL;
+ 
+-	smp->tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
++	smp->tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
+ 	if (IS_ERR(smp->tfm_aes)) {
+-		BT_ERR("Unable to create ECB crypto context");
++		BT_ERR("Unable to create AES crypto context");
+ 		kzfree(smp);
+ 		return NULL;
+ 	}
+@@ -1369,7 +1358,7 @@ static struct smp_chan *smp_chan_create(struct l2cap_conn *conn)
+ 	smp->tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, 0);
+ 	if (IS_ERR(smp->tfm_cmac)) {
+ 		BT_ERR("Unable to create CMAC crypto context");
+-		crypto_free_skcipher(smp->tfm_aes);
++		crypto_free_cipher(smp->tfm_aes);
+ 		kzfree(smp);
+ 		return NULL;
+ 	}
+@@ -3120,7 +3109,7 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
+ {
+ 	struct l2cap_chan *chan;
+ 	struct smp_dev *smp;
+-	struct crypto_skcipher *tfm_aes;
++	struct crypto_cipher *tfm_aes;
+ 	struct crypto_shash *tfm_cmac;
+ 
+ 	if (cid == L2CAP_CID_SMP_BREDR) {
+@@ -3132,9 +3121,9 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
+ 	if (!smp)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
++	tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
+ 	if (IS_ERR(tfm_aes)) {
+-		BT_ERR("Unable to create ECB crypto context");
++		BT_ERR("Unable to create AES crypto context");
+ 		kzfree(smp);
+ 		return ERR_CAST(tfm_aes);
+ 	}
+@@ -3142,7 +3131,7 @@ static struct l2cap_chan *smp_add_cid(struct hci_dev *hdev, u16 cid)
+ 	tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, 0);
+ 	if (IS_ERR(tfm_cmac)) {
+ 		BT_ERR("Unable to create CMAC crypto context");
+-		crypto_free_skcipher(tfm_aes);
++		crypto_free_cipher(tfm_aes);
+ 		kzfree(smp);
+ 		return ERR_CAST(tfm_cmac);
+ 	}
+@@ -3156,7 +3145,7 @@ create_chan:
+ 	chan = l2cap_chan_create();
+ 	if (!chan) {
+ 		if (smp) {
+-			crypto_free_skcipher(smp->tfm_aes);
++			crypto_free_cipher(smp->tfm_aes);
+ 			crypto_free_shash(smp->tfm_cmac);
+ 			kzfree(smp);
+ 		}
+@@ -3203,7 +3192,7 @@ static void smp_del_chan(struct l2cap_chan *chan)
+ 	smp = chan->data;
+ 	if (smp) {
+ 		chan->data = NULL;
+-		crypto_free_skcipher(smp->tfm_aes);
++		crypto_free_cipher(smp->tfm_aes);
+ 		crypto_free_shash(smp->tfm_cmac);
+ 		kzfree(smp);
+ 	}
+@@ -3440,7 +3429,7 @@ void smp_unregister(struct hci_dev *hdev)
+ 
+ #if IS_ENABLED(CONFIG_BT_SELFTEST_SMP)
+ 
+-static int __init test_ah(struct crypto_skcipher *tfm_aes)
++static int __init test_ah(struct crypto_cipher *tfm_aes)
+ {
+ 	const u8 irk[16] = {
+ 			0x9b, 0x7d, 0x39, 0x0a, 0xa6, 0x10, 0x10, 0x34,
+@@ -3460,7 +3449,7 @@ static int __init test_ah(struct crypto_skcipher *tfm_aes)
+ 	return 0;
+ }
+ 
+-static int __init test_c1(struct crypto_skcipher *tfm_aes)
++static int __init test_c1(struct crypto_cipher *tfm_aes)
+ {
+ 	const u8 k[16] = {
+ 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+@@ -3490,7 +3479,7 @@ static int __init test_c1(struct crypto_skcipher *tfm_aes)
+ 	return 0;
+ }
+ 
+-static int __init test_s1(struct crypto_skcipher *tfm_aes)
++static int __init test_s1(struct crypto_cipher *tfm_aes)
+ {
+ 	const u8 k[16] = {
+ 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+@@ -3686,7 +3675,7 @@ static const struct file_operations test_smp_fops = {
+ 	.llseek		= default_llseek,
+ };
+ 
+-static int __init run_selftests(struct crypto_skcipher *tfm_aes,
++static int __init run_selftests(struct crypto_cipher *tfm_aes,
+ 				struct crypto_shash *tfm_cmac)
+ {
+ 	ktime_t calltime, delta, rettime;
+@@ -3764,27 +3753,27 @@ done:
+ 
+ int __init bt_selftest_smp(void)
+ {
+-	struct crypto_skcipher *tfm_aes;
++	struct crypto_cipher *tfm_aes;
+ 	struct crypto_shash *tfm_cmac;
+ 	int err;
+ 
+-	tfm_aes = crypto_alloc_skcipher("ecb(aes)", 0, CRYPTO_ALG_ASYNC);
++	tfm_aes = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
+ 	if (IS_ERR(tfm_aes)) {
+-		BT_ERR("Unable to create ECB crypto context");
++		BT_ERR("Unable to create AES crypto context");
+ 		return PTR_ERR(tfm_aes);
+ 	}
+ 
+ 	tfm_cmac = crypto_alloc_shash("cmac(aes)", 0, CRYPTO_ALG_ASYNC);
+ 	if (IS_ERR(tfm_cmac)) {
+ 		BT_ERR("Unable to create CMAC crypto context");
+-		crypto_free_skcipher(tfm_aes);
++		crypto_free_cipher(tfm_aes);
+ 		return PTR_ERR(tfm_cmac);
+ 	}
+ 
+ 	err = run_selftests(tfm_aes, tfm_cmac);
+ 
+ 	crypto_free_shash(tfm_cmac);
+-	crypto_free_skcipher(tfm_aes);
++	crypto_free_cipher(tfm_aes);
+ 
+ 	return err;
+ }
 -- 
 2.7.4
