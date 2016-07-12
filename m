@@ -1,38 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f48.google.com ([209.85.213.48]:33386 "EHLO
-	mail-vk0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750916AbcGLSDW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 14:03:22 -0400
-Received: by mail-vk0-f48.google.com with SMTP id x130so33181426vkc.0
-        for <linux-arch@vger.kernel.org>; Tue, 12 Jul 2016 11:03:22 -0700 (PDT)
+Received: from mail-lf0-f53.google.com ([209.85.215.53]:36367 "EHLO
+	mail-lf0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752891AbcGLXB5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 19:01:57 -0400
+Received: by mail-lf0-f53.google.com with SMTP id q132so25317256lfe.3
+        for <linux-arch@vger.kernel.org>; Tue, 12 Jul 2016 16:01:50 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <57852E3D.6010107@intel.com>
-References: <cover.1468270393.git.luto@kernel.org> <3213d3f31959a6467b1feb80a384c1e11341b2be.1468270393.git.luto@kernel.org>
- <57852E3D.6010107@intel.com>
+In-Reply-To: <CAMzpN2j2F9gQCRGmzVb0LjQT9mmU9m=HRG2Vbf-g79+i57dvdg@mail.gmail.com>
+References: <cover.1468270393.git.luto@kernel.org> <dc84a1b979d800049bfd0629ed9380238cba2807.1468270393.git.luto@kernel.org>
+ <CAMzpN2j2F9gQCRGmzVb0LjQT9mmU9m=HRG2Vbf-g79+i57dvdg@mail.gmail.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 12 Jul 2016 11:03:02 -0700
-Message-ID: <CALCETrXc58v2PbJyTOYmX0AV6Ud39sQitbFBcMrSccwR=K9Dbg@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH v5 13/32] x86/mm/64: In
- vmalloc_fault(), use CR3 instead of current->active_mm
+Date: Tue, 12 Jul 2016 16:01:23 -0700
+Message-ID: <CALCETrXN3Jd=8TOsHejVNQj8ef4KH-GYzW8rD6ounq=ZX9TT5A@mail.gmail.com>
+Subject: Re: [PATCH v5 18/32] signal: Consolidate {TS,TLF}_RESTORE_SIGMASK code
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
-Message-ID: <20160712180302.QwNY6kg-sgaqdiKtpDeOovrsFJESfPvxEse_oH-UJxs@z>
+To: Brian Gerst <brgerst@gmail.com>
+Cc: Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@suse.de>, Dmitry Safonov <dsafonov@virtuozzo.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, sparclinux@vger.kernel.org
+Message-ID: <20160712230123.w_7b51Jw94vuRJOOLNgjN9SsJRjDceMZYLhF4DGIyms@z>
 
-On Tue, Jul 12, 2016 at 10:51 AM, Dave Hansen <dave.hansen@intel.com> wrote:
-> On 07/11/2016 01:53 PM, Andy Lutomirski wrote:
->> If we get a vmalloc fault while current->active_mm->pgd doesn't
->> match CR3, we'll crash without this change.  I've seen this failure
->> mode on heavily instrumented kernels with virtually mapped stacks.
+On Tue, Jul 12, 2016 at 4:57 AM, Brian Gerst <brgerst@gmail.com> wrote:
+> On Mon, Jul 11, 2016 at 4:53 PM, Andy Lutomirski <luto@kernel.org> wrote:
+>> In general, there's no need for the "restore sigmask" flag to live in
+>> ti->flags.  alpha, ia64, microblaze, powerpc, sh, sparc (64-bit only),
+>> tile, and x86 use essentially identical alternative implementations,
+>> placing the flag in ti->status.
+>>
+>> Replace those optimized implementations with an equally good common
+>> implementation that stores it in a bitfield in struct task_struct
+>> and drop the custom implementations.
+>>
+>> Additional architectures can opt in by removing their
+>> TIF_RESTORE_SIGMASK defines.
 >
-> When does this happen, btw?  Crossing page boundaries on the stack
-> between the time we swap mm's and the time we switch stacks?
+> There is a small typo in the subject, should be "signal: Consolidate
+> {TS,TIF}_RESTORE_SIGMASK code"
 
-This can happen for any vmalloc fault between the mm swap and writing
-to current or current->active_mm.  I hit it when playing with KASAN
-during the first clone.  (KASAN has other issues, but this was one of
-them AFAICT.)
+I really did mean "TLF" -- it's a powerpc-ism.  This patch doesn't
+affect TIF_RESTORE_SIGMASK on architectures that have that flag,
+although it makes it much easier for them to get rid of it.
 
 --Andy
