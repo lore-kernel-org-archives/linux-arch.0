@@ -1,32 +1,65 @@
-From: Brian Gerst <brgerst@gmail.com>
-Subject: Re: [PATCH v5 18/32] signal: Consolidate {TS,TLF}_RESTORE_SIGMASK code
-Date: Tue, 12 Jul 2016 07:57:31 -0400
-Message-ID: <CAMzpN2j2F9gQCRGmzVb0LjQT9mmU9m=HRG2Vbf-g79+i57dvdg@mail.gmail.com>
-References: <cover.1468270393.git.luto@kernel.org> <dc84a1b979d800049bfd0629ed9380238cba2807.1468270393.git.luto@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <dc84a1b979d800049bfd0629ed9380238cba2807.1468270393.git.luto@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Andy Lutomirski <luto@kernel.org>
-Cc: the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>Rich
-List-Id: linux-arch.vger.kernel.org
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 1/2] arm64: localise Image objcopy flags
+Date: Tue, 12 Jul 2016 16:28:01 +0100
+Message-ID: <1468337282-14527-2-git-send-email-mark.rutland@arm.com>
+References: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:60169 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751668AbcGLP2S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jul 2016 11:28:18 -0400
+In-Reply-To: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, catalin.marinas@arm.com, keescook@chromium.org, labbott@redhat.com, linux@armlinux.org.uk, mark.rutland@arm.com, will.deacon@arm.com
 
-On Mon, Jul 11, 2016 at 4:53 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> In general, there's no need for the "restore sigmask" flag to live in
-> ti->flags.  alpha, ia64, microblaze, powerpc, sh, sparc (64-bit only),
-> tile, and x86 use essentially identical alternative implementations,
-> placing the flag in ti->status.
->
-> Replace those optimized implementations with an equally good common
-> implementation that stores it in a bitfield in struct task_struct
-> and drop the custom implementations.
->
-> Additional architectures can opt in by removing their
-> TIF_RESTORE_SIGMASK defines.
+We currently define OBJCOPYFLAGS in the top-level arm64 Makefile, and
+thus these flags will be passed to all uses of objcopy, kernel-wide, for
+which they are not explicitly overridden. The flags we set are intended
+for converting vmlinux (and ELF) into Image (a raw binary), and thus the
+flags chosen are problematic for some other uses which do not expect a
+raw binary result, e.g. the upcoming lkdtm rodata test:
 
-There is a small typo in the subject, should be "signal: Consolidate
-{TS,TIF}_RESTORE_SIGMASK code"
+  http://www.openwall.com/lists/kernel-hardening/2016/06/08/2
 
---
-Brian Gerst
+This patch localises the objcopy flags such that they are only used for
+the vmlinux -> Image conversion.
+
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Laura Abbott <labbott@redhat.com>
+Cc: Will Deacon <will.deacon@arm.com>
+---
+ arch/arm64/Makefile      | 1 -
+ arch/arm64/boot/Makefile | 2 ++
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 7085e32..af6d2d2 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -12,7 +12,6 @@
+ 
+ LDFLAGS_vmlinux	:=-p --no-undefined -X
+ CPPFLAGS_vmlinux.lds = -DTEXT_OFFSET=$(TEXT_OFFSET)
+-OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
+ GZFLAGS		:=-9
+ 
+ ifneq ($(CONFIG_RELOCATABLE),)
+diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
+index 305c552..1f012c5 100644
+--- a/arch/arm64/boot/Makefile
++++ b/arch/arm64/boot/Makefile
+@@ -14,6 +14,8 @@
+ # Based on the ia64 boot/Makefile.
+ #
+ 
++OBJCOPYFLAGS_Image :=-O binary -R .note -R .note.gnu.build-id -R .comment -S
++
+ targets := Image Image.gz
+ 
+ $(obj)/Image: vmlinux FORCE
+-- 
+1.9.1
