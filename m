@@ -1,64 +1,41 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH 2/2] arm: localise objcopy flags
-Date: Tue, 12 Jul 2016 16:28:02 +0100
-Message-ID: <1468337282-14527-3-git-send-email-mark.rutland@arm.com>
-References: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
+From: Dave Hansen <dave@sr71.net>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Tue, 12 Jul 2016 08:39:07 -0700
+Message-ID: <57850F1B.4080306@sr71.net>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <20160711073534.GA19615@gmail.com> <5783AD25.8020303@sr71.net>
+ <20160712071305.GA13444@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:60175 "EHLO foss.arm.com"
+Received: from www.sr71.net ([198.145.64.142]:50603 "EHLO blackbird.sr71.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754483AbcGLP2U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Jul 2016 11:28:20 -0400
-In-Reply-To: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
+	id S1751352AbcGLPjK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jul 2016 11:39:10 -0400
+In-Reply-To: <20160712071305.GA13444@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, catalin.marinas@arm.com, keescook@chromium.org, labbott@redhat.com, linux@armlinux.org.uk, mark.rutland@arm.com, will.deacon@arm.com
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
 
-We currently define OBJCOPYFLAGS in the top-level arm Makefile, and thus
-these flags will be passed to all uses of objcopy, kernel-wide, for
-which they are not explicitly overridden. The flags we set are intended
-for converting a few ELF files into raw binaries, and thus the flags
-chosen are problematic for some other uses which do not expect a raw
-binary result, e.g. the upcoming lkdtm rodata test:
+On 07/12/2016 12:13 AM, Ingo Molnar wrote:
+>> > Remember, PKRU is just a *bitmap*.  The only place keys are stored is in the 
+>> > page tables.
+> A pkey is an index *and* a protection mask. So by representing it as a bitmask we 
+> lose per thread information. This is what I meant by 'incomplete shadowing' - for 
+> example the debug code couldn't work: if we cleared a pkey in a task we wouldn't 
+> know what to restore it to with the current data structures, right?
 
-  http://www.openwall.com/lists/kernel-hardening/2016/06/08/2
+Right.  I actually have some code to do the shadowing that I wrote to
+explore how to do different PKRU values in signal handlers.  The code
+only shadowed the keys that were currently allocated, and used the
+(mm-wide) allocation map to figure that out.  It did not have a separate
+per-thread concept of which parts of PKRU need to be shadowed.
 
-This patch localises the objcopy flags such that they are only used for
-the cases we require them for today.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Laura Abbott <labbott@redhat.com>
-Cc: Russell King <linux@armlinux.org.uk>
----
- arch/arm/Makefile      | 1 -
- arch/arm/boot/Makefile | 2 ++
- 2 files changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index 274e8a6..2ef60d3 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -23,7 +23,6 @@ ifeq ($(CONFIG_ARM_MODULE_PLTS),y)
- LDFLAGS_MODULE	+= -T $(srctree)/arch/arm/kernel/module.lds
- endif
- 
--OBJCOPYFLAGS	:=-O binary -R .comment -S
- GZFLAGS		:=-9
- #KBUILD_CFLAGS	+=-pipe
- 
-diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
-index 5be33a2..706efd6 100644
---- a/arch/arm/boot/Makefile
-+++ b/arch/arm/boot/Makefile
-@@ -11,6 +11,8 @@
- # Copyright (C) 1995-2002 Russell King
- #
- 
-+OBJCOPYFLAGS	:=-O binary -R .comment -S
-+
- ifneq ($(MACHINE),)
- include $(MACHINE)/Makefile.boot
- endif
--- 
-1.9.1
+It essentially populated the shadow value on all pkru_set() calls.
