@@ -1,104 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:33988 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753794AbcGKUyO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jul 2016 16:54:14 -0400
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v5 02/32] x86/mm/hotplug: Don't remove PGD entries in remove_pagetable()
-Date: Mon, 11 Jul 2016 13:53:35 -0700
-Message-ID: <f94bfaa8e7a9129ee7bac8ee6a5dd65f9c446425.1468270393.git.luto@kernel.org>
-In-Reply-To: <cover.1468270393.git.luto@kernel.org>
-References: <cover.1468270393.git.luto@kernel.org>
-In-Reply-To: <cover.1468270393.git.luto@kernel.org>
-References: <cover.1468270393.git.luto@kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36143 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752090AbcGLHNL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 03:13:11 -0400
+Date: Tue, 12 Jul 2016 09:13:05 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Message-ID: <20160712071305.GA13444@gmail.com>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+ <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <20160711073534.GA19615@gmail.com>
+ <5783AD25.8020303@sr71.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5783AD25.8020303@sr71.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Denys Vlasenko <dvlasenk@redhat.com>, "H . Peter Anvin" <hpa@zytor.com>, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Waiman Long <Waiman.Long@hp.com>, linux-mm@kvack.org
-Message-ID: <20160711205335.JJsrLtm-HiD_cgLOnUK-djofPFUBEVXBOVurt0FF0M0@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <20160712071305.5EYVM0YIRor4HeKq60GLUldS9Ti7vxsxQ4r290RFBtU@z>
 
-From: Ingo Molnar <mingo@kernel.org>
 
-So when memory hotplug removes a piece of physical memory from pagetable
-mappings, it also frees the underlying PGD entry.
+* Dave Hansen <dave@sr71.net> wrote:
 
-This complicates PGD management, so don't do this. We can keep the
-PGD mapped and the PUD table all clear - it's only a single 4K page
-per 512 GB of memory hotplugged.
+> On 07/11/2016 12:35 AM, Ingo Molnar wrote:
+> > * Andy Lutomirski <luto@amacapital.net> wrote:
+> > mprotect_pkey()'s effects are per MM, but the system calls related to managing the 
+> > keys (alloc/free/get/set) are fundamentally per CPU.
+> > 
+> > Here's an example of how this could matter to applications:
+> > 
+> >  - 'writer thread' gets a RW- key into index 1 to a specific data area
+> >  - a pool of 'reader threads' may get the same pkey index 1 R-- to read the data 
+> >    area.
+> > 
+> > Same page tables, same index, two protections and two purposes.
+> > 
+> > With a global, per MM allocation of keys we'd have to use two indices: index 1 and 2.
+> 
+> I'm not sure how this would work.  A piece of data mapped at only one virtual 
+> address can have only one key associated with it.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Brian Gerst <brgerst@gmail.com>
-Cc: Denys Vlasenko <dvlasenk@redhat.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Waiman Long <Waiman.Long@hp.com>
-Cc: linux-mm@kvack.org
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
-Message-Id: <1442903021-3893-4-git-send-email-mingo@kernel.org>
----
- arch/x86/mm/init_64.c | 27 ---------------------------
- 1 file changed, 27 deletions(-)
+Yeah, indeed, got myself confused there - but the actual protection bits are per 
+CPU (per task).
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index bce2e5d9edd4..c7465453d64e 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -702,27 +702,6 @@ static void __meminit free_pmd_table(pmd_t *pmd_start, pud_t *pud)
- 	spin_unlock(&init_mm.page_table_lock);
- }
- 
--/* Return true if pgd is changed, otherwise return false. */
--static bool __meminit free_pud_table(pud_t *pud_start, pgd_t *pgd)
--{
--	pud_t *pud;
--	int i;
--
--	for (i = 0; i < PTRS_PER_PUD; i++) {
--		pud = pud_start + i;
--		if (pud_val(*pud))
--			return false;
--	}
--
--	/* free a pud table */
--	free_pagetable(pgd_page(*pgd), 0);
--	spin_lock(&init_mm.page_table_lock);
--	pgd_clear(pgd);
--	spin_unlock(&init_mm.page_table_lock);
--
--	return true;
--}
--
- static void __meminit
- remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
- 		 bool direct)
-@@ -913,7 +892,6 @@ remove_pagetable(unsigned long start, unsigned long end, bool direct)
- 	unsigned long addr;
- 	pgd_t *pgd;
- 	pud_t *pud;
--	bool pgd_changed = false;
- 
- 	for (addr = start; addr < end; addr = next) {
- 		next = pgd_addr_end(addr, end);
-@@ -924,13 +902,8 @@ remove_pagetable(unsigned long start, unsigned long end, bool direct)
- 
- 		pud = (pud_t *)pgd_page_vaddr(*pgd);
- 		remove_pud_table(pud, addr, next, direct);
--		if (free_pud_table(pud, pgd))
--			pgd_changed = true;
- 	}
- 
--	if (pgd_changed)
--		sync_global_pgds(start, end - 1, 1);
--
- 	flush_tlb_all();
- }
- 
--- 
-2.7.4
+> Remember, PKRU is just a *bitmap*.  The only place keys are stored is in the 
+> page tables.
 
+A pkey is an index *and* a protection mask. So by representing it as a bitmask we 
+lose per thread information. This is what I meant by 'incomplete shadowing' - for 
+example the debug code couldn't work: if we cleared a pkey in a task we wouldn't 
+know what to restore it to with the current data structures, right?
+
+Thanks,
+
+	Ingo
