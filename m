@@ -1,83 +1,72 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Date: Tue, 12 Jul 2016 09:32:11 -0700
-Message-ID: <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
-References: <20160707124719.3F04C882@viggo.jf.intel.com> <20160707124728.C1116BB1@viggo.jf.intel.com>
- <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
- <20160709083715.GA29939@gmail.com> <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
- <5783AE8F.3@sr71.net> <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
- <5783BFB0.70203@intel.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 0/2] arm/arm64: localise objcopy flags
+Date: Tue, 12 Jul 2016 13:03:27 -0400
+Message-ID: <CAGXu5jLiZo18+=MDOUODVV2tJsV-okX5jtLNjG5tUs9A_3=Wpw@mail.gmail.com>
+References: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f48.google.com ([209.85.213.48]:35403 "EHLO
-	mail-vk0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751567AbcGLQcc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 12:32:32 -0400
-Received: by mail-vk0-f48.google.com with SMTP id v6so29441688vkb.2
-        for <linux-arch@vger.kernel.org>; Tue, 12 Jul 2016 09:32:31 -0700 (PDT)
-In-Reply-To: <5783BFB0.70203@intel.com>
+Received: from mail-wm0-f52.google.com ([74.125.82.52]:37079 "EHLO
+	mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750998AbcGLRDa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 13:03:30 -0400
+Received: by mail-wm0-f52.google.com with SMTP id i5so33611646wmg.0
+        for <linux-arch@vger.kernel.org>; Tue, 12 Jul 2016 10:03:29 -0700 (PDT)
+In-Reply-To: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>
 
-On Jul 11, 2016 8:48 AM, "Dave Hansen" <dave.hansen@intel.com> wrote:
+On Tue, Jul 12, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Hi,
 >
-> On 07/11/2016 07:45 AM, Andy Lutomirski wrote:
-> > On Mon, Jul 11, 2016 at 7:34 AM, Dave Hansen <dave@sr71.net> wrote:
-> >> Should we instead just recommend to userspace that they lock down access
-> >> to keys by default in all threads as a best practice?
-> >
-> > Is that really better than doing it in-kernel?  My concern is that
-> > we'll find library code that creates a thread, and that code could run
-> > before the pkey-aware part of the program even starts running.
+> Typically, architectures (including arm and arm64) define OBJCOPYFLAGS in their
+> top-level makefile, for the purpose of generating a raw binaries suitable for
+> booting, including Image, zImage, vmlinux.bin, etc.
 >
-> Yeah, so let's assume we have some pkey-unaware thread.  The upside of a
-> scheme where the kernel preemptively (and transparently to the thread)
-> locks down PKRU is that the thread can't go corrupting any non-zero-pkey
-> structures that came from other threads.
+> As this top-level arch makefile is included by the top-level kernel makefile,
+> these flags are passed to other invocations of objcopy tree-wide. This can
+> result in unexpected and inconsistent behaviour across architectures (e.g.
+> generation of a raw binary rather than an ELF [1]).
 >
-> But, the downside is that the thread can not access any non-zero-pkey
-> structures without taking some kind of action with PKRU.  That obviously
-> won't happen since the thread is pkeys-unaware to begin with.  Would
-> that break these libraries unless everything using pkeys knows to only
-> share pkey=0 data with those threads?
+> Rather than force each new user of objcopy to specially clear OBJCOPYFLAGS,
+> this patch moves the existing OBJCOPYFLAGS variable definitions such that they
+> only affects the cases we require them for today, leaving the global namespace
+> clear.
+>
+> Other architectures will likely need similar treatment.
+
+Oh excellent, thanks for doing this! I made an attempt at this back
+when I ran into it with lkdtm, but I wasn't sure it was working as
+intended. :)
+
+Acked-by: Kees Cook <keescook@chromium.org>
+
+-Kees
+
+>
+> Thanks,
+> Mark.
+>
+> [1] http://www.openwall.com/lists/kernel-hardening/2016/06/08/2
+>
+> Mark Rutland (2):
+>   arm64: localise Image objcopy flags
+>   arm: localise objcopy flags
+>
+>  arch/arm/Makefile        | 1 -
+>  arch/arm/boot/Makefile   | 2 ++
+>  arch/arm64/Makefile      | 1 -
+>  arch/arm64/boot/Makefile | 2 ++
+>  4 files changed, 4 insertions(+), 2 deletions(-)
+>
+> --
+> 1.9.1
 >
 
-Yes, but at least for the cases I can think of, that's probably a good
-thing.  OTOH, I can see cases where you want everyone to be able to
-read but only specific code paths to be able to write.
 
-I think it's more or less impossible to get sensible behavior passing
-pkey != 0 data to legacy functions.  If you call:
 
-void frob(struct foo *p);
-
-If frob in turn passes p to a thread, what PKRU is it supposed to use?
-
-> > So how is user code supposed lock down all of its threads?
-> >
-> > seccomp has TSYNC for this, but I don't think that PKRU allows
-> > something like that.
->
-> I'm not sure this is possible for PKRU.  Think of a simple PKRU
-> manipulation in userspace:
->
->         pkru = rdpkru();
->         pkru |= PKEY_DENY_ACCESS<<key*2;
->         wrpkru(pkru);
->
-> If we push a PKRU value into a thread between the rdpkru() and wrpkru(),
-> we'll lose the content of that "push".  I'm not sure there's any way to
-> guarantee this with a user-controlled register.
-
-We could try to insist that user code uses some vsyscall helper that
-tracks which bits are as-yet-unassigned.  That's quite messy, though.
-
-We could also arbitrarily partition the key space into
-initially-wide-open, initially-read-only, and initially-no-access and
-let pkey_alloc say which kind it wants.
-
---Andy
+-- 
+Kees Cook
+Chrome OS & Brillo Security
