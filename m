@@ -1,37 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:34603 "EHLO
-	mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750862AbcGLL5d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2016 07:57:33 -0400
+Received: from mga01.intel.com ([192.55.52.88]:64214 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750901AbcGLRxA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jul 2016 13:53:00 -0400
+Subject: Re: [kernel-hardening] [PATCH v5 13/32] x86/mm/64: In
+ vmalloc_fault(), use CR3 instead of current->active_mm
+References: <cover.1468270393.git.luto@kernel.org>
+ <3213d3f31959a6467b1feb80a384c1e11341b2be.1468270393.git.luto@kernel.org>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <57852E3D.6010107@intel.com>
+Date: Tue, 12 Jul 2016 10:51:57 -0700
 MIME-Version: 1.0
-In-Reply-To: <dc84a1b979d800049bfd0629ed9380238cba2807.1468270393.git.luto@kernel.org>
-References: <cover.1468270393.git.luto@kernel.org> <dc84a1b979d800049bfd0629ed9380238cba2807.1468270393.git.luto@kernel.org>
-From: Brian Gerst <brgerst@gmail.com>
-Date: Tue, 12 Jul 2016 07:57:31 -0400
-Message-ID: <CAMzpN2j2F9gQCRGmzVb0LjQT9mmU9m=HRG2Vbf-g79+i57dvdg@mail.gmail.com>
-Subject: Re: [PATCH v5 18/32] signal: Consolidate {TS,TLF}_RESTORE_SIGMASK code
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <3213d3f31959a6467b1feb80a384c1e11341b2be.1468270393.git.luto@kernel.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Peter Zijlstra <peterz@infradead.org>, Borislav Petkov <bp@suse.de>, Dmitry Safonov <dsafonov@virtuozzo.com>, Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20160712115731.aZusSYg44bHX9IN3NuUcsfdEdqnrh7wKjF-xKf0bgo8@z>
+To: kernel-hardening@lists.openwall.com, x86@kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andy Lutomirski <luto@kernel.org>
+Message-ID: <20160712175157.DL6FDFFpPSidU2QO19IoiMxuuaGnsy9A5ESFVQMl4Ik@z>
 
-On Mon, Jul 11, 2016 at 4:53 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> In general, there's no need for the "restore sigmask" flag to live in
-> ti->flags.  alpha, ia64, microblaze, powerpc, sh, sparc (64-bit only),
-> tile, and x86 use essentially identical alternative implementations,
-> placing the flag in ti->status.
->
-> Replace those optimized implementations with an equally good common
-> implementation that stores it in a bitfield in struct task_struct
-> and drop the custom implementations.
->
-> Additional architectures can opt in by removing their
-> TIF_RESTORE_SIGMASK defines.
+On 07/11/2016 01:53 PM, Andy Lutomirski wrote:
+> If we get a vmalloc fault while current->active_mm->pgd doesn't
+> match CR3, we'll crash without this change.  I've seen this failure
+> mode on heavily instrumented kernels with virtually mapped stacks.
 
-There is a small typo in the subject, should be "signal: Consolidate
-{TS,TIF}_RESTORE_SIGMASK code"
-
---
-Brian Gerst
+When does this happen, btw?  Crossing page boundaries on the stack
+between the time we swap mm's and the time we switch stacks?
