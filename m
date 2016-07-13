@@ -1,62 +1,43 @@
 From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
-Date: Wed, 13 Jul 2016 11:42:35 -0700
-Message-ID: <CALCETrW9B=MAGaLAV0Y86MQ2==pjoShHdOPNM_8ZR1OKZDy2ZQ@mail.gmail.com>
-References: <cover.1468270393.git.luto@kernel.org> <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
- <20160713075314.GA32700@gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Wed, 13 Jul 2016 11:43:24 -0700
+Message-ID: <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
+References: <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com> <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net> <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com> <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
+ <20160713075550.GA515@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <kernel-hardening-return-3954-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20160713075314.GA32700@gmail.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160713075550.GA515@gmail.com>
+Sender: owner-linux-mm@kvack.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 13, 2016 at 12:53 AM, Ingo Molnar <mingo@kernel.org> wrote:
+On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
 >
-> * Andy Lutomirski <luto@kernel.org> wrote:
+> * Andy Lutomirski <luto@amacapital.net> wrote:
 >
->> This allows x86_64 kernels to enable vmapped stacks.  There are a
->> couple of interesting bits.
+>> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
+>> > lose the content of that "push".  I'm not sure there's any way to guarantee
+>> > this with a user-controlled register.
+>>
+>> We could try to insist that user code uses some vsyscall helper that tracks
+>> which bits are as-yet-unassigned.  That's quite messy, though.
 >
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -92,6 +92,7 @@ config X86
->>       select HAVE_ARCH_TRACEHOOK
->>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->>       select HAVE_EBPF_JIT                    if X86_64
->> +     select HAVE_ARCH_VMAP_STACK             if X86_64
->
-> So what is the performance impact?
+> Actually, if we turned the vDSO into something more like a minimal user-space
+> library with the ability to run at process startup as well to prepare stuff then
+> it's painful to get right only *once*, and there will be tons of other areas where
+> a proper per thread data storage on the user-space side would be immensely useful!
 
-Seems to be a very slight speedup (0.5 =C2=B5s or so) on my silly benchmark
-(pthread_create, pthread_join in a loop).  It should be a small
-slowdown on workloads that create many threads all at once, thus
-defeating the stack cache.  It should be a *large* speedup on any
-workload that would trigger compaction on clone() to satisfy the
-high-order allocation.
+Doing this could be tricky: how exactly is the vDSO supposed to find
+per-thread data without breaking existing glibc?
 
->
-> Because I think we should consider enabling this feature by default on x8=
-6 - but
-> the way it's selected here it will be default-off.
->
-> On the plus side: the debuggability and reliability improvements are real=
- and
-> making it harder for exploits to use kernel stack overflows is a nice bon=
-us as
-> well. There's two performance effects:
-
-Agreed.  At the very least, I want to wait until after net-next gets
-pulled to flip the default to y.  I'm also a bit concerned about more
-random driver issues that I haven't found yet.  I suppose we could
-flip the default to y for a few -rc releases and see what, if
-anything, shakes loose.
-
---Andy
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
