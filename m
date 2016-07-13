@@ -1,52 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51829 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750784AbcGMALb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Jul 2016 20:11:31 -0400
-Date: Tue, 12 Jul 2016 20:11:14 -0400
-From: Jessica Yu <jeyu@redhat.com>
-Subject: [PATCH] arm64: take SHN_LIVEPATCH syms into account when calculating
- plt_max_entries
-Message-ID: <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
-References: <20160627151500.2247A68D20@newverein.lst.de>
- <20160627151722.B81C968D29@newverein.lst.de>
- <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz>
- <20160711215807.GA23097@packer-debian-8-amd64.digitalocean.com>
- <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
+Received: from mail-wm0-f41.google.com ([74.125.82.41]:36955 "EHLO
+	mail-wm0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751724AbcGMH41 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 03:56:27 -0400
+Date: Wed, 13 Jul 2016 09:56:05 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Message-ID: <20160713075550.GA515@gmail.com>
+References: <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+ <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net>
+ <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com>
+ <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
+In-Reply-To: <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Miroslav Benes <mbenes@suse.cz>
-Cc: Torsten Duwe <duwe@lst.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20160713001114.kIWVixUMcz9TOdIOGov05_IwqGo5yrh0ERPHY-K8qr4@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20160713075605.EWhfMCYRakZtmxlCbCXToSEfW8tgaLbwEi_O8mUChT8@z>
 
-SHN_LIVEPATCH symbols are technically a subset of SHN_UNDEF/undefined
-symbols, except that their addresses are resolved by livepatch at runtime.
-Therefore, when calculating the upper-bound for the number of plt entries
-to allocate, make sure to take livepatch symbols into account as well.
 
-Signed-off-by: Jessica Yu <jeyu@redhat.com>
----
- arch/arm64/kernel/module-plts.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
-diff --git a/arch/arm64/kernel/module-plts.c b/arch/arm64/kernel/module-plts.c
-index 1ce90d8..1e95dc1 100644
---- a/arch/arm64/kernel/module-plts.c
-+++ b/arch/arm64/kernel/module-plts.c
-@@ -122,7 +122,8 @@ static unsigned int count_plts(Elf64_Sym *syms, Elf64_Rela *rela, int num)
-                         * as well, so modules can never grow beyond that limit.
-                         */
-                        s = syms + ELF64_R_SYM(rela[i].r_info);
--                       if (s->st_shndx != SHN_UNDEF)
-+                       if (s->st_shndx != SHN_UNDEF &&
-+                           s->st_shndx != SHN_LIVEPATCH)
-                                break;
+> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll 
+> > lose the content of that "push".  I'm not sure there's any way to guarantee 
+> > this with a user-controlled register.
+> 
+> We could try to insist that user code uses some vsyscall helper that tracks 
+> which bits are as-yet-unassigned.  That's quite messy, though.
 
-                        /*
--- 
-2.5.5
+Actually, if we turned the vDSO into something more like a minimal user-space 
+library with the ability to run at process startup as well to prepare stuff then 
+it's painful to get right only *once*, and there will be tons of other areas where 
+a proper per thread data storage on the user-space side would be immensely useful!
 
+Thanks,
+
+	Ingo
