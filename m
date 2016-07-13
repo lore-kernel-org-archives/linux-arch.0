@@ -1,44 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f47.google.com ([209.85.213.47]:36129 "EHLO
-	mail-vk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750933AbcGMSnp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 14:43:45 -0400
-Received: by mail-vk0-f47.google.com with SMTP id j126so23910026vkg.3
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 11:43:44 -0700 (PDT)
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32567 "EHLO
+	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751966AbcGMSyH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jul 2016 14:54:07 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6DIrrDU008399
+	for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:53:56 -0400
+Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
+	by mx0b-001b2d01.pphosted.com with ESMTP id 2455fda97v-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:53:56 -0400
+Received: from localhost
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Wed, 13 Jul 2016 19:53:54 +0100
+Subject: Re: [PATCH v5 00/32] virtually mapped stacks and thread_info cleanup
+References: <cover.1468270393.git.luto@kernel.org>
+ <578601B3.3050903@de.ibm.com>
+ <CALCETrUD0R08xkpTgBgey1zMVk4kKm9ZgdXC+KpHQHqCjw9_sg@mail.gmail.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Date: Wed, 13 Jul 2016 20:53:42 +0200
 MIME-Version: 1.0
-In-Reply-To: <20160713075550.GA515@gmail.com>
-References: <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
- <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
- <20160709083715.GA29939@gmail.com> <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
- <5783AE8F.3@sr71.net> <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
- <5783BFB0.70203@intel.com> <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
- <20160713075550.GA515@gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 13 Jul 2016 11:43:24 -0700
-Message-ID: <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
-Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <CALCETrUD0R08xkpTgBgey1zMVk4kKm9ZgdXC+KpHQHqCjw9_sg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Message-ID: <57868E36.7050605@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20160713184324.U6H6N55Gtpo8taMyiVb1zd3QMykwtxc6iP5VmMMjM6I@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+Message-ID: <20160713185342.0QlLKtAs1zgr87H900wzdCkBGVuDpbcFgJDbWroJaxI@z>
 
-On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Andy Lutomirski <luto@amacapital.net> wrote:
->
->> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
->> > lose the content of that "push".  I'm not sure there's any way to guarantee
->> > this with a user-controlled register.
+On 07/13/2016 08:36 PM, Andy Lutomirski wrote:
+> On Wed, Jul 13, 2016 at 1:54 AM, Christian Borntraeger
+> <borntraeger@de.ibm.com> wrote:
+>> On 07/11/2016 10:53 PM, Andy Lutomirski wrote:
+>>> Hi all-
+>>>
+>>> Since the dawn of time, a kernel stack overflow has been a real PITA
+>>> to debug, has caused nondeterministic crashes some time after the
+>>> actual overflow, and has generally been easy to exploit for root.
+>>>
+>>> With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
+>>> that enable it (just x86 for now) get virtually mapped stacks with
+>>> guard pages.  This causes reliable faults when the stack overflows.
+>>>
+>>> If the arch implements it well, we get a nice OOPS on stack overflow
+>>> (as opposed to panicing directly or otherwise exploding badly).  On
+>>> x86, the OOPS is nice, has a usable call trace, and the overflowing
+>>> task is killed cleanly.
+>>>
+>>> This series (starting with v4) also extensively cleans up
+>>> thread_info.  thread_info has been partially redundant with
+>>> thread_struct for a long time -- both are places for arch code to
+>>> add additional per-task variables.  thread_struct is much cleaner:
+>>> it's always in task_struct, and there's nothing particularly magical
+>>> about it.  So this series contains a bunch of cleanups on x86 to
+>>> move almost everything from thread_info to thread_struct (which,
+>>> even by itself, deletes more code than it adds) and to remove x86's
+>>> dependence on thread_info's position on the stack.  Then it opts x86
+>>> into a new config option THREAD_INFO_IN_TASK to get rid of
+>>> arch-specific thread_info entirely and simply embed a defanged
+>>> thread_info (containing only flags) and 'int cpu' into task_struct.
+>>>
+>>> Once thread_info stops being magical, there's another benefit: we
+>>> can free the thread stack as soon as the task is dead (without
+>>> waiting for RCU) and then, if vmapped stacks are in use, cache the
+>>> entire stack for reuse on the same cpu.
+>>>
+>>> This seems to be an overall speedup of about 0.5-1 µs per
+>>> pthread_create/join in a simple test -- a percpu cache of vmalloced
+>>> stacks appears to be a bit faster than a high-order stack
+>>> allocation, at least when the cache hits.  (I expect that workloads
+>>> with a low cache hit rate are likely to be dominated by other
+>>> effects anyway.)
+>>>
+>>> This does not address interrupt stacks.
+>>>
+>>> It's worth noting that s390 has an arch-specific gcc feature that
+>>> detects stack overflows by adjusting function prologues.  Arches
+>>> with features like that may wish to avoid using vmapped stacks to
+>>> minimize the performance hit.
 >>
->> We could try to insist that user code uses some vsyscall helper that tracks
->> which bits are as-yet-unassigned.  That's quite messy, though.
->
-> Actually, if we turned the vDSO into something more like a minimal user-space
-> library with the ability to run at process startup as well to prepare stuff then
-> it's painful to get right only *once*, and there will be tons of other areas where
-> a proper per thread data storage on the user-space side would be immensely useful!
+>> Yes, might not need this for stack overflow detection. What might
+>> be interesting is the thread_info/thread_struct change, if we can
+>> strip down thread_info.(CONFIG_THREAD_INFO_IN_TASK). Would it actually
+>> make sense to separate these two changes to see what performance
+>> impact  CONFIG_THREAD_INFO_IN_TASK has on its own?
+>>
+> 
+> They're already separated.
+> 
+> CONFIG_THREAD_INFO_IN_TASK should have basically no performance impact
+> unless there are arch-dependent (percpu?) issues involved.  It does
+> enable immediate thread stack deallocation, though, and it would be
+> straightforward to make CONFIG_THREAD_INFO_IN_TASK cache stacks even
+> if CONFIG_VMAP_STACK=n.  That should be a moderate clone() speedup.
 
-Doing this could be tricky: how exactly is the vDSO supposed to find
-per-thread data without breaking existing glibc?
+Yes. My point was more of having two patch series in case the discussion goes
+on regarding virtual stack.
+
