@@ -1,103 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:32567 "EHLO
-	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751966AbcGMSyH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jul 2016 14:54:07 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6DIrrDU008399
-	for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:53:56 -0400
-Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
-	by mx0b-001b2d01.pphosted.com with ESMTP id 2455fda97v-1
-	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:53:56 -0400
-Received: from localhost
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 13 Jul 2016 19:53:54 +0100
-Subject: Re: [PATCH v5 00/32] virtually mapped stacks and thread_info cleanup
-References: <cover.1468270393.git.luto@kernel.org>
- <578601B3.3050903@de.ibm.com>
- <CALCETrUD0R08xkpTgBgey1zMVk4kKm9ZgdXC+KpHQHqCjw9_sg@mail.gmail.com>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Wed, 13 Jul 2016 20:53:42 +0200
-MIME-Version: 1.0
-In-Reply-To: <CALCETrUD0R08xkpTgBgey1zMVk4kKm9ZgdXC+KpHQHqCjw9_sg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Message-ID: <57868E36.7050605@de.ibm.com>
+Received: from mail-pa0-f41.google.com ([209.85.220.41]:36558 "EHLO
+	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751275AbcGMV4P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 17:56:15 -0400
+Received: by mail-pa0-f41.google.com with SMTP id pp5so14696407pac.3
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:56:15 -0700 (PDT)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v2 01/11] mm: Implement stack frame object validation
+Date: Wed, 13 Jul 2016 14:55:54 -0700
+Message-ID: <1468446964-22213-2-git-send-email-keescook@chromium.org>
+In-Reply-To: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
-Message-ID: <20160713185342.0QlLKtAs1zgr87H900wzdCkBGVuDpbcFgJDbWroJaxI@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20160713215554.ubpx5Y7yWCBXh3QAqDSFKrdNTI4WUwVFq8T1oslb4Cc@z>
 
-On 07/13/2016 08:36 PM, Andy Lutomirski wrote:
-> On Wed, Jul 13, 2016 at 1:54 AM, Christian Borntraeger
-> <borntraeger@de.ibm.com> wrote:
->> On 07/11/2016 10:53 PM, Andy Lutomirski wrote:
->>> Hi all-
->>>
->>> Since the dawn of time, a kernel stack overflow has been a real PITA
->>> to debug, has caused nondeterministic crashes some time after the
->>> actual overflow, and has generally been easy to exploit for root.
->>>
->>> With this series, arches can enable HAVE_ARCH_VMAP_STACK.  Arches
->>> that enable it (just x86 for now) get virtually mapped stacks with
->>> guard pages.  This causes reliable faults when the stack overflows.
->>>
->>> If the arch implements it well, we get a nice OOPS on stack overflow
->>> (as opposed to panicing directly or otherwise exploding badly).  On
->>> x86, the OOPS is nice, has a usable call trace, and the overflowing
->>> task is killed cleanly.
->>>
->>> This series (starting with v4) also extensively cleans up
->>> thread_info.  thread_info has been partially redundant with
->>> thread_struct for a long time -- both are places for arch code to
->>> add additional per-task variables.  thread_struct is much cleaner:
->>> it's always in task_struct, and there's nothing particularly magical
->>> about it.  So this series contains a bunch of cleanups on x86 to
->>> move almost everything from thread_info to thread_struct (which,
->>> even by itself, deletes more code than it adds) and to remove x86's
->>> dependence on thread_info's position on the stack.  Then it opts x86
->>> into a new config option THREAD_INFO_IN_TASK to get rid of
->>> arch-specific thread_info entirely and simply embed a defanged
->>> thread_info (containing only flags) and 'int cpu' into task_struct.
->>>
->>> Once thread_info stops being magical, there's another benefit: we
->>> can free the thread stack as soon as the task is dead (without
->>> waiting for RCU) and then, if vmapped stacks are in use, cache the
->>> entire stack for reuse on the same cpu.
->>>
->>> This seems to be an overall speedup of about 0.5-1 µs per
->>> pthread_create/join in a simple test -- a percpu cache of vmalloced
->>> stacks appears to be a bit faster than a high-order stack
->>> allocation, at least when the cache hits.  (I expect that workloads
->>> with a low cache hit rate are likely to be dominated by other
->>> effects anyway.)
->>>
->>> This does not address interrupt stacks.
->>>
->>> It's worth noting that s390 has an arch-specific gcc feature that
->>> detects stack overflows by adjusting function prologues.  Arches
->>> with features like that may wish to avoid using vmapped stacks to
->>> minimize the performance hit.
->>
->> Yes, might not need this for stack overflow detection. What might
->> be interesting is the thread_info/thread_struct change, if we can
->> strip down thread_info.(CONFIG_THREAD_INFO_IN_TASK). Would it actually
->> make sense to separate these two changes to see what performance
->> impact  CONFIG_THREAD_INFO_IN_TASK has on its own?
->>
-> 
-> They're already separated.
-> 
-> CONFIG_THREAD_INFO_IN_TASK should have basically no performance impact
-> unless there are arch-dependent (percpu?) issues involved.  It does
-> enable immediate thread stack deallocation, though, and it would be
-> straightforward to make CONFIG_THREAD_INFO_IN_TASK cache stacks even
-> if CONFIG_VMAP_STACK=n.  That should be a moderate clone() speedup.
+This creates per-architecture function arch_within_stack_frames() that
+should validate if a given object is contained by a kernel stack frame.
+Initial implementation is on x86.
 
-Yes. My point was more of having two patch series in case the discussion goes
-on regarding virtual stack.
+This is based on code from PaX.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/Kconfig                       |  9 ++++++++
+ arch/x86/Kconfig                   |  1 +
+ arch/x86/include/asm/thread_info.h | 44 ++++++++++++++++++++++++++++++++++++++
+ include/linux/thread_info.h        |  9 ++++++++
+ 4 files changed, 63 insertions(+)
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index d794384a0404..5e2776562035 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -424,6 +424,15 @@ config CC_STACKPROTECTOR_STRONG
+ 
+ endchoice
+ 
++config HAVE_ARCH_WITHIN_STACK_FRAMES
++	bool
++	help
++	  An architecture should select this if it can walk the kernel stack
++	  frames to determine if an object is part of either the arguments
++	  or local variables (i.e. that it excludes saved return addresses,
++	  and similar) by implementing an inline arch_within_stack_frames(),
++	  which is used by CONFIG_HARDENED_USERCOPY.
++
+ config HAVE_CONTEXT_TRACKING
+ 	bool
+ 	help
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0a7b885964ba..4407f596b72c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -91,6 +91,7 @@ config X86
+ 	select HAVE_ARCH_SOFT_DIRTY		if X86_64
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
++	select HAVE_ARCH_WITHIN_STACK_FRAMES
+ 	select HAVE_EBPF_JIT			if X86_64
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select HAVE_CMPXCHG_DOUBLE
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index 30c133ac05cd..ab386f1336f2 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -180,6 +180,50 @@ static inline unsigned long current_stack_pointer(void)
+ 	return sp;
+ }
+ 
++/*
++ * Walks up the stack frames to make sure that the specified object is
++ * entirely contained by a single stack frame.
++ *
++ * Returns:
++ *		 1 if within a frame
++ *		-1 if placed across a frame boundary (or outside stack)
++ *		 0 unable to determine (no frame pointers, etc)
++ */
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
++{
++#if defined(CONFIG_FRAME_POINTER)
++	const void *frame = NULL;
++	const void *oldframe;
++
++	oldframe = __builtin_frame_address(1);
++	if (oldframe)
++		frame = __builtin_frame_address(2);
++	/*
++	 * low ----------------------------------------------> high
++	 * [saved bp][saved ip][args][local vars][saved bp][saved ip]
++	 *                     ^----------------^
++	 *               allow copies only within here
++	 */
++	while (stack <= frame && frame < stackend) {
++		/*
++		 * If obj + len extends past the last frame, this
++		 * check won't pass and the next frame will be 0,
++		 * causing us to bail out and correctly report
++		 * the copy as invalid.
++		 */
++		if (obj + len <= frame)
++			return obj >= oldframe + 2 * sizeof(void *) ? 1 : -1;
++		oldframe = frame;
++		frame = *(const void * const *)frame;
++	}
++	return -1;
++#else
++	return 0;
++#endif
++}
++
+ #else /* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_X86_64
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index b4c2a485b28a..3d5c80b4391d 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -146,6 +146,15 @@ static inline bool test_and_clear_restore_sigmask(void)
+ #error "no set_restore_sigmask() provided and default one won't work"
+ #endif
+ 
++#ifndef CONFIG_HAVE_ARCH_WITHIN_STACK_FRAMES
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
++{
++	return 0;
++}
++#endif
++
+ #endif	/* __KERNEL__ */
+ 
+ #endif /* _LINUX_THREAD_INFO_H */
+-- 
+2.7.4
 
