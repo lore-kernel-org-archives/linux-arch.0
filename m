@@ -1,402 +1,162 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:34120 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751291AbcGMV4Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 17:56:16 -0400
-Received: by mail-pa0-f54.google.com with SMTP id fi15so21386435pac.1
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:56:15 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 02/11] mm: Hardened usercopy
-Date: Wed, 13 Jul 2016 14:55:55 -0700
-Message-ID: <1468446964-22213-3-git-send-email-keescook@chromium.org>
-In-Reply-To: <1468446964-22213-1-git-send-email-keescook@chromium.org>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+Received: from mail-db5eur01on0084.outbound.protection.outlook.com ([104.47.2.84]:33205
+	"EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751678AbcGNASS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 Jul 2016 20:18:18 -0400
+Subject: Re: [PATCH v5 0/4] improvements to the nmi_backtrace code
+References: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <96e5ba5b-d8c2-42cd-11a3-ffebd85522c3@mellanox.com>
+Date: Wed, 13 Jul 2016 14:44:17 -0400
+MIME-Version: 1.0
+In-Reply-To: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160713215555.cDL_7NGIqm91POoGpwH82X2nHBR9IbtA7M0KzKJ4kT0@z>
+To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160713184417.GL9sOnrLCQPWx284ZHH0dHQOKy-QT7bd_lhXt9I3ULk@z>
 
-This is the start of porting PAX_USERCOPY into the mainline kernel. This
-is the first set of features, controlled by CONFIG_HARDENED_USERCOPY. The
-work is based on code by PaX Team and Brad Spengler, and an earlier port
-from Casey Schaufler. Additional non-slab page tests are from Rik van Riel.
+Ping!
 
-This patch contains the logic for validating several conditions when
-performing copy_to_user() and copy_from_user() on the kernel object
-being copied to/from:
-- address range doesn't wrap around
-- address range isn't NULL or zero-allocated (with a non-zero copy size)
-- if on the slab allocator:
-  - object size must be less than or equal to copy size (when check is
-    implemented in the allocator, which appear in subsequent patches)
-- otherwise, object must not span page allocations
-- if on the stack
-  - object must not extend before/after the current process task
-  - object must be contained by the current stack frame (when there is
-    arch/build support for identifying stack frames)
-- object must not overlap with kernel text
+I just realized that this series [1] hasn't been taken into an upstream tree yet.
+It probably makes most sense to go via Andrew's tree, given that that's
+where Petr's NMI printk cleanup patches went a couple of months ago, for 4.7.
+It seemed like this patch series had reached consensus in its current form.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/Kconfig                |   7 ++
- include/linux/slab.h        |  12 +++
- include/linux/thread_info.h |  15 +++
- mm/Makefile                 |   4 +
- mm/usercopy.c               | 219 ++++++++++++++++++++++++++++++++++++++++++++
- security/Kconfig            |  27 ++++++
- 6 files changed, 284 insertions(+)
- create mode 100644 mm/usercopy.c
+Andrew, if I rebase this on 4.7, do you want to take it into your tree?
+Your concern before was just that it conflicted with Petr's work [2].
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 5e2776562035..195ee4cc939a 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -433,6 +433,13 @@ config HAVE_ARCH_WITHIN_STACK_FRAMES
- 	  and similar) by implementing an inline arch_within_stack_frames(),
- 	  which is used by CONFIG_HARDENED_USERCOPY.
- 
-+config HAVE_ARCH_LINEAR_KERNEL_MAPPING
-+	bool
-+	help
-+	  An architecture should select this if it has a secondary linear
-+	  mapping of the kernel text. This is used to verify that kernel
-+	  text exposures are not visible under CONFIG_HARDENED_USERCOPY.
-+
- config HAVE_CONTEXT_TRACKING
- 	bool
- 	help
-diff --git a/include/linux/slab.h b/include/linux/slab.h
-index aeb3e6d00a66..96a16a3fb7cb 100644
---- a/include/linux/slab.h
-+++ b/include/linux/slab.h
-@@ -155,6 +155,18 @@ void kfree(const void *);
- void kzfree(const void *);
- size_t ksize(const void *);
- 
-+#ifdef CONFIG_HAVE_HARDENED_USERCOPY_ALLOCATOR
-+const char *__check_heap_object(const void *ptr, unsigned long n,
-+				struct page *page);
-+#else
-+static inline const char *__check_heap_object(const void *ptr,
-+					      unsigned long n,
-+					      struct page *page)
-+{
-+	return NULL;
-+}
-+#endif
-+
- /*
-  * Some archs want to perform DMA into kmalloc caches and need a guaranteed
-  * alignment larger than the alignment of a 64-bit integer.
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 3d5c80b4391d..f24b99eac969 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -155,6 +155,21 @@ static inline int arch_within_stack_frames(const void * const stack,
- }
- #endif
- 
-+#ifdef CONFIG_HARDENED_USERCOPY
-+extern void __check_object_size(const void *ptr, unsigned long n,
-+					bool to_user);
-+
-+static inline void check_object_size(const void *ptr, unsigned long n,
-+				     bool to_user)
-+{
-+	__check_object_size(ptr, n, to_user);
-+}
-+#else
-+static inline void check_object_size(const void *ptr, unsigned long n,
-+				     bool to_user)
-+{ }
-+#endif /* CONFIG_HARDENED_USERCOPY */
-+
- #endif	/* __KERNEL__ */
- 
- #endif /* _LINUX_THREAD_INFO_H */
-diff --git a/mm/Makefile b/mm/Makefile
-index 78c6f7dedb83..32d37247c7e5 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -21,6 +21,9 @@ KCOV_INSTRUMENT_memcontrol.o := n
- KCOV_INSTRUMENT_mmzone.o := n
- KCOV_INSTRUMENT_vmstat.o := n
- 
-+# Since __builtin_frame_address does work as used, disable the warning.
-+CFLAGS_usercopy.o += $(call cc-disable-warning, frame-address)
-+
- mmu-y			:= nommu.o
- mmu-$(CONFIG_MMU)	:= gup.o highmem.o memory.o mincore.o \
- 			   mlock.o mmap.o mprotect.o mremap.o msync.o rmap.o \
-@@ -99,3 +102,4 @@ obj-$(CONFIG_USERFAULTFD) += userfaultfd.o
- obj-$(CONFIG_IDLE_PAGE_TRACKING) += page_idle.o
- obj-$(CONFIG_FRAME_VECTOR) += frame_vector.o
- obj-$(CONFIG_DEBUG_PAGE_REF) += debug_page_ref.o
-+obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
-diff --git a/mm/usercopy.c b/mm/usercopy.c
-new file mode 100644
-index 000000000000..4161a1fb1909
---- /dev/null
-+++ b/mm/usercopy.c
-@@ -0,0 +1,219 @@
-+/*
-+ * This implements the various checks for CONFIG_HARDENED_USERCOPY*,
-+ * which are designed to protect kernel memory from needless exposure
-+ * and overwrite under many unintended conditions. This code is based
-+ * on PAX_USERCOPY, which is:
-+ *
-+ * Copyright (C) 2001-2016 PaX Team, Bradley Spengler, Open Source
-+ * Security Inc.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ */
-+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-+
-+#include <linux/mm.h>
-+#include <linux/slab.h>
-+#include <asm/sections.h>
-+
-+/*
-+ * Checks if a given pointer and length is contained by the current
-+ * stack frame (if possible).
-+ *
-+ *	0: not at all on the stack
-+ *	1: fully within a valid stack frame
-+ *	2: fully on the stack (when can't do frame-checking)
-+ *	-1: error condition (invalid stack position or bad stack frame)
-+ */
-+static noinline int check_stack_object(const void *obj, unsigned long len)
-+{
-+	const void * const stack = task_stack_page(current);
-+	const void * const stackend = stack + THREAD_SIZE;
-+	int ret;
-+
-+	/* Object is not on the stack at all. */
-+	if (obj + len <= stack || stackend <= obj)
-+		return 0;
-+
-+	/*
-+	 * Reject: object partially overlaps the stack (passing the
-+	 * the check above means at least one end is within the stack,
-+	 * so if this check fails, the other end is outside the stack).
-+	 */
-+	if (obj < stack || stackend < obj + len)
-+		return -1;
-+
-+	/* Check if object is safely within a valid frame. */
-+	ret = arch_within_stack_frames(stack, stackend, obj, len);
-+	if (ret)
-+		return ret;
-+
-+	return 2;
-+}
-+
-+static void report_usercopy(const void *ptr, unsigned long len,
-+			    bool to_user, const char *type)
-+{
-+	pr_emerg("kernel memory %s attempt detected %s %p (%s) (%lu bytes)\n",
-+		to_user ? "exposure" : "overwrite",
-+		to_user ? "from" : "to", ptr, type ? : "unknown", len);
-+	dump_stack();
-+	do_group_exit(SIGKILL);
-+}
-+
-+/* Returns true if any portion of [ptr,ptr+n) over laps with [low,high). */
-+static bool overlaps(const void *ptr, unsigned long n, unsigned long low,
-+		     unsigned long high)
-+{
-+	unsigned long check_low = (uintptr_t)ptr;
-+	unsigned long check_high = check_low + n;
-+
-+	/* Does not overlap if entirely above or entirely below. */
-+	if (check_low >= high || check_high < low)
-+		return false;
-+
-+	return true;
-+}
-+
-+/* Is this address range in the kernel text area? */
-+static inline const char *check_kernel_text_object(const void *ptr,
-+						   unsigned long n)
-+{
-+	unsigned long textlow = (unsigned long)_stext;
-+	unsigned long texthigh = (unsigned long)_etext;
-+
-+	if (overlaps(ptr, n, textlow, texthigh))
-+		return "<kernel text>";
-+
-+#ifdef HAVE_ARCH_LINEAR_KERNEL_MAPPING
-+	/* Check against linear mapping as well. */
-+	if (overlaps(ptr, n, (unsigned long)__va(__pa(textlow)),
-+		     (unsigned long)__va(__pa(texthigh))))
-+		return "<linear kernel text>";
-+#endif
-+
-+	return NULL;
-+}
-+
-+static inline const char *check_bogus_address(const void *ptr, unsigned long n)
-+{
-+	/* Reject if object wraps past end of memory. */
-+	if (ptr + n < ptr)
-+		return "<wrapped address>";
-+
-+	/* Reject if NULL or ZERO-allocation. */
-+	if (ZERO_OR_NULL_PTR(ptr))
-+		return "<null>";
-+
-+	return NULL;
-+}
-+
-+static inline const char *check_heap_object(const void *ptr, unsigned long n,
-+					    bool to_user)
-+{
-+	struct page *page, *endpage;
-+	const void *end = ptr + n - 1;
-+
-+	if (!virt_addr_valid(ptr))
-+		return NULL;
-+
-+	page = virt_to_head_page(ptr);
-+
-+	/* Check slab allocator for flags and size. */
-+	if (PageSlab(page))
-+		return __check_heap_object(ptr, n, page);
-+
-+	/*
-+	 * Sometimes the kernel data regions are not marked Reserved (see
-+	 * check below). And sometimes [_sdata,_edata) does not cover
-+	 * rodata and/or bss, so check each range explicitly.
-+	 */
-+
-+	/* Allow reads of kernel rodata region (if not marked as Reserved). */
-+	if (ptr >= (const void *)__start_rodata &&
-+	    end <= (const void *)__end_rodata) {
-+		if (!to_user)
-+			return "<rodata>";
-+		return NULL;
-+	}
-+
-+	/* Allow kernel data region (if not marked as Reserved). */
-+	if (ptr >= (const void *)_sdata && end <= (const void *)_edata)
-+		return NULL;
-+
-+	/* Allow kernel bss region (if not marked as Reserved). */
-+	if (ptr >= (const void *)__bss_start &&
-+	    end <= (const void *)__bss_stop)
-+		return NULL;
-+
-+	/* Is the object wholly within one base page? */
-+	if (likely(((unsigned long)ptr & (unsigned long)PAGE_MASK) ==
-+		   ((unsigned long)end & (unsigned long)PAGE_MASK)))
-+		return NULL;
-+
-+	/* Allow if start and end are inside the same compound page. */
-+	endpage = virt_to_head_page(end);
-+	if (likely(endpage == page))
-+		return NULL;
-+
-+	/* Allow special areas, device memory, and sometimes kernel data. */
-+	if (PageReserved(page) && PageReserved(endpage))
-+		return NULL;
-+
-+	/* Uh oh. The "object" spans several independently allocated pages. */
-+	return "<spans multiple pages>";
-+}
-+
-+/*
-+ * Validates that the given object is one of:
-+ * - known safe heap object
-+ * - known safe stack object
-+ * - not in kernel text
-+ */
-+void __check_object_size(const void *ptr, unsigned long n, bool to_user)
-+{
-+	const char *err;
-+
-+	/* Skip all tests if size is zero. */
-+	if (!n)
-+		return;
-+
-+	/* Check for invalid addresses. */
-+	err = check_bogus_address(ptr, n);
-+	if (err)
-+		goto report;
-+
-+	/* Check for bad heap object. */
-+	err = check_heap_object(ptr, n, to_user);
-+	if (err)
-+		goto report;
-+
-+	/* Check for bad stack object. */
-+	switch (check_stack_object(ptr, n)) {
-+	case 0:
-+		/* Object is not touching the current process stack. */
-+		break;
-+	case 1:
-+	case 2:
-+		/*
-+		 * Object is either in the correct frame (when it
-+		 * is possible to check) or just generally on the
-+		 * process stack (when frame checking not available).
-+		 */
-+		return;
-+	default:
-+		err = "<process stack>";
-+		goto report;
-+	}
-+
-+	/* Check for object in kernel to avoid text exposure. */
-+	err = check_kernel_text_object(ptr, n);
-+	if (!err)
-+		return;
-+
-+report:
-+	report_usercopy(ptr, n, to_user, err);
-+}
-+EXPORT_SYMBOL(__check_object_size);
-diff --git a/security/Kconfig b/security/Kconfig
-index 176758cdfa57..63340ad0b9f9 100644
---- a/security/Kconfig
-+++ b/security/Kconfig
-@@ -118,6 +118,33 @@ config LSM_MMAP_MIN_ADDR
- 	  this low address space will need the permission specific to the
- 	  systems running LSM.
- 
-+config HAVE_HARDENED_USERCOPY_ALLOCATOR
-+	bool
-+	help
-+	  The heap allocator implements __check_heap_object() for
-+	  validating memory ranges against heap object sizes in
-+	  support of CONFIG_HARDENED_USERCOPY.
-+
-+config HAVE_ARCH_HARDENED_USERCOPY
-+	bool
-+	help
-+	  The architecture supports CONFIG_HARDENED_USERCOPY by
-+	  calling check_object_size() just before performing the
-+	  userspace copies in the low level implementation of
-+	  copy_to_user() and copy_from_user().
-+
-+config HARDENED_USERCOPY
-+	bool "Harden memory copies between kernel and userspace"
-+	depends on HAVE_ARCH_HARDENED_USERCOPY
-+	help
-+	  This option checks for obviously wrong memory regions when
-+	  copying memory to/from the kernel (via copy_to_user() and
-+	  copy_from_user() functions) by rejecting memory ranges that
-+	  are larger than the specified heap object, span multiple
-+	  separately allocates pages, are not on the process stack,
-+	  or are part of the kernel text. This kills entire classes
-+	  of heap overflow exploits and similar kernel memory exposures.
-+
- source security/selinux/Kconfig
- source security/smack/Kconfig
- source security/tomoyo/Kconfig
+Thanks!
+
+[1] http://lkml.kernel.org/g/1459877208-15119-1-git-send-email-cmetcalf@mellanox.com
+[2] http://lkml.kernel.org/g/20160229164956.8613016895bef966b6460081@linux-foundation.org
+
+On 4/5/2016 1:26 PM, Chris Metcalf wrote:
+> This is just a one-line change to the v4 series, to catch the new arm
+> vmlinux-xip.lds.S file, which I missed when I rebased to 4.6 for v4
+> (my arm config for testing did not include CONFIG_XIP_KERNEL).
+> Thanks to Fengguang Wu and the 0-day test robot for that.
+>
+> Whose tree would this go through?  I have an ack for Peter Z for
+> patch 4/4 and no other feedback for patches 1/4 or 2/4; I can
+> certainly push 3/4 through the tile tree myself if that helps, though
+> my guess is keeping it with the rest of the series makes more sense
+> for tile since it doesn't lose any functionality that way.
+>
+>  From the version 1 cover letter:
+>
+>    This patch series modifies the trigger_xxx_backtrace() NMI-based
+>    remote backtracing code to make it more flexible, and makes a few
+>    small improvements along the way.
+>
+>    The motivation comes from the task isolation code, where there are
+>    scenarios where we want to be able to diagnose a case where some cpu
+>    is about to interrupt a task-isolated cpu.  It can be helpful to
+>    see both where the interrupting cpu is, and also an approximation
+>    of where the cpu that is being interrupted is.  The nmi_backtrace
+>    framework allows us to discover the stack of the interrupted cpu.
+>
+> I've tested that the change works as desired on tile, and build-tested
+> x86, arm64, and arm.  For x86 and arm64 I confirmed that the generic
+> cpuidle stuff as well as the architecture-specific routines are in the
+> new cpuidle section.  For arm I just build-tested it and made sure the
+> generic cpuidle routines were in the new cpuidle section, but I didn't
+> attempt to tease apart the tangle of platform-specific idle routines
+> that arm has and tag them with __cpuidle.  That might be more usefully
+> done by someone with arm platform experience in a follow-up patch.
+>
+> I have also pushed it up to kernel.org to pull if that's easier:
+>
+> git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git nmi-backtrace
+>
+> The change conflicts with Petr Mladek's NMI printk cleanup patches:
+>
+> https://lkml.kernel.org/r/1459353210-20260-1-git-send-email-pmladek@suse.com
+>
+> He has kindly offered to resolve the conflicts.
+>
+> v5: Add CPUIDLE_TEXT to the new arch/arm/kernel/vmlinux-xip.lds.S
+>
+> v4: Added some more __cpuidle functions (PeterZ, Rafael Wysocki)
+>      Rebased to kernel v4.6-rc1
+>
+> v3: Various improvements to the set of __cpuidle functions;
+>      Add back in a missing section accidentally removed in modpost.c (PeterZ)
+>      https://lkml.kernel.org/r/1458667179-19630-1-git-send-email-cmetcalf@mellanox.com
+>
+> v2: Switch to using __cpuidle tagging, switch S-O-B to Mellanox
+>      https://lkml.kernel.org/r/1458147733-29338-1-git-send-email-cmetcalf@mellanox.com
+>
+> Chris Metcalf (4):
+>    nmi_backtrace: add more trigger_*_cpu_backtrace() methods
+>    nmi_backtrace: do a local dump_stack() instead of a self-NMI
+>    arch/tile: adopt the new nmi_backtrace framework
+>    nmi_backtrace: generate one-line reports for idle cpus
+>
+>   arch/alpha/kernel/vmlinux.lds.S      |  1 +
+>   arch/arc/kernel/vmlinux.lds.S        |  1 +
+>   arch/arm/include/asm/irq.h           |  4 +-
+>   arch/arm/kernel/smp.c                | 13 +------
+>   arch/arm/kernel/vmlinux-xip.lds.S    |  1 +
+>   arch/arm/kernel/vmlinux.lds.S        |  1 +
+>   arch/arm64/kernel/vmlinux.lds.S      |  1 +
+>   arch/arm64/mm/proc.S                 |  2 +
+>   arch/avr32/kernel/vmlinux.lds.S      |  1 +
+>   arch/blackfin/kernel/vmlinux.lds.S   |  1 +
+>   arch/c6x/kernel/vmlinux.lds.S        |  1 +
+>   arch/cris/kernel/vmlinux.lds.S       |  1 +
+>   arch/frv/kernel/vmlinux.lds.S        |  1 +
+>   arch/h8300/kernel/vmlinux.lds.S      |  1 +
+>   arch/hexagon/kernel/vmlinux.lds.S    |  1 +
+>   arch/ia64/kernel/vmlinux.lds.S       |  1 +
+>   arch/m32r/kernel/vmlinux.lds.S       |  1 +
+>   arch/m68k/kernel/vmlinux-nommu.lds   |  1 +
+>   arch/m68k/kernel/vmlinux-std.lds     |  1 +
+>   arch/m68k/kernel/vmlinux-sun3.lds    |  1 +
+>   arch/metag/kernel/vmlinux.lds.S      |  1 +
+>   arch/microblaze/kernel/vmlinux.lds.S |  1 +
+>   arch/mips/kernel/vmlinux.lds.S       |  1 +
+>   arch/mn10300/kernel/vmlinux.lds.S    |  1 +
+>   arch/nios2/kernel/vmlinux.lds.S      |  1 +
+>   arch/openrisc/kernel/vmlinux.lds.S   |  1 +
+>   arch/parisc/kernel/vmlinux.lds.S     |  1 +
+>   arch/powerpc/kernel/vmlinux.lds.S    |  1 +
+>   arch/s390/kernel/vmlinux.lds.S       |  1 +
+>   arch/score/kernel/vmlinux.lds.S      |  1 +
+>   arch/sh/kernel/vmlinux.lds.S         |  1 +
+>   arch/sparc/kernel/vmlinux.lds.S      |  1 +
+>   arch/tile/include/asm/irq.h          |  4 +-
+>   arch/tile/kernel/entry.S             |  2 +-
+>   arch/tile/kernel/pmc.c               |  3 --
+>   arch/tile/kernel/process.c           | 72 ++++++++----------------------------
+>   arch/tile/kernel/traps.c             |  7 +++-
+>   arch/tile/kernel/vmlinux.lds.S       |  1 +
+>   arch/um/kernel/dyn.lds.S             |  1 +
+>   arch/um/kernel/uml.lds.S             |  1 +
+>   arch/unicore32/kernel/vmlinux.lds.S  |  1 +
+>   arch/x86/include/asm/irq.h           |  4 +-
+>   arch/x86/kernel/acpi/cstate.c        |  2 +-
+>   arch/x86/kernel/apic/hw_nmi.c        |  6 +--
+>   arch/x86/kernel/process.c            |  4 +-
+>   arch/x86/kernel/vmlinux.lds.S        |  1 +
+>   arch/xtensa/kernel/vmlinux.lds.S     |  3 ++
+>   drivers/acpi/processor_idle.c        |  5 ++-
+>   drivers/cpuidle/driver.c             |  5 ++-
+>   drivers/idle/intel_idle.c            |  4 +-
+>   include/asm-generic/vmlinux.lds.h    |  6 +++
+>   include/linux/cpu.h                  |  5 +++
+>   include/linux/nmi.h                  | 63 ++++++++++++++++++++++++-------
+>   kernel/sched/idle.c                  | 13 ++++++-
+>   lib/nmi_backtrace.c                  | 40 +++++++++++++-------
+>   scripts/mod/modpost.c                |  2 +-
+>   scripts/recordmcount.c               |  1 +
+>   scripts/recordmcount.pl              |  1 +
+>   58 files changed, 184 insertions(+), 121 deletions(-)
+>
+
 -- 
-2.7.4
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
 
