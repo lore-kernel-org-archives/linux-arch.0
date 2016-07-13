@@ -1,55 +1,54 @@
-From: Jessica Yu <jeyu@redhat.com>
-Subject: [PATCH] arm64: take SHN_LIVEPATCH syms into account when calculating
- plt_max_entries
-Date: Tue, 12 Jul 2016 20:11:14 -0400
-Message-ID: <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
-References: <20160627151500.2247A68D20@newverein.lst.de>
- <20160627151722.B81C968D29@newverein.lst.de>
- <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz>
- <20160711215807.GA23097@packer-debian-8-amd64.digitalocean.com>
- <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
+Date: Wed, 13 Jul 2016 09:53:31 +0200
+Message-ID: <20160713075314.GA32700@gmail.com>
+References: <cover.1468270393.git.luto@kernel.org>
+ <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:34596 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751117AbcGMHxj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 03:53:39 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Miroslav Benes <mbenes@suse.cz>
-Cc: linux-arch@vger.kernel.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, takahiro.akashi@linaro.org, linux-sparse@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Torsten Duwe <duwe@lst.de>, andrew.wafaa@arm.com, Li Bin <huawei.libin@huawei.com>, live-patching@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-SHN_LIVEPATCH symbols are technically a subset of SHN_UNDEF/undefined
-symbols, except that their addresses are resolved by livepatch at runtime.
-Therefore, when calculating the upper-bound for the number of plt entries
-to allocate, make sure to take livepatch symbols into account as well.
 
-Signed-off-by: Jessica Yu <jeyu@redhat.com>
----
- arch/arm64/kernel/module-plts.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+* Andy Lutomirski <luto@kernel.org> wrote:
 
-diff --git a/arch/arm64/kernel/module-plts.c b/arch/arm64/kernel/module-plts.c
-index 1ce90d8..1e95dc1 100644
---- a/arch/arm64/kernel/module-plts.c
-+++ b/arch/arm64/kernel/module-plts.c
-@@ -122,7 +122,8 @@ static unsigned int count_plts(Elf64_Sym *syms, Elf64_Rela *rela, int num)
-                         * as well, so modules can never grow beyond that limit.
-                         */
-                        s = syms + ELF64_R_SYM(rela[i].r_info);
--                       if (s->st_shndx != SHN_UNDEF)
-+                       if (s->st_shndx != SHN_UNDEF &&
-+                           s->st_shndx != SHN_LIVEPATCH)
-                                break;
+> This allows x86_64 kernels to enable vmapped stacks.  There are a
+> couple of interesting bits.
 
-                        /*
--- 
-2.5.5
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -92,6 +92,7 @@ config X86
+>  	select HAVE_ARCH_TRACEHOOK
+>  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>  	select HAVE_EBPF_JIT			if X86_64
+> +	select HAVE_ARCH_VMAP_STACK		if X86_64
+
+So what is the performance impact?
+
+Because I think we should consider enabling this feature by default on x86 - but 
+the way it's selected here it will be default-off.
+
+On the plus side: the debuggability and reliability improvements are real and 
+making it harder for exploits to use kernel stack overflows is a nice bonus as 
+well. There's two performance effects:
+
+ - vmalloc now potentially moves into the thread pool create/destroy hot path.
+
+ - we use 4K TLBs for kernel stacks instead of 2MB TLBs.
+
+The TLB effect should be relatively modest on modern CPUs, given that the kernel 
+stack size is limited and 4K TLBs are plenty. The vmalloc() part should be 
+measured I suspect.
+
+Thanks,
+
+	Ingo
