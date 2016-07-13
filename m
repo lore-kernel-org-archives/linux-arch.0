@@ -1,62 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f46.google.com ([209.85.213.46]:32773 "EHLO
-	mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750923AbcGMSnV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 14:43:21 -0400
-Received: by mail-vk0-f46.google.com with SMTP id x130so78318147vkc.0
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 11:43:14 -0700 (PDT)
+Received: from mail-vk0-f47.google.com ([209.85.213.47]:36129 "EHLO
+	mail-vk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750933AbcGMSnp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 14:43:45 -0400
+Received: by mail-vk0-f47.google.com with SMTP id j126so23910026vkg.3
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 11:43:44 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20160713075314.GA32700@gmail.com>
-References: <cover.1468270393.git.luto@kernel.org> <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
- <20160713075314.GA32700@gmail.com>
+In-Reply-To: <20160713075550.GA515@gmail.com>
+References: <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com> <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net> <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com> <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
+ <20160713075550.GA515@gmail.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 13 Jul 2016 11:42:35 -0700
-Message-ID: <CALCETrW9B=MAGaLAV0Y86MQ2==pjoShHdOPNM_8ZR1OKZDy2ZQ@mail.gmail.com>
-Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
+Date: Wed, 13 Jul 2016 11:43:24 -0700
+Message-ID: <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
-Message-ID: <20160713184235.Ij86E0rGBOMlbAkKLYOxvlLsO8dNsZ_7q_3CnHZsCb8@z>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20160713184324.U6H6N55Gtpo8taMyiVb1zd3QMykwtxc6iP5VmMMjM6I@z>
 
-On Wed, Jul 13, 2016 at 12:53 AM, Ingo Molnar <mingo@kernel.org> wrote:
+On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
 >
-> * Andy Lutomirski <luto@kernel.org> wrote:
+> * Andy Lutomirski <luto@amacapital.net> wrote:
 >
->> This allows x86_64 kernels to enable vmapped stacks.  There are a
->> couple of interesting bits.
+>> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
+>> > lose the content of that "push".  I'm not sure there's any way to guarantee
+>> > this with a user-controlled register.
+>>
+>> We could try to insist that user code uses some vsyscall helper that tracks
+>> which bits are as-yet-unassigned.  That's quite messy, though.
 >
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -92,6 +92,7 @@ config X86
->>       select HAVE_ARCH_TRACEHOOK
->>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->>       select HAVE_EBPF_JIT                    if X86_64
->> +     select HAVE_ARCH_VMAP_STACK             if X86_64
->
-> So what is the performance impact?
+> Actually, if we turned the vDSO into something more like a minimal user-space
+> library with the ability to run at process startup as well to prepare stuff then
+> it's painful to get right only *once*, and there will be tons of other areas where
+> a proper per thread data storage on the user-space side would be immensely useful!
 
-Seems to be a very slight speedup (0.5 µs or so) on my silly benchmark
-(pthread_create, pthread_join in a loop).  It should be a small
-slowdown on workloads that create many threads all at once, thus
-defeating the stack cache.  It should be a *large* speedup on any
-workload that would trigger compaction on clone() to satisfy the
-high-order allocation.
-
->
-> Because I think we should consider enabling this feature by default on x86 - but
-> the way it's selected here it will be default-off.
->
-> On the plus side: the debuggability and reliability improvements are real and
-> making it harder for exploits to use kernel stack overflows is a nice bonus as
-> well. There's two performance effects:
-
-Agreed.  At the very least, I want to wait until after net-next gets
-pulled to flip the default to y.  I'm also a bit concerned about more
-random driver issues that I haven't found yet.  I suppose we could
-flip the default to y for a few -rc releases and see what, if
-anything, shakes loose.
-
---Andy
+Doing this could be tricky: how exactly is the vDSO supposed to find
+per-thread data without breaking existing glibc?
