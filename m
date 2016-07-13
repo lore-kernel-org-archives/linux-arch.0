@@ -1,21 +1,35 @@
-From: Financial Service <bambang.prasodjo@customs.go.id>
-Subject: Fast Loans
-Date: Wed, 13 Jul 2016 17:57:43 +0530
-Message-ID: <20160713122828.0A8001BC8EA4__48217.9393795834$1468440426$gmane$org@mail.customs.go.id>
-Reply-To: m_rajeshkumar@aol.co.uk
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3] locking/qrwlock: Let qrwlock has same layout
+ regardless of the endian
+Date: Wed, 13 Jul 2016 22:40:57 +0200
+Message-ID: <20160713204057.GM30927@twins.programming.kicks-ass.net>
+References: <1466403652-2931-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+ <20160713195423.GD30921@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.customs.go.id ([202.61.126.135]:33488 "EHLO
-	mail.customs.go.id" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751431AbcGMUGP convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 16:06:15 -0400
-Content-Description: Mail message body
+Received: from merlin.infradead.org ([205.233.59.134]:45012 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750923AbcGMUlO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 16:41:14 -0400
+Content-Disposition: inline
+In-Reply-To: <20160713195423.GD30921@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <bambang.prasodjo@customs.go.id>
+To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, arnd@arndb.de, Waiman.Long@hpe.com
 
-Hae lainaa 3% vastaus t=E4h=E4n viestiin lis=E4tietoja
+On Wed, Jul 13, 2016 at 09:54:23PM +0200, Peter Zijlstra wrote:
 
-Apply for a loan at 3% reply to this Email for more Info
+> Urgh, I hate this stuff :/
+
+> + * Writer states & reader shift and bias.
+> + *
+> + *       | +0 | +1 | +2 | +3 |
+> + *   ----+----+----+----+----+
+> + *    LE | 12 | 34 | 56 | 78 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *    BE | 78 | 56 | 34 | 12 | 0x12345678
+> + *   ----+----+----+----+----+
+
+And of course I got that wrong.. its 0x78563412 in both cases.
