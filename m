@@ -1,7 +1,7 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 11/11] mm: SLUB hardened usercopy support
-Date: Wed, 13 Jul 2016 14:56:04 -0700
-Message-ID: <1468446964-22213-12-git-send-email-keescook@chromium.org>
+Subject: [PATCH v2 10/11] mm: SLAB hardened usercopy support
+Date: Wed, 13 Jul 2016 14:56:03 -0700
+Message-ID: <1468446964-22213-11-git-send-email-keescook@chromium.org>
 References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1468446964-22213-1-git-send-email-keescook@chromium.org>
@@ -11,35 +11,34 @@ Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Sch
 List-Id: linux-arch.vger.kernel.org
 
 Under CONFIG_HARDENED_USERCOPY, this adds object size checking to the
-SLUB allocator to catch any copies that may span objects. Includes a
-redzone handling fix from Michael Ellerman.
+SLAB allocator to catch any copies that may span objects.
 
 Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
  init/Kconfig |  1 +
- mm/slub.c    | 36 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 37 insertions(+)
+ mm/slab.c    | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
 
 diff --git a/init/Kconfig b/init/Kconfig
-index 798c2020ee7c..1c4711819dfd 100644
+index f755a602d4a1..798c2020ee7c 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
-@@ -1765,6 +1765,7 @@ config SLAB
+@@ -1757,6 +1757,7 @@ choice
  
- config SLUB
- 	bool "SLUB (Unqueued Allocator)"
+ config SLAB
+ 	bool "SLAB"
 +	select HAVE_HARDENED_USERCOPY_ALLOCATOR
  	help
- 	   SLUB is a slab allocator that minimizes cache line usage
- 	   instead of managing queues of cached objects (SLAB approach).
-diff --git a/mm/slub.c b/mm/slub.c
-index 825ff4505336..7dee3d9a5843 100644
---- a/mm/slub.c
-+++ b/mm/slub.c
-@@ -3614,6 +3614,42 @@ void *__kmalloc_node(size_t size, gfp_t flags, int node)
- EXPORT_SYMBOL(__kmalloc_node);
+ 	  The regular slab allocator that is established and known to work
+ 	  well in all environments. It organizes cache hot objects in
+diff --git a/mm/slab.c b/mm/slab.c
+index cc8bbc1e6bc9..5e2d5f349aca 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -4477,6 +4477,36 @@ static int __init slab_proc_init(void)
+ module_init(slab_proc_init);
  #endif
  
 +#ifdef CONFIG_HARDENED_USERCOPY
@@ -52,35 +51,29 @@ index 825ff4505336..7dee3d9a5843 100644
 +const char *__check_heap_object(const void *ptr, unsigned long n,
 +				struct page *page)
 +{
-+	struct kmem_cache *s;
++	struct kmem_cache *cachep;
++	unsigned int objnr;
 +	unsigned long offset;
-+	size_t object_size;
 +
-+	/* Find object and usable object size. */
-+	s = page->slab_cache;
-+	object_size = slab_ksize(s);
++	/* Find and validate object. */
++	cachep = page->slab_cache;
++	objnr = obj_to_index(cachep, page, (void *)ptr);
++	BUG_ON(objnr >= cachep->num);
 +
 +	/* Find offset within object. */
-+	offset = (ptr - page_address(page)) % s->size;
-+
-+	/* Adjust for redzone and reject if within the redzone. */
-+	if (kmem_cache_debug(s) && s->flags & SLAB_RED_ZONE) {
-+		if (offset < s->red_left_pad)
-+			return s->name;
-+		offset -= s->red_left_pad;
-+	}
++	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
 +
 +	/* Allow address range falling entirely within object size. */
-+	if (offset <= object_size && n <= object_size - offset)
++	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
 +		return NULL;
 +
-+	return s->name;
++	return cachep->name;
 +}
 +#endif /* CONFIG_HARDENED_USERCOPY */
 +
- static size_t __ksize(const void *object)
- {
- 	struct page *page;
+ /**
+  * ksize - get the actual amount of memory allocated for a given object
+  * @objp: Pointer to the object
 -- 
 2.7.4
 
