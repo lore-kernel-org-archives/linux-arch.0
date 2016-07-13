@@ -1,103 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f180.google.com ([209.85.192.180]:35547 "EHLO
-	mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751411AbcGMV4U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 17:56:20 -0400
-Received: by mail-pf0-f180.google.com with SMTP id c2so22710352pfa.2
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 14:56:18 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 07/11] powerpc/uaccess: Enable hardened usercopy
-Date: Wed, 13 Jul 2016 14:56:00 -0700
-Message-ID: <1468446964-22213-8-git-send-email-keescook@chromium.org>
-In-Reply-To: <1468446964-22213-1-git-send-email-keescook@chromium.org>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+Received: from mail-vk0-f53.google.com ([209.85.213.53]:36554 "EHLO
+	mail-vk0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751884AbcGMWBy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 18:01:54 -0400
+Received: by mail-vk0-f53.google.com with SMTP id j126so30836554vkg.3
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jul 2016 15:01:53 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1468446964-22213-2-git-send-email-keescook@chromium.org>
+References: <1468446964-22213-1-git-send-email-keescook@chromium.org> <1468446964-22213-2-git-send-email-keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Wed, 13 Jul 2016 15:01:28 -0700
+Message-ID: <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
+Subject: Re: [PATCH v2 01/11] mm: Implement stack frame object validation
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160713215600.hf4vHxPocFO4WfXdhgCODH81AKInNXQZcqzGf9CN2LQ@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>
+Message-ID: <20160713220128.Cpq4qSrDvFaU3nKe3TIJb8LR2Sf2SIQ2oux4GiZZ6qs@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on powerpc.
+On Wed, Jul 13, 2016 at 2:55 PM, Kees Cook <keescook@chromium.org> wrote:
+> This creates per-architecture function arch_within_stack_frames() that
+> should validate if a given object is contained by a kernel stack frame.
+> Initial implementation is on x86.
+>
+> This is based on code from PaX.
+>
 
-Based on code from PaX and grsecurity.
+This, along with Josh's livepatch work, are two examples of unwinders
+that matter for correctness instead of just debugging.  ISTM this
+should just use Josh's code directly once it's been written.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/powerpc/Kconfig               |  1 +
- arch/powerpc/include/asm/uaccess.h | 21 +++++++++++++++++++--
- 2 files changed, 20 insertions(+), 2 deletions(-)
-
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 01f7464d9fea..b7a18b2604be 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -164,6 +164,7 @@ config PPC
- 	select ARCH_HAS_UBSAN_SANITIZE_ALL
- 	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
- 	select HAVE_LIVEPATCH if HAVE_DYNAMIC_FTRACE_WITH_REGS
-+	select HAVE_ARCH_HARDENED_USERCOPY
- 
- config GENERIC_CSUM
- 	def_bool CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-index b7c20f0b8fbe..c1dc6c14deb8 100644
---- a/arch/powerpc/include/asm/uaccess.h
-+++ b/arch/powerpc/include/asm/uaccess.h
-@@ -310,10 +310,15 @@ static inline unsigned long copy_from_user(void *to,
- {
- 	unsigned long over;
- 
--	if (access_ok(VERIFY_READ, from, n))
-+	if (access_ok(VERIFY_READ, from, n)) {
-+		if (!__builtin_constant_p(n))
-+			check_object_size(to, n, false);
- 		return __copy_tofrom_user((__force void __user *)to, from, n);
-+	}
- 	if ((unsigned long)from < TASK_SIZE) {
- 		over = (unsigned long)from + n - TASK_SIZE;
-+		if (!__builtin_constant_p(n - over))
-+			check_object_size(to, n - over, false);
- 		return __copy_tofrom_user((__force void __user *)to, from,
- 				n - over) + over;
- 	}
-@@ -325,10 +330,15 @@ static inline unsigned long copy_to_user(void __user *to,
- {
- 	unsigned long over;
- 
--	if (access_ok(VERIFY_WRITE, to, n))
-+	if (access_ok(VERIFY_WRITE, to, n)) {
-+		if (!__builtin_constant_p(n))
-+			check_object_size(from, n, true);
- 		return __copy_tofrom_user(to, (__force void __user *)from, n);
-+	}
- 	if ((unsigned long)to < TASK_SIZE) {
- 		over = (unsigned long)to + n - TASK_SIZE;
-+		if (!__builtin_constant_p(n))
-+			check_object_size(from, n - over, true);
- 		return __copy_tofrom_user(to, (__force void __user *)from,
- 				n - over) + over;
- 	}
-@@ -372,6 +382,10 @@ static inline unsigned long __copy_from_user_inatomic(void *to,
- 		if (ret == 0)
- 			return 0;
- 	}
-+
-+	if (!__builtin_constant_p(n))
-+		check_object_size(to, n, false);
-+
- 	return __copy_tofrom_user((__force void __user *)to, from, n);
- }
- 
-@@ -398,6 +412,9 @@ static inline unsigned long __copy_to_user_inatomic(void __user *to,
- 		if (ret == 0)
- 			return 0;
- 	}
-+	if (!__builtin_constant_p(n))
-+		check_object_size(from, n, true);
-+
- 	return __copy_tofrom_user(to, (__force const void __user *)from, n);
- }
- 
--- 
-2.7.4
-
+--Andy
