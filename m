@@ -1,54 +1,48 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
-Date: Wed, 13 Jul 2016 09:53:31 +0200
-Message-ID: <20160713075314.GA32700@gmail.com>
-References: <cover.1468270393.git.luto@kernel.org>
- <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Wed, 13 Jul 2016 09:56:05 +0200
+Message-ID: <20160713075550.GA515@gmail.com>
+References: <20160707144508.GZ11498@techsingularity.net>
+ <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com>
+ <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net>
+ <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com>
+ <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:34596 "EHLO
-	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751117AbcGMHxj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2016 03:53:39 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+In-Reply-To: <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
 
-* Andy Lutomirski <luto@kernel.org> wrote:
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
-> This allows x86_64 kernels to enable vmapped stacks.  There are a
-> couple of interesting bits.
+> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll 
+> > lose the content of that "push".  I'm not sure there's any way to guarantee 
+> > this with a user-controlled register.
+> 
+> We could try to insist that user code uses some vsyscall helper that tracks 
+> which bits are as-yet-unassigned.  That's quite messy, though.
 
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -92,6 +92,7 @@ config X86
->  	select HAVE_ARCH_TRACEHOOK
->  	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->  	select HAVE_EBPF_JIT			if X86_64
-> +	select HAVE_ARCH_VMAP_STACK		if X86_64
-
-So what is the performance impact?
-
-Because I think we should consider enabling this feature by default on x86 - but 
-the way it's selected here it will be default-off.
-
-On the plus side: the debuggability and reliability improvements are real and 
-making it harder for exploits to use kernel stack overflows is a nice bonus as 
-well. There's two performance effects:
-
- - vmalloc now potentially moves into the thread pool create/destroy hot path.
-
- - we use 4K TLBs for kernel stacks instead of 2MB TLBs.
-
-The TLB effect should be relatively modest on modern CPUs, given that the kernel 
-stack size is limited and 4K TLBs are plenty. The vmalloc() part should be 
-measured I suspect.
+Actually, if we turned the vDSO into something more like a minimal user-space 
+library with the ability to run at process startup as well to prepare stuff then 
+it's painful to get right only *once*, and there will be tons of other areas where 
+a proper per thread data storage on the user-space side would be immensely useful!
 
 Thanks,
 
 	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
