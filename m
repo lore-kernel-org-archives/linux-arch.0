@@ -1,162 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db5eur01on0084.outbound.protection.outlook.com ([104.47.2.84]:33205
-	"EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751678AbcGNASS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jul 2016 20:18:18 -0400
-Subject: Re: [PATCH v5 0/4] improvements to the nmi_backtrace code
-References: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <96e5ba5b-d8c2-42cd-11a3-ffebd85522c3@mellanox.com>
-Date: Wed, 13 Jul 2016 14:44:17 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:35608 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751239AbcGNFsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Jul 2016 01:48:52 -0400
+Date: Thu, 14 Jul 2016 00:48:42 -0500
+From: Josh Poimboeuf <jpoimboe@redhat.com>
+Subject: Re: [PATCH v2 01/11] mm: Implement stack frame object validation
+Message-ID: <20160714054842.6zal5rqawpgew26r@treble>
+References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+ <1468446964-22213-2-git-send-email-keescook@chromium.org>
+ <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
+ <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1459877208-15119-1-git-send-email-cmetcalf@mellanox.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160713184417.GL9sOnrLCQPWx284ZHH0dHQOKy-QT7bd_lhXt9I3ULk@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
+Message-ID: <20160714054842.18Xu0UglDWKuPMBRAZAiM4pFit7GVI0nw1QmB_tcXEg@z>
 
-Ping!
+On Wed, Jul 13, 2016 at 03:04:26PM -0700, Kees Cook wrote:
+> On Wed, Jul 13, 2016 at 3:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> > On Wed, Jul 13, 2016 at 2:55 PM, Kees Cook <keescook@chromium.org> wrote:
+> >> This creates per-architecture function arch_within_stack_frames() that
+> >> should validate if a given object is contained by a kernel stack frame.
+> >> Initial implementation is on x86.
+> >>
+> >> This is based on code from PaX.
+> >>
+> >
+> > This, along with Josh's livepatch work, are two examples of unwinders
+> > that matter for correctness instead of just debugging.  ISTM this
+> > should just use Josh's code directly once it's been written.
+> 
+> Do you have URL for Josh's code? I'd love to see what happening there.
 
-I just realized that this series [1] hasn't been taken into an upstream tree yet.
-It probably makes most sense to go via Andrew's tree, given that that's
-where Petr's NMI printk cleanup patches went a couple of months ago, for 4.7.
-It seemed like this patch series had reached consensus in its current form.
+The code is actually going to be 100% different next time around, but
+FWIW, here's the last attempt:
 
-Andrew, if I rebase this on 4.7, do you want to take it into your tree?
-Your concern before was just that it conflicted with Petr's work [2].
+  https://lkml.kernel.org/r/4d34d452bf8f85c7d6d5f93db1d3eeb4cba335c7.1461875890.git.jpoimboe@redhat.com
 
-Thanks!
+In the meantime I've realized the need to rewrite the x86 core stack
+walking code to something much more manageable so we don't need all
+these unwinders everywhere.  I'll probably post the patches in the next
+week or so.  I'll add you to the CC list.
 
-[1] http://lkml.kernel.org/g/1459877208-15119-1-git-send-email-cmetcalf@mellanox.com
-[2] http://lkml.kernel.org/g/20160229164956.8613016895bef966b6460081@linux-foundation.org
+With the new interface I think you'll be able to do something like:
 
-On 4/5/2016 1:26 PM, Chris Metcalf wrote:
-> This is just a one-line change to the v4 series, to catch the new arm
-> vmlinux-xip.lds.S file, which I missed when I rebased to 4.6 for v4
-> (my arm config for testing did not include CONFIG_XIP_KERNEL).
-> Thanks to Fengguang Wu and the 0-day test robot for that.
->
-> Whose tree would this go through?  I have an ack for Peter Z for
-> patch 4/4 and no other feedback for patches 1/4 or 2/4; I can
-> certainly push 3/4 through the tile tree myself if that helps, though
-> my guess is keeping it with the rest of the series makes more sense
-> for tile since it doesn't lose any functionality that way.
->
->  From the version 1 cover letter:
->
->    This patch series modifies the trigger_xxx_backtrace() NMI-based
->    remote backtracing code to make it more flexible, and makes a few
->    small improvements along the way.
->
->    The motivation comes from the task isolation code, where there are
->    scenarios where we want to be able to diagnose a case where some cpu
->    is about to interrupt a task-isolated cpu.  It can be helpful to
->    see both where the interrupting cpu is, and also an approximation
->    of where the cpu that is being interrupted is.  The nmi_backtrace
->    framework allows us to discover the stack of the interrupted cpu.
->
-> I've tested that the change works as desired on tile, and build-tested
-> x86, arm64, and arm.  For x86 and arm64 I confirmed that the generic
-> cpuidle stuff as well as the architecture-specific routines are in the
-> new cpuidle section.  For arm I just build-tested it and made sure the
-> generic cpuidle routines were in the new cpuidle section, but I didn't
-> attempt to tease apart the tangle of platform-specific idle routines
-> that arm has and tag them with __cpuidle.  That might be more usefully
-> done by someone with arm platform experience in a follow-up patch.
->
-> I have also pushed it up to kernel.org to pull if that's easier:
->
-> git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git nmi-backtrace
->
-> The change conflicts with Petr Mladek's NMI printk cleanup patches:
->
-> https://lkml.kernel.org/r/1459353210-20260-1-git-send-email-pmladek@suse.com
->
-> He has kindly offered to resolve the conflicts.
->
-> v5: Add CPUIDLE_TEXT to the new arch/arm/kernel/vmlinux-xip.lds.S
->
-> v4: Added some more __cpuidle functions (PeterZ, Rafael Wysocki)
->      Rebased to kernel v4.6-rc1
->
-> v3: Various improvements to the set of __cpuidle functions;
->      Add back in a missing section accidentally removed in modpost.c (PeterZ)
->      https://lkml.kernel.org/r/1458667179-19630-1-git-send-email-cmetcalf@mellanox.com
->
-> v2: Switch to using __cpuidle tagging, switch S-O-B to Mellanox
->      https://lkml.kernel.org/r/1458147733-29338-1-git-send-email-cmetcalf@mellanox.com
->
-> Chris Metcalf (4):
->    nmi_backtrace: add more trigger_*_cpu_backtrace() methods
->    nmi_backtrace: do a local dump_stack() instead of a self-NMI
->    arch/tile: adopt the new nmi_backtrace framework
->    nmi_backtrace: generate one-line reports for idle cpus
->
->   arch/alpha/kernel/vmlinux.lds.S      |  1 +
->   arch/arc/kernel/vmlinux.lds.S        |  1 +
->   arch/arm/include/asm/irq.h           |  4 +-
->   arch/arm/kernel/smp.c                | 13 +------
->   arch/arm/kernel/vmlinux-xip.lds.S    |  1 +
->   arch/arm/kernel/vmlinux.lds.S        |  1 +
->   arch/arm64/kernel/vmlinux.lds.S      |  1 +
->   arch/arm64/mm/proc.S                 |  2 +
->   arch/avr32/kernel/vmlinux.lds.S      |  1 +
->   arch/blackfin/kernel/vmlinux.lds.S   |  1 +
->   arch/c6x/kernel/vmlinux.lds.S        |  1 +
->   arch/cris/kernel/vmlinux.lds.S       |  1 +
->   arch/frv/kernel/vmlinux.lds.S        |  1 +
->   arch/h8300/kernel/vmlinux.lds.S      |  1 +
->   arch/hexagon/kernel/vmlinux.lds.S    |  1 +
->   arch/ia64/kernel/vmlinux.lds.S       |  1 +
->   arch/m32r/kernel/vmlinux.lds.S       |  1 +
->   arch/m68k/kernel/vmlinux-nommu.lds   |  1 +
->   arch/m68k/kernel/vmlinux-std.lds     |  1 +
->   arch/m68k/kernel/vmlinux-sun3.lds    |  1 +
->   arch/metag/kernel/vmlinux.lds.S      |  1 +
->   arch/microblaze/kernel/vmlinux.lds.S |  1 +
->   arch/mips/kernel/vmlinux.lds.S       |  1 +
->   arch/mn10300/kernel/vmlinux.lds.S    |  1 +
->   arch/nios2/kernel/vmlinux.lds.S      |  1 +
->   arch/openrisc/kernel/vmlinux.lds.S   |  1 +
->   arch/parisc/kernel/vmlinux.lds.S     |  1 +
->   arch/powerpc/kernel/vmlinux.lds.S    |  1 +
->   arch/s390/kernel/vmlinux.lds.S       |  1 +
->   arch/score/kernel/vmlinux.lds.S      |  1 +
->   arch/sh/kernel/vmlinux.lds.S         |  1 +
->   arch/sparc/kernel/vmlinux.lds.S      |  1 +
->   arch/tile/include/asm/irq.h          |  4 +-
->   arch/tile/kernel/entry.S             |  2 +-
->   arch/tile/kernel/pmc.c               |  3 --
->   arch/tile/kernel/process.c           | 72 ++++++++----------------------------
->   arch/tile/kernel/traps.c             |  7 +++-
->   arch/tile/kernel/vmlinux.lds.S       |  1 +
->   arch/um/kernel/dyn.lds.S             |  1 +
->   arch/um/kernel/uml.lds.S             |  1 +
->   arch/unicore32/kernel/vmlinux.lds.S  |  1 +
->   arch/x86/include/asm/irq.h           |  4 +-
->   arch/x86/kernel/acpi/cstate.c        |  2 +-
->   arch/x86/kernel/apic/hw_nmi.c        |  6 +--
->   arch/x86/kernel/process.c            |  4 +-
->   arch/x86/kernel/vmlinux.lds.S        |  1 +
->   arch/xtensa/kernel/vmlinux.lds.S     |  3 ++
->   drivers/acpi/processor_idle.c        |  5 ++-
->   drivers/cpuidle/driver.c             |  5 ++-
->   drivers/idle/intel_idle.c            |  4 +-
->   include/asm-generic/vmlinux.lds.h    |  6 +++
->   include/linux/cpu.h                  |  5 +++
->   include/linux/nmi.h                  | 63 ++++++++++++++++++++++++-------
->   kernel/sched/idle.c                  | 13 ++++++-
->   lib/nmi_backtrace.c                  | 40 +++++++++++++-------
->   scripts/mod/modpost.c                |  2 +-
->   scripts/recordmcount.c               |  1 +
->   scripts/recordmcount.pl              |  1 +
->   58 files changed, 184 insertions(+), 121 deletions(-)
->
+	struct unwind_state;
+
+	unwind_start(&state, current, NULL, NULL);
+	unwind_next_frame(&state);
+	oldframe = unwind_get_stack_pointer(&state);
+
+	unwind_next_frame(&state);
+	frame = unwind_get_stack_pointer(&state);
+
+	do {
+		if (obj + len <= frame)
+			return blah;
+		oldframe = frame;
+		frame = unwind_get_stack_pointer(&state);
+
+	} while (unwind_next_frame(&state);
+
+And then at the end there'll be some (still TBD) way to query whether it
+reached the last syscall pt_regs frame, or if it instead encountered a
+bogus frame pointer along the way and had to bail early.
 
 -- 
-Chris Metcalf, Mellanox Technologies
-http://www.mellanox.com
-
+Josh
