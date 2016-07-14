@@ -1,39 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipv4.connman.net ([82.165.8.211]:53183 "EHLO mail.holtmann.org"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751224AbcGNUaT convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2016 16:30:19 -0400
-Content-Type: text/plain; charset=us-ascii
-Mime-Version: 1.0 (Mac OS X Mail 9.3 \(3124\))
-Subject: Re: [PATCH v5 01/32] bluetooth: Switch SMP to crypto_cipher_encrypt_one()
-From: Marcel Holtmann <marcel@holtmann.org>
-In-Reply-To: <CALCETrXYNM_b41J30eSuuhKtPRUANFpTh6bfuHM4-_RYGuZbZw@mail.gmail.com>
-Date: Thu, 14 Jul 2016 21:30:15 +0100
-Content-Transfer-Encoding: 8BIT
-Message-ID: <4AED1BFF-7BBD-465C-B9F6-532B1B864346@holtmann.org>
-References: <cover.1468270393.git.luto@kernel.org> <264af59a3060c2bc2a725cfc66a8fa68219d1c4a.1468270393.git.luto@kernel.org> <CALCETrXYNM_b41J30eSuuhKtPRUANFpTh6bfuHM4-_RYGuZbZw@mail.gmail.com>
+Received: from mail-il-dmz.mellanox.com ([193.47.165.129]:49507 "EHLO
+	mellanox.co.il" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752375AbcGNUup (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2016 16:50:45 -0400
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: [PATCH v6 0/4] improvements to the nmi_backtrace code
+Date: Thu, 14 Jul 2016 16:50:28 -0400
+Message-ID: <1468529432-28026-1-git-send-email-cmetcalf@mellanox.com>
+In-Reply-To: <96e5ba5b-d8c2-42cd-11a3-ffebd85522c3@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Andy Lutomirski <luto@kernel.org>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, "Gustavo F. Padovan" <gustavo@padovan.org>, Johan Hedberg <johan.hedberg@gmail.com>, linux-bluetooth@vger.kernel.org, Network Development <netdev@vger.kernel.org>
-Message-ID: <20160714203015.EwhpHXE7DUdXMav6IgxUemanudan0esEWdIfNiH8KdM@z>
+To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <20160714205028.angZXhZVaGX5qJ_yZsdE2O_4gtCYWOkVWp4sN_EBTGI@z>
 
-Hi Andy,
-
->> SMP does ECB crypto on stack buffers.  This is complicated and
->> fragile, and it will not work if the stack is virtually allocated.
->> 
->> Switch to the crypto_cipher interface, which is simpler and safer.
-> 
-> Hi Dave-
-> 
-> It looks like we're delaying virtually mapped stacks to 4.9.  That
-> means that there's time for this to go in through net-next.  Could you
-> queue it up?
-
-it is actually already in net-next since we decided to let git handle any potential merge issue.
-
-Regards
-
-Marcel
-
+This is a straight rebasing of the v5 series onto v4.7-rc7, plus
+I now show Aaron Tomlin's ack for patch 2/4, and review of patch 1/4.
