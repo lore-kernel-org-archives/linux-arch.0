@@ -1,96 +1,90 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
-Date: Thu, 14 Jul 2016 09:51:29 -0700
-Message-ID: <CALCETrUk9Ae-kGixsoqZZG3gb+=JCpQ-zbuNU8R+V6TFg4ymeA@mail.gmail.com>
-References: <cover.1468270393.git.luto@kernel.org> <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
- <20160713075314.GA32700@gmail.com> <CALCETrW9B=MAGaLAV0Y86MQ2==pjoShHdOPNM_8ZR1OKZDy2ZQ@mail.gmail.com>
- <20160714083411.GA15437@gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v2 01/11] mm: Implement stack frame object validation
+Date: Thu, 14 Jul 2016 11:10:18 -0700
+Message-ID: <CAGXu5jLv_pMRqdaM72D_FTQzxoGxgcEqxpvUzqwgjOmZ8D-zSw@mail.gmail.com>
+References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+ <1468446964-22213-2-git-send-email-keescook@chromium.org> <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
+ <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com> <20160714054842.6zal5rqawpgew26r@treble>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f51.google.com ([209.85.213.51]:34108 "EHLO
-	mail-vk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751805AbcGNQvu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2016 12:51:50 -0400
-Received: by mail-vk0-f51.google.com with SMTP id o63so119959631vkg.1
-        for <linux-arch@vger.kernel.org>; Thu, 14 Jul 2016 09:51:49 -0700 (PDT)
-In-Reply-To: <20160714083411.GA15437@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160714054842.6zal5rqawpgew26r@treble>
+Sender: owner-linux-mm@kvack.org
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>Borislav Petkov <b>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 14, 2016 at 1:34 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * Andy Lutomirski <luto@amacapital.net> wrote:
->
->> On Wed, Jul 13, 2016 at 12:53 AM, Ingo Molnar <mingo@kernel.org> wro=
-te:
+On Wed, Jul 13, 2016 at 10:48 PM, Josh Poimboeuf <jpoimboe@redhat.com> wrote:
+> On Wed, Jul 13, 2016 at 03:04:26PM -0700, Kees Cook wrote:
+>> On Wed, Jul 13, 2016 at 3:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> > On Wed, Jul 13, 2016 at 2:55 PM, Kees Cook <keescook@chromium.org> wrote:
+>> >> This creates per-architecture function arch_within_stack_frames() that
+>> >> should validate if a given object is contained by a kernel stack frame.
+>> >> Initial implementation is on x86.
+>> >>
+>> >> This is based on code from PaX.
+>> >>
 >> >
->> > * Andy Lutomirski <luto@kernel.org> wrote:
->> >
->> >> This allows x86_64 kernels to enable vmapped stacks.  There are a
->> >> couple of interesting bits.
->> >
->> >> --- a/arch/x86/Kconfig
->> >> +++ b/arch/x86/Kconfig
->> >> @@ -92,6 +92,7 @@ config X86
->> >>       select HAVE_ARCH_TRACEHOOK
->> >>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
->> >>       select HAVE_EBPF_JIT                    if X86_64
->> >> +     select HAVE_ARCH_VMAP_STACK             if X86_64
->> >
->> > So what is the performance impact?
+>> > This, along with Josh's livepatch work, are two examples of unwinders
+>> > that matter for correctness instead of just debugging.  ISTM this
+>> > should just use Josh's code directly once it's been written.
 >>
->> Seems to be a very slight speedup (0.5 =E7=9B=9C or so) on my silly =
-benchmark
->> (pthread_create, pthread_join in a loop). [...]
+>> Do you have URL for Josh's code? I'd love to see what happening there.
 >
-> Music to my ears - although TBH there's probably two opposing forces:=
- advantages
-> from the cache versus (possibly very minor, if measurable at all) dis=
-advantages
-> from the 4K granularity.
-
-True.  It's also plausible that there will be different lock
-contention issues on very large system with vmalloc vs using the page
-allocator.
-
-And there's one other issue.  The patchset will considerably increase
-the frequency with which vmap gets called, which will make the giant
-hole in Chris Metcalf's isolation series more apparent.  But that's
-not really a regression -- the problem is pre-existing, and I've
-pointed it out a few times before.  Arguably it's even a benefit --
-someone will have to *fix* it now :)
-
-> So I'd prefer the following approach: to apply it to a v4.8-rc1 base =
-in ~2 weeks
-> and keep it default-y for much of the next development cycle. If no s=
-erious
-> problems are found in those ~2 months then send it to Linus in that f=
-ashion. We
-> can still turn it off by default (or re-spin the whole approach) if i=
-t turns out
-> to be too risky.
+> The code is actually going to be 100% different next time around, but
+> FWIW, here's the last attempt:
 >
-> Exposing it as default-n for even a small amount of time will massive=
-ly reduce the
-> testing we'll get, as most people will just use the N setting (often =
-without
-> noticing).
+>   https://lkml.kernel.org/r/4d34d452bf8f85c7d6d5f93db1d3eeb4cba335c7.1461875890.git.jpoimboe@redhat.com
 >
-> Plus this also gives net-next and other preparatory patches applied d=
-irectly to
-> maintainer trees time to trickle upstream.
+> In the meantime I've realized the need to rewrite the x86 core stack
+> walking code to something much more manageable so we don't need all
+> these unwinders everywhere.  I'll probably post the patches in the next
+> week or so.  I'll add you to the CC list.
 
-Works for me.
+Awesome!
 
-If you think it makes sense, I can split out a bunch of the x86 and mm
-preparatory patches and, if it reorders cleanly and still works, the
-THREAD_INFO_IN_TASK thing.  Those could plausibly go in 4.7.  Would
-you like me to see how that goes?  (I'll verify that it builds, that
-the 0day bot likes it, and that the final result of the patchset is
-exactly identical to what I already sent.)
+> With the new interface I think you'll be able to do something like:
+>
+>         struct unwind_state;
+>
+>         unwind_start(&state, current, NULL, NULL);
+>         unwind_next_frame(&state);
+>         oldframe = unwind_get_stack_pointer(&state);
+>
+>         unwind_next_frame(&state);
+>         frame = unwind_get_stack_pointer(&state);
+>
+>         do {
+>                 if (obj + len <= frame)
+>                         return blah;
+>                 oldframe = frame;
+>                 frame = unwind_get_stack_pointer(&state);
+>
+>         } while (unwind_next_frame(&state);
+>
+> And then at the end there'll be some (still TBD) way to query whether it
+> reached the last syscall pt_regs frame, or if it instead encountered a
+> bogus frame pointer along the way and had to bail early.
 
---Andy
+Sounds good to me. Will there be any frame size information available?
+Right now, the unwinder from PaX just drops 2 pointers (saved frame,
+saved ip) from the delta of frame address to find the size of the
+actual stack area used by the function. If I could shave things like
+padding and possible stack canaries off the size too, that would be
+great.
+
+Since I'm aiming the hardened usercopy series for 4.8, I figure I'll
+just leave this unwinder in for now, and once yours lands, I can rip
+it out again.
+
+-Kees
+
+-- 
+Kees Cook
+Chrome OS & Brillo Security
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
