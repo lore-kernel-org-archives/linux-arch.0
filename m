@@ -1,143 +1,203 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0114.outbound.protection.outlook.com ([104.47.36.114]:27018
-	"EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751246AbcGNG1R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Jul 2016 02:27:17 -0400
-Message-ID: <5786F0E6.4020800@hpe.com>
-Date: Wed, 13 Jul 2016 21:54:46 -0400
-From: Waiman Long <waiman.long@hpe.com>
+Received: from mail-io0-f178.google.com ([209.85.223.178]:33877 "EHLO
+	mail-io0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750947AbcGNI3o convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2016 04:29:44 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v3] locking/qrwlock: Let qrwlock has same layout regardless
- of the endian
-References: <1466403652-2931-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <20160713195423.GD30921@twins.programming.kicks-ass.net>
-In-Reply-To: <20160713195423.GD30921@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20160713145425.GB4329@intel.com>
+References: <57332171.8070403@linutronix.de> <20160511122116.GA4329@intel.com>
+ <20160511084445.00030b49@gandalf.local.home> <20160511133406.GC4329@intel.com>
+ <20160516193910.GL4329@intel.com> <573BA5E2.5040506@intel.com>
+ <20160518072424.GU4329@intel.com> <20160526183207.GX4329@intel.com>
+ <CAJZ5v0in8YwMBgLd6=KgGVc-f2yVvutOJG_u05OKLK7_EzN0yQ@mail.gmail.com>
+ <20160531072650.GP4329@intel.com> <20160713145425.GB4329@intel.com>
+From: Feng Tang <feng.79.tang@gmail.com>
+Date: Thu, 14 Jul 2016 16:29:42 +0800
+Message-ID: <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, arnd@arndb.de
-Message-ID: <20160714015446.eszc9mMsd84lbc0m6H69KQjr1PmKqjo6gfkDDEUJCqM@z>
+To: =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <ville.syrjala@linux.intel.com>, feng.tang@intel.com
+Cc: "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20160714082942.IaKLz0gI5WoAFdFFRB5XgaXOPebNs8IB8QhVG9gb0NU@z>
 
-On 07/13/2016 03:54 PM, Peter Zijlstra wrote:
-> On Mon, Jun 20, 2016 at 02:20:52PM +0800, Pan Xinhui wrote:
->> This patch aims to get rid of endianness in queued_write_unlock(). We
->> want to set  __qrwlock->wmode to NULL, however the address is not
->> &lock->cnts in big endian machine. That causes queued_write_unlock()
->> write NULL to the wrong field of __qrwlock.
+if you only want it to work, you can try an old patch
+https://bugzilla.kernel.org/attachment.cgi?id=76071 from a similar bug
+https://bugzilla.kernel.org/show_bug.cgi?id=41932
+
+Alistair Buxton confirmed it work for 3.18 at least
+https://bugzilla.kernel.org/show_bug.cgi?id=107151#c16
+
+Thanks,
+Feng
+
+On Wed, Jul 13, 2016 at 10:54 PM, Ville Syrjälä
+<ville.syrjala@linux.intel.com> wrote:
+> On Tue, May 31, 2016 at 10:26:50AM +0300, Ville Syrjälä wrote:
+>> On Mon, May 30, 2016 at 10:43:51PM +0200, Rafael J. Wysocki wrote:
+>> > On Thu, May 26, 2016 at 8:32 PM, Ville Syrjälä
+>> > <ville.syrjala@linux.intel.com> wrote:
+>> > > On Wed, May 18, 2016 at 10:24:24AM +0300, Ville Syrjälä wrote:
+>> > >> On Wed, May 18, 2016 at 01:14:42AM +0200, Rafael J. Wysocki wrote:
+>> > >> > On 5/16/2016 9:39 PM, Ville Syrjälä wrote:
+>> > >> > > On Wed, May 11, 2016 at 04:34:06PM +0300, Ville Syrjälä wrote:
+>> > >> > >> On Wed, May 11, 2016 at 08:44:45AM -0400, Steven Rostedt wrote:
+>> > >> > >>> On Wed, 11 May 2016 15:21:16 +0300
+>> > >> > >>> Ville Syrjälä <ville.syrjala@linux.intel.com> wrote:
+>> > >> > >>>
+>> > >> > >>>> Yeah can't get anything from the machine at that point. netconsole
+>> > >> > >>>> didn't help either, and no serial on this machine. And IIRC I've
+>> > >> > >>>> tried ramoops on this thing in the past but unfortunately the memory
+>> > >> > >>>> got cleared on reboot.
+>> > >> > >>>>
+>> > >> > >>> Can you look at the documentation in the kernel code at
+>> > >> > >>>
+>> > >> > >>> Documentation/power/basic-pm-debugging.txt And follow the procedures
+>> > >> > >>> for testing suspend to RAM (although it requires mostly running the
+>> > >> > >>> same tests as for hibernation suspending).
+>> > >> > >>>
+>> > >> > >>> You can also use the tool s2ram for this as well.
+>> > >> > >>>
+>> > >> > >>> See Documentation/power/s2ram.txt
+>> > >> > >>>
+>> > >> > >>> Perhaps this can give us a bit more light onto the problem.
+>> > >> > >>>
+>> > >> > >>> Basically the above does partial suspend and resume, and can pinpoint
+>> > >> > >>> problem areas down to a more select location.
+>> > >> > >> All the pm_test modes work fine. The only difference between them was
+>> > >> > >> that 'platform' required me to manually wake up the machine (hitting a
+>> > >> > >> key was sufficient), whereas the others woke up without help.
+>> > >> > >>
+>> > >> > >> pm_trace gave me
+>> > >> > >> [    1.306633]   Magic number: 0:185:178
+>> > >> > >> [    1.322880]   hash matches ../drivers/base/power/main.c:1070
+>> > >> > >> [    1.339270] acpi device:0e: hash matches
+>> > >> > >> [    1.355414]  platform: hash matches
+>> > >> > >>
+>> > >> > >> which is the TRACE_SUSPEND in __device_suspend_noirq(), so no help
+>> > >> > >> there.
+>> > >> > >>
+>> > >> > >> I guess I could try to sprinkle more TRACE_RESUMEs around into some
+>> > >> > >> early resume code. If anyone has good ideas where to put them it
+>> > >> > >> might speed things up a bit.
+>> > >> > > So I did a bunch of that and found that it gets stuck somewhere
+>> > >> > > around executing the _WAK method:
+>> > >> > > platform_resume_noirq
+>> > >> > >   acpi_pm_finish
+>> > >> > >    acpi_leave_sleep_state
+>> > >> > >     acpi_hw_sleep_dispatch
+>> > >> > >      acpi_hw_legacy_wake
+>> > >> > >       acpi_hw_execute_sleep_method
+>> > >> > >        acpi_evaluate_object
+>> > >> > >         acpi_ns_evaluate
+>> > >> > >          acpi_ps_execute_method
+>> > >> > >           acpi_ps_parse_aml
+>> > >> > >
+>> > >> > > It also seesm that adding a few TRACE_RESUME()s or an msleep() right
+>> > >> > > after enable_nonboot_cpus() can avoid the hang, sometimes.
+>> > >> > >
+>> > >> > > I've attached the DSDT in case anyone is interested in looking at it.
+>> > >> > >
+>> > >> >
+>> > >> > What if you comment out the execution of _WAK (line 318 of
+>> > >> > drivers/acpi/acpica/hwsleep.c in 4.6)?  Does that make any difference?
+>> > >>
+>> > >> Indeed it does. Tried with acpi_idle and intel_idle, and both appear to
+>> > >> resume just fine with that hack.
+>> > >>
+>> > >> -       acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
+>> > >> +       //acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
+>> > >> +       printk(KERN_CRIT "skipping _WAK\n");
+>> > >
+>> > > Continuing with my detective work a bit, I decided to hack the DSDT a
+>> > > bit to see if I can narrow the it down further, and looks like I found
+>> > > it on the first guess. The following change stops it from hanging.
+>> > >
+>> > > @ -5056,7 +5056,7 @@
+>> > >          If (LEqual (Arg0, 0x03))
+>> > >          {
+>> > >              Store (0x01, \SPNF)
+>> > > -           TRAP (0x46)
+>> > > +           //TRAP (0x46)
+>> > >              P8XH (0x00, 0x03)
+>> > >          }
+>> > >
+>> > > So what does that do? Let's see:
+>> > >
+>> > >     OperationRegion (IO_T, SystemIO, 0x0800, 0x10)
+>> > >     Field (IO_T, ByteAcc, NoLock, Preserve)
+>> > >     {
+>> > >         Offset (0x08),
+>> > >         TRP0,   8
+>> > >     }
+>> > >
+>> > >     OperationRegion (GNVS, SystemMemory, 0x3F5E0C7C, 0x0200)
+>> > >     Field (GNVS, AnyAcc, Lock, Preserve)
+>> > >     {
+>> > >         OSYS,   16,
+>> > >         SMIF,   8,
+>> > >     ...
+>> > >
+>> > >     Method (TRAP, 1, Serialized)
+>> > >     {
+>> > >         Store (Arg0, SMIF) /* \SMIF */
+>> > >         Store (0x00, TRP0) /* \TRP0 */
+>> > >         Return (SMIF) /* \SMIF */
+>> > >     }
+>> > >
+>> > > and a dump of the IOTR registers shows:
+>> > >
+>> > > 0x1e80: 0x0000fe01
+>> > > 0x1e84: 0x00020001
+>> > > 0x1e98: 0x000c0801
+>> > > 0x1e9c: 0x000200f0
+>> > >
+>> > > which seems to be telling me that ports 0x800-0x80f and
+>> > > 0xfe00-0xfe03 would trigger an SMI.
+>> >
+>> > Well, the name of the method kind of suggests that it triggers an SMM trap. :-)
 >>
->> Actually qrwlock can have same layout, IOW we can remove the #if
->> __little_endian in struct __qrwlock. With such modification, we only
->> need define some _QW* and _QR* with corresponding values in different
->> endian systems.
+>> Which is why I wanted confirm that by looking at the IOTR regs ;)
 >>
->> Suggested-by: Will Deacon<will.deacon@arm.com>
->> Signed-off-by: Pan Xinhui<xinhui.pan@linux.vnet.ibm.com>
->> Acked-by: Waiman Long<Waiman.Long@hpe.com>
->> ---
-> Urgh, I hate this stuff :/
+>> >
+>> > > So the next question is how do the idle drivers and cpu hotplug
+>> > > fit into this picture. Do we need to force the second HT into
+>> > > a specific C state before the SMI or something?
+>> >
+>> > Or you can ask why exactly someone put that SMM trap into _WAK.
+>> >
+>> > Apparently, it was regarded as necessary or no one would have
+>> > bothered.  The only reason I can see why it might be regarded as
+>> > necessary was that Windows did something Linux doesn't do on that
+>> > platform, or, which to me is far more interesting, that Windows didn't
+>> > do something actually done by Linux.
+>> >
+>> > My theory would be that Windows didn't reinitialize the second HT
+>> > properly during resume and the trap was added to let SMM do that.  If
+>> > that's the case, the trap may trigger by the time the second HT
+>> > already executes code in Linux and then it will mess up with it and
+>> > crash.
+>> >
+>> > Now, what do idles states have to do with that?  IIRC, Windows puts
+>> > nonboot CPUs into idle states before suspend, so the SMM code
+>> > triggered by the trap may make assumptions about the CPU being in such
+>> > a state or similar.
+>>
+>> BTW I also tried to move the enable_nonboot_cpus() after _WAK, and I
+>> tried to boot with nosmp, but neither trick helped. If someone could
+>> throw some patches my way to force things into a specific state
+>> before suspend/_WAK I'd be happy to test them out.
 >
-> OK, so I poked at this a bit and I ended up with the below; but now
-> qrwlock and qspinlock are inconsistent; although I suspect qspinlock is
-> similarly busted wrt endian muck.
-
-Qspinlock is a bit different that the generic unlock code is 
-endian-independent. The x86 architectural unlock code, however, is 
-little-endian specific. This is not a problem. PPC will certainly needs 
-its own unlock code for better performance.
-
-With this patch, there is indeed inconsistency on how qspinlock and 
-qrwlock handle their internal data. I guess we could make qrwlock more 
-like qspinlock if you want consistency, but I am fine with either ways.
-
-> Not sure what to do..
+> Ping. Anyone have any ideas what to try here? Would be nice to get this
+> machine working again...
 >
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -25,13 +25,31 @@
->   #include<asm-generic/qrwlock_types.h>
->
->   /*
-> - * Writer states&  reader shift and bias
-> + * Writer states&  reader shift and bias.
-> + *
-> + *       | +0 | +1 | +2 | +3 |
-> + *   ----+----+----+----+----+
-> + *    LE | 12 | 34 | 56 | 78 | 0x12345678
-> + *   ----+----+----+----+----+
-> + *    BE | 78 | 56 | 34 | 12 | 0x12345678
-> + *   ----+----+----+----+----+
-> + *       | wr |      rd      |
-> + *       +----+----+----+----+
-> + *
->    */
-> -#define	_QW_WAITING	1		/* A writer is waiting	   */
-> -#define	_QW_LOCKED	0xff		/* A writer holds the lock */
-> -#define	_QW_WMASK	0xff		/* Writer mask		   */
-> +#ifdef	__LITTLE_ENDIAN
->   #define	_QR_SHIFT	8		/* Reader count shift	   */
-> -#define _QR_BIAS	(1U<<  _QR_SHIFT)
-> +#define	_QW_SHIFT	0		/* Writer mode shift	*/
-> +#else
-> +#define	_QR_SHIFT	0		/* Reader count shift	   */
-> +#define	_QW_SHIFT	24		/* Writer mode shift	*/
-> +#endif
-> +
-> +#define	_QW_WAITING	(0x01U<<  _QW_SHIFT)	/* A writer is waiting	   */
-> +#define	_QW_LOCKED	(0xffU<<  _QW_SHIFT)	/* A writer holds the lock */
-> +#define	_QW_WMASK	(0xffU<<  _QW_SHIFT)	/* Writer mask		   */
-> +
-> +#define	_QR_BIAS	(0x01U<<  _QR_SHIFT)
->   
-
-I like the comment at the top (after you fixed the typo :-) ).
-
->   /*
->    * External function declarations
-> --- a/kernel/locking/qrwlock.c
-> +++ b/kernel/locking/qrwlock.c
-> @@ -22,26 +22,6 @@
->   #include<linux/hardirq.h>
->   #include<asm/qrwlock.h>
->
-> -/*
-> - * This internal data structure is used for optimizing access to some of
-> - * the subfields within the atomic_t cnts.
-> - */
-> -struct __qrwlock {
-> -	union {
-> -		atomic_t cnts;
-> -		struct {
-> -#ifdef __LITTLE_ENDIAN
-> -			u8 wmode;	/* Writer mode   */
-> -			u8 rcnts[3];	/* Reader counts */
-> -#else
-> -			u8 rcnts[3];	/* Reader counts */
-> -			u8 wmode;	/* Writer mode   */
-> -#endif
-> -		};
-> -	};
-> -	arch_spinlock_t	lock;
-> -};
-> -
->   /**
->    * rspin_until_writer_unlock - inc reader count&  spin until writer is gone
->    * @lock  : Pointer to queue rwlock structure
-> @@ -124,10 +104,10 @@ void queued_write_lock_slowpath(struct q
->   	 * or wait for a previous writer to go away.
->   	 */
->   	for (;;) {
-> -		struct __qrwlock *l = (struct __qrwlock *)lock;
-> +		u8 *wr = (u8 *)lock;
->
-> -		if (!READ_ONCE(l->wmode)&&
-> -		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
-> +		if (!READ_ONCE(*wr)&&
-> +		    (cmpxchg_relaxed(wr, 0, _QW_WAITING>>  _QW_SHIFT) == 0))
->   			break;
->
->   		cpu_relax_lowlatency();
-
-Cheers,
-Longman
+> --
+> Ville Syrjälä
+> Intel OTC
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-acpi" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
