@@ -1,75 +1,107 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v2 01/11] mm: Implement stack frame object validation
-Date: Thu, 14 Jul 2016 00:48:42 -0500
-Message-ID: <20160714054842.6zal5rqawpgew26r@treble>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
- <1468446964-22213-2-git-send-email-keescook@chromium.org>
- <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
- <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com>
+From: xinhui <xinhui.pan@linux.vnet.ibm.com>
+Subject: Re: [PATCH v3] locking/qrwlock: Let qrwlock has same layout regardless
+ of the endian
+Date: Thu, 14 Jul 2016 15:44:42 +0800
+Message-ID: <578742EA.7060108@linux.vnet.ibm.com>
+References: <1466403652-2931-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <20160713195423.GD30921@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:22211 "EHLO
+	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750739AbcGNHpM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Jul 2016 03:45:12 -0400
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6E7iHFO013091
+	for <linux-arch@vger.kernel.org>; Thu, 14 Jul 2016 03:45:11 -0400
+Received: from e28smtp03.in.ibm.com (e28smtp03.in.ibm.com [125.16.236.3])
+	by mx0a-001b2d01.pphosted.com with ESMTP id 24567duxsa-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Thu, 14 Jul 2016 03:45:10 -0400
+Received: from localhost
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <xinhui.pan@linux.vnet.ibm.com>;
+	Thu, 14 Jul 2016 13:15:06 +0530
+In-Reply-To: <20160713195423.GD30921@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, arnd@arndb.de, Waiman.Long@hpe.com
 
-On Wed, Jul 13, 2016 at 03:04:26PM -0700, Kees Cook wrote:
-> On Wed, Jul 13, 2016 at 3:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> > On Wed, Jul 13, 2016 at 2:55 PM, Kees Cook <keescook@chromium.org> wrote:
-> >> This creates per-architecture function arch_within_stack_frames() that
-> >> should validate if a given object is contained by a kernel stack frame.
-> >> Initial implementation is on x86.
-> >>
-> >> This is based on code from PaX.
-> >>
-> >
-> > This, along with Josh's livepatch work, are two examples of unwinders
-> > that matter for correctness instead of just debugging.  ISTM this
-> > should just use Josh's code directly once it's been written.
-> 
-> Do you have URL for Josh's code? I'd love to see what happening there.
 
-The code is actually going to be 100% different next time around, but
-FWIW, here's the last attempt:
 
-  https://lkml.kernel.org/r/4d34d452bf8f85c7d6d5f93db1d3eeb4cba335c7.1461875890.git.jpoimboe@redhat.com
+On 2016=E5=B9=B407=E6=9C=8814=E6=97=A5 03:54, Peter Zijlstra wrote:
+> On Mon, Jun 20, 2016 at 02:20:52PM +0800, Pan Xinhui wrote:
+>> This patch aims to get rid of endianness in queued_write_unlock(). W=
+e
+>> want to set  __qrwlock->wmode to NULL, however the address is not
+>> &lock->cnts in big endian machine. That causes queued_write_unlock()
+>> write NULL to the wrong field of __qrwlock.
+>>
+>> Actually qrwlock can have same layout, IOW we can remove the #if
+>> __little_endian in struct __qrwlock. With such modification, we only
+>> need define some _QW* and _QR* with corresponding values in differen=
+t
+>> endian systems.
+>>
+>> Suggested-by: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+>> Acked-by: Waiman Long <Waiman.Long@hpe.com>
+>> ---
+>
+> Urgh, I hate this stuff :/
+>
+> OK, so I poked at this a bit and I ended up with the below; but now
+> qrwlock and qspinlock are inconsistent; although I suspect qspinlock =
+is
+> similarly busted wrt endian muck.
+>
+> Not sure what to do..
+>
+Lets talk about the qspinlock.
 
-In the meantime I've realized the need to rewrite the x86 core stack
-walking code to something much more manageable so we don't need all
-these unwinders everywhere.  I'll probably post the patches in the next
-week or so.  I'll add you to the CC list.
+for x86, We has already assumed that ->locked sit at the low 8 bits, as=
+ is
+smp_store_release((u8 *)lock, 0);
 
-With the new interface I think you'll be able to do something like:
+Then we can do a favor, export ->locked but other fields as reserved.
+say
 
-	struct unwind_state;
+struct __qspinlock_unlcok_interface {/* what name is better?*/
+#ifdef __LITTLE_ENDIAN
+		u8      locked;
+		u8      reserved[3]; /* do not touch it, internally use only  */
+#else
+		u8      reserved[3];
+		u8      locked;
+#endif
+};
 
-	unwind_start(&state, current, NULL, NULL);
-	unwind_next_frame(&state);
-	oldframe = unwind_get_stack_pointer(&state);
+I think it is acceptable. and we can do similar things with qrwlock, to=
+o.
 
-	unwind_next_frame(&state);
-	frame = unwind_get_stack_pointer(&state);
+any thoughts?
 
-	do {
-		if (obj + len <= frame)
-			return blah;
-		oldframe = frame;
-		frame = unwind_get_stack_pointer(&state);
 
-	} while (unwind_next_frame(&state);
+>   /*
+> - * Writer states & reader shift and bias
+> + * Writer states & reader shift and bias.
+> + *
+> + *       | +0 | +1 | +2 | +3 |
+> + *   ----+----+----+----+----+
+> + *    LE | 12 | 34 | 56 | 78 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *    BE | 78 | 56 | 34 | 12 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *       | wr |      rd      |
+> + *       +----+----+----+----+
+> + *
+>    */
 
-And then at the end there'll be some (still TBD) way to query whether it
-reached the last syscall pt_regs frame, or if it instead encountered a
-bogus frame pointer along the way and had to bail early.
+very clearly. :)
 
--- 
-Josh
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+thanks
+xinhui
