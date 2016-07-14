@@ -1,36 +1,96 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [kernel-hardening] [PATCH v2 11/11] mm: SLUB hardened usercopy
- support
-Date: Thu, 14 Jul 2016 20:07:01 +1000
-Message-ID: <22565.4363436208$1468490905@news.gmane.org>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
- <1468446964-22213-12-git-send-email-keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v5 14/32] x86/mm/64: Enable vmapped stacks
+Date: Thu, 14 Jul 2016 09:51:29 -0700
+Message-ID: <CALCETrUk9Ae-kGixsoqZZG3gb+=JCpQ-zbuNU8R+V6TFg4ymeA@mail.gmail.com>
+References: <cover.1468270393.git.luto@kernel.org> <8d36dd9b2430b61db64333af7b911d0bca7d5d2f.1468270393.git.luto@kernel.org>
+ <20160713075314.GA32700@gmail.com> <CALCETrW9B=MAGaLAV0Y86MQ2==pjoShHdOPNM_8ZR1OKZDy2ZQ@mail.gmail.com>
+ <20160714083411.GA15437@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1468446964-22213-12-git-send-email-keescook@chromium.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: linux-kernel@vger.kernel.org
-Cc: Jan Kara <jack@suse.cz>, kernel-hardening@lists.openwall.com, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, Kees Cook <keescook@chromium.org>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad Spengler <spender@grsecurity.net>, Ard
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vk0-f51.google.com ([209.85.213.51]:34108 "EHLO
+	mail-vk0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751805AbcGNQvu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2016 12:51:50 -0400
+Received: by mail-vk0-f51.google.com with SMTP id o63so119959631vkg.1
+        for <linux-arch@vger.kernel.org>; Thu, 14 Jul 2016 09:51:49 -0700 (PDT)
+In-Reply-To: <20160714083411.GA15437@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-S2VlcyBDb29rIDxrZWVzY29va0BjaHJvbWl1bS5vcmc+IHdyaXRlczoKCj4gVW5kZXIgQ09ORklH
-X0hBUkRFTkVEX1VTRVJDT1BZLCB0aGlzIGFkZHMgb2JqZWN0IHNpemUgY2hlY2tpbmcgdG8gdGhl
-Cj4gU0xVQiBhbGxvY2F0b3IgdG8gY2F0Y2ggYW55IGNvcGllcyB0aGF0IG1heSBzcGFuIG9iamVj
-dHMuIEluY2x1ZGVzIGEKPiByZWR6b25lIGhhbmRsaW5nIGZpeCBmcm9tIE1pY2hhZWwgRWxsZXJt
-YW4uCgpBY3R1YWxseSBJIHRoaW5rIHlvdSB3cm90ZSB0aGUgZml4LCBJIGp1c3QgcG9pbnRlZCB5
-b3UgaW4gdGhhdApkaXJlY3Rpb24uIEJ1dCBhbnl3YXksIHRoaXMgd29ya3MgZm9yIG1lLCBzbyBp
-ZiB5b3UgbGlrZToKClRlc3RlZC1ieTogTWljaGFlbCBFbGxlcm1hbiA8bXBlQGVsbGVybWFuLmlk
-LmF1PgoKY2hlZXJzCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5v
-cmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
+On Thu, Jul 14, 2016 at 1:34 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Andy Lutomirski <luto@amacapital.net> wrote:
+>
+>> On Wed, Jul 13, 2016 at 12:53 AM, Ingo Molnar <mingo@kernel.org> wro=
+te:
+>> >
+>> > * Andy Lutomirski <luto@kernel.org> wrote:
+>> >
+>> >> This allows x86_64 kernels to enable vmapped stacks.  There are a
+>> >> couple of interesting bits.
+>> >
+>> >> --- a/arch/x86/Kconfig
+>> >> +++ b/arch/x86/Kconfig
+>> >> @@ -92,6 +92,7 @@ config X86
+>> >>       select HAVE_ARCH_TRACEHOOK
+>> >>       select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+>> >>       select HAVE_EBPF_JIT                    if X86_64
+>> >> +     select HAVE_ARCH_VMAP_STACK             if X86_64
+>> >
+>> > So what is the performance impact?
+>>
+>> Seems to be a very slight speedup (0.5 =E7=9B=9C or so) on my silly =
+benchmark
+>> (pthread_create, pthread_join in a loop). [...]
+>
+> Music to my ears - although TBH there's probably two opposing forces:=
+ advantages
+> from the cache versus (possibly very minor, if measurable at all) dis=
+advantages
+> from the 4K granularity.
+
+True.  It's also plausible that there will be different lock
+contention issues on very large system with vmalloc vs using the page
+allocator.
+
+And there's one other issue.  The patchset will considerably increase
+the frequency with which vmap gets called, which will make the giant
+hole in Chris Metcalf's isolation series more apparent.  But that's
+not really a regression -- the problem is pre-existing, and I've
+pointed it out a few times before.  Arguably it's even a benefit --
+someone will have to *fix* it now :)
+
+> So I'd prefer the following approach: to apply it to a v4.8-rc1 base =
+in ~2 weeks
+> and keep it default-y for much of the next development cycle. If no s=
+erious
+> problems are found in those ~2 months then send it to Linus in that f=
+ashion. We
+> can still turn it off by default (or re-spin the whole approach) if i=
+t turns out
+> to be too risky.
+>
+> Exposing it as default-n for even a small amount of time will massive=
+ly reduce the
+> testing we'll get, as most people will just use the N setting (often =
+without
+> noticing).
+>
+> Plus this also gives net-next and other preparatory patches applied d=
+irectly to
+> maintainer trees time to trickle upstream.
+
+Works for me.
+
+If you think it makes sense, I can split out a bunch of the x86 and mm
+preparatory patches and, if it reorders cleanly and still works, the
+THREAD_INFO_IN_TASK thing.  Those could plausibly go in 4.7.  Would
+you like me to see how that goes?  (I'll verify that it builds, that
+the 0day bot likes it, and that the final result of the patchset is
+exactly identical to what I already sent.)
+
+--Andy
