@@ -1,43 +1,137 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 01/11] mm: Implement stack frame object validation
-Date: Wed, 13 Jul 2016 15:04:26 -0700
-Message-ID: <CAGXu5jLPZiRJx8n3_7GW2bufiuUgE9=c6dQcNxDRPHMU72sD9g@mail.gmail.com>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
- <1468446964-22213-2-git-send-email-keescook@chromium.org> <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
+From: Waiman Long <waiman.long@hpe.com>
+Subject: Re: [PATCH v3] locking/qrwlock: Let qrwlock has same layout regardless
+ of the endian
+Date: Wed, 13 Jul 2016 21:54:46 -0400
+Message-ID: <5786F0E6.4020800@hpe.com>
+References: <1466403652-2931-1-git-send-email-xinhui.pan@linux.vnet.ibm.com> <20160713195423.GD30921@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CALCETrVDJDjdoh7yvOPd=_5twQnzQRhe8G2KLaRw-NnA1Uf__g@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, X86 ML <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googl>
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20160713195423.GD30921@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 13, 2016 at 3:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Wed, Jul 13, 2016 at 2:55 PM, Kees Cook <keescook@chromium.org> wrote:
->> This creates per-architecture function arch_within_stack_frames() that
->> should validate if a given object is contained by a kernel stack frame.
->> Initial implementation is on x86.
+On 07/13/2016 03:54 PM, Peter Zijlstra wrote:
+> On Mon, Jun 20, 2016 at 02:20:52PM +0800, Pan Xinhui wrote:
+>> This patch aims to get rid of endianness in queued_write_unlock(). We
+>> want to set  __qrwlock->wmode to NULL, however the address is not
+>> &lock->cnts in big endian machine. That causes queued_write_unlock()
+>> write NULL to the wrong field of __qrwlock.
 >>
->> This is based on code from PaX.
+>> Actually qrwlock can have same layout, IOW we can remove the #if
+>> __little_endian in struct __qrwlock. With such modification, we only
+>> need define some _QW* and _QR* with corresponding values in different
+>> endian systems.
 >>
+>> Suggested-by: Will Deacon<will.deacon@arm.com>
+>> Signed-off-by: Pan Xinhui<xinhui.pan@linux.vnet.ibm.com>
+>> Acked-by: Waiman Long<Waiman.Long@hpe.com>
+>> ---
+> Urgh, I hate this stuff :/
 >
-> This, along with Josh's livepatch work, are two examples of unwinders
-> that matter for correctness instead of just debugging.  ISTM this
-> should just use Josh's code directly once it's been written.
+> OK, so I poked at this a bit and I ended up with the below; but now
+> qrwlock and qspinlock are inconsistent; although I suspect qspinlock is
+> similarly busted wrt endian muck.
 
-Do you have URL for Josh's code? I'd love to see what happening there.
+Qspinlock is a bit different that the generic unlock code is 
+endian-independent. The x86 architectural unlock code, however, is 
+little-endian specific. This is not a problem. PPC will certainly needs 
+its own unlock code for better performance.
 
-In the meantime, usercopy can use this...
+With this patch, there is indeed inconsistency on how qspinlock and 
+qrwlock handle their internal data. I guess we could make qrwlock more 
+like qspinlock if you want consistency, but I am fine with either ways.
 
--Kees
+> Not sure what to do..
+>
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -25,13 +25,31 @@
+>   #include<asm-generic/qrwlock_types.h>
+>
+>   /*
+> - * Writer states&  reader shift and bias
+> + * Writer states&  reader shift and bias.
+> + *
+> + *       | +0 | +1 | +2 | +3 |
+> + *   ----+----+----+----+----+
+> + *    LE | 12 | 34 | 56 | 78 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *    BE | 78 | 56 | 34 | 12 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *       | wr |      rd      |
+> + *       +----+----+----+----+
+> + *
+>    */
+> -#define	_QW_WAITING	1		/* A writer is waiting	   */
+> -#define	_QW_LOCKED	0xff		/* A writer holds the lock */
+> -#define	_QW_WMASK	0xff		/* Writer mask		   */
+> +#ifdef	__LITTLE_ENDIAN
+>   #define	_QR_SHIFT	8		/* Reader count shift	   */
+> -#define _QR_BIAS	(1U<<  _QR_SHIFT)
+> +#define	_QW_SHIFT	0		/* Writer mode shift	*/
+> +#else
+> +#define	_QR_SHIFT	0		/* Reader count shift	   */
+> +#define	_QW_SHIFT	24		/* Writer mode shift	*/
+> +#endif
+> +
+> +#define	_QW_WAITING	(0x01U<<  _QW_SHIFT)	/* A writer is waiting	   */
+> +#define	_QW_LOCKED	(0xffU<<  _QW_SHIFT)	/* A writer holds the lock */
+> +#define	_QW_WMASK	(0xffU<<  _QW_SHIFT)	/* Writer mask		   */
+> +
+> +#define	_QR_BIAS	(0x01U<<  _QR_SHIFT)
+>   
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+I like the comment at the top (after you fixed the typo :-) ).
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>   /*
+>    * External function declarations
+> --- a/kernel/locking/qrwlock.c
+> +++ b/kernel/locking/qrwlock.c
+> @@ -22,26 +22,6 @@
+>   #include<linux/hardirq.h>
+>   #include<asm/qrwlock.h>
+>
+> -/*
+> - * This internal data structure is used for optimizing access to some of
+> - * the subfields within the atomic_t cnts.
+> - */
+> -struct __qrwlock {
+> -	union {
+> -		atomic_t cnts;
+> -		struct {
+> -#ifdef __LITTLE_ENDIAN
+> -			u8 wmode;	/* Writer mode   */
+> -			u8 rcnts[3];	/* Reader counts */
+> -#else
+> -			u8 rcnts[3];	/* Reader counts */
+> -			u8 wmode;	/* Writer mode   */
+> -#endif
+> -		};
+> -	};
+> -	arch_spinlock_t	lock;
+> -};
+> -
+>   /**
+>    * rspin_until_writer_unlock - inc reader count&  spin until writer is gone
+>    * @lock  : Pointer to queue rwlock structure
+> @@ -124,10 +104,10 @@ void queued_write_lock_slowpath(struct q
+>   	 * or wait for a previous writer to go away.
+>   	 */
+>   	for (;;) {
+> -		struct __qrwlock *l = (struct __qrwlock *)lock;
+> +		u8 *wr = (u8 *)lock;
+>
+> -		if (!READ_ONCE(l->wmode)&&
+> -		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
+> +		if (!READ_ONCE(*wr)&&
+> +		    (cmpxchg_relaxed(wr, 0, _QW_WAITING>>  _QW_SHIFT) == 0))
+>   			break;
+>
+>   		cpu_relax_lowlatency();
+
+Cheers,
+Longman
