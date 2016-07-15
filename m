@@ -1,47 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f46.google.com ([74.125.82.46]:35681 "EHLO
-	mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751466AbcGOTXO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 15:23:14 -0400
-Received: by mail-wm0-f46.google.com with SMTP id f65so36950660wmi.0
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 12:23:13 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <1468610363.32683.42.camel@gmail.com>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
- <1468446964-22213-3-git-send-email-keescook@chromium.org> <20160714232019.GA28254@350D>
- <CAGXu5jKzD_rCMNJQU1bB5KDfKTsb+AaidZwe=FAfGMqt_FkfqQ@mail.gmail.com>
- <1468609254.32683.34.camel@gmail.com> <CAGXu5jLiD1xEb=dDuf+_2JVzmkH_6O5-m=p=AVvi7qgQ+SV4UA@mail.gmail.com>
- <1468610363.32683.42.camel@gmail.com>
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:35881 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751439AbcGOVoh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 17:44:37 -0400
+Received: by mail-pa0-f44.google.com with SMTP id pp5so35934965pac.3
+        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 14:44:36 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Date: Fri, 15 Jul 2016 12:23:11 -0700
-Message-ID: <CAGXu5jJC0KGR1Q44MW_Rv_N1yFu8m4b8EQY59J-VhLHj_wt+Uw@mail.gmail.com>
-Subject: Re: [kernel-hardening] Re: [PATCH v2 02/11] mm: Hardened usercopy
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH v3 06/11] ia64/uaccess: Enable hardened usercopy
+Date: Fri, 15 Jul 2016 14:44:20 -0700
+Message-ID: <1468619065-3222-7-git-send-email-keescook@chromium.org>
+In-Reply-To: <1468619065-3222-1-git-send-email-keescook@chromium.org>
+References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Cc: Balbir Singh <bsingharora@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>
-Message-ID: <20160715192311.t5S90ra_hzTDTIkWnoKnziwJZ9sIYg7ga37vRngZgSo@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
+Message-ID: <20160715214420.W8F8P6xlPMDJwIMuiUxZokPg7ax8Nyvkgj_m1RMWGYY@z>
 
-On Fri, Jul 15, 2016 at 12:19 PM, Daniel Micay <danielmicay@gmail.com> wrote:
->> I'd like it to dump stack and be fatal to the process involved, but
->> yeah, I guess BUG() would work. Creating an infrastructure for
->> handling security-related Oopses can be done separately from this
->> (and
->> I'd like to see that added, since it's a nice bit of configurable
->> reactivity to possible attacks).
->
-> In grsecurity, the oops handling also uses do_group_exit instead of
-> do_exit but both that change (or at least the option to do it) and the
-> exploit handling could be done separately from this without actually
-> needing special treatment for USERCOPY. Could expose is as something
-> like panic_on_oops=2 as a balance between the existing options.
+Enables CONFIG_HARDENED_USERCOPY checks on ia64.
 
-I'm also uncomfortable about BUG() being removed by unsetting
-CONFIG_BUG, but that seems unlikely. :)
+Based on code from PaX and grsecurity.
 
--Kees
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/ia64/Kconfig               |  1 +
+ arch/ia64/include/asm/uaccess.h | 18 +++++++++++++++---
+ 2 files changed, 16 insertions(+), 3 deletions(-)
 
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index f80758cb7157..32a87ef516a0 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -53,6 +53,7 @@ config IA64
+ 	select MODULES_USE_ELF_RELA
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select HAVE_ARCH_HARDENED_USERCOPY
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
+index 2189d5ddc1ee..465c70982f40 100644
+--- a/arch/ia64/include/asm/uaccess.h
++++ b/arch/ia64/include/asm/uaccess.h
+@@ -241,12 +241,18 @@ extern unsigned long __must_check __copy_user (void __user *to, const void __use
+ static inline unsigned long
+ __copy_to_user (void __user *to, const void *from, unsigned long count)
+ {
++	if (!__builtin_constant_p(count))
++		check_object_size(from, count, true);
++
+ 	return __copy_user(to, (__force void __user *) from, count);
+ }
+ 
+ static inline unsigned long
+ __copy_from_user (void *to, const void __user *from, unsigned long count)
+ {
++	if (!__builtin_constant_p(count))
++		check_object_size(to, count, false);
++
+ 	return __copy_user((__force void __user *) to, from, count);
+ }
+ 
+@@ -258,8 +264,11 @@ __copy_from_user (void *to, const void __user *from, unsigned long count)
+ 	const void *__cu_from = (from);							\
+ 	long __cu_len = (n);								\
+ 											\
+-	if (__access_ok(__cu_to, __cu_len, get_fs()))					\
+-		__cu_len = __copy_user(__cu_to, (__force void __user *) __cu_from, __cu_len);	\
++	if (__access_ok(__cu_to, __cu_len, get_fs())) {					\
++		if (!__builtin_constant_p(n))						\
++			check_object_size(__cu_from, __cu_len, true);			\
++		__cu_len = __copy_user(__cu_to, (__force void __user *)  __cu_from, __cu_len);	\
++	}										\
+ 	__cu_len;									\
+ })
+ 
+@@ -270,8 +279,11 @@ __copy_from_user (void *to, const void __user *from, unsigned long count)
+ 	long __cu_len = (n);								\
+ 											\
+ 	__chk_user_ptr(__cu_from);							\
+-	if (__access_ok(__cu_from, __cu_len, get_fs()))					\
++	if (__access_ok(__cu_from, __cu_len, get_fs())) {				\
++		if (!__builtin_constant_p(n))						\
++			check_object_size(__cu_to, __cu_len, false);			\
+ 		__cu_len = __copy_user((__force void __user *) __cu_to, __cu_from, __cu_len);	\
++	}										\
+ 	__cu_len;									\
+ })
+ 
 -- 
-Kees Cook
-Chrome OS & Brillo Security
+2.7.4
+
