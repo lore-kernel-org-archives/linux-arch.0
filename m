@@ -1,45 +1,37 @@
 From: Kees Cook <keescook@chromium.org>
 Subject: Re: [kernel-hardening] Re: [PATCH v2 02/11] mm: Hardened usercopy
-Date: Fri, 15 Jul 2016 12:14:23 -0700
-Message-ID: <CAGXu5jLiD1xEb=dDuf+_2JVzmkH_6O5-m=p=AVvi7qgQ+SV4UA@mail.gmail.com>
+Date: Fri, 15 Jul 2016 12:23:11 -0700
+Message-ID: <CAGXu5jJC0KGR1Q44MW_Rv_N1yFu8m4b8EQY59J-VhLHj_wt+Uw@mail.gmail.com>
 References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
  <1468446964-22213-3-git-send-email-keescook@chromium.org> <20160714232019.GA28254@350D>
- <CAGXu5jKzD_rCMNJQU1bB5KDfKTsb+AaidZwe=FAfGMqt_FkfqQ@mail.gmail.com> <1468609254.32683.34.camel@gmail.com>
+ <CAGXu5jKzD_rCMNJQU1bB5KDfKTsb+AaidZwe=FAfGMqt_FkfqQ@mail.gmail.com>
+ <1468609254.32683.34.camel@gmail.com> <CAGXu5jLiD1xEb=dDuf+_2JVzmkH_6O5-m=p=AVvi7qgQ+SV4UA@mail.gmail.com>
+ <1468610363.32683.42.camel@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:37067 "EHLO
-	mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751410AbcGOTOZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 15:14:25 -0400
-Received: by mail-wm0-f45.google.com with SMTP id i5so42019580wmg.0
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 12:14:25 -0700 (PDT)
-In-Reply-To: <1468609254.32683.34.camel@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1468610363.32683.42.camel@gmail.com>
+Sender: sparclinux-owner@vger.kernel.org
 To: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
 Cc: Balbir Singh <bsingharora@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Math
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 15, 2016 at 12:00 PM, Daniel Micay <danielmicay@gmail.com> wrote:
->> This could be a BUG, but I'd rather not panic the entire kernel.
+On Fri, Jul 15, 2016 at 12:19 PM, Daniel Micay <danielmicay@gmail.com> wrote:
+>> I'd like it to dump stack and be fatal to the process involved, but
+>> yeah, I guess BUG() would work. Creating an infrastructure for
+>> handling security-related Oopses can be done separately from this
+>> (and
+>> I'd like to see that added, since it's a nice bit of configurable
+>> reactivity to possible attacks).
 >
-> It seems unlikely that it will panic without panic_on_oops and that's
-> an explicit opt-in to taking down the system on kernel logic errors
-> exactly like this. In grsecurity, it calls the kernel exploit handling
-> logic (panic if root, otherwise kill all process of that user and ban
-> them until reboot) but that same logic is also called for BUG via oops
-> handling so there's only really a distinction with panic_on_oops=1.
->
-> Does it make sense to be less fatal for a fatal assertion that's more
-> likely to be security-related? Maybe you're worried about having some
-> false positives for the whitelisting portion, but I don't think those
-> will lurk around very long with the way this works.
+> In grsecurity, the oops handling also uses do_group_exit instead of
+> do_exit but both that change (or at least the option to do it) and the
+> exploit handling could be done separately from this without actually
+> needing special treatment for USERCOPY. Could expose is as something
+> like panic_on_oops=2 as a balance between the existing options.
 
-I'd like it to dump stack and be fatal to the process involved, but
-yeah, I guess BUG() would work. Creating an infrastructure for
-handling security-related Oopses can be done separately from this (and
-I'd like to see that added, since it's a nice bit of configurable
-reactivity to possible attacks).
+I'm also uncomfortable about BUG() being removed by unsetting
+CONFIG_BUG, but that seems unlikely. :)
 
 -Kees
 
