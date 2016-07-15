@@ -1,90 +1,137 @@
-From: Balbir Singh <bsingharora@gmail.com>
-Subject: Re: [PATCH v2 02/11] mm: Hardened usercopy
-Date: Fri, 15 Jul 2016 22:55:19 +1000
-Message-ID: <20160715125519.GA21685@350D>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
- <1468446964-22213-3-git-send-email-keescook@chromium.org>
- <20160714232019.GA28254@350D>
- <1468544658.30053.26.camel@redhat.com>
- <20160715014151.GA13944@balbir.ozlabs.ibm.com>
- <CAGXu5jJy4O4tV2sB=MSkYh2DEfxUYkH4Q3ghmrHEGc6s-k285A@mail.gmail.com>
- <CAGXu5jLuQPdBH4a0BF9AgH7qQubfoz+fFW2sTi2rRxsU8u_8QQ@mail.gmail.com>
-Reply-To: bsingharora@gmail.com
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH v2 2/2] arm64: implement live patching
+Date: Fri, 15 Jul 2016 12:03:08 -0400
+Message-ID: <CAP=VYLocwooC+4oODKU6ER5v+cTo3oH6ReKC3VwD-juwvfpErw@mail.gmail.com>
+References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151722.B81C968D29@newverein.lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jLuQPdBH4a0BF9AgH7qQubfoz+fFW2sTi2rRxsU8u_8QQ@mail.gmail.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Balbir Singh <bsingharora@gmail.com>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Math
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:35024 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751220AbcGOQDk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 12:03:40 -0400
+In-Reply-To: <20160627151722.B81C968D29@newverein.lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torsten Duwe <duwe@lst.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, linux-sparse@vger.kernel.org
 
-On Thu, Jul 14, 2016 at 09:53:31PM -0700, Kees Cook wrote:
-> On Thu, Jul 14, 2016 at 9:05 PM, Kees Cook <keescook@chromium.org> wrote:
-> > On Thu, Jul 14, 2016 at 6:41 PM, Balbir Singh <bsingharora@gmail.com> wrote:
-> >> On Thu, Jul 14, 2016 at 09:04:18PM -0400, Rik van Riel wrote:
-> >>> On Fri, 2016-07-15 at 09:20 +1000, Balbir Singh wrote:
-> >>>
-> >>> > > ==
-> >>> > > +            ((unsigned long)end & (unsigned
-> >>> > > long)PAGE_MASK)))
-> >>> > > +         return NULL;
-> >>> > > +
-> >>> > > + /* Allow if start and end are inside the same compound
-> >>> > > page. */
-> >>> > > + endpage = virt_to_head_page(end);
-> >>> > > + if (likely(endpage == page))
-> >>> > > +         return NULL;
-> >>> > > +
-> >>> > > + /* Allow special areas, device memory, and sometimes
-> >>> > > kernel data. */
-> >>> > > + if (PageReserved(page) && PageReserved(endpage))
-> >>> > > +         return NULL;
-> >>> >
-> >>> > If we came here, it's likely that endpage > page, do we need to check
-> >>> > that only the first and last pages are reserved? What about the ones
-> >>> > in
-> >>> > the middle?
-> >>>
-> >>> I think this will be so rare, we can get away with just
-> >>> checking the beginning and the end.
-> >>>
-> >>
-> >> But do we want to leave a hole where an aware user space
-> >> can try a longer copy_* to avoid this check? If it is unlikely
-> >> should we just bite the bullet and do the check for the entire
-> >> range?
-> >
-> > I'd be okay with expanding the test -- it should be an extremely rare
-> > situation already since the common Reserved areas (kernel data) will
-> > have already been explicitly tested.
-> >
-> > What's the best way to do "next page"? Should it just be:
-> >
-> > for ( ; page <= endpage ; ptr += PAGE_SIZE, page = virt_to_head_page(ptr) ) {
-> >     if (!PageReserved(page))
-> >         return "<spans multiple pages>";
-> > }
-> >
-> > return NULL;
-> >
-> > ?
-> 
-> Er, I was testing the wrong thing. How about:
-> 
->         /*
->          * Reject if range is not Reserved (i.e. special or device memory),
->          * since then the object spans several independently allocated pages.
->          */
->         for (; ptr <= end ; ptr += PAGE_SIZE, page = virt_to_head_page(ptr)) {
->                 if (!PageReserved(page))
->                         return "<spans multiple pages>";
->         }
-> 
->         return NULL;
+On Mon, Jun 27, 2016 at 11:17 AM, Torsten Duwe <duwe@lst.de> wrote:
+> On top of FTRACE_WITH_REGS and the klp changes that go into v4.7
+> this is straightforward.
+>
+> Signed-off-by: Torsten Duwe <duwe@suse.de>
+> ---
+>  arch/arm64/Kconfig                 |  3 +++
+>  arch/arm64/include/asm/livepatch.h | 37 +++++++++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/entry-ftrace.S   | 13 +++++++++++++
+>  3 files changed, 53 insertions(+)
+>  create mode 100644 arch/arm64/include/asm/livepatch.h
+>
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 36a0e26..cb5adf3 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -80,6 +80,7 @@ config ARM64
+>         select HAVE_GENERIC_DMA_COHERENT
+>         select HAVE_HW_BREAKPOINT if PERF_EVENTS
+>         select HAVE_IRQ_TIME_ACCOUNTING
+> +       select HAVE_LIVEPATCH
+>         select HAVE_MEMBLOCK
+>         select HAVE_MEMBLOCK_NODE_MAP if NUMA
+>         select HAVE_PATA_PLATFORM
+> @@ -1042,4 +1043,6 @@ if CRYPTO
+>  source "arch/arm64/crypto/Kconfig"
+>  endif
+>
+> +source "kernel/livepatch/Kconfig"
+> +
+>  source "lib/Kconfig"
+> diff --git a/arch/arm64/include/asm/livepatch.h b/arch/arm64/include/asm/livepatch.h
+> new file mode 100644
+> index 0000000..6b9a3d1
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/livepatch.h
+> @@ -0,0 +1,37 @@
+> +/*
+> + * livepatch.h - arm64-specific Kernel Live Patching Core
+> + *
+> + * Copyright (C) 2016 SUSE
+> + *
+> + * This program is free software; you can redistribute it and/or
+> + * modify it under the terms of the GNU General Public License
+> + * as published by the Free Software Foundation; either version 2
+> + * of the License, or (at your option) any later version.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program; if not, see <http://www.gnu.org/licenses/>.
+> + */
+> +#ifndef _ASM_ARM64_LIVEPATCH_H
+> +#define _ASM_ARM64_LIVEPATCH_H
+> +
+> +#include <linux/module.h>
+> +#include <linux/ftrace.h>
 
-That looks reasonable to me
+These includes don't look right.  It would seem all you need is the one
+for struct pt_regs.
 
-Balbir
+Paul.
+--
 
+> +
+> +#ifdef CONFIG_LIVEPATCH
+> +static inline int klp_check_compiler_support(void)
+> +{
+> +       return 0;
+> +}
+> +
+> +static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
+> +{
+> +       regs->pc = ip;
+> +}
+> +#endif /* CONFIG_LIVEPATCH */
+> +
+> +#endif /* _ASM_ARM64_LIVEPATCH_H */
+> diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
+> index 3ebe791..b166cbf 100644
+> --- a/arch/arm64/kernel/entry-ftrace.S
+> +++ b/arch/arm64/kernel/entry-ftrace.S
+> @@ -204,6 +204,9 @@ ENTRY(ftrace_caller)
+>         str     x9, [sp, #S_LR]
+>         /* The program counter just after the ftrace call site */
+>         str     lr, [sp, #S_PC]
+> +#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
+> +       mov     x19,lr          /* remember old return address */
+> +#endif
+>         /* The stack pointer as it was on ftrace_caller entry... */
+>         add     x29, sp, #S_FRAME_SIZE+16       /* ...is also our new FP */
+>         str     x29, [sp, #S_SP]
+> @@ -219,6 +222,16 @@ ftrace_call:
+>
+>         bl      ftrace_stub
+>
+> +#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
+> +       /* Is the trace function a live patcher an has messed with
+> +        * the return address?
+> +       */
+> +       ldr     x9, [sp, #S_PC]
+> +       cmp     x9, x19         /* compare with the value we remembered */
+> +       /* to not call graph tracer's "call" mechanism twice! */
+> +       b.eq    ftrace_regs_return
+> +#endif
+> +
+>  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+>         .global ftrace_graph_call
+>  ftrace_graph_call:                     // ftrace_graph_caller();
+> --
+> 2.6.6
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
