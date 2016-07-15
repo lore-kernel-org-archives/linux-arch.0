@@ -1,62 +1,70 @@
-From: Daniel Micay <danielmicay@gmail.com>
-Subject: Re: [kernel-hardening] Re: [PATCH v2 02/11] mm: Hardened usercopy
-Date: Fri, 15 Jul 2016 15:19:23 -0400
-Message-ID: <1468610363.32683.42.camel@gmail.com>
-References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
-	 <1468446964-22213-3-git-send-email-keescook@chromium.org>
-	 <20160714232019.GA28254@350D>
-	 <CAGXu5jKzD_rCMNJQU1bB5KDfKTsb+AaidZwe=FAfGMqt_FkfqQ@mail.gmail.com>
-	 <1468609254.32683.34.camel@gmail.com>
-	 <CAGXu5jLiD1xEb=dDuf+_2JVzmkH_6O5-m=p=AVvi7qgQ+SV4UA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha256";
-	protocol="application/pgp-signature"; boundary="=-Y+YBKcxvbURjRYqK+Wc9"
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jLiD1xEb=dDuf+_2JVzmkH_6O5-m=p=AVvi7qgQ+SV4UA@mail.gmail.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: kernel-hardening@lists.openwall.com
-Cc: Balbir Singh <bsingharora@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Math
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v3 04/11] ARM: uaccess: Enable hardened usercopy
+Date: Fri, 15 Jul 2016 14:44:18 -0700
+Message-ID: <1468619065-3222-5-git-send-email-keescook@chromium.org>
+References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1468619065-3222-1-git-send-email-keescook@chromium.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy
 List-Id: linux-arch.vger.kernel.org
 
+Enables CONFIG_HARDENED_USERCOPY checks on arm.
 
---=-Y+YBKcxvbURjRYqK+Wc9
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Based on code from PaX and grsecurity.
 
-> I'd like it to dump stack and be fatal to the process involved, but
-> yeah, I guess BUG() would work. Creating an infrastructure for
-> handling security-related Oopses can be done separately from this
-> (and
-> I'd like to see that added, since it's a nice bit of configurable
-> reactivity to possible attacks).
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/arm/Kconfig               |  1 +
+ arch/arm/include/asm/uaccess.h | 11 +++++++++--
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-In grsecurity, the oops handling also uses do_group_exit instead of
-do_exit but both that change (or at least the option to do it) and the
-exploit handling could be done separately from this without actually
-needing special treatment for USERCOPY. Could expose is as something
-like panic_on_oops=3D2 as a balance between the existing options.
---=-Y+YBKcxvbURjRYqK+Wc9
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIzBAABCAAdBQJXiTc7FhxkYW5pZWxtaWNheUBnbWFpbC5jb20ACgkQ+ecS5Zr1
-8ip2TA/+IoxpTaGfA5/9DDfnjr5OainSD/MMP/0obMRVPRnaJlTJT8ahCOtDauQv
-jTR+GoJaVkO6ZzOML+79FQOjv91/yPg2RiT6GKzKLb4jCGtJw/rEsMSGk0yJWUjJ
-IeazONbF6Swqm/JT/3UoxsJvf0QgUF3lhm3/vcvBoBjY9lCXtDSB0JYd7v+Ob8EU
-7D1mxokvg3MQCTVAlJa2IDkHanmIKBBRPXtbQl2KvlJhWF0GWkErplu5ZncVpY1X
-TvsiMEpyZDiQc+U1Cpu4Thc8/GUoWthZGgjhw7p+hGgw3XXrRb17WaBqWS5o8dJl
-/QbBOjzFopKRnovqTmIqYXgoue/LhZNYYRXAo35CcFDMOH3HvBCKtdNrngLjoxHv
-vRrubMLjSxBml8/ulNqXWmrFIvd8aLM8TAkWIvC8bEFMqITDXMXIp9zs1ObEVXD6
-m5pF2CtNgxIvx17/hnlp0U0k4ldaekkhHkSYyd7v8yr5CkqLh250YeRxWFf4kKh6
-Ii+rXm70hdGvMHOw8TcWW+B82eZiFOhPyeWyibFnO+JzsQyWwIzWpIY1+xQZUBcr
-b9rh+kXFS2aOvtj55KSScTEcGyo3aknrkt1kAJY8spQMUOLtog9eifryhpS3Nl6O
-hGQ5lDsxJxyZCdpLfv5RU4WC7xoQGdGAzV0Nn7ukkiF2x2R5MFI=
-=Wn4X
------END PGP SIGNATURE-----
-
---=-Y+YBKcxvbURjRYqK+Wc9--
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 90542db1220d..f56b29b3f57e 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -35,6 +35,7 @@ config ARM
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
++	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_MMAP_RND_BITS if MMU
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index 35c9db857ebe..7fb59199c6bb 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -496,7 +496,10 @@ arm_copy_from_user(void *to, const void __user *from, unsigned long n);
+ static inline unsigned long __must_check
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
++	check_object_size(to, n, false);
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_from_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+@@ -511,11 +514,15 @@ static inline unsigned long __must_check
+ __copy_to_user(void __user *to, const void *from, unsigned long n)
+ {
+ #ifndef CONFIG_UACCESS_WITH_MEMCPY
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
++	check_object_size(from, n, true);
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_to_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+ #else
++	check_object_size(from, n, true);
+ 	return arm_copy_to_user(to, from, n);
+ #endif
+ }
+-- 
+2.7.4
 
