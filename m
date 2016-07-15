@@ -1,145 +1,90 @@
-From: panxinhui <xinhui@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3] locking/qrwlock: Let qrwlock has same layout
- regardless of the endian
-Date: Fri, 15 Jul 2016 14:28:29 +0800
-Message-ID: <51cf6c4c-3626-c03d-a88a-955e14c6a4e5@linux.vnet.ibm.com>
-References: <1466403652-2931-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
- <20160713195423.GD30921@twins.programming.kicks-ass.net>
- <578742EA.7060108@linux.vnet.ibm.com>
- <20160714093733.GF30909@twins.programming.kicks-ass.net>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH v2 02/11] mm: Hardened usercopy
+Date: Fri, 15 Jul 2016 22:55:19 +1000
+Message-ID: <20160715125519.GA21685@350D>
+References: <1468446964-22213-1-git-send-email-keescook@chromium.org>
+ <1468446964-22213-3-git-send-email-keescook@chromium.org>
+ <20160714232019.GA28254@350D>
+ <1468544658.30053.26.camel@redhat.com>
+ <20160715014151.GA13944@balbir.ozlabs.ibm.com>
+ <CAGXu5jJy4O4tV2sB=MSkYh2DEfxUYkH4Q3ghmrHEGc6s-k285A@mail.gmail.com>
+ <CAGXu5jLuQPdBH4a0BF9AgH7qQubfoz+fFW2sTi2rRxsU8u_8QQ@mail.gmail.com>
+Reply-To: bsingharora@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:27495 "EHLO
-	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751804AbcGOG2T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jul 2016 02:28:19 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6F6OQNT066245
-	for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 02:28:19 -0400
-Received: from e38.co.us.ibm.com (e38.co.us.ibm.com [32.97.110.159])
-	by mx0a-001b2d01.pphosted.com with ESMTP id 246k21392q-1
-	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 02:28:18 -0400
-Received: from localhost
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <xinhui@linux.vnet.ibm.com>;
-	Fri, 15 Jul 2016 00:28:18 -0600
-In-Reply-To: <20160714093733.GF30909@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, xinhui <xinhui.pan@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, arnd@arndb.de, Waiman.Long@hpe.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jLuQPdBH4a0BF9AgH7qQubfoz+fFW2sTi2rRxsU8u_8QQ@mail.gmail.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Balbir Singh <bsingharora@gmail.com>, Rik van Riel <riel@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Math
+List-Id: linux-arch.vger.kernel.org
 
+On Thu, Jul 14, 2016 at 09:53:31PM -0700, Kees Cook wrote:
+> On Thu, Jul 14, 2016 at 9:05 PM, Kees Cook <keescook@chromium.org> wrote:
+> > On Thu, Jul 14, 2016 at 6:41 PM, Balbir Singh <bsingharora@gmail.com> wrote:
+> >> On Thu, Jul 14, 2016 at 09:04:18PM -0400, Rik van Riel wrote:
+> >>> On Fri, 2016-07-15 at 09:20 +1000, Balbir Singh wrote:
+> >>>
+> >>> > > ==
+> >>> > > +            ((unsigned long)end & (unsigned
+> >>> > > long)PAGE_MASK)))
+> >>> > > +         return NULL;
+> >>> > > +
+> >>> > > + /* Allow if start and end are inside the same compound
+> >>> > > page. */
+> >>> > > + endpage = virt_to_head_page(end);
+> >>> > > + if (likely(endpage == page))
+> >>> > > +         return NULL;
+> >>> > > +
+> >>> > > + /* Allow special areas, device memory, and sometimes
+> >>> > > kernel data. */
+> >>> > > + if (PageReserved(page) && PageReserved(endpage))
+> >>> > > +         return NULL;
+> >>> >
+> >>> > If we came here, it's likely that endpage > page, do we need to check
+> >>> > that only the first and last pages are reserved? What about the ones
+> >>> > in
+> >>> > the middle?
+> >>>
+> >>> I think this will be so rare, we can get away with just
+> >>> checking the beginning and the end.
+> >>>
+> >>
+> >> But do we want to leave a hole where an aware user space
+> >> can try a longer copy_* to avoid this check? If it is unlikely
+> >> should we just bite the bullet and do the check for the entire
+> >> range?
+> >
+> > I'd be okay with expanding the test -- it should be an extremely rare
+> > situation already since the common Reserved areas (kernel data) will
+> > have already been explicitly tested.
+> >
+> > What's the best way to do "next page"? Should it just be:
+> >
+> > for ( ; page <= endpage ; ptr += PAGE_SIZE, page = virt_to_head_page(ptr) ) {
+> >     if (!PageReserved(page))
+> >         return "<spans multiple pages>";
+> > }
+> >
+> > return NULL;
+> >
+> > ?
+> 
+> Er, I was testing the wrong thing. How about:
+> 
+>         /*
+>          * Reject if range is not Reserved (i.e. special or device memory),
+>          * since then the object spans several independently allocated pages.
+>          */
+>         for (; ptr <= end ; ptr += PAGE_SIZE, page = virt_to_head_page(ptr)) {
+>                 if (!PageReserved(page))
+>                         return "<spans multiple pages>";
+>         }
+> 
+>         return NULL;
 
+That looks reasonable to me
 
-=E5=9C=A8 16/7/14 17:37, Peter Zijlstra =E5=86=99=E9=81=93:
-> On Thu, Jul 14, 2016 at 03:44:42PM +0800, xinhui wrote:
->>> OK, so I poked at this a bit and I ended up with the below; but now
->>> qrwlock and qspinlock are inconsistent; although I suspect qspinloc=
-k is
->>> similarly busted wrt endian muck.
->>>
->>> Not sure what to do..
->>>
->> Lets talk about the qspinlock.
->>
->> for x86, We has already assumed that ->locked sit at the low 8 bits,=
- as is
->> smp_store_release((u8 *)lock, 0);
->
-> Right, true on x86 though :-) I noticed your PPC patches have a +3 in
-> there conditional on __BIG_ENDIAN.
->
->> Then we can do a favor, export ->locked but other fields as reserved=
-=2E
->> say
->>
->> struct __qspinlock_unlcok_interface {/* what name is better?*/
->> #ifdef __LITTLE_ENDIAN
->> 		u8      locked;
->> 		u8      reserved[3]; /* do not touch it, internally use only  */
->> #else
->> 		u8      reserved[3];
->> 		u8      locked;
->> #endif
->> };
->
-> Right, maybe, although something like:
->
-> static inline u8 *__qspinlock_lock_byte(struct qspinlock *lock)
-> {
-> 	return (u8 *)lock + 3 * IS_BUILTIN(__BIG_ENDIAN);
-> }
->
-> static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
-> {
-> 	return (u8 *)lock + 3 * IS_BUILTIN(__BIG_ENDIAN);
-> }
->
-> is shorter?
->
+Balbir
 
-yes, looks simpler. I will take them into my patch. thanks
-
-
->
->>>  /*
->>> + * Writer states & reader shift and bias.
->>> + *
->>> + *       | +0 | +1 | +2 | +3 |
->>> + *   ----+----+----+----+----+
->>> + *    LE | 12 | 34 | 56 | 78 | 0x12345678
->>> + *   ----+----+----+----+----+
->>> + *    BE | 78 | 56 | 34 | 12 | 0x12345678
->>> + *   ----+----+----+----+----+
->>> + *       | wr |      rd      |
->>> + *       +----+----+----+----+
->>> + *
->>>   */
->>
->> very clearly. :)
->
-> I did one for the qspinlock code too..
->
-
-hmm, pretty nice, I think I can include them into my patch too while I =
-am at it.
-
-thanks
-xinhui
-
-> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> index b2caec7315af..9191dc454e96 100644
-> --- a/kernel/locking/qspinlock.c
-> +++ b/kernel/locking/qspinlock.c
-> @@ -120,6 +120,23 @@ static inline __pure struct mcs_spinlock *decode=
-_tail(u32 tail)
->   *
->   * This internal structure is also used by the set_locked function w=
-hich
->   * is not restricted to _Q_PENDING_BITS =3D=3D 8.
-> + *
-> + *       | +0 | +1 | +2 | +3 |
-> + *   ----+----+----+----+----+
-> + *    LE | 78 | 56 | 34 | 12 |	val =3D 0x12345678
-> + *   ----+----+----+----+----+
-> + *    LE | 34 | 12 |		locked_pending =3D 0x1234
-> + *   ----+----+----+----+----+
-> + *       | L  | P  |  tail   |
-> + *       +----+----+----+----+
-> + *
-> + *   ----+----+----+----+----+
-> + *    BE | 12 | 34 | 56 | 78 |	val =3D 0x12345678
-> + *   ----+----+----+----+----+
-> + *    BE           | 12 | 34 |	locked_pending =3D 0x1234
-> + *   ----+----+----+----+----+
-> + *       |  tail   | P  | L  |
-> + *       +----+----+----+----+
->   */
->  struct __qspinlock {
->  	union {
->
