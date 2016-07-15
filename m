@@ -1,62 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:34947 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751483AbcGOVoh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 17:44:37 -0400
-Received: by mail-pa0-f53.google.com with SMTP id dx3so42815047pab.2
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 14:44:36 -0700 (PDT)
+Received: from mail-pf0-f178.google.com ([209.85.192.178]:36610 "EHLO
+	mail-pf0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751145AbcGOVoc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 17:44:32 -0400
+Received: by mail-pf0-f178.google.com with SMTP id t190so44611280pfb.3
+        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 14:44:32 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 09/11] s390/uaccess: Enable hardened usercopy
-Date: Fri, 15 Jul 2016 14:44:23 -0700
-Message-ID: <1468619065-3222-10-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 04/11] ARM: uaccess: Enable hardened usercopy
+Date: Fri, 15 Jul 2016 14:44:18 -0700
+Message-ID: <1468619065-3222-5-git-send-email-keescook@chromium.org>
 In-Reply-To: <1468619065-3222-1-git-send-email-keescook@chromium.org>
 References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160715214423.tdMpkBeeEY23_VcMr1EsBZf2hZA-wzp0Il4FxN_e-tE@z>
+Message-ID: <20160715214418.fQLyUnEEGM2AAtvwEzkfccAqMUwlhXZINBx8MAfjWzI@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on s390.
+Enables CONFIG_HARDENED_USERCOPY checks on arm.
+
+Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/s390/Kconfig       | 1 +
- arch/s390/lib/uaccess.c | 2 ++
- 2 files changed, 3 insertions(+)
+ arch/arm/Kconfig               |  1 +
+ arch/arm/include/asm/uaccess.h | 11 +++++++++--
+ 2 files changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index a8c259059adf..9f694311c9ed 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -122,6 +122,7 @@ config S390
- 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_EARLY_PFN_TO_NID
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 90542db1220d..f56b29b3f57e 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -35,6 +35,7 @@ config ARM
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
 +	select HAVE_ARCH_HARDENED_USERCOPY
- 	select HAVE_ARCH_JUMP_LABEL
- 	select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
- 	select HAVE_ARCH_SECCOMP_FILTER
-diff --git a/arch/s390/lib/uaccess.c b/arch/s390/lib/uaccess.c
-index ae4de559e3a0..6986c20166f0 100644
---- a/arch/s390/lib/uaccess.c
-+++ b/arch/s390/lib/uaccess.c
-@@ -104,6 +104,7 @@ static inline unsigned long copy_from_user_mvcp(void *x, const void __user *ptr,
- 
- unsigned long __copy_from_user(void *to, const void __user *from, unsigned long n)
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_MMAP_RND_BITS if MMU
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index 35c9db857ebe..7fb59199c6bb 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -496,7 +496,10 @@ arm_copy_from_user(void *to, const void __user *from, unsigned long n);
+ static inline unsigned long __must_check
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
  {
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
 +	check_object_size(to, n, false);
- 	if (static_branch_likely(&have_mvcos))
- 		return copy_from_user_mvcos(to, from, n);
- 	return copy_from_user_mvcp(to, from, n);
-@@ -177,6 +178,7 @@ static inline unsigned long copy_to_user_mvcs(void __user *ptr, const void *x,
- 
- unsigned long __copy_to_user(void __user *to, const void *from, unsigned long n)
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_from_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+@@ -511,11 +514,15 @@ static inline unsigned long __must_check
+ __copy_to_user(void __user *to, const void *from, unsigned long n)
  {
+ #ifndef CONFIG_UACCESS_WITH_MEMCPY
+-	unsigned int __ua_flags = uaccess_save_and_enable();
++	unsigned int __ua_flags;
++
 +	check_object_size(from, n, true);
- 	if (static_branch_likely(&have_mvcos))
- 		return copy_to_user_mvcos(to, from, n);
- 	return copy_to_user_mvcs(to, from, n);
++	__ua_flags = uaccess_save_and_enable();
+ 	n = arm_copy_to_user(to, from, n);
+ 	uaccess_restore(__ua_flags);
+ 	return n;
+ #else
++	check_object_size(from, n, true);
+ 	return arm_copy_to_user(to, from, n);
+ #endif
+ }
 -- 
 2.7.4
 
