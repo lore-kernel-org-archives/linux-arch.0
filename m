@@ -1,141 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f51.google.com ([209.85.220.51]:33737 "EHLO
-	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751383AbcGOVog (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 17:44:36 -0400
-Received: by mail-pa0-f51.google.com with SMTP id ks6so42721496pab.0
-        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 14:44:35 -0700 (PDT)
+Received: from mail-pf0-f172.google.com ([209.85.192.172]:33121 "EHLO
+	mail-pf0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751292AbcGOVod (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2016 17:44:33 -0400
+Received: by mail-pf0-f172.google.com with SMTP id y134so18758140pfg.0
+        for <linux-arch@vger.kernel.org>; Fri, 15 Jul 2016 14:44:33 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 05/11] arm64/uaccess: Enable hardened usercopy
-Date: Fri, 15 Jul 2016 14:44:19 -0700
-Message-ID: <1468619065-3222-6-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 01/11] mm: Implement stack frame object validation
+Date: Fri, 15 Jul 2016 14:44:15 -0700
+Message-ID: <1468619065-3222-2-git-send-email-keescook@chromium.org>
 In-Reply-To: <1468619065-3222-1-git-send-email-keescook@chromium.org>
 References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, kernel-hardening@lists.openwall.com
-Message-ID: <20160715214419.5qOudisHgJ_MLLgIU6jrzntrK6BqXVz1JBgtMROi0yo@z>
+Message-ID: <20160715214415.ovQt2Yq7LELAWF8ZHhHK0v_zf_I-0gVYguGFr8uxqPI@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on arm64. As done by KASAN in -next,
-renames the low-level functions to __arch_copy_*_user() so a static inline
-can do additional work before the copy.
+This creates per-architecture function arch_within_stack_frames() that
+should validate if a given object is contained by a kernel stack frame.
+Initial implementation is on x86.
+
+This is based on code from PaX.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm64/Kconfig               |  2 ++
- arch/arm64/include/asm/uaccess.h | 16 ++++++++++++++--
- arch/arm64/kernel/arm64ksyms.c   |  4 ++--
- arch/arm64/lib/copy_from_user.S  |  4 ++--
- arch/arm64/lib/copy_to_user.S    |  4 ++--
- 5 files changed, 22 insertions(+), 8 deletions(-)
+ arch/Kconfig                       |  9 ++++++++
+ arch/x86/Kconfig                   |  1 +
+ arch/x86/include/asm/thread_info.h | 44 ++++++++++++++++++++++++++++++++++++++
+ include/linux/thread_info.h        |  9 ++++++++
+ 4 files changed, 63 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 5a0a691d4220..b771cd97f74b 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -51,10 +51,12 @@ config ARM64
- 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_BITREVERSE
-+	select HAVE_ARCH_HARDENED_USERCOPY
- 	select HAVE_ARCH_HUGE_VMAP
- 	select HAVE_ARCH_JUMP_LABEL
- 	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
- 	select HAVE_ARCH_KGDB
-+	select HAVE_ARCH_LINEAR_KERNEL_MAPPING
- 	select HAVE_ARCH_MMAP_RND_BITS
- 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
- 	select HAVE_ARCH_SECCOMP_FILTER
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 9e397a542756..5d0dacdb695b 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -256,11 +256,23 @@ do {									\
- 		-EFAULT;						\
- })
+diff --git a/arch/Kconfig b/arch/Kconfig
+index d794384a0404..5e2776562035 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -424,6 +424,15 @@ config CC_STACKPROTECTOR_STRONG
  
--extern unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n);
--extern unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
- extern unsigned long __must_check __copy_in_user(void __user *to, const void __user *from, unsigned long n);
- extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
+ endchoice
  
-+static inline unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n)
++config HAVE_ARCH_WITHIN_STACK_FRAMES
++	bool
++	help
++	  An architecture should select this if it can walk the kernel stack
++	  frames to determine if an object is part of either the arguments
++	  or local variables (i.e. that it excludes saved return addresses,
++	  and similar) by implementing an inline arch_within_stack_frames(),
++	  which is used by CONFIG_HARDENED_USERCOPY.
++
+ config HAVE_CONTEXT_TRACKING
+ 	bool
+ 	help
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0a7b885964ba..4407f596b72c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -91,6 +91,7 @@ config X86
+ 	select HAVE_ARCH_SOFT_DIRTY		if X86_64
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
++	select HAVE_ARCH_WITHIN_STACK_FRAMES
+ 	select HAVE_EBPF_JIT			if X86_64
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select HAVE_CMPXCHG_DOUBLE
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index 30c133ac05cd..ab386f1336f2 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -180,6 +180,50 @@ static inline unsigned long current_stack_pointer(void)
+ 	return sp;
+ }
+ 
++/*
++ * Walks up the stack frames to make sure that the specified object is
++ * entirely contained by a single stack frame.
++ *
++ * Returns:
++ *		 1 if within a frame
++ *		-1 if placed across a frame boundary (or outside stack)
++ *		 0 unable to determine (no frame pointers, etc)
++ */
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
 +{
-+	check_object_size(to, n, false);
-+	return __arch_copy_from_user(to, from, n);
++#if defined(CONFIG_FRAME_POINTER)
++	const void *frame = NULL;
++	const void *oldframe;
++
++	oldframe = __builtin_frame_address(1);
++	if (oldframe)
++		frame = __builtin_frame_address(2);
++	/*
++	 * low ----------------------------------------------> high
++	 * [saved bp][saved ip][args][local vars][saved bp][saved ip]
++	 *                     ^----------------^
++	 *               allow copies only within here
++	 */
++	while (stack <= frame && frame < stackend) {
++		/*
++		 * If obj + len extends past the last frame, this
++		 * check won't pass and the next frame will be 0,
++		 * causing us to bail out and correctly report
++		 * the copy as invalid.
++		 */
++		if (obj + len <= frame)
++			return obj >= oldframe + 2 * sizeof(void *) ? 1 : -1;
++		oldframe = frame;
++		frame = *(const void * const *)frame;
++	}
++	return -1;
++#else
++	return 0;
++#endif
 +}
 +
-+static inline unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n)
+ #else /* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_X86_64
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index b4c2a485b28a..3d5c80b4391d 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -146,6 +146,15 @@ static inline bool test_and_clear_restore_sigmask(void)
+ #error "no set_restore_sigmask() provided and default one won't work"
+ #endif
+ 
++#ifndef CONFIG_HAVE_ARCH_WITHIN_STACK_FRAMES
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
 +{
-+	check_object_size(from, n, true);
-+	return __arch_copy_to_user(to, from, n);
++	return 0;
 +}
++#endif
 +
- static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
- {
- 	if (access_ok(VERIFY_READ, from, n))
-diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
-index 678f30b05a45..2dc44406a7ad 100644
---- a/arch/arm64/kernel/arm64ksyms.c
-+++ b/arch/arm64/kernel/arm64ksyms.c
-@@ -34,8 +34,8 @@ EXPORT_SYMBOL(copy_page);
- EXPORT_SYMBOL(clear_page);
+ #endif	/* __KERNEL__ */
  
- 	/* user mem (segment) */
--EXPORT_SYMBOL(__copy_from_user);
--EXPORT_SYMBOL(__copy_to_user);
-+EXPORT_SYMBOL(__arch_copy_from_user);
-+EXPORT_SYMBOL(__arch_copy_to_user);
- EXPORT_SYMBOL(__clear_user);
- EXPORT_SYMBOL(__copy_in_user);
- 
-diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_user.S
-index 17e8306dca29..0b90497d4424 100644
---- a/arch/arm64/lib/copy_from_user.S
-+++ b/arch/arm64/lib/copy_from_user.S
-@@ -66,7 +66,7 @@
- 	.endm
- 
- end	.req	x5
--ENTRY(__copy_from_user)
-+ENTRY(__arch_copy_from_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -75,7 +75,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0				// Nothing to copy
- 	ret
--ENDPROC(__copy_from_user)
-+ENDPROC(__arch_copy_from_user)
- 
- 	.section .fixup,"ax"
- 	.align	2
-diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
-index 21faae60f988..7a7efe255034 100644
---- a/arch/arm64/lib/copy_to_user.S
-+++ b/arch/arm64/lib/copy_to_user.S
-@@ -65,7 +65,7 @@
- 	.endm
- 
- end	.req	x5
--ENTRY(__copy_to_user)
-+ENTRY(__arch_copy_to_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -74,7 +74,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0
- 	ret
--ENDPROC(__copy_to_user)
-+ENDPROC(__arch_copy_to_user)
- 
- 	.section .fixup,"ax"
- 	.align	2
+ #endif /* _LINUX_THREAD_INFO_H */
 -- 
 2.7.4
 
