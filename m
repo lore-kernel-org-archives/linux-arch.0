@@ -1,132 +1,57 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [for-next][PATCH 3/7] ftrace: Reduce size of function graph entries
-Date: Sat, 16 Jul 2016 03:16:20 -0400
-Message-ID: <20160716071647.151605569@goodmis.org>
-References: <20160716071617.711980454@goodmis.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Sun, 17 Jul 2016 21:43:31 -0700
+Message-ID: <CALCETrWPM_jrF6saHPxoUL4vkjhhGBfizATXrFOW=+z5xycToQ@mail.gmail.com>
+References: <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com> <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net> <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com> <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
+ <20160713075550.GA515@gmail.com> <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
+ <20160714080701.GA14613@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=0003-ftrace-Reduce-size-of-function-graph-entries.patch
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Namhyung Kim <namhyung@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vk0-f54.google.com ([209.85.213.54]:34085 "EHLO
+	mail-vk0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750786AbcGREnw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2016 00:43:52 -0400
+Received: by mail-vk0-f54.google.com with SMTP id s189so15245122vkh.1
+        for <linux-arch@vger.kernel.org>; Sun, 17 Jul 2016 21:43:51 -0700 (PDT)
+In-Reply-To: <20160714080701.GA14613@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
 
-From: Namhyung Kim <namhyung@kernel.org>
+On Thu, Jul 14, 2016 at 1:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>
+> * Andy Lutomirski <luto@amacapital.net> wrote:
+>
+>> On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
+>> >
+>> > * Andy Lutomirski <luto@amacapital.net> wrote:
+>> >
+>> >> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
+>> >> > lose the content of that "push".  I'm not sure there's any way to guarantee
+>> >> > this with a user-controlled register.
+>> >>
+>> >> We could try to insist that user code uses some vsyscall helper that tracks
+>> >> which bits are as-yet-unassigned.  That's quite messy, though.
+>> >
+>> > Actually, if we turned the vDSO into something more like a minimal user-space
+>> > library with the ability to run at process startup as well to prepare stuff
+>> > then it's painful to get right only *once*, and there will be tons of other
+>> > areas where a proper per thread data storage on the user-space side would be
+>> > immensely useful!
+>>
+>> Doing this could be tricky: how exactly is the vDSO supposed to find per-thread
+>> data without breaking existing glibc?
+>
+> So I think the way this could be done is by allocating it itself. The vDSO vma
+> itself is 'external' to glibc as well to begin with - this would be a small
+> extension to that concept.
 
-Currently ftrace_graph_ent{,_entry} and ftrace_graph_ret{,_entry} struct
-can have padding bytes at the end due to alignment in 64-bit data type.
-As these data are recorded so frequently, those paddings waste
-non-negligible space.  As the ring buffer maintains alignment properly
-for each architecture, just to remove the extra padding using 'packed'
-attribute.
+But how does the vdso code find it?  FS and GS are both spoken for by
+existing userspace.
 
-  ftrace_graph_ent_entry:  24 -> 20
-  ftrace_graph_ret_entry:  48 -> 44
-
-Also I moved the 'overrun' field in struct ftrace_graph_ret to minimize
-the padding in the middle.
-
-Tested on x86_64 only.
-
-Link: http://lkml.kernel.org/r/1467197808-13578-1-git-send-email-namhyung@kernel.org
-
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Namhyung Kim <namhyung@kernel.org>
-Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
----
- include/linux/ftrace.h       | 12 ++++++++----
- kernel/trace/trace.h         | 11 +++++++++++
- kernel/trace/trace_entries.h |  4 ++--
- 3 files changed, 21 insertions(+), 6 deletions(-)
-
-diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index 66a36a815f0a..7d565afe35d2 100644
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -754,23 +754,27 @@ static inline void ftrace_init(void) { }
- 
- /*
-  * Structure that defines an entry function trace.
-+ * It's already packed but the attribute "packed" is needed
-+ * to remove extra padding at the end.
-  */
- struct ftrace_graph_ent {
- 	unsigned long func; /* Current function */
- 	int depth;
--};
-+} __packed;
- 
- /*
-  * Structure that defines a return function trace.
-+ * It's already packed but the attribute "packed" is needed
-+ * to remove extra padding at the end.
-  */
- struct ftrace_graph_ret {
- 	unsigned long func; /* Current function */
--	unsigned long long calltime;
--	unsigned long long rettime;
- 	/* Number of functions that overran the depth limit for current task */
- 	unsigned long overrun;
-+	unsigned long long calltime;
-+	unsigned long long rettime;
- 	int depth;
--};
-+} __packed;
- 
- /* Type of the callback handlers for tracing function graph*/
- typedef void (*trace_func_graph_ret_t)(struct ftrace_graph_ret *); /* return */
-diff --git a/kernel/trace/trace.h b/kernel/trace/trace.h
-index c1de3f493cd3..f783df416726 100644
---- a/kernel/trace/trace.h
-+++ b/kernel/trace/trace.h
-@@ -80,6 +80,12 @@ enum trace_type {
- 	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
- 		     filter)
- 
-+#undef FTRACE_ENTRY_PACKED
-+#define FTRACE_ENTRY_PACKED(name, struct_name, id, tstruct, print,	\
-+			    filter)					\
-+	FTRACE_ENTRY(name, struct_name, id, PARAMS(tstruct), PARAMS(print), \
-+		     filter) __packed
-+
- #include "trace_entries.h"
- 
- /*
-@@ -1625,6 +1631,11 @@ int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
- #define FTRACE_ENTRY_DUP(call, struct_name, id, tstruct, print, filter)	\
- 	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
- 		     filter)
-+#undef FTRACE_ENTRY_PACKED
-+#define FTRACE_ENTRY_PACKED(call, struct_name, id, tstruct, print, filter) \
-+	FTRACE_ENTRY(call, struct_name, id, PARAMS(tstruct), PARAMS(print), \
-+		     filter)
-+
- #include "trace_entries.h"
- 
- #if defined(CONFIG_PERF_EVENTS) && defined(CONFIG_FUNCTION_TRACER)
-diff --git a/kernel/trace/trace_entries.h b/kernel/trace/trace_entries.h
-index ee7b94a4810a..5c30efcda5e6 100644
---- a/kernel/trace/trace_entries.h
-+++ b/kernel/trace/trace_entries.h
-@@ -72,7 +72,7 @@ FTRACE_ENTRY_REG(function, ftrace_entry,
- );
- 
- /* Function call entry */
--FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
-+FTRACE_ENTRY_PACKED(funcgraph_entry, ftrace_graph_ent_entry,
- 
- 	TRACE_GRAPH_ENT,
- 
-@@ -88,7 +88,7 @@ FTRACE_ENTRY(funcgraph_entry, ftrace_graph_ent_entry,
- );
- 
- /* Function return entry */
--FTRACE_ENTRY(funcgraph_exit, ftrace_graph_ret_entry,
-+FTRACE_ENTRY_PACKED(funcgraph_exit, ftrace_graph_ret_entry,
- 
- 	TRACE_GRAPH_RET,
- 
--- 
-2.8.1
+--Andy
