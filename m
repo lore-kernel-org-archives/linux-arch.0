@@ -1,68 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:35987 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751426AbcGRJ5E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2016 05:57:04 -0400
-Date: Mon, 18 Jul 2016 11:56:57 +0200
-From: Ingo Molnar <mingo@kernel.org>
+Received: from www.sr71.net ([198.145.64.142]:54808 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751364AbcGRSC3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Jul 2016 14:02:29 -0400
 Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
-Message-ID: <20160718095657.GA5374@gmail.com>
-References: <20160709083715.GA29939@gmail.com>
- <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
- <5783AE8F.3@sr71.net>
- <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
- <5783BFB0.70203@intel.com>
- <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
- <20160713075550.GA515@gmail.com>
- <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
- <20160714080701.GA14613@gmail.com>
- <CALCETrWPM_jrF6saHPxoUL4vkjhhGBfizATXrFOW=+z5xycToQ@mail.gmail.com>
+References: <20160707124719.3F04C882@viggo.jf.intel.com>
+ <20160707124728.C1116BB1@viggo.jf.intel.com>
+ <20160707144508.GZ11498@techsingularity.net> <577E924C.6010406@sr71.net>
+ <20160708071810.GA27457@gmail.com> <577FD587.6050101@sr71.net>
+ <20160709083715.GA29939@gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <578D19AF.3020204@sr71.net>
+Date: Mon, 18 Jul 2016 11:02:23 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrWPM_jrF6saHPxoUL4vkjhhGBfizATXrFOW=+z5xycToQ@mail.gmail.com>
+In-Reply-To: <20160709083715.GA29939@gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20160718095657.T1Zclb1rsBLj5CfDM5872hU0FoUoD5TVTlcal_21tGM@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Mel Gorman <mgorman@techsingularity.net>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dave.hansen@linux.intel.com, arnd@arndb.de, hughd@google.com, viro@zeniv.linux.org.uk, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20160718180223.UWCRjEcgpOz87fH4IK_hhZXRaMBagvRGCqRi7E9mP14@z>
 
-
-* Andy Lutomirski <luto@amacapital.net> wrote:
-
-> On Thu, Jul 14, 2016 at 1:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >
-> > * Andy Lutomirski <luto@amacapital.net> wrote:
-> >
-> >> On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >> >
-> >> > * Andy Lutomirski <luto@amacapital.net> wrote:
-> >> >
-> >> >> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
-> >> >> > lose the content of that "push".  I'm not sure there's any way to guarantee
-> >> >> > this with a user-controlled register.
-> >> >>
-> >> >> We could try to insist that user code uses some vsyscall helper that tracks
-> >> >> which bits are as-yet-unassigned.  That's quite messy, though.
-> >> >
-> >> > Actually, if we turned the vDSO into something more like a minimal user-space
-> >> > library with the ability to run at process startup as well to prepare stuff
-> >> > then it's painful to get right only *once*, and there will be tons of other
-> >> > areas where a proper per thread data storage on the user-space side would be
-> >> > immensely useful!
-> >>
-> >> Doing this could be tricky: how exactly is the vDSO supposed to find per-thread
-> >> data without breaking existing glibc?
-> >
-> > So I think the way this could be done is by allocating it itself. The vDSO vma
-> > itself is 'external' to glibc as well to begin with - this would be a small
-> > extension to that concept.
+On 07/09/2016 01:37 AM, Ingo Molnar wrote:
+>    I.e. this pattern:
 > 
-> But how does the vdso code find it?  FS and GS are both spoken for by existing 
-> userspace.
+>      ret = pkey_mprotect(NULL, PAGE_SIZE, real_prot, pkey);
+> 
+>    ... would validate the pkey and we'd return -EOPNOTSUPP for pkey that is not 
+>    available? This would allow maximum future flexibility as it would not define 
+>    kernel allocated pkeys as a 'range'.
 
-Minimally relinking itself on a per mm basis?
+Isn't this  multiplexing an otherwise straightforward system call?  In
+addition to providing pkey assignment to memory, it would also being
+used to pass pkey allocation information independently from any use for
+memory assignment.
 
-Thanks,
-
-	Ingo
+The complexity of the ABI comes from its behavior, not from the raw
+number of system calls that are needed to implement it.  IOW, this makes
+the ABI *more* complicated.
