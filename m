@@ -1,102 +1,69 @@
-From: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
-Subject: [PATCH v4] locking/qrwlock: Fix write unlock issue in big endian
-Date: Mon, 18 Jul 2016 17:47:39 +0800
-Message-ID: <1468835259-4486-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:13179 "EHLO
-	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751456AbcGRJtt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Jul 2016 05:49:49 -0400
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6I9n9xN055560
-	for <linux-arch@vger.kernel.org>; Mon, 18 Jul 2016 05:49:48 -0400
-Received: from e34.co.us.ibm.com (e34.co.us.ibm.com [32.97.110.152])
-	by mx0a-001b2d01.pphosted.com with ESMTP id 2482fvyr8w-1
-	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Mon, 18 Jul 2016 05:49:48 -0400
-Received: from localhost
-	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <xinhui.pan@linux.vnet.ibm.com>;
-	Mon, 18 Jul 2016 03:49:47 -0600
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: peterz@infradead.org, arnd@arndb.de, Waiman.Long@hpe.com, mingo@redhat.com, will.deacon@arm.com, boqun.feng@gmail.com, pan xinhui <xinhui.pan@linux.vnet.ibm.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 6/9] x86, pkeys: add pkey set/get syscalls
+Date: Mon, 18 Jul 2016 11:56:57 +0200
+Message-ID: <20160718095657.GA5374@gmail.com>
+References: <20160709083715.GA29939@gmail.com>
+ <CALCETrXJhVz6Za4=oidiM2Vfbb+XdggFBYiVyvOCcia+w064aQ@mail.gmail.com>
+ <5783AE8F.3@sr71.net>
+ <CALCETrW1qLZE_cq1CvmLkdnFyKRWVZuah29xERTC7o0eZ8DbwQ@mail.gmail.com>
+ <5783BFB0.70203@intel.com>
+ <CALCETrUZeZ00sFrTEqWSB-OxkCzGQxknmPTvFe4bv5mKc3hE+Q@mail.gmail.com>
+ <20160713075550.GA515@gmail.com>
+ <CALCETrUxL2ZAn8-GDtpwQPhLeNRXXp7RM1EVX2JExE+gkWGj3g@mail.gmail.com>
+ <20160714080701.GA14613@gmail.com>
+ <CALCETrWPM_jrF6saHPxoUL4vkjhhGBfizATXrFOW=+z5xycToQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrWPM_jrF6saHPxoUL4vkjhhGBfizATXrFOW=+z5xycToQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Dave Hansen <dave.hansen@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Dave Hansen <dave.hansen@linux.intel.com>, Al Viro <viro@zeniv.linux.org.uk>, X86 ML <x86@kernel.org>, Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linux API <linux-api@vger.kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: pan xinhui <xinhui.pan@linux.vnet.ibm.com>
 
-This patch aims to get rid of endianness in queued_write_unlock(). We
-want to set  __qrwlock->wmode to NULL, however the address is not
-&lock->cnts in big endian machine. That causes queued_write_unlock()
-write NULL to the wrong field of __qrwlock.
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
-So implement __qrwlock_write_byte() which returns the correct
-__qrwlock->wmode address.
+> On Thu, Jul 14, 2016 at 1:07 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >
+> > * Andy Lutomirski <luto@amacapital.net> wrote:
+> >
+> >> On Wed, Jul 13, 2016 at 12:56 AM, Ingo Molnar <mingo@kernel.org> wrote:
+> >> >
+> >> > * Andy Lutomirski <luto@amacapital.net> wrote:
+> >> >
+> >> >> > If we push a PKRU value into a thread between the rdpkru() and wrpkru(), we'll
+> >> >> > lose the content of that "push".  I'm not sure there's any way to guarantee
+> >> >> > this with a user-controlled register.
+> >> >>
+> >> >> We could try to insist that user code uses some vsyscall helper that tracks
+> >> >> which bits are as-yet-unassigned.  That's quite messy, though.
+> >> >
+> >> > Actually, if we turned the vDSO into something more like a minimal user-space
+> >> > library with the ability to run at process startup as well to prepare stuff
+> >> > then it's painful to get right only *once*, and there will be tons of other
+> >> > areas where a proper per thread data storage on the user-space side would be
+> >> > immensely useful!
+> >>
+> >> Doing this could be tricky: how exactly is the vDSO supposed to find per-thread
+> >> data without breaking existing glibc?
+> >
+> > So I think the way this could be done is by allocating it itself. The vDSO vma
+> > itself is 'external' to glibc as well to begin with - this would be a small
+> > extension to that concept.
+> 
+> But how does the vdso code find it?  FS and GS are both spoken for by existing 
+> userspace.
 
-Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
----
-change from v3:
-	rewrite totally. :)
-change from v2:
-	change macro's name, add comments.
-change from v1:
-	A typo fix which is really bad...
-	thanks Will for the carefull review.
----
- include/asm-generic/qrwlock.h | 27 +++++++++++++++++++++++++--
- 1 file changed, 25 insertions(+), 2 deletions(-)
+Minimally relinking itself on a per mm basis?
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 54a8e65..7d026bf 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -25,7 +25,20 @@
- #include <asm-generic/qrwlock_types.h>
- 
- /*
-- * Writer states & reader shift and bias
-+ * Writer states & reader shift and bias.
-+ *
-+ *       | +0 | +1 | +2 | +3 |
-+ *   ----+----+----+----+----+
-+ *    LE | 78 | 56 | 34 | 12 | 0x12345678
-+ *   ----+----+----+----+----+
-+ *       | wr |      rd      |
-+ *       +----+----+----+----+
-+ *
-+ *   ----+----+----+----+----+
-+ *    BE | 12 | 34 | 56 | 78 | 0x12345678
-+ *   ----+----+----+----+----+
-+ *       |      rd      | wr |
-+ *       +----+----+----+----+
-  */
- #define	_QW_WAITING	1		/* A writer is waiting	   */
- #define	_QW_LOCKED	0xff		/* A writer holds the lock */
-@@ -134,12 +147,22 @@ static inline void queued_read_unlock(struct qrwlock *lock)
- }
- 
- /**
-+ * __qrwlock_write_byte - retrieve the write byte address of a queue rwlock
-+ * @lock : Pointer to queue rwlock structure
-+ * Return: the write byte address of a queue rwlock
-+ */
-+static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
-+{
-+	return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
-+}
-+
-+/**
-  * queued_write_unlock - release write lock of a queue rwlock
-  * @lock : Pointer to queue rwlock structure
-  */
- static inline void queued_write_unlock(struct qrwlock *lock)
- {
--	smp_store_release((u8 *)&lock->cnts, 0);
-+	smp_store_release(__qrwlock_write_byte(lock), 0);
- }
- 
- /*
--- 
-1.9.1
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
