@@ -1,72 +1,47 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 0/2] arm/arm64: localise objcopy flags
-Date: Tue, 19 Jul 2016 11:29:26 +0100
-Message-ID: <20160719102925.GB27022@leverpostej>
-References: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
- <a1441405-5a3a-731c-2693-b66cd42edc99@redhat.com>
+Subject: Re: Is THREAD_INFO_IN_TASK appropriate for -mm for 4.8?
+Date: Tue, 19 Jul 2016 12:22:41 +0100
+Message-ID: <20160719112223.GA20476@leverpostej>
+References: <CALCETrUf_7=Tr4JrDj+3UPT5kUT1MsRtypvfqkOg_MVHAJu=PA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34638 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:34876 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752348AbcGSK3b (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jul 2016 06:29:31 -0400
+	id S1752713AbcGSLXC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jul 2016 07:23:02 -0400
 Content-Disposition: inline
-In-Reply-To: <a1441405-5a3a-731c-2693-b66cd42edc99@redhat.com>
+In-Reply-To: <CALCETrUf_7=Tr4JrDj+3UPT5kUT1MsRtypvfqkOg_MVHAJu=PA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>, catalin.marinas@arm.com, will.deacon@arm.com
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, keescook@chromium.org, linux@armlinux.org.uk
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, x86 <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Mon, Jul 18, 2016 at 04:16:34PM -0700, Laura Abbott wrote:
-> On 07/12/2016 08:28 AM, Mark Rutland wrote:
-> >Hi,
-> >
-> >Typically, architectures (including arm and arm64) define OBJCOPYFLAGS in their
-> >top-level makefile, for the purpose of generating a raw binaries suitable for
-> >booting, including Image, zImage, vmlinux.bin, etc.
-> >
-> >As this top-level arch makefile is included by the top-level kernel makefile,
-> >these flags are passed to other invocations of objcopy tree-wide. This can
-> >result in unexpected and inconsistent behaviour across architectures (e.g.
-> >generation of a raw binary rather than an ELF [1]).
-> >
-> >Rather than force each new user of objcopy to specially clear OBJCOPYFLAGS,
-> >this patch moves the existing OBJCOPYFLAGS variable definitions such that they
-> >only affects the cases we require them for today, leaving the global namespace
-> >clear.
-> >
-> >Other architectures will likely need similar treatment.
-> >
-> >Thanks,
-> >Mark.
-> >
-> >[1] http://www.openwall.com/lists/kernel-hardening/2016/06/08/2
-> >
-> >Mark Rutland (2):
-> >  arm64: localise Image objcopy flags
-> >  arm: localise objcopy flags
-> >
-> > arch/arm/Makefile        | 1 -
-> > arch/arm/boot/Makefile   | 2 ++
-> > arch/arm64/Makefile      | 1 -
-> > arch/arm64/boot/Makefile | 2 ++
-> > 4 files changed, 4 insertions(+), 2 deletions(-)
-> >
+On Mon, Jul 18, 2016 at 04:47:39PM -0700, Andy Lutomirski wrote:
+> Hi all-
 > 
-> Kees' lkdtm tests compile and boot successfully with this patch for
-> both arm and arm64 so you can add
+> There are four core patches needed for the THREAD_INFO_IN_TASK thing,
+> and they apply cleanly to -mm now.  The x86 patch to flip the feature
+> on does not apply cleanly anywhere because it depends on changes in
+> -tip *and* in -mm.  I'd like to get all of this as well as the rest of
+> the vmap-stacks stuff in by 4.9, but I'm wondering if it might make
+> sense to get the core THREAD_INFO_IN_TASK stuff into -mm for 4.8
+> instead.
 > 
-> Tested-by: Laura Abbott <labbott@redhat.com>
+> Pros:
+>  - It reduces the amount of core code that -tip will have to carry until 4.9.
+>  - It may benefit other architectures.  Christian Borntraeger
+> expressed an interest in enabling the feature for s390, but it'll be
+> awkward for him until the core bit landed.  Similarly, arm64 seems to
+> be interested.
 
-Cheers!
+This would probably be useful for arm64.
 
-On the assumption that Russell is ok with the arm patch, I've dropped
-that in the patch system (with tags) as 8588/1 [1].
-
-Catalin, Will, I guess I should repost the arm64 patch come v4.8-rc1?
+There's still a reasonable amount to figure out (e.g. [1,2]), so from my
+PoV this is a nice-to-have, but there's no pressure.
 
 Thanks,
 Mark.
 
-[1] http://www.armlinux.org.uk/developer/patches/viewpatch.php?id=8588/1
+[1] https://lkml.org/lkml/2016/7/11/193
+[2] https://lkml.org/lkml/2016/7/11/483
