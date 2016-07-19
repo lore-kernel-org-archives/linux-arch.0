@@ -1,47 +1,51 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: Is THREAD_INFO_IN_TASK appropriate for -mm for 4.8?
-Date: Tue, 19 Jul 2016 12:22:41 +0100
-Message-ID: <20160719112223.GA20476@leverpostej>
-References: <CALCETrUf_7=Tr4JrDj+3UPT5kUT1MsRtypvfqkOg_MVHAJu=PA@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 0/2] arm/arm64: localise objcopy flags
+Date: Tue, 19 Jul 2016 15:31:41 +0100
+Message-ID: <20160719143141.GF21256@e104818-lin.cambridge.arm.com>
+References: <1468337282-14527-1-git-send-email-mark.rutland@arm.com>
+ <a1441405-5a3a-731c-2693-b66cd42edc99@redhat.com>
+ <20160719102925.GB27022@leverpostej>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34876 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:36583 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752713AbcGSLXC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jul 2016 07:23:02 -0400
+	id S1753654AbcGSObq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jul 2016 10:31:46 -0400
 Content-Disposition: inline
-In-Reply-To: <CALCETrUf_7=Tr4JrDj+3UPT5kUT1MsRtypvfqkOg_MVHAJu=PA@mail.gmail.com>
+In-Reply-To: <20160719102925.GB27022@leverpostej>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, x86 <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Laura Abbott <labbott@redhat.com>, will.deacon@arm.com, linux-arch@vger.kernel.org, keescook@chromium.org, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk
 
-On Mon, Jul 18, 2016 at 04:47:39PM -0700, Andy Lutomirski wrote:
-> Hi all-
+On Tue, Jul 19, 2016 at 11:29:26AM +0100, Mark Rutland wrote:
+> On Mon, Jul 18, 2016 at 04:16:34PM -0700, Laura Abbott wrote:
+> > On 07/12/2016 08:28 AM, Mark Rutland wrote:
+> > >Mark Rutland (2):
+> > >  arm64: localise Image objcopy flags
+> > >  arm: localise objcopy flags
+> > >
+> > > arch/arm/Makefile        | 1 -
+> > > arch/arm/boot/Makefile   | 2 ++
+> > > arch/arm64/Makefile      | 1 -
+> > > arch/arm64/boot/Makefile | 2 ++
+> > > 4 files changed, 4 insertions(+), 2 deletions(-)
+> > >
+> > 
+> > Kees' lkdtm tests compile and boot successfully with this patch for
+> > both arm and arm64 so you can add
+> > 
+> > Tested-by: Laura Abbott <labbott@redhat.com>
 > 
-> There are four core patches needed for the THREAD_INFO_IN_TASK thing,
-> and they apply cleanly to -mm now.  The x86 patch to flip the feature
-> on does not apply cleanly anywhere because it depends on changes in
-> -tip *and* in -mm.  I'd like to get all of this as well as the rest of
-> the vmap-stacks stuff in by 4.9, but I'm wondering if it might make
-> sense to get the core THREAD_INFO_IN_TASK stuff into -mm for 4.8
-> instead.
+> Cheers!
 > 
-> Pros:
->  - It reduces the amount of core code that -tip will have to carry until 4.9.
->  - It may benefit other architectures.  Christian Borntraeger
-> expressed an interest in enabling the feature for s390, but it'll be
-> awkward for him until the core bit landed.  Similarly, arm64 seems to
-> be interested.
+> On the assumption that Russell is ok with the arm patch, I've dropped
+> that in the patch system (with tags) as 8588/1 [1].
+> 
+> Catalin, Will, I guess I should repost the arm64 patch come v4.8-rc1?
 
-This would probably be useful for arm64.
+I queued them for 4.8. Thanks.
 
-There's still a reasonable amount to figure out (e.g. [1,2]), so from my
-PoV this is a nice-to-have, but there's no pressure.
-
-Thanks,
-Mark.
-
-[1] https://lkml.org/lkml/2016/7/11/193
-[2] https://lkml.org/lkml/2016/7/11/483
+-- 
+Catalin
