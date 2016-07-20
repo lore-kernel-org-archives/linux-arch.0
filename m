@@ -1,55 +1,117 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 10/12] s390/uaccess: Enable hardened usercopy
-Date: Wed, 20 Jul 2016 13:27:05 -0700
-Message-ID: <1469046427-12696-11-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 04/12] x86/uaccess: Enable hardened usercopy
+Date: Wed, 20 Jul 2016 13:26:59 -0700
+Message-ID: <1469046427-12696-5-git-send-email-keescook@chromium.org>
 References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-Sender: linux-ia64-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: kernel-hardening@lists.openwall.com
-Cc: Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>Andrew Morton <a>
+Cc: Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>
 List-Id: linux-arch.vger.kernel.org
 
-Enables CONFIG_HARDENED_USERCOPY checks on s390.
+Enables CONFIG_HARDENED_USERCOPY checks on x86. This is done both in
+copy_*_user() and __copy_*_user() because copy_*_user() actually calls
+down to _copy_*_user() and not __copy_*_user().
+
+Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Tested-by: Valdis Kletnieks <valdis.kletnieks@vt.edu>
 ---
- arch/s390/Kconfig       | 1 +
- arch/s390/lib/uaccess.c | 2 ++
- 2 files changed, 3 insertions(+)
+ arch/x86/Kconfig                  |  1 +
+ arch/x86/include/asm/uaccess.h    | 10 ++++++----
+ arch/x86/include/asm/uaccess_32.h |  2 ++
+ arch/x86/include/asm/uaccess_64.h |  2 ++
+ 4 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index a8c259059adf..9f694311c9ed 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -122,6 +122,7 @@ config S390
- 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4407f596b72c..762a0349633c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -80,6 +80,7 @@ config X86
+ 	select HAVE_ALIGNED_STRUCT_PAGE		if SLUB
+ 	select HAVE_AOUT			if X86_32
  	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_EARLY_PFN_TO_NID
 +	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_HUGE_VMAP		if X86_64 || X86_PAE
  	select HAVE_ARCH_JUMP_LABEL
- 	select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
- 	select HAVE_ARCH_SECCOMP_FILTER
-diff --git a/arch/s390/lib/uaccess.c b/arch/s390/lib/uaccess.c
-index ae4de559e3a0..6986c20166f0 100644
---- a/arch/s390/lib/uaccess.c
-+++ b/arch/s390/lib/uaccess.c
-@@ -104,6 +104,7 @@ static inline unsigned long copy_from_user_mvcp(void *x, const void __user *ptr,
+ 	select HAVE_ARCH_KASAN			if X86_64 && SPARSEMEM_VMEMMAP
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index 2982387ba817..d3312f0fcdfc 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -742,9 +742,10 @@ copy_from_user(void *to, const void __user *from, unsigned long n)
+ 	 * case, and do only runtime checking for non-constant sizes.
+ 	 */
  
- unsigned long __copy_from_user(void *to, const void __user *from, unsigned long n)
- {
-+	check_object_size(to, n, false);
- 	if (static_branch_likely(&have_mvcos))
- 		return copy_from_user_mvcos(to, from, n);
- 	return copy_from_user_mvcp(to, from, n);
-@@ -177,6 +178,7 @@ static inline unsigned long copy_to_user_mvcs(void __user *ptr, const void *x,
+-	if (likely(sz < 0 || sz >= n))
++	if (likely(sz < 0 || sz >= n)) {
++		check_object_size(to, n, false);
+ 		n = _copy_from_user(to, from, n);
+-	else if(__builtin_constant_p(n))
++	} else if (__builtin_constant_p(n))
+ 		copy_from_user_overflow();
+ 	else
+ 		__copy_from_user_overflow(sz, n);
+@@ -762,9 +763,10 @@ copy_to_user(void __user *to, const void *from, unsigned long n)
+ 	might_fault();
  
- unsigned long __copy_to_user(void __user *to, const void *from, unsigned long n)
+ 	/* See the comment in copy_from_user() above. */
+-	if (likely(sz < 0 || sz >= n))
++	if (likely(sz < 0 || sz >= n)) {
++		check_object_size(from, n, true);
+ 		n = _copy_to_user(to, from, n);
+-	else if(__builtin_constant_p(n))
++	} else if (__builtin_constant_p(n))
+ 		copy_to_user_overflow();
+ 	else
+ 		__copy_to_user_overflow(sz, n);
+diff --git a/arch/x86/include/asm/uaccess_32.h b/arch/x86/include/asm/uaccess_32.h
+index 4b32da24faaf..7d3bdd1ed697 100644
+--- a/arch/x86/include/asm/uaccess_32.h
++++ b/arch/x86/include/asm/uaccess_32.h
+@@ -37,6 +37,7 @@ unsigned long __must_check __copy_from_user_ll_nocache_nozero
+ static __always_inline unsigned long __must_check
+ __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
  {
 +	check_object_size(from, n, true);
- 	if (static_branch_likely(&have_mvcos))
- 		return copy_to_user_mvcos(to, from, n);
- 	return copy_to_user_mvcs(to, from, n);
+ 	return __copy_to_user_ll(to, from, n);
+ }
+ 
+@@ -95,6 +96,7 @@ static __always_inline unsigned long
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+ 	might_fault();
++	check_object_size(to, n, false);
+ 	if (__builtin_constant_p(n)) {
+ 		unsigned long ret;
+ 
+diff --git a/arch/x86/include/asm/uaccess_64.h b/arch/x86/include/asm/uaccess_64.h
+index 2eac2aa3e37f..673059a109fe 100644
+--- a/arch/x86/include/asm/uaccess_64.h
++++ b/arch/x86/include/asm/uaccess_64.h
+@@ -54,6 +54,7 @@ int __copy_from_user_nocheck(void *dst, const void __user *src, unsigned size)
+ {
+ 	int ret = 0;
+ 
++	check_object_size(dst, size, false);
+ 	if (!__builtin_constant_p(size))
+ 		return copy_user_generic(dst, (__force void *)src, size);
+ 	switch (size) {
+@@ -119,6 +120,7 @@ int __copy_to_user_nocheck(void __user *dst, const void *src, unsigned size)
+ {
+ 	int ret = 0;
+ 
++	check_object_size(src, size, true);
+ 	if (!__builtin_constant_p(size))
+ 		return copy_user_generic((__force void *)dst, src, size);
+ 	switch (size) {
 -- 
 2.7.4
 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
