@@ -1,157 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:33529 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754982AbcGTU1V (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2016 16:27:21 -0400
-Received: by mail-pa0-f43.google.com with SMTP id ks6so21477756pab.0
-        for <linux-arch@vger.kernel.org>; Wed, 20 Jul 2016 13:27:21 -0700 (PDT)
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:36683 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755169AbcGTU1Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2016 16:27:24 -0400
+Received: by mail-pa0-f44.google.com with SMTP id pp5so21351175pac.3
+        for <linux-arch@vger.kernel.org>; Wed, 20 Jul 2016 13:27:23 -0700 (PDT)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 06/12] arm64/uaccess: Enable hardened usercopy
-Date: Wed, 20 Jul 2016 13:27:01 -0700
-Message-ID: <1469046427-12696-7-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 11/12] mm: SLAB hardened usercopy support
+Date: Wed, 20 Jul 2016 13:27:06 -0700
+Message-ID: <1469046427-12696-12-git-send-email-keescook@chromium.org>
 In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
 References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: kernel-hardening@lists.openwall.com
 Cc: Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20160720202701.GRJfThqSMrrVuqJdw8JiXPAw48oP06C9jraYuIcsOhE@z>
+Message-ID: <20160720202706.vaR6GXlLaHB3p5ly21YRpa65JuZxlCyXqgYOMAMmw6w@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on arm64. As done by KASAN in -next,
-renames the low-level functions to __arch_copy_*_user() so a static inline
-can do additional work before the copy.
+Under CONFIG_HARDENED_USERCOPY, this adds object size checking to the
+SLAB allocator to catch any copies that may span objects.
+
+Based on code from PaX and grsecurity.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Tested-by: Valdis Kletnieks <valdis.kletnieks@vt.edu>
 ---
- arch/arm64/Kconfig               |  1 +
- arch/arm64/include/asm/uaccess.h | 29 ++++++++++++++++++++++-------
- arch/arm64/kernel/arm64ksyms.c   |  4 ++--
- arch/arm64/lib/copy_from_user.S  |  4 ++--
- arch/arm64/lib/copy_to_user.S    |  4 ++--
- 5 files changed, 29 insertions(+), 13 deletions(-)
+ init/Kconfig |  1 +
+ mm/slab.c    | 30 ++++++++++++++++++++++++++++++
+ 2 files changed, 31 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 5a0a691d4220..9cdb2322c811 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -51,6 +51,7 @@ config ARM64
- 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select HAVE_ARCH_BITREVERSE
-+	select HAVE_ARCH_HARDENED_USERCOPY
- 	select HAVE_ARCH_HUGE_VMAP
- 	select HAVE_ARCH_JUMP_LABEL
- 	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 9e397a542756..92848b00e3cd 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -256,24 +256,39 @@ do {									\
- 		-EFAULT;						\
- })
+diff --git a/init/Kconfig b/init/Kconfig
+index f755a602d4a1..798c2020ee7c 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1757,6 +1757,7 @@ choice
  
--extern unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n);
--extern unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_from_user(void *to, const void __user *from, unsigned long n);
-+extern unsigned long __must_check __arch_copy_to_user(void __user *to, const void *from, unsigned long n);
- extern unsigned long __must_check __copy_in_user(void __user *to, const void __user *from, unsigned long n);
- extern unsigned long __must_check __clear_user(void __user *addr, unsigned long n);
+ config SLAB
+ 	bool "SLAB"
++	select HAVE_HARDENED_USERCOPY_ALLOCATOR
+ 	help
+ 	  The regular slab allocator that is established and known to work
+ 	  well in all environments. It organizes cache hot objects in
+diff --git a/mm/slab.c b/mm/slab.c
+index cc8bbc1e6bc9..5e2d5f349aca 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -4477,6 +4477,36 @@ static int __init slab_proc_init(void)
+ module_init(slab_proc_init);
+ #endif
  
-+static inline unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n)
++#ifdef CONFIG_HARDENED_USERCOPY
++/*
++ * Rejects objects that are incorrectly sized.
++ *
++ * Returns NULL if check passes, otherwise const char * to name of cache
++ * to indicate an error.
++ */
++const char *__check_heap_object(const void *ptr, unsigned long n,
++				struct page *page)
 +{
-+	check_object_size(to, n, false);
-+	return __arch_copy_from_user(to, from, n);
-+}
++	struct kmem_cache *cachep;
++	unsigned int objnr;
++	unsigned long offset;
 +
-+static inline unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	check_object_size(from, n, true);
-+	return __arch_copy_to_user(to, from, n);
-+}
++	/* Find and validate object. */
++	cachep = page->slab_cache;
++	objnr = obj_to_index(cachep, page, (void *)ptr);
++	BUG_ON(objnr >= cachep->num);
 +
- static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
- {
--	if (access_ok(VERIFY_READ, from, n))
--		n = __copy_from_user(to, from, n);
--	else /* security hole - plug it */
-+	if (access_ok(VERIFY_READ, from, n)) {
-+		check_object_size(to, n, false);
-+		n = __arch_copy_from_user(to, from, n);
-+	} else /* security hole - plug it */
- 		memset(to, 0, n);
- 	return n;
- }
- 
- static inline unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n)
- {
--	if (access_ok(VERIFY_WRITE, to, n))
--		n = __copy_to_user(to, from, n);
-+	if (access_ok(VERIFY_WRITE, to, n)) {
-+		check_object_size(from, n, true);
-+		n = __arch_copy_to_user(to, from, n);
-+	}
- 	return n;
- }
- 
-diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.c
-index 678f30b05a45..2dc44406a7ad 100644
---- a/arch/arm64/kernel/arm64ksyms.c
-+++ b/arch/arm64/kernel/arm64ksyms.c
-@@ -34,8 +34,8 @@ EXPORT_SYMBOL(copy_page);
- EXPORT_SYMBOL(clear_page);
- 
- 	/* user mem (segment) */
--EXPORT_SYMBOL(__copy_from_user);
--EXPORT_SYMBOL(__copy_to_user);
-+EXPORT_SYMBOL(__arch_copy_from_user);
-+EXPORT_SYMBOL(__arch_copy_to_user);
- EXPORT_SYMBOL(__clear_user);
- EXPORT_SYMBOL(__copy_in_user);
- 
-diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_user.S
-index 17e8306dca29..0b90497d4424 100644
---- a/arch/arm64/lib/copy_from_user.S
-+++ b/arch/arm64/lib/copy_from_user.S
-@@ -66,7 +66,7 @@
- 	.endm
- 
- end	.req	x5
--ENTRY(__copy_from_user)
-+ENTRY(__arch_copy_from_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -75,7 +75,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0				// Nothing to copy
- 	ret
--ENDPROC(__copy_from_user)
-+ENDPROC(__arch_copy_from_user)
- 
- 	.section .fixup,"ax"
- 	.align	2
-diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
-index 21faae60f988..7a7efe255034 100644
---- a/arch/arm64/lib/copy_to_user.S
-+++ b/arch/arm64/lib/copy_to_user.S
-@@ -65,7 +65,7 @@
- 	.endm
- 
- end	.req	x5
--ENTRY(__copy_to_user)
-+ENTRY(__arch_copy_to_user)
- ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(0)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	add	end, x0, x2
-@@ -74,7 +74,7 @@ ALTERNATIVE("nop", __stringify(SET_PSTATE_PAN(1)), ARM64_ALT_PAN_NOT_UAO, \
- 	    CONFIG_ARM64_PAN)
- 	mov	x0, #0
- 	ret
--ENDPROC(__copy_to_user)
-+ENDPROC(__arch_copy_to_user)
- 
- 	.section .fixup,"ax"
- 	.align	2
++	/* Find offset within object. */
++	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
++
++	/* Allow address range falling entirely within object size. */
++	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
++		return NULL;
++
++	return cachep->name;
++}
++#endif /* CONFIG_HARDENED_USERCOPY */
++
+ /**
+  * ksize - get the actual amount of memory allocated for a given object
+  * @objp: Pointer to the object
 -- 
 2.7.4
 
