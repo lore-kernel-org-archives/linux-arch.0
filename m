@@ -1,57 +1,34 @@
-From: Laura Abbott <labbott@redhat.com>
-Subject: Re: [PATCH v3 02/11] mm: Hardened usercopy
-Date: Wed, 20 Jul 2016 08:36:38 -0700
-Message-ID: <2aabe10d-2ccb-2ba6-18bb-b7f52d70d36c@redhat.com>
-References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
- <1468619065-3222-3-git-send-email-keescook@chromium.org>
- <fc3c7f68-bd2e-cb06-c47c-d97c520fc08b@redhat.com>
- <CAGXu5j+nHpHcYT8FyHNe6AFQCdakoSMW=UWDatyxhRK7CB7_=g@mail.gmail.com>
- <1469010283.2800.5.camel@gmail.com>
+From: Joseph Myers <joseph@codesourcery.com>
+Subject: Re: [RFD] Efficient unit test and fuzz tools for kernel/libc
+ porting
+Date: Wed, 20 Jul 2016 15:47:35 +0000
+Message-ID: <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
+References: <577CB5B7.7040204@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1469010283.2800.5.camel@gmail.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Balbir Singh <bsingharora@gmail.com>, Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <trinity-owner@vger.kernel.org>
+In-Reply-To: <577CB5B7.7040204@huawei.com>
+Sender: trinity-owner@vger.kernel.org
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, trinity@vger.kernel.org, syzkaller@googlegroups.com, aponomarenko@rosalab.ru, Jess Hertz <jesse.hertz@nccgroup.trust>, Tim Newsham <tim.newsham@nccgroup.trust>, arnd@arndb.dea, catalin.marinas@arm.com, broonie@kernel.org, maxim.kuvyrkov@linaro.org, ynorov@caviumnetworks.com, pinskia@gmail.com, schwab@suse.de, agraf@suse.de, marcus.shawcroft@arm.com, dingtianhong@huawei.com, guohanjun@huawei.com, cuibixuan@huawei.com, lijinyue@huawei.com, lizefan@huawei.com
 List-Id: linux-arch.vger.kernel.org
 
-On 07/20/2016 03:24 AM, Balbir Singh wrote:
-> On Tue, 2016-07-19 at 11:48 -0700, Kees Cook wrote:
->> On Mon, Jul 18, 2016 at 6:06 PM, Laura Abbott <labbott@redhat.com> wrote:
->>>
->>> On 07/15/2016 02:44 PM, Kees Cook wrote:
->>>
->>> This doesn't work when copying CMA allocated memory since CMA purposely
->>> allocates larger than a page block size without setting head pages.
->>> Given CMA may be used with drivers doing zero copy buffers, I think it
->>> should be permitted.
->>>
->>> Something like the following lets it pass (I can clean up and submit
->>> the is_migrate_cma_page APIs as a separate patch for review)
->> Yeah, this would be great. I'd rather use an accessor to check this
->> than a direct check for MIGRATE_CMA.
->>
->>>          */
->>>         for (; ptr <= end ; ptr += PAGE_SIZE, page = virt_to_head_page(ptr))
->>> {
->>> -               if (!PageReserved(page))
->>> +               if (!PageReserved(page) && !is_migrate_cma_page(page))
->>>                         return "<spans multiple pages>";
->>>         }
->> Yeah, I'll modify this a bit so that which type it starts as is
->> maintained for all pages (rather than allowing to flip back and forth
->> -- even though that is likely impossible).
->>
-> Sorry, I completely missed the MIGRATE_CMA bits. Could you clarify if you
-> caught this in testing/review?
->
-> Balbir Singh.
->
+On Wed, 6 Jul 2016, Zhangjian (Bamvor) wrote:
 
-I caught it while looking at the code and then wrote a test case to confirm
-I was correct because I wasn't sure how to easily find an in tree user.
+> correct or not. After learn and compare some fuzz tools, I feel that there is
+> no such fuzz tools could help me. So, I wrote a new fuzz tools base on the
+> trinity and it found several wrapper issues in glibc. I will first explain the
+> different with existing fuzz tools and paste my propsosal in the end.
 
-Thanks,
-Laura
+I'm not at all clear on whether any of the people working on AArch64 ILP32 
+glibc have run the glibc testsuite and investigated the results in detail 
+(the patch submissions have failed to include glibc testsuite results and 
+have included bugs that would have been detected by the glibc testsuite).  
+But, if you've found bugs in a new glibc port that were not detected by 
+the existing testsuite, then tests for those bugs should be contributed to 
+glibc (even if no existing port has those bugs, improving the test 
+coverage is still a good idea).
+
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
