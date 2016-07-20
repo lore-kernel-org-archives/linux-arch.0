@@ -1,85 +1,61 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 11/12] mm: SLAB hardened usercopy support
-Date: Wed, 20 Jul 2016 13:27:06 -0700
-Message-ID: <1469046427-12696-12-git-send-email-keescook@chromium.org>
-References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-Sender: owner-linux-mm@kvack.org
-To: kernel-hardening@lists.openwall.com
-Cc: Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>
-List-Id: linux-arch.vger.kernel.org
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 04/17] arm: get rid of superfluous __GFP_REPEAT
+Date: Wed, 20 Jul 2016 13:59:00 -0700
+Message-ID: <20160720135900.6735fc0db41807c2edf88594@linux-foundation.org>
+References: <1464599699-30131-1-git-send-email-mhocko@kernel.org>
+	<1464599699-30131-5-git-send-email-mhocko@kernel.org>
+	<20160601162424.GD19428@n2100.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51490 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754470AbcGTU7C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2016 16:59:02 -0400
+In-Reply-To: <20160601162424.GD19428@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Michal Hocko <mhocko@kernel.org>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
 
-Under CONFIG_HARDENED_USERCOPY, this adds object size checking to the
-SLAB allocator to catch any copies that may span objects.
+On Wed, 1 Jun 2016 17:24:24 +0100 Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
 
-Based on code from PaX and grsecurity.
+> On Mon, May 30, 2016 at 11:14:46AM +0200, Michal Hocko wrote:
+> > From: Michal Hocko <mhocko@suse.com>
+> > 
+> > __GFP_REPEAT has a rather weak semantic but since it has been introduced
+> > around 2.6.12 it has been ignored for low order allocations.
+> > 
+> > PGALLOC_GFP uses __GFP_REPEAT but none of the allocation which uses
+> > this flag is for more than order-2. This means that this flag has never
+> > been actually useful here because it has always been used only for
+> > PAGE_ALLOC_COSTLY requests.
+> 
+> I hear what you say, but...
+> 
+> commit 8c65da6dc89ccb605d73773b1dd617e72982d971
+> Author: Russell King <rmk+kernel@arm.linux.org.uk>
+> Date:   Sat Nov 30 12:52:31 2013 +0000
+> 
+>     ARM: pgd allocation: retry on failure
+> 
+>     Make pgd allocation retry on failure; we really need this to succeed
+>     otherwise fork() can trigger OOMs.
+> 
+>     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+> 
+> and that's the change which introduced this, and it did solve a problem
+> for me.  So I'm not happy to give an ack for this change unless someone
+> can tell me why adding __GFP_REPEAT back then had a beneficial effect.
+> Maybe there was some other bug in the MM layer in 2013 which this change
+> happened to solve?
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Tested-by: Valdis Kletnieks <valdis.kletnieks@vt.edu>
----
- init/Kconfig |  1 +
- mm/slab.c    | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+)
+I suspect that some other change has made arm's use of __GFP_REPEAT
+unnecessary, because __GFP_REPEAT is now a no-op for order-0,1,2,3
+allocations and none of the arm callsites which I can see are using
+order-4 or higher.
 
-diff --git a/init/Kconfig b/init/Kconfig
-index f755a602d4a1..798c2020ee7c 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1757,6 +1757,7 @@ choice
- 
- config SLAB
- 	bool "SLAB"
-+	select HAVE_HARDENED_USERCOPY_ALLOCATOR
- 	help
- 	  The regular slab allocator that is established and known to work
- 	  well in all environments. It organizes cache hot objects in
-diff --git a/mm/slab.c b/mm/slab.c
-index cc8bbc1e6bc9..5e2d5f349aca 100644
---- a/mm/slab.c
-+++ b/mm/slab.c
-@@ -4477,6 +4477,36 @@ static int __init slab_proc_init(void)
- module_init(slab_proc_init);
- #endif
- 
-+#ifdef CONFIG_HARDENED_USERCOPY
-+/*
-+ * Rejects objects that are incorrectly sized.
-+ *
-+ * Returns NULL if check passes, otherwise const char * to name of cache
-+ * to indicate an error.
-+ */
-+const char *__check_heap_object(const void *ptr, unsigned long n,
-+				struct page *page)
-+{
-+	struct kmem_cache *cachep;
-+	unsigned int objnr;
-+	unsigned long offset;
-+
-+	/* Find and validate object. */
-+	cachep = page->slab_cache;
-+	objnr = obj_to_index(cachep, page, (void *)ptr);
-+	BUG_ON(objnr >= cachep->num);
-+
-+	/* Find offset within object. */
-+	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
-+
-+	/* Allow address range falling entirely within object size. */
-+	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
-+		return NULL;
-+
-+	return cachep->name;
-+}
-+#endif /* CONFIG_HARDENED_USERCOPY */
-+
- /**
-  * ksize - get the actual amount of memory allocated for a given object
-  * @objp: Pointer to the object
--- 
-2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+So I think we should go ahead with this change.  If that causes some
+problem then we'll need to dig in and figure out why the impossible
+just happened, OK?
