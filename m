@@ -1,90 +1,74 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v4] locking/qrwlock: Fix write unlock issue in big endian
-Date: Thu, 21 Jul 2016 17:17:31 +0100
-Message-ID: <20160721161731.GI21616@arm.com>
-References: <1468835259-4486-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v3 02/11] mm: Hardened usercopy
+Date: Thu, 21 Jul 2016 11:34:25 -0700
+Message-ID: <CAGXu5jLCu1Vv0uugKZrsjSEsoABgXJSOJ8GkKmrHbvj9jkC2YA@mail.gmail.com>
+References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
+ <1468619065-3222-3-git-send-email-keescook@chromium.org> <5790711f.2350420a.b4287.2cc0SMTPIN_ADDED_BROKEN@mx.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48992 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753047AbcGUQRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jul 2016 12:17:32 -0400
-Content-Disposition: inline
-In-Reply-To: <1468835259-4486-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, Waiman.Long@hpe.com, mingo@redhat.com, boqun.feng@gmail.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <5790711f.2350420a.b4287.2cc0SMTPIN_ADDED_BROKEN@mx.google.com>
+Sender: owner-linux-mm@kvack.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: LKML <linux-kernel@vger.kernel.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 18, 2016 at 05:47:39PM +0800, Pan Xinhui wrote:
-> From: pan xinhui <xinhui.pan@linux.vnet.ibm.com>
-> 
-> This patch aims to get rid of endianness in queued_write_unlock(). We
-> want to set  __qrwlock->wmode to NULL, however the address is not
-> &lock->cnts in big endian machine. That causes queued_write_unlock()
-> write NULL to the wrong field of __qrwlock.
-> 
-> So implement __qrwlock_write_byte() which returns the correct
-> __qrwlock->wmode address.
-> 
-> Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
-> ---
-> change from v3:
-> 	rewrite totally. :)
-> change from v2:
-> 	change macro's name, add comments.
-> change from v1:
-> 	A typo fix which is really bad...
-> 	thanks Will for the carefull review.
-> ---
->  include/asm-generic/qrwlock.h | 27 +++++++++++++++++++++++++--
->  1 file changed, 25 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-> index 54a8e65..7d026bf 100644
-> --- a/include/asm-generic/qrwlock.h
-> +++ b/include/asm-generic/qrwlock.h
-> @@ -25,7 +25,20 @@
->  #include <asm-generic/qrwlock_types.h>
->  
->  /*
-> - * Writer states & reader shift and bias
-> + * Writer states & reader shift and bias.
-> + *
-> + *       | +0 | +1 | +2 | +3 |
-> + *   ----+----+----+----+----+
-> + *    LE | 78 | 56 | 34 | 12 | 0x12345678
-> + *   ----+----+----+----+----+
-> + *       | wr |      rd      |
-> + *       +----+----+----+----+
-> + *
-> + *   ----+----+----+----+----+
-> + *    BE | 12 | 34 | 56 | 78 | 0x12345678
-> + *   ----+----+----+----+----+
-> + *       |      rd      | wr |
-> + *       +----+----+----+----+
->   */
->  #define	_QW_WAITING	1		/* A writer is waiting	   */
->  #define	_QW_LOCKED	0xff		/* A writer holds the lock */
-> @@ -134,12 +147,22 @@ static inline void queued_read_unlock(struct qrwlock *lock)
->  }
->  
->  /**
-> + * __qrwlock_write_byte - retrieve the write byte address of a queue rwlock
-> + * @lock : Pointer to queue rwlock structure
-> + * Return: the write byte address of a queue rwlock
-> + */
-> +static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
-> +{
-> +	return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
-> +}
+On Wed, Jul 20, 2016 at 11:52 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> Kees Cook <keescook@chromium.org> writes:
+>
+>> diff --git a/mm/usercopy.c b/mm/usercopy.c
+>> new file mode 100644
+>> index 000000000000..e4bf4e7ccdf6
+>> --- /dev/null
+>> +++ b/mm/usercopy.c
+>> @@ -0,0 +1,234 @@
+> ...
+>> +
+>> +/*
+>> + * Checks if a given pointer and length is contained by the current
+>> + * stack frame (if possible).
+>> + *
+>> + *   0: not at all on the stack
+>> + *   1: fully within a valid stack frame
+>> + *   2: fully on the stack (when can't do frame-checking)
+>> + *   -1: error condition (invalid stack position or bad stack frame)
+>> + */
+>> +static noinline int check_stack_object(const void *obj, unsigned long len)
+>> +{
+>> +     const void * const stack = task_stack_page(current);
+>> +     const void * const stackend = stack + THREAD_SIZE;
+>
+> That allows access to the entire stack, including the struct thread_info,
+> is that what we want - it seems dangerous? Or did I miss a check
+> somewhere else?
 
-Might be worth a comment here, saying that IS_BUILTIN expands to 1 or 0.
+That seems like a nice improvement to make, yeah.
 
-Either way, the patch looks correct to me:
+> We have end_of_stack() which computes the end of the stack taking
+> thread_info into account (end being the opposite of your end above).
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+Amusingly, the object_is_on_stack() check in sched.h doesn't take
+thread_info into account either. :P Regardless, I think using
+end_of_stack() may not be best. To tighten the check, I think we could
+add this after checking that the object is on the stack:
 
-Will
+#ifdef CONFIG_STACK_GROWSUP
+        stackend -= sizeof(struct thread_info);
+#else
+        stack += sizeof(struct thread_info);
+#endif
+
+e.g. then if the pointer was in the thread_info, the second test would
+fail, triggering the protection.
+
+-Kees
+
+-- 
+Kees Cook
+Chrome OS & Brillo Security
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
