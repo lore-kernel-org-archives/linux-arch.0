@@ -1,94 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f172.google.com ([209.85.192.172]:36510 "EHLO
-	mail-pf0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755054AbcGTU1W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2016 16:27:22 -0400
-Received: by mail-pf0-f172.google.com with SMTP id h186so22309827pfg.3
-        for <linux-arch@vger.kernel.org>; Wed, 20 Jul 2016 13:27:22 -0700 (PDT)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 07/12] ia64/uaccess: Enable hardened usercopy
-Date: Wed, 20 Jul 2016 13:27:02 -0700
-Message-ID: <1469046427-12696-8-git-send-email-keescook@chromium.org>
-In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
+Received: from szxga04-in.huawei.com ([119.145.14.52]:17447 "EHLO
+	szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751957AbcGUMn0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jul 2016 08:43:26 -0400
+Subject: Re: [RFD] Efficient unit test and fuzz tools for kernel/libc porting
+References: <577CB5B7.7040204@huawei.com>
+ <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <5790C26F.4080408@huawei.com>
+Date: Thu, 21 Jul 2016 20:39:11 +0800
+MIME-Version: 1.0
+In-Reply-To: <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Kees Cook <keescook@chromium.org>, Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20160720202702.7Ib939KbAdvafe66-6zdIxuwzudc6MPh4GnLgHTAtEw@z>
+To: Joseph Myers <joseph@codesourcery.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, libc-alpha@sourceware.org, trinity@vger.kernel.org, syzkaller <syzkaller@googlegroups.com>, aponomarenko@rosalab.ru, Jess Hertz <jesse.hertz@nccgroup.trust>, Tim Newsham <tim.newsham@nccgroup.trust>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Mark Brown <broonie@kernel.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, Andrew Pinski <pinskia@gmail.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, marcus.shawcroft@arm.com, Ding Tianhong <dingtianhong@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, cuibixuan@huawei.com, lijinyue@huawei.com, Zefan Li <lizefan@huawei.com>
+Message-ID: <20160721123911.VD8OlhevtDO1zvRlqctZ5Sxxa7-AtfbopgpLfJWh2TQ@z>
 
-Enables CONFIG_HARDENED_USERCOPY checks on ia64.
+Hi, Joseph
 
-Based on code from PaX and grsecurity.
+On 2016/7/20 23:47, Joseph Myers wrote:
+> On Wed, 6 Jul 2016, Zhangjian (Bamvor) wrote:
+>
+>> correct or not. After learn and compare some fuzz tools, I feel that there is
+>> no such fuzz tools could help me. So, I wrote a new fuzz tools base on the
+>> trinity and it found several wrapper issues in glibc. I will first explain the
+>> different with existing fuzz tools and paste my propsosal in the end.
+>
+> I'm not at all clear on whether any of the people working on AArch64 ILP32
+> glibc have run the glibc testsuite and investigated the results in detail
+> (the patch submissions have failed to include glibc testsuite results and
+>  have included bugs that would have been detected by the glibc testsuite).
+I run test glibc testsuite in previous glibc version with v6 kernel patch
+backport to kernel-4.1, without regression. I usually run glibc testsuite
+after ltp test result looks good. So, maybe it hard to find a issue by
+glibc testsuite in this case.
+> But, if you've found bugs in a new glibc port that were not detected by
+> the existing testsuite, then tests for those bugs should be contributed to
+> glibc (even if no existing port has those bugs, improving the test
+> coverage is still a good idea).
+It is good idea. I will review the fixed issues(such as wrong context in
+signal, wrong parameter in off_t/stat relative syscalls) and check if it is
+suitable to add it to glibc testsuite. (Actually, I do not know which
+test suite (ltp or glibc) I should improve for a specific issue).
+I hope our tools could help on improving the coverage of syscall relative
+code at least.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/ia64/Kconfig               |  1 +
- arch/ia64/include/asm/uaccess.h | 18 +++++++++++++++---
- 2 files changed, 16 insertions(+), 3 deletions(-)
+Thanks.
 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index f80758cb7157..32a87ef516a0 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -53,6 +53,7 @@ config IA64
- 	select MODULES_USE_ELF_RELA
- 	select ARCH_USE_CMPXCHG_LOCKREF
- 	select HAVE_ARCH_AUDITSYSCALL
-+	select HAVE_ARCH_HARDENED_USERCOPY
- 	default y
- 	help
- 	  The Itanium Processor Family is Intel's 64-bit successor to
-diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
-index 2189d5ddc1ee..465c70982f40 100644
---- a/arch/ia64/include/asm/uaccess.h
-+++ b/arch/ia64/include/asm/uaccess.h
-@@ -241,12 +241,18 @@ extern unsigned long __must_check __copy_user (void __user *to, const void __use
- static inline unsigned long
- __copy_to_user (void __user *to, const void *from, unsigned long count)
- {
-+	if (!__builtin_constant_p(count))
-+		check_object_size(from, count, true);
-+
- 	return __copy_user(to, (__force void __user *) from, count);
- }
- 
- static inline unsigned long
- __copy_from_user (void *to, const void __user *from, unsigned long count)
- {
-+	if (!__builtin_constant_p(count))
-+		check_object_size(to, count, false);
-+
- 	return __copy_user((__force void __user *) to, from, count);
- }
- 
-@@ -258,8 +264,11 @@ __copy_from_user (void *to, const void __user *from, unsigned long count)
- 	const void *__cu_from = (from);							\
- 	long __cu_len = (n);								\
- 											\
--	if (__access_ok(__cu_to, __cu_len, get_fs()))					\
--		__cu_len = __copy_user(__cu_to, (__force void __user *) __cu_from, __cu_len);	\
-+	if (__access_ok(__cu_to, __cu_len, get_fs())) {					\
-+		if (!__builtin_constant_p(n))						\
-+			check_object_size(__cu_from, __cu_len, true);			\
-+		__cu_len = __copy_user(__cu_to, (__force void __user *)  __cu_from, __cu_len);	\
-+	}										\
- 	__cu_len;									\
- })
- 
-@@ -270,8 +279,11 @@ __copy_from_user (void *to, const void __user *from, unsigned long count)
- 	long __cu_len = (n);								\
- 											\
- 	__chk_user_ptr(__cu_from);							\
--	if (__access_ok(__cu_from, __cu_len, get_fs()))					\
-+	if (__access_ok(__cu_from, __cu_len, get_fs())) {				\
-+		if (!__builtin_constant_p(n))						\
-+			check_object_size(__cu_to, __cu_len, false);			\
- 		__cu_len = __copy_user((__force void __user *) __cu_to, __cu_from, __cu_len);	\
-+	}										\
- 	__cu_len;									\
- })
- 
--- 
-2.7.4
+Bamvor
 
