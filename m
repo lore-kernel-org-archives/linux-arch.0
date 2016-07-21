@@ -1,46 +1,48 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v3 02/11] mm: Hardened usercopy
-Date: Thu, 21 Jul 2016 16:52:09 +1000
-Message-ID: <2827.12370758436$1469084022@news.gmane.org>
-References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
- <1468619065-3222-3-git-send-email-keescook@chromium.org>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Subject: Re: [RFD] Efficient unit test and fuzz tools for kernel/libc porting
+Date: Thu, 21 Jul 2016 20:39:11 +0800
+Message-ID: <5790C26F.4080408@huawei.com>
+References: <577CB5B7.7040204@huawei.com>
+ <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1468619065-3222-3-git-send-email-keescook@chromium.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: linux-kernel@vger.kernel.org
-Cc: Jan Kara <jack@suse.cz>, kernel-hardening@lists.openwall.com, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, Christoph Lameter <cl@linux.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, x86@kernel.org, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org, Catalin Marinas <catalin.marinas@arm.com>, PaX Team <pageexec@freemail.hu>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Fenghua Yu <fenghua.yu@intel.com>, Rik van Riel <riel@redhat.com>, Kees Cook <keescook@chromium.org>, David Rientjes <rientjes@google.com>, Tony Luck <tony.luck@intel.com>, Andy Lutomirski <luto@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, Brad
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Joseph Myers <joseph@codesourcery.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, libc-alpha@sourceware.org, trinity@vger.kernel.org, syzkaller <syzkaller@googlegroups.com>, aponomarenko@rosalab.ru, Jess Hertz <jesse.hertz@nccgroup.trust>, Tim Newsham <tim.newsham@nccgroup.trust>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Mark Brown <broonie@kernel.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, Andrew Pinski <pinskia@gmail.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, marcus.shawcroft@arm.com, Ding Tianhong <dingtianhong@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, cuibixuan@huawei.com, lijinyue@huawei.com, Zefan Li <lizefan@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-S2VlcyBDb29rIDxrZWVzY29va0BjaHJvbWl1bS5vcmc+IHdyaXRlczoKCj4gZGlmZiAtLWdpdCBh
-L21tL3VzZXJjb3B5LmMgYi9tbS91c2VyY29weS5jCj4gbmV3IGZpbGUgbW9kZSAxMDA2NDQKPiBp
-bmRleCAwMDAwMDAwMDAwMDAuLmU0YmY0ZTdjY2RmNgo+IC0tLSAvZGV2L251bGwKPiArKysgYi9t
-bS91c2VyY29weS5jCj4gQEAgLTAsMCArMSwyMzQgQEAKLi4uCj4gKwo+ICsvKgo+ICsgKiBDaGVj
-a3MgaWYgYSBnaXZlbiBwb2ludGVyIGFuZCBsZW5ndGggaXMgY29udGFpbmVkIGJ5IHRoZSBjdXJy
-ZW50Cj4gKyAqIHN0YWNrIGZyYW1lIChpZiBwb3NzaWJsZSkuCj4gKyAqCj4gKyAqCTA6IG5vdCBh
-dCBhbGwgb24gdGhlIHN0YWNrCj4gKyAqCTE6IGZ1bGx5IHdpdGhpbiBhIHZhbGlkIHN0YWNrIGZy
-YW1lCj4gKyAqCTI6IGZ1bGx5IG9uIHRoZSBzdGFjayAod2hlbiBjYW4ndCBkbyBmcmFtZS1jaGVj
-a2luZykKPiArICoJLTE6IGVycm9yIGNvbmRpdGlvbiAoaW52YWxpZCBzdGFjayBwb3NpdGlvbiBv
-ciBiYWQgc3RhY2sgZnJhbWUpCj4gKyAqLwo+ICtzdGF0aWMgbm9pbmxpbmUgaW50IGNoZWNrX3N0
-YWNrX29iamVjdChjb25zdCB2b2lkICpvYmosIHVuc2lnbmVkIGxvbmcgbGVuKQo+ICt7Cj4gKwlj
-b25zdCB2b2lkICogY29uc3Qgc3RhY2sgPSB0YXNrX3N0YWNrX3BhZ2UoY3VycmVudCk7Cj4gKwlj
-b25zdCB2b2lkICogY29uc3Qgc3RhY2tlbmQgPSBzdGFjayArIFRIUkVBRF9TSVpFOwoKVGhhdCBh
-bGxvd3MgYWNjZXNzIHRvIHRoZSBlbnRpcmUgc3RhY2ssIGluY2x1ZGluZyB0aGUgc3RydWN0IHRo
-cmVhZF9pbmZvLAppcyB0aGF0IHdoYXQgd2Ugd2FudCAtIGl0IHNlZW1zIGRhbmdlcm91cz8gT3Ig
-ZGlkIEkgbWlzcyBhIGNoZWNrCnNvbWV3aGVyZSBlbHNlPwoKV2UgaGF2ZSBlbmRfb2Zfc3RhY2so
-KSB3aGljaCBjb21wdXRlcyB0aGUgZW5kIG9mIHRoZSBzdGFjayB0YWtpbmcKdGhyZWFkX2luZm8g
-aW50byBhY2NvdW50IChlbmQgYmVpbmcgdGhlIG9wcG9zaXRlIG9mIHlvdXIgZW5kIGFib3ZlKS4K
-CmNoZWVycwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpM
-aW51eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0
-dHBzOi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
+Hi, Joseph
+
+On 2016/7/20 23:47, Joseph Myers wrote:
+> On Wed, 6 Jul 2016, Zhangjian (Bamvor) wrote:
+>
+>> correct or not. After learn and compare some fuzz tools, I feel that there is
+>> no such fuzz tools could help me. So, I wrote a new fuzz tools base on the
+>> trinity and it found several wrapper issues in glibc. I will first explain the
+>> different with existing fuzz tools and paste my propsosal in the end.
+>
+> I'm not at all clear on whether any of the people working on AArch64 ILP32
+> glibc have run the glibc testsuite and investigated the results in detail
+> (the patch submissions have failed to include glibc testsuite results and
+>  have included bugs that would have been detected by the glibc testsuite).
+I run test glibc testsuite in previous glibc version with v6 kernel patch
+backport to kernel-4.1, without regression. I usually run glibc testsuite
+after ltp test result looks good. So, maybe it hard to find a issue by
+glibc testsuite in this case.
+> But, if you've found bugs in a new glibc port that were not detected by
+> the existing testsuite, then tests for those bugs should be contributed to
+> glibc (even if no existing port has those bugs, improving the test
+> coverage is still a good idea).
+It is good idea. I will review the fixed issues(such as wrong context in
+signal, wrong parameter in off_t/stat relative syscalls) and check if it is
+suitable to add it to glibc testsuite. (Actually, I do not know which
+test suite (ltp or glibc) I should improve for a specific issue).
+I hope our tools could help on improving the coverage of syscall relative
+code at least.
+
+Thanks.
+
+Bamvor
