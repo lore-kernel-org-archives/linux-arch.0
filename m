@@ -1,48 +1,90 @@
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Subject: Re: [RFD] Efficient unit test and fuzz tools for kernel/libc porting
-Date: Thu, 21 Jul 2016 20:39:11 +0800
-Message-ID: <5790C26F.4080408@huawei.com>
-References: <577CB5B7.7040204@huawei.com>
- <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v4] locking/qrwlock: Fix write unlock issue in big endian
+Date: Thu, 21 Jul 2016 17:17:31 +0100
+Message-ID: <20160721161731.GI21616@arm.com>
+References: <1468835259-4486-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.20.1607201544220.12251@digraph.polyomino.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Joseph Myers <joseph@codesourcery.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, libc-alpha@sourceware.org, trinity@vger.kernel.org, syzkaller <syzkaller@googlegroups.com>, aponomarenko@rosalab.ru, Jess Hertz <jesse.hertz@nccgroup.trust>, Tim Newsham <tim.newsham@nccgroup.trust>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Mark Brown <broonie@kernel.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, Andrew Pinski <pinskia@gmail.com>, Andreas Schwab <schwab@suse.de>, Alexander Graf <agraf@suse.de>, marcus.shawcroft@arm.com, Ding Tianhong <dingtianhong@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, cuibixuan@huawei.com, lijinyue@huawei.com, Zefan Li <lizefan@huawei.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:48992 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753047AbcGUQRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jul 2016 12:17:32 -0400
+Content-Disposition: inline
+In-Reply-To: <1468835259-4486-1-git-send-email-xinhui.pan@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, Waiman.Long@hpe.com, mingo@redhat.com, boqun.feng@gmail.com
 
-Hi, Joseph
+On Mon, Jul 18, 2016 at 05:47:39PM +0800, Pan Xinhui wrote:
+> From: pan xinhui <xinhui.pan@linux.vnet.ibm.com>
+> 
+> This patch aims to get rid of endianness in queued_write_unlock(). We
+> want to set  __qrwlock->wmode to NULL, however the address is not
+> &lock->cnts in big endian machine. That causes queued_write_unlock()
+> write NULL to the wrong field of __qrwlock.
+> 
+> So implement __qrwlock_write_byte() which returns the correct
+> __qrwlock->wmode address.
+> 
+> Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Signed-off-by: Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>
+> ---
+> change from v3:
+> 	rewrite totally. :)
+> change from v2:
+> 	change macro's name, add comments.
+> change from v1:
+> 	A typo fix which is really bad...
+> 	thanks Will for the carefull review.
+> ---
+>  include/asm-generic/qrwlock.h | 27 +++++++++++++++++++++++++--
+>  1 file changed, 25 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> index 54a8e65..7d026bf 100644
+> --- a/include/asm-generic/qrwlock.h
+> +++ b/include/asm-generic/qrwlock.h
+> @@ -25,7 +25,20 @@
+>  #include <asm-generic/qrwlock_types.h>
+>  
+>  /*
+> - * Writer states & reader shift and bias
+> + * Writer states & reader shift and bias.
+> + *
+> + *       | +0 | +1 | +2 | +3 |
+> + *   ----+----+----+----+----+
+> + *    LE | 78 | 56 | 34 | 12 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *       | wr |      rd      |
+> + *       +----+----+----+----+
+> + *
+> + *   ----+----+----+----+----+
+> + *    BE | 12 | 34 | 56 | 78 | 0x12345678
+> + *   ----+----+----+----+----+
+> + *       |      rd      | wr |
+> + *       +----+----+----+----+
+>   */
+>  #define	_QW_WAITING	1		/* A writer is waiting	   */
+>  #define	_QW_LOCKED	0xff		/* A writer holds the lock */
+> @@ -134,12 +147,22 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+>  }
+>  
+>  /**
+> + * __qrwlock_write_byte - retrieve the write byte address of a queue rwlock
+> + * @lock : Pointer to queue rwlock structure
+> + * Return: the write byte address of a queue rwlock
+> + */
+> +static inline u8 *__qrwlock_write_byte(struct qrwlock *lock)
+> +{
+> +	return (u8 *)lock + 3 * IS_BUILTIN(CONFIG_CPU_BIG_ENDIAN);
+> +}
 
-On 2016/7/20 23:47, Joseph Myers wrote:
-> On Wed, 6 Jul 2016, Zhangjian (Bamvor) wrote:
->
->> correct or not. After learn and compare some fuzz tools, I feel that there is
->> no such fuzz tools could help me. So, I wrote a new fuzz tools base on the
->> trinity and it found several wrapper issues in glibc. I will first explain the
->> different with existing fuzz tools and paste my propsosal in the end.
->
-> I'm not at all clear on whether any of the people working on AArch64 ILP32
-> glibc have run the glibc testsuite and investigated the results in detail
-> (the patch submissions have failed to include glibc testsuite results and
->  have included bugs that would have been detected by the glibc testsuite).
-I run test glibc testsuite in previous glibc version with v6 kernel patch
-backport to kernel-4.1, without regression. I usually run glibc testsuite
-after ltp test result looks good. So, maybe it hard to find a issue by
-glibc testsuite in this case.
-> But, if you've found bugs in a new glibc port that were not detected by
-> the existing testsuite, then tests for those bugs should be contributed to
-> glibc (even if no existing port has those bugs, improving the test
-> coverage is still a good idea).
-It is good idea. I will review the fixed issues(such as wrong context in
-signal, wrong parameter in off_t/stat relative syscalls) and check if it is
-suitable to add it to glibc testsuite. (Actually, I do not know which
-test suite (ltp or glibc) I should improve for a specific issue).
-I hope our tools could help on improving the coverage of syscall relative
-code at least.
+Might be worth a comment here, saying that IS_BUILTIN expands to 1 or 0.
 
-Thanks.
+Either way, the patch looks correct to me:
 
-Bamvor
+Acked-by: Will Deacon <will.deacon@arm.com>
+
+Will
