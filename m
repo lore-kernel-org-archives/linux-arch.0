@@ -1,145 +1,156 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [RFC v3 13/13] kprobes: port blacklist kprobes to linker table
-Date: Fri, 22 Jul 2016 14:24:47 -0700
-Message-ID: <1469222687-1600-14-git-send-email-mcgrof@kernel.org>
+Subject: [RFC v3 09/13] firmware: port built-in section to linker table
+Date: Fri, 22 Jul 2016 14:24:43 -0700
+Message-ID: <1469222687-1600-10-git-send-email-mcgrof@kernel.org>
 References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:53588 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754599AbcGVVZl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Jul 2016 17:25:41 -0400
+Return-path: <sparclinux-owner@vger.kernel.org>
 In-Reply-To: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: sparclinux-owner@vger.kernel.org
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foun
+List-Id: linux-arch.vger.kernel.org
 
-kprobe makes use of two sections, the one dealing with the actual
-kprobes was recently ported using the standard section range API.
-The blacklist functionality of kprobes is still using a custom
-section and declaring its custom section using the linker script
-as follows:
+This ports built-in firmware to use linker tables,
+this replaces the custom section solution with a
+generic solution.
 
-type  Linux-section custom section name  begin                    end
-table .init.data    _kprobe_blacklist    __start_kprobe_blacklist __stop_kprobe_blacklist
+This also demos the use of the .rodata (SECTION_RO)
+linker tables.
 
-This ports the _kprobe_blacklist custom section to the standard
-Linux linker table API allowing us remove all the custom blacklist
-kprobe section declarations from the linker script.
+Tested with 0 built-in firmware, 1 and 2 built-in
+firmwares successfully.
 
-This has been tested by trying to register a kprobe on a blacklisted
-symbol (these are declared with NOKPROBE_SYMBOL()), and confirms that
-this fails to work as expected. This was tested with:
+v3:
+o explicitly include tables.h as we no longer include
+  tables.h from sections.h
 
- # insmod samples/kprobes/kprobe_example.ko symbol="get_kprobe"
+o use new section_tbl_asmtype() helper on firmware/Makefile
+  to enable having to unfold things on our own.
 
-This fails to load as expected with:
-
-insmod: ERROR: could not insert module samples/kprobes/kprobe_example.ko: Invalid parameters
-
-v3: this patch was introduced in this series
+v2: introduced this file in this version of the series
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- include/asm-generic/vmlinux.lds.h | 10 ----------
- include/linux/kprobes.h           |  5 +++--
- kernel/kprobes.c                  | 11 ++++-------
- 3 files changed, 7 insertions(+), 19 deletions(-)
+ arch/x86/kernel/cpu/microcode/core.c |  8 ++++----
+ drivers/base/firmware_class.c        | 12 ++++++------
+ firmware/Makefile                    |  4 +++-
+ include/asm-generic/vmlinux.lds.h    |  7 -------
+ 4 files changed, 13 insertions(+), 18 deletions(-)
 
+diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
+index df04b2d033f6..3e7c08d99601 100644
+--- a/arch/x86/kernel/cpu/microcode/core.c
++++ b/arch/x86/kernel/cpu/microcode/core.c
+@@ -31,6 +31,7 @@
+ #include <linux/cpu.h>
+ #include <linux/fs.h>
+ #include <linux/mm.h>
++#include <linux/tables.h>
+ 
+ #include <asm/microcode_intel.h>
+ #include <asm/cpu_device_id.h>
+@@ -91,15 +92,14 @@ static bool __init check_loader_disabled_bsp(void)
+ 	return *res;
+ }
+ 
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++DECLARE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
+ 
+ bool get_builtin_firmware(struct cpio_data *cd, const char *name)
+ {
+ #ifdef CONFIG_FW_LOADER
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
+ 
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
+ 		if (!strcmp(name, b_fw->name)) {
+ 			cd->size = b_fw->size;
+ 			cd->data = b_fw->data;
+diff --git a/drivers/base/firmware_class.c b/drivers/base/firmware_class.c
+index 22d1760a4278..8fbf03c3e4c2 100644
+--- a/drivers/base/firmware_class.c
++++ b/drivers/base/firmware_class.c
+@@ -30,6 +30,7 @@
+ #include <linux/syscore_ops.h>
+ #include <linux/reboot.h>
+ #include <linux/security.h>
++#include <linux/tables.h>
+ 
+ #include <generated/utsrelease.h>
+ 
+@@ -43,15 +44,14 @@ MODULE_LICENSE("GPL");
+ 
+ #ifdef CONFIG_FW_LOADER
+ 
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++DEFINE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
+ 
+ static bool fw_get_builtin_firmware(struct firmware *fw, const char *name,
+ 				    void *buf, size_t size)
+ {
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
+ 
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
+ 		if (strcmp(name, b_fw->name) == 0) {
+ 			fw->size = b_fw->size;
+ 			fw->data = b_fw->data;
+@@ -67,9 +67,9 @@ static bool fw_get_builtin_firmware(struct firmware *fw, const char *name,
+ 
+ static bool fw_is_builtin_firmware(const struct firmware *fw)
+ {
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
+ 
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++)
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw)
+ 		if (fw->data == b_fw->data)
+ 			return true;
+ 
+diff --git a/firmware/Makefile b/firmware/Makefile
+index fa3e81c2a97b..32304a227f09 100644
+--- a/firmware/Makefile
++++ b/firmware/Makefile
+@@ -155,6 +155,8 @@ quiet_cmd_fwbin = MK_FW   $@
+ 		  ASM_ALIGN=$(if $(CONFIG_64BIT),3,2);			     \
+ 		  PROGBITS=$(if $(CONFIG_ARM),%,@)progbits;		     \
+ 		  echo "/* Generated by firmware/Makefile */"		> $@;\
++		  echo "\#include <asm/sections.h>"			>>$@;\
++		  echo "\#include <asm/tables.h>"			>>$@;\
+ 		  echo "    .section .rodata"				>>$@;\
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "_fw_$${FWSTR}_bin:"				>>$@;\
+@@ -164,7 +166,7 @@ quiet_cmd_fwbin = MK_FW   $@
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "_fw_$${FWSTR}_name:"				>>$@;\
+ 		  echo "    .string \"$$FWNAME\""			>>$@;\
+-		  echo "    .section .builtin_fw,\"a\",$${PROGBITS}"	>>$@;\
++		  echo "    section_tbl_asmtype(SECTION_RODATA, builtin_fw, SECTION_ORDER_ANY, a,$${PROGBITS})"	>>$@;\
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_name"		>>$@;\
+ 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_bin"		>>$@;\
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 1664050e6560..0e4df8c61c18 100644
+index b3a9cd7bc947..8e31a4454841 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -113,15 +113,6 @@
- #define BRANCH_PROFILE()
- #endif
- 
--#ifdef CONFIG_KPROBES
--#define KPROBE_BLACKLIST()	. = ALIGN(8);				      \
--				VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
--				*(_kprobe_blacklist)			      \
--				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
--#else
--#define KPROBE_BLACKLIST()
--#endif
--
- #ifdef CONFIG_EVENT_TRACING
- #define FTRACE_EVENTS()	. = ALIGN(8);					\
- 			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
-@@ -519,7 +510,6 @@
- 	*(SECTION_INIT_RODATA)						\
- 	FTRACE_EVENTS()							\
- 	TRACE_SYSCALLS()						\
--	KPROBE_BLACKLIST()						\
- 	MEM_DISCARD(init.rodata)					\
- 	CLK_OF_TABLES()							\
- 	RESERVEDMEM_OF_TABLES()						\
-diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index 3f46b282a3f9..c9bb9caef70c 100644
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -43,9 +43,11 @@
- 
- #ifdef CONFIG_KPROBES
- #include <linux/ranges.h>
-+#include <linux/tables.h>
- #include <asm/kprobes.h>
- 
- DECLARE_SECTION_RANGE(kprobes);
-+DECLARE_LINKTABLE(unsigned long, _kprobe_blacklist);
- 
- /* kprobe_status settings */
- #define KPROBE_HIT_ACTIVE	0x00000001
-@@ -490,8 +492,7 @@ static inline int enable_jprobe(struct jprobe *jp)
-  * by using this macro.
-  */
- #define __NOKPROBE_SYMBOL(fname)			\
--static unsigned long __used				\
--	__attribute__((section("_kprobe_blacklist")))	\
-+static LINKTABLE_INIT_DATA(_kprobe_blacklist, all)		\
- 	_kbl_addr_##fname = (unsigned long)fname;
- #define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
- #else
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index 387605682622..4801aa3b4adf 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -2053,14 +2053,13 @@ NOKPROBE_SYMBOL(dump_kprobe);
-  * since a kprobe need not necessarily be at the beginning
-  * of a function.
-  */
--static int __init populate_kprobe_blacklist(unsigned long *start,
--					     unsigned long *end)
-+static int __init populate_kprobe_blacklist(void)
- {
- 	unsigned long *iter;
- 	struct kprobe_blacklist_entry *ent;
- 	unsigned long entry, offset = 0, size = 0;
- 
--	for (iter = start; iter < end; iter++) {
-+	LINKTABLE_FOR_EACH(iter, _kprobe_blacklist) {
- 		entry = arch_deref_entry_point((void *)*iter);
- 
- 		if (!kernel_text_address(entry) ||
-@@ -2125,8 +2124,7 @@ static struct notifier_block kprobe_module_nb = {
- };
- 
- /* Markers of _kprobe_blacklist section */
--extern unsigned long __start_kprobe_blacklist[];
--extern unsigned long __stop_kprobe_blacklist[];
-+DEFINE_LINKTABLE_INIT_DATA(unsigned long, _kprobe_blacklist);
- 
- /* Actual kprobes section range */
- DEFINE_SECTION_RANGE(kprobes, SECTION_TEXT);
-@@ -2143,8 +2141,7 @@ static int __init init_kprobes(void)
- 		raw_spin_lock_init(&(kretprobe_table_locks[i].lock));
- 	}
- 
--	err = populate_kprobe_blacklist(__start_kprobe_blacklist,
--					__stop_kprobe_blacklist);
-+	err = populate_kprobe_blacklist();
- 	if (err) {
- 		pr_err("kprobes: failed to populate blacklist: %d\n", err);
- 		pr_err("Please take care of using kprobes.\n");
+@@ -313,13 +313,6 @@
+ 		VMLINUX_SYMBOL(__end_pci_fixups_suspend_late) = .;	\
+ 	}								\
+ 									\
+-	/* Built-in firmware blobs */					\
+-	.builtin_fw        : AT(ADDR(.builtin_fw) - LOAD_OFFSET) {	\
+-		VMLINUX_SYMBOL(__start_builtin_fw) = .;			\
+-		*(.builtin_fw)						\
+-		VMLINUX_SYMBOL(__end_builtin_fw) = .;			\
+-	}								\
+-									\
+ 	TRACEDATA							\
+ 									\
+ 	/* Kernel symbol table: Normal symbols */			\
 -- 
 2.8.4
+
