@@ -1,151 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:53384 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:53142 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754515AbcGVVZe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Jul 2016 17:25:34 -0400
+	id S1753016AbcGVVZ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 Jul 2016 17:25:28 -0400
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [RFC v3 11/13] dynamic_debug: port to use linker tables
-Date: Fri, 22 Jul 2016 14:24:45 -0700
-Message-ID: <1469222687-1600-12-git-send-email-mcgrof@kernel.org>
+Subject: [RFC v3 09/13] firmware: port built-in section to linker table
+Date: Fri, 22 Jul 2016 14:24:43 -0700
+Message-ID: <1469222687-1600-10-git-send-email-mcgrof@kernel.org>
 In-Reply-To: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
 References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20160722212445.79jGf4j8tDB7yjL2P0XbQ8fB2nB31otGXbAtDEus8RU@z>
+Message-ID: <20160722212443.Xnjrm4yI7WWIhPqBJUvpNufL0zXOjUc1O32Tux_7dr4@z>
 
-This removes the custom vmlinux.lds.h hacks and uses
-the generalized solution for .data (SECTION_DATA)
-entries.
+This ports built-in firmware to use linker tables,
+this replaces the custom section solution with a
+generic solution.
 
-This is much more potential for further fine tuning here
-though in the future. For instance, linker tables enable
-an extra postfix for order level annotations, this could
-easily be used as the KBUILD_MODNAME and with a bit of
-linker table changes we may be able to get a direct O(1)
-count of the entries for that KBUILD_MODNAME: it would
-just be a count on the number of entries for the given
-order level. This should help make dynamic_debug_init()
-cleaner and also reduce the amount of time it takes at
-boot time. Instead of iterating over each print until we
-have all for a KBUILD_MODNAME, we'd instead directly
-operate on each KBUILD_MODNAME directly.
+This also demos the use of the .rodata (SECTION_RO)
+linker tables.
 
-Tested dynamic debug with dyndbg query ana debugfs control
-and it works as expected, for both built-in code and modules.
+Tested with 0 built-in firmware, 1 and 2 built-in
+firmwares successfully.
 
-v3: added modular support
-v2: introduced this patch into the series
+v3:
+o explicitly include tables.h as we no longer include
+  tables.h from sections.h
+
+o use new section_tbl_asmtype() helper on firmware/Makefile
+  to enable having to unfold things on our own.
+
+v2: introduced this file in this version of the series
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- include/asm-generic/vmlinux.lds.h |  5 -----
- include/linux/dynamic_debug.h     |  5 +++--
- lib/dynamic_debug.c               | 13 ++++++-------
- scripts/module-common.lds.S       |  1 +
- 4 files changed, 10 insertions(+), 14 deletions(-)
+ arch/x86/kernel/cpu/microcode/core.c |  8 ++++----
+ drivers/base/firmware_class.c        | 12 ++++++------
+ firmware/Makefile                    |  4 +++-
+ include/asm-generic/vmlinux.lds.h    |  7 -------
+ 4 files changed, 13 insertions(+), 18 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index e186432a82e6..8048242b6a76 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -209,11 +209,6 @@
- 	*(.data.unlikely)						\
- 	STRUCT_ALIGN();							\
- 	*(__tracepoints)						\
--	/* implement dynamic printk debug */				\
--	. = ALIGN(8);							\
--	VMLINUX_SYMBOL(__start___verbose) = .;                          \
--	*(__verbose)                                                    \
--	VMLINUX_SYMBOL(__stop___verbose) = .;				\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
- 	TRACE_PRINTKS()							\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 546d68057e3b..a52618a77b09 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -4,6 +4,7 @@
- #if defined(CC_HAVE_ASM_GOTO) && defined(CONFIG_JUMP_LABEL)
- #include <linux/jump_label.h>
- #endif
+diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
+index df04b2d033f6..3e7c08d99601 100644
+--- a/arch/x86/kernel/cpu/microcode/core.c
++++ b/arch/x86/kernel/cpu/microcode/core.c
+@@ -31,6 +31,7 @@
+ #include <linux/cpu.h>
+ #include <linux/fs.h>
+ #include <linux/mm.h>
 +#include <linux/tables.h>
  
- /*
-  * An instance of this structure is created in a special
-@@ -50,6 +51,7 @@ int ddebug_add_module(struct _ddebug *tab, unsigned int n,
- 				const char *modname);
+ #include <asm/microcode_intel.h>
+ #include <asm/cpu_device_id.h>
+@@ -91,15 +92,14 @@ static bool __init check_loader_disabled_bsp(void)
+ 	return *res;
+ }
  
- #if defined(CONFIG_DYNAMIC_DEBUG)
-+DECLARE_LINKTABLE(struct _ddebug, __verbose);
- extern int ddebug_remove_module(const char *mod_name);
- extern __printf(2, 3)
- void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
-@@ -71,8 +73,7 @@ void __dynamic_netdev_dbg(struct _ddebug *descriptor,
- 			  const char *fmt, ...);
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++DECLARE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
  
- #define DEFINE_DYNAMIC_DEBUG_METADATA_KEY(name, fmt, key, init)	\
--	static struct _ddebug  __aligned(8)			\
--	__attribute__((section("__verbose"))) name = {		\
-+	static LINKTABLE(__verbose, SECTION_ORDER_ANY) name = {	\
- 		.modname = KBUILD_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index da796e2dc4f5..f0060c84c654 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -37,8 +37,7 @@
- #include <linux/device.h>
- #include <linux/netdevice.h>
+ bool get_builtin_firmware(struct cpio_data *cd, const char *name)
+ {
+ #ifdef CONFIG_FW_LOADER
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
  
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+DEFINE_LINKTABLE(struct _ddebug, __verbose);
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
+ 		if (!strcmp(name, b_fw->name)) {
+ 			cd->size = b_fw->size;
+ 			cd->data = b_fw->data;
+diff --git a/drivers/base/firmware_class.c b/drivers/base/firmware_class.c
+index 22d1760a4278..8fbf03c3e4c2 100644
+--- a/drivers/base/firmware_class.c
++++ b/drivers/base/firmware_class.c
+@@ -30,6 +30,7 @@
+ #include <linux/syscore_ops.h>
+ #include <linux/reboot.h>
+ #include <linux/security.h>
++#include <linux/tables.h>
  
- struct ddebug_table {
- 	struct list_head link;
-@@ -978,14 +977,14 @@ static int __init dynamic_debug_init(void)
- 	int n = 0, entries = 0, modct = 0;
- 	int verbose_bytes = 0;
+ #include <generated/utsrelease.h>
  
--	if (__start___verbose == __stop___verbose) {
--		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
-+	if (LINUX_SECTION_EMPTY(__verbose)) {
-+		pr_warn("dynamic debug linker table empty on CONFIG_DYNAMIC_DEBUG build\n");
- 		return 1;
- 	}
--	iter = __start___verbose;
-+	iter = LINUX_SECTION_START(__verbose);
- 	modname = iter->modname;
- 	iter_start = iter;
--	for (; iter < __stop___verbose; iter++) {
-+	LINKTABLE_FOR_EACH(iter, __verbose) {
- 		entries++;
- 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
- 			+ strlen(iter->filename) + strlen(iter->format);
-@@ -1008,7 +1007,7 @@ static int __init dynamic_debug_init(void)
- 	ddebug_init_success = 1;
- 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
- 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
--		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
-+		 verbose_bytes + (int)(LINUX_SECTION_SIZE(__verbose)));
+@@ -43,15 +44,14 @@ MODULE_LICENSE("GPL");
  
- 	/* apply ddebug_query boot param, dont unload tables on err */
- 	if (ddebug_setup_string[0] != '\0') {
-diff --git a/scripts/module-common.lds.S b/scripts/module-common.lds.S
-index d51140103ece..fec57aa5f4f1 100644
---- a/scripts/module-common.lds.S
-+++ b/scripts/module-common.lds.S
-@@ -21,6 +21,7 @@ SECTIONS {
- 	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
- 	__jump_table		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __jump_table, *))) }
-+	__verbose		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __verbose, *))) }
+ #ifdef CONFIG_FW_LOADER
  
- 	. = ALIGN(8);
- 	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
+-extern struct builtin_fw __start_builtin_fw[];
+-extern struct builtin_fw __end_builtin_fw[];
++DEFINE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
+ 
+ static bool fw_get_builtin_firmware(struct firmware *fw, const char *name,
+ 				    void *buf, size_t size)
+ {
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
+ 
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++) {
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw) {
+ 		if (strcmp(name, b_fw->name) == 0) {
+ 			fw->size = b_fw->size;
+ 			fw->data = b_fw->data;
+@@ -67,9 +67,9 @@ static bool fw_get_builtin_firmware(struct firmware *fw, const char *name,
+ 
+ static bool fw_is_builtin_firmware(const struct firmware *fw)
+ {
+-	struct builtin_fw *b_fw;
++	const struct builtin_fw *b_fw;
+ 
+-	for (b_fw = __start_builtin_fw; b_fw != __end_builtin_fw; b_fw++)
++	LINKTABLE_FOR_EACH(b_fw, builtin_fw)
+ 		if (fw->data == b_fw->data)
+ 			return true;
+ 
+diff --git a/firmware/Makefile b/firmware/Makefile
+index fa3e81c2a97b..32304a227f09 100644
+--- a/firmware/Makefile
++++ b/firmware/Makefile
+@@ -155,6 +155,8 @@ quiet_cmd_fwbin = MK_FW   $@
+ 		  ASM_ALIGN=$(if $(CONFIG_64BIT),3,2);			     \
+ 		  PROGBITS=$(if $(CONFIG_ARM),%,@)progbits;		     \
+ 		  echo "/* Generated by firmware/Makefile */"		> $@;\
++		  echo "\#include <asm/sections.h>"			>>$@;\
++		  echo "\#include <asm/tables.h>"			>>$@;\
+ 		  echo "    .section .rodata"				>>$@;\
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "_fw_$${FWSTR}_bin:"				>>$@;\
+@@ -164,7 +166,7 @@ quiet_cmd_fwbin = MK_FW   $@
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "_fw_$${FWSTR}_name:"				>>$@;\
+ 		  echo "    .string \"$$FWNAME\""			>>$@;\
+-		  echo "    .section .builtin_fw,\"a\",$${PROGBITS}"	>>$@;\
++		  echo "    section_tbl_asmtype(SECTION_RODATA, builtin_fw, SECTION_ORDER_ANY, a,$${PROGBITS})"	>>$@;\
+ 		  echo "    .p2align $${ASM_ALIGN}"			>>$@;\
+ 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_name"		>>$@;\
+ 		  echo "    $${ASM_WORD} _fw_$${FWSTR}_bin"		>>$@;\
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index b3a9cd7bc947..8e31a4454841 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -313,13 +313,6 @@
+ 		VMLINUX_SYMBOL(__end_pci_fixups_suspend_late) = .;	\
+ 	}								\
+ 									\
+-	/* Built-in firmware blobs */					\
+-	.builtin_fw        : AT(ADDR(.builtin_fw) - LOAD_OFFSET) {	\
+-		VMLINUX_SYMBOL(__start_builtin_fw) = .;			\
+-		*(.builtin_fw)						\
+-		VMLINUX_SYMBOL(__end_builtin_fw) = .;			\
+-	}								\
+-									\
+ 	TRACEDATA							\
+ 									\
+ 	/* Kernel symbol table: Normal symbols */			\
 -- 
 2.8.4
 
