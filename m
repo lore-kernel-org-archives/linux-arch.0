@@ -1,77 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56828 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751488AbcGVRqC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Jul 2016 13:46:02 -0400
-Date: Fri, 22 Jul 2016 12:45:51 -0500
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [PATCH v3 02/11] mm: Hardened usercopy
-Message-ID: <20160722174551.jddle6mf7zlq6xmb@treble>
-References: <1468619065-3222-1-git-send-email-keescook@chromium.org>
- <1468619065-3222-3-git-send-email-keescook@chromium.org>
- <5790711f.2350420a.b4287.2cc0SMTPIN_ADDED_BROKEN@mx.google.com>
- <CAGXu5jLCu1Vv0uugKZrsjSEsoABgXJSOJ8GkKmrHbvj9jkC2YA@mail.gmail.com>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36116 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753864AbcGVULK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jul 2016 16:11:10 -0400
+Date: Fri, 22 Jul 2016 22:11:05 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [kernel-hardening] [PATCH v5 03/32] x86/cpa: In populate_pgd,
+ don't set the pgd entry until it's populated
+Message-ID: <20160722201104.GA6613@gmail.com>
+References: <cover.1468270393.git.luto@kernel.org>
+ <fb3254e25e38790c538cca0f46c4a7a714c77ddf.1468270393.git.luto@kernel.org>
+ <5741.1469162592@turing-police.cc.vt.edu>
+ <4b028b92-81f3-362f-c5be-b7a35cedf5ee@kernel.org>
+ <20160722102105.GA20771@gmail.com>
+ <CALCETrVKzUh_RYBoogWsEjYMe89en-NeNQhnWomy4LD=DaKfWQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAGXu5jLCu1Vv0uugKZrsjSEsoABgXJSOJ8GkKmrHbvj9jkC2YA@mail.gmail.com>
+In-Reply-To: <CALCETrVKzUh_RYBoogWsEjYMe89en-NeNQhnWomy4LD=DaKfWQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, LKML <linux-kernel@vger.kernel.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, Laura Abbott <labbott@fedoraproject.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux-MM <linux-mm@kvack.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>
-Message-ID: <20160722174551.KL29n43cBmamxDK-CVmWFJlJ4fnyW41vVspn6t46J64@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>, Valdis Kletnieks <Valdis.Kletnieks@vt.edu>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20160722201105.dxqbgYjdq3RvRXFdjWA4iYmPyq8UGiOQ77E2xcJtUGQ@z>
 
-On Thu, Jul 21, 2016 at 11:34:25AM -0700, Kees Cook wrote:
-> On Wed, Jul 20, 2016 at 11:52 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> > Kees Cook <keescook@chromium.org> writes:
-> >
-> >> diff --git a/mm/usercopy.c b/mm/usercopy.c
-> >> new file mode 100644
-> >> index 000000000000..e4bf4e7ccdf6
-> >> --- /dev/null
-> >> +++ b/mm/usercopy.c
-> >> @@ -0,0 +1,234 @@
-> > ...
-> >> +
-> >> +/*
-> >> + * Checks if a given pointer and length is contained by the current
-> >> + * stack frame (if possible).
-> >> + *
-> >> + *   0: not at all on the stack
-> >> + *   1: fully within a valid stack frame
-> >> + *   2: fully on the stack (when can't do frame-checking)
-> >> + *   -1: error condition (invalid stack position or bad stack frame)
-> >> + */
-> >> +static noinline int check_stack_object(const void *obj, unsigned long len)
-> >> +{
-> >> +     const void * const stack = task_stack_page(current);
-> >> +     const void * const stackend = stack + THREAD_SIZE;
-> >
-> > That allows access to the entire stack, including the struct thread_info,
-> > is that what we want - it seems dangerous? Or did I miss a check
-> > somewhere else?
-> 
-> That seems like a nice improvement to make, yeah.
-> 
-> > We have end_of_stack() which computes the end of the stack taking
-> > thread_info into account (end being the opposite of your end above).
-> 
-> Amusingly, the object_is_on_stack() check in sched.h doesn't take
-> thread_info into account either. :P Regardless, I think using
-> end_of_stack() may not be best. To tighten the check, I think we could
-> add this after checking that the object is on the stack:
-> 
-> #ifdef CONFIG_STACK_GROWSUP
->         stackend -= sizeof(struct thread_info);
-> #else
->         stack += sizeof(struct thread_info);
-> #endif
-> 
-> e.g. then if the pointer was in the thread_info, the second test would
-> fail, triggering the protection.
 
-FWIW, this won't work right on x86 after Andy's
-CONFIG_THREAD_INFO_IN_TASK patches get merged.
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
--- 
-Josh
+> This garbage (as evidenced by my bug and my failed attempt to fix it)
+> only works if you never have a low-level page table that isn't linked
+> into a higher-level page table, and it mostly requires you to do
+> everything exactly the way it was originally done so all the horrible
+> inline helpers don't get confused.
+> 
+> And AFAICT all of this was done to manually unroll a loop, and I bet
+> it never sped anything up measurably even on 386 or PPro.
+> 
+> Whenever some vendor releases a 5 level page table CPU, can we
+> *please* clean this up first?  We should have a type that points to a
+> table, a different type that points to an entry (or maybe not have
+> pointers to entries at all), and the levels should be referred to by
+> *number*.  When you need to traverse all the way down, you write a
+> *loop* instead of four bloody helper functions, some of which are
+> incomprehensibly no-ops on some kernels.  And if this means that, on
+> Intel, we have a silly branch in the inner loop because the bottom
+> level entry format is special, who cares?
+> </rant>
+
+I'd welcome (and help out!) any effort to clean it up gradually.
+
+Thanks,
+
+	Ingo
