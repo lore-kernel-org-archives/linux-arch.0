@@ -1,103 +1,139 @@
-From: Josh Poimboeuf <jpoimboe@redhat.com>
-Subject: Re: [RFC v3 10/13] jump_label: port __jump_table to linker tables
-Date: Fri, 22 Jul 2016 17:55:35 -0500
-Message-ID: <20160722225535.uu7h7iowwchby7uy@treble>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <1469222687-1600-11-git-send-email-mcgrof@kernel.org>
- <20160722214945.h7v7fvsnuhnvz6ux@treble>
- <20160722222654.GO5537@wotan.suse.de>
+From: Laura Abbott <labbott@redhat.com>
+Subject: Re: [PATCH v4 00/12] mm: Hardened usercopy
+Date: Fri, 22 Jul 2016 17:36:33 -0700
+Message-ID: <93009d46-0171-7398-4add-98e09ade608b@redhat.com>
+References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160722222654.GO5537@wotan.suse.de>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windri
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
+Sender: owner-linux-mm@kvack.org
+To: Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com
+Cc: Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@sus>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jul 23, 2016 at 12:26:54AM +0200, Luis R. Rodriguez wrote:
-> On Fri, Jul 22, 2016 at 04:49:45PM -0500, Josh Poimboeuf wrote:
-> > On Fri, Jul 22, 2016 at 02:24:44PM -0700, Luis R. Rodriguez wrote:
-> > > diff --git a/tools/objtool/special.c b/tools/objtool/special.c
-> > > index bff8abb3a4aa..f0ad369f994b 100644
-> > > --- a/tools/objtool/special.c
-> > > +++ b/tools/objtool/special.c
-> > > @@ -26,6 +26,10 @@
-> > >  #include "special.h"
-> > >  #include "warn.h"
-> > >  
-> > > +#include "../../include/asm-generic/sections.h"
-> > > +#include "../../include/asm-generic/tables.h"
-> > > +#include "../../include/linux/stringify.h"
-> > > +
-> > >  #define EX_ENTRY_SIZE		12
-> > >  #define EX_ORIG_OFFSET		0
-> > >  #define EX_NEW_OFFSET		4
-> > > @@ -63,7 +67,9 @@ struct special_entry entries[] = {
-> > >  		.feature = ALT_FEATURE_OFFSET,
-> > >  	},
-> > >  	{
-> > > -		.sec = "__jump_table",
-> > > +		.sec = __stringify(SECTION_TBL(SECTION_DATA,
-> > > +				               __jump_table,
-> > > +					       SECTION_ORDER_ANY)),
-> > >  		.jump_or_nop = true,
-> > >  		.size = JUMP_ENTRY_SIZE,
-> > >  		.orig = JUMP_ORIG_OFFSET,
-> > 
-> > (continuing our discussion from another thread...)
-> > 
-> > I think tools code isn't allowed to include kernel files because the
-> > tools subdirectory is supposed to be completely independent.
-> 
-> That was also the case for userpsace tools in scripts/ -- for instance
-> scripts/mod/modpost.c made an exception. What I've proposed here to
-> keep things simple was to ensure -UKERNEL is passed and then only
-> include files we know will work.
-> 
-> Refer to the patch "kprobes: port .kprobes.text to section range"
-> in this series for an extension of the scripts/mod/modpost.c kernel
-> headers use.
+On 07/20/2016 01:26 PM, Kees Cook wrote:
+> Hi,
+>
+> [This is now in my kspp -next tree, though I'd really love to add some
+> additional explicit Tested-bys, Reviewed-bys, or Acked-bys. If you've
+> looked through any part of this or have done any testing, please consider
+> sending an email with your "*-by:" line. :)]
+>
+> This is a start of the mainline port of PAX_USERCOPY[1]. After writing
+> tests (now in lkdtm in -next) for Casey's earlier port[2], I kept tweaking
+> things further and further until I ended up with a whole new patch series.
+> To that end, I took Rik, Laura, and other people's feedback along with
+> additional changes and clean-ups.
+>
+> Based on my understanding, PAX_USERCOPY was designed to catch a
+> few classes of flaws (mainly bad bounds checking) around the use of
+> copy_to_user()/copy_from_user(). These changes don't touch get_user() and
+> put_user(), since these operate on constant sized lengths, and tend to be
+> much less vulnerable. There are effectively three distinct protections in
+> the whole series, each of which I've given a separate CONFIG, though this
+> patch set is only the first of the three intended protections. (Generally
+> speaking, PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY
+> (this) and CONFIG_HARDENED_USERCOPY_WHITELIST (future), and
+> PAX_USERCOPY_SLABS covers CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC
+> (future).)
+>
+> This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
+> being copied to/from userspace meet certain criteria:
+> - if address is a heap object, the size must not exceed the object's
+>   allocated size. (This will catch all kinds of heap overflow flaws.)
+> - if address range is in the current process stack, it must be within the
+>   a valid stack frame (if such checking is possible) or at least entirely
+>   within the current process's stack. (This could catch large lengths that
+>   would have extended beyond the current process stack, or overflows if
+>   their length extends back into the original stack.)
+> - if the address range is part of kernel data, rodata, or bss, allow it.
+> - if address range is page-allocated, that it doesn't span multiple
+>   allocations (excepting Reserved and CMA pages).
+> - if address is within the kernel text, reject it.
+> - everything else is accepted
+>
+> The patches in the series are:
+> - Support for examination of CMA page types:
+> 	1- mm: Add is_migrate_cma_page
+> - Support for arch-specific stack frame checking (which will likely be
+>   replaced in the future by Josh's more comprehensive unwinder):
+>         2- mm: Implement stack frame object validation
+> - The core copy_to/from_user() checks, without the slab object checks:
+>         3- mm: Hardened usercopy
+> - Per-arch enablement of the protection:
+>         4- x86/uaccess: Enable hardened usercopy
+>         5- ARM: uaccess: Enable hardened usercopy
+>         6- arm64/uaccess: Enable hardened usercopy
+>         7- ia64/uaccess: Enable hardened usercopy
+>         8- powerpc/uaccess: Enable hardened usercopy
+>         9- sparc/uaccess: Enable hardened usercopy
+>        10- s390/uaccess: Enable hardened usercopy
+> - The heap allocator implementation of object size checking:
+>        11- mm: SLAB hardened usercopy support
+>        12- mm: SLUB hardened usercopy support
+>
+> Some notes:
+>
+> - This is expected to apply on top of -next which contains fixes for the
+>   position of _etext on both arm and arm64, though it has some conflicts
+>   with KASAN that should be trivial to fix up. Also in -next are the
+>   tests for this protection (in lkdtm), prefixed with USERCOPY_.
+>
+> - I couldn't detect a measurable performance change with these features
+>   enabled. Kernel build times were unchanged, hackbench was unchanged,
+>   etc. I think we could flip this to "on by default" at some point, but
+>   for now, I'm leaving it off until I can get some more definitive
+>   measurements. I would love if someone with greater familiarity with
+>   perf could give this a spin and report results.
+>
+> - The SLOB support extracted from grsecurity seems entirely broken. I
+>   have no idea what's going on there, I spent my time testing SLAB and
+>   SLUB. Having someone else look at SLOB would be nice, but this series
+>   doesn't depend on it.
+>
+> Additional features that would be nice, but aren't blocking this series:
+>
+> - Needs more architecture support for stack frame checking (only x86 now,
+>   but it seems Josh will have a good solution for this soon).
+>
+>
+> Thanks!
+>
+> -Kees
+>
+> [1] https://grsecurity.net/download.php "grsecurity - test kernel patch"
+> [2] http://www.openwall.com/lists/kernel-hardening/2016/05/19/5
+>
+> v4:
+> - handle CMA pages, labbott
+> - update stack checker comments, labbott
+> - check for vmalloc addresses, labbott
+> - deal with KASAN in -next changing arm64 copy*user calls
+> - check for linear mappings at runtime instead of via CONFIG
+>
+> v3:
+> - switch to using BUG for better Oops integration
+> - when checking page allocations, check each for Reserved
+> - use enums for the stack check return for readability
+>
+> v2:
+> - added s390 support
+> - handle slub red zone
+> - disallow writes to rodata area
+> - stack frame walker now CONFIG-controlled arch-specific helper
+>
 
-I think the rule of separating code is stricter for tools/ than it is
-for scripts/.  The scripts are generally kernel-specific whereas the
-tools are independent.  I believe the goal is to be able to copy them
-out of the kernel tree and still be able to compile them.
+Do you have/plan to have LKDTM or the like tests for this? I started reviewing
+the slub code and was about to write some test cases for myself. I did that
+for CMA as well which is a decent indicator these should all go somewhere.
 
-> > As far as I can tell, the section name will always be
-> > ".data.tbl.__jump_table.any".  Is that true?  If so, any reason why we
-> > can't just hard-code the string here?
-> 
-> Its a fair strategy, however if upstream changes the order name we'd
-> have to hand code this as well, by using a macro we keep it all in one
-> place.
+Thanks,
+Laura
 
-Hm, do you expect the section name to change often?
-
-> > As you saw, if the string
-> > changes, objtool will complain and 0-day will report it.
-> 
-> Indeed, which is why I was hoping to instead stick to a standard
-> sections set of header files that lets us get these in on place.
-
-Actually, I meant that obtool reporting the change would be a good
-thing, in favor of just hard-coding the string.  It lets objtool do its
-job of letting us know when something changes, like it did today.
-
-> The only place I hand coded in this series was in the perl
-> file scripts/recordmcount.pl but I suppose if we wanted to get
-> creative we could even generate a header for it too.
-> 
-> If we want to avoid all this hacker include stuff another option
-> is to *generate* each respective sections.h for the kernel, and
-> also, one for tools, and one for perl. What do you think?
-
-If the generated files aren't checked into git, tools/ will rely on
-kernel files and will no longer be independent.  If they *are* checked
-in, then we have to keep the files in sync.  Either way it sounds like
-overkill, just to avoid hard-coding a string for which objtool will
-already warn if it changes.
-
--- 
-Josh
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
