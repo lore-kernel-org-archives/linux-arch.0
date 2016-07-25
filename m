@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:61125 "EHLO
+Received: from mailapp01.imgtec.com ([195.59.15.196]:65281 "EHLO
 	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753348AbcGYQAW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jul 2016 12:00:22 -0400
+	with ESMTP id S1753173AbcGYQAV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jul 2016 12:00:21 -0400
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH 3/5] arm64: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
-Date: Mon, 25 Jul 2016 16:59:52 +0100
-Message-ID: <1469462394-8970-4-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH 2/5] ARM: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
+Date: Mon, 25 Jul 2016 16:59:51 +0100
+Message-ID: <1469462394-8970-3-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
 References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,48 +14,48 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20160725155952.E0VylaPUgjGBY0qxdtJxU0D--ddT8b0biH_Epa897AY@z>
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Russell King <linux@armlinux.org.uk>, Nathan Lynch <nathan_lynch@mentor.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160725155951.ouTEMoAbXQ5_7T6HlLiWwNkdQjuTwlm2GzHXiyjy9-E@z>
 
 AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
 NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
-for arm64 at all even though ARCH_DLINFO will contain one NEW_AUX_ENT
-for the VDSO address.
+for ARM at all even though ARCH_DLINFO can contain one NEW_AUX_ENT when
+VDSO is enabled.
 
 This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
-AT_BASE_PLATFORM which arm64 doesn't use, but lets define it now and add
+AT_BASE_PLATFORM which ARM doesn't use, but lets define it now and add
 the comment above ARCH_DLINFO as found in several other architectures to
 remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
 date.
 
-Fixes: f668cd1673aa ("arm64: ELF definitions")
+Fixes: 1713ce7c4375 ("ARM: 8329/1: miscellaneous vdso infrastructure, preparation")
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Nathan Lynch <nathan_lynch@mentor.com>
 Cc: linux-arm-kernel@lists.infradead.org
 ---
- arch/arm64/include/asm/elf.h         | 1 +
- arch/arm64/include/uapi/asm/auxvec.h | 2 ++
+ arch/arm/include/asm/elf.h         | 1 +
+ arch/arm/include/uapi/asm/auxvec.h | 2 ++
  2 files changed, 3 insertions(+)
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index 579b6e654f2d..a55384f4a5d7 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -140,6 +140,7 @@ typedef struct user_fpsimd_state elf_fpregset_t;
+diff --git a/arch/arm/include/asm/elf.h b/arch/arm/include/asm/elf.h
+index d2315ffd8f12..dc58133e33f1 100644
+--- a/arch/arm/include/asm/elf.h
++++ b/arch/arm/include/asm/elf.h
+@@ -129,6 +129,7 @@ extern void elf_set_personality(const struct elf32_hdr *);
  
- #define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
- 
+ #ifdef CONFIG_MMU
+ #ifdef CONFIG_VDSO
 +/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
- #define ARCH_DLINFO							\
- do {									\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-diff --git a/arch/arm64/include/uapi/asm/auxvec.h b/arch/arm64/include/uapi/asm/auxvec.h
-index 22d6d8885854..4cf0c17787a8 100644
---- a/arch/arm64/include/uapi/asm/auxvec.h
-+++ b/arch/arm64/include/uapi/asm/auxvec.h
-@@ -19,4 +19,6 @@
- /* vDSO location */
+ #define ARCH_DLINFO						\
+ do {								\
+ 	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
+diff --git a/arch/arm/include/uapi/asm/auxvec.h b/arch/arm/include/uapi/asm/auxvec.h
+index cb02a767a500..5ab9090356df 100644
+--- a/arch/arm/include/uapi/asm/auxvec.h
++++ b/arch/arm/include/uapi/asm/auxvec.h
+@@ -4,4 +4,6 @@
+ /* VDSO location */
  #define AT_SYSINFO_EHDR	33
  
 +#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
