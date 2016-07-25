@@ -1,143 +1,88 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 00/12] mm: Hardened usercopy
-Date: Mon, 25 Jul 2016 10:50:05 -0700
-Message-ID: <CAGXu5jJYYaedBZPoEWz5KROP=tn8hAmOepoC+gMpXkRn8SCyTw@mail.gmail.com>
-References: <1469046427-12696-1-git-send-email-keescook@chromium.org> <93009d46-0171-7398-4add-98e09ade608b@redhat.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 5/5] tile: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
+Date: Mon, 25 Jul 2016 20:10:36 +0100
+Message-ID: <20160725191036.GA1292@jhogan-linux.le.imgtec.org>
+References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
+ <1469462394-8970-6-git-send-email-james.hogan@imgtec.com>
+ <ac0ee1bd-572c-5c80-bf29-346c19a3aaa4@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <93009d46-0171-7398-4add-98e09ade608b@redhat.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Laura Abbott <labbott@redhat.com>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.co>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="sm4nu43k4a2Rpi4c"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:59111 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752348AbcGYTKj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jul 2016 15:10:39 -0400
+Content-Disposition: inline
+In-Reply-To: <ac0ee1bd-572c-5c80-bf29-346c19a3aaa4@mellanox.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Jul 22, 2016 at 5:36 PM, Laura Abbott <labbott@redhat.com> wrote:
-> On 07/20/2016 01:26 PM, Kees Cook wrote:
->>
->> Hi,
->>
->> [This is now in my kspp -next tree, though I'd really love to add some
->> additional explicit Tested-bys, Reviewed-bys, or Acked-bys. If you've
->> looked through any part of this or have done any testing, please consider
->> sending an email with your "*-by:" line. :)]
->>
->> This is a start of the mainline port of PAX_USERCOPY[1]. After writing
->> tests (now in lkdtm in -next) for Casey's earlier port[2], I kept tweaking
->> things further and further until I ended up with a whole new patch series.
->> To that end, I took Rik, Laura, and other people's feedback along with
->> additional changes and clean-ups.
->>
->> Based on my understanding, PAX_USERCOPY was designed to catch a
->> few classes of flaws (mainly bad bounds checking) around the use of
->> copy_to_user()/copy_from_user(). These changes don't touch get_user() and
->> put_user(), since these operate on constant sized lengths, and tend to be
->> much less vulnerable. There are effectively three distinct protections in
->> the whole series, each of which I've given a separate CONFIG, though this
->> patch set is only the first of the three intended protections. (Generally
->> speaking, PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY
->> (this) and CONFIG_HARDENED_USERCOPY_WHITELIST (future), and
->> PAX_USERCOPY_SLABS covers CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC
->> (future).)
->>
->> This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
->> being copied to/from userspace meet certain criteria:
->> - if address is a heap object, the size must not exceed the object's
->>   allocated size. (This will catch all kinds of heap overflow flaws.)
->> - if address range is in the current process stack, it must be within the
->>   a valid stack frame (if such checking is possible) or at least entirely
->>   within the current process's stack. (This could catch large lengths that
->>   would have extended beyond the current process stack, or overflows if
->>   their length extends back into the original stack.)
->> - if the address range is part of kernel data, rodata, or bss, allow it.
->> - if address range is page-allocated, that it doesn't span multiple
->>   allocations (excepting Reserved and CMA pages).
->> - if address is within the kernel text, reject it.
->> - everything else is accepted
->>
->> The patches in the series are:
->> - Support for examination of CMA page types:
->>         1- mm: Add is_migrate_cma_page
->> - Support for arch-specific stack frame checking (which will likely be
->>   replaced in the future by Josh's more comprehensive unwinder):
->>         2- mm: Implement stack frame object validation
->> - The core copy_to/from_user() checks, without the slab object checks:
->>         3- mm: Hardened usercopy
->> - Per-arch enablement of the protection:
->>         4- x86/uaccess: Enable hardened usercopy
->>         5- ARM: uaccess: Enable hardened usercopy
->>         6- arm64/uaccess: Enable hardened usercopy
->>         7- ia64/uaccess: Enable hardened usercopy
->>         8- powerpc/uaccess: Enable hardened usercopy
->>         9- sparc/uaccess: Enable hardened usercopy
->>        10- s390/uaccess: Enable hardened usercopy
->> - The heap allocator implementation of object size checking:
->>        11- mm: SLAB hardened usercopy support
->>        12- mm: SLUB hardened usercopy support
->>
->> Some notes:
->>
->> - This is expected to apply on top of -next which contains fixes for the
->>   position of _etext on both arm and arm64, though it has some conflicts
->>   with KASAN that should be trivial to fix up. Also in -next are the
->>   tests for this protection (in lkdtm), prefixed with USERCOPY_.
->>
->> - I couldn't detect a measurable performance change with these features
->>   enabled. Kernel build times were unchanged, hackbench was unchanged,
->>   etc. I think we could flip this to "on by default" at some point, but
->>   for now, I'm leaving it off until I can get some more definitive
->>   measurements. I would love if someone with greater familiarity with
->>   perf could give this a spin and report results.
->>
->> - The SLOB support extracted from grsecurity seems entirely broken. I
->>   have no idea what's going on there, I spent my time testing SLAB and
->>   SLUB. Having someone else look at SLOB would be nice, but this series
->>   doesn't depend on it.
->>
->> Additional features that would be nice, but aren't blocking this series:
->>
->> - Needs more architecture support for stack frame checking (only x86 now,
->>   but it seems Josh will have a good solution for this soon).
->>
->>
->> Thanks!
->>
->> -Kees
->>
->> [1] https://grsecurity.net/download.php "grsecurity - test kernel patch"
->> [2] http://www.openwall.com/lists/kernel-hardening/2016/05/19/5
->>
->> v4:
->> - handle CMA pages, labbott
->> - update stack checker comments, labbott
->> - check for vmalloc addresses, labbott
->> - deal with KASAN in -next changing arm64 copy*user calls
->> - check for linear mappings at runtime instead of via CONFIG
->>
->> v3:
->> - switch to using BUG for better Oops integration
->> - when checking page allocations, check each for Reserved
->> - use enums for the stack check return for readability
->>
->> v2:
->> - added s390 support
->> - handle slub red zone
->> - disallow writes to rodata area
->> - stack frame walker now CONFIG-controlled arch-specific helper
->>
->
-> Do you have/plan to have LKDTM or the like tests for this? I started
-> reviewing
-> the slub code and was about to write some test cases for myself. I did that
-> for CMA as well which is a decent indicator these should all go somewhere.
+--sm4nu43k4a2Rpi4c
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Yeah, there is an entire section of tests in lkdtm for the usercopy
-protection. I didn't add anything for CMA or multipage allocations
-yet, though. Feel free to add those if you have a moment! :) It's on
-my todo list.
+On Mon, Jul 25, 2016 at 12:37:50PM -0400, Chris Metcalf wrote:
+> On 7/25/2016 11:59 AM, James Hogan wrote:
+> > AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
+> > NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
+> > for tile at all even though ARCH_DLINFO will contain one NEW_AUX_ENT for
+> > the VDSO address.
+> >
+> > This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
+> > AT_BASE_PLATFORM which tile doesn't use, but lets define it now and add
+> > the comment above ARCH_DLINFO as found in several other architectures to
+> > remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
+> > date.
+> >
+> > Fixes: 4a556f4f56da ("tile: implement gettimeofday() via vDSO")
+> > Signed-off-by: James Hogan<james.hogan@imgtec.com>
+> > Cc: Chris Metcalf<cmetcalf@mellanox.com>
+> > ---
+> >   arch/tile/include/asm/elf.h         | 1 +
+> >   arch/tile/include/uapi/asm/auxvec.h | 2 ++
+> >   2 files changed, 3 insertions(+)
+>=20
+> Thanks, taken into the tile tree.
+>=20
+> I'm a little dubious that AT_VECTOR_SIZE_ARCH should be being defined
+> in the uapi version of auxvec.h, since I don't see why userspace should
+> be interested in it, but that does seem to be the current convention.
 
--Kees
+Yes, I agree.
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+> Ugh, there are even CONFIG_xxx ifdefs in the x86 and sh uapi/asm/auxvec.h=
+ ...
+> Maybe the define could be moved to arch/*/include/asm/elf.h?
+
+That sounds like a sensible place for it to me.
+
+Cheers
+James
+
+--sm4nu43k4a2Rpi4c
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJXlmQsAAoJEGwLaZPeOHZ6Jw0P/jrcUjYjzDFBHl5ES+Q9rPAu
+FHjZ9j+MD3DPMK7HwUPkzPvWyjC2boiQjHOvN3JCL6IlzW7R/3cUB3imayMrbfZt
+BhhrPm6oZyS9FJlGO3x4NKFn6sk0p2kVHMxycW/TdNpSYIfm4PlOHEb0fnwTPTEr
+brFk5l4QDBCU1GaLc7UCg7UOHbKFLEOsmGdDoldyFAclJhLTGmRzuD8iIxbnZCuo
+MEH7VFuJqvyVNTpe89tY0/YTPfan4GaKpnyMUzhEuWuzBQKGbmZXRaLY9eY0uk82
+W41BM4Z54e/9ZJ65QOVBNGu3sWnG5MGzMKZubSouyNNzj6W2jWVbT8iV+X26u0Bj
+5QaS2gdVy/HRP9Js0X91+EteZgfpOzCQYb3gfiVk+ZssR4Hi081hVEK/pxp8h9sY
+SMREBsSL4NfyVEvYmrM/7aP/3HcaiUVUAF3EoWqbmPh9LkeaaIgFiZ0lEP166QOP
+BiDe5u2C89TszIcc0W9jgmHSf2/KHeWMEps9A0dlz7nMvS7E8e7tao6ygJwzfU3/
+HWgkp+/+ZGorRm5nGxllqgdELZT56pzD3cUDN6Y8Rii6gL4RdyWKdc35zHnDHIvl
+DsHN28EySdFkzDoz5ZayyX5cihWQYsU9jJ/1hPSvYJwiQu4uFiMJjV/Elj2Rn1kK
+sid7058DV43tYCmBOzsP
+=0GPk
+-----END PGP SIGNATURE-----
+
+--sm4nu43k4a2Rpi4c--
