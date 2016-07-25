@@ -1,140 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f172.google.com ([209.85.216.172]:35665 "EHLO
-	mail-qt0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750786AbcGWAgl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jul 2016 20:36:41 -0400
-Received: by mail-qt0-f172.google.com with SMTP id x25so70733808qtx.2
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jul 2016 17:36:41 -0700 (PDT)
-Subject: Re: [PATCH v4 00/12] mm: Hardened usercopy
-References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-From: Laura Abbott <labbott@redhat.com>
-Message-ID: <93009d46-0171-7398-4add-98e09ade608b@redhat.com>
-Date: Fri, 22 Jul 2016 17:36:33 -0700
+Received: from mail.windriver.com ([147.11.1.11]:36306 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752583AbcGYDnY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:24 -0400
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 01/14] exceptions: fork exception table content from module.h into extable.h
+Date: Sun, 24 Jul 2016 23:42:34 -0400
+Message-ID: <20160725034247.109173-2-paul.gortmaker@windriver.com>
+In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
+References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
-In-Reply-To: <1469046427-12696-1-git-send-email-keescook@chromium.org>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com
-Cc: Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Mathias Krause <minipli@googlemail.com>, Jan Kara <jack@suse.cz>, Vitaly Wool <vitalywool@gmail.com>, Andrea Arcangeli <aarcange@redhat.com>, Dmitry Vyukov <dvyukov@google.com>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20160723003633.dpzkAxU0DThn4hLEjtjQlKI8_8HdjHT6E7SMAY3F8XU@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20160725034234.VZyKnnJPoTgfc3cgqrvW6x_c5z3iCMCrj542lFhnyPY@z>
 
-On 07/20/2016 01:26 PM, Kees Cook wrote:
-> Hi,
->
-> [This is now in my kspp -next tree, though I'd really love to add some
-> additional explicit Tested-bys, Reviewed-bys, or Acked-bys. If you've
-> looked through any part of this or have done any testing, please consider
-> sending an email with your "*-by:" line. :)]
->
-> This is a start of the mainline port of PAX_USERCOPY[1]. After writing
-> tests (now in lkdtm in -next) for Casey's earlier port[2], I kept tweaking
-> things further and further until I ended up with a whole new patch series.
-> To that end, I took Rik, Laura, and other people's feedback along with
-> additional changes and clean-ups.
->
-> Based on my understanding, PAX_USERCOPY was designed to catch a
-> few classes of flaws (mainly bad bounds checking) around the use of
-> copy_to_user()/copy_from_user(). These changes don't touch get_user() and
-> put_user(), since these operate on constant sized lengths, and tend to be
-> much less vulnerable. There are effectively three distinct protections in
-> the whole series, each of which I've given a separate CONFIG, though this
-> patch set is only the first of the three intended protections. (Generally
-> speaking, PAX_USERCOPY covers what I'm calling CONFIG_HARDENED_USERCOPY
-> (this) and CONFIG_HARDENED_USERCOPY_WHITELIST (future), and
-> PAX_USERCOPY_SLABS covers CONFIG_HARDENED_USERCOPY_SPLIT_KMALLOC
-> (future).)
->
-> This series, which adds CONFIG_HARDENED_USERCOPY, checks that objects
-> being copied to/from userspace meet certain criteria:
-> - if address is a heap object, the size must not exceed the object's
->   allocated size. (This will catch all kinds of heap overflow flaws.)
-> - if address range is in the current process stack, it must be within the
->   a valid stack frame (if such checking is possible) or at least entirely
->   within the current process's stack. (This could catch large lengths that
->   would have extended beyond the current process stack, or overflows if
->   their length extends back into the original stack.)
-> - if the address range is part of kernel data, rodata, or bss, allow it.
-> - if address range is page-allocated, that it doesn't span multiple
->   allocations (excepting Reserved and CMA pages).
-> - if address is within the kernel text, reject it.
-> - everything else is accepted
->
-> The patches in the series are:
-> - Support for examination of CMA page types:
-> 	1- mm: Add is_migrate_cma_page
-> - Support for arch-specific stack frame checking (which will likely be
->   replaced in the future by Josh's more comprehensive unwinder):
->         2- mm: Implement stack frame object validation
-> - The core copy_to/from_user() checks, without the slab object checks:
->         3- mm: Hardened usercopy
-> - Per-arch enablement of the protection:
->         4- x86/uaccess: Enable hardened usercopy
->         5- ARM: uaccess: Enable hardened usercopy
->         6- arm64/uaccess: Enable hardened usercopy
->         7- ia64/uaccess: Enable hardened usercopy
->         8- powerpc/uaccess: Enable hardened usercopy
->         9- sparc/uaccess: Enable hardened usercopy
->        10- s390/uaccess: Enable hardened usercopy
-> - The heap allocator implementation of object size checking:
->        11- mm: SLAB hardened usercopy support
->        12- mm: SLUB hardened usercopy support
->
-> Some notes:
->
-> - This is expected to apply on top of -next which contains fixes for the
->   position of _etext on both arm and arm64, though it has some conflicts
->   with KASAN that should be trivial to fix up. Also in -next are the
->   tests for this protection (in lkdtm), prefixed with USERCOPY_.
->
-> - I couldn't detect a measurable performance change with these features
->   enabled. Kernel build times were unchanged, hackbench was unchanged,
->   etc. I think we could flip this to "on by default" at some point, but
->   for now, I'm leaving it off until I can get some more definitive
->   measurements. I would love if someone with greater familiarity with
->   perf could give this a spin and report results.
->
-> - The SLOB support extracted from grsecurity seems entirely broken. I
->   have no idea what's going on there, I spent my time testing SLAB and
->   SLUB. Having someone else look at SLOB would be nice, but this series
->   doesn't depend on it.
->
-> Additional features that would be nice, but aren't blocking this series:
->
-> - Needs more architecture support for stack frame checking (only x86 now,
->   but it seems Josh will have a good solution for this soon).
->
->
-> Thanks!
->
-> -Kees
->
-> [1] https://grsecurity.net/download.php "grsecurity - test kernel patch"
-> [2] http://www.openwall.com/lists/kernel-hardening/2016/05/19/5
->
-> v4:
-> - handle CMA pages, labbott
-> - update stack checker comments, labbott
-> - check for vmalloc addresses, labbott
-> - deal with KASAN in -next changing arm64 copy*user calls
-> - check for linear mappings at runtime instead of via CONFIG
->
-> v3:
-> - switch to using BUG for better Oops integration
-> - when checking page allocations, check each for Reserved
-> - use enums for the stack check return for readability
->
-> v2:
-> - added s390 support
-> - handle slub red zone
-> - disallow writes to rodata area
-> - stack frame walker now CONFIG-controlled arch-specific helper
->
+For historical reasons (i.e. pre-git) the exception table stuff was
+buried in the middle of the module.h file.  I noticed this while
+doing an audit for needless includes of module.h and found core
+kernel files (both arch specific and arch independent) were just
+including module.h for this.
 
-Do you have/plan to have LKDTM or the like tests for this? I started reviewing
-the slub code and was about to write some test cases for myself. I did that
-for CMA as well which is a decent indicator these should all go somewhere.
+The converse is also true, in that conventional drivers, be they
+for filesystems or actual hardware peripherals or similar, do not
+normally care about the exception tables.
 
-Thanks,
-Laura
+Here we fork the exception table content out of module.h into a
+new file called extable.h -- and temporarily include it into the
+module.h itself.
+
+Then we will work our way across the arch independent and arch
+specific files needing just exception table content, and move
+them off module.h and onto extable.h
+
+Once that is done, we can remove the extable.h from module.h
+and in doing it like this, we avoid introducing build failures
+into the git history.
+
+The gain here is that module.h gets a bit smaller, across all
+modular drivers that we build for allmodconfig.  Also the core
+files that only need exception table stuff don't have an include
+of module.h that brings in lots of extra stuff and just looks
+generally out of place.
+
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+---
+ include/linux/extable.h | 30 ++++++++++++++++++++++++++++++
+ include/linux/module.h  | 27 ++-------------------------
+ 2 files changed, 32 insertions(+), 25 deletions(-)
+ create mode 100644 include/linux/extable.h
+
+diff --git a/include/linux/extable.h b/include/linux/extable.h
+new file mode 100644
+index 000000000000..2c71dccd1bc3
+--- /dev/null
++++ b/include/linux/extable.h
+@@ -0,0 +1,30 @@
++#ifndef _LINUX_EXTABLE_H
++#define _LINUX_EXTABLE_H
++
++struct module;
++struct exception_table_entry;
++
++const struct exception_table_entry *
++search_extable(const struct exception_table_entry *first,
++	       const struct exception_table_entry *last,
++	       unsigned long value);
++void sort_extable(struct exception_table_entry *start,
++		  struct exception_table_entry *finish);
++void sort_main_extable(void);
++void trim_init_extable(struct module *m);
++
++/* Given an address, look for it in the exception tables */
++const struct exception_table_entry *search_exception_tables(unsigned long add);
++
++#ifdef CONFIG_MODULES
++/* For extable.c to search modules' exception tables. */
++const struct exception_table_entry *search_module_extables(unsigned long addr);
++#else
++static inline const struct exception_table_entry *
++search_module_extables(unsigned long addr)
++{
++	return NULL;
++}
++#endif /*CONFIG_MODULES*/
++
++#endif /* _LINUX_EXTABLE_H */
+diff --git a/include/linux/module.h b/include/linux/module.h
+index f777164c238b..f95ed243a4de 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -18,6 +18,7 @@
+ #include <linux/moduleparam.h>
+ #include <linux/jump_label.h>
+ #include <linux/export.h>
++#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
+ #include <linux/rbtree_latch.h>
+ 
+ #include <linux/percpu.h>
+@@ -37,6 +38,7 @@ struct modversion_info {
+ };
+ 
+ struct module;
++struct exception_table_entry;
+ 
+ struct module_kobject {
+ 	struct kobject kobj;
+@@ -155,18 +157,6 @@ extern void cleanup_module(void);
+ #define __INITRODATA_OR_MODULE __INITRODATA
+ #endif /*CONFIG_MODULES*/
+ 
+-/* Archs provide a method of finding the correct exception table. */
+-struct exception_table_entry;
+-
+-const struct exception_table_entry *
+-search_extable(const struct exception_table_entry *first,
+-	       const struct exception_table_entry *last,
+-	       unsigned long value);
+-void sort_extable(struct exception_table_entry *start,
+-		  struct exception_table_entry *finish);
+-void sort_main_extable(void);
+-void trim_init_extable(struct module *m);
+-
+ /* Generic info of form tag = "info" */
+ #define MODULE_INFO(tag, info) __MODULE_INFO(tag, tag, info)
+ 
+@@ -268,9 +258,6 @@ extern const typeof(name) __mod_##type##__##name##_device_table		\
+  * files require multiple MODULE_FIRMWARE() specifiers */
+ #define MODULE_FIRMWARE(_firmware) MODULE_INFO(firmware, _firmware)
+ 
+-/* Given an address, look for it in the exception tables */
+-const struct exception_table_entry *search_exception_tables(unsigned long add);
+-
+ struct notifier_block;
+ 
+ #ifdef CONFIG_MODULES
+@@ -630,9 +617,6 @@ const char *module_address_lookup(unsigned long addr,
+ int lookup_module_symbol_name(unsigned long addr, char *symname);
+ int lookup_module_symbol_attrs(unsigned long addr, unsigned long *size, unsigned long *offset, char *modname, char *name);
+ 
+-/* For extable.c to search modules' exception tables. */
+-const struct exception_table_entry *search_module_extables(unsigned long addr);
+-
+ int register_module_notifier(struct notifier_block *nb);
+ int unregister_module_notifier(struct notifier_block *nb);
+ 
+@@ -657,13 +641,6 @@ static inline bool is_livepatch_module(struct module *mod)
+ 
+ #else /* !CONFIG_MODULES... */
+ 
+-/* Given an address, look for it in the exception tables. */
+-static inline const struct exception_table_entry *
+-search_module_extables(unsigned long addr)
+-{
+-	return NULL;
+-}
+-
+ static inline struct module *__module_address(unsigned long addr)
+ {
+ 	return NULL;
+-- 
+2.8.4
+
