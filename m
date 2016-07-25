@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:46434 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752727AbcGYDnj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:39 -0400
+Received: from mail5.windriver.com ([192.103.53.11]:60956 "EHLO mail5.wrs.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752849AbcGYDoM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 24 Jul 2016 23:44:12 -0400
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 02/14] x86: migrate exception table users off module.h and onto extable.h
-Date: Sun, 24 Jul 2016 23:42:35 -0400
-Message-ID: <20160725034247.109173-3-paul.gortmaker@windriver.com>
+Subject: [PATCH 12/14] parisc: migrate exception table users off module.h and onto extable.h
+Date: Sun, 24 Jul 2016 23:42:45 -0400
+Message-ID: <20160725034247.109173-13-paul.gortmaker@windriver.com>
 In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,76 +14,35 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-Message-ID: <20160725034235.v5_Y1i7EOHdNKFp2bxdkS6HrrKnb47d5YgUt1pjUzFI@z>
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20160725034245.2wdJlzGoEUM_fD6TzvPZQUE1-3uUPgfEJ5cWmp6-QBs@z>
 
-These files were only including module.h for exception table
-related functions.  We've now separated that content out into its
-own file "extable.h" so now move over to that and avoid all the
-extra header content in module.h that we don't really need to compile
-these files.
+This file was only including module.h for exception table related
+functions.  We've now separated that content out into its own file
+"extable.h" so now move over to that and avoid all the extra header
+content in module.h that we don't really need to compile this file.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/x86/kernel/kprobes/core.c | 2 +-
- arch/x86/kernel/kprobes/opt.c  | 2 +-
- arch/x86/mm/extable.c          | 2 +-
- arch/x86/mm/fault.c            | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+ arch/parisc/mm/fault.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
-index 7847e5c0e0b5..28cee019209c 100644
---- a/arch/x86/kernel/kprobes/core.c
-+++ b/arch/x86/kernel/kprobes/core.c
-@@ -45,7 +45,7 @@
- #include <linux/slab.h>
- #include <linux/hardirq.h>
- #include <linux/preempt.h>
+diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+index 163af2c31d76..a67519b79504 100644
+--- a/arch/parisc/mm/fault.c
++++ b/arch/parisc/mm/fault.c
+@@ -14,7 +14,7 @@
+ #include <linux/ptrace.h>
+ #include <linux/sched.h>
+ #include <linux/interrupt.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
- #include <linux/kdebug.h>
- #include <linux/kallsyms.h>
- #include <linux/ftrace.h>
-diff --git a/arch/x86/kernel/kprobes/opt.c b/arch/x86/kernel/kprobes/opt.c
-index 4425f593f0ec..3bb4c5f021f6 100644
---- a/arch/x86/kernel/kprobes/opt.c
-+++ b/arch/x86/kernel/kprobes/opt.c
-@@ -24,7 +24,7 @@
- #include <linux/slab.h>
- #include <linux/hardirq.h>
- #include <linux/preempt.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/kdebug.h>
- #include <linux/kallsyms.h>
- #include <linux/ftrace.h>
-diff --git a/arch/x86/mm/extable.c b/arch/x86/mm/extable.c
-index 832b98f822be..79ae939970d3 100644
---- a/arch/x86/mm/extable.c
-+++ b/arch/x86/mm/extable.c
-@@ -1,4 +1,4 @@
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <asm/uaccess.h>
+ #include <linux/uaccess.h>
+ 
  #include <asm/traps.h>
- #include <asm/kdebug.h>
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index dc8023060456..79ae05477d94 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -5,7 +5,7 @@
-  */
- #include <linux/sched.h>		/* test_thread_flag(), ...	*/
- #include <linux/kdebug.h>		/* oops_begin/end, ...		*/
--#include <linux/module.h>		/* search_exception_table	*/
-+#include <linux/extable.h>		/* search_exception_table	*/
- #include <linux/bootmem.h>		/* max_low_pfn			*/
- #include <linux/kprobes.h>		/* NOKPROBE_SYMBOL, ...		*/
- #include <linux/mmiotrace.h>		/* kmmio_handler, ...		*/
 -- 
 2.8.4
 
