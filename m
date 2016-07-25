@@ -1,20 +1,26 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 09/14] s390: migrate exception table users off module.h and onto extable.h
-Date: Sun, 24 Jul 2016 23:42:42 -0400
-Message-ID: <20160725034247.109173-10-paul.gortmaker@windriver.com>
+Subject: [PATCH 03/14] arm: migrate exception table users off module.h and
+ onto extable.h
+Date: Sun, 24 Jul 2016 23:42:36 -0400
+Message-ID: <20160725034247.109173-4-paul.gortmaker@windriver.com>
 References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail5.windriver.com ([192.103.53.11]:60944 "EHLO mail5.wrs.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752776AbcGYDnu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 24 Jul 2016 23:43:50 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
 These files were only including module.h for exception table
 related functions.  We've now separated that content out into its
@@ -22,86 +28,39 @@ own file "extable.h" so now move over to that and avoid all the
 extra header content in module.h that we don't really need to compile
 these files.
 
-The additions of uaccess.h are to deal with implict includes like:
-
-arch/s390/kernel/traps.c: In function 'do_report_trap':
-arch/s390/kernel/traps.c:56:4: error: implicit declaration of function 'extable_fixup' [-Werror=implicit-function-declaration]
-arch/s390/kernel/traps.c: In function 'illegal_op':
-arch/s390/kernel/traps.c:173:3: error: implicit declaration of function 'get_user' [-Werror=implicit-function-declaration]
-
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/s390/kernel/early.c   | 2 +-
- arch/s390/kernel/kprobes.c | 2 ++
- arch/s390/kernel/traps.c   | 3 ++-
- arch/s390/mm/fault.c       | 2 +-
- 4 files changed, 6 insertions(+), 3 deletions(-)
+ arch/arm/mm/extable.c | 2 +-
+ arch/arm/mm/fault.c   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/s390/kernel/early.c b/arch/s390/kernel/early.c
-index 717b03aa16b5..2374c5b46bbc 100644
---- a/arch/s390/kernel/early.c
-+++ b/arch/s390/kernel/early.c
-@@ -13,7 +13,7 @@
- #include <linux/string.h>
- #include <linux/ctype.h>
- #include <linux/lockdep.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/pfn.h>
- #include <linux/uaccess.h>
- #include <linux/kernel.h>
-diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
-index 250f5972536a..4871c7c3ccde 100644
---- a/arch/s390/kernel/kprobes.c
-+++ b/arch/s390/kernel/kprobes.c
-@@ -26,12 +26,14 @@
- #include <linux/stop_machine.h>
- #include <linux/kdebug.h>
- #include <linux/uaccess.h>
-+#include <linux/extable.h>
- #include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/hardirq.h>
- #include <linux/ftrace.h>
- #include <asm/cacheflush.h>
- #include <asm/sections.h>
-+#include <asm/uaccess.h>
- #include <asm/dis.h>
- 
- DEFINE_PER_CPU(struct kprobe *, current_kprobe);
-diff --git a/arch/s390/kernel/traps.c b/arch/s390/kernel/traps.c
-index dd97a3e8a34a..d0539f76fd24 100644
---- a/arch/s390/kernel/traps.c
-+++ b/arch/s390/kernel/traps.c
-@@ -14,11 +14,12 @@
+diff --git a/arch/arm/mm/extable.c b/arch/arm/mm/extable.c
+index 312e15e6d00b..f436f7439e46 100644
+--- a/arch/arm/mm/extable.c
++++ b/arch/arm/mm/extable.c
+@@ -1,7 +1,7 @@
+ /*
+  *  linux/arch/arm/mm/extable.c
   */
- #include <linux/kprobes.h>
- #include <linux/kdebug.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
- #include <linux/ptrace.h>
- #include <linux/sched.h>
- #include <linux/mm.h>
- #include <linux/slab.h>
-+#include <asm/uaccess.h>
- #include <asm/fpu/api.h>
- #include "entry.h"
- 
-diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
-index a58bca62a93b..cca73881e672 100644
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -24,7 +24,7 @@
- #include <linux/kdebug.h>
- #include <linux/init.h>
- #include <linux/console.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/hardirq.h>
- #include <linux/kprobes.h>
  #include <linux/uaccess.h>
+ 
+ int fixup_exception(struct pt_regs *regs)
+diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
+index 3a2e678b8d30..94de590db99e 100644
+--- a/arch/arm/mm/fault.c
++++ b/arch/arm/mm/fault.c
+@@ -8,7 +8,7 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  */
+-#include <linux/module.h>
++#include <linux/extable.h>
+ #include <linux/signal.h>
+ #include <linux/mm.h>
+ #include <linux/hardirq.h>
 -- 
 2.8.4
