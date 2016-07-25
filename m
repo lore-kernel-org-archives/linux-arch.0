@@ -1,75 +1,80 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 04/14] arm64: migrate exception table users off module.h and onto extable.h
-Date: Sun, 24 Jul 2016 23:42:37 -0400
-Message-ID: <20160725034247.109173-5-paul.gortmaker@windriver.com>
+Subject: [PATCH 13/14] core: migrate exception table users off module.h and onto extable.h
+Date: Sun, 24 Jul 2016 23:42:46 -0400
+Message-ID: <20160725034247.109173-14-paul.gortmaker@windriver.com>
 References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:36438 "EHLO
+Received: from mail.windriver.com ([147.11.1.11]:36430 "EHLO
 	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752723AbcGYDny (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:54 -0400
+	with ESMTP id S1752781AbcGYDnw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:52 -0400
 In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 
-These files were only including module.h for exception table
-related functions.  We've now separated that content out into its
-own file "extable.h" so now move over to that and avoid all the
-extra header content in module.h that we don't really need to compile
-these files.
+These files were including module.h for exception table related
+functions.  We've now separated that content out into its own file
+"extable.h" so now move over to that and where possible, avoid all
+the extra header content in module.h that we don't really need to
+compile these non-modular files.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
+Note:
+   init/main.c still needs module.h for __init_or_module
+   kernel/extable.c still needs module.h for is_module_text_address
+
+...and so we don't get the benefit of removing module.h from the cpp
+feed for these two files, unlike the almost universal 1:1 exchange
+of module.h for extable.h we were able to do in the arch dirs.
+
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/arm64/kernel/probes/kprobes.c | 2 +-
- arch/arm64/mm/extable.c            | 2 +-
- arch/arm64/mm/fault.c              | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ init/main.c      | 1 +
+ kernel/extable.c | 1 +
+ kernel/module.c  | 1 +
+ 3 files changed, 3 insertions(+)
 
-diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
-index bf9768588288..9c1866ef3271 100644
---- a/arch/arm64/kernel/probes/kprobes.c
-+++ b/arch/arm64/kernel/probes/kprobes.c
-@@ -19,7 +19,7 @@
- #include <linux/kasan.h>
+diff --git a/init/main.c b/init/main.c
+index 9a9a25570f72..42fa8368d4a9 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -12,6 +12,7 @@
+ #define DEBUG		/* Enable initcall_debug */
+ 
+ #include <linux/types.h>
++#include <linux/extable.h>
+ #include <linux/module.h>
+ #include <linux/proc_fs.h>
  #include <linux/kernel.h>
- #include <linux/kprobes.h>
--#include <linux/module.h>
+diff --git a/kernel/extable.c b/kernel/extable.c
+index e820ccee9846..55038378d882 100644
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@ -17,6 +17,7 @@
+ */
+ #include <linux/ftrace.h>
+ #include <linux/memory.h>
 +#include <linux/extable.h>
- #include <linux/slab.h>
- #include <linux/stop_machine.h>
- #include <linux/stringify.h>
-diff --git a/arch/arm64/mm/extable.c b/arch/arm64/mm/extable.c
-index 81acd4706878..c9f118cd812b 100644
---- a/arch/arm64/mm/extable.c
-+++ b/arch/arm64/mm/extable.c
-@@ -2,7 +2,7 @@
-  * Based on arch/arm/mm/extable.c
-  */
- 
--#include <linux/module.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/init.h>
+diff --git a/kernel/module.c b/kernel/module.c
+index e70a2faf71d9..536ab4b72761 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -17,6 +17,7 @@
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+ #include <linux/export.h>
 +#include <linux/extable.h>
- #include <linux/uaccess.h>
- 
- int fixup_exception(struct pt_regs *regs)
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-index c8beaa0da7df..427f2fd49463 100644
---- a/arch/arm64/mm/fault.c
-+++ b/arch/arm64/mm/fault.c
-@@ -18,7 +18,7 @@
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
- 
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/signal.h>
- #include <linux/mm.h>
- #include <linux/hardirq.h>
+ #include <linux/moduleloader.h>
+ #include <linux/trace_events.h>
+ #include <linux/init.h>
 -- 
 2.8.4
