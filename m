@@ -1,62 +1,45 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 07/14] powerpc: migrate exception table users off module.h and onto extable.h
-Date: Sun, 24 Jul 2016 23:42:40 -0400
-Message-ID: <20160725034247.109173-8-paul.gortmaker@windriver.com>
+Subject: [PATCH 14/14] module.h: remove extable.h include now users have migrated
+Date: Sun, 24 Jul 2016 23:42:47 -0400
+Message-ID: <20160725034247.109173-15-paul.gortmaker@windriver.com>
 References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:36478 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752820AbcGYDoC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:44:02 -0400
+Received: from mail1.windriver.com ([147.11.146.13]:46448 "EHLO
+	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752792AbcGYDnz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:55 -0400
 In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 
-These files were only including module.h for exception table
-related functions.  We've now separated that content out into its
-own file "extable.h" so now move over to that and avoid all the
-extra header content in module.h that we don't really need to compile
-these files.
+With hopefully most/all users of module.h that were looking for
+exception table functions moved over to the new extable.h header,
+we can remove the back-compat include that let us transition
+without introducing build regressions.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/powerpc/kernel/kprobes.c | 2 +-
- arch/powerpc/mm/fault.c       | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ include/linux/module.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/powerpc/kernel/kprobes.c b/arch/powerpc/kernel/kprobes.c
-index 3ed8ec09b5c9..e785cc9e1ecd 100644
---- a/arch/powerpc/kernel/kprobes.c
-+++ b/arch/powerpc/kernel/kprobes.c
-@@ -29,7 +29,7 @@
- #include <linux/kprobes.h>
- #include <linux/ptrace.h>
- #include <linux/preempt.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/kdebug.h>
- #include <linux/slab.h>
- #include <asm/code-patching.h>
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index a4db22f65021..bb1ffc559f38 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -26,7 +26,7 @@
- #include <linux/mm.h>
- #include <linux/interrupt.h>
- #include <linux/highmem.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/kprobes.h>
- #include <linux/kdebug.h>
- #include <linux/perf_event.h>
+diff --git a/include/linux/module.h b/include/linux/module.h
+index f95ed243a4de..1974eadcb308 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -18,7 +18,6 @@
+ #include <linux/moduleparam.h>
+ #include <linux/jump_label.h>
+ #include <linux/export.h>
+-#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
+ #include <linux/rbtree_latch.h>
+ 
+ #include <linux/percpu.h>
 -- 
 2.8.4
