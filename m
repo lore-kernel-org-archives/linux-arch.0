@@ -1,71 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:54508 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752476AbcGYPa0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jul 2016 11:30:26 -0400
-Date: Tue, 26 Jul 2016 00:30:14 +0900
-From: Masami Hiramatsu <mhiramat@kernel.org>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Message-ID: <20160726003014.8e0424d2991ec71ad5e0ac5f@kernel.org>
-In-Reply-To: <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-	<1469222687-1600-8-git-send-email-mcgrof@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mailapp01.imgtec.com ([195.59.15.196]:61125 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753348AbcGYQAW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jul 2016 12:00:22 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH 3/5] arm64: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
+Date: Mon, 25 Jul 2016 16:59:52 +0100
+Message-ID: <1469462394-8970-4-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
+References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
-Message-ID: <20160725153014.SARUtapY2-UNCt6ShEKihBN6XZmRPMNRMX4FRDHRF20@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160725155952.E0VylaPUgjGBY0qxdtJxU0D--ddT8b0biH_Epa897AY@z>
 
-On Fri, 22 Jul 2016 14:24:41 -0700
-"Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
+NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
+for arm64 at all even though ARCH_DLINFO will contain one NEW_AUX_ENT
+for the VDSO address.
 
-> +/**
-> + * LINKTABLE_RUN_ALL - iterate and run through all entries on a linker table
-> + *
-> + * @tbl: linker table
-> + * @func: structure name for the function name we want to call.
-> + * @args...: arguments to pass to func
-> + *
-> + * Example usage:
-> + *
-> + *   LINKTABLE_RUN_ALL(frobnicator_fns, some_run,);
-> + */
-> +#define LINKTABLE_RUN_ALL(tbl, func, args...)				\
-> +do {									\
-> +	size_t i;							\
-> +	for (i = 0; i < LINUX_SECTION_SIZE(tbl); i++)			\
-> +		(tbl[i]).func (args);					\
-> +} while (0);
-> +
-> +/**
-> + * LINKTABLE_RUN_ERR - run each linker table entry func and return error if any
-> + *
-> + * @tbl: linker table
-> + * @func: structure name for the function name we want to call.
-> + * @args...: arguments to pass to func
-> + *
-> + * Example usage:
-> + *
-> + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns, some_run,);
-> + */
-> +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
-> +({									\
-> +	size_t i;							\
-> +	int err = 0;							\
-> +	for (i = 0; !err && i < LINUX_SECTION_SIZE(tbl); i++)		\
-> +		err = (tbl[i]).func (args);				\
-> +		err; \
-> +})
+This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
+AT_BASE_PLATFORM which arm64 doesn't use, but lets define it now and add
+the comment above ARCH_DLINFO as found in several other architectures to
+remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
+date.
 
-These iteration APIs are a bit dangerous, at least for these APIs we'd better change
-name like as FUNCTABLE_RUN etc. because LINKTABLE can contain not only function address
-but also some data (or address of data).
+Fixes: f668cd1673aa ("arm64: ELF definitions")
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+---
+ arch/arm64/include/asm/elf.h         | 1 +
+ arch/arm64/include/uapi/asm/auxvec.h | 2 ++
+ 2 files changed, 3 insertions(+)
 
-Thank  you,
-
-
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 579b6e654f2d..a55384f4a5d7 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -140,6 +140,7 @@ typedef struct user_fpsimd_state elf_fpregset_t;
+ 
+ #define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
+ 
++/* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
+ #define ARCH_DLINFO							\
+ do {									\
+ 	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
+diff --git a/arch/arm64/include/uapi/asm/auxvec.h b/arch/arm64/include/uapi/asm/auxvec.h
+index 22d6d8885854..4cf0c17787a8 100644
+--- a/arch/arm64/include/uapi/asm/auxvec.h
++++ b/arch/arm64/include/uapi/asm/auxvec.h
+@@ -19,4 +19,6 @@
+ /* vDSO location */
+ #define AT_SYSINFO_EHDR	33
+ 
++#define AT_VECTOR_SIZE_ARCH 1 /* entries in ARCH_DLINFO */
++
+ #endif
 -- 
-Masami Hiramatsu <mhiramat@kernel.org>
+2.4.10
+
