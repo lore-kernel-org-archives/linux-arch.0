@@ -1,73 +1,39 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 10/14] tile: migrate exception table users off module.h and onto extable.h
-Date: Sun, 24 Jul 2016 23:42:43 -0400
-Message-ID: <20160725034247.109173-11-paul.gortmaker@windriver.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC/PATCH 00/14] split exception table content out of module.h
+ into extable.h
+Date: Sun, 24 Jul 2016 21:18:19 -0700
+Message-ID: <CA+55aFyDw_jK609LcjpWvVMTzCWuH6nLUXiZDeYC2tpSaZqhXA@mail.gmail.com>
 References: <20160725034247.109173-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:36403 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752755AbcGYDnp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Jul 2016 23:43:45 -0400
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-alpha-owner@vger.kernel.org>
 In-Reply-To: <20160725034247.109173-1-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Metcalf <cmetcalf@mellanox.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@mellanox.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Matt Turner <mattst88@gmail.com>, Michael Ellerman <mpe@ellerman.id.au>, Paul Mackerras <paulus@samba.org>, Ralf Baechle <ralf@linux-mips.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@armlinux.org.uk>Rus
+List-Id: linux-arch.vger.kernel.org
 
-These files were only including module.h for exception table
-related functions.  We've now separated that content out into its
-own file "extable.h" so now move over to that and avoid all the
-extra header content in module.h that we don't really need to compile
-these files.
+On Sun, Jul 24, 2016 at 8:42 PM, Paul Gortmaker
+<paul.gortmaker@windriver.com> wrote:
+>
+> While doing an audit looking for unnecessary instances of module.h
+> inclusion across arch/x86/ I found a significant number of includes
+> of module.h were for things like search_exception_table and friends.
+>
+> For historical reasons (i.e. pre-git) the exception table stuff was
+> buried in the middle of the module.h file.  So we have core kernel
+> files that are completely non-modular (both arch specific and arch
+> independent) that are just including module.h for this.
+>
+> The converse is also true, in that conventional drivers, be they for
+> filesystems or actual hardware peripherals or similar, do not
+> normally care about the exception tables.
+>
+> Here we fork the exception table content [...]
 
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- arch/tile/kernel/unaligned.c | 2 +-
- arch/tile/mm/extable.c       | 2 +-
- arch/tile/mm/fault.c         | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+This looks to be the right thing to do as far as I can tell. I'm not
+sure how big of a problem the extable stuff is (we definitely have
+much bigger unnecessary include files that cause a lot more problems),
+but it seems like a reasonable cleanup.
 
-diff --git a/arch/tile/kernel/unaligned.c b/arch/tile/kernel/unaligned.c
-index 9772a3554282..4fe78c5b8394 100644
---- a/arch/tile/kernel/unaligned.c
-+++ b/arch/tile/kernel/unaligned.c
-@@ -22,7 +22,7 @@
- #include <linux/mman.h>
- #include <linux/types.h>
- #include <linux/err.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/compat.h>
- #include <linux/prctl.h>
- #include <asm/cacheflush.h>
-diff --git a/arch/tile/mm/extable.c b/arch/tile/mm/extable.c
-index 4fb0acb9d154..aeaf20c7aaa4 100644
---- a/arch/tile/mm/extable.c
-+++ b/arch/tile/mm/extable.c
-@@ -12,7 +12,7 @@
-  *   more details.
-  */
- 
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/spinlock.h>
- #include <linux/uaccess.h>
- 
-diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
-index beba986589e5..709f8e9ba3e9 100644
---- a/arch/tile/mm/fault.c
-+++ b/arch/tile/mm/fault.c
-@@ -29,7 +29,7 @@
- #include <linux/tty.h>
- #include <linux/vt_kern.h>		/* For unblank_screen() */
- #include <linux/highmem.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/kprobes.h>
- #include <linux/hugetlb.h>
- #include <linux/syscalls.h>
--- 
-2.8.4
+              Linus
