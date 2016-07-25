@@ -1,88 +1,127 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 5/5] tile: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
-Date: Mon, 25 Jul 2016 20:10:36 +0100
-Message-ID: <20160725191036.GA1292@jhogan-linux.le.imgtec.org>
-References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
- <1469462394-8970-6-git-send-email-james.hogan@imgtec.com>
- <ac0ee1bd-572c-5c80-bf29-346c19a3aaa4@mellanox.com>
+From: Laura Abbott <labbott@redhat.com>
+Subject: Re: [PATCH v4 12/12] mm: SLUB hardened usercopy support
+Date: Mon, 25 Jul 2016 12:16:24 -0700
+Message-ID: <0f980e84-b587-3d9e-3c26-ad57f947c08b@redhat.com>
+References: <1469046427-12696-1-git-send-email-keescook@chromium.org>
+ <1469046427-12696-13-git-send-email-keescook@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="sm4nu43k4a2Rpi4c"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:59111 "EHLO
-	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752348AbcGYTKj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jul 2016 15:10:39 -0400
-Content-Disposition: inline
-In-Reply-To: <ac0ee1bd-572c-5c80-bf29-346c19a3aaa4@mellanox.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <kernel-hardening-return-4058-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <1469046427-12696-13-git-send-email-keescook@chromium.org>
+To: Kees Cook <keescook@chromium.org>, kernel-hardening@lists.openwall.com
+Cc: Laura Abbott <labbott@fedoraproject.org>, Balbir Singh <bsingharora@gmail.com>, Daniel Micay <danielmicay@gmail.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Rik van Riel <riel@redhat.com>, Casey Schaufler <casey@schaufler-ca.com>, PaX Team <pageexec@freemail.hu>, Brad Spengler <spender@grsecurity.net>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Andy
+List-Id: linux-arch.vger.kernel.org
 
---sm4nu43k4a2Rpi4c
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On 07/20/2016 01:27 PM, Kees Cook wrote:
+> Under CONFIG_HARDENED_USERCOPY, this adds object size checking to the
+> SLUB allocator to catch any copies that may span objects. Includes a
+> redzone handling fix discovered by Michael Ellerman.
+>
+> Based on code from PaX and grsecurity.
+>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Tested-by: Michael Ellerman <mpe@ellerman.id.au>
+> ---
+>  init/Kconfig |  1 +
+>  mm/slub.c    | 36 ++++++++++++++++++++++++++++++++++++
+>  2 files changed, 37 insertions(+)
+>
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 798c2020ee7c..1c4711819dfd 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -1765,6 +1765,7 @@ config SLAB
+>
+>  config SLUB
+>  	bool "SLUB (Unqueued Allocator)"
+> +	select HAVE_HARDENED_USERCOPY_ALLOCATOR
+>  	help
+>  	   SLUB is a slab allocator that minimizes cache line usage
+>  	   instead of managing queues of cached objects (SLAB approach).
+> diff --git a/mm/slub.c b/mm/slub.c
+> index 825ff4505336..7dee3d9a5843 100644
+> --- a/mm/slub.c
+> +++ b/mm/slub.c
+> @@ -3614,6 +3614,42 @@ void *__kmalloc_node(size_t size, gfp_t flags, int node)
+>  EXPORT_SYMBOL(__kmalloc_node);
+>  #endif
+>
+> +#ifdef CONFIG_HARDENED_USERCOPY
+> +/*
+> + * Rejects objects that are incorrectly sized.
+> + *
+> + * Returns NULL if check passes, otherwise const char * to name of cache
+> + * to indicate an error.
+> + */
+> +const char *__check_heap_object(const void *ptr, unsigned long n,
+> +				struct page *page)
+> +{
+> +	struct kmem_cache *s;
+> +	unsigned long offset;
+> +	size_t object_size;
+> +
+> +	/* Find object and usable object size. */
+> +	s = page->slab_cache;
+> +	object_size = slab_ksize(s);
+> +
+> +	/* Find offset within object. */
+> +	offset = (ptr - page_address(page)) % s->size;
+> +
+> +	/* Adjust for redzone and reject if within the redzone. */
+> +	if (kmem_cache_debug(s) && s->flags & SLAB_RED_ZONE) {
+> +		if (offset < s->red_left_pad)
+> +			return s->name;
+> +		offset -= s->red_left_pad;
+> +	}
+> +
+> +	/* Allow address range falling entirely within object size. */
+> +	if (offset <= object_size && n <= object_size - offset)
+> +		return NULL;
+> +
+> +	return s->name;
+> +}
+> +#endif /* CONFIG_HARDENED_USERCOPY */
+> +
 
-On Mon, Jul 25, 2016 at 12:37:50PM -0400, Chris Metcalf wrote:
-> On 7/25/2016 11:59 AM, James Hogan wrote:
-> > AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
-> > NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
-> > for tile at all even though ARCH_DLINFO will contain one NEW_AUX_ENT for
-> > the VDSO address.
-> >
-> > This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
-> > AT_BASE_PLATFORM which tile doesn't use, but lets define it now and add
-> > the comment above ARCH_DLINFO as found in several other architectures to
-> > remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
-> > date.
-> >
-> > Fixes: 4a556f4f56da ("tile: implement gettimeofday() via vDSO")
-> > Signed-off-by: James Hogan<james.hogan@imgtec.com>
-> > Cc: Chris Metcalf<cmetcalf@mellanox.com>
-> > ---
-> >   arch/tile/include/asm/elf.h         | 1 +
-> >   arch/tile/include/uapi/asm/auxvec.h | 2 ++
-> >   2 files changed, 3 insertions(+)
->=20
-> Thanks, taken into the tile tree.
->=20
-> I'm a little dubious that AT_VECTOR_SIZE_ARCH should be being defined
-> in the uapi version of auxvec.h, since I don't see why userspace should
-> be interested in it, but that does seem to be the current convention.
+I compared this against what check_valid_pointer does for SLUB_DEBUG
+checking. I was hoping we could utilize that function to avoid
+duplication but a) __check_heap_object needs to allow accesses anywhere
+in the object, not just the beginning b) accessing page->objects
+is racy without the addition of locking in SLUB_DEBUG.
 
-Yes, I agree.
+Still, the ptr < page_address(page) check from __check_heap_object would
+be good to add to avoid generating garbage large offsets and trying to
+infer C math.
 
-> Ugh, there are even CONFIG_xxx ifdefs in the x86 and sh uapi/asm/auxvec.h=
- ...
-> Maybe the define could be moved to arch/*/include/asm/elf.h?
+diff --git a/mm/slub.c b/mm/slub.c
+index 7dee3d9..5370e4f 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -3632,6 +3632,9 @@ const char *__check_heap_object(const void *ptr, unsigned long n,
+         s = page->slab_cache;
+         object_size = slab_ksize(s);
+  
++       if (ptr < page_address(page))
++               return s->name;
++
+         /* Find offset within object. */
+         offset = (ptr - page_address(page)) % s->size;
+  
 
-That sounds like a sensible place for it to me.
+With that, you can add
 
-Cheers
-James
+Reviwed-by: Laura Abbott <labbott@redhat.com>
 
---sm4nu43k4a2Rpi4c
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+>  static size_t __ksize(const void *object)
+>  {
+>  	struct page *page;
+>
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJXlmQsAAoJEGwLaZPeOHZ6Jw0P/jrcUjYjzDFBHl5ES+Q9rPAu
-FHjZ9j+MD3DPMK7HwUPkzPvWyjC2boiQjHOvN3JCL6IlzW7R/3cUB3imayMrbfZt
-BhhrPm6oZyS9FJlGO3x4NKFn6sk0p2kVHMxycW/TdNpSYIfm4PlOHEb0fnwTPTEr
-brFk5l4QDBCU1GaLc7UCg7UOHbKFLEOsmGdDoldyFAclJhLTGmRzuD8iIxbnZCuo
-MEH7VFuJqvyVNTpe89tY0/YTPfan4GaKpnyMUzhEuWuzBQKGbmZXRaLY9eY0uk82
-W41BM4Z54e/9ZJ65QOVBNGu3sWnG5MGzMKZubSouyNNzj6W2jWVbT8iV+X26u0Bj
-5QaS2gdVy/HRP9Js0X91+EteZgfpOzCQYb3gfiVk+ZssR4Hi081hVEK/pxp8h9sY
-SMREBsSL4NfyVEvYmrM/7aP/3HcaiUVUAF3EoWqbmPh9LkeaaIgFiZ0lEP166QOP
-BiDe5u2C89TszIcc0W9jgmHSf2/KHeWMEps9A0dlz7nMvS7E8e7tao6ygJwzfU3/
-HWgkp+/+ZGorRm5nGxllqgdELZT56pzD3cUDN6Y8Rii6gL4RdyWKdc35zHnDHIvl
-DsHN28EySdFkzDoz5ZayyX5cihWQYsU9jJ/1hPSvYJwiQu4uFiMJjV/Elj2Rn1kK
-sid7058DV43tYCmBOzsP
-=0GPk
------END PGP SIGNATURE-----
-
---sm4nu43k4a2Rpi4c--
+Thanks,
+Laura
