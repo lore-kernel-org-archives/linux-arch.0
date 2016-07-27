@@ -1,70 +1,177 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Thu, 28 Jul 2016 01:02:18 +0200
-Message-ID: <20160727230218.GR5537@wotan.suse.de>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
- <20160726003014.8e0424d2991ec71ad5e0ac5f@kernel.org>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH 01/14] exceptions: fork exception table content from module.h into extable.h
+Date: Wed, 27 Jul 2016 12:04:15 +0930
+Message-ID: <87eg6fzu54.fsf@rustcorp.com.au>
+References: <20160725034247.109173-1-paul.gortmaker@windriver.com> <20160725034247.109173-2-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:51476 "EHLO mx2.suse.de"
+Received: from ozlabs.org ([103.22.144.67]:59932 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1161061AbcG0XCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Jul 2016 19:02:20 -0400
-Content-Disposition: inline
-In-Reply-To: <20160726003014.8e0424d2991ec71ad5e0ac5f@kernel.org>
+	id S1752762AbcG1Bsi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jul 2016 21:48:38 -0400
+In-Reply-To: <20160725034247.109173-2-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Jessica Yu <jeyu@redhat.com>
 
-On Tue, Jul 26, 2016 at 12:30:14AM +0900, Masami Hiramatsu wrote:
-> On Fri, 22 Jul 2016 14:24:41 -0700
-> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
-> 
-> > +/**
-> > + * LINKTABLE_RUN_ALL - iterate and run through all entries on a linker table
-> > + *
-> > + * @tbl: linker table
-> > + * @func: structure name for the function name we want to call.
-> > + * @args...: arguments to pass to func
-> > + *
-> > + * Example usage:
-> > + *
-> > + *   LINKTABLE_RUN_ALL(frobnicator_fns, some_run,);
-> > + */
-> > +#define LINKTABLE_RUN_ALL(tbl, func, args...)				\
-> > +do {									\
-> > +	size_t i;							\
-> > +	for (i = 0; i < LINUX_SECTION_SIZE(tbl); i++)			\
-> > +		(tbl[i]).func (args);					\
-> > +} while (0);
-> > +
-> > +/**
-> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return error if any
-> > + *
-> > + * @tbl: linker table
-> > + * @func: structure name for the function name we want to call.
-> > + * @args...: arguments to pass to func
-> > + *
-> > + * Example usage:
-> > + *
-> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns, some_run,);
-> > + */
-> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
-> > +({									\
-> > +	size_t i;							\
-> > +	int err = 0;							\
-> > +	for (i = 0; !err && i < LINUX_SECTION_SIZE(tbl); i++)		\
-> > +		err = (tbl[i]).func (args);				\
-> > +		err; \
-> > +})
-> 
-> These iteration APIs are a bit dangerous, at least for these APIs we'd better change
-> name like as FUNCTABLE_RUN etc. because LINKTABLE can contain not only function address
-> but also some data (or address of data).
+Paul Gortmaker <paul.gortmaker@windriver.com> writes:
+> For historical reasons (i.e. pre-git) the exception table stuff was
+> buried in the middle of the module.h file.  I noticed this while
+> doing an audit for needless includes of module.h and found core
+> kernel files (both arch specific and arch independent) were just
+> including module.h for this.
 
-Sure will do, thanks for the review.
+I'm going to include this first patch now; it's trivial, and allows the
+rest of the changes to proceed at the archs' leisure.
 
-  Luis
+I have another patch series which had to be tweaked, so I'm deferring
+the push to Linus for a couple of days stewing in linux-next anyway.
+
+Thanks,
+Rusty.
+
+> The converse is also true, in that conventional drivers, be they
+> for filesystems or actual hardware peripherals or similar, do not
+> normally care about the exception tables.
+>
+> Here we fork the exception table content out of module.h into a
+> new file called extable.h -- and temporarily include it into the
+> module.h itself.
+>
+> Then we will work our way across the arch independent and arch
+> specific files needing just exception table content, and move
+> them off module.h and onto extable.h
+>
+> Once that is done, we can remove the extable.h from module.h
+> and in doing it like this, we avoid introducing build failures
+> into the git history.
+>
+> The gain here is that module.h gets a bit smaller, across all
+> modular drivers that we build for allmodconfig.  Also the core
+> files that only need exception table stuff don't have an include
+> of module.h that brings in lots of extra stuff and just looks
+> generally out of place.
+>
+> Cc: Rusty Russell <rusty@rustcorp.com.au>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> ---
+>  include/linux/extable.h | 30 ++++++++++++++++++++++++++++++
+>  include/linux/module.h  | 27 ++-------------------------
+>  2 files changed, 32 insertions(+), 25 deletions(-)
+>  create mode 100644 include/linux/extable.h
+>
+> diff --git a/include/linux/extable.h b/include/linux/extable.h
+> new file mode 100644
+> index 000000000000..2c71dccd1bc3
+> --- /dev/null
+> +++ b/include/linux/extable.h
+> @@ -0,0 +1,30 @@
+> +#ifndef _LINUX_EXTABLE_H
+> +#define _LINUX_EXTABLE_H
+> +
+> +struct module;
+> +struct exception_table_entry;
+> +
+> +const struct exception_table_entry *
+> +search_extable(const struct exception_table_entry *first,
+> +	       const struct exception_table_entry *last,
+> +	       unsigned long value);
+> +void sort_extable(struct exception_table_entry *start,
+> +		  struct exception_table_entry *finish);
+> +void sort_main_extable(void);
+> +void trim_init_extable(struct module *m);
+> +
+> +/* Given an address, look for it in the exception tables */
+> +const struct exception_table_entry *search_exception_tables(unsigned long add);
+> +
+> +#ifdef CONFIG_MODULES
+> +/* For extable.c to search modules' exception tables. */
+> +const struct exception_table_entry *search_module_extables(unsigned long addr);
+> +#else
+> +static inline const struct exception_table_entry *
+> +search_module_extables(unsigned long addr)
+> +{
+> +	return NULL;
+> +}
+> +#endif /*CONFIG_MODULES*/
+> +
+> +#endif /* _LINUX_EXTABLE_H */
+> diff --git a/include/linux/module.h b/include/linux/module.h
+> index f777164c238b..f95ed243a4de 100644
+> --- a/include/linux/module.h
+> +++ b/include/linux/module.h
+> @@ -18,6 +18,7 @@
+>  #include <linux/moduleparam.h>
+>  #include <linux/jump_label.h>
+>  #include <linux/export.h>
+> +#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
+>  #include <linux/rbtree_latch.h>
+>  
+>  #include <linux/percpu.h>
+> @@ -37,6 +38,7 @@ struct modversion_info {
+>  };
+>  
+>  struct module;
+> +struct exception_table_entry;
+>  
+>  struct module_kobject {
+>  	struct kobject kobj;
+> @@ -155,18 +157,6 @@ extern void cleanup_module(void);
+>  #define __INITRODATA_OR_MODULE __INITRODATA
+>  #endif /*CONFIG_MODULES*/
+>  
+> -/* Archs provide a method of finding the correct exception table. */
+> -struct exception_table_entry;
+> -
+> -const struct exception_table_entry *
+> -search_extable(const struct exception_table_entry *first,
+> -	       const struct exception_table_entry *last,
+> -	       unsigned long value);
+> -void sort_extable(struct exception_table_entry *start,
+> -		  struct exception_table_entry *finish);
+> -void sort_main_extable(void);
+> -void trim_init_extable(struct module *m);
+> -
+>  /* Generic info of form tag = "info" */
+>  #define MODULE_INFO(tag, info) __MODULE_INFO(tag, tag, info)
+>  
+> @@ -268,9 +258,6 @@ extern const typeof(name) __mod_##type##__##name##_device_table		\
+>   * files require multiple MODULE_FIRMWARE() specifiers */
+>  #define MODULE_FIRMWARE(_firmware) MODULE_INFO(firmware, _firmware)
+>  
+> -/* Given an address, look for it in the exception tables */
+> -const struct exception_table_entry *search_exception_tables(unsigned long add);
+> -
+>  struct notifier_block;
+>  
+>  #ifdef CONFIG_MODULES
+> @@ -630,9 +617,6 @@ const char *module_address_lookup(unsigned long addr,
+>  int lookup_module_symbol_name(unsigned long addr, char *symname);
+>  int lookup_module_symbol_attrs(unsigned long addr, unsigned long *size, unsigned long *offset, char *modname, char *name);
+>  
+> -/* For extable.c to search modules' exception tables. */
+> -const struct exception_table_entry *search_module_extables(unsigned long addr);
+> -
+>  int register_module_notifier(struct notifier_block *nb);
+>  int unregister_module_notifier(struct notifier_block *nb);
+>  
+> @@ -657,13 +641,6 @@ static inline bool is_livepatch_module(struct module *mod)
+>  
+>  #else /* !CONFIG_MODULES... */
+>  
+> -/* Given an address, look for it in the exception tables. */
+> -static inline const struct exception_table_entry *
+> -search_module_extables(unsigned long addr)
+> -{
+> -	return NULL;
+> -}
+> -
+>  static inline struct module *__module_address(unsigned long addr)
+>  {
+>  	return NULL;
+> -- 
+> 2.8.4
