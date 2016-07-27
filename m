@@ -1,66 +1,123 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
- tables
-Date: Thu, 28 Jul 2016 00:46:09 +0200
-Message-ID: <20160727224609.GO5537@wotan.suse.de>
+Subject: Re: [RFC v3 10/13] jump_label: port __jump_table to linker tables
+Date: Thu, 28 Jul 2016 00:55:03 +0200
+Message-ID: <20160727225503.GP5537@wotan.suse.de>
 References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <20160725223229.7de71264e9e6ec8d635ee785@kernel.org>
+ <1469222687-1600-11-git-send-email-mcgrof@kernel.org>
+ <20160722214945.h7v7fvsnuhnvz6ux@treble>
+ <20160722222654.GO5537@wotan.suse.de>
+ <20160722225535.uu7h7iowwchby7uy@treble>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <platform-driver-x86-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160725223229.7de71264e9e6ec8d635ee785@kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com
+In-Reply-To: <20160722225535.uu7h7iowwchby7uy@treble>
+Sender: platform-driver-x86-owner@vger.kernel.org
+To: Josh Poimboeuf <jpoimboe@redhat.com>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevche
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 25, 2016 at 10:32:29PM +0900, Masami Hiramatsu wrote:
-> Hi Luis,
+On Fri, Jul 22, 2016 at 05:55:35PM -0500, Josh Poimboeuf wrote:
+> On Sat, Jul 23, 2016 at 12:26:54AM +0200, Luis R. Rodriguez wrote:
+> > On Fri, Jul 22, 2016 at 04:49:45PM -0500, Josh Poimboeuf wrote:
+> > > On Fri, Jul 22, 2016 at 02:24:44PM -0700, Luis R. Rodriguez wrote:
+> > > > diff --git a/tools/objtool/special.c b/tools/objtool/special.c
+> > > > index bff8abb3a4aa..f0ad369f994b 100644
+> > > > --- a/tools/objtool/special.c
+> > > > +++ b/tools/objtool/special.c
+> > > > @@ -26,6 +26,10 @@
+> > > >  #include "special.h"
+> > > >  #include "warn.h"
+> > > >  
+> > > > +#include "../../include/asm-generic/sections.h"
+> > > > +#include "../../include/asm-generic/tables.h"
+> > > > +#include "../../include/linux/stringify.h"
+> > > > +
+> > > >  #define EX_ENTRY_SIZE		12
+> > > >  #define EX_ORIG_OFFSET		0
+> > > >  #define EX_NEW_OFFSET		4
+> > > > @@ -63,7 +67,9 @@ struct special_entry entries[] = {
+> > > >  		.feature = ALT_FEATURE_OFFSET,
+> > > >  	},
+> > > >  	{
+> > > > -		.sec = "__jump_table",
+> > > > +		.sec = __stringify(SECTION_TBL(SECTION_DATA,
+> > > > +				               __jump_table,
+> > > > +					       SECTION_ORDER_ANY)),
+> > > >  		.jump_or_nop = true,
+> > > >  		.size = JUMP_ENTRY_SIZE,
+> > > >  		.orig = JUMP_ORIG_OFFSET,
+> > > 
+> > > (continuing our discussion from another thread...)
+> > > 
+> > > I think tools code isn't allowed to include kernel files because the
+> > > tools subdirectory is supposed to be completely independent.
+> > 
+> > That was also the case for userpsace tools in scripts/ -- for instance
+> > scripts/mod/modpost.c made an exception. What I've proposed here to
+> > keep things simple was to ensure -UKERNEL is passed and then only
+> > include files we know will work.
+> > 
+> > Refer to the patch "kprobes: port .kprobes.text to section range"
+> > in this series for an extension of the scripts/mod/modpost.c kernel
+> > headers use.
 > 
-> On Fri, 22 Jul 2016 14:24:34 -0700
-> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
-> 
-> > This RFC v3 builds off the last RFC v2 series [0] for adding linker tables.
-> > The largest amount of work here was to take Russell King's feedback on
-> > using linker table for kprobes text not being appropriate -- and providing
-> > another lightweight API for simple section ranges: read-only stitched pieces
-> > of executable code. This required also generalizing common building blocks
-> > for both linker tables and section ranges, these building blocks are defined
-> > now in include/linux/sections.h and asm-generic/section.h. The other last thing
-> > decided was to not support sub-sections. In the hunt for this I could think of
-> > anything that really required this, and if it was needed it did not seem
-> > impossible to port over to avoid its use. Please let me know if there are valid
-> > uses cases for sub-sections.
-> > 
-> > Other significant effort here was to provide a set of common assembly helpers
-> > which could be used across architectures, this starts off some of this work
-> > for generic helpers which carve out and define custom Linux sections.
-> > 
-> > Lastly, this now also goes with two ports which required module support when
-> > using linker tables: jump labels, and dynamic debug support. A few
-> > extensions have been made to the original series in order to provide
-> > support for that.
-> > 
-> > Since kprobes actually had both a linker table and a section range the
-> > patch that dealt with kprobes is now split off in two patches, one
-> > that deals with its linker table and another for its section ranges.
-> > 
-> > More elaborate uses for linker tables are possible, I'll hold off on any
-> > of this type of work until at least the basic building blocks are fleshed
-> > out. To review how this work came about, and more elaborate uses being
-> > evaluated check out the userspace linker-tables mockup solution [1].
-> > Hopefully most of the possible bikeshedding was already dealt with through
-> > that tree. Thanks to hpa for tons of feedback.
-> 
-> Great! so table and ranges completely replace the old-style(add-hoc)
-> _kprobe and NOKPROBE_SYMBOL() implementation, good job! :)
+> I think the rule of separating code is stricter for tools/ than it is
+> for scripts/.  The scripts are generally kernel-specific whereas the
+> tools are independent.  I believe the goal is to be able to copy them
+> out of the kernel tree and still be able to compile them.
 
-Indeed, thanks! In reality this is generalizing custom section hacks, but also
-making them much more powerful due to the fact that we sort now at link time,
-this buys us better than O(1) sort for code where dependencies can be spelled
-out in code, it also expands on the semantics available to us for order
-levels -- so we're no longer restricted to 7 levels for built-in code -- and
-order levels can be subject/subsystem specific.
+I see.
+
+> > > As far as I can tell, the section name will always be
+> > > ".data.tbl.__jump_table.any".  Is that true?  If so, any reason why we
+> > > can't just hard-code the string here?
+> > 
+> > Its a fair strategy, however if upstream changes the order name we'd
+> > have to hand code this as well, by using a macro we keep it all in one
+> > place.
+> 
+> Hm, do you expect the section name to change often?
+
+Nope, if anything only upon deployment on major distributions due to
+some perhaps compatibility thing with custom hacks folks may have carried
+and this just ended up clashing with. The only other case I can think
+of a need for a change would be if upstream linkers supported something
+similar for another brand of section names, with the added gain that
+we would then not even need the 2 new lines on the kernel linker script
+for section ranges and tables per section.
+
+> > > As you saw, if the string
+> > > changes, objtool will complain and 0-day will report it.
+> > 
+> > Indeed, which is why I was hoping to instead stick to a standard
+> > sections set of header files that lets us get these in on place.
+> 
+> Actually, I meant that obtool reporting the change would be a good
+> thing, in favor of just hard-coding the string.  It lets objtool do its
+> job of letting us know when something changes, like it did today.
+
+Getting a report so you can fix something is one reason to have a tool,
+having it so you can inspect changes is another. So it depends what uses
+there are for objtool. I take it that for this case we do want upstream
+objtool to embrace the new section name to avoid further reports as
+issues ?
+
+> > The only place I hand coded in this series was in the perl
+> > file scripts/recordmcount.pl but I suppose if we wanted to get
+> > creative we could even generate a header for it too.
+> > 
+> > If we want to avoid all this hacker include stuff another option
+> > is to *generate* each respective sections.h for the kernel, and
+> > also, one for tools, and one for perl. What do you think?
+> 
+> If the generated files aren't checked into git, tools/ will rely on
+> kernel files and will no longer be independent.  If they *are* checked
+> in, then we have to keep the files in sync.  Either way it sounds like
+> overkill, just to avoid hard-coding a string for which objtool will
+> already warn if it changes.
+
+We can open code the string, that's fine. In retrospect since things
+won't change often that keeps things simple.
 
   Luis
