@@ -1,35 +1,84 @@
-From: Donnie@vger.kernel.org, Mcclurkin@vger.kernel.org
-Subject: LOAN OFFER
-Date: Thu, 28 Jul 2016 15:07:24 +0300
-Message-ID: <379517ba-d56c-46bd-9a30-833b29a134f7@EXCHCAS00.INTA.AR>
-Reply-To: <Donnie.McclurkinLoanInvestment@yandex.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFC v3 07/13] tables.h: add linker table support
+Date: Thu, 28 Jul 2016 10:08:20 -0700
+Message-ID: <201607281708.u6SH8Uvl002361__21347.3140066073$1469726774$gmane$org@mail.zytor.com>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org> <1469222687-1600-8-git-send-email-mcgrof@kernel.org> <20160726003014.8e0424d2991ec71ad5e0ac5f@kernel.org> <20160727230218.GR5537@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from excedge02.inta.gob.ar ([200.32.35.25]:52386 "EHLO
-	EXCEDGE02.inta.gob.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757350AbcG1MHw convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jul 2016 08:07:52 -0400
-Content-Description: Mail message body
+Received: from terminus.zytor.com ([198.137.202.10]:52266 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758917AbcG1RZx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Jul 2016 13:25:53 -0400
+In-Reply-To: <20160727230218.GR5537@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>
 
-DO YOU NEED PERSONAL OR BUSINESS LOAN? IF YES KINDLY REPLY US FOR INSTANT APPROVAL WITH 3% INTEREST RATE!!!
+tglx@linutronix.de,mingo@redhat.com,bp@alien8.de,linux@arm.linux.org.uk,masami.hiramatsu.pt@hitachi.com,jbaron@akamai.com,heiko.carstens@de.ibm.com,ananth@linux.vnet.ibm.com,anil.s.keshavamurthy@intel.com,davem@davemloft.net,realmz6@gmail.com,x86@kernel.org,luto@amacapital.net,keescook@chromium.org,torvalds@linux-foundation.org,gregkh@linuxfoundation.org,rusty@rustcorp.com.au,gnomes@lxorguk.ukuu.org.uk,alan@linux.intel.com,dwmw2@infradead.org,arnd@arndb.de,ming.lei@canonical.com,linux-arch@vger.kernel.org,benh@kernel.crashing.org,ananth@in.ibm.com,pebolle@tiscali.nl,fontana@sharpeleven.org,ciaran.farrell@suse.com,christopher.denicolo@suse.com,david.vrabel@citrix.com,konrad.wilk@oracle.com,mcb30@ipxe.org,jgross@suse.com,andrew.cooper3@citrix.com,andriy.shevchenko@linux.intel.com,paul.gortma
+ ker@windriver.com,xen-devel@lists.xensource.com,ak@linux.intel.com,pali.rohar@gmail.com,dvhart@infradead.org,platform-driver-x86@vger.kernel.org,mmarek@suse.com,linux@rasmusvillemoes.dk,jko!
+ sina@suse
+.cz,korea.drzix@gmail.com,linux-kbuild@vger.kernel.org,tony.luck@intel.com,akpm@linux-foundation.org,linux-ia64@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-sh@vger.kernel.org,sparclinux@vger.kernel.org,catalin.marinas@arm.com,will.deacon@arm.com,rostedt@goodmis.org,jpoimboe@redhat.com
+Message-ID: <01FD20B1-E788-4CC6-81CF-BA26F000FFCB@zytor.com>
 
-NAME-------
+On July 27, 2016 4:02:18 PM PDT, "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+>On Tue, Jul 26, 2016 at 12:30:14AM +0900, Masami Hiramatsu wrote:
+>> On Fri, 22 Jul 2016 14:24:41 -0700
+>> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+>> 
+>> > +/**
+>> > + * LINKTABLE_RUN_ALL - iterate and run through all entries on a
+>linker table
+>> > + *
+>> > + * @tbl: linker table
+>> > + * @func: structure name for the function name we want to call.
+>> > + * @args...: arguments to pass to func
+>> > + *
+>> > + * Example usage:
+>> > + *
+>> > + *   LINKTABLE_RUN_ALL(frobnicator_fns, some_run,);
+>> > + */
+>> > +#define LINKTABLE_RUN_ALL(tbl, func, args...)				\
+>> > +do {									\
+>> > +	size_t i;							\
+>> > +	for (i = 0; i < LINUX_SECTION_SIZE(tbl); i++)			\
+>> > +		(tbl[i]).func (args);					\
+>> > +} while (0);
+>> > +
+>> > +/**
+>> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return
+>error if any
+>> > + *
+>> > + * @tbl: linker table
+>> > + * @func: structure name for the function name we want to call.
+>> > + * @args...: arguments to pass to func
+>> > + *
+>> > + * Example usage:
+>> > + *
+>> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns,
+>some_run,);
+>> > + */
+>> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
+>> > +({									\
+>> > +	size_t i;							\
+>> > +	int err = 0;							\
+>> > +	for (i = 0; !err && i < LINUX_SECTION_SIZE(tbl); i++)		\
+>> > +		err = (tbl[i]).func (args);				\
+>> > +		err; \
+>> > +})
+>> 
+>> These iteration APIs are a bit dangerous, at least for these APIs
+>we'd better change
+>> name like as FUNCTABLE_RUN etc. because LINKTABLE can contain not
+>only function address
+>> but also some data (or address of data).
+>
+>Sure will do, thanks for the review.
+>
+>  Luis
 
-COUNTRY.----
-
-AMOUNT------
-
-NUMBER---
-
-GENDER----
-
-AGE-------
-
-ADDRESS---
-
-DURATION---
+I don't know if they are dangerous.  Keep in mind C type checking is still present.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
