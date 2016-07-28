@@ -1,78 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound.smtp.vt.edu ([198.82.183.121]:60422 "EHLO
-	omr2.cc.vt.edu" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752189AbcG1J1l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jul 2016 05:27:41 -0400
-Subject: Re: [kernel-hardening] [PATCH v5 03/32] x86/cpa: In populate_pgd, don't set the pgd entry until it's populated
-From: Valdis.Kletnieks@vt.edu
-In-Reply-To: <87mvl8tn93.fsf@gmail.com>
-References: <cover.1468270393.git.luto@kernel.org> <cover.1468270393.git.luto@kernel.org> <fb3254e25e38790c538cca0f46c4a7a714c77ddf.1468270393.git.luto@kernel.org> <5741.1469162592@turing-police.cc.vt.edu> <4b028b92-81f3-362f-c5be-b7a35cedf5ee@kernel.org> <8376.1469251283@turing-police.cc.vt.edu>
- <87mvl8tn93.fsf@gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1469698007_4839P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
-Date: Thu, 28 Jul 2016 05:26:47 -0400
-Message-ID: <16850.1469698007@turing-police.cc.vt.edu>
+Received: from terminus.zytor.com ([198.137.202.10]:52266 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758917AbcG1RZx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Jul 2016 13:25:53 -0400
+Message-Id: <201607281708.u6SH8Uvl002361@mail.zytor.com>
+In-Reply-To: <20160727230218.GR5537@wotan.suse.de>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org> <1469222687-1600-8-git-send-email-mcgrof@kernel.org> <20160726003014.8e0424d2991ec71ad5e0ac5f@kernel.org> <20160727230218.GR5537@wotan.suse.de>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain;
+ charset=UTF-8
+Subject: Re: [RFC v3 07/13] tables.h: add linker table support
+From: "H. Peter Anvin" <hpa@zytor.com>
+Date: Thu, 28 Jul 2016 10:08:20 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolai Stange <nicstange@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, kernel-hardening@lists.openwall.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Jann Horn <jann@thejh.net>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20160728092647.XUx4NOO5wRKbUPXvQ4FFU0P_9s0BfDEZomhjwg38xig@z>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Masami Hiramatsu <mhiramat@kernel.org>
 
---==_Exmh_1469698007_4839P
-Content-Type: text/plain; charset=us-ascii
+tglx@linutronix.de,mingo@redhat.com,bp@alien8.de,linux@arm.linux.org.uk,masami.hiramatsu.pt@hitachi.com,jbaron@akamai.com,heiko.carstens@de.ibm.com,ananth@linux.vnet.ibm.com,anil.s.keshavamurthy@intel.com,davem@davemloft.net,realmz6@gmail.com,x86@kernel.org,luto@amacapital.net,keescook@chromium.org,torvalds@linux-foundation.org,gregkh@linuxfoundation.org,rusty@rustcorp.com.au,gnomes@lxorguk.ukuu.org.uk,alan@linux.intel.com,dwmw2@infradead.org,arnd@arndb.de,ming.lei@canonical.com,linux-arch@vger.kernel.org,benh@kernel.crashing.org,ananth@in.ibm.com,pebolle@tiscali.nl,fontana@sharpeleven.org,ciaran.farrell@suse.com,christopher.denicolo@suse.com,david.vrabel@citrix.com,konrad.wilk@oracle.com,mcb30@ipxe.org,jgross@suse.com,andrew.cooper3@citrix.com,andriy.shevchenko@linux.intel.com,paul.gortmaker@windriver.com,xen-devel@lists.xensource.com,ak@linux.intel.com,pali.rohar@gmail.com,dvhart@infradead.org,platform-driver-x86@vger.kernel.org,mmarek@suse.com,linux@rasmusvillemoes.dk,jko!
+ sina@suse
+.cz,korea.drzix@gmail.com,linux-kbuild@vger.kernel.org,tony.luck@intel.com,akpm@linux-foundation.org,linux-ia64@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-sh@vger.kernel.org,sparclinux@vger.kernel.org,catalin.marinas@arm.com,will.deacon@arm.com,rostedt@goodmis.org,jpoimboe@redhat.com
+Message-ID: <01FD20B1-E788-4CC6-81CF-BA26F000FFCB@zytor.com>
 
-On Sat, 23 Jul 2016 16:58:16 +0200, Nicolai Stange said:
-> Valdis.Kletnieks@vt.edu writes:
-
-> The reason the patch didn't work for Valdis might be that there is
-> another issue in next-20150722 with the same symptoms (provided you
-> don't watch the serial console). Valdis, did you apply the provided
-> patch on top of next?
-
-Sorry, am on vacation, and no option for a serial console, that's why
-I missed the part about there being *two* issues...
-
-> The "other issue" is:
+On July 27, 2016 4:02:18 PM PDT, "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+>On Tue, Jul 26, 2016 at 12:30:14AM +0900, Masami Hiramatsu wrote:
+>> On Fri, 22 Jul 2016 14:24:41 -0700
+>> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+>> 
+>> > +/**
+>> > + * LINKTABLE_RUN_ALL - iterate and run through all entries on a
+>linker table
+>> > + *
+>> > + * @tbl: linker table
+>> > + * @func: structure name for the function name we want to call.
+>> > + * @args...: arguments to pass to func
+>> > + *
+>> > + * Example usage:
+>> > + *
+>> > + *   LINKTABLE_RUN_ALL(frobnicator_fns, some_run,);
+>> > + */
+>> > +#define LINKTABLE_RUN_ALL(tbl, func, args...)				\
+>> > +do {									\
+>> > +	size_t i;							\
+>> > +	for (i = 0; i < LINUX_SECTION_SIZE(tbl); i++)			\
+>> > +		(tbl[i]).func (args);					\
+>> > +} while (0);
+>> > +
+>> > +/**
+>> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return
+>error if any
+>> > + *
+>> > + * @tbl: linker table
+>> > + * @func: structure name for the function name we want to call.
+>> > + * @args...: arguments to pass to func
+>> > + *
+>> > + * Example usage:
+>> > + *
+>> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns,
+>some_run,);
+>> > + */
+>> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				\
+>> > +({									\
+>> > +	size_t i;							\
+>> > +	int err = 0;							\
+>> > +	for (i = 0; !err && i < LINUX_SECTION_SIZE(tbl); i++)		\
+>> > +		err = (tbl[i]).func (args);				\
+>> > +		err; \
+>> > +})
+>> 
+>> These iteration APIs are a bit dangerous, at least for these APIs
+>we'd better change
+>> name like as FUNCTABLE_RUN etc. because LINKTABLE can contain not
+>only function address
+>> but also some data (or address of data).
 >
-> (...)
->  [<ffffffffb6055487>] load_microcode.isra.1.constprop.12+0x37/0xa0
+>Sure will do, thanks for the review.
+>
+>  Luis
 
-> I bisected this one to 21ef9a5c3164 ("Merge branch 'x86/microcode'"). Both
-> of its parents do not exhibit that behaviour.  This merge's author is
-> Ingo Molnar, so I added him to the CC list.
-
-Confirming that I'm up and running on next-20160727 plus Borislav's patch:
-
-Subject: [PATCH -v2 2/2] x86/microcode/intel: Fix initrd loading with  CONFIG_RANDOMIZE_MEMORY
-
-with USERCOPY, Andy Lutomirski's stack/thread cleanup work, and microcode loading
-from initramfs all working....
-
-
-
-
---==_Exmh_1469698007_4839P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-Comment: Exmh version 2.5 07/13/2001
-
-iQIVAwUBV5nP1wdmEQWDXROgAQLW9Q/+IDHjTFFsV+V7Q7bbyXVGiNume5W7ruWY
-y+mhckRcX6hU5ZyFOYTDXDJCb3tRFjWmfqmxO8I8VCo6z1bTkkbEFPUxRYlqGdNA
-iea0Qn9VcMiwS757JR6VIlGvnQbNizLK18FltCNnSHUw0E8P3n8sIvZ0c9N39rDH
-0UV53Ak3Z0/Ix/TV4Nr2SpO7HLPSR027gi2xLZ9ArlcjYKtXDXTmJt2kctTUEaYH
-O6przlJFzrx6HzsApBgpTzJ3rtsyjsgXw16DouqXMlMHdftKrw7z34x+5PN/pkOj
-P7iCmFOQrEtH83Lui+CB9mW1sn2L6m8Oqaml1xtoVc6HVcGsBTZMh8m2F/iUE5tW
-TM016SU1wDhPlP+nwjPiK4nQA+0A+fD5rCj4P0wW081cLppeJGW6OOBRtc+FtWqA
-GRXJuYSqdrqmNCOcvNO08/tAnXW1JYEO5AGAVnl27HG0u+LhZ1jq0mLIJGRjVqFu
-hpbk9Dz9+8paHzqEODGTSx72XvEEgS0SVFZDSRqqj0dN0Mg+fz1XW1GxEibOaUGd
-RFcbb5rA0pQwkHQtqjidPb9xPUBN12Xud95fUaJ0C+Jtw+Pu1UdaVQpdOzKw2v7H
-xw0Ipfi/7BC1ApFMRadHwr9436GBkX7//+8iHsAJrWKjTX4AF/jcJNsPG0At6+3L
-/51sVWJ0B5w=
-=zpBj
------END PGP SIGNATURE-----
-
---==_Exmh_1469698007_4839P--
+I don't know if they are dangerous.  Keep in mind C type checking is still present.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
