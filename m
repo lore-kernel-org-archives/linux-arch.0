@@ -1,57 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:1181 "EHLO mga03.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:47320 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753224AbcG2QaW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Jul 2016 12:30:22 -0400
-Subject: [PATCH 08/10] x86, pkeys: default to a restrictive init PKRU
+	id S1753098AbcG2QaP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Jul 2016 12:30:15 -0400
+Subject: [PATCH 03/10] x86, pkeys: make mprotect_key() mask off additional vm_flags
 From: Dave Hansen <dave@sr71.net>
-Date: Fri, 29 Jul 2016 09:30:21 -0700
+Date: Fri, 29 Jul 2016 09:30:13 -0700
 References: <20160729163009.5EC1D38C@viggo.jf.intel.com>
 In-Reply-To: <20160729163009.5EC1D38C@viggo.jf.intel.com>
-Message-ID: <20160729163021.F3C25D4A@viggo.jf.intel.com>
+Message-ID: <20160729163013.E48D6981@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, luto@kernel.org, mgorman@techsingularity.net, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, arnd@arndb.de
-Message-ID: <20160729163021.6tJUotWKXo53I_JwjhAbw08yj1asO7Tf7Q6tZgNPbTE@z>
+Message-ID: <20160729163013.4rHhXmnZKcwj0GWdSqPt6AH1H7Up9_4445XJJt7JCkU@z>
 
 
 From: Dave Hansen <dave.hansen@linux.intel.com>
 
-PKRU is the register that lets you disallow writes or all access
-to a given protection key.
+Today, mprotect() takes 4 bits of data: PROT_READ/WRITE/EXEC/NONE.
+Three of those bits: READ/WRITE/EXEC get translated directly in to
+vma->vm_flags by calc_vm_prot_bits().  If a bit is unset in
+mprotect()'s 'prot' argument then it must be cleared in vma->vm_flags
+during the mprotect() call.
 
-The XSAVE hardware defines an "init state" of 0 for PKRU: its
-most permissive state, allowing access/writes to everything.
-Since we start off all new processes with the init state, we
-start all processes off with the most permissive possible PKRU.
+We do this clearing today by first calculating the VMA flags we
+want set, then clearing the ones we do not want to inherit from
+the original VMA:
 
-This is unfortunate.  If a thread is clone()'d [1] before a
-program has time to set PKRU to a restrictive value, that thread
-will be able to write to all data, no matter what pkey is set on
-it.  This weakens any integrity guarantees that we want pkeys to
-provide.
+	vm_flags = calc_vm_prot_bits(prot, key);
+	...
+	newflags = vm_flags;
+	newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
 
-To fix this, we define a very restrictive PKRU to override the
-XSAVE-provided value when we create a new FPU context.  We choose
-a value that only allows access to pkey 0, which is as
-restrictive as we can practically make it.
+However, we *also* want to mask off the original VMA's vm_flags in
+which we store the protection key.
 
-This does not cause any practical problems with applications
-using protection keys because we require them to specify initial
-permissions for each key when it is allocated, which override the
-restrictive default.
+To do that, this patch adds a new macro:
 
-In the end, this ensures that threads which do not know how to
-manage their own pkey rights can not do damage to data which is
-pkey-protected.
+	ARCH_VM_PKEY_FLAGS
 
-1. I would have thought this was a pretty contrived scenario,
-   except that I heard a bug report from an MPX user who was
-   creating threads in some very early code before main().  It
-   may be crazy, but folks evidently _do_ it.
+which allows the architecture to specify additional bits that it would
+like cleared.  We use that to ensure that the VM_PKEY_BIT* bits get
+cleared.
 
 Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Mel Gorman <mgorman@techsingularity.net>
 Cc: linux-api@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mm@kvack.org
@@ -59,119 +54,62 @@ Cc: x86@kernel.org
 Cc: torvalds@linux-foundation.org
 Cc: akpm@linux-foundation.org
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: mgorman@techsingularity.net
 ---
 
- b/Documentation/kernel-parameters.txt |    5 ++++
- b/arch/x86/include/asm/pkeys.h        |    1 
- b/arch/x86/kernel/fpu/core.c          |    4 +++
- b/arch/x86/mm/pkeys.c                 |   38 ++++++++++++++++++++++++++++++++++
- b/include/linux/pkeys.h               |    4 +++
- 5 files changed, 52 insertions(+)
+ b/arch/x86/include/asm/pkeys.h |    2 ++
+ b/include/linux/pkeys.h        |    1 +
+ b/mm/mprotect.c                |   11 ++++++++++-
+ 3 files changed, 13 insertions(+), 1 deletion(-)
 
-diff -puN arch/x86/include/asm/pkeys.h~pkeys-140-restrictive-init-pkru arch/x86/include/asm/pkeys.h
---- a/arch/x86/include/asm/pkeys.h~pkeys-140-restrictive-init-pkru	2016-07-29 09:18:59.277601034 -0700
-+++ b/arch/x86/include/asm/pkeys.h	2016-07-29 09:18:59.289601577 -0700
-@@ -100,5 +100,6 @@ extern int arch_set_user_pkey_access(str
- 		unsigned long init_val);
+diff -puN arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags arch/x86/include/asm/pkeys.h
+--- a/arch/x86/include/asm/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-07-29 09:18:56.818489664 -0700
++++ b/arch/x86/include/asm/pkeys.h	2016-07-29 09:18:56.824489935 -0700
+@@ -38,4 +38,6 @@ static inline int arch_override_mprotect
  extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
  		unsigned long init_val);
-+extern void copy_init_pkru_to_fpregs(void);
  
++#define ARCH_VM_PKEY_FLAGS (VM_PKEY_BIT0 | VM_PKEY_BIT1 | VM_PKEY_BIT2 | VM_PKEY_BIT3)
++
  #endif /*_ASM_X86_PKEYS_H */
-diff -puN arch/x86/kernel/fpu/core.c~pkeys-140-restrictive-init-pkru arch/x86/kernel/fpu/core.c
---- a/arch/x86/kernel/fpu/core.c~pkeys-140-restrictive-init-pkru	2016-07-29 09:18:59.278601079 -0700
-+++ b/arch/x86/kernel/fpu/core.c	2016-07-29 09:18:59.289601577 -0700
-@@ -12,6 +12,7 @@
- #include <asm/traps.h>
- 
- #include <linux/hardirq.h>
-+#include <linux/pkeys.h>
- 
- #define CREATE_TRACE_POINTS
- #include <asm/trace/fpu.h>
-@@ -505,6 +506,9 @@ static inline void copy_init_fpstate_to_
- 		copy_kernel_to_fxregs(&init_fpstate.fxsave);
- 	else
- 		copy_kernel_to_fregs(&init_fpstate.fsave);
-+
-+	if (boot_cpu_has(X86_FEATURE_OSPKE))
-+		copy_init_pkru_to_fpregs();
- }
- 
- /*
-diff -puN arch/x86/mm/pkeys.c~pkeys-140-restrictive-init-pkru arch/x86/mm/pkeys.c
---- a/arch/x86/mm/pkeys.c~pkeys-140-restrictive-init-pkru	2016-07-29 09:18:59.281601215 -0700
-+++ b/arch/x86/mm/pkeys.c	2016-07-29 09:18:59.290601622 -0700
-@@ -121,3 +121,41 @@ int __arch_override_mprotect_pkey(struct
- 	 */
- 	return vma_pkey(vma);
- }
-+
-+#define PKRU_AD_KEY(pkey)	(PKRU_AD_BIT << ((pkey) * PKRU_BITS_PER_PKEY))
-+
-+/*
-+ * Make the default PKRU value (at execve() time) as restrictive
-+ * as possible.  This ensures that any threads clone()'d early
-+ * in the process's lifetime will not accidentally get access
-+ * to data which is pkey-protected later on.
-+ */
-+u32 init_pkru_value = PKRU_AD_KEY( 1) | PKRU_AD_KEY( 2) | PKRU_AD_KEY( 3) |
-+		      PKRU_AD_KEY( 4) | PKRU_AD_KEY( 5) | PKRU_AD_KEY( 6) |
-+		      PKRU_AD_KEY( 7) | PKRU_AD_KEY( 8) | PKRU_AD_KEY( 9) |
-+		      PKRU_AD_KEY(10) | PKRU_AD_KEY(11) | PKRU_AD_KEY(12) |
-+		      PKRU_AD_KEY(13) | PKRU_AD_KEY(14) | PKRU_AD_KEY(15);
-+
-+/*
-+ * Called from the FPU code when creating a fresh set of FPU
-+ * registers.  This is called from a very specific context where
-+ * we know the FPU regstiers are safe for use and we can use PKRU
-+ * directly.  The fact that PKRU is only available when we are
-+ * using eagerfpu mode makes this possible.
-+ */
-+void copy_init_pkru_to_fpregs(void)
-+{
-+	u32 init_pkru_value_snapshot = READ_ONCE(init_pkru_value);
-+	/*
-+	 * Any write to PKRU takes it out of the XSAVE 'init
-+	 * state' which increases context switch cost.  Avoid
-+	 * writing 0 when PKRU was already 0.
-+	 */
-+	if (!init_pkru_value_snapshot && !read_pkru())
-+		return;
-+	/*
-+	 * Override the PKRU state that came from 'init_fpstate'
-+	 * with the baseline from the process.
-+	 */
-+	write_pkru(init_pkru_value_snapshot);
-+}
-diff -puN Documentation/kernel-parameters.txt~pkeys-140-restrictive-init-pkru Documentation/kernel-parameters.txt
---- a/Documentation/kernel-parameters.txt~pkeys-140-restrictive-init-pkru	2016-07-29 09:18:59.284601351 -0700
-+++ b/Documentation/kernel-parameters.txt	2016-07-29 09:18:59.293601758 -0700
-@@ -1624,6 +1624,11 @@ bytes respectively. Such letter suffixes
- 
- 	initrd=		[BOOT] Specify the location of the initial ramdisk
- 
-+	init_pkru=	[x86] Specify the default memory protection keys rights
-+			register contents for all processes.  0x55555554 by
-+			default (disallow access to all but pkey 0).  Can
-+			override in debugfs after boot.
-+
- 	inport.irq=	[HW] Inport (ATI XL and Microsoft) busmouse driver
- 			Format: <irq>
- 
-diff -puN include/linux/pkeys.h~pkeys-140-restrictive-init-pkru include/linux/pkeys.h
---- a/include/linux/pkeys.h~pkeys-140-restrictive-init-pkru	2016-07-29 09:18:59.286601441 -0700
-+++ b/include/linux/pkeys.h	2016-07-29 09:18:59.293601758 -0700
-@@ -35,6 +35,10 @@ static inline int arch_set_user_pkey_acc
- 	return 0;
- }
- 
-+static inline void copy_init_pkru_to_fpregs(void)
-+{
-+}
-+
+diff -puN include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags include/linux/pkeys.h
+--- a/include/linux/pkeys.h~pkeys-112-mask-off-correct-vm_flags	2016-07-29 09:18:56.820489755 -0700
++++ b/include/linux/pkeys.h	2016-07-29 09:18:56.825489981 -0700
+@@ -16,6 +16,7 @@
+ #define execute_only_pkey(mm) (0)
+ #define arch_override_mprotect_pkey(vma, prot, pkey) (0)
+ #define PKEY_DEDICATED_EXECUTE_ONLY 0
++#define ARCH_VM_PKEY_FLAGS 0
  #endif /* ! CONFIG_ARCH_HAS_PKEYS */
  
  #endif /* _LINUX_PKEYS_H */
+diff -puN mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-112-mask-off-correct-vm_flags	2016-07-29 09:18:56.821489800 -0700
++++ b/mm/mprotect.c	2016-07-29 09:18:56.825489981 -0700
+@@ -417,6 +417,7 @@ static int do_mprotect_pkey(unsigned lon
+ 		prev = vma;
+ 
+ 	for (nstart = start ; ; ) {
++		unsigned long mask_off_old_flags;
+ 		unsigned long newflags;
+ 		int new_vma_pkey;
+ 
+@@ -426,9 +427,17 @@ static int do_mprotect_pkey(unsigned lon
+ 		if (rier && (vma->vm_flags & VM_MAYEXEC))
+ 			prot |= PROT_EXEC;
+ 
++		/*
++		 * Each mprotect() call explicitly passes r/w/x permissions.
++		 * If a permission is not passed to mprotect(), it must be
++		 * cleared from the VMA.
++		 */
++		mask_off_old_flags = VM_READ | VM_WRITE | VM_EXEC |
++					ARCH_VM_PKEY_FLAGS;
++
+ 		new_vma_pkey = arch_override_mprotect_pkey(vma, prot, pkey);
+ 		newflags = calc_vm_prot_bits(prot, new_vma_pkey);
+-		newflags |= (vma->vm_flags & ~(VM_READ | VM_WRITE | VM_EXEC));
++		newflags |= (vma->vm_flags & ~mask_off_old_flags);
+ 
+ 		/* newflags >> 4 shift VM_MAY% in place of VM_% */
+ 		if ((newflags & ~(newflags >> 4)) & (VM_READ | VM_WRITE | VM_EXEC)) {
 _
