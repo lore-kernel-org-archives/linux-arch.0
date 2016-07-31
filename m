@@ -1,44 +1,64 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 08/10] x86, pkeys: default to a restrictive init PKRU
-Date: Fri, 29 Jul 2016 12:44:24 -0700
-Message-ID: <CALCETrVW0taeuBjha1DEdafM5zZgbAHo=x1AJm=BafTEr++8Vg@mail.gmail.com>
-References: <20160729163009.5EC1D38C@viggo.jf.intel.com> <20160729163021.F3C25D4A@viggo.jf.intel.com>
- <CALCETrWMg=+YSi7Az+gw9B59OoAEkOd=znpr7+++5=UUg6DThw@mail.gmail.com> <579B977B.7090609@intel.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 4/5] s390: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
+Date: Sun, 31 Jul 2016 08:23:04 -0400
+Message-ID: <20160731082304.05f4aad7@mschwide>
+References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
+	<1469462394-8970-5-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f47.google.com ([209.85.213.47]:33407 "EHLO
-	mail-vk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751557AbcG2Top (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jul 2016 15:44:45 -0400
-Received: by mail-vk0-f47.google.com with SMTP id x130so61535430vkc.0
-        for <linux-arch@vger.kernel.org>; Fri, 29 Jul 2016 12:44:45 -0700 (PDT)
-In-Reply-To: <579B977B.7090609@intel.com>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:14739 "EHLO
+	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752953AbcGaMYf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 31 Jul 2016 08:24:35 -0400
+Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
+	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6VCJ1Fq134928
+	for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2016 08:23:14 -0400
+Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
+	by mx0b-001b2d01.pphosted.com with ESMTP id 24grcjw7dc-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2016 08:23:14 -0400
+Received: from localhost
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Sun, 31 Jul 2016 13:23:13 +0100
+In-Reply-To: <1469462394-8970-5-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, X86 ML <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Andrew Lutomirski <luto@kernel.org>, Mel Gorman <mgorman@techsingularity.net>, Dave Hansen <dave.hansen@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
 
-On Fri, Jul 29, 2016 at 10:50 AM, Dave Hansen <dave.hansen@intel.com> wrote:
-> On 07/29/2016 10:29 AM, Andy Lutomirski wrote:
->>> > In the end, this ensures that threads which do not know how to
->>> > manage their own pkey rights can not do damage to data which is
->>> > pkey-protected.
->> I think you missed the fpu__clear() caller in kernel/fpu/signal.c.
->>
->> ISTM it might be more comprehensible to change fpu__clear in general
->> and then special case things you want to behave differently.
->
-> The code actually already patched the generic fpu__clear():
->
->         fpu__clear() ->
->         copy_init_fpstate_to_fpregs() ->
->         copy_init_pkru_to_fpregs()
->
-> So I think it hit the case you are talking about.
+On Mon, 25 Jul 2016 16:59:53 +0100
+James Hogan <james.hogan@imgtec.com> wrote:
 
-Whoops, missed that.
+> AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
+> NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
+> for s390 at all even though ARCH_DLINFO can contain one NEW_AUX_ENT when
+> VDSO is enabled.
+> 
+> This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
+> AT_BASE_PLATFORM which s390 doesn't use, but lets define it now and add
+> the comment above ARCH_DLINFO as found in several other architectures to
+> remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
+> date.
+> 
+> Fixes: b020632e40c3 ("[S390] introduce vdso on s390")
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: linux-s390@vger.kernel.org
+
+The patch makes sense. I not quite sure about the checkpoint-restore code
+that clears the last two entries of the user_auxv[] without knowing how
+many aux entries there really are. That seems kind of strange.
+
+I will the patch to our repositories and we'll give it a spin. If there
+is no fallout I queue it to linux-s390.
 
 -- 
-Andy Lutomirski
-AMA Capital Management, LLC
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
