@@ -1,64 +1,63 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 4/5] s390: Define AT_VECTOR_SIZE_ARCH for ARCH_DLINFO
-Date: Sun, 31 Jul 2016 08:23:04 -0400
-Message-ID: <20160731082304.05f4aad7@mschwide>
-References: <1469462394-8970-1-git-send-email-james.hogan@imgtec.com>
-	<1469462394-8970-5-git-send-email-james.hogan@imgtec.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH 08/10] x86, pkeys: default to a restrictive init PKRU
+Date: Mon, 1 Aug 2016 16:42:51 +0200
+Message-ID: <cd74ae8b-36e4-a397-e36f-fe3d4281d400@suse.cz>
+References: <20160729163009.5EC1D38C@viggo.jf.intel.com>
+ <20160729163021.F3C25D4A@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:14739 "EHLO
-	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752953AbcGaMYf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 31 Jul 2016 08:24:35 -0400
-Received: from pps.filterd (m0098414.ppops.net [127.0.0.1])
-	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u6VCJ1Fq134928
-	for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2016 08:23:14 -0400
-Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
-	by mx0b-001b2d01.pphosted.com with ESMTP id 24grcjw7dc-1
-	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2016 08:23:14 -0400
-Received: from localhost
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Sun, 31 Jul 2016 13:23:13 +0100
-In-Reply-To: <1469462394-8970-5-git-send-email-james.hogan@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160729163021.F3C25D4A@viggo.jf.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, luto@kernel.org, mgorman@techsingularity.net, dave.hansen@linux.intel.com, arnd@arndb.de
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 25 Jul 2016 16:59:53 +0100
-James Hogan <james.hogan@imgtec.com> wrote:
+On 07/29/2016 06:30 PM, Dave Hansen wrote:
+> From: Dave Hansen <dave.hansen@linux.intel.com>
+>
+> PKRU is the register that lets you disallow writes or all access
+> to a given protection key.
+>
+> The XSAVE hardware defines an "init state" of 0 for PKRU: its
+> most permissive state, allowing access/writes to everything.
+> Since we start off all new processes with the init state, we
+> start all processes off with the most permissive possible PKRU.
+>
+> This is unfortunate.  If a thread is clone()'d [1] before a
+> program has time to set PKRU to a restrictive value, that thread
+> will be able to write to all data, no matter what pkey is set on
+> it.  This weakens any integrity guarantees that we want pkeys to
+> provide.
+>
+> To fix this, we define a very restrictive PKRU to override the
+> XSAVE-provided value when we create a new FPU context.  We choose
+> a value that only allows access to pkey 0, which is as
+> restrictive as we can practically make it.
+>
+> This does not cause any practical problems with applications
+> using protection keys because we require them to specify initial
+> permissions for each key when it is allocated, which override the
+> restrictive default.
 
-> AT_VECTOR_SIZE_ARCH should be defined with the maximum number of
-> NEW_AUX_ENT entries that ARCH_DLINFO can contain, but it wasn't defined
-> for s390 at all even though ARCH_DLINFO can contain one NEW_AUX_ENT when
-> VDSO is enabled.
-> 
-> This shouldn't be a problem as AT_VECTOR_SIZE_BASE includes space for
-> AT_BASE_PLATFORM which s390 doesn't use, but lets define it now and add
-> the comment above ARCH_DLINFO as found in several other architectures to
-> remind future modifiers of ARCH_DLINFO to keep AT_VECTOR_SIZE_ARCH up to
-> date.
-> 
-> Fixes: b020632e40c3 ("[S390] introduce vdso on s390")
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: linux-s390@vger.kernel.org
+Here you mean the init_access_rights parameter of pkey_alloc()? So will 
+children of fork() after that pkey_alloc() inherit the new value or go 
+default?
 
-The patch makes sense. I not quite sure about the checkpoint-restore code
-that clears the last two entries of the user_auxv[] without knowing how
-many aux entries there really are. That seems kind of strange.
+> In the end, this ensures that threads which do not know how to
+> manage their own pkey rights can not do damage to data which is
+> pkey-protected.
+>
+> 1. I would have thought this was a pretty contrived scenario,
+>    except that I heard a bug report from an MPX user who was
+>    creating threads in some very early code before main().  It
+>    may be crazy, but folks evidently _do_ it.
+>
+> Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
 
-I will the patch to our repositories and we'll give it a spin. If there
-is no fallout I queue it to linux-s390.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
