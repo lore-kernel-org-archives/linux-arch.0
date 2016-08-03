@@ -1,92 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:34218 "EHLO blackbird.sr71.net"
+Received: from mail.kernel.org ([198.145.29.136]:57642 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756495AbcHBOix (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Aug 2016 10:38:53 -0400
-Subject: Re: [PATCH 09/10] x86, pkeys: allow configuration of init_pkru
-References: <20160729163009.5EC1D38C@viggo.jf.intel.com>
- <20160729163023.407672D2@viggo.jf.intel.com>
- <2cd6331c-7fa7-b358-6892-580bef430755@suse.cz>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <57A0B044.1010405@sr71.net>
-Date: Tue, 2 Aug 2016 07:37:56 -0700
+	id S932671AbcHCUVK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Aug 2016 16:21:10 -0400
 MIME-Version: 1.0
-In-Reply-To: <2cd6331c-7fa7-b358-6892-580bef430755@suse.cz>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Date: Wed, 3 Aug 2016 12:56:22 -0700
+Message-ID: <CAB=NE6VpHJLicvrKhPhQD4p+hNRCpvPJU7AXFAQdxXeDWfPLJQ@mail.gmail.com>
+Subject: Generic section maintainers
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vlastimil Babka <vbabka@suse.cz>, linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, luto@kernel.org, mgorman@techsingularity.net, dave.hansen@linux.intel.com, arnd@arndb.de
-Message-ID: <20160802143756.SzGySdqriW1Cw6qN4LhVl4rsXIqGhK3YtGFexLeWJvk@z>
+To: Arnd Bergmann <arnd@arndb.de>, Josh Poimboeuf <jpoimboe@redhat.com>, Michael Ellerman <mpe@ellerman.id.au>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Joe Perches <joe@perches.com>
+Message-ID: <20160803195622.Wz9DYfJlMaV8McEurS0oo7FveLcpDx5LvfHiatIw6qI@z>
 
-On 08/02/2016 01:28 AM, Vlastimil Babka wrote:
-> On 07/29/2016 06:30 PM, Dave Hansen wrote:
->> From: Dave Hansen <dave.hansen@linux.intel.com>
->> But, having PKRU be 0 (its init value) provides some nonzero
->> amount of optimization potential to the hardware.  It can, for
->> instance, skip writes to the XSAVE buffer when it knows that PKRU
->> is in its init state.
-> 
-> I'm not very happy with tuning options that need the admin to make
-> choice between reliability and performance. Is there no way to to
-> optimize similarly for a non-zero init state?
+Arnd, Josh,
 
-The init state is architecturally defined and the overhead comes from
-hardware cost when the register is not in its 'init state'.  There's
-nothing I can think of that we can do in software to work around this.
+In my linker table work [0], other than the linker table work and
+section ranges stuff, I'm adding:
 
-I did try a few things with our XSAVE/XRSTOR code to optimize this since
-most tasks will have the same PKRU value, but they didn't pan out and
-added more overhead than they removed.
+o include/linux/sections.h
+o include/asm-generic/section-core.h (not in RFC v3 but it is in my
+RFC v4 series not yet posted, splitting this up fixes compilation on
+powerpc which otherwise creates a header issue nightmare to resolve)
 
->> The cost of losing this optimization is approximately 100 cycles
->> per context switch for a workload which lightly using XSAVE
->> state (something not using AVX much).  The overhead comes from a
->> combinaation of actually manipulating PKRU and the overhead of
->> pullin in an extra cacheline.
-> 
-> So the cost is in extra steps in software, not in hardware as you
-> mentioned above?
+I extend include/asm-generic/sections.h to then include
+<asm-generic/section-core.h>, and furthermore provide the beginning of
+a central place to document in a central place all common sections.
 
-There are two sources of overhead: a RDPKRU/WRPKRU pair of instructions
-at fpu__clear() time (mostly called via execve()) and overhead in the
-XSAVE and XRSTOR instructions that occurs at context-switch time.
+As per checkpatch complaints I'll be adding myself to MAINTAINERS for
+the linker table headers, section ranges, but noticed then we don't
+have anyone in particularly looking carefully after
+include/asm-generic/sections.h other than the default which is Arnd.
+Given this work on streamlining the section stuff, I'd like to help so
+am considering adding a specific entry on MAINTAINRERS for generic
+sections and adding myself to it along with Arnd. Wanted to check if
+this is OK. While at it, it occurred to me that you might be
+interested in this a swell Josh, given your work with objtool. Would
+anyone else like to help with active maintenance / review of these ?
 
-Taking the PKRU state out of the 'init state' makes us read at least one
-additional cacheline during XRSTOR, plus some additional work inside the
-instruction that the processor has to do to shuffle registers in/out of
-memory.  This, I consider hardware overhead.
+So is this OK to merge into my series into the patch "sections.h: add
+sections header to collect all section info".
 
->> This overhead is not huge, but it's also not something that I
->> think we should unconditionally inflict on everyone.
-> 
-> Here, everyone means really all processes on system, that never heard of
-> PKEs, and pay the cost just because the kernel was configured for it?
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 49b354cb455a..9919277c66ae 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5190,6 +5190,18 @@ S: Supported
+ F: drivers/base/power/domain*.c
+ F: include/linux/pm_domain.h
 
-Yes, all processes on all systems that have memory protection keys
-enabled in hardware.  In a normal workload that's context switching 1000
-times a second is about 3/100,000 cycles on a 3GHz processor, which I
-haven't been able to measure other than instrumenting the XSAVE/XRSTOR
-paths themselves.
++GENERIC SECTIONS
++M: "Luis R. Rodriguez" <mcgrof@kernel.org>
++M: Josh Poimboeuf <jpoimboe@redhat.com>
++M: Arnd Bergmann <arnd@arndb.de>
++L: linux-arch@vger.kernel.org
++L: linux-kernel@vger.kernel.org
++S: Supported
++F: include/asm-generic/section-core.h
++F: include/asm-generic/sections.h
++F: include/asm-generic/vmlinux.lds.h
++F: Documentation/DocBook/sections.tmpl
++
+ GENERIC UIO DRIVER FOR PCI DEVICES
+ M: "Michael S. Tsirkin" <mst@redhat.com>
+ L: kvm@vger.kernel.org
 
-I also expect the relative overhead to decrease as more pervasive AVX
-use increases the overall overhead of XSAVE. (AVX state is ~1k and PKU's
-64b of space pales in comparison).
 
-> But in that case, all PTEs use the key 0 anyway, so the non-zero default
-> actually provides no extra reliability/security?
+[0] https://lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
 
-Correct.  It provides no additional security or reliability for
-processes not using protection keys.
-
-> Seems suboptimal that
-> admins of such system have to recognize such situation themselves and
-> change the default?
-
-To be honest, I don't think anyone will notice.  Most folks will run a
-kernel with PKU support on the new hardware that contains this feature
-from day one and they'll never know about the 0.003% performance penalty
-that I *think* this might cause.  Say that the processor with protection
-keys is 5% faster than its predecessor (made up number), it will now
-appear to be 4.996% faster.
+  Luis
