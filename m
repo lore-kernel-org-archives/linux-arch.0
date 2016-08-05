@@ -1,81 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f65.google.com ([209.85.220.65]:34955 "EHLO
-	mail-pa0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935043AbcHEMM4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Aug 2016 08:12:56 -0400
+Received: from mail-pa0-f68.google.com ([209.85.220.68]:33353 "EHLO
+	mail-pa0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753746AbcHENsZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Aug 2016 09:48:25 -0400
+Date: Fri, 5 Aug 2016 23:32:52 +1000
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/5] kbuild: add arch specific post-module-link pass
-Date: Fri,  5 Aug 2016 22:12:01 +1000
-Message-ID: <1470399123-8455-4-git-send-email-npiggin@gmail.com>
+Subject: Re: [RFC][PATCH 0/5] kbuild changes, thin archives, --gc-sections
+Message-ID: <20160805233252.50cb8cce@roar.ozlabs.ibm.com>
 In-Reply-To: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
 References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kbuild@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160805121201.M6OgkFfT7IDFz7klXXCDZDLs10qOHaOEPghxDpW-DA0@z>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160805133252.yFSFtRf6c3J0MV0p5hNXobr7pjTfcvw6IUDLA_cIfko@z>
 
-Add an option for architectures to pass over modules after they are
-linked. powerpc will use this to fix up alternate instruction patch
-relocations.
+On Fri,  5 Aug 2016 22:11:58 +1000
+Nicholas Piggin <npiggin@gmail.com> wrote:
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- Documentation/kbuild/makefiles.txt | 6 ++++++
- Makefile                           | 1 +
- scripts/Makefile.modpost           | 8 ++++++++
- 3 files changed, 15 insertions(+)
+> Hello,
+> 
+> I have 3 different things in this patchset. All arch specific, but all
+> involve kbuild changes, so I'd like to discuss them with kbuild
+> maintainers. The goal has been to improve long standing linking
+> difficulties with the powerpc kernel.
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 13f888a..f6c065b 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -952,6 +952,12 @@ When kbuild executes, the following steps are followed (roughly):
- 	$(KBUILD_ARFLAGS) set by the top level Makefile to "D" (deterministic
- 	mode) if this option is supported by $(AR).
- 
-+    KBUILD_MODPOST_TOOL   Arch-specific command to run after module link
-+
-+        $(KBUILD_MODPOST_TOOL) is used to add an arch-specific pass over
-+        modules after their final link. E.g., powerpc uses this to adjust
-+        relative branches of "alternate code patching" sections.
-+
-     ARCH_CPPFLAGS, ARCH_AFLAGS, ARCH_CFLAGS   Overrides the kbuild defaults
- 
- 	These variables are appended to the KBUILD_CPPFLAGS,
-diff --git a/Makefile b/Makefile
-index d5ef31a..99ab8eb 100644
---- a/Makefile
-+++ b/Makefile
-@@ -421,6 +421,7 @@ export KBUILD_AFLAGS AFLAGS_KERNEL AFLAGS_MODULE
- export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
- export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
- export KBUILD_ARFLAGS
-+export KBUILD_MODPOST_TOOL
- 
- # When compiling out-of-tree modules, put MODVERDIR in the module
- # tree rather than in the kernel tree. The kernel tree might
-diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-index 1366a94..19f8481 100644
---- a/scripts/Makefile.modpost
-+++ b/scripts/Makefile.modpost
-@@ -121,8 +121,16 @@ quiet_cmd_ld_ko_o = LD [M]  $@
-                              $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
-                              -o $@ $(filter-out FORCE,$^)
- 
-+ifdef KBUILD_MODPOST_TOOL
-+quiet_cmd_arch_modpost = ARCH    $@
-+      cmd_arch_modpost = $(KBUILD_MODPOST_TOOL) $@
-+endif
-+
- $(modules): %.ko :%.o %.mod.o FORCE
- 	$(call if_changed,ld_ko_o)
-+ifdef KBUILD_MODPOST_TOOL
-+	$(call if_changed,arch_modpost)
-+endif
- 
- targets += $(modules)
- 
--- 
-2.8.1
+Here's a 30 second hack of an x86 patch. It seems to build and
+boot defconfig in a really quick kvm test.
 
+For x86-64 machine building x86 target, defconfig,
+
+make -j8 vmlinux time:
+              orig      thinarc   thinarc+dce
+real     4m58.865s    4m59.747s     5m20.028s
+user    15m14.428s   15m13.868s    15m17.012s
+sys      0m57.296s    0m55.904s     0m58.416s
+
+build output directory size:
+              orig      thinarc   thinarc+dce
+              317M         257M          285M
+
+vmlinux size:
+    text     data      bss       dec   filename
+10192338  4360136  1105920  15658394   vmlinux
+10186739  4356040  1105920  15648699   vmlinux.thinarc
+ 9580486  3759880  1011712  14352078   vmlinux.thinarc+dce
+
+Thanks,
+Nick
+
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0a7b885..845069e 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -51,6 +51,8 @@ config X86
+ 	select ARCH_WANT_IPC_PARSE_VERSION	if X86_32
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select BUILDTIME_EXTABLE_SORT
++	select THIN_ARCHIVES
++	select LINKER_DCE
+ 	select CLKEVT_I8253
+ 	select CLKSRC_I8253			if X86_32
+ 	select CLOCKSOURCE_VALIDATE_LAST_CYCLE
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 9297a00..7395dd8 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -92,7 +92,7 @@ SECTIONS
+ 	.text :  AT(ADDR(.text) - LOAD_OFFSET) {
+ 		_text = .;
+ 		/* bootstrapping code */
+-		HEAD_TEXT
++		KEEP(HEAD_TEXT)
+ 		. = ALIGN(8);
+ 		_stext = .;
+ 		TEXT_TEXT
+@@ -321,7 +321,7 @@ SECTIONS
+ 	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {
+ 		__bss_start = .;
+ 		*(.bss..page_aligned)
+-		*(.bss)
++		*(.bss .bss.*)
+ 		. = ALIGN(PAGE_SIZE);
+ 		__bss_stop = .;
+ 	}
