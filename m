@@ -1,147 +1,37 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives
  instead of ld -r
-Date: Sat, 6 Aug 2016 22:10:45 +0200
-Message-ID: <20160806201045.GA25821@ravnborg.org>
+Date: Sun, 7 Aug 2016 11:49:46 +1000
+Message-ID: <20160807114946.41b682f3@canb.auug.org.au>
 References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
- <1470399123-8455-2-git-send-email-npiggin@gmail.com>
+	<1470399123-8455-2-git-send-email-npiggin@gmail.com>
+	<20160806201045.GA25821@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:33587 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750980AbcHFUTo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Aug 2016 16:19:44 -0400
-Content-Disposition: inline
-In-Reply-To: <1470399123-8455-2-git-send-email-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20160806201045.GA25821@ravnborg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Nicholas.
+Hi Sam,
 
-On Fri, Aug 05, 2016 at 10:11:59PM +1000, Nicholas Piggin wrote:
-> From: Stephen Rothwell <sfr@canb.auug.org.au>
-> 
-> ld -r is an incremental link used to create built-in.o files in build
-> subdirectories. It produces relocatable object files containing all
-> its input files, and these are are then pulled together and relocated
-> in the final link. Aside from the bloat, this constrains the final
-> link relocations, which has bitten large powerpc builds with
-> unresolvable relocations in the final link.
-> 
-> Alan Modra has recommended the kernel use thin archives for linking.
-> This is an alternative and means that the linker has more information
-> available to it when it links the kernel.
-> 
-> This patch enables a config option architectures can select,
-If we want to do this, then I suggest to make the logic reverse.
-Architectures that for some reasons cannot use this should
-have the possibility to avoid it. But let it be enabled by default.
+On Sat, 6 Aug 2016 22:10:45 +0200 Sam Ravnborg <sam@ravnborg.org> wrote:
+>
+> Did you by any chance evalue the use of INPUT in linker files.
+> Stephen back then (again based on proposal from Alan Modra),
+> also made an implementation using INPUT.
 
-> which
-> causes all built-in.o files to be built as thin archives. built-in.o
-> files in subdirectories do not get symbol table or index attached,
-> which improves speed and size. The final link pass creates a
-> built-in.o archive in the root output directory which includes the
-> symbol table and index. The linker then uses takes this file to link.
-> 
-> The --whole-archive linker option is required, because the linker now
-> has visibility to every individual object file, and it will otherwise
-> just completely avoid including those without external references
-> (consider a file with EXPORT_SYMBOL or initcall or hardware exceptions
-> as its only entry points). The traditional built works "by luck" as
-> built-in.o files are large enough that they're going to get external
-> references. However this optimisation is unpredictable for the kernel
-> (due to above external references), ineffective at culling unused, and
-> costly because the .o files have to be searched for references.
-> Superior alternatives for link-time culling should be used instead.
-> 
-> Build characteristics for inclink vs thinarc, on a small powerpc64le
-> pseries VM with a modest .config:
-> 
->                                   inclink       thinarc
-> sizes
-> vmlinux                        15 618 680    15 625 028
-> sum of all built-in.o          56 091 808     1 054 334
-> sum excluding root built-in.o                   151 430
-> 
-> find -name built-in.o | xargs rm ; time make vmlinux
-> real                              22.772s       21.143s
-> user                              13.280s       13.430s
-> sys                                4.310s        2.750s
-> 
-> - Final kernel pulled in only about 6K more, which shows how
->   ineffective the object file culling is.
-> - Build performance looks improved due to less pagecache activity.
->   On IO constrained systems it could be a bigger win.
-> - Build size saving is significant.
+The problem with that idea was that (at least for some versions of
+binutils in use at the time) we hit a static limit to the number of
+object files and ld just stopped at that point. :-(
 
-Good to see this old proposal picked up again!
+> See below for an updated simple patch on top of mainline.
 
-Did you by any chance evalue the use of INPUT in linker files.
-Stephen back then (again based on proposal from Alan Modra),
-also made an implementation using INPUT.
-See below for an updated simple patch on top of mainline.
+So, I guess it was fixed, but do we know in what version?
 
-Build statistics for "make defconfig" on my i7 box:
-
-find -name built-in.o; xargs rm; time make -j16 vmlinux
-	standard	singlelink	delta
-real	0m6.368s	0m7.040s	+672ms
-user	0m15.577s	0m14.960s	-617ms
-sys	0m7.601s	0m6.226s	-1375ms
-
-vmlinux size:		standard	singlelink	delta
-text			10.250.675	10.250.675	0
-data			4.369.632	4.374.816	+5184
-bss			1.110.016	1.110.016	0
-
-I had expected to see improvements in build time - but
-we serialize the heavy link phase, so it is actually slower.
-
-I did not investigate why data section got larger,
-but I think you already touch the reasons.
-
-The patch does not change how we link modules.
-
-Please consider if this approach is better / worse than
-using archieves.
-
-Note that this patch remove the possibility to run section
-mismatch anylysis on a per-directory basis.
-
-	Sam
-
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 11602e5..954e7cb 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -360,10 +360,9 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
- ifdef builtin-target
- quiet_cmd_link_o_target = LD      $@
- # If the list of objects to link is empty, just create an empty built-in.o
--cmd_link_o_target = $(if $(strip $(obj-y)),\
--		      $(LD) $(ld_flags) -r -o $@ $(filter $(obj-y), $^) \
--		      $(cmd_secanalysis),\
--		      rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@)
-+cmd_link_o_target = $(if $(filter $(obj-y), $^),                   \
-+                        echo INPUT\($(filter $(obj-y), $^)\) > $@, \
-+                        echo "/* empty */" > $@)
- 
- $(builtin-target): $(obj-y) FORCE
- 	$(call if_changed,link_o_target)
-@@ -414,10 +413,10 @@ $($(subst $(obj)/,,$(@:.o=-y)))       \
- $($(subst $(obj)/,,$(@:.o=-m)))), $^)
- 
- quiet_cmd_link_multi-y = LD      $@
--cmd_link_multi-y = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secanalysis)
-+cmd_link_multi-y = echo INPUT\($(link_multi_deps)\) > $@
- 
- quiet_cmd_link_multi-m = LD [M]  $@
--cmd_link_multi-m = $(cmd_link_multi-y)
-+cmd_link_multi-m = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps)
- 
- $(multi-used-y): FORCE
- 	$(call if_changed,link_multi-y)
+-- 
+Cheers,
+Stephen Rothwell
