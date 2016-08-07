@@ -1,34 +1,139 @@
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead code/data elimination
-Date: Sun, 07 Aug 2016 13:35:04 +0200
-Message-ID: <87oa5495hz.fsf@linux-m68k.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives
+ instead of ld -r
+Date: Sun, 7 Aug 2016 16:40:54 +0200
+Message-ID: <20160807144054.GA14682@ravnborg.org>
 References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
-	<1470399123-8455-3-git-send-email-npiggin@gmail.com>
-	<20160807095739.GU20904@bubble.grove.modra.org>
+ <1470399123-8455-2-git-send-email-npiggin@gmail.com>
+ <20160806201045.GA25821@ravnborg.org>
+ <20160807114946.41b682f3@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20160807095739.GU20904@bubble.grove.modra.org> (Alan Modra's
-	message of "Sun, 7 Aug 2016 19:27:39 +0930")
+Content-Disposition: inline
+In-Reply-To: <20160807114946.41b682f3@canb.auug.org.au>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Alan Modra <amodra@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On So, Aug 07 2016, Alan Modra <amodra@gmail.com> wrote:
+On Sun, Aug 07, 2016 at 11:49:46AM +1000, Stephen Rothwell wrote:
+> Hi Sam,
+> 
+> On Sat, 6 Aug 2016 22:10:45 +0200 Sam Ravnborg <sam@ravnborg.org> wrote:
+> >
+> > Did you by any chance evalue the use of INPUT in linker files.
+> > Stephen back then (again based on proposal from Alan Modra),
+> > also made an implementation using INPUT.
+> 
+> The problem with that idea was that (at least for some versions of
+> binutils in use at the time) we hit a static limit to the number of
+> object files and ld just stopped at that point. :-(
 
-> At the risk of being told you (kernel people) have already considerd
-> this I thought I should mention that the above isn't ideal.  (Nor is
-> gcc's choice of .text.hot for hot sections, which clashes with
-> --function-sections for a function called "hot" but that's another
-> story.)
+The ld bug was caused by opening too many linked definitions files.
+We can workaround this by expanding the files.
+I gave this a quick spin - see below.
 
-Or --function-sections should use a unique prefix, like
-.text.functions.*
+Note - I have no idea if using thin archived or this method is better.
+But it seems just wrong to me that we convert to thin archives when
+we really do not need to do so.
 
-Andreas.
+Note - this was a quick spin. It build fine here and thats it.
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+	Sam
+
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 11602e5..37b8bc9 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -360,10 +360,16 @@ $(sort $(subdir-obj-y)): $(subdir-ym) ;
+ ifdef builtin-target
+ quiet_cmd_link_o_target = LD      $@
+ # If the list of objects to link is empty, just create an empty built-in.o
+-cmd_link_o_target = $(if $(strip $(obj-y)),\
+-		      $(LD) $(ld_flags) -r -o $@ $(filter $(obj-y), $^) \
+-		      $(cmd_secanalysis),\
+-		      rm -f $@; $(AR) rcs$(KBUILD_ARFLAGS) $@)
++cmd_link_o_target =                                            \
++$(if $(filter $(obj-y), $^),                                   \
++	echo $(foreach file, $(filter $(obj-y), $^),           \
++		$(if $(filter %/built-in.o, $(file)),          \
++			$(shell cat $(file)),                  \
++			$(file)                                \
++		)                                              \
++	)                                                      \
++        , echo ""                                              \
++) > $@
+ 
+ $(builtin-target): $(obj-y) FORCE
+ 	$(call if_changed,link_o_target)
+@@ -414,10 +420,10 @@ $($(subst $(obj)/,,$(@:.o=-y)))       \
+ $($(subst $(obj)/,,$(@:.o=-m)))), $^)
+ 
+ quiet_cmd_link_multi-y = LD      $@
+-cmd_link_multi-y = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps) $(cmd_secanalysis)
++cmd_link_multi-y = echo INPUT\($(link_multi_deps)\) > $@
+ 
+ quiet_cmd_link_multi-m = LD [M]  $@
+-cmd_link_multi-m = $(cmd_link_multi-y)
++cmd_link_multi-m = $(LD) $(ld_flags) -r -o $@ $(link_multi_deps)
+ 
+ $(multi-used-y): FORCE
+ 	$(call if_changed,link_multi-y)
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 4f727eb..323c13a 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -41,8 +41,8 @@ info()
+ # ${1} output file
+ modpost_link()
+ {
+-	${LD} ${LDFLAGS} -r -o ${1} ${KBUILD_VMLINUX_INIT}                   \
+-		--start-group ${KBUILD_VMLINUX_MAIN} --end-group
++	${LD} ${LDFLAGS} -r -o ${1} ${vmlinux_init}            \
++		--start-group ${vmlinux_main} --end-group
+ }
+ 
+ # Link of vmlinux
+@@ -54,13 +54,13 @@ vmlinux_link()
+ 
+ 	if [ "${SRCARCH}" != "um" ]; then
+ 		${LD} ${LDFLAGS} ${LDFLAGS_vmlinux} -o ${2}                  \
+-			-T ${lds} ${KBUILD_VMLINUX_INIT}                     \
+-			--start-group ${KBUILD_VMLINUX_MAIN} --end-group ${1}
++			-T ${lds} ${vmlinux_init}                            \
++			--start-group ${vmlinux_main} --end-group ${1}
+ 	else
+ 		${CC} ${CFLAGS_vmlinux} -o ${2}                              \
+-			-Wl,-T,${lds} ${KBUILD_VMLINUX_INIT}                 \
++			-Wl,-T,${lds} ${vmlinux_init}                        \
+ 			-Wl,--start-group                                    \
+-				 ${KBUILD_VMLINUX_MAIN}                      \
++				 ${vmlinux_main}                             \
+ 			-Wl,--end-group                                      \
+ 			-lutil -lrt -lpthread ${1}
+ 		rm -f linux
+@@ -162,6 +162,23 @@ case "${KCONFIG_CONFIG}" in
+ 	. "./${KCONFIG_CONFIG}"
+ esac
+ 
++# Expand built-in.o file as they just list .o files
++for f in ${KBUILD_VMLINUX_INIT}; do
++	if [ $(basename $f) = built-in.o ]; then
++		vmlinux_init="${vmlinux_init} $(cat $f)"
++	else
++		vmlinux_init="${vmlinux_init} $f"
++	fi
++done
++
++for f in ${KBUILD_VMLINUX_MAIN}; do
++	if [ $(basename $f) = built-in.o ]; then
++		vmlinux_main="${vmlinux_main} $(cat $f)"
++	else
++		vmlinux_main="${vmlinux_main} $f"
++	fi
++done
++
+ #link vmlinux.o
+ info LD vmlinux.o
+ modpost_link vmlinux.o
