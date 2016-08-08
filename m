@@ -1,46 +1,55 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead
- code/data elimination
-Date: Mon, 8 Aug 2016 06:49:55 +0200
-Message-ID: <20160808044955.GA12952@ravnborg.org>
-References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
- <1470399123-8455-3-git-send-email-npiggin@gmail.com>
- <20160806201423.GB25821@ravnborg.org>
- <20160808132903.0e37c967@roar.ozlabs.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives instead of ld -r
+Date: Mon, 08 Aug 2016 11:18:44 +0200
+Message-ID: <20344093.JroaIWMd3z@wuerfel>
+References: <1470399123-8455-1-git-send-email-npiggin@gmail.com> <20160806201045.GA25821@ravnborg.org> <20160808132532.3ce8c0b6@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:50167 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750766AbcHHEuA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 00:50:00 -0400
-Content-Disposition: inline
-In-Reply-To: <20160808132903.0e37c967@roar.ozlabs.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20160808132532.3ce8c0b6@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 08, 2016 at 01:29:03PM +1000, Nicholas Piggin wrote:
-> On Sat, 6 Aug 2016 22:14:23 +0200
+On Monday, August 8, 2016 1:25:32 PM CEST Nicholas Piggin wrote:
+> On Sat, 6 Aug 2016 22:10:45 +0200
 > Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> > On Fri, Aug 05, 2016 at 10:12:00PM +1000, Nicholas Piggin wrote:
-> > > Introduce LINKER_DCE option for architectures to select if they want
-> > > to build with -ffunction-sections, -fdata-sections, and link with
-> > > --gc-sections.  
+> > Hi Nicholas.
 > > 
-> > Can you please try to come up with a less cryptic name.
-> > "DCE" may make sense for you today.
-> > Bot the naive reader will benefit from the longer and
-> > more explcit form.
+> > On Fri, Aug 05, 2016 at 10:11:59PM +1000, Nicholas Piggin wrote:
+> > > From: Stephen Rothwell <sfr@canb.auug.org.au>
+> > > 
+> > > ld -r is an incremental link used to create built-in.o files in build
+> > > subdirectories. It produces relocatable object files containing all
+> > > its input files, and these are are then pulled together and relocated
+> > > in the final link. Aside from the bloat, this constrains the final
+> > > link relocations, which has bitten large powerpc builds with
+> > > unresolvable relocations in the final link.
+> > > 
+> > > Alan Modra has recommended the kernel use thin archives for linking.
+> > > This is an alternative and means that the linker has more information
+> > > available to it when it links the kernel.
+> > > 
+> > > This patch enables a config option architectures can select,  
+> > If we want to do this, then I suggest to make the logic reverse.
+> > Architectures that for some reasons cannot use this should
+> > have the possibility to avoid it. But let it be enabled by default.
 > 
-> Yes that's a good idea. The name sucks.
+> I was thinking the build matrix (architectures x build options x toolchains)
+> is a bit too large to switch it for everybody. I've far from even tested it
+> for a fraction of powerpc builds. I would prefer arch maintainers to switch
+> it themselves, but I do hope we can move everybody and just remove the old
+> method within a few releases.
 > 
-> We don't seem to consistently have a prefix for build configuration
-> options, but we could start? KBUILD_LD_DEAD_CODE_DATA_ELIMINATION?
+> But I'm happy to go with whatever arch and kbuild maintainers prefer, so I
+> appreciate any discussion on it.
 
-For cc related options we sort of have: KCONFIG_CC IIRC.
-So for LD related options we could use the shorter CONFIG_LD_ prefix.
+How about making the option visible for everyone with CONFIG_EXPERT?
 
-	Sam
+That way you don't get it by default, but you do get it with randconfig
+and allmodconfig build testing.
+
+	Arnd
