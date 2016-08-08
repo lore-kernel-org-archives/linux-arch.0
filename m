@@ -1,73 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:36169 "EHLO
-	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750766AbcHHEqe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 00:46:34 -0400
-Date: Mon, 8 Aug 2016 06:46:27 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives
- instead of ld -r
-Message-ID: <20160808044627.GA12527@ravnborg.org>
-References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
- <1470399123-8455-2-git-send-email-npiggin@gmail.com>
- <20160806201045.GA25821@ravnborg.org>
- <20160807114946.41b682f3@canb.auug.org.au>
- <20160807144054.GA14682@ravnborg.org>
- <20160808131941.27541a33@roar.ozlabs.ibm.com>
+Received: from mout.kundenserver.de ([212.227.17.10]:51999 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752005AbcHHJS5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 05:18:57 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives instead of ld -r
+Date: Mon, 08 Aug 2016 11:18:44 +0200
+Message-ID: <20344093.JroaIWMd3z@wuerfel>
+In-Reply-To: <20160808132532.3ce8c0b6@roar.ozlabs.ibm.com>
+References: <1470399123-8455-1-git-send-email-npiggin@gmail.com> <20160806201045.GA25821@ravnborg.org> <20160808132532.3ce8c0b6@roar.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160808131941.27541a33@roar.ozlabs.ibm.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160808044627.UVH5Sf_Euo0EDur0I35BF5RYXD5M7VUVbVRJSy1dhjs@z>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160808091844.naGrsKZjPme43lAe_34UrwLUYW5komNMGKBADnxq0WI@z>
 
-On Mon, Aug 08, 2016 at 01:19:41PM +1000, Nicholas Piggin wrote:
-> On Sun, 7 Aug 2016 16:40:54 +0200
+On Monday, August 8, 2016 1:25:32 PM CEST Nicholas Piggin wrote:
+> On Sat, 6 Aug 2016 22:10:45 +0200
 > Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> > On Sun, Aug 07, 2016 at 11:49:46AM +1000, Stephen Rothwell wrote:
-> > > Hi Sam,
+> > Hi Nicholas.
+> > 
+> > On Fri, Aug 05, 2016 at 10:11:59PM +1000, Nicholas Piggin wrote:
+> > > From: Stephen Rothwell <sfr@canb.auug.org.au>
 > > > 
-> > > On Sat, 6 Aug 2016 22:10:45 +0200 Sam Ravnborg <sam@ravnborg.org> wrote:  
-> > > >
-> > > > Did you by any chance evalue the use of INPUT in linker files.
-> > > > Stephen back then (again based on proposal from Alan Modra),
-> > > > also made an implementation using INPUT.  
+> > > ld -r is an incremental link used to create built-in.o files in build
+> > > subdirectories. It produces relocatable object files containing all
+> > > its input files, and these are are then pulled together and relocated
+> > > in the final link. Aside from the bloat, this constrains the final
+> > > link relocations, which has bitten large powerpc builds with
+> > > unresolvable relocations in the final link.
 > > > 
-> > > The problem with that idea was that (at least for some versions of
-> > > binutils in use at the time) we hit a static limit to the number of
-> > > object files and ld just stopped at that point. :-(  
-> > 
-> > The ld bug was caused by opening too many linked definitions files.
-> > We can workaround this by expanding the files.
-> > I gave this a quick spin - see below.
-> > 
-> > Note - I have no idea if using thin archived or this method is better.
-> > But it seems just wrong to me that we convert to thin archives when
-> > we really do not need to do so.
-> > 
-> > Note - this was a quick spin. It build fine here and thats it.
+> > > Alan Modra has recommended the kernel use thin archives for linking.
+> > > This is an alternative and means that the linker has more information
+> > > available to it when it links the kernel.
+> > > 
+> > > This patch enables a config option architectures can select,  
+> > If we want to do this, then I suggest to make the logic reverse.
+> > Architectures that for some reasons cannot use this should
+> > have the possibility to avoid it. But let it be enabled by default.
 > 
-> Is there a reason to prefer using linker scripts rather than thin
-> archives? I thought the former was possibly a bit less robust, and
-> the latter a smaller change for scripts and toolchain in terms
-> of "almost behaving like an object file".
+> I was thinking the build matrix (architectures x build options x toolchains)
+> is a bit too large to switch it for everybody. I've far from even tested it
+> for a fraction of powerpc builds. I would prefer arch maintainers to switch
+> it themselves, but I do hope we can move everybody and just remove the old
+> method within a few releases.
+> 
+> But I'm happy to go with whatever arch and kbuild maintainers prefer, so I
+> appreciate any discussion on it.
 
-The only valid reason I can come up with is that it is simpler
-to build a list of .o files than it is to generate a number
-of thin archives.
+How about making the option visible for everyone with CONFIG_EXPERT?
 
-I persuaded "linker scripts" mainly because I had the patch floating
-and I was triggered by the powerpc discussions to resurface it again.
+That way you don't get it by default, but you do get it with randconfig
+and allmodconfig build testing.
 
-> I don't have a strong preference although do have a couple of
-> (out of tree) scripts that expect objdump to work on built-in.o
-
-You are likely not alone here.
-Unless someone else comes up with any good reason lets stay with
-thin archives.
-
-	Sam
+	Arnd
