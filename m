@@ -1,169 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:30157 "EHLO mga14.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:32703 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750929AbcHHXSV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Aug 2016 19:18:21 -0400
-Subject: [PATCH 00/10] [v6] System Calls for Memory Protection Keys
+	id S932162AbcHHXSd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Aug 2016 19:18:33 -0400
+Subject: [PATCH 08/10] x86, pkeys: default to a restrictive init PKRU
 From: Dave Hansen <dave@sr71.net>
-Date: Mon, 08 Aug 2016 16:18:20 -0700
-Message-ID: <20160808231820.F7A9C4D8@viggo.jf.intel.com>
+Date: Mon, 08 Aug 2016 16:18:32 -0700
+References: <20160808231820.F7A9C4D8@viggo.jf.intel.com>
+In-Reply-To: <20160808231820.F7A9C4D8@viggo.jf.intel.com>
+Message-ID: <20160808231832.D5CF5D2B@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, luto@kernel.org, mgorman@techsingularity.net, Dave Hansen <dave@sr71.net>, arnd@arndb.de, dave.hansen@intel.com
-Message-ID: <20160808231820.rh_vwpN2-pU0BCghOlVEXGThMjVD29VKporWim5npy4@z>
+Cc: x86@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, luto@kernel.org, mgorman@techsingularity.net, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, arnd@arndb.de
+Message-ID: <20160808231832.y3vU5c-wg1W2sil-e17pcvIISqtBh5uejSU4AECAkQI@z>
 
-Since the last post, I've slightly updated the wording in one of
-the patch descriptions but have made no code changes.
 
-I think this is ready to be pulled into the x86 tree.
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-Note, this set depends on a previously submitted patch to be
-applied before it will function:
+PKRU is the register that lets you disallow writes or all access
+to a given protection key.
 
-	http://git.kernel.org/daveh/x86-pkeys/c/0ddc8d2c
+The XSAVE hardware defines an "init state" of 0 for PKRU: its
+most permissive state, allowing access/writes to everything.
+Since we start off all new processes with the init state, we
+start all processes off with the most permissive possible PKRU.
 
-Changes since v5:
- * Removed pkey_set/get() system calls to simplify ABI
- * Added 'init_pkru' support to ensure we have a restrictive
-   PKRU by default.
- * Requisite changes to selftests, plus some bugfixes around
-   stdio in signal handlers
- * Added clarifiction in patch description about when we use
-   the new restrictive PKRU value.
+This is unfortunate.  If a thread is clone()'d [1] before a
+program has time to set PKRU to a restrictive value, that thread
+will be able to write to all data, no matter what pkey is set on
+it.  This weakens any integrity guarantees that we want pkeys to
+provide.
 
---
+To fix this, we define a very restrictive PKRU to override the
+XSAVE-provided value when we create a new FPU context[2].  We
+choose a value that only allows access to pkey 0, which is as
+restrictive as we can practically make it.
 
-Memory Protection Keys for User pages (pkeys) is a CPU feature
-which will first appear on Skylake Servers, but will also be
-supported on future non-server parts.  It provides a mechanism
-for enforcing page-based protections, but without requiring
-modification of the page tables when an application changes
-wishes to change permissions.
+This does not cause any practical problems with applications
+using protection keys because we require them to specify initial
+permissions for each key when it is allocated, which override the
+restrictive default.
 
-Among other things, this feature was designed to help fix a class
-of bugs in long-running applications where data corruption is
-detected long after it occurs.  Applications today either live
-with the corruption or eat a huge performance penalty from
-calling mprotect() frequently.  The developers of these
-applications are already running this code and are very eager to
-see this feature merged and picked up in future distributions
-where their customers can use it.
+In the end, this ensures that threads which do not know how to
+manage their own pkey rights can not do damage to data which is
+pkey-protected.
 
-Patches to implement execute-only mapping support using pkeys
-were merged in to 4.6.  But, to do anything more useful with
-pkeys, an application needs to be able to set the pkey field in
-the PTE (obviously has to be done in-kernel) and make changes to
-the "rights" register (using unprivileged instructions).
+1. I would have thought this was a pretty contrived scenario,
+   except that I heard a bug report from an MPX user who was
+   creating threads in some very early code before main().  It
+   may be crazy, but folks evidently _do_ it.
+2. New FPU contexts are created at exeve()-time, and in a few
+   obscure places when we have to recover from invalid FPU state,
+   such as at sigreturn time.  New processes() via fork() and new
+   threads via clone() inherit the parent's PKRU values.
 
-An application also needs to have an an allocator for the keys
-themselves.  If two different parts of an application both want
-to protect their data with pkeys, they first need to know which
-key to use for their individual purposes.
-
-This set introduces 3 system calls:
-
-	sys_pkey_mprotect(): apply PTE to memory (patches #1-3)
-	sys_pkey_alloc(): ask the kernel for a free pkey (patch #4)
-	sys_pkey_free(): the reverse of alloc (patch #4)
-
-I have manpages written for these syscalls, and have had multiple
-rounds of reviews on the manpages list.  I have not revised them
-to remove pkey_get/set(), but will once this is merged in -tip.
-
-This set is also available here:
-
-	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v041
-
-I've written a set of unit tests for these interfaces, which is
-available as the last patch in the series and integrated in to
-kselftests.
-
-Folks wishing to run this code can do so with the new PKU support
-in qemu >=2.6.  Just boot with -cpu qemu64,+pku,+xsave, and make
-sure to apply this patch[1] to qemu.
-
-=== diffstat ===
-
-Dave Hansen (10):
-      x86, pkeys: add fault handling for PF_PK page fault bit
-      mm: implement new pkey_mprotect() system call
-      x86, pkeys: make mprotect_key() mask off additional vm_flags
-      x86, pkeys: allocation/free syscalls
-      x86: wire up protection keys system calls
-      generic syscalls: wire up memory protection keys syscalls
-      pkeys: add details of system call use to Documentation/
-      x86, pkeys: default to a restrictive init PKRU
-      x86, pkeys: allow configuration of init_pkru
-      x86, pkeys: add self-tests
-
- Documentation/kernel-parameters.txt           |    5 +
- Documentation/x86/protection-keys.txt         |   62 +
- arch/alpha/include/uapi/asm/mman.h            |    5 +
- arch/mips/include/uapi/asm/mman.h             |    5 +
- arch/parisc/include/uapi/asm/mman.h           |    5 +
- arch/x86/entry/syscalls/syscall_32.tbl        |    5 +
- arch/x86/entry/syscalls/syscall_64.tbl        |    5 +
- arch/x86/include/asm/mmu.h                    |    8 +
- arch/x86/include/asm/mmu_context.h            |   25 +-
- arch/x86/include/asm/pkeys.h                  |   73 +-
- arch/x86/kernel/fpu/core.c                    |    4 +
- arch/x86/kernel/fpu/xstate.c                  |    5 +-
- arch/x86/mm/fault.c                           |    9 +
- arch/x86/mm/pkeys.c                           |  143 +-
- arch/xtensa/include/uapi/asm/mman.h           |    5 +
- include/linux/pkeys.h                         |   41 +-
- include/linux/syscalls.h                      |    8 +
- include/uapi/asm-generic/mman-common.h        |    5 +
- include/uapi/asm-generic/unistd.h             |   12 +-
- mm/mprotect.c                                 |   90 +-
- tools/testing/selftests/x86/Makefile          |    3 +-
- tools/testing/selftests/x86/pkey-helpers.h    |  219 +++
- tools/testing/selftests/x86/protection_keys.c | 1411 +++++++++++++++++
- 23 files changed, 2115 insertions(+), 38 deletions(-)
-
-=== changelog ===
-
-Changes from v5:
- * remove sys_pkey_get/set() to simplify the ABI.  There was
-   concern they could not be easily vsyscall-accelerated.
- * Added 'init_pkru' support to ensure we have a restrictive
-   PKRU by default.
- * Requisite changes to selftests, plus some bugfixes around
-   stdio in signal handlers
-
-Changes from v4:
- * removed validate_pkey().  It was redundant with the work we do
-   in mm_pkey_alloc() and all of the mm_pkey_is_allocated() checks.
- * reorder patches to wait to wire up any syscalls until the end.
- * make allocation map functions explicity use unsigned masks
- * some tweaks to changelog (and associated manpages)
-
-Changes from v3:
- * added generic syscalls declarations to include/linux/syscalls.h
-   to fix arm64 compile issue.
-
-Changes from v2:
- * selftest updates:
-  * formatting changes like what Ingo asked for with MPX
-  * actually call WRPKRU in __wrpkru()
-  * once __wrpkru() was fixed, revealed a bug in the ptrace
-    test where we were testing against the wrong pointer during
-    the "baseline" test
- * Man-pages that match this set are here:
- 	 http://marc.info/?l=linux-man&m=146540723525616&w=2
-
-Changes from v1:
- * updates to alloc/free patch description calling out that
-   "in-use" pkeys may still be pkey_free()'d successfully.
- * Fixed a bug in the selftest where the 'flags' argument was
-   not passed to pkey_get().
- * Added all syscalls to generic syscalls header
- * Added extra checking to selftests so it doesn't fall over
-   when 1G pages are made the hugetlbfs default.
-
-1. http://lists.nongnu.org/archive/html/qemu-devel/2016-07/msg04774.html
-
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
 Cc: linux-api@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mm@kvack.org
@@ -172,4 +64,118 @@ Cc: torvalds@linux-foundation.org
 Cc: akpm@linux-foundation.org
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: mgorman@techsingularity.net
-Cc: Dave Hansen (Intel) <dave.hansen@intel.com>
+---
+
+ b/Documentation/kernel-parameters.txt |    5 ++++
+ b/arch/x86/include/asm/pkeys.h        |    1 
+ b/arch/x86/kernel/fpu/core.c          |    4 +++
+ b/arch/x86/mm/pkeys.c                 |   38 ++++++++++++++++++++++++++++++++++
+ b/include/linux/pkeys.h               |    4 +++
+ 5 files changed, 52 insertions(+)
+
+diff -puN arch/x86/include/asm/pkeys.h~pkeys-140-restrictive-init-pkru arch/x86/include/asm/pkeys.h
+--- a/arch/x86/include/asm/pkeys.h~pkeys-140-restrictive-init-pkru	2016-08-08 16:15:12.928138130 -0700
++++ b/arch/x86/include/asm/pkeys.h	2016-08-08 16:15:12.938138585 -0700
+@@ -100,5 +100,6 @@ extern int arch_set_user_pkey_access(str
+ 		unsigned long init_val);
+ extern int __arch_set_user_pkey_access(struct task_struct *tsk, int pkey,
+ 		unsigned long init_val);
++extern void copy_init_pkru_to_fpregs(void);
+ 
+ #endif /*_ASM_X86_PKEYS_H */
+diff -puN arch/x86/kernel/fpu/core.c~pkeys-140-restrictive-init-pkru arch/x86/kernel/fpu/core.c
+--- a/arch/x86/kernel/fpu/core.c~pkeys-140-restrictive-init-pkru	2016-08-08 16:15:12.929138175 -0700
++++ b/arch/x86/kernel/fpu/core.c	2016-08-08 16:15:12.939138630 -0700
+@@ -12,6 +12,7 @@
+ #include <asm/traps.h>
+ 
+ #include <linux/hardirq.h>
++#include <linux/pkeys.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <asm/trace/fpu.h>
+@@ -505,6 +506,9 @@ static inline void copy_init_fpstate_to_
+ 		copy_kernel_to_fxregs(&init_fpstate.fxsave);
+ 	else
+ 		copy_kernel_to_fregs(&init_fpstate.fsave);
++
++	if (boot_cpu_has(X86_FEATURE_OSPKE))
++		copy_init_pkru_to_fpregs();
+ }
+ 
+ /*
+diff -puN arch/x86/mm/pkeys.c~pkeys-140-restrictive-init-pkru arch/x86/mm/pkeys.c
+--- a/arch/x86/mm/pkeys.c~pkeys-140-restrictive-init-pkru	2016-08-08 16:15:12.932138312 -0700
++++ b/arch/x86/mm/pkeys.c	2016-08-08 16:15:12.940138675 -0700
+@@ -121,3 +121,41 @@ int __arch_override_mprotect_pkey(struct
+ 	 */
+ 	return vma_pkey(vma);
+ }
++
++#define PKRU_AD_KEY(pkey)	(PKRU_AD_BIT << ((pkey) * PKRU_BITS_PER_PKEY))
++
++/*
++ * Make the default PKRU value (at execve() time) as restrictive
++ * as possible.  This ensures that any threads clone()'d early
++ * in the process's lifetime will not accidentally get access
++ * to data which is pkey-protected later on.
++ */
++u32 init_pkru_value = PKRU_AD_KEY( 1) | PKRU_AD_KEY( 2) | PKRU_AD_KEY( 3) |
++		      PKRU_AD_KEY( 4) | PKRU_AD_KEY( 5) | PKRU_AD_KEY( 6) |
++		      PKRU_AD_KEY( 7) | PKRU_AD_KEY( 8) | PKRU_AD_KEY( 9) |
++		      PKRU_AD_KEY(10) | PKRU_AD_KEY(11) | PKRU_AD_KEY(12) |
++		      PKRU_AD_KEY(13) | PKRU_AD_KEY(14) | PKRU_AD_KEY(15);
++
++/*
++ * Called from the FPU code when creating a fresh set of FPU
++ * registers.  This is called from a very specific context where
++ * we know the FPU regstiers are safe for use and we can use PKRU
++ * directly.  The fact that PKRU is only available when we are
++ * using eagerfpu mode makes this possible.
++ */
++void copy_init_pkru_to_fpregs(void)
++{
++	u32 init_pkru_value_snapshot = READ_ONCE(init_pkru_value);
++	/*
++	 * Any write to PKRU takes it out of the XSAVE 'init
++	 * state' which increases context switch cost.  Avoid
++	 * writing 0 when PKRU was already 0.
++	 */
++	if (!init_pkru_value_snapshot && !read_pkru())
++		return;
++	/*
++	 * Override the PKRU state that came from 'init_fpstate'
++	 * with the baseline from the process.
++	 */
++	write_pkru(init_pkru_value_snapshot);
++}
+diff -puN Documentation/kernel-parameters.txt~pkeys-140-restrictive-init-pkru Documentation/kernel-parameters.txt
+--- a/Documentation/kernel-parameters.txt~pkeys-140-restrictive-init-pkru	2016-08-08 16:15:12.934138403 -0700
++++ b/Documentation/kernel-parameters.txt	2016-08-08 16:15:12.941138721 -0700
+@@ -1643,6 +1643,11 @@ bytes respectively. Such letter suffixes
+ 
+ 	initrd=		[BOOT] Specify the location of the initial ramdisk
+ 
++	init_pkru=	[x86] Specify the default memory protection keys rights
++			register contents for all processes.  0x55555554 by
++			default (disallow access to all but pkey 0).  Can
++			override in debugfs after boot.
++
+ 	inport.irq=	[HW] Inport (ATI XL and Microsoft) busmouse driver
+ 			Format: <irq>
+ 
+diff -puN include/linux/pkeys.h~pkeys-140-restrictive-init-pkru include/linux/pkeys.h
+--- a/include/linux/pkeys.h~pkeys-140-restrictive-init-pkru	2016-08-08 16:15:12.935138448 -0700
++++ b/include/linux/pkeys.h	2016-08-08 16:15:12.941138721 -0700
+@@ -35,6 +35,10 @@ static inline int arch_set_user_pkey_acc
+ 	return 0;
+ }
+ 
++static inline void copy_init_pkru_to_fpregs(void)
++{
++}
++
+ #endif /* ! CONFIG_ARCH_HAS_PKEYS */
+ 
+ #endif /* _LINUX_PKEYS_H */
+_
