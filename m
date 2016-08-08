@@ -1,78 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f178.google.com ([209.85.220.178]:33190 "EHLO
-	mail-qk0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750795AbcHHEMk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 00:12:40 -0400
-Received: by mail-qk0-f178.google.com with SMTP id t7so35390584qkh.0
-        for <linux-arch@vger.kernel.org>; Sun, 07 Aug 2016 21:12:40 -0700 (PDT)
-Date: Mon, 8 Aug 2016 00:12:37 -0400 (EDT)
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead
- code/data elimination
-In-Reply-To: <20160808134235.6f20eacb@roar.ozlabs.ibm.com>
-Message-ID: <alpine.LFD.2.20.1608080004050.17623@knanqh.ubzr>
-References: <1470399123-8455-1-git-send-email-npiggin@gmail.com> <1470399123-8455-3-git-send-email-npiggin@gmail.com> <alpine.LFD.2.20.1608070018460.17623@knanqh.ubzr> <20160808134235.6f20eacb@roar.ozlabs.ibm.com>
+Received: from asavdk3.altibox.net ([109.247.116.14]:36169 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750766AbcHHEqe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 00:46:34 -0400
+Date: Mon, 8 Aug 2016 06:46:27 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/5] kbuild: allow architectures to use thin archives
+ instead of ld -r
+Message-ID: <20160808044627.GA12527@ravnborg.org>
+References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
+ <1470399123-8455-2-git-send-email-npiggin@gmail.com>
+ <20160806201045.GA25821@ravnborg.org>
+ <20160807114946.41b682f3@canb.auug.org.au>
+ <20160807144054.GA14682@ravnborg.org>
+ <20160808131941.27541a33@roar.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160808131941.27541a33@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160808041237.A7DFeihHL5c582HOtaRBTI3Fe2zj62warvgknRqwoLY@z>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160808044627.UVH5Sf_Euo0EDur0I35BF5RYXD5M7VUVbVRJSy1dhjs@z>
 
-On Mon, 8 Aug 2016, Nicholas Piggin wrote:
-
-> On Sun, 7 Aug 2016 01:33:45 -0400 (EDT)
-> Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
+On Mon, Aug 08, 2016 at 01:19:41PM +1000, Nicholas Piggin wrote:
+> On Sun, 7 Aug 2016 16:40:54 +0200
+> Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> > On Fri, 5 Aug 2016, Nicholas Piggin wrote:
+> > On Sun, Aug 07, 2016 at 11:49:46AM +1000, Stephen Rothwell wrote:
+> > > Hi Sam,
+> > > 
+> > > On Sat, 6 Aug 2016 22:10:45 +0200 Sam Ravnborg <sam@ravnborg.org> wrote:  
+> > > >
+> > > > Did you by any chance evalue the use of INPUT in linker files.
+> > > > Stephen back then (again based on proposal from Alan Modra),
+> > > > also made an implementation using INPUT.  
+> > > 
+> > > The problem with that idea was that (at least for some versions of
+> > > binutils in use at the time) we hit a static limit to the number of
+> > > object files and ld just stopped at that point. :-(  
 > > 
-> > > Introduce LINKER_DCE option for architectures to select if they want
-> > > to build with -ffunction-sections, -fdata-sections, and link with
-> > > --gc-sections. It requires some work (documented) to ensure all
-> > > unreferenced entrypoints are live, and requires toolchain and
-> > > build verification, so it is made a per-arch option for now.
-> > > 
-> > > On a random powerpc64le build, this yelds a significant size saving,
-> > > it boots and runs fine, but there is a lot I haven't tested as yet,
-> > > so these savings may be reduced if there are bugs in the link.
-> > > 
-> > >     text      data        bss        dec   filename
-> > > 11169741   1180744    1923176	14273661   vmlinux
-> > > 10445269   1004127    1919707	13369103   vmlinux.dce
-> > > 
-> > > ~700K text, ~170K data, 6% removed from kernel image size.
-> > > 
-> > > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> > The ld bug was caused by opening too many linked definitions files.
+> > We can workaround this by expanding the files.
+> > I gave this a quick spin - see below.
 > > 
-> > I played with that too. However this needs distinct sections for 
-> > exception tables and the like otherwise the backward references from the 
-> > final exception table to those functions responsible for those exception 
-> > entries has the effect of pulling in all those functions even if their 
-> > entry point is never referenced, making --gc-sections less effective.  
-> > I managed to fix this only with a change to gas (accepted upstream).
+> > Note - I have no idea if using thin archived or this method is better.
+> > But it seems just wrong to me that we convert to thin archives when
+> > we really do not need to do so.
 > > 
-> > But once that is solved, you then have the missing forward reference 
-> > problem i.e. nothing actually references those individual exception 
-> > entry sections and ld happily drops them all. Having a KEEP() on each of 
-> > them is unworkable and defeats the purpose anyway.  That requires a 
-> > dummy reloc to trick ld into pulling in those sections when the parent 
-> > section is also pulled in.
+> > Note - this was a quick spin. It build fine here and thats it.
 > 
-> Right, although we don't *need* those things just for enabling
-> --gc-sections, do we? It may not be 100% optimal, but it's enough
-> to avoid the regression when switching to --whole-archive build
-> option.
+> Is there a reason to prefer using linker scripts rather than thin
+> archives? I thought the former was possibly a bit less robust, and
+> the latter a smaller change for scripts and toolchain in terms
+> of "almost behaving like an object file".
 
-Oh absolutely.
+The only valid reason I can come up with is that it is simpler
+to build a list of .o files than it is to generate a number
+of thin archives.
 
-> Your results are impressive, and I don't want to stand in the way of
-> either LTO or improving accuracy of --gc-sections. But both are things
-> that can be built on top of this patch, I think.
+I persuaded "linker scripts" mainly because I had the patch floating
+and I was triggered by the powerpc discussions to resurface it again.
 
-Indeed.  Those patches are certainly welcome. They represent half of the 
-job already.  I just wanted to provide some insight about the whole 
-picture in case someone else notices those flaws I have identified.
+> I don't have a strong preference although do have a couple of
+> (out of tree) scripts that expect objdump to work on built-in.o
 
+You are likely not alone here.
+Unless someone else comes up with any good reason lets stay with
+thin archives.
 
-Nicolas
+	Sam
