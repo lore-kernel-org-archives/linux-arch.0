@@ -1,17 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-il-dmz.mellanox.com ([193.47.165.129]:49857 "EHLO
-	mellanox.co.il" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752184AbcHHQDx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 12:03:53 -0400
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Subject: [PATCH v7 0/4] improvements to the nmi_backtrace code
-Date: Mon,  8 Aug 2016 12:03:34 -0400
-Message-ID: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
+Received: from foss.arm.com ([217.140.101.70]:36917 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752123AbcHHQsl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Aug 2016 12:48:41 -0400
+Date: Mon, 8 Aug 2016 17:48:28 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Message-ID: <20160808164828.GH12649@leverpostej>
+References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
+ <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <20160808160334.CSmnznS8HxDFhieZOzfpj0K9Ls-Ts1y2GEJykTs-cPE@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>, lorenzo.pieralisi@arm.com
+Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160808164828.IB_vtvYsX9VlaYGkjByHa50IMG3-Pw3vJWRXcUNhdSo@z>
 
-This is a rebase of the v6 series onto v4.8-rc1, plus some changes
-from Petr Mladek's review this morning.
+Hi,
+
+[adding Lorenzo]
+
+On Mon, Aug 08, 2016 at 12:03:38PM -0400, Chris Metcalf wrote:
+> When doing an nmi backtrace of many cores, most of which are idle,
+> the output is a little overwhelming and very uninformative.  Suppress
+> messages for cpus that are idling when they are interrupted and just
+> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+> 
+> We do this by grouping all the cpuidle code together into a new
+> .cpuidle.text section, and then checking the address of the
+> interrupted PC to see if it lies within that section.
+> 
+> This commit suitably tags x86, arm64, and tile idle routines,
+> and only adds in the minimal framework for other architectures.
+
+> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+> index 659963d40bb4..fe7f93b7b11b 100644
+> --- a/arch/arm64/kernel/vmlinux.lds.S
+> +++ b/arch/arm64/kernel/vmlinux.lds.S
+> @@ -122,6 +122,7 @@ SECTIONS
+>  			ENTRY_TEXT
+>  			TEXT_TEXT
+>  			SCHED_TEXT
+> +			CPUIDLE_TEXT
+>  			LOCK_TEXT
+>  			KPROBES_TEXT
+>  			HYPERVISOR_TEXT
+> diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
+> index 5bb61de23201..64f088ca3192 100644
+> --- a/arch/arm64/mm/proc.S
+> +++ b/arch/arm64/mm/proc.S
+> @@ -48,11 +48,13 @@
+>   *
+>   *	Idle the processor (wait for interrupt).
+>   */
+> +	.pushsection ".cpuidle.text","ax"
+>  ENTRY(cpu_do_idle)
+>  	dsb	sy				// WFI may enter a low-power mode
+>  	wfi
+>  	ret
+>  ENDPROC(cpu_do_idle)
+> +	.popsection
