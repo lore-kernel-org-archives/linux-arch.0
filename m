@@ -1,42 +1,54 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead
- code/data elimination
-Date: Mon, 8 Aug 2016 13:29:03 +1000
-Message-ID: <20160808132903.0e37c967@roar.ozlabs.ibm.com>
+Subject: Re: [PATCH 3/5] kbuild: add arch specific post-module-link pass
+Date: Mon, 8 Aug 2016 13:30:01 +1000
+Message-ID: <20160808133001.3ccf2153@roar.ozlabs.ibm.com>
 References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
-	<1470399123-8455-3-git-send-email-npiggin@gmail.com>
-	<20160806201423.GB25821@ravnborg.org>
+	<1470399123-8455-4-git-send-email-npiggin@gmail.com>
+	<20160806201629.GC25821@ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f176.google.com ([209.85.192.176]:34524 "EHLO
-	mail-pf0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751997AbcHHD3L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Aug 2016 23:29:11 -0400
-In-Reply-To: <20160806201423.GB25821@ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20160806201629.GC25821@ravnborg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Sam Ravnborg <sam@ravnborg.org>
 Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 6 Aug 2016 22:14:23 +0200
+On Sat, 6 Aug 2016 22:16:29 +0200
 Sam Ravnborg <sam@ravnborg.org> wrote:
 
-> On Fri, Aug 05, 2016 at 10:12:00PM +1000, Nicholas Piggin wrote:
-> > Introduce LINKER_DCE option for architectures to select if they want
-> > to build with -ffunction-sections, -fdata-sections, and link with
-> > --gc-sections.  
+> On Fri, Aug 05, 2016 at 10:12:01PM +1000, Nicholas Piggin wrote:
+> > Add an option for architectures to pass over modules after they are
+> > linked. powerpc will use this to fix up alternate instruction patch
+> > relocations.
+> > 
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> > ---
+> >  Documentation/kbuild/makefiles.txt | 6 ++++++
+> >  Makefile                           | 1 +
+> >  scripts/Makefile.modpost           | 8 ++++++++
+> >  3 files changed, 15 insertions(+)
+> > 
+> > diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> > index 13f888a..f6c065b 100644
+> > --- a/Documentation/kbuild/makefiles.txt
+> > +++ b/Documentation/kbuild/makefiles.txt
+> > @@ -952,6 +952,12 @@ When kbuild executes, the following steps are followed (roughly):
+> >  	$(KBUILD_ARFLAGS) set by the top level Makefile to "D" (deterministic
+> >  	mode) if this option is supported by $(AR).
+> >  
+> > +    KBUILD_MODPOST_TOOL   Arch-specific command to run after module link
+> > +
+> > +        $(KBUILD_MODPOST_TOOL) is used to add an arch-specific pass over
+> > +        modules after their final link. E.g., powerpc uses this to adjust
+> > +        relative branches of "alternate code patching" sections.
+> > +  
 > 
-> Can you please try to come up with a less cryptic name.
-> "DCE" may make sense for you today.
-> Bot the naive reader will benefit from the longer and
-> more explcit form.
+> This needs documentation in kbuild.txt, where there is a
+> nearly full lst of KBUILD_ variables.
 
-Yes that's a good idea. The name sucks.
-
-We don't seem to consistently have a prefix for build configuration
-options, but we could start? KBUILD_LD_DEAD_CODE_DATA_ELIMINATION?
+Thanks, I missed that.
 
 Thanks,
 Nick
