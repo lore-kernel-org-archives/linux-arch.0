@@ -1,102 +1,127 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead code/data elimination
-Date: Mon, 08 Aug 2016 17:14:27 +0200
-Message-ID: <1882847.dG563Vieov@wuerfel>
-References: <1470399123-8455-1-git-send-email-npiggin@gmail.com> <12986071.MeSB5hmlsH@wuerfel> <20160807234947.GV20904@bubble.grove.modra.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:50624 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752072AbcHHPOt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2016 11:14:49 -0400
-In-Reply-To: <20160807234947.GV20904@bubble.grove.modra.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alan Modra <amodra@gmail.com>
-Cc: linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, linux-kbuild@vger.kernel.org, Andi Kleen <ak@linux.intel.com>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: [PATCH v7 0/4] improvements to the nmi_backtrace code
+Date: Mon,  8 Aug 2016 12:03:34 -0400
+Message-ID: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Monday, August 8, 2016 9:19:47 AM CEST Alan Modra wrote:
-> On Sun, Aug 07, 2016 at 10:26:19PM +0200, Arnd Bergmann wrote:
-> > On Sunday, August 7, 2016 7:27:39 PM CEST Alan Modra wrote:
-> > > 
-> > > If it can, then Nicholas' patch should be:
-> > > 
-> > >         *(.text.hot .text.hot.*) *(.text.unlikely .text.unlikely.*) *(.text .text.*)
-> > > 
-> > > If you can't put .text.fixup too far away then you may as well just use
-> > > 
-> > >         *(.text .text.*)
-> > 
-> > I tried this version:
-> > 
-> > diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> > index b1f8828e9eac..fc210dacac9a 100644
-> > --- a/include/asm-generic/vmlinux.lds.h
-> > +++ b/include/asm-generic/vmlinux.lds.h
-> > @@ -438,7 +438,9 @@
-> >   * during second ld run in second ld pass when generating System.map */
-> >  #define TEXT_TEXT                                                    \
-> >               ALIGN_FUNCTION();                                       \
-> > -             *(.text.hot .text .text.fixup .text.unlikely .text.*)   \
-> > +             *(.text.hot .text.hot.*)                                \
-> > +             *(.text.unlikely .text.fixup .text.unlikely.*)          \
-> > +             *(.text .text.*)                                        \
-> >               *(.ref.text)                                            \
-> >       MEM_KEEP(init.text)                                             \
-> >       MEM_KEEP(exit.text)                                             \
-> > 
-> > but that failed to link an allyesconfig kernel because of references
-> > from .fixup to .text.*. Trying your version now:
-> 
-> Well then, that proves you can't put .text.fixup too far aways from
-> the associated input section.
-> 
-> > *(.text.hot .text.hot.*) *(.text.unlikely .text.unlikely.*) *(.text .text.*)
-> 
-> Which means this is guaranteed to fail when you test it properly using
-> gcc's profiling options, in order to generate .text.hot* and/or
-> .text.unlikely* sections.
+This is a rebase of the v6 series onto v4.8-rc1, plus some changes
+from Petr Mladek's review this morning.
 
-I've investigated further and it seems that "*(.text.fixup) *(.text .text.*)"
-fails just because we list .text.fixup twice. The .text.fixup section
-was originally[1] introduced to work around the same link error that
-it is causing now: if we use recursive linking, merging .text and .text.fixup
-helps avoid the problems of sections that are >32MB before the final
-link.
+From the version 1 cover letter:
 
-I have reverted that patch now, so ARM uses ".fixup" again like every
-other architecture does, and now "*(.fixup) *(.text .text.*)" works
-correctly, while ""*(.fixup) *(.text .fixup .text.*)" also fails
-the same way that I saw before:
+  This patch series modifies the trigger_xxx_backtrace() NMI-based
+  remote backtracing code to make it more flexible, and makes a few
+  small improvements along the way.
 
-drivers/scsi/sg.o:(.fixup+0x4): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0xc): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x14): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x1c): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x24): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x2c): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x34): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x3c): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
-drivers/scsi/sg.o:(.fixup+0x44): relocation truncated to fit: R_ARM_THM_JUMP24 against `.text.sg_ioctl'
+  The motivation comes from the task isolation code, where there are
+  scenarios where we want to be able to diagnose a case where some cpu
+  is about to interrupt a task-isolated cpu.  It can be helpful to
+  see both where the interrupting cpu is, and also an approximation
+  of where the cpu that is being interrupted is.  The nmi_backtrace
+  framework allows us to discover the stack of the interrupted cpu.
 
-I don't understand what led Andi Kleen to also move .text.hot and
-.text.unlikely together with .text [2], but this may have
-been a related issue.
+I've tested that the change works as desired on tile, and build-tested
+x86, arm64, and arm.  For x86 and arm64 I confirmed that the generic
+cpuidle stuff as well as the architecture-specific routines are in the
+new cpuidle section.  For arm I just build-tested it and made sure the
+generic cpuidle routines were in the new cpuidle section, but I didn't
+attempt to tease apart the tangle of platform-specific idle routines
+that arm has and tag them with __cpuidle.  That might be more usefully
+done by someone with arm platform experience in a follow-up patch.
 
-> It seems to me the right thing to do would be to change kernel asm to
-> generate .text.foo.fixup for any .text.foo section.  A gas feature
-> available with binutils-2.26 enabled by --sectname-subst might help
-> with implementing that.
+I have also pushed it up to kernel.org to pull if that's easier:
 
-I think this what Nico wanted to use anyway to eliminate more functions
-from the output.
+git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git nmi-backtrace
 
-	Arnd
+v7: Rebased to kernel v4.8-r1
+    Retained the "include_self" bool to avoid cpumask allocation [Petr]
+    Switched to using "cpumask_of" to avoid cpumask allocation [Petr]
 
+v6: Rebased to kernel v4.7-rc7
 
-[1] http://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8321
-    http://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=8322
+v5: Add CPUIDLE_TEXT to the new arch/arm/kernel/vmlinux-xip.lds.S
+    https://lkml.kernel.org/g/1459877208-15119-1-git-send-email-cmetcalf@mellanox.com
 
-[2] https://lkml.org/lkml/2015/7/19/377
+v4: Added some more __cpuidle functions (PeterZ, Rafael Wysocki)
+    Rebased to kernel v4.6-rc1
+    https://lkml.kernel.org/g/1459358170-27745-1-git-send-email-cmetcalf@mellanox.com
+
+v3: Various improvements to the set of __cpuidle functions;
+    Add back in a missing section accidentally removed in modpost.c (PeterZ)
+    https://lkml.kernel.org/r/1458667179-19630-1-git-send-email-cmetcalf@mellanox.com
+
+v2: Switch to using __cpuidle tagging, switch S-O-B to Mellanox
+    https://lkml.kernel.org/r/1458147733-29338-1-git-send-email-cmetcalf@mellanox.com
+
+Chris Metcalf (4):
+  nmi_backtrace: add more trigger_*_cpu_backtrace() methods
+  nmi_backtrace: do a local dump_stack() instead of a self-NMI
+  arch/tile: adopt the new nmi_backtrace framework
+  nmi_backtrace: generate one-line reports for idle cpus
+
+ arch/alpha/kernel/vmlinux.lds.S      |  1 +
+ arch/arc/kernel/vmlinux.lds.S        |  1 +
+ arch/arm/include/asm/irq.h           |  5 ++-
+ arch/arm/kernel/smp.c                | 13 +------
+ arch/arm/kernel/vmlinux-xip.lds.S    |  1 +
+ arch/arm/kernel/vmlinux.lds.S        |  1 +
+ arch/arm64/kernel/vmlinux.lds.S      |  1 +
+ arch/arm64/mm/proc.S                 |  2 +
+ arch/avr32/kernel/vmlinux.lds.S      |  1 +
+ arch/blackfin/kernel/vmlinux.lds.S   |  1 +
+ arch/c6x/kernel/vmlinux.lds.S        |  1 +
+ arch/cris/kernel/vmlinux.lds.S       |  1 +
+ arch/frv/kernel/vmlinux.lds.S        |  1 +
+ arch/h8300/kernel/vmlinux.lds.S      |  1 +
+ arch/hexagon/kernel/vmlinux.lds.S    |  1 +
+ arch/ia64/kernel/vmlinux.lds.S       |  1 +
+ arch/m32r/kernel/vmlinux.lds.S       |  1 +
+ arch/m68k/kernel/vmlinux-nommu.lds   |  1 +
+ arch/m68k/kernel/vmlinux-std.lds     |  1 +
+ arch/m68k/kernel/vmlinux-sun3.lds    |  1 +
+ arch/metag/kernel/vmlinux.lds.S      |  1 +
+ arch/microblaze/kernel/vmlinux.lds.S |  1 +
+ arch/mips/kernel/vmlinux.lds.S       |  1 +
+ arch/mn10300/kernel/vmlinux.lds.S    |  1 +
+ arch/nios2/kernel/vmlinux.lds.S      |  1 +
+ arch/openrisc/kernel/vmlinux.lds.S   |  1 +
+ arch/parisc/kernel/vmlinux.lds.S     |  1 +
+ arch/powerpc/kernel/vmlinux.lds.S    |  1 +
+ arch/s390/kernel/vmlinux.lds.S       |  1 +
+ arch/score/kernel/vmlinux.lds.S      |  1 +
+ arch/sh/kernel/vmlinux.lds.S         |  1 +
+ arch/sparc/kernel/vmlinux.lds.S      |  1 +
+ arch/tile/include/asm/irq.h          |  5 ++-
+ arch/tile/kernel/entry.S             |  2 +-
+ arch/tile/kernel/pmc.c               |  3 --
+ arch/tile/kernel/process.c           | 73 +++++++++---------------------------
+ arch/tile/kernel/traps.c             |  7 +++-
+ arch/tile/kernel/vmlinux.lds.S       |  1 +
+ arch/um/kernel/dyn.lds.S             |  1 +
+ arch/um/kernel/uml.lds.S             |  1 +
+ arch/unicore32/kernel/vmlinux.lds.S  |  1 +
+ arch/x86/include/asm/irq.h           |  5 ++-
+ arch/x86/kernel/acpi/cstate.c        |  2 +-
+ arch/x86/kernel/apic/hw_nmi.c        |  7 ++--
+ arch/x86/kernel/process.c            |  4 +-
+ arch/x86/kernel/vmlinux.lds.S        |  1 +
+ arch/xtensa/kernel/vmlinux.lds.S     |  3 ++
+ drivers/acpi/processor_idle.c        |  5 ++-
+ drivers/cpuidle/driver.c             |  5 ++-
+ drivers/idle/intel_idle.c            |  4 +-
+ include/asm-generic/vmlinux.lds.h    |  6 +++
+ include/linux/cpu.h                  |  5 +++
+ include/linux/nmi.h                  | 49 +++++++++++++++++-------
+ kernel/sched/idle.c                  | 13 ++++++-
+ lib/nmi_backtrace.c                  | 38 +++++++++++++------
+ scripts/mod/modpost.c                |  2 +-
+ scripts/recordmcount.c               |  1 +
+ scripts/recordmcount.pl              |  1 +
+ 58 files changed, 176 insertions(+), 118 deletions(-)
+
+-- 
+2.7.2
