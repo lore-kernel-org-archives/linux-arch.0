@@ -1,73 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:36791 "EHLO
-	mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751579AbcHGXtx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Aug 2016 19:49:53 -0400
-Date: Mon, 8 Aug 2016 09:19:47 +0930
-From: Alan Modra <amodra@gmail.com>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead
- code/data elimination
-Message-ID: <20160807234947.GV20904@bubble.grove.modra.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:34837 "EHLO
+	mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752001AbcHHDaK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Aug 2016 23:30:10 -0400
+Date: Mon, 8 Aug 2016 13:30:01 +1000
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 3/5] kbuild: add arch specific post-module-link pass
+Message-ID: <20160808133001.3ccf2153@roar.ozlabs.ibm.com>
+In-Reply-To: <20160806201629.GC25821@ravnborg.org>
 References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
- <1470399123-8455-3-git-send-email-npiggin@gmail.com>
- <20160807095739.GU20904@bubble.grove.modra.org>
- <12986071.MeSB5hmlsH@wuerfel>
+	<1470399123-8455-4-git-send-email-npiggin@gmail.com>
+	<20160806201629.GC25821@ravnborg.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <12986071.MeSB5hmlsH@wuerfel>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, linux-kbuild@vger.kernel.org
-Message-ID: <20160807234947.bf1k_MNsEKb-0cBt8DgHpRcbWXuWinmAHAAX71XpjA4@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160808033001.B9own9ckqwkCIYBilLbJGCExrJN4xNd40WVfEOVfVXc@z>
 
-On Sun, Aug 07, 2016 at 10:26:19PM +0200, Arnd Bergmann wrote:
-> On Sunday, August 7, 2016 7:27:39 PM CEST Alan Modra wrote:
+On Sat, 6 Aug 2016 22:16:29 +0200
+Sam Ravnborg <sam@ravnborg.org> wrote:
+
+> On Fri, Aug 05, 2016 at 10:12:01PM +1000, Nicholas Piggin wrote:
+> > Add an option for architectures to pass over modules after they are
+> > linked. powerpc will use this to fix up alternate instruction patch
+> > relocations.
 > > 
-> > If it can, then Nicholas' patch should be:
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> > ---
+> >  Documentation/kbuild/makefiles.txt | 6 ++++++
+> >  Makefile                           | 1 +
+> >  scripts/Makefile.modpost           | 8 ++++++++
+> >  3 files changed, 15 insertions(+)
 > > 
-> >         *(.text.hot .text.hot.*) *(.text.unlikely .text.unlikely.*) *(.text .text.*)
-> > 
-> > If you can't put .text.fixup too far away then you may as well just use
-> > 
-> >         *(.text .text.*)
+> > diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> > index 13f888a..f6c065b 100644
+> > --- a/Documentation/kbuild/makefiles.txt
+> > +++ b/Documentation/kbuild/makefiles.txt
+> > @@ -952,6 +952,12 @@ When kbuild executes, the following steps are followed (roughly):
+> >  	$(KBUILD_ARFLAGS) set by the top level Makefile to "D" (deterministic
+> >  	mode) if this option is supported by $(AR).
+> >  
+> > +    KBUILD_MODPOST_TOOL   Arch-specific command to run after module link
+> > +
+> > +        $(KBUILD_MODPOST_TOOL) is used to add an arch-specific pass over
+> > +        modules after their final link. E.g., powerpc uses this to adjust
+> > +        relative branches of "alternate code patching" sections.
+> > +  
 > 
-> I tried this version:
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index b1f8828e9eac..fc210dacac9a 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -438,7 +438,9 @@
->   * during second ld run in second ld pass when generating System.map */
->  #define TEXT_TEXT							\
->  		ALIGN_FUNCTION();					\
-> -		*(.text.hot .text .text.fixup .text.unlikely .text.*)	\
-> +		*(.text.hot .text.hot.*)				\
-> +		*(.text.unlikely .text.fixup .text.unlikely.*)		\
-> +		*(.text .text.*)					\
->  		*(.ref.text)						\
->  	MEM_KEEP(init.text)						\
->  	MEM_KEEP(exit.text)						\
-> 
-> but that failed to link an allyesconfig kernel because of references
-> from .fixup to .text.*. Trying your version now:
+> This needs documentation in kbuild.txt, where there is a
+> nearly full lst of KBUILD_ variables.
 
-Well then, that proves you can't put .text.fixup too far aways from
-the associated input section.
+Thanks, I missed that.
 
-> *(.text.hot .text.hot.*) *(.text.unlikely .text.unlikely.*) *(.text .text.*)
-
-Which means this is guaranteed to fail when you test it properly using
-gcc's profiling options, in order to generate .text.hot* and/or
-.text.unlikely* sections.
-
-It seems to me the right thing to do would be to change kernel asm to
-generate .text.foo.fixup for any .text.foo section.  A gas feature
-available with binutils-2.26 enabled by --sectname-subst might help
-with implementing that.
-
--- 
-Alan Modra
-Australia Development Lab, IBM
+Thanks,
+Nick
