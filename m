@@ -1,107 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:42588 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751220AbcHIQJM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2016 12:09:12 -0400
-Message-ID: <1470758947.2299.47.camel@HansenPartnership.com>
+Received: from slow1-d.mail.gandi.net ([217.70.178.86]:44767 "EHLO
+	slow1-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752586AbcHIQ5a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2016 12:57:30 -0400
+Date: Tue, 9 Aug 2016 12:48:15 -0400
+From: Richard Fontana <fontana@sharpeleven.org>
 Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
  tables
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Tue, 09 Aug 2016 09:09:07 -0700
-In-Reply-To: <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+Message-ID: <20160809164815.fqqfflzegwjadm7s@antelope>
 References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-	 <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+ <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
-Message-ID: <20160809160907.ZcAg5r6C8r0eRmEcPog_q7JruhG8HEPnYSRxHRKL7fc@z>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
+Message-ID: <20160809164815.pYn2kr9FB-1uDEzPWvm9OYXfi4cv9VpYH0GaydBIlOI@z>
 
-On Tue, 2016-08-09 at 15:24 +0100, One Thousand Gnomes wrote:
-> > table development go under copyleft-next, Rusty recently asked for 
-> > code to go in prior to the license tag being added denoting this 
-> > license as GPL-compatible [3] -- I had noted in the patch 
-> > submission which annotated copyleft-next's compatibility to GPLv2 
-> > that copyleft-next is the license of choice for ongoing kernel 
-> > development on my end [4]. If this is objectionable I'm happy to 
-> > change it to GPLv2 however I'd like a reason provided as I've gone 
-> > through all possible channels to ensure this is kosher, including
-> > vetting by 3 attorneys now, 2 at SUSE.
-> 
-> You don't need a new tag, you can use "GPL" or "GPL and additional
-> rights". In fact you don't want any other tag because when combined
->  with the kernel it is GPLv2 anyway because the only way the two are 
-> fully compatible is for the kernel community to license the derived 
-> work under the GPL.
+On Tue, Aug 09, 2016 at 03:24:29PM +0100, One Thousand Gnomes wrote:
+> It would also be good if someone clarified whether 6 and 7 are intended
+> to combine so you can take contributed patches and put them in your own
+> proprietary version. As a non-lawyer the intent is not clear at all.
 
-This is the module tag ... it says what licence the module is under,
-not the licence for the module combined with the kernel, which is
-always GPLv2 because the stricter licence rules.
+6 and 7 aren't intended to combine; they address separate issues and
+circumstances.
 
-> The second reason you must use the GPL or GPL with additional tag is
-> clause 8. We don't want anyone to create a module under your licence,
-> claim it is "open source" then fifteen years later release the module 
-> in binary only form still with a tag saying "copyleft-next" which we
-> treat as GPL compatible. It's the same reason we don't have a BSD tag 
-> but use "GPL with additional rights" to stop abuse of the module
-> tags.
-
-I don't follow you here.  We do have separate Dual licence tags. Dual
-BSD/GPL allows me to do this today, without waiting fifteen years.  I
-think you're conflating two issues:
-
-   1. The licence of the actual module, which must be compatible with the
-      kernel to do an insmod.  This is actually what MODULE_LICENSE
-      declares
-   2. The conditions the creation of the combined work imposes on me
-
-It's the latter, even in the case of Dual BSD/GPL which still requires
-me to release source code, so the combination with the kernel forces
-GPL conditions even in the case of a BSD module (which is otherwise
-compatible) and even after 15 years of this copyleft-next.
-
-The point is: I can create a pure BSD module.  You can pick it up and
-put it into the kernel source as Dual BSD/GPL, because BSD allows this,
-but I'm still free to create binary only versions under BSD (as long as
-they're for something other than inserting into Linux).  However, if I
-want my binary only modules to be combined with Linux, I have to follow
-GPLv2 compliance because GPLv2 becomes the ruling licence of the
-combination.  The same would apply to this copyleft-next, even after 15
-years.
-
-> However you need to clarify the licence first I think. Linux is 
-> GPLv2, your document only allows use of GPL with "GPL" works - not 
-> GPL v2 works ?
-
-A reasonable person would take GPL to mean any version of GPL.
-
-> As PS: btw your licence is kind of weird. I can combine it with GPL 
-> work, make it GPL therefore, and then use the GPL rights to remove 
-> the bits I added thereby meaning I have your exact original work 
-> under the GPL. Not sure how it's intended to work ?
-
-What you describe is how it's always worked.  You may always distribute
-a compatibly licensed piece of code under the stricter licence. 
- Additional permissions are always strippable in GPLv3 terms.
-
-> It would also be good if someone clarified whether 6 and 7 are 
-> intended to combine so you can take contributed patches and put them 
-> in your own proprietary version. As a non-lawyer the intent is not
-> clear at all.
-
-The US copyright office defines a copyright work as anything which is
-"an original work of authorship fixed in any tangible medium of
-expression".  That means any change to an existing work (i.e. by a
-patch) which contains enough originality to make the changed work
-distinct from the old work is ipso facto a new work.  under copyright
--next this new work has a sunset 15 years from its creation by
-combination, not 15 years from the original.  This means a constantly
-updated work never sunsets.  Sure, you can go back 15 years and claim
-the code at that time has passed into the public domain but you can't
-do that if you also want the benefit of later changes.
-
-James
-
+Richard
