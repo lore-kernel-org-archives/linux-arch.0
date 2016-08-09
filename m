@@ -1,38 +1,96 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: c6x linker issue on linux-next-20160808 + some linker table work
-Date: Tue, 9 Aug 2016 01:11:26 -0700
-Message-ID: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Tue, 9 Aug 2016 11:37:08 +0100
+Message-ID: <20160809103708.GC23769@red-moon>
+References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
+ <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
+ <20160808164828.GH12649@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:35356 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.101.70]:41116 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752292AbcHIILv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Aug 2016 04:11:51 -0400
+	id S1752171AbcHIKg7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Aug 2016 06:36:59 -0400
+Content-Disposition: inline
+In-Reply-To: <20160808164828.GH12649@leverpostej>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: Guenter Roeck <linux@roeck-us.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Mark, Aurelien,
+On Mon, Aug 08, 2016 at 05:48:28PM +0100, Mark Rutland wrote:
+> Hi,
+> 
+> [adding Lorenzo]
+> 
+> On Mon, Aug 08, 2016 at 12:03:38PM -0400, Chris Metcalf wrote:
+> > When doing an nmi backtrace of many cores, most of which are idle,
+> > the output is a little overwhelming and very uninformative.  Suppress
+> > messages for cpus that are idling when they are interrupted and just
+> > emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+> > 
+> > We do this by grouping all the cpuidle code together into a new
+> > .cpuidle.text section, and then checking the address of the
+> > interrupted PC to see if it lies within that section.
+> > 
+> > This commit suitably tags x86, arm64, and tile idle routines,
+> > and only adds in the minimal framework for other architectures.
+> 
+> > diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+> > index 659963d40bb4..fe7f93b7b11b 100644
+> > --- a/arch/arm64/kernel/vmlinux.lds.S
+> > +++ b/arch/arm64/kernel/vmlinux.lds.S
+> > @@ -122,6 +122,7 @@ SECTIONS
+> >  			ENTRY_TEXT
+> >  			TEXT_TEXT
+> >  			SCHED_TEXT
+> > +			CPUIDLE_TEXT
+> >  			LOCK_TEXT
+> >  			KPROBES_TEXT
+> >  			HYPERVISOR_TEXT
+> > diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
+> > index 5bb61de23201..64f088ca3192 100644
+> > --- a/arch/arm64/mm/proc.S
+> > +++ b/arch/arm64/mm/proc.S
+> > @@ -48,11 +48,13 @@
+> >   *
+> >   *	Idle the processor (wait for interrupt).
+> >   */
+> > +	.pushsection ".cpuidle.text","ax"
+> >  ENTRY(cpu_do_idle)
+> >  	dsb	sy				// WFI may enter a low-power mode
+> >  	wfi
+> >  	ret
+> >  ENDPROC(cpu_do_idle)
+> > +	.popsection
+> 
+> From a quick scan it looks like we only call this with interrupts
+> disabled, and we have no NMI. So shouldn't we be annotating
+> arch_cpu_idle(), which calls this and subsequently enables interrupts?
+> 
+> I'm also not sure what you need to do for PSCI, which is the preferred
+> (FW-backed) idle mechanism for arm64. The infrastrucure for that is
+> spread over a few files:
+> 
+>   arch/arm64/kernel/sleep.S
+>   arch/arm64/kernel/smccc-call.S
+>   arch/arm64/kernel/suspend.c
+>   drivers/cpuidle/cpuidle-arm.c
+>   drivers/firmware/psci.c
+> 
+> I'm not sure where we'd be an an interruptible state, and therefore I'm
+> not immediately sure what we should annotate.
 
-I've run into a linker (ld) issue caused by the linker table work I've
-been working on [0]. I looked into this and for the life of me, I
-cannot comprehend what the problem is, so was hoping you folks might
-be able to chime in.
+I am probably missing something here, but let me add that I am not
+sure I understand how this patch can be used on ARM/ARM64 systems
+so ARM platform idle back-end code annotation is basically useless
+given that it is code that can't be preempted anyway (and even if
+it could PC range check can even fail given that we may execute some
+code with MMU off so out of physical addresses).
 
-A snapshot you can use is available here:
+What's the purpose of this cpu idle tracking ? Can't it be implemented
+in a simpler way (ie RCU API) ?
 
-https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160808-linker-table-v4
-
-The commit that causes the issue is "firmware: port built-in section
-to linker table":
-
-https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/commit/?h=20160808-linker-table-v4&id=2f4516be8c89b3ca008962798d44b54751e62844
-
-its the first use of linker tables in the kernel, but I can't figure
-out why this error comes up, nor how to fix it. Any ideas?
-
-[0] lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
-
-  Luis
+Lorenzo
