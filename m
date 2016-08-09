@@ -1,43 +1,38 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Tue, 9 Aug 2016 05:55:08 +0200
-Message-ID: <20160809035508.GC11445@nazgul.tnic>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
- <20160729100630.GA27271@nazgul.tnic>
- <20160808150539.GG3296@wotan.suse.de>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: c6x linker issue on linux-next-20160808 + some linker table work
+Date: Tue, 9 Aug 2016 01:11:26 -0700
+Message-ID: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160808150539.GG3296@wotan.suse.de>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:35356 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752292AbcHIILv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Aug 2016 04:11:51 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: Guenter Roeck <linux@roeck-us.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>
 
-On Mon, Aug 08, 2016 at 05:05:39PM +0200, Luis R. Rodriguez wrote:
-> > So how can I disable those table-* things from even getting built? Avoid
-> > using table-y? But then everything declared table-y will be built
-> > unconditionally. I don't think I like that. :-\
-> 
-> I suppose we could make this configurable... But frankly I would prefer to
-> instead just document that this use should be carefully considered instead,
-> and let this be up to the maintainers. We can make it easily configurable so
-> we can do that later becomes a required, I don't think its needed though
-> given maintainers should use it only when needed.
+Mark, Aurelien,
 
-You know how maintainers are just people, right? At least in most cases :-)
+I've run into a linker (ld) issue caused by the linker table work I've
+been working on [0]. I looked into this and for the life of me, I
+cannot comprehend what the problem is, so was hoping you folks might
+be able to chime in.
 
-I think it would be better if it were machine-enforceable somehow.
-Maybe allow it only for core code and have a single, per-arch file
-arch/x86/linker_tables or so where all those statements are collected
-and can be eyeballed by more people. Dunno, just trying to think of
-something here...
+A snapshot you can use is available here:
 
--- 
-Regards/Gruss,
-    Boris.
+https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160808-linker-table-v4
 
-ECO tip #101: Trim your mails when you reply.
---
+The commit that causes the issue is "firmware: port built-in section
+to linker table":
+
+https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/commit/?h=20160808-linker-table-v4&id=2f4516be8c89b3ca008962798d44b54751e62844
+
+its the first use of linker tables in the kernel, but I can't figure
+out why this error comes up, nor how to fix it. Any ideas?
+
+[0] lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
+
+  Luis
