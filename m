@@ -1,102 +1,98 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
- tables
-Date: Tue, 09 Aug 2016 09:09:07 -0700
-Message-ID: <1470758947.2299.47.camel@HansenPartnership.com>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-	 <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Tue, 9 Aug 2016 12:43:58 -0400
+Message-ID: <feaaca8f-cc09-5847-ea3f-d27052704d9b@mellanox.com>
+References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
+ <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
+ <20160809124325.GG13300@pathway.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
-Sender: linux-sh-owner@vger.kernel.org
-To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xen
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20160809124325.GG13300@pathway.suse.cz>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Petr Mladek <pmladek@suse.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Aaron Tomlin <atomlin@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2016-08-09 at 15:24 +0100, One Thousand Gnomes wrote:
-> > table development go under copyleft-next, Rusty recently asked for 
-> > code to go in prior to the license tag being added denoting this 
-> > license as GPL-compatible [3] -- I had noted in the patch 
-> > submission which annotated copyleft-next's compatibility to GPLv2 
-> > that copyleft-next is the license of choice for ongoing kernel 
-> > development on my end [4]. If this is objectionable I'm happy to 
-> > change it to GPLv2 however I'd like a reason provided as I've gone 
-> > through all possible channels to ensure this is kosher, including
-> > vetting by 3 attorneys now, 2 at SUSE.
-> 
-> You don't need a new tag, you can use "GPL" or "GPL and additional
-> rights". In fact you don't want any other tag because when combined
->  with the kernel it is GPLv2 anyway because the only way the two are 
-> fully compatible is for the kernel community to license the derived 
-> work under the GPL.
+On 8/9/2016 8:43 AM, Petr Mladek wrote:
+> On Mon 2016-08-08 12:03:38, Chris Metcalf wrote:
+>> When doing an nmi backtrace of many cores, most of which are idle,
+>> the output is a little overwhelming and very uninformative.  Suppress
+>> messages for cpus that are idling when they are interrupted and just
+>> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+> Hmm, I do not see this message even though the CPU is in the idle state:
+>
+> [ 7918.884535] CPU: 3 PID: 0 Comm: swapper/3 Not tainted 4.8.0-rc1-4-default+ #3088
+> [ 7918.884538] Hardware name: Bochs Bochs, BIOS Bochs 01/01/2011
+> [ 7918.884539] task: ffff88013a594380 task.stack: ffff88013a598000
+> [ 7918.884541] RIP: 0010:[<ffffffff81050bc6>]  [<ffffffff81050bc6>] native_safe_halt+0x6/0x10
+> [ 7918.884543] RSP: 0018:ffff88013a59bea8  EFLAGS: 00000206
+> [ 7918.884544] RAX: ffff88013a594380 RBX: 0000000000000003 RCX: 0000000000000000
+> [ 7918.884546] RDX: ffff88013a594380 RSI: 0000000000000001 RDI: ffff88013a594380
+> [ 7918.884548] RBP: ffff88013a59bea8 R08: 0000000000000000 R09: 0000000000000000
+> [ 7918.884550] R10: 0000000000000001 R11: 0000000000000001 R12: 0000000000000003
+> [ 7918.884551] R13: 0000000000000000 R14: ffff88013a598000 R15: ffff88013a598000
+> [ 7918.884553] FS:  0000000000000000(0000) GS:ffff88013fd80000(0000) knlGS:0000000000000000
+> [ 7918.884554] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+> [ 7918.884556] CR2: 00007f8afc65e000 CR3: 00000001383b8000 CR4: 00000000000006e0
+> [ 7918.884557] Stack:
+> [ 7918.884559]  ffff88013a59bec8 ffffffff819573d3 0000000000000003 0000000000000000
+> [ 7918.884561]  ffff88013a59bed8 ffffffff8102628f ffff88013a59bee8 ffffffff819579ea
+> [ 7918.884562]  ffff88013a59bf30 ffffffff810bfe1a ffff88013a598000 ffff88013a598000
+> [ 7918.884563] Call Trace:
+> [ 7918.884565]  [<ffffffff819573d3>] default_idle+0x23/0x170
+> [ 7918.884566]  [<ffffffff8102628f>] arch_cpu_idle+0xf/0x20
+> [ 7918.884568]  [<ffffffff819579ea>] default_idle_call+0x2a/0x50
+> [ 7918.884570]  [<ffffffff810bfe1a>] cpu_startup_entry+0x16a/0x260
+> [ 7918.884571]  [<ffffffff8103faf6>] start_secondary+0xf6/0x100
+> [ 7918.884573] Code: 00 00 00 00 00 55 48 89 e5 fa 5d c3 66 0f 1f 84 00 00 00 00 00 55 48 89 e5 fb 5d c3 66 0f 1f 84 00 00 00 00 00 55 48 89 e5 fb f4 <5d> c3 0f 1f 84 00 00 00 00 00 55
+>   48 89 e5 f4 5d c3 66 0f 1f 84
+>
+> Note that I test it in a virtual machine using qemu.
+>
+> The strange thing is that I do not see .cpuidle.text section in
+> the vmlinux binary. But it is possible that I have misunderstood
+> the concept.
 
-This is the module tag ... it says what licence the module is under,
-not the licence for the module combined with the kernel, which is
-always GPLv2 because the stricter licence rules.
+The .cpuidle.text sections are merged into the final kernel's overall
+text segment.  What you should see is something like this in the "nm -n"
+output from the built vmlinux:
 
-> The second reason you must use the GPL or GPL with additional tag is
-> clause 8. We don't want anyone to create a module under your licence,
-> claim it is "open source" then fifteen years later release the module 
-> in binary only form still with a tag saying "copyleft-next" which we
-> treat as GPL compatible. It's the same reason we don't have a BSD tag 
-> but use "GPL with additional rights" to stop abuse of the module
-> tags.
+[...]
+ffffffff81922aa8 T __cpuidle_text_start
+ffffffff81922ab0 T default_idle
+ffffffff81922b90 t mwait_idle
+ffffffff81922d20 T acpi_processor_ffh_cstate_enter
+ffffffff81922df0 T default_idle_call
+ffffffff81922e30 t cpu_idle_poll
+ffffffff81922f50 t intel_idle
+ffffffff81923085 t acpi_idle_do_entry
+ffffffff819230d0 t poll_idle
+ffffffff81923143 T __cpuidle_text_end
+[...]
 
-I don't follow you here.  We do have separate Dual licence tags. Dual
-BSD/GPL allows me to do this today, without waiting fifteen years.  I
-think you're conflating two issues:
+In other words, all the cpuidle functions grouped together and bracketed by
+the __cpuidle_text_{start,end} symbols.
 
-   1. The licence of the actual module, which must be compatible with the
-      kernel to do an insmod.  This is actually what MODULE_LICENSE
-      declares
-   2. The conditions the creation of the combined work imposes on me
+Perhaps you were running with a kernel that didn't have the actual patch 4/4
+applied, but just the earlier patches?  Or perhaps your host Linux has been
+patched, but not the guest Linux running in qemu?  Or perhaps you are
+ending up doing an NMI backtrace on the host kernel, not the guest?
 
-It's the latter, even in the case of Dual BSD/GPL which still requires
-me to release source code, so the combination with the kernel forces
-GPL conditions even in the case of a BSD module (which is otherwise
-compatible) and even after 15 years of this copyleft-next.
+Thanks for your other reviews as well.  I have incorporated all of your
+suggestions into a v8 patch series and pushed it up to kernel.org.
+I will just wait to repost it until we sort out this issue that you've reported here.
 
-The point is: I can create a pure BSD module.  You can pick it up and
-put it into the kernel source as Dual BSD/GPL, because BSD allows this,
-but I'm still free to create binary only versions under BSD (as long as
-they're for something other than inserting into Linux).  However, if I
-want my binary only modules to be combined with Linux, I have to follow
-GPLv2 compliance because GPLv2 becomes the ruling licence of the
-combination.  The same would apply to this copyleft-next, even after 15
-years.
-
-> However you need to clarify the licence first I think. Linux is 
-> GPLv2, your document only allows use of GPL with "GPL" works - not 
-> GPL v2 works ?
-
-A reasonable person would take GPL to mean any version of GPL.
-
-> As PS: btw your licence is kind of weird. I can combine it with GPL 
-> work, make it GPL therefore, and then use the GPL rights to remove 
-> the bits I added thereby meaning I have your exact original work 
-> under the GPL. Not sure how it's intended to work ?
-
-What you describe is how it's always worked.  You may always distribute
-a compatibly licensed piece of code under the stricter licence. 
- Additional permissions are always strippable in GPLv3 terms.
-
-> It would also be good if someone clarified whether 6 and 7 are 
-> intended to combine so you can take contributed patches and put them 
-> in your own proprietary version. As a non-lawyer the intent is not
-> clear at all.
-
-The US copyright office defines a copyright work as anything which is
-"an original work of authorship fixed in any tangible medium of
-expression".  That means any change to an existing work (i.e. by a
-patch) which contains enough originality to make the changed work
-distinct from the old work is ipso facto a new work.  under copyright
--next this new work has a sunset 15 years from its creation by
-combination, not 15 years from the original.  This means a constantly
-updated work never sunsets.  Sure, you can go back 15 years and claim
-the code at that time has passed into the public domain but you can't
-do that if you also want the benefit of later changes.
-
-James
-
+-- 
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
