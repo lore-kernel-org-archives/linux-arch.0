@@ -1,65 +1,34 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: c6x linker issue on linux-next-20160808 + some linker table work
-Date: Tue, 09 Aug 2016 14:45:25 -0400
-Message-ID: <1470768325.3551.45.camel@redhat.com>
-References: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
-	 <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
-	 <1470762240.3551.42.camel@redhat.com> <20160809184023.GD3296@wotan.suse.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead code/data elimination
+Date: Wed, 10 Aug 2016 00:10:51 +0200
+Message-ID: <4272416.nR10D7I1gD@wuerfel>
+References: <1470399123-8455-1-git-send-email-npiggin@gmail.com> <1882847.dG563Vieov@wuerfel> <20160808235016.GD20904@bubble.grove.modra.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160809184023.GD3296@wotan.suse.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Guenter Roeck <linux@roeck-us.net>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.133]:60318 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932360AbcHIWLB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2016 18:11:01 -0400
+In-Reply-To: <20160808235016.GD20904@bubble.grove.modra.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alan Modra <amodra@gmail.com>
+Cc: linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, linux-kbuild@vger.kernel.org, Andi Kleen <ak@linux.intel.com>
 
-On Tue, 2016-08-09 at 20:40 +0200, Luis R. Rodriguez wrote:
-> On Tue, Aug 09, 2016 at 01:04:00PM -0400, Mark Salter wrote:
-> > 
-> > On Tue, 2016-08-09 at 06:37 -0700, Guenter Roeck wrote:
-> > > 
-> > > On 08/09/2016 01:11 AM, Luis R. Rodriguez wrote:
-> > > > 
-> > > > 
-> > > > Mark, Aurelien,
-> > > > 
-> > > > I've run into a linker (ld) issue caused by the linker table work I've
-> > > > been working on [0]. I looked into this and for the life of me, I
-> > > > cannot comprehend what the problem is, so was hoping you folks might
-> > > > be able to chime in.
-> > > > 
-> > > For reference, the error is
-> > > 
-> > > c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
-> > > c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
-> > DSBT is a reference to the no-MMU userspace ABI used by c6x. The kernel shouldn't
-> > be referencing DSBT base. The -mno-dsbt gcc flag should prevent it.
-> I see -mno-dsbt on arch/c6x/Makefile already -- however at link time this is
-> an issue if linker tables are used it seems. Do you have any other recommendation?
+On Tuesday, August 9, 2016 9:20:16 AM CEST Alan Modra wrote:
+> On Mon, Aug 08, 2016 at 05:14:27PM +0200, Arnd Bergmann wrote:
+> > I have reverted that patch now, so ARM uses ".fixup" again like every
+> > other architecture does, and now "*(.fixup) *(.text .text.*)" works
+> > correctly, while ""*(.fixup) *(.text .fixup .text.*)" also fails
+> > the same way that I saw before:
 > 
+> That is really odd.  The linker isn't supposed to treat those script
+> snippets differently.  First match for .fixup wins.
 
-I'm looking at it now...
+Sorry for my mistake. I checked again and cannot reproduce what I
+thought I saw earlier. "*(.fixup) *(.text .text.*)" fails
+as would be expected.
 
-> I will note that it would seem that even i386 and x86-64 compiler/binutils seem
-> to have relocation issues on older compiler/binutils, for instance:
-> 
-> gcc-4.7.2
-> binutils-2.22 
-> 
-> Yields:
-> 
-> x86_64:allyesconfig || x86_64:allmodconfig
-> Invalid absolute R_X86_64_64 relocation: __per_cpu_load 
-> 
-> i386:defconfig
-> Invalid absolute R_386_32 relocation: __vvar_page
-> 
-> This issue on x86 is not observed as so far as of gcc 5.2.1
-> and binutils-2.26.1.
-> 
-> hpa -- if you can think of a work around for this for older compilers/linkers
-> let me know... unless we are OK to increase the requirements for x86.
-> 
->   Luis
+	Arnd
