@@ -1,56 +1,51 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: c6x linker issue on linux-next-20160808 + some linker table work
-Date: Tue, 9 Aug 2016 06:37:13 -0700
-Message-ID: <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
-References: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
+ tables
+Date: Tue, 9 Aug 2016 15:24:29 +0100
+Message-ID: <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bh-25.webhostbox.net ([208.91.199.152]:56509 "EHLO
-	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932257AbcHINhP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2016 09:37:15 -0400
-In-Reply-To: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xen
+List-Id: linux-arch.vger.kernel.org
 
-On 08/09/2016 01:11 AM, Luis R. Rodriguez wrote:
-> Mark, Aurelien,
->
-> I've run into a linker (ld) issue caused by the linker table work I've
-> been working on [0]. I looked into this and for the life of me, I
-> cannot comprehend what the problem is, so was hoping you folks might
-> be able to chime in.
->
+> table development go under copyleft-next, Rusty recently asked for code
+> to go in prior to the license tag being added denoting this license as
+> GPL-compatible [3] -- I had noted in the patch submission which annotated
+> copyleft-next's compatibility to GPLv2 that copyleft-next is the license
+> of choice for ongoing kernel development on my end [4]. If this is
+> objectionable I'm happy to change it to GPLv2 however I'd like a reason
+> provided as I've gone through all possible channels to ensure this is kosher,
+> including vetting by 3 attorneys now, 2 at SUSE.
 
-For reference, the error is
+You don't need a new tag, you can use "GPL" or "GPL and additional
+rights". In fact you don't want any other tag because when combined with
+the kernel it is GPLv2 anyway because the only way the two are fully
+compatible is for the kernel community to license the derived work under
+the GPL.
 
-c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
-c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
+The second reason you must use the GPL or GPL with additional tag is
+clause 8. We don't want anyone to create a module under your licence,
+claim it is "open source" then fifteen years later release the module in
+binary only form still with a tag saying "copyleft-next" which we treat
+as GPL compatible. It's the same reason we don't have a BSD tag but use
+"GPL with additional rights" to stop abuse of the module tags.
 
-Toolchain used is:
+However you need to clarify the licence first I think. Linux is GPLv2,
+your document only allows use of GPL with "GPL" works - not GPL v2 works ?
 
-c6x-elf-gcc (GCC) 5.2.0
-GNU ld (GNU Binutils) 2.25
+As PS: btw your licence is kind of weird. I can combine it with GPL work,
+make it GPL therefore, and then use the GPL rights to remove the bits I
+added thereby meaning I have your exact original work under the GPL. Not
+sure how it's intended to work ?
 
-Guenter
+It would also be good if someone clarified whether 6 and 7 are intended
+to combine so you can take contributed patches and put them in your own
+proprietary version. As a non-lawyer the intent is not clear at all.
 
-> A snapshot you can use is available here:
->
-> https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160808-linker-table-v4
->
-> The commit that causes the issue is "firmware: port built-in section
-> to linker table":
->
-> https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/commit/?h=20160808-linker-table-v4&id=2f4516be8c89b3ca008962798d44b54751e62844
->
-> its the first use of linker tables in the kernel, but I can't figure
-> out why this error comes up, nor how to fix it. Any ideas?
->
-> [0] lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
->
->   Luis
->
+Alan
