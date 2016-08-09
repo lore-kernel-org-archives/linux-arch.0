@@ -1,34 +1,63 @@
-From: Richard Fontana <fontana@sharpeleven.org>
-Subject: Re: [RFC v3 00/13] linux: generalize sections,
- ranges and linker tables
-Date: Tue, 9 Aug 2016 12:52:32 -0400
-Message-ID: <20160809165231.7tk5ll36texo7bdz@antelope>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: c6x linker issue on linux-next-20160808 + some linker table work
+Date: Tue, 09 Aug 2016 13:04:00 -0400
+Message-ID: <1470762240.3551.42.camel@redhat.com>
+References: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
+	 <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Cc: linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, torvalds@linux-foundation.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, david.vrabel@citrix.com, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, realmz6@gmail.com, linux@rasmusvillemoes.dk, rusty@rustcorp.com.au, rostedt@goodmis.org, christopher.denicolo@suse.com, jbaron@akamai.com, ananth@linux.vnet.ibm.com, bp@alien8.de, jpoimboe@redhat.co
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:34300 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932302AbcHIRED (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Aug 2016 13:04:03 -0400
+In-Reply-To: <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guenter Roeck <linux@roeck-us.net>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Josh Poimboeuf <jpoimboe@redhat.com>
 
-T24gVHVlLCBBdWcgMDksIDIwMTYgYXQgMDM6MjQ6MjlQTSArMDEwMCwgT25lIFRob3VzYW5kIEdu
-b21lcyB3cm90ZToKPiBIb3dldmVyIHlvdSBuZWVkIHRvIGNsYXJpZnkgdGhlIGxpY2VuY2UgZmly
-c3QgSSB0aGluay4gTGludXggaXMgR1BMdjIsCj4geW91ciBkb2N1bWVudCBvbmx5IGFsbG93cyB1
-c2Ugb2YgR1BMIHdpdGggIkdQTCIgd29ya3MgLSBub3QgR1BMIHYyIHdvcmtzID8KClRoZSBsaWNl
-bnNlIGRlZmluZXMgIkdQTCIgYXMgImEgdmVyc2lvbiBvZiB0aGUgR05VIEdlbmVyYWwgUHVibGlj
-CkxpY2Vuc2Ugb3IgdGhlIEdOVSBBZmZlcm8gR2VuZXJhbCBQdWJsaWMgTGljZW5zZS4iCgpSaWNo
-YXJkCgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVu
-LWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3Rz
-Lnhlbi5vcmcveGVuLWRldmVsCg==
+On Tue, 2016-08-09 at 06:37 -0700, Guenter Roeck wrote:
+> On 08/09/2016 01:11 AM, Luis R. Rodriguez wrote:
+> > 
+> > Mark, Aurelien,
+> > 
+> > I've run into a linker (ld) issue caused by the linker table work I've
+> > been working on [0]. I looked into this and for the life of me, I
+> > cannot comprehend what the problem is, so was hoping you folks might
+> > be able to chime in.
+> > 
+> For reference, the error is
+> 
+> c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
+> c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
+
+DSBT is a reference to the no-MMU userspace ABI used by c6x. The kernel shouldn't
+be referencing DSBT base. The -mno-dsbt gcc flag should prevent it.
+
+> 
+> Toolchain used is:
+> 
+> c6x-elf-gcc (GCC) 5.2.0
+> GNU ld (GNU Binutils) 2.25
+> 
+> Guenter
+> 
+> > 
+> > A snapshot you can use is available here:
+> > 
+> > https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160808-linker-table-v4
+> > 
+> > The commit that causes the issue is "firmware: port built-in section
+> > to linker table":
+> > 
+> > https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/commit/?h=20160808-linker-table-v4&id=2f4516be8c89b3ca008962798d44b54751e62844
+> > 
+> > its the first use of linker tables in the kernel, but I can't figure
+> > out why this error comes up, nor how to fix it. Any ideas?
+> > 
+> > [0] lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
+> > 
+> >   Luis
+> > 
