@@ -1,83 +1,39 @@
-From: Kees Cook <keescook@chromium.org>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
 Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
-Date: Wed, 10 Aug 2016 14:40:11 -0700
-Message-ID: <CAGXu5jLstVv7+QHJe7pGdHkd9beSyqXq2N7G9xX-frmFjeGuiA@mail.gmail.com>
+Date: Thu, 11 Aug 2016 00:02:42 +0100
+Message-ID: <20160810230242.GO1041@n2100.armlinux.org.uk>
 References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
- <20160810094339.GK1041@n2100.armlinux.org.uk> <CAGXu5j+9saxwnKTK_vdnLCuXdbvUqQWXkbxOu8QrzB9SHmQGYA@mail.gmail.com>
- <2760702.46Rp2Juk5b@wuerfel>
+ <2342289.4RWg0SWI3A@wuerfel>
+ <20160810101253.GL1041@n2100.armlinux.org.uk>
+ <2096112.OBiRuggdEi@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f45.google.com ([74.125.82.45]:38483 "EHLO
-	mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751577AbcHJVkO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Aug 2016 17:40:14 -0400
-Received: by mail-wm0-f45.google.com with SMTP id o80so131804758wme.1
-        for <linux-arch@vger.kernel.org>; Wed, 10 Aug 2016 14:40:13 -0700 (PDT)
-In-Reply-To: <2760702.46Rp2Juk5b@wuerfel>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:48202 "EHLO
+	pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932477AbcHJXCw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Aug 2016 19:02:52 -0400
+Content-Disposition: inline
+In-Reply-To: <2096112.OBiRuggdEi@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, x86@kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
 
-On Wed, Aug 10, 2016 at 12:41 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wednesday, August 10, 2016 11:32:07 AM CEST Kees Cook wrote:
->> On Wed, Aug 10, 2016 at 2:43 AM, Russell King - ARM Linux
->> <linux@armlinux.org.uk> wrote:
->> > On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
->> >> @@ -1309,16 +1309,11 @@ void __init arm_mm_memblock_reserve(void)
->> >>   * Any other function or debugging method which may touch any device _will_
->> >>   * crash the kernel.
->> >>   */
->> >> +static char vectors[PAGE_SIZE * 2] __ro_after_init __aligned(PAGE_SIZE);
->> >>  static void __init devicemaps_init(const struct machine_desc *mdesc)
->> >>  {
->> >>       struct map_desc map;
->> >>       unsigned long addr;
->> >> -     void *vectors;
->> >> -
->> >> -     /*
->> >> -      * Allocate the vector page early.
->> >> -      */
->> >> -     vectors = early_alloc(PAGE_SIZE * 2);
->> >
->> > This one is not appropriate.  We _do_ write to these pages after init
->> > for FIQ handler updates.  See set_fiq_handler().
->>
->> Ah, interesting. I guess none of that hardware is being tested on
->> linux-next.
->
-> Right. The OMAP1 Amstrad Delta is a somewhat obscure machine, and that
-> would be the most likely candidate to run into this.
->
-> RiscPC also has FIQ support, but I have not heard of anyone other
-> than Russell still using one with a modern kernel, and I doubt he
-> tests linux-next on it.
->
-> The s3c24xx and imx machines that could use FIQ probably don't
-> use it in practice, last time I checked, I didn't see any DTS file
-> or platform data definition in the kernel that activated that
-> code path.
->
->> I'll drop that chunk and resubmit.
->
-> Good enough for now, but it may be worth revisiting this, as the
-> vector page might be a good target for an attack if you have a
-> way to overwrite a few bytes in the kernel.
->
-> Note that there are two mappings for the pages, and as Russell
-> mentioned, the TLS emulation writes to the other one that is
-> at a fixed virtual address.
->
-> It might be better to start by making the fixed mapping readonly,
-> as KASLR doesn't protect that one at all, and change the TLS
-> code accordingly.
+On Wed, Aug 10, 2016 at 09:31:05PM +0200, Arnd Bergmann wrote:
+> On Wednesday, August 10, 2016 11:12:53 AM CEST Russell King - ARM Linux wrote:
+> > There's the TLS emulation too, but that writes via the vectors mapping
+> > at 0xffff0ff0.
+> 
+> Ok, so that should be safe. Can we change the fiq code to also use the
+> high mapping and then take the __ro_after_init patch on top?
 
-That sounds good (anyone want to work on this?). Does arm64 need a
-similar vector page protection?
-
--Kees
+We can't - if the kernel is configured without the kuser helpers in
+the vectors page, it's mapped read-only.  I'm not sure what the
+intersection is between platforms that can have FIQs and platforms
+that can disable the kuser helpers.
 
 -- 
-Kees Cook
-Nexus Security
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
