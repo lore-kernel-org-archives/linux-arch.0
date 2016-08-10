@@ -1,74 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:42559 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964925AbcHJSxq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Aug 2016 14:53:46 -0400
-Date: Wed, 10 Aug 2016 19:03:29 +0200
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
- tables
-Message-ID: <20160810170329.GK3296@wotan.suse.de>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
- <1470758947.2299.47.camel@HansenPartnership.com>
+Received: from mout.kundenserver.de ([212.227.17.10]:56466 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933051AbcHJTmL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Aug 2016 15:42:11 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Wed, 10 Aug 2016 21:41:23 +0200
+Message-ID: <2760702.46Rp2Juk5b@wuerfel>
+In-Reply-To: <CAGXu5j+9saxwnKTK_vdnLCuXdbvUqQWXkbxOu8QrzB9SHmQGYA@mail.gmail.com>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <20160810094339.GK1041@n2100.armlinux.org.uk> <CAGXu5j+9saxwnKTK_vdnLCuXdbvUqQWXkbxOu8QrzB9SHmQGYA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1470758947.2299.47.camel@HansenPartnership.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com, msalter@redhat.com, a-jacquiot@ti.com
-Message-ID: <20160810170329.Ct59bIir6DaVHGIrkAsNp4RBLzEP-BN7_X0H2JDU-0A@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Kees Cook <keescook@chromium.org>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+Message-ID: <20160810194123.9GqsebIvvH1xaHNfWKpwvnhTQGZjPBd-n65RFLiQkMg@z>
 
-On Tue, Aug 09, 2016 at 09:09:07AM -0700, James Bottomley wrote:
-> On Tue, 2016-08-09 at 15:24 +0100, One Thousand Gnomes wrote:
-> > > table development go under copyleft-next, Rusty recently asked for 
-> > > code to go in prior to the license tag being added denoting this 
-> > > license as GPL-compatible [3] -- I had noted in the patch 
-> > > submission which annotated copyleft-next's compatibility to GPLv2 
-> > > that copyleft-next is the license of choice for ongoing kernel 
-> > > development on my end [4]. If this is objectionable I'm happy to 
-> > > change it to GPLv2 however I'd like a reason provided as I've gone 
-> > > through all possible channels to ensure this is kosher, including
-> > > vetting by 3 attorneys now, 2 at SUSE.
-> > 
-> > You don't need a new tag, you can use "GPL" or "GPL and additional
-> > rights". In fact you don't want any other tag because when combined
-> >  with the kernel it is GPLv2 anyway because the only way the two are 
-> > fully compatible is for the kernel community to license the derived 
-> > work under the GPL.
+On Wednesday, August 10, 2016 11:32:07 AM CEST Kees Cook wrote:
+> On Wed, Aug 10, 2016 at 2:43 AM, Russell King - ARM Linux
+> <linux@armlinux.org.uk> wrote:
+> > On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
+> >> @@ -1309,16 +1309,11 @@ void __init arm_mm_memblock_reserve(void)
+> >>   * Any other function or debugging method which may touch any device _will_
+> >>   * crash the kernel.
+> >>   */
+> >> +static char vectors[PAGE_SIZE * 2] __ro_after_init __aligned(PAGE_SIZE);
+> >>  static void __init devicemaps_init(const struct machine_desc *mdesc)
+> >>  {
+> >>       struct map_desc map;
+> >>       unsigned long addr;
+> >> -     void *vectors;
+> >> -
+> >> -     /*
+> >> -      * Allocate the vector page early.
+> >> -      */
+> >> -     vectors = early_alloc(PAGE_SIZE * 2);
+> >
+> > This one is not appropriate.  We _do_ write to these pages after init
+> > for FIQ handler updates.  See set_fiq_handler().
 > 
-> This is the module tag ... it says what licence the module is under,
-> not the licence for the module combined with the kernel, which is
-> always GPLv2 because the stricter licence rules.
+> Ah, interesting. I guess none of that hardware is being tested on
+> linux-next.
 
-As per Linus' recommendations [0] if I add a module I'll be using
-MODULE_LICENSE("GPL") if using copyleft-next. Either way this series
-didn't add a module yet so no need for that yet, but it does use
-copyleft-next in headers / C code.
+Right. The OMAP1 Amstrad Delta is a somewhat obscure machine, and that
+would be the most likely candidate to run into this.
 
-[0] https://lkml.kernel.org/r/CA+55aFyhxcvD+q7tp+-yrSFDKfR0mOHgyEAe=f_94aKLsOu0Og@mail.gmail.com
+RiscPC also has FIQ support, but I have not heard of anyone other
+than Russell still using one with a modern kernel, and I doubt he
+tests linux-next on it.
 
-> However, if I
-> want my binary only modules to be combined with Linux, I have to follow
-> GPLv2 compliance because GPLv2 becomes the ruling licence of the
-> combination.  The same would apply to this copyleft-next, even after 15
-> years.
+The s3c24xx and imx machines that could use FIQ probably don't
+use it in practice, last time I checked, I didn't see any DTS file
+or platform data definition in the kernel that activated that
+code path.
 
-And this what really matters here.
+> I'll drop that chunk and resubmit.
 
-> The US copyright office defines a copyright work as anything which is
-> "an original work of authorship fixed in any tangible medium of
-> expression".  That means any change to an existing work (i.e. by a
-> patch) which contains enough originality to make the changed work
-> distinct from the old work is ipso facto a new work.  under copyright
-> -next this new work has a sunset 15 years from its creation by
-> combination, not 15 years from the original.  This means a constantly
-> updated work never sunsets.  Sure, you can go back 15 years and claim
-> the code at that time has passed into the public domain but you can't
-> do that if you also want the benefit of later changes.
+Good enough for now, but it may be worth revisiting this, as the
+vector page might be a good target for an attack if you have a
+way to overwrite a few bytes in the kernel.
 
-Agreed.
+Note that there are two mappings for the pages, and as Russell
+mentioned, the TLS emulation writes to the other one that is
+at a fixed virtual address.
 
-  Luis
+It might be better to start by making the fixed mapping readonly,
+as KASLR doesn't protect that one at all, and change the TLS
+code accordingly.
+
+	Arnd
