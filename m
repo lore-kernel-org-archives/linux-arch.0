@@ -1,49 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:5202 "EHLO mga14.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932574AbcHJAht (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Aug 2016 20:37:49 -0400
-Date: Tue, 9 Aug 2016 17:37:42 -0700
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [PATCH 2/5] kbuild: allow archs to select build for link dead
- code/data elimination
-Message-ID: <20160810003742.GI3078@tassilo.jf.intel.com>
-References: <1470399123-8455-1-git-send-email-npiggin@gmail.com>
- <1882847.dG563Vieov@wuerfel>
- <20160809031605.GF3078@tassilo.jf.intel.com>
- <3076474.M72Ro1h3RL@wuerfel>
+Received: from mout.kundenserver.de ([212.227.126.130]:53928 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S941069AbcHJTbv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Aug 2016 15:31:51 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Wed, 10 Aug 2016 21:31:05 +0200
+Message-ID: <2096112.OBiRuggdEi@wuerfel>
+In-Reply-To: <20160810101253.GL1041@n2100.armlinux.org.uk>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <2342289.4RWg0SWI3A@wuerfel> <20160810101253.GL1041@n2100.armlinux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3076474.M72Ro1h3RL@wuerfel>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Alan Modra <amodra@gmail.com>, linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, linux-kbuild@vger.kernel.org
-Message-ID: <20160810003742.7-XdMjdLlDzJ7lMqCnoNeW_ceEDFW3KMpg4Lh7W_BnE@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, x86@kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+Message-ID: <20160810193105.hMxskfX7KN_k6v2ffmFHlgJ7fmT2SYnTwgHlbX3KkHI@z>
 
-On Wed, Aug 10, 2016 at 12:29:29AM +0200, Arnd Bergmann wrote:
-> On Monday, August 8, 2016 8:16:05 PM CEST Andi Kleen wrote:
-> > > I don't understand what led Andi Kleen to also move .text.hot and
-> > > .text.unlikely together with .text [2], but this may have
-> > > been a related issue.
-> > >
-> > > [2] https://lkml.org/lkml/2015/7/19/377
-> >
-> > The goal was just to move .hot and .unlikely all together, so that
-> > they are clustered and use the minimum amount of cache. On x86 doesn't
-> > matter where they are exactly, as long as each is together.
-> > If they are not explicitely listed then the linker interleaves
-> > them with the normal text, which defeats the purpose.
+On Wednesday, August 10, 2016 11:12:53 AM CEST Russell King - ARM Linux wrote:
+> On Wed, Aug 10, 2016 at 12:00:53PM +0200, Arnd Bergmann wrote:
+> > On Wednesday, August 10, 2016 10:43:39 AM CEST Russell King - ARM Linux wrote:
+> > > On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
+> > > > @@ -1309,16 +1309,11 @@ void __init arm_mm_memblock_reserve(void)
+> > > >   * Any other function or debugging method which may touch any device _will_
+> > > >   * crash the kernel.
+> > > >   */
+> > > > +static char vectors[PAGE_SIZE * 2] __ro_after_init __aligned(PAGE_SIZE);
+> > > >  static void __init devicemaps_init(const struct machine_desc *mdesc)
+> > > >  {
+> > > >       struct map_desc map;
+> > > >       unsigned long addr;
+> > > > -     void *vectors;
+> > > > -
+> > > > -     /*
+> > > > -      * Allocate the vector page early.
+> > > > -      */
+> > > > -     vectors = early_alloc(PAGE_SIZE * 2);
+> > > 
+> > > This one is not appropriate.  We _do_ write to these pages after init
+> > > for FIQ handler updates.  See set_fiq_handler().
+> > 
+> > Is that the only thing that modifies the page? If we think this is a
+> > valuable change, we could make it depend on the absence of FIQ
+> > support, as very few platforms (rpc, omap1, s3c24xx and possibly
+> > imx) seem to even use it.
 > 
-> I still don't see it, my reading of your patch is that you did
-> the opposite, by changing the description that puts all .text.hot
-> in front of .text, and all .text.unlikely after exit.text into
-> one that mixes them with .text. What am I missing here?
+> There's the TLS emulation too, but that writes via the vectors mapping
+> at 0xffff0ff0.
 
-No it doesn't mix .unlikely with .text, .unlikely is all in one place.
+Ok, so that should be safe. Can we change the fiq code to also use the
+high mapping and then take the __ro_after_init patch on top?
 
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only
+	Arnd
