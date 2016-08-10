@@ -1,103 +1,115 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: c6x linker issue on linux-next-20160808 + some linker table work
-Date: Tue, 09 Aug 2016 23:04:07 -0400
-Message-ID: <1470798247.3551.94.camel@redhat.com>
-References: <CAB=NE6Xqah+dnk68v3+de=CrHOxHvAqK7G=UX_hoCAmvA9zo5g@mail.gmail.com>
-	 <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
-	 <1470762240.3551.42.camel@redhat.com> <20160809184023.GD3296@wotan.suse.de>
-	 <1470793827.3551.77.camel@redhat.com>
-	 <CAB=NE6XbxvpdsXecPLbh9krsKRvwKcwEzcve4XorpPetU3Xk6Q@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC v3 00/13] linux: generalize sections,
+	ranges and linker tables
+Date: Tue, 9 Aug 2016 21:51:13 -0700
+Message-ID: <CALCETrVmDhPC6BMu4_xTanSFZBKeW9V6A4SeQ4qxnpVod-eLbQ@mail.gmail.com>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
+ <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+ <1470758947.2299.47.camel@HansenPartnership.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52990 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932695AbcHJDEK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Aug 2016 23:04:10 -0400
-In-Reply-To: <CAB=NE6XbxvpdsXecPLbh9krsKRvwKcwEzcve4XorpPetU3Xk6Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Aurelien Jacquiot <a-jacquiot@ti.com>, Josh Poimboeuf <jpoimboe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>, "H. Peter Anvin" <hpa@zytor.com>
+Content-Type: multipart/mixed; boundary="===============4245753166950360238=="
+Return-path: <xen-devel-bounces@lists.xen.org>
+In-Reply-To: <1470758947.2299.47.camel@HansenPartnership.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, realmz6@gmail.com, linux-sh@vger.kernel.org, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, linux@rasmusvillemoes.dk, platform-driver-x86@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, mhiramat@kernel.org, rusty@rustcorp.com.au, keescook@chromium.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, will.deacon@arm.com, pali.rohar@gmail.com, rostedt@goodmis.org, christopher.denicolo@suse.com, jbaron@akamai.com, ananth@linux.vnet.ibm.com, ciaran.farrell@suse.
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2016-08-09 at 19:09 -0700, Luis R. Rodriguez wrote:
-> On Aug 9, 2016 6:50 PM, "Mark Salter" <msalter@redhat.com> wrote:
-> >
-> > On Tue, 2016-08-09 at 20:40 +0200, Luis R. Rodriguez wrote:
-> > > On Tue, Aug 09, 2016 at 01:04:00PM -0400, Mark Salter wrote:
-> > > >
-> > > > On Tue, 2016-08-09 at 06:37 -0700, Guenter Roeck wrote:
-> > > > >
-> > > > > On 08/09/2016 01:11 AM, Luis R. Rodriguez wrote:
-> > > > > >
-> > > > > >
-> > > > > > Mark, Aurelien,
-> > > > > >
-> > > > > > I've run into a linker (ld) issue caused by the linker table work I've
-> > > > > > been working on [0]. I looked into this and for the life of me, I
-> > > > > > cannot comprehend what the problem is, so was hoping you folks might
-> > > > > > be able to chime in.
-> > > > > >
-> > > > > For reference, the error is
-> > > > >
-> > > > > c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
-> > > > > c6x-elf-ld: drivers/built-in.o: SB-relative relocation but __c6xabi_DSBT_BASE not defined
-> > > > DSBT is a reference to the no-MMU userspace ABI used by c6x. The kernel shouldn't
-> > > > be referencing DSBT base. The -mno-dsbt gcc flag should prevent it.
-> > > I see -mno-dsbt on arch/c6x/Makefile already -- however at link time this is
-> > > an issue if linker tables are used it seems. Do you have any other recommendation?
-> > >
-> > > I will note that it would seem that even i386 and x86-64 compiler/binutils seem
-> > > to have relocation issues on older compiler/binutils, for instance:
-> >
-> > I see the problem with gcc 6 as well.
-> >
-> > So there appears to be some toolchain issues at play here. We build the kernel with two
-> > c6x-specific options: -mno-dsbt and -msdata=none. I already mentioned dsbt. The sdata
-> > option may be one of:
-> >
-> > -msdata=default
-> >      Put small global and static data in the .neardata section, which is pointed to by
-> >      register B14. Put small uninitialized global and static data in the .bss section,
-> >      which is adjacent to the .neardata section. Put small read-only data into the 
-> >      .rodata section. The corresponding sections used for large pieces of data are
-> >      .fardata, .far and .const.
-> >
-> > -msdata=all
-> >     Put all data, not just small objects, into the sections reserved for small data,
-> >     and use addressing relative to the B14 register to access them.
-> >
-> > -msdata=none
-> >     Make no use of the sections reserved for small data, and use absolute addresses
-> >     to access all data. Put all initialized global and static data in the .fardata
-> >     section, and all uninitialized data in the .far section. Put all constant data
-> >     into the .const section.
-> >
-> >
-> > Both small data and DSBT make use of base register + 15-bit offset to access data
-> > and thus the SB-relative reloc in the above error message.
-> >
-> > I think that gcc sees the .rodata section from DEFINE_LINKTABLE_RO() for builtin_fw
-> > and thinks it needs an SB-relative reloc. When the linker sees that reloc, it thinks
-> > it needs the dsbt base register and thus the error. Interestingly, weak data is
-> > never put in the small data section so if gcc sees that data is weak, it doesn't
-> > check the section name to see if it is a small data section. So SB-relative only
-> > gets used for builtin_fw__end, but not the weak builtin_fw even though they both
-> > are in the .rodata section.
-> >
-> > I suspect gcc should avoid being fooled by .rodata if -msdata=none is used.
-> > Regardless, I think this could all be avoided if the RO tables used .const
-> > instead of .rodata for c6x.
-> Thanks for the thorough analysis, would you be OK for c6x to use .const for all read only linker tables or section ranges ?
-> I had not added #ifndef around the core-sections.h main ELF definitons but could add one as its needed. In this case perhals that is needed and fine by you
-> for SECTION_RODATA.
-> We can also override any of the core section setter helpers for archs but in this case based on what you say it seems this is needed. Unless of course just
-> -msdata=none is fine and that's not yet used and you prefer that.
->   Luis
+--===============4245753166950360238==
+Content-Type: multipart/alternative; boundary=94eb2c125290335bf30539b06628
 
-We're already using -msdata=none for kernel builds. From the gcc docs, one would think
-all const data goes into .const with -msdata=none, but the kernel forces a lot of weak
-const kallsyms data ,rodata so c6x vmlinux.lds still needs to have a .rodata section. I
-think we need to use .const for the c6x read-only linker tables and keep .rodata for
-RO_DATA_SECTION in vmlinux.lds.h.
+--94eb2c125290335bf30539b06628
+Content-Type: text/plain; charset=UTF-8
+
+On Aug 9, 2016 7:09 PM, "James Bottomley" <
+James.Bottomley@hansenpartnership.com> wrote:
+>
+> On Tue, 2016-08-09 at 15:24 +0100, One Thousand Gnomes wrote:
+> > > table development go under copyleft-next, Rusty recently asked for
+> > > code to go in prior to the license tag being added denoting this
+> > > license as GPL-compatible [3] -- I had noted in the patch
+> > > submission which annotated copyleft-next's compatibility to GPLv2
+> > > that copyleft-next is the license of choice for ongoing kernel
+> > > development on my end [4]. If this is objectionable I'm happy to
+> > > change it to GPLv2 however I'd like a reason provided as I've gone
+> > > through all possible channels to ensure this is kosher, including
+> > > vetting by 3 attorneys now, 2 at SUSE.
+> >
+> > You don't need a new tag, you can use "GPL" or "GPL and additional
+> > rights". In fact you don't want any other tag because when combined
+> >  with the kernel it is GPLv2 anyway because the only way the two are
+> > fully compatible is for the kernel community to license the derived
+> > work under the GPL.
+>
+> This is the module tag ... it says what licence the module is under,
+> not the licence for the module combined with the kernel, which is
+> always GPLv2 because the stricter licence rules.
+
+Then why isn't "BSD" in the license_is_gpl_compatible list?
+
+--94eb2c125290335bf30539b06628
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<p dir=3D"ltr"></p>
+<p dir=3D"ltr">On Aug 9, 2016 7:09 PM, &quot;James Bottomley&quot; &lt;<a h=
+ref=3D"mailto:James.Bottomley@hansenpartnership.com">James.Bottomley@hansen=
+partnership.com</a>&gt; wrote:<br>
+&gt;<br>
+&gt; On Tue, 2016-08-09 at 15:24 +0100, One Thousand Gnomes wrote:<br>
+&gt; &gt; &gt; table development go under copyleft-next, Rusty recently ask=
+ed for<br>
+&gt; &gt; &gt; code to go in prior to the license tag being added denoting =
+this<br>
+&gt; &gt; &gt; license as GPL-compatible [3] -- I had noted in the patch<br=
+>
+&gt; &gt; &gt; submission which annotated copyleft-next&#39;s compatibility=
+ to GPLv2<br>
+&gt; &gt; &gt; that copyleft-next is the license of choice for ongoing kern=
+el<br>
+&gt; &gt; &gt; development on my end [4]. If this is objectionable I&#39;m =
+happy to<br>
+&gt; &gt; &gt; change it to GPLv2 however I&#39;d like a reason provided as=
+ I&#39;ve gone<br>
+&gt; &gt; &gt; through all possible channels to ensure this is kosher, incl=
+uding<br>
+&gt; &gt; &gt; vetting by 3 attorneys now, 2 at SUSE.<br>
+&gt; &gt;<br>
+&gt; &gt; You don&#39;t need a new tag, you can use &quot;GPL&quot; or &quo=
+t;GPL and additional<br>
+&gt; &gt; rights&quot;. In fact you don&#39;t want any other tag because wh=
+en combined<br>
+&gt; &gt;=C2=A0 with the kernel it is GPLv2 anyway because the only way the=
+ two are<br>
+&gt; &gt; fully compatible is for the kernel community to license the deriv=
+ed<br>
+&gt; &gt; work under the GPL.<br>
+&gt;<br>
+&gt; This is the module tag ... it says what licence the module is under,<b=
+r>
+&gt; not the licence for the module combined with the kernel, which is<br>
+&gt; always GPLv2 because the stricter licence rules.</p>
+<p dir=3D"ltr">Then why isn&#39;t &quot;BSD&quot; in the license_is_gpl_com=
+patible list?</p>
+
+--94eb2c125290335bf30539b06628--
+
+
+--===============4245753166950360238==
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Content-Disposition: inline
+
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVs
+IG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5v
+cmcveGVuLWRldmVsCg==
+
+--===============4245753166950360238==--
