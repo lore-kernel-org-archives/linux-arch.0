@@ -1,45 +1,46 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
- cpus
-Date: Thu, 11 Aug 2016 17:36:45 +0200
-Message-ID: <20160811153645.GX30192@twins.programming.kicks-ass.net>
-References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
- <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
- <20160809124325.GG13300@pathway.suse.cz>
- <feaaca8f-cc09-5847-ea3f-d27052704d9b@mellanox.com>
- <20160811152538.GH13300@pathway.suse.cz>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Thu, 11 Aug 2016 17:54:08 +0200
+Message-ID: <2188666.QKZtt2vNXZ@wuerfel>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <2760702.46Rp2Juk5b@wuerfel> <20160810230645.GP1041@n2100.armlinux.org.uk>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20160811152538.GH13300@pathway.suse.cz>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Petr Mladek <pmladek@suse.com>
-Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Chris Metcalf <cmetcalf@mellanox.com>, x86@kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Aaron Tomlin <atomlin@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
+Content-Transfer-Encoding: 7Bit
+Return-path: <kernel-hardening-return-4342-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20160810230645.GP1041@n2100.armlinux.org.uk>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 11, 2016 at 05:25:38PM +0200, Petr Mladek wrote:
-> diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
-> index b77f5edb03b0..e31d50acd491 100644
-> --- a/arch/x86/include/asm/irqflags.h
-> +++ b/arch/x86/include/asm/irqflags.h
-> @@ -44,7 +44,7 @@ static inline void native_irq_enable(void)
->  	asm volatile("sti": : :"memory");
->  }
->  
-> -static inline void native_safe_halt(void)
-> +static inline __attribute__((__section__(".cpuidle.text"))) void native_safe_halt(void)
->  {
->  	asm volatile("sti; hlt": : :"memory");
->  }
+On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
+> On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
+> > It might be better to start by making the fixed mapping readonly,
+> > as KASLR doesn't protect that one at all, and change the TLS
+> > code accordingly.
+> 
+> I think that's impossible, because we gave userspace permission to
+> read 0xffff0ff0 directly without using __kuser_get_tls.  You're
+> talking about potentially breaking userspace.
+> 
+> If you disable kuser helpers, then the page becomes read-only and
+> invisible to userspace anyway.  So, everything is being done there
+> which can be done - if you have kuser helpers enabled, then you
+> lose some opportunities for these security improvements.
 
-An alternative is to use __always_inline I suppose.
+What I meant was writing to the page through the linear mapping
+rather than the virtual mapping at 0xffff0000 so we can leave that
+one read-only (I did not consider whether that might cause cache
+aliasing problems when reading from the other address).
+
+Your other point is more important though: if one really cares
+about optimizing security here, they probably should disable
+kuser helpers completely anyway.
+
+Kees, is that something you have on your radar already?
+
+	Arnd
