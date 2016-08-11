@@ -1,50 +1,55 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [EXPERIMENTAL] enable thin archives and --gc-sections on ARM
-Date: Thu, 11 Aug 2016 17:05:09 -0400 (EDT)
-Message-ID: <alpine.LFD.2.20.1608111648520.17623@knanqh.ubzr>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com> <3116731.ej669o70yG@wuerfel> <alpine.LFD.2.20.1608111536290.17623@knanqh.ubzr> <7664972.4URQm6Y4Ik@wuerfel>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Thu, 11 Aug 2016 15:16:50 -0700
+Message-ID: <CAGXu5j+RA+fepUEXoqXEBmyhBokQxv0csO=VuzFpHd4Fk4dH4A@mail.gmail.com>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
+ <2760702.46Rp2Juk5b@wuerfel> <20160810230645.GP1041@n2100.armlinux.org.uk> <2188666.QKZtt2vNXZ@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f179.google.com ([209.85.216.179]:34691 "EHLO
-	mail-qt0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932291AbcHKVFM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 17:05:12 -0400
-Received: by mail-qt0-f179.google.com with SMTP id u25so4130091qtb.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 Aug 2016 14:05:12 -0700 (PDT)
-In-Reply-To: <7664972.4URQm6Y4Ik@wuerfel>
+Received: from mail-wm0-f51.google.com ([74.125.82.51]:38001 "EHLO
+	mail-wm0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752359AbcHKWQ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 18:16:57 -0400
+Received: by mail-wm0-f51.google.com with SMTP id o80so19426109wme.1
+        for <linux-arch@vger.kernel.org>; Thu, 11 Aug 2016 15:16:52 -0700 (PDT)
+In-Reply-To: <2188666.QKZtt2vNXZ@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
 
-On Thu, 11 Aug 2016, Arnd Bergmann wrote:
+On Thu, Aug 11, 2016 at 8:54 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
+>> On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
+>> > It might be better to start by making the fixed mapping readonly,
+>> > as KASLR doesn't protect that one at all, and change the TLS
+>> > code accordingly.
+>>
+>> I think that's impossible, because we gave userspace permission to
+>> read 0xffff0ff0 directly without using __kuser_get_tls.  You're
+>> talking about potentially breaking userspace.
+>>
+>> If you disable kuser helpers, then the page becomes read-only and
+>> invisible to userspace anyway.  So, everything is being done there
+>> which can be done - if you have kuser helpers enabled, then you
+>> lose some opportunities for these security improvements.
+>
+> What I meant was writing to the page through the linear mapping
+> rather than the virtual mapping at 0xffff0000 so we can leave that
+> one read-only (I did not consider whether that might cause cache
+> aliasing problems when reading from the other address).
+>
+> Your other point is more important though: if one really cares
+> about optimizing security here, they probably should disable
+> kuser helpers completely anyway.
+>
+> Kees, is that something you have on your radar already?
 
-> On Thursday, August 11, 2016 4:01:33 PM CEST Nicolas Pitre wrote:
-> > >  #ifdef CONFIG_SMP_ON_UP
-> > >       .init.smpalt : {
-> > >               __smpalt_begin = .;
-> > > -             *(.alt.smp.init)
-> > > +             KEEP(*(.alt.smp.init))
-> > 
-> > Yes unfortunately this needs a KEEP() right now as there is no explicit 
-> > references to those entries. But by doing so you force a reference from 
-> > those entries to all functions they annotate, preventing those functions 
-> > from being discarded if there isn't any reference to that code 
-> > otherwise. That's a case that falls into the "missing forward reference" 
-> > category in my slides.
-> 
-> I see. This actually relates to an existing problem with SMP alternatives
-> in exit sections, which cause a linker error. I've done a patch for
-> this at some point, but didn't feel confident enough to send it out
+It wasn't no. I will add it. :)
 
-The only sane way I found to solve this implied a patch to gas, and it 
-was accepted upstream. Please see:
+-Kees
 
-http://sourceware.org/git/gitweb.cgi?p=binutils-gdb.git;a=commit;h=451133cefa
-
-The example given is for .init sections, but that would solve the 
-link-time discarding of .exit sections just as well.
-
-
-Nicolas
+-- 
+Kees Cook
+Nexus Security
