@@ -1,110 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:33112 "EHLO
-	mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752812AbcHKKRW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 06:17:22 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 6/6] powerpc: use the new post-link pass to check relocations
-Date: Thu, 11 Aug 2016 20:16:20 +1000
-Message-ID: <1470910580-18458-7-git-send-email-npiggin@gmail.com>
+Received: from ozlabs.org ([103.22.144.67]:53857 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932333AbcHKMb4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Aug 2016 08:31:56 -0400
+Date: Thu, 11 Aug 2016 22:31:52 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 0/6 v2] kbuild changes, thin archives, --gc-sections
+Message-ID: <20160811223152.0c19ce63@canb.auug.org.au>
 In-Reply-To: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
 References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kbuild@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160811101620.VQRNDHhnCRxWqUyHXBqefp8eC24XKeFS3iOjYUdXcaY@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160811123152.yydRkv-ONxv8uxCnWh15ErHqqQfZe44HXcdwjBxe3J4@z>
 
-Currently powerpc has to introduce a dependency on its default
-build target zImage in order to run a relocation check pass
-over the linked vmlinux. This is deficient because the check
-is not run if the plain vmlinux target is built, or if one of
-the other boot targets is built.
+Hi Nicholas,
 
-Switch to using the kbuild post-link pass in order to run this
-check. In future powerpc will use this to do more complicated
-operations, but initially using it for something simple is a
-good first step.
+On Thu, 11 Aug 2016 20:16:14 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
+>
+> I would like to submit the kbuild changes in patches 1-3 for
+> consideration.
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- arch/powerpc/Kconfig           |  1 +
- arch/powerpc/Makefile          | 11 -----------
- arch/powerpc/Makefile.postlink | 31 +++++++++++++++++++++++++++++++
- 3 files changed, 32 insertions(+), 11 deletions(-)
- create mode 100644 arch/powerpc/Makefile.postlink
+I would just like to thank Nick for taking my preliminary patches and
+running with them.  There was a lot more to do than I suspected :-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 927d2ab..74be094 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -85,6 +85,7 @@ config ARCH_HAS_DMA_SET_COHERENT_MASK
- config PPC
- 	bool
- 	default y
-+	select BUILD_ARCH_POSTLINK
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_MIGHT_HAVE_PC_SERIO
- 	select BINFMT_ELF
-diff --git a/arch/powerpc/Makefile b/arch/powerpc/Makefile
-index 04a1332..e7e0f5e 100644
---- a/arch/powerpc/Makefile
-+++ b/arch/powerpc/Makefile
-@@ -270,17 +270,6 @@ PHONY += $(BOOT_TARGETS1) $(BOOT_TARGETS2)
- 
- boot := arch/$(ARCH)/boot
- 
--ifeq ($(CONFIG_RELOCATABLE),y)
--quiet_cmd_relocs_check = CALL    $<
--      cmd_relocs_check = $(CONFIG_SHELL) $< "$(OBJDUMP)" "$(obj)/vmlinux"
--
--PHONY += relocs_check
--relocs_check: arch/powerpc/relocs_check.sh vmlinux
--	$(call cmd,relocs_check)
--
--zImage: relocs_check
--endif
--
- $(BOOT_TARGETS1): vmlinux
- 	$(Q)$(MAKE) ARCH=ppc64 $(build)=$(boot) $(patsubst %,$(boot)/%,$@)
- $(BOOT_TARGETS2): vmlinux
-diff --git a/arch/powerpc/Makefile.postlink b/arch/powerpc/Makefile.postlink
-new file mode 100644
-index 0000000..67a0864
---- /dev/null
-+++ b/arch/powerpc/Makefile.postlink
-@@ -0,0 +1,31 @@
-+# ===========================================================================
-+# Post-link powerpc pass
-+# ===========================================================================
-+#
-+# 1. Check that vmlinux relocations look sane
-+
-+PHONY := __archpost
-+__archpost:
-+
-+include include/config/auto.conf
-+include scripts/Kbuild.include
-+
-+quiet_cmd_relocs_check = CHKREL  $@
-+      cmd_relocs_check = $(CONFIG_SHELL) arch/powerpc/relocs_check.sh "$(OBJDUMP)" "$@"
-+
-+# Prevent complainints about nothing to be done
-+vmlinux: FORCE
-+	@echo -n
-+ifeq ($(CONFIG_RELOCATABLE),y)
-+	$(call if_changed,relocs_check)
-+endif
-+
-+%.ko: FORCE
-+	@echo -n
-+
-+
-+PHONY += FORCE
-+
-+FORCE:
-+
-+.PHONY: $(PHONY)
+> All patches should be basically noops without arch enablement,
+> so I include initial powerpc enablement in patches 4-6 for
+> reference, but I will submit those via powerpc maintainer if
+> the kbuild changes are merged.
+
+In this case, if patches 1-3 are merged via the kbuild tree, can I
+ask that they be put in a separate non-rebaseing topic branch so
+that they can also be merged into relevant architecture trees.
+
 -- 
-2.8.1
-
+Cheers,
+Stephen Rothwell
