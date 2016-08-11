@@ -1,45 +1,63 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Date: Thu, 11 Aug 2016 22:29:03 +0200
-Message-ID: <2034620.lN3lAEBAXs@wuerfel>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <6457502.FRufylo3sd@wuerfel> <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
+Subject: Re: [EXPERIMENTAL] enable thin archives and --gc-sections on ARM
+Date: Thu, 11 Aug 2016 22:37:04 +0200
+Message-ID: <7664972.4URQm6Y4Ik@wuerfel>
+References: <1470910580-18458-1-git-send-email-npiggin@gmail.com> <3116731.ej669o70yG@wuerfel> <alpine.LFD.2.20.1608111536290.17623@knanqh.ubzr>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <alpine.LFD.2.20.1608111536290.17623@knanqh.ubzr>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
-
-> > > > and you can have ARM binaries with
-> > > > PER_LINUX (using the arm64 uname) just like you can have
-> > > > arm64 binaries running with PER_LINUX32.
-> > > 
-> > > I was actually looking to enforce the 32-bit binaries to only see
-> > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
-> > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
-> > > 
-> > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
-> > > 
-> > > (you were summoned on that discussion couple of times ;))
-> > 
-> > Hmm, I thought I saw the thread and didn't have any good idea for
-> > the uname information, but didn't notice it was for /proc/cpuinfo.
-> > 
-> > What's wrong with always showing both the 32-bit and the 64-bit
-> > hwcap strings here (minus the duplicates, which hopefully have
-> > the same meaning here)?
+On Thursday, August 11, 2016 4:01:33 PM CEST Nicolas Pitre wrote:
+> >  #ifdef CONFIG_SMP_ON_UP
+> >       .init.smpalt : {
+> >               __smpalt_begin = .;
+> > -             *(.alt.smp.init)
+> > +             KEEP(*(.alt.smp.init))
 > 
-> As I said above, some of them have the same name (which may be a good
-> thing at a first look) but we don't have an architecture guarantee that
-> the feature is present in both AArch32 and AArch64 modes (e.g. AES may
-> only be available in AArch64).
+> Yes unfortunately this needs a KEEP() right now as there is no explicit 
+> references to those entries. But by doing so you force a reference from 
+> those entries to all functions they annotate, preventing those functions 
+> from being discarded if there isn't any reference to that code 
+> otherwise. That's a case that falls into the "missing forward reference" 
+> category in my slides.
 
-Is this the case on actual implementations that exist today? If they
-are actually always both present, we might be able to get away with it.
+I see. This actually relates to an existing problem with SMP alternatives
+in exit sections, which cause a linker error. I've done a patch for
+this at some point, but didn't feel confident enough to send it out
 
-	Arnd
+commit 0c598e53b3a0ad7daf077603618001edcf9bface
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Sun Mar 16 20:14:30 2014 +0100
+
+    ARM: don't discard exit sections for spinlock debugging
+    
+    This avoids lots of warnings like this one:
+    
+    `.exit.text' referenced in section `.alt.smp.init' of drivers/built-in.o: defined in discarded section `.exit.text' of drivers/built-in.o
+    
+    for each spinlock that is used in an __exit function, because
+    the smp alternatives try to patch out the spinlock locations.
+    
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index d24e5dd2aa7a..1f5eeeb4c8d0 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -43,8 +43,7 @@
+ #define ARM_CPU_KEEP(x)
+ #endif
+ 
+-#if (defined(CONFIG_SMP_ON_UP) && !defined(CONFIG_DEBUG_SPINLOCK)) || \
+-	defined(CONFIG_GENERIC_BUG) || defined(CONFIG_JUMP_LABEL)
++#if defined(CONFIG_SMP_ON_UP) || defined(CONFIG_GENERIC_BUG) || defined(CONFIG_JUMP_LABEL)
+ #define ARM_EXIT_KEEP(x)	x
+ #define ARM_EXIT_DISCARD(x)
+ #else
+
