@@ -1,64 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:42362 "EHLO newverein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:42391 "EHLO newverein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932301AbcHKQey (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Aug 2016 12:34:54 -0400
+	id S932622AbcHKQgm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Aug 2016 12:36:42 -0400
+In-Reply-To: <20160811163451.D455C68C43@newverein.lst.de>
+References: <20160811163451.D455C68C43@newverein.lst.de>
 From: Torsten Duwe <duwe@lst.de>
-Subject: [PATCH v3 0/2] arm64 live patching
-Message-ID: <20160811163451.D455C68C43@newverein.lst.de>
-Date: Thu, 11 Aug 2016 18:34:51 +0200 (CEST)
+Subject: [PATCH v3 2/2] arm64: implement live patching
+Message-ID: <20160811163640.4CE7F68C44@newverein.lst.de>
+Date: Thu, 11 Aug 2016 18:36:40 +0200 (CEST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>
 Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
-Message-ID: <20160811163451.uR0cuTiFEbgenxVj_RkkeF86nX5ScSXkGRizK1nqs4A@z>
+Message-ID: <20160811163640.nwoURdhJOyzX9ApYNfP_YA40KCqmcZBEpHhpEO1FPOA@z>
 
+straightforward on top of FTRACE_WITH_REGS.
 
-V3, including suggestions from the replies and 2 fixes.
-
-Reminder: make sure you have a prolog-pad gcc, and this in your
-top level Makefile:
-
-ifdef CONFIG_LIVEPATCH
-KBUILD_CFLAGS	+= $(call cc-option,-fno-ipa-ra)
-endif
-
-Tested with v4.8-rc1 + gcc-6.1
-
-Changes since v2:
-  * Do not skip initial NOP conversion for CC_USING_PROLOG_PAD,
-    in other words: don't introduce new #ifdefs into generic code.
-    (as requested by Steven Rostedt after my intermediate suggestion)
-    Instead, check in arm64 whether a call to mcount is to be NOPed,
-    and be strict again about the expected "old" instructions.
-  * issue a warning should the compiler not know about -fprolog-pad=
-    (as suggested by Josh Poimboeuf)
-    Only strip the compiler flag proper, not the cpp flag, for critical
-    files.
-  * fix thinko / bummer in live patch return address change detection.
-    Skip the graph caller if the addresses are _not_ equal!
-
-Changes since v1:
-  * instead of a comment "should be CC_USING_PROLOG_PAD":
-    do it. CC_FLAGS_FTRACE holds it now, and the IPA
-    disabler has become a separate issue (see above).
-
-Torsten Duwe (2):
-  arm64: implement FTRACE_WITH_REGS
-  arm64: implement live patching
-
- arch/arm64/Kconfig                 |   4 ++
- arch/arm64/Makefile                |   9 ++++
- arch/arm64/include/asm/ftrace.h    |   8 +++
- arch/arm64/include/asm/livepatch.h |  37 ++++++++++++++
- arch/arm64/kernel/Makefile         |   6 +--
- arch/arm64/kernel/entry-ftrace.S   | 102 +++++++++++++++++++++++++++++++++++++
- arch/arm64/kernel/ftrace.c         |  45 ++++++++++++++--
- include/asm-generic/vmlinux.lds.h  |   2 +-
- include/linux/compiler.h           |   4 ++
- 9 files changed, 209 insertions(+), 8 deletions(-)
+Signed-off-by: Torsten Duwe <duwe@suse.de>
+---
+ arch/arm64/Kconfig                 |  3 +++
+ arch/arm64/include/asm/livepatch.h | 37 +++++++++++++++++++++++++++++++++++++
+ arch/arm64/kernel/entry-ftrace.S   | 13 +++++++++++++
+ 3 files changed, 53 insertions(+)
  create mode 100644 arch/arm64/include/asm/livepatch.h
 
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 36a0e26..3aae199 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -80,6 +80,7 @@ config ARM64
+ 	select HAVE_GENERIC_DMA_COHERENT
+ 	select HAVE_HW_BREAKPOINT if PERF_EVENTS
+ 	select HAVE_IRQ_TIME_ACCOUNTING
++	select HAVE_LIVEPATCH
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP if NUMA
+ 	select HAVE_PATA_PLATFORM
+@@ -1042,4 +1043,6 @@ if CRYPTO
+ source "arch/arm64/crypto/Kconfig"
+ endif
+ 
++source "kernel/livepatch/Kconfig"
++
+ source "lib/Kconfig"
+diff --git a/arch/arm64/include/asm/livepatch.h b/arch/arm64/include/asm/livepatch.h
+new file mode 100644
+index 0000000..6b9a3d1
+--- /dev/null
++++ b/arch/arm64/include/asm/livepatch.h
+@@ -0,0 +1,37 @@
++/*
++ * livepatch.h - arm64-specific Kernel Live Patching Core
++ *
++ * Copyright (C) 2016 SUSE
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef _ASM_ARM64_LIVEPATCH_H
++#define _ASM_ARM64_LIVEPATCH_H
++
++#include <linux/module.h>
++#include <linux/ftrace.h>
++
++#ifdef CONFIG_LIVEPATCH
++static inline int klp_check_compiler_support(void)
++{
++	return 0;
++}
++
++static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
++{
++	regs->pc = ip;
++}
++#endif /* CONFIG_LIVEPATCH */
++
++#endif /* _ASM_ARM64_LIVEPATCH_H */
+diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
+index 3ebe791..2108f0e 100644
+--- a/arch/arm64/kernel/entry-ftrace.S
++++ b/arch/arm64/kernel/entry-ftrace.S
+@@ -204,6 +204,9 @@ ENTRY(ftrace_caller)
+ 	str	x9, [sp, #S_LR]
+ 	/* The program counter just after the ftrace call site */
+ 	str	lr, [sp, #S_PC]
++#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
++	mov	x19,lr          /* remember old return address */
++#endif
+ 	/* The stack pointer as it was on ftrace_caller entry... */
+ 	add	x29, sp, #S_FRAME_SIZE+16	/* ...is also our new FP */
+ 	str	x29, [sp, #S_SP]
+@@ -219,6 +222,16 @@ ftrace_call:
+ 
+ 	bl	ftrace_stub
+ 
++#if defined(CONFIG_LIVEPATCH) && defined(CONFIG_FUNCTION_GRAPH_TRACER)
++	/* Is the trace function a live patcher an has messed with
++	 * the return address?
++	*/
++	ldr	x9, [sp, #S_PC]
++	cmp	x9, x19		/* compare with the value we remembered */
++	/* to not call graph tracer's "call" mechanism twice! */
++	b.ne	ftrace_regs_return
++#endif
++
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ 	.global ftrace_graph_call
+ ftrace_graph_call:			// ftrace_graph_caller();
 -- 
 2.6.2
 
