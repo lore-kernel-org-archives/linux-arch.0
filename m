@@ -1,115 +1,59 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Date: Thu, 11 Aug 2016 17:30:03 +0100
-Message-ID: <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <3043310.yXUR8Er0VK@wuerfel>
- <20160811145000.GB18366@e104818-lin.cambridge.arm.com>
- <6457502.FRufylo3sd@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <6457502.FRufylo3sd@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>
+From: Torsten Duwe <duwe@lst.de>
+Subject: [PATCH v3 0/2] arm64 live patching
+Date: Thu, 11 Aug 2016 18:34:51 +0200 (CEST)
+Message-ID: <20160811163451.D455C68C43@newverein.lst.de>
+Return-path: <linux-sparse-owner@vger.kernel.org>
+Sender: linux-sparse-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 11, 2016 at 05:16:45PM +0200, Arnd Bergmann wrote:
-> On Thursday, August 11, 2016 3:50:00 PM CEST Catalin Marinas wrote:
-> > On Thu, Aug 11, 2016 at 10:53:01AM +0200, Arnd Bergmann wrote:
-> > > On Thursday, August 11, 2016 3:35:01 PM CEST Zhangjian (Bamvor) wrote:
-> > > > On 2016/6/18 7:54, Yury Norov wrote:
-> > > > > From: Andrew Pinski <apinski@cavium.com>
-> > > > >
-> > > > > In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
-> > > > > which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
-> > > > >
-> > > > >  From now, AARCH32_EL0 (former COMPAT) config option means the support of
-> > > > > AARCH32 userspace, ARM64_ILP32 - support of ILP32 ABI (see next patches),
-> > > > > and COMPAT indicates that one of them, or both, is enabled.
-> > > > >
-> > > > > Where needed, CONFIG_COMPAT is changed over to use CONFIG_AARCH32_EL0 instead
-> > > > >
-> > > > > Reviewed-by: David Daney <ddaney@caviumnetworks.com>
-> > > > > Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-> > > > > Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-> > > > > Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
-> > > > > Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-> > > > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> > > > ...
-> > > > > diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-> > > > > index c173d32..af200a8 100644
-> > > > > --- a/arch/arm64/kernel/cpuinfo.c
-> > > > > +++ b/arch/arm64/kernel/cpuinfo.c
-> > > > > @@ -134,15 +134,17 @@ static int c_show(struct seq_file *m, void *v)
-> > > > >   		 */
-> > > > >   		seq_puts(m, "Features\t:");
-> > > > >   		if (compat) {
-> > > > > -#ifdef CONFIG_COMPAT
-> > > > > -			for (j = 0; compat_hwcap_str[j]; j++)
-> > > > > -				if (compat_elf_hwcap & (1 << j))
-> > > > > -					seq_printf(m, " %s", compat_hwcap_str[j]);
-> > > > > -
-> > > > > -			for (j = 0; compat_hwcap2_str[j]; j++)
-> > > > > -				if (compat_elf_hwcap2 & (1 << j))
-> > > > > -					seq_printf(m, " %s", compat_hwcap2_str[j]);
-> > > > > -#endif /* CONFIG_COMPAT */
-> > > > > +#ifdef CONFIG_AARCH32_EL0
-> > > > I saw that compat_hwcap_str and compat_hwcap2_str is defined when
-> > > > "CONFIG_COMPAT" is true. Why we only change it to CONFIG_AARCH32_EL0
-> > > > in c show()?
-> > > > > +			if (personality(current->personality) == PER_LINUX32) {
-> > > > And "compat" is "personality(current->personality) == PER_LINUX32;",
-> > > > it seems that there is no need to add this twice.
-> > > 
-> > > I think it would be best to remove the #ifdef here completely,
-> > > the PER_LINUX32 concept is not strictly tied to the emulation
-> > > of ARM binaries, it literally just changes the output of
-> > > /proc/cpuinfo and 'uname',
-> > 
-> > It's not strictly related to ARM binaries, however it is related to
-> > AArch32 CPU features being supported and detected by the kernel.
-> > Currently, with CONFIG_COMPAT disabled, we won't have access to a
-> > (meaningful) compat_elf_hwcap.
-> 
-> Ah, makes sense. In that case, using CONFIG_AARCH32_EL0 sounds like
-> the right thing to do here, though I guess we can just drop the
-> "if (compat)" check, as we specifically want to print the supported
-> features of the CPU, and they are still present even if a
-> process with PER_LINUX reads them.
 
-Do you mean always printing both compat and native hwcaps in
-/proc/cpuinfo? We discussed this in the past and it's not something we
-can easily fix at this stage without breaking the ABI. If we noticed
-this before, we could have used distinct feature strings for AArch32 and
-AArch64 (e.g. crypto stuff like aes32 and aes64 but we only have aes for
-both).
+V3, including suggestions from the replies and 2 fixes.
 
-> > > and you can have ARM binaries with
-> > > PER_LINUX (using the arm64 uname) just like you can have
-> > > arm64 binaries running with PER_LINUX32.
-> > 
-> > I was actually looking to enforce the 32-bit binaries to only see
-> > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
-> > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
-> > 
-> > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
-> > 
-> > (you were summoned on that discussion couple of times ;))
-> 
-> Hmm, I thought I saw the thread and didn't have any good idea for
-> the uname information, but didn't notice it was for /proc/cpuinfo.
-> 
-> What's wrong with always showing both the 32-bit and the 64-bit
-> hwcap strings here (minus the duplicates, which hopefully have
-> the same meaning here)?
+Reminder: make sure you have a prolog-pad gcc, and this in your
+top level Makefile:
 
-As I said above, some of them have the same name (which may be a good
-thing at a first look) but we don't have an architecture guarantee that
-the feature is present in both AArch32 and AArch64 modes (e.g. AES may
-only be available in AArch64).
+ifdef CONFIG_LIVEPATCH
+KBUILD_CFLAGS	+= $(call cc-option,-fno-ipa-ra)
+endif
+
+Tested with v4.8-rc1 + gcc-6.1
+
+Changes since v2:
+  * Do not skip initial NOP conversion for CC_USING_PROLOG_PAD,
+    in other words: don't introduce new #ifdefs into generic code.
+    (as requested by Steven Rostedt after my intermediate suggestion)
+    Instead, check in arm64 whether a call to mcount is to be NOPed,
+    and be strict again about the expected "old" instructions.
+  * issue a warning should the compiler not know about -fprolog-pad=
+    (as suggested by Josh Poimboeuf)
+    Only strip the compiler flag proper, not the cpp flag, for critical
+    files.
+  * fix thinko / bummer in live patch return address change detection.
+    Skip the graph caller if the addresses are _not_ equal!
+
+Changes since v1:
+  * instead of a comment "should be CC_USING_PROLOG_PAD":
+    do it. CC_FLAGS_FTRACE holds it now, and the IPA
+    disabler has become a separate issue (see above).
+
+Torsten Duwe (2):
+  arm64: implement FTRACE_WITH_REGS
+  arm64: implement live patching
+
+ arch/arm64/Kconfig                 |   4 ++
+ arch/arm64/Makefile                |   9 ++++
+ arch/arm64/include/asm/ftrace.h    |   8 +++
+ arch/arm64/include/asm/livepatch.h |  37 ++++++++++++++
+ arch/arm64/kernel/Makefile         |   6 +--
+ arch/arm64/kernel/entry-ftrace.S   | 102 +++++++++++++++++++++++++++++++++++++
+ arch/arm64/kernel/ftrace.c         |  45 ++++++++++++++--
+ include/asm-generic/vmlinux.lds.h  |   2 +-
+ include/linux/compiler.h           |   4 ++
+ 9 files changed, 209 insertions(+), 8 deletions(-)
+ create mode 100644 arch/arm64/include/asm/livepatch.h
 
 -- 
-Catalin
+2.6.2
+
