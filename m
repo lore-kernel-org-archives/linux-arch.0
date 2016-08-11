@@ -1,65 +1,105 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 5/6] powerpc/64: use linker dead code elimination
-Date: Thu, 11 Aug 2016 20:16:19 +1000
-Message-ID: <1470910580-18458-6-git-send-email-npiggin@gmail.com>
+Subject: [PATCH 6/6] powerpc: use the new post-link pass to check relocations
+Date: Thu, 11 Aug 2016 20:16:20 +1000
+Message-ID: <1470910580-18458-7-git-send-email-npiggin@gmail.com>
 References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:35402 "EHLO
-	mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750797AbcHKKRR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 06:17:17 -0400
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 In-Reply-To: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: linux-kbuild@vger.kernel.org
 Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+List-Id: linux-arch.vger.kernel.org
+
+Currently powerpc has to introduce a dependency on its default
+build target zImage in order to run a relocation check pass
+over the linked vmlinux. This is deficient because the check
+is not run if the plain vmlinux target is built, or if one of
+the other boot targets is built.
+
+Switch to using the kbuild post-link pass in order to run this
+check. In future powerpc will use this to do more complicated
+operations, but initially using it for something simple is a
+good first step.
 
 Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- arch/powerpc/kernel/Makefile           | 3 +++
- arch/powerpc/kernel/vmlinux.lds.S      | 2 +-
- arch/powerpc/platforms/Kconfig.cputype | 1 +
- 3 files changed, 5 insertions(+), 1 deletion(-)
+ arch/powerpc/Kconfig           |  1 +
+ arch/powerpc/Makefile          | 11 -----------
+ arch/powerpc/Makefile.postlink | 31 +++++++++++++++++++++++++++++++
+ 3 files changed, 32 insertions(+), 11 deletions(-)
+ create mode 100644 arch/powerpc/Makefile.postlink
 
-diff --git a/arch/powerpc/kernel/Makefile b/arch/powerpc/kernel/Makefile
-index b2027a5..974a068 100644
---- a/arch/powerpc/kernel/Makefile
-+++ b/arch/powerpc/kernel/Makefile
-@@ -4,7 +4,10 @@
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 927d2ab..74be094 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -85,6 +85,7 @@ config ARCH_HAS_DMA_SET_COHERENT_MASK
+ config PPC
+ 	bool
+ 	default y
++	select BUILD_ARCH_POSTLINK
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select BINFMT_ELF
+diff --git a/arch/powerpc/Makefile b/arch/powerpc/Makefile
+index 04a1332..e7e0f5e 100644
+--- a/arch/powerpc/Makefile
++++ b/arch/powerpc/Makefile
+@@ -270,17 +270,6 @@ PHONY += $(BOOT_TARGETS1) $(BOOT_TARGETS2)
  
- CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
+ boot := arch/$(ARCH)/boot
  
-+ccflags-y		+= -fno-function-sections -fno-data-sections
+-ifeq ($(CONFIG_RELOCATABLE),y)
+-quiet_cmd_relocs_check = CALL    $<
+-      cmd_relocs_check = $(CONFIG_SHELL) $< "$(OBJDUMP)" "$(obj)/vmlinux"
+-
+-PHONY += relocs_check
+-relocs_check: arch/powerpc/relocs_check.sh vmlinux
+-	$(call cmd,relocs_check)
+-
+-zImage: relocs_check
+-endif
+-
+ $(BOOT_TARGETS1): vmlinux
+ 	$(Q)$(MAKE) ARCH=ppc64 $(build)=$(boot) $(patsubst %,$(boot)/%,$@)
+ $(BOOT_TARGETS2): vmlinux
+diff --git a/arch/powerpc/Makefile.postlink b/arch/powerpc/Makefile.postlink
+new file mode 100644
+index 0000000..67a0864
+--- /dev/null
++++ b/arch/powerpc/Makefile.postlink
+@@ -0,0 +1,31 @@
++# ===========================================================================
++# Post-link powerpc pass
++# ===========================================================================
++#
++# 1. Check that vmlinux relocations look sane
 +
- subdir-ccflags-$(CONFIG_PPC_WERROR) := -Werror
-+subdir-ccflags-y	+= -fno-function-sections -fno-data-sections
- 
- ifeq ($(CONFIG_PPC64),y)
- CFLAGS_prom_init.o	+= $(NO_MINIMAL_TOC)
-diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
-index b5fba68..baad2af 100644
---- a/arch/powerpc/kernel/vmlinux.lds.S
-+++ b/arch/powerpc/kernel/vmlinux.lds.S
-@@ -50,7 +50,7 @@ SECTIONS
- 		HEAD_TEXT
- 		_text = .;
- 		/* careful! __ftr_alt_* sections need to be close to .text */
--		*(.text .fixup __ftr_alt_* .ref.text)
-+		*(.text .text.* .fixup __ftr_alt_* .ref.text)
- 		SCHED_TEXT
- 		LOCK_TEXT
- 		KPROBES_TEXT
-diff --git a/arch/powerpc/platforms/Kconfig.cputype b/arch/powerpc/platforms/Kconfig.cputype
-index b5fc6cb..59c9097 100644
---- a/arch/powerpc/platforms/Kconfig.cputype
-+++ b/arch/powerpc/platforms/Kconfig.cputype
-@@ -2,6 +2,7 @@ config PPC64
- 	bool "64-bit kernel"
- 	default n
- 	select THIN_ARCHIVES
-+	select LD_DEAD_CODE_DATA_ELIMINATION
- 	select ZLIB_DEFLATE
- 	help
- 	  This option selects whether a 32-bit or a 64-bit kernel
++PHONY := __archpost
++__archpost:
++
++include include/config/auto.conf
++include scripts/Kbuild.include
++
++quiet_cmd_relocs_check = CHKREL  $@
++      cmd_relocs_check = $(CONFIG_SHELL) arch/powerpc/relocs_check.sh "$(OBJDUMP)" "$@"
++
++# Prevent complainints about nothing to be done
++vmlinux: FORCE
++	@echo -n
++ifeq ($(CONFIG_RELOCATABLE),y)
++	$(call if_changed,relocs_check)
++endif
++
++%.ko: FORCE
++	@echo -n
++
++
++PHONY += FORCE
++
++FORCE:
++
++.PHONY: $(PHONY)
 -- 
 2.8.1
+
