@@ -1,55 +1,54 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
-Date: Thu, 11 Aug 2016 15:16:50 -0700
-Message-ID: <CAGXu5j+RA+fepUEXoqXEBmyhBokQxv0csO=VuzFpHd4Fk4dH4A@mail.gmail.com>
-References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
- <2760702.46Rp2Juk5b@wuerfel> <20160810230645.GP1041@n2100.armlinux.org.uk> <2188666.QKZtt2vNXZ@wuerfel>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: [PATCH memory-barriers.txt v2 0/5] Fixes and Korean translation
+Date: Thu, 11 Aug 2016 11:16:02 -0700
+Message-ID: <20160811181602.GA31464@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f51.google.com ([74.125.82.51]:38001 "EHLO
-	mail-wm0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752359AbcHKWQ5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 18:16:57 -0400
-Received: by mail-wm0-f51.google.com with SMTP id o80so19426109wme.1
-        for <linux-arch@vger.kernel.org>; Thu, 11 Aug 2016 15:16:52 -0700 (PDT)
-In-Reply-To: <2188666.QKZtt2vNXZ@wuerfel>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:47615 "EHLO
+	mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751752AbcHKW2S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Aug 2016 18:28:18 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+	by mx0b-001b2d01.pphosted.com (8.16.0.11/8.16.0.11) with SMTP id u7BMIx9P004976
+	for <linux-arch@vger.kernel.org>; Thu, 11 Aug 2016 18:28:17 -0400
+Received: from e33.co.us.ibm.com (e33.co.us.ibm.com [32.97.110.151])
+	by mx0b-001b2d01.pphosted.com with ESMTP id 24qm9wvtxx-1
+	(version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Thu, 11 Aug 2016 18:28:17 -0400
+Received: from localhost
+	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 11 Aug 2016 16:28:17 -0600
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+To: linux-kernel@vger.kernel.org
+Cc: mingo@kernel.org, peterz@infradead.org, dhowells@redhat.com, will.deacon@arm.com, linux-arch@vger.kernel.org, sj38.park@gmail.com
 
-On Thu, Aug 11, 2016 at 8:54 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
->> On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
->> > It might be better to start by making the fixed mapping readonly,
->> > as KASLR doesn't protect that one at all, and change the TLS
->> > code accordingly.
->>
->> I think that's impossible, because we gave userspace permission to
->> read 0xffff0ff0 directly without using __kuser_get_tls.  You're
->> talking about potentially breaking userspace.
->>
->> If you disable kuser helpers, then the page becomes read-only and
->> invisible to userspace anyway.  So, everything is being done there
->> which can be done - if you have kuser helpers enabled, then you
->> lose some opportunities for these security improvements.
->
-> What I meant was writing to the page through the linear mapping
-> rather than the virtual mapping at 0xffff0000 so we can leave that
-> one read-only (I did not consider whether that might cause cache
-> aliasing problems when reading from the other address).
->
-> Your other point is more important though: if one really cares
-> about optimizing security here, they probably should disable
-> kuser helpers completely anyway.
->
-> Kees, is that something you have on your radar already?
+Hello!
 
-It wasn't no. I will add it. :)
+This series provides some fixes and updates:
 
--Kees
+1.	Whitespace fixes, courtesy of SeongJae Park.
 
--- 
-Kees Cook
-Nexus Security
+2.	Fix a section reference, courtesy of SeongJae Park.
+
+3.	Fix a bug in a memory-ordering example, courtesy of SeongJae Park.
+
+4.	Korean translation, courtesy of SeongJae Park.
+
+Changes since v1:
+
+o	Dropped the control-dependencies patch, which is already in
+	-tip.  (And was at v1 time, what I get for failing to check!)
+
+							Thanx, Paul
+
+------------------------------------------------------------------------
+
+ ko_KR/memory-barriers.txt | 3135 ++++++++++++++++++++++++++++++++++++++++++++++
+ memory-barriers.txt       |    5 
+ 2 files changed, 3138 insertions(+), 2 deletions(-)
