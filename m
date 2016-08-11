@@ -1,41 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:49937 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932190AbcHKPhR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 11:37:17 -0400
-Date: Thu, 11 Aug 2016 17:36:45 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
- cpus
-Message-ID: <20160811153645.GX30192@twins.programming.kicks-ass.net>
-References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
- <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
- <20160809124325.GG13300@pathway.suse.cz>
- <feaaca8f-cc09-5847-ea3f-d27052704d9b@mellanox.com>
- <20160811152538.GH13300@pathway.suse.cz>
+Received: from mout.kundenserver.de ([212.227.17.10]:59922 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932267AbcHKPy6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 11:54:58 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Thu, 11 Aug 2016 17:54:08 +0200
+Message-ID: <2188666.QKZtt2vNXZ@wuerfel>
+In-Reply-To: <20160810230645.GP1041@n2100.armlinux.org.uk>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <2760702.46Rp2Juk5b@wuerfel> <20160810230645.GP1041@n2100.armlinux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160811152538.GH13300@pathway.suse.cz>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Mladek <pmladek@suse.com>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160811153645.aUuOTbP86ty4W0qwFQhI8FuB2OWJ9n0RAZhfhv-DJ1U@z>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+Message-ID: <20160811155408.HwYcm1Vw1D9qelBg_LEgzyOZk4n0RXWrZCLd4DkGonM@z>
 
-On Thu, Aug 11, 2016 at 05:25:38PM +0200, Petr Mladek wrote:
-> diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
-> index b77f5edb03b0..e31d50acd491 100644
-> --- a/arch/x86/include/asm/irqflags.h
-> +++ b/arch/x86/include/asm/irqflags.h
-> @@ -44,7 +44,7 @@ static inline void native_irq_enable(void)
->  	asm volatile("sti": : :"memory");
->  }
->  
-> -static inline void native_safe_halt(void)
-> +static inline __attribute__((__section__(".cpuidle.text"))) void native_safe_halt(void)
->  {
->  	asm volatile("sti; hlt": : :"memory");
->  }
+On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
+> On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
+> > It might be better to start by making the fixed mapping readonly,
+> > as KASLR doesn't protect that one at all, and change the TLS
+> > code accordingly.
+> 
+> I think that's impossible, because we gave userspace permission to
+> read 0xffff0ff0 directly without using __kuser_get_tls.  You're
+> talking about potentially breaking userspace.
+> 
+> If you disable kuser helpers, then the page becomes read-only and
+> invisible to userspace anyway.  So, everything is being done there
+> which can be done - if you have kuser helpers enabled, then you
+> lose some opportunities for these security improvements.
 
-An alternative is to use __always_inline I suppose.
+What I meant was writing to the page through the linear mapping
+rather than the virtual mapping at 0xffff0000 so we can leave that
+one read-only (I did not consider whether that might cause cache
+aliasing problems when reading from the other address).
+
+Your other point is more important though: if one really cares
+about optimizing security here, they probably should disable
+kuser helpers completely anyway.
+
+Kees, is that something you have on your radar already?
+
+	Arnd
