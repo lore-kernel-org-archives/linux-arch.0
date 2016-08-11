@@ -1,42 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:53857 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932333AbcHKMb4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Aug 2016 08:31:56 -0400
-Date: Thu, 11 Aug 2016 22:31:52 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 0/6 v2] kbuild changes, thin archives, --gc-sections
-Message-ID: <20160811223152.0c19ce63@canb.auug.org.au>
+Received: from mout.kundenserver.de ([212.227.17.13]:55108 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932392AbcHKMk0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 08:40:26 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] Xen: remove -fshort-wchar gcc flag
+Date: Thu, 11 Aug 2016 14:39:50 +0200
+Message-ID: <16541778.WMH6K24aDt@wuerfel>
 In-Reply-To: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
 References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160811123152.yydRkv-ONxv8uxCnWh15ErHqqQfZe44HXcdwjBxe3J4@z>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>, Juergen Gross <jgross@suse.com>, xen-devel@lists.xenproject.org
+Message-ID: <20160811123950.3xYMoGa_AaGS5ORAtAmW4zahX8CEhDGZeTxAkc1WkWA@z>
 
-Hi Nicholas,
+A previous patch added the --no-wchar-size-warning to the Makefile to
+avoid this harmless warning:
 
-On Thu, 11 Aug 2016 20:16:14 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
->
+arm-linux-gnueabi-ld: warning: drivers/xen/efi.o uses 2-byte wchar_t yet the output is to use 4-byte wchar_t; use of wchar_t values across objects may fail
+
+Changing kbuild to use thin archives instead of recursive linking
+unfortunately brings the same warning back during the final link.
+
+This time, we remove the -fshort-wchar flag that originally caused
+the warning, hopefully fixing the problem for good. I don't see
+any reason for having the flag in the first place, as the Xen code
+does not use wchar_t at all.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Fixes: 971a69db7dc0 ("Xen: don't warn about 2-byte wchar_t in efi")
+---
+On Thursday, August 11, 2016 8:16:14 PM CEST Nicholas Piggin wrote:
+> Hi,
+> 
 > I would like to submit the kbuild changes in patches 1-3 for
 > consideration.
+> 
+> I've taken on the feedback, so thanks everybody for that. The
+> biggest change since last time is a more general way for
+> architectures to do a post-link pass in patch 3.
+> 
+> On the question of whether to enable thin archives unconditionally,
+> I prefer to have architectures enable them as they are tested. But
+> I would like to see everybody moved as soon as possible and the
+> incremental linking removed.
 
-I would just like to thank Nick for taking my preliminary patches and
-running with them.  There was a lot more to do than I suspected :-)
+It would be nice to get this patch merged along with the thin
+archive conversion, either by merging it through the xen
+Tree, or by making it part of Nick's series with an Ack
+from the xen maintainers.
 
-> All patches should be basically noops without arch enablement,
-> so I include initial powerpc enablement in patches 4-6 for
-> reference, but I will submit those via powerpc maintainer if
-> the kbuild changes are merged.
+diff --git a/drivers/xen/Makefile b/drivers/xen/Makefile
+index 8feab810aed9..7f188b8d0c67 100644
+--- a/drivers/xen/Makefile
++++ b/drivers/xen/Makefile
+@@ -7,9 +7,6 @@ obj-y	+= xenbus/
+ nostackp := $(call cc-option, -fno-stack-protector)
+ CFLAGS_features.o			:= $(nostackp)
+ 
+-CFLAGS_efi.o				+= -fshort-wchar
+-LDFLAGS					+= $(call ld-option, --no-wchar-size-warning)
+-
+ dom0-$(CONFIG_ARM64) += arm-device.o
+ dom0-$(CONFIG_PCI) += pci.o
+ dom0-$(CONFIG_USB_SUPPORT) += dbgp.o
 
-In this case, if patches 1-3 are merged via the kbuild tree, can I
-ask that they be put in a separate non-rebaseing topic branch so
-that they can also be merged into relevant architecture trees.
-
--- 
-Cheers,
-Stephen Rothwell
