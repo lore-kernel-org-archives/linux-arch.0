@@ -1,123 +1,45 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [EXPERIMENTAL] enable thin archives and --gc-sections on ARM
-Date: Thu, 11 Aug 2016 16:01:33 -0400 (EDT)
-Message-ID: <alpine.LFD.2.20.1608111536290.17623@knanqh.ubzr>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com> <3116731.ej669o70yG@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+Date: Thu, 11 Aug 2016 22:29:03 +0200
+Message-ID: <2034620.lN3lAEBAXs@wuerfel>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <6457502.FRufylo3sd@wuerfel> <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <3116731.ej669o70yG@wuerfel>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 11 Aug 2016, Arnd Bergmann wrote:
+On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
 
-> This goes on top of Nick's latest version of "[PATCH 0/6 v2] kbuild changes,
-> thin archives, --gc-sections" and enables both features on ARM.
+> > > > and you can have ARM binaries with
+> > > > PER_LINUX (using the arm64 uname) just like you can have
+> > > > arm64 binaries running with PER_LINUX32.
+> > > 
+> > > I was actually looking to enforce the 32-bit binaries to only see
+> > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
+> > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
+> > > 
+> > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+> > > 
+> > > (you were summoned on that discussion couple of times ;))
+> > 
+> > Hmm, I thought I saw the thread and didn't have any good idea for
+> > the uname information, but didn't notice it was for /proc/cpuinfo.
+> > 
+> > What's wrong with always showing both the 32-bit and the 64-bit
+> > hwcap strings here (minus the duplicates, which hopefully have
+> > the same meaning here)?
 > 
-[...]
-> 
-> - I mark a ton of sections as KEEP() in vmlinux.lds.S. Some of
->   them might not actually be needed, and I have not spent much
->   time checking what they actually are. However, I did build
->   a few hundred randconfigs without new issues.
-> 
-> index 7396a5f00c5f..61b9b8784036 100644
-> --- a/arch/arm/kernel/vmlinux.lds.S
-> +++ b/arch/arm/kernel/vmlinux.lds.S
-> @@ -17,7 +17,7 @@
->  #define PROC_INFO							\
->  	. = ALIGN(4);							\
->  	VMLINUX_SYMBOL(__proc_info_begin) = .;				\
-> -	*(.proc.info.init)						\
-> +	KEEP(*(.proc.info.init))					\
+> As I said above, some of them have the same name (which may be a good
+> thing at a first look) but we don't have an architecture guarantee that
+> the feature is present in both AArch32 and AArch64 modes (e.g. AES may
+> only be available in AArch64).
 
-OK.
+Is this the case on actual implementations that exist today? If they
+are actually always both present, we might be able to get away with it.
 
->  	VMLINUX_SYMBOL(__proc_info_end) = .;
->  
->  #define HYPERVISOR_TEXT							\
-> @@ -104,7 +104,7 @@ SECTIONS
->  		_stext = .;		/* Text and read-only data	*/
->  			IDMAP_TEXT
->  			__exception_text_start = .;
-> -			*(.exception.text)
-> +			KEEP(*(.exception.text))
-
-No need here. The code there has to be referenced from somewhere. If not 
-it should not be kept.
-
->  			__exception_text_end = .;
->  			IRQENTRY_TEXT
->  			SOFTIRQENTRY_TEXT
-> @@ -169,14 +169,14 @@ SECTIONS
->  	 */
->  	__vectors_start = .;
->  	.vectors 0xffff0000 : AT(__vectors_start) {
-> -		*(.vectors)
-> +		KEEP(*(.vectors))
-
-OK.
-
->  	}
->  	. = __vectors_start + SIZEOF(.vectors);
->  	__vectors_end = .;
->  
->  	__stubs_start = .;
->  	.stubs ADDR(.vectors) + 0x1000 : AT(__stubs_start) {
-> -		*(.stubs)
-> +		KEEP(*(.stubs))
-
-This is referenced from .vectors entries and therefore the KEEP() is not 
-needed.  There is nothing to be saved either ways though.
-
->  	}
->  	. = __stubs_start + SIZEOF(.stubs);
->  	__stubs_end = .;
-> @@ -192,24 +192,24 @@ SECTIONS
->  	}
->  	.init.arch.info : {
->  		__arch_info_begin = .;
-> -		*(.arch.info.init)
-> +		KEEP(*(.arch.info.init))
-
-OK.
-
->  		__arch_info_end = .;
->  	}
->  	.init.tagtable : {
->  		__tagtable_begin = .;
-> -		*(.taglist.init)
-> +		KEEP(*(.taglist.init))
-
-OK.
-
->  		__tagtable_end = .;
->  	}
->  #ifdef CONFIG_SMP_ON_UP
->  	.init.smpalt : {
->  		__smpalt_begin = .;
-> -		*(.alt.smp.init)
-> +		KEEP(*(.alt.smp.init))
-
-Yes unfortunately this needs a KEEP() right now as there is no explicit 
-references to those entries. But by doing so you force a reference from 
-those entries to all functions they annotate, preventing those functions 
-from being discarded if there isn't any reference to that code 
-otherwise. That's a case that falls into the "missing forward reference" 
-category in my slides.
-
->  		__smpalt_end = .;
->  	}
->  #endif
->  	.init.pv_table : {
->  		__pv_table_begin = .;
-> -		*(.pv_table)
-> +		KEEP(*(.pv_table))
-
-Ditto here.
-
-
-Nicolas
+	Arnd
