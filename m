@@ -1,65 +1,47 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: c6x linker issue on linux-next-20160808 + some linker table work
-Date: Thu, 11 Aug 2016 17:59:26 +0200
-Message-ID: <20160811155926.GX3296@wotan.suse.de>
-References: <741c0f4d-bd9c-f28a-12d1-64bb483c6998@roeck-us.net>
- <1470762240.3551.42.camel@redhat.com>
- <20160809184023.GD3296@wotan.suse.de>
- <1470793827.3551.77.camel@redhat.com>
- <CAB=NE6XbxvpdsXecPLbh9krsKRvwKcwEzcve4XorpPetU3Xk6Q@mail.gmail.com>
- <1470798247.3551.94.camel@redhat.com>
- <20160810213018.GS3296@wotan.suse.de>
- <1470870249.3551.100.camel@redhat.com>
- <20160811055627.GT3296@wotan.suse.de>
- <1470915162.3551.107.camel@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Thu, 11 Aug 2016 18:02:15 +0200
+Message-ID: <28485373.pjx0rukqdF@wuerfel>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <2096112.OBiRuggdEi@wuerfel> <20160810230242.GO1041@n2100.armlinux.org.uk>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:46892 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932267AbcHKP72 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Aug 2016 11:59:28 -0400
-Content-Disposition: inline
-In-Reply-To: <1470915162.3551.107.camel@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Aurelien Jacquiot <a-jacquiot@ti.com>, Josh Poimboeuf <jpoimboe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Guenter Roeck <linux@roeck-us.net>, "H. Peter Anvin" <hpa@zytor.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <kernel-hardening-return-4343-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <20160810230242.GO1041@n2100.armlinux.org.uk>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, x86@kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>, Mark Brown <broonie@kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 11, 2016 at 07:32:42AM -0400, Mark Salter wrote:
-> On Thu, 2016-08-11 at 07:56 +0200, Luis R. Rodriguez wrote:
-> > On Wed, Aug 10, 2016 at 07:04:09PM -0400, Mark Salter wrote:
-> > > 
-> > > On Wed, 2016-08-10 at 23:30 +0200, Luis R. Rodriguez wrote:
-> > > > OK thanks I've found a clean solution minimal solution to this as follows. This now
-> > > > builds fine. Is this a fine work around for now ?
-> > > Almost. You also need:
-> > > 
-> > > diff --git a/include/linux/tables.h b/include/linux/tables.h
-> > > index a39ab03..3fa8d4d 100644
-> > > --- a/include/linux/tables.h
-> > > +++ b/include/linux/tables.h
-> > > @@ -325,7 +325,7 @@
-> > >               __attribute__((used,                                      \
-> > >                              weak,                                      \
-> > >                              __aligned__(LINUX_SECTION_ALIGNMENT(name)),\
-> > > -                            section(SECTION_TBL(SECTION_RODATA,        \
-> > > +                            section(SECTION_TBL(SECTION_TBL_RO,        \
-> > >                                                  name, level))))
-> > >  
-> > >  /**
-> > > 
-> > > Otherwise, start and end RO table markers end up in different sections.
-> > I thought that was not needed as weak attributes already force it to go to
-> > .const ? Anyway I've added this as well. Thanks!
+On Thursday, August 11, 2016 12:02:42 AM CEST Russell King - ARM Linux wrote:
+> On Wed, Aug 10, 2016 at 09:31:05PM +0200, Arnd Bergmann wrote:
+> > On Wednesday, August 10, 2016 11:12:53 AM CEST Russell King - ARM Linux wrote:
+> > > There's the TLS emulation too, but that writes via the vectors mapping
+> > > at 0xffff0ff0.
+> > 
+> > Ok, so that should be safe. Can we change the fiq code to also use the
+> > high mapping and then take the __ro_after_init patch on top?
 > 
-> The section attribute forced both variables into .rodata but the weak
-> attribute prevented accesses from using the SB-relative reloc. The
-> non-weak variable is the one that led to the link error.
+> We can't - if the kernel is configured without the kuser helpers in
+> the vectors page, it's mapped read-only. I'm not sure what the
+> intersection is between platforms that can have FIQs and platforms
+> that can disable the kuser helpers.
 
-I ask as set_section_tbl_type() was not patched for instance, so firmware/Makefile
-still uses SECTION_RODATA, and it compiles and links fine. Should that also be
-using then SECTION_TBL_RO ? Or do we only need this for the C constructors ?
+From Kconfig logic and callers of set_fiq_handler(), theoretically
+there is just i.MX3, but I think they never use fiq in their
+audio drivers in practice already, and Mark Brown mentioned
+that we could remove fiq support in the imx audio driver (don't
+remember the details at the moment).
 
-  Luis
+If we can prove that i.MX3 PCM FIQ support is never used, then the
+intersection is empty, and all machines that use FIQ require kuser
+helpers.
+
+This may change with Daniel Thompson's patches that use the FIQ
+for NMI backtrace.
+
+	Arnd
