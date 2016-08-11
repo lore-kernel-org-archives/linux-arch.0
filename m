@@ -1,47 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:51843 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751556AbcHJVpi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Aug 2016 17:45:38 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
-Date: Wed, 10 Aug 2016 12:00:53 +0200
-Message-ID: <2342289.4RWg0SWI3A@wuerfel>
-In-Reply-To: <20160810094339.GK1041@n2100.armlinux.org.uk>
-References: <1464979224-2085-1-git-send-email-keescook@chromium.org> <1464979224-2085-3-git-send-email-keescook@chromium.org> <20160810094339.GK1041@n2100.armlinux.org.uk>
+Received: from szxga04-in.huawei.com ([119.145.14.52]:39884 "EHLO
+	szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S932297AbcHKHhJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 03:37:09 -0400
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <1466207668-10549-6-git-send-email-ynorov@caviumnetworks.com>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <57AC2AA5.1030808@huawei.com>
+Date: Thu, 11 Aug 2016 15:35:01 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <1466207668-10549-6-git-send-email-ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, x86@kernel.org, linux-kernel@vger.kernel.org, kernel-hardening@lists.openwall.com, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
-Message-ID: <20160810100053.wEJ1GbQ__9LyxTq5p0q-zelUKLFu2XaxpIbyH1h1lxw@z>
+To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <20160811073501.LJ3w1Bf70Y0qnVcKZdRrRtFnwYJIthhvByCrOHz6oCE@z>
 
-On Wednesday, August 10, 2016 10:43:39 AM CEST Russell King - ARM Linux wrote:
-> On Fri, Jun 03, 2016 at 11:40:24AM -0700, Kees Cook wrote:
-> > @@ -1309,16 +1309,11 @@ void __init arm_mm_memblock_reserve(void)
-> >   * Any other function or debugging method which may touch any device _will_
-> >   * crash the kernel.
-> >   */
-> > +static char vectors[PAGE_SIZE * 2] __ro_after_init __aligned(PAGE_SIZE);
-> >  static void __init devicemaps_init(const struct machine_desc *mdesc)
-> >  {
-> >       struct map_desc map;
-> >       unsigned long addr;
-> > -     void *vectors;
-> > -
-> > -     /*
-> > -      * Allocate the vector page early.
-> > -      */
-> > -     vectors = early_alloc(PAGE_SIZE * 2);
-> 
-> This one is not appropriate.  We _do_ write to these pages after init
-> for FIQ handler updates.  See set_fiq_handler().
+Hi, Yury
 
-Is that the only thing that modifies the page? If we think this is a
-valuable change, we could make it depend on the absence of FIQ
-support, as very few platforms (rpc, omap1, s3c24xx and possibly
-imx) seem to even use it.
+On 2016/6/18 7:54, Yury Norov wrote:
+> From: Andrew Pinski <apinski@cavium.com>
+>
+> In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
+> which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
+>
+>  From now, AARCH32_EL0 (former COMPAT) config option means the support of
+> AARCH32 userspace, ARM64_ILP32 - support of ILP32 ABI (see next patches),
+> and COMPAT indicates that one of them, or both, is enabled.
+>
+> Where needed, CONFIG_COMPAT is changed over to use CONFIG_AARCH32_EL0 instead
+>
+> Reviewed-by: David Daney <ddaney@caviumnetworks.com>
+> Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+> Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+> Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
+> Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+...
+> diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+> index c173d32..af200a8 100644
+> --- a/arch/arm64/kernel/cpuinfo.c
+> +++ b/arch/arm64/kernel/cpuinfo.c
+> @@ -134,15 +134,17 @@ static int c_show(struct seq_file *m, void *v)
+>   		 */
+>   		seq_puts(m, "Features\t:");
+>   		if (compat) {
+> -#ifdef CONFIG_COMPAT
+> -			for (j = 0; compat_hwcap_str[j]; j++)
+> -				if (compat_elf_hwcap & (1 << j))
+> -					seq_printf(m, " %s", compat_hwcap_str[j]);
+> -
+> -			for (j = 0; compat_hwcap2_str[j]; j++)
+> -				if (compat_elf_hwcap2 & (1 << j))
+> -					seq_printf(m, " %s", compat_hwcap2_str[j]);
+> -#endif /* CONFIG_COMPAT */
+> +#ifdef CONFIG_AARCH32_EL0
+I saw that compat_hwcap_str and compat_hwcap2_str is defined when
+"CONFIG_COMPAT" is true. Why we only change it to CONFIG_AARCH32_EL0
+in c show()?
+> +			if (personality(current->personality) == PER_LINUX32) {
+And "compat" is "personality(current->personality) == PER_LINUX32;",
+it seems that there is no need to add this twice.
 
-	Arnd
+Regards
+
+Bamvor
+> +				for (j = 0; compat_hwcap_str[j]; j++)
+> +					if (compat_elf_hwcap & (1 << j))
+> +						seq_printf(m, " %s", compat_hwcap_str[j]);
+> +
+> +				for (j = 0; compat_hwcap2_str[j]; j++)
+> +					if (compat_elf_hwcap2 & (1 << j))
+> +						seq_printf(m, " %s", compat_hwcap2_str[j]);
+> +			}
+> +#endif /* CONFIG_AARCH32_EL0 */
+>   		} else {
+>   			for (j = 0; hwcap_str[j]; j++)
+>   				if (elf_hwcap & (1 << j))
+
