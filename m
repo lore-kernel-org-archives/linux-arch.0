@@ -1,56 +1,88 @@
-From: "Jan Beulich" <JBeulich@suse.com>
-Subject: Re: [Xen-devel] [PATCH] Xen: remove -fshort-wchar gcc flag
-Date: Thu, 11 Aug 2016 08:06:52 -0600
-Message-ID: <57ACA29C0200007800105235@prv-mh.provo.novell.com>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
- <16541778.WMH6K24aDt@wuerfel>
- <57AC90F5020000780010515A@prv-mh.provo.novell.com>
- <1924668.nNs2RHZJcd@wuerfel>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+Date: Thu, 11 Aug 2016 15:50:00 +0100
+Message-ID: <20160811145000.GB18366@e104818-lin.cambridge.arm.com>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <1466207668-10549-6-git-send-email-ynorov@caviumnetworks.com>
+ <57AC2AA5.1030808@huawei.com>
+ <3043310.yXUR8Er0VK@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1924668.nNs2RHZJcd@wuerfel>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-kbuild-owner@vger.kernel.org
+In-Reply-To: <3043310.yXUR8Er0VK@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, David Vrabel <david.vrabel@citrix.com>, Alan Modra <amodra@gmail.com>, Nicholas Piggin <npiggin@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, Nicolas Pitre <nico@linaro.org>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Sam Ravnborg <sam@ravnborg.org>, Juergen Gross <JGross@suse.com>, Michal Marek <MMarek@suse.com>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
+Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>
 List-Id: linux-arch.vger.kernel.org
 
->>> On 11.08.16 at 16:01, <arnd@arndb.de> wrote:
-> On Thursday, August 11, 2016 6:51:33 AM CEST Jan Beulich wrote:
->> >>> On 11.08.16 at 14:39, <arnd@arndb.de> wrote:
->> > A previous patch added the --no-wchar-size-warning to the Makefile to
->> > avoid this harmless warning:
->> > 
->> > arm-linux-gnueabi-ld: warning: drivers/xen/efi.o uses 2-byte wchar_t yet the 
->> > output is to use 4-byte wchar_t; use of wchar_t values across objects may 
->> > fail
->> > 
->> > Changing kbuild to use thin archives instead of recursive linking
->> > unfortunately brings the same warning back during the final link.
->> > 
->> > This time, we remove the -fshort-wchar flag that originally caused
->> > the warning, hopefully fixing the problem for good. I don't see
->> > any reason for having the flag in the first place, as the Xen code
->> > does not use wchar_t at all.
->> 
->> It uses efi_char16_t, and by dropping -fshort-wchar you'd open
->> up a trap for anyone to fall into who were to add wide string
->> literals to that same file. EFI using 16-bit characters requires
->> code interfacing with EFI to do so too.
+On Thu, Aug 11, 2016 at 10:53:01AM +0200, Arnd Bergmann wrote:
+> On Thursday, August 11, 2016 3:35:01 PM CEST Zhangjian (Bamvor) wrote:
+> > On 2016/6/18 7:54, Yury Norov wrote:
+> > > From: Andrew Pinski <apinski@cavium.com>
+> > >
+> > > In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
+> > > which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
+> > >
+> > >  From now, AARCH32_EL0 (former COMPAT) config option means the support of
+> > > AARCH32 userspace, ARM64_ILP32 - support of ILP32 ABI (see next patches),
+> > > and COMPAT indicates that one of them, or both, is enabled.
+> > >
+> > > Where needed, CONFIG_COMPAT is changed over to use CONFIG_AARCH32_EL0 instead
+> > >
+> > > Reviewed-by: David Daney <ddaney@caviumnetworks.com>
+> > > Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+> > > Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+> > > Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
+> > > Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
+> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> > ...
+> > > diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+> > > index c173d32..af200a8 100644
+> > > --- a/arch/arm64/kernel/cpuinfo.c
+> > > +++ b/arch/arm64/kernel/cpuinfo.c
+> > > @@ -134,15 +134,17 @@ static int c_show(struct seq_file *m, void *v)
+> > >   		 */
+> > >   		seq_puts(m, "Features\t:");
+> > >   		if (compat) {
+> > > -#ifdef CONFIG_COMPAT
+> > > -			for (j = 0; compat_hwcap_str[j]; j++)
+> > > -				if (compat_elf_hwcap & (1 << j))
+> > > -					seq_printf(m, " %s", compat_hwcap_str[j]);
+> > > -
+> > > -			for (j = 0; compat_hwcap2_str[j]; j++)
+> > > -				if (compat_elf_hwcap2 & (1 << j))
+> > > -					seq_printf(m, " %s", compat_hwcap2_str[j]);
+> > > -#endif /* CONFIG_COMPAT */
+> > > +#ifdef CONFIG_AARCH32_EL0
+> > I saw that compat_hwcap_str and compat_hwcap2_str is defined when
+> > "CONFIG_COMPAT" is true. Why we only change it to CONFIG_AARCH32_EL0
+> > in c show()?
+> > > +			if (personality(current->personality) == PER_LINUX32) {
+> > And "compat" is "personality(current->personality) == PER_LINUX32;",
+> > it seems that there is no need to add this twice.
 > 
-> I don't understand. How is this different from other source files
-> that use efi_char16_t or the wchar_t definition from include/linux/nls.h?
+> I think it would be best to remove the #ifdef here completely,
+> the PER_LINUX32 concept is not strictly tied to the emulation
+> of ARM binaries, it literally just changes the output of
+> /proc/cpuinfo and 'uname',
 
-Perhaps they didn't run into the issue yet?
+It's not strictly related to ARM binaries, however it is related to
+AArch32 CPU features being supported and detected by the kernel.
+Currently, with CONFIG_COMPAT disabled, we won't have access to a
+(meaningful) compat_elf_hwcap.
 
-> As far as I can tell, they all use 16-bit characters, but none of the
-> others sets the flag. Maybe we should just always build with -fshort-wchar
-> from the top-level Makefile?
+> and you can have ARM binaries with
+> PER_LINUX (using the arm64 uname) just like you can have
+> arm64 binaries running with PER_LINUX32.
 
-Quite possible, unless elsewhere in the tree 4-byte characters are
-needed.
+I was actually looking to enforce the 32-bit binaries to only see
+PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
+abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
 
-Jan
+http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
 
+(you were summoned on that discussion couple of times ;))
+
+-- 
+Catalin
