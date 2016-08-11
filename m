@@ -1,73 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:58744 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932787AbcHKIyX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 04:54:23 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Date: Thu, 11 Aug 2016 10:53:01 +0200
-Message-ID: <3043310.yXUR8Er0VK@wuerfel>
-In-Reply-To: <57AC2AA5.1030808@huawei.com>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com> <1466207668-10549-6-git-send-email-ynorov@caviumnetworks.com> <57AC2AA5.1030808@huawei.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from mail-pa0-f65.google.com ([209.85.220.65]:34605 "EHLO
+	mail-pa0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751516AbcHKKQj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2016 06:16:39 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 0/6 v2] kbuild changes, thin archives, --gc-sections
+Date: Thu, 11 Aug 2016 20:16:14 +1000
+Message-ID: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, Hanjun Guo <guohanjun@huawei.com>
-Message-ID: <20160811085301.BzyR2yvtl0sev_kPr2pc-4xc4mLpH3WkJPkgPzZ23tI@z>
+To: linux-kbuild@vger.kernel.org
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160811101614._rQiz03Nia-vUQJFQLNLUJpJZcc_sLnY2xnZsipxFVc@z>
 
-On Thursday, August 11, 2016 3:35:01 PM CEST Zhangjian (Bamvor) wrote:
-> On 2016/6/18 7:54, Yury Norov wrote:
-> > From: Andrew Pinski <apinski@cavium.com>
-> >
-> > In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
-> > which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
-> >
-> >  From now, AARCH32_EL0 (former COMPAT) config option means the support of
-> > AARCH32 userspace, ARM64_ILP32 - support of ILP32 ABI (see next patches),
-> > and COMPAT indicates that one of them, or both, is enabled.
-> >
-> > Where needed, CONFIG_COMPAT is changed over to use CONFIG_AARCH32_EL0 instead
-> >
-> > Reviewed-by: David Daney <ddaney@caviumnetworks.com>
-> > Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-> > Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-> > Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
-> > Signed-off-by: Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> ...
-> > diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-> > index c173d32..af200a8 100644
-> > --- a/arch/arm64/kernel/cpuinfo.c
-> > +++ b/arch/arm64/kernel/cpuinfo.c
-> > @@ -134,15 +134,17 @@ static int c_show(struct seq_file *m, void *v)
-> >   		 */
-> >   		seq_puts(m, "Features\t:");
-> >   		if (compat) {
-> > -#ifdef CONFIG_COMPAT
-> > -			for (j = 0; compat_hwcap_str[j]; j++)
-> > -				if (compat_elf_hwcap & (1 << j))
-> > -					seq_printf(m, " %s", compat_hwcap_str[j]);
-> > -
-> > -			for (j = 0; compat_hwcap2_str[j]; j++)
-> > -				if (compat_elf_hwcap2 & (1 << j))
-> > -					seq_printf(m, " %s", compat_hwcap2_str[j]);
-> > -#endif /* CONFIG_COMPAT */
-> > +#ifdef CONFIG_AARCH32_EL0
-> I saw that compat_hwcap_str and compat_hwcap2_str is defined when
-> "CONFIG_COMPAT" is true. Why we only change it to CONFIG_AARCH32_EL0
-> in c show()?
-> > +			if (personality(current->personality) == PER_LINUX32) {
-> And "compat" is "personality(current->personality) == PER_LINUX32;",
-> it seems that there is no need to add this twice.
+Hi,
 
-I think it would be best to remove the #ifdef here completely,
-the PER_LINUX32 concept is not strictly tied to the emulation
-of ARM binaries, it literally just changes the output of
-/proc/cpuinfo and 'uname', and you can have ARM binaries with
-PER_LINUX (using the arm64 uname) just like you can have
-arm64 binaries running with PER_LINUX32.
+I would like to submit the kbuild changes in patches 1-3 for
+consideration.
 
-	Arnd
+I've taken on the feedback, so thanks everybody for that. The
+biggest change since last time is a more general way for
+architectures to do a post-link pass in patch 3.
+
+On the question of whether to enable thin archives unconditionally,
+I prefer to have architectures enable them as they are tested. But
+I would like to see everybody moved as soon as possible and the
+incremental linking removed.
+
+All patches should be basically noops without arch enablement,
+so I include initial powerpc enablement in patches 4-6 for
+reference, but I will submit those via powerpc maintainer if
+the kbuild changes are merged.
+
+Thanks,
+Nick
+
+Nicholas Piggin (4):
+  kbuild: allow archs to select build for link dead code/data
+    elimination
+  kbuild: add arch specific post-link pass
+  powerpc/64: use linker dce
+  powerpc: use the new post-link pass to check relocations
+
+Stephen Rothwell (2):
+  kbuild: allow architectures to use thin archives instead of ld -r
+  powerpc: switch to using thin archives
+
+ Documentation/kbuild/makefiles.txt     | 10 +++++
+ Makefile                               |  9 ++++
+ arch/Kconfig                           | 26 ++++++++++++
+ arch/powerpc/Kconfig                   |  1 +
+ arch/powerpc/Makefile                  | 17 ++------
+ arch/powerpc/Makefile.postlink         | 31 ++++++++++++++
+ arch/powerpc/kernel/Makefile           |  3 ++
+ arch/powerpc/kernel/vmlinux.lds.S      |  2 +-
+ arch/powerpc/platforms/Kconfig.cputype |  2 +
+ arch/x86/entry/vdso/Makefile           |  6 +--
+ include/asm-generic/vmlinux.lds.h      | 52 ++++++++++++-----------
+ include/linux/compiler.h               | 23 +++++++++++
+ include/linux/export.h                 | 30 +++++++-------
+ include/linux/init.h                   | 38 ++++++-----------
+ init/Makefile                          |  2 +
+ kernel/Makefile                        |  3 --
+ scripts/Makefile.build                 | 25 +++++++++---
+ scripts/Makefile.modpost               |  3 ++
+ scripts/link-vmlinux.sh                | 75 +++++++++++++++++++++++++++++-----
+ 19 files changed, 258 insertions(+), 100 deletions(-)
+ create mode 100644 arch/powerpc/Makefile.postlink
+
+-- 
+2.8.1
+
