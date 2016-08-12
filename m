@@ -1,64 +1,98 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
-Date: Fri, 12 Aug 2016 17:24:14 +0100
-Message-ID: <20160812162414.GI1041@n2100.armlinux.org.uk>
-References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
- <2760702.46Rp2Juk5b@wuerfel>
- <20160810230645.GP1041@n2100.armlinux.org.uk>
- <2188666.QKZtt2vNXZ@wuerfel>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [RFC v3 07/13] tables.h: add linker table support
+Date: Fri, 12 Aug 2016 19:04:52 +0200
+Message-ID: <20160812170451.GE3296@wotan.suse.de>
+References: <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
+ <20160729100630.GA27271@nazgul.tnic>
+ <20160808150539.GG3296@wotan.suse.de>
+ <20160809035508.GC11445@nazgul.tnic>
+ <20160812035129.GA3296@wotan.suse.de>
+ <20160812052303.GB12013@nazgul.tnic>
+ <20160812065011.GB3296@wotan.suse.de>
+ <20160812072507.GC12013@nazgul.tnic>
+ <20160812152805.GD3296@wotan.suse.de>
+ <20160812155121.GB13315@nazgul.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:34969 "EHLO
-	pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752299AbcHLQY1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Aug 2016 12:24:27 -0400
+Return-path: <linux-ia64-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <2188666.QKZtt2vNXZ@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
+In-Reply-To: <20160812155121.GB13315@nazgul.tnic>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 11, 2016 at 05:54:08PM +0200, Arnd Bergmann wrote:
-> On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
-> > On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
-> > > It might be better to start by making the fixed mapping readonly,
-> > > as KASLR doesn't protect that one at all, and change the TLS
-> > > code accordingly.
-> > 
-> > I think that's impossible, because we gave userspace permission to
-> > read 0xffff0ff0 directly without using __kuser_get_tls.  You're
-> > talking about potentially breaking userspace.
-> > 
-> > If you disable kuser helpers, then the page becomes read-only and
-> > invisible to userspace anyway.  So, everything is being done there
-> > which can be done - if you have kuser helpers enabled, then you
-> > lose some opportunities for these security improvements.
+On Fri, Aug 12, 2016 at 05:51:21PM +0200, Borislav Petkov wrote:
+> On Fri, Aug 12, 2016 at 05:28:05PM +0200, Luis R. Rodriguez wrote:
+> > Even so, you don't link the compiled extra code so the only penalty
+> > here is when compiling, nothing more. And if you are compiling typically
+> > the cost here is just a few seconds.
 > 
-> What I meant was writing to the page through the linear mapping
-> rather than the virtual mapping at 0xffff0000 so we can leave that
-> one read-only (I did not consider whether that might cause cache
-> aliasing problems when reading from the other address).
+> Yeah, so let's make it clear that this is similar to COMPILE_TEST and
+> people with fast machines and who don't mind building a couple more
+> seconds longer, should enable it.
 
-Kees original patch was about moving the vector pages into the
-read-only area after init, so the linear mapping of them becomes
-read-only as well.  So that won't work.  We need at least one
-read-write mapping for FIQ, and for context switching for kuser
-helpers.
+Sure, I'll also move it under COMPILE_TEST, and default it to n.
 
-> Your other point is more important though: if one really cares
-> about optimizing security here, they probably should disable
-> kuser helpers completely anyway.
+> You don't want to be doing bit-rotting tests on small, weak machines,
+> which barely get done with the build as it is. I have a 32-bit atom
+> which takes hours to build a kernel. Enabling that there is not making
+> the kernel build any more fun.
+> 
+> > > ... or you simply don't want to have stuff which is forcibly enabled on you even
+> > > if you're never going to need it
+> > > ...
+> > 
+> > Which seems to be the same as the reason I noted ?
+> 
+> No, the reason is we don't force stuff down people's throats just
+> because we think we know better. Other people do that.
+> 
+> Instead, we help them make an informed decision by describing the
+> feature as precisely as possible.
+> 
+> > I can remove the grumpy maintainer description :)
+> 
+> Yap :-)
 
-We could probably predicate moving the vectors page into the RO
-section when kuser helpers are enabled.
+Alright, how's this new description:
 
-> Kees, is that something you have on your radar already?
-
-I believe Android already disable kuser helpers as of a few years ago.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+diff --git a/init/Kconfig b/init/Kconfig
+index cac3f096050d..73e4890c24c4 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -53,6 +53,34 @@ config CROSS_COMPILE
+ 	  need to set this unless you want the configured kernel build
+ 	  directory to select the cross-compiler automatically.
+ 
++config BUILD_AVOID_BITROT
++	bool "Always force building specially annotated targets"
++	default n
++	help
++	  If enabled then the the special table-* Makefile targets will always
++	  be forced to be compiled even if their respective CONFIG_ option has
++	  been disabled, but its objects will only be linked in if the same
++	  respective CONFIG_ option has been enabled. This helps avoid code
++	  bit rot issues, use for these targets should be carefully considred
++	  by maintainers. You can safely enable this option at the expense of
++	  increasing compile time. Enabling this option helps avoid code bit
++	  rot by taking advantage of the facilities provided and enabled by
++	  using linker tables documented under:
++
++	  include/linux/tables.h
++
++	  The special targets supported are:
++
++	    o table-obj-y
++	    o table-lib-y
++
++	  Say Y if you have a decent build machine and would like to help test
++	  building code for more subsystems. Say N if you do you not have a
++	  good build machine or only want to compile what you've enabled for
++	  your kernel.
++
++	  Enabling this option never increases the size of your kernel.
++
+ config COMPILE_TEST
+ 	bool "Compile also drivers which will not load"
+ 	depends on !UML
