@@ -1,60 +1,64 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Fri, 12 Aug 2016 17:51:21 +0200
-Message-ID: <20160812155121.GB13315@nazgul.tnic>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
- <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
- <20160729100630.GA27271@nazgul.tnic>
- <20160808150539.GG3296@wotan.suse.de>
- <20160809035508.GC11445@nazgul.tnic>
- <20160812035129.GA3296@wotan.suse.de>
- <20160812052303.GB12013@nazgul.tnic>
- <20160812065011.GB3296@wotan.suse.de>
- <20160812072507.GC12013@nazgul.tnic>
- <20160812152805.GD3296@wotan.suse.de>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 2/2] arm: apply more __ro_after_init
+Date: Fri, 12 Aug 2016 17:24:14 +0100
+Message-ID: <20160812162414.GI1041@n2100.armlinux.org.uk>
+References: <1464979224-2085-1-git-send-email-keescook@chromium.org>
+ <2760702.46Rp2Juk5b@wuerfel>
+ <20160810230645.GP1041@n2100.armlinux.org.uk>
+ <2188666.QKZtt2vNXZ@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:34969 "EHLO
+	pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752299AbcHLQY1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Aug 2016 12:24:27 -0400
 Content-Disposition: inline
-In-Reply-To: <20160812152805.GD3296@wotan.suse.de>
-Sender: linux-sh-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <2188666.QKZtt2vNXZ@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andrew Morton <akpm@linux-foundation.org>, Mathias Krause <minipli@googlemail.com>
 
-On Fri, Aug 12, 2016 at 05:28:05PM +0200, Luis R. Rodriguez wrote:
-> Even so, you don't link the compiled extra code so the only penalty
-> here is when compiling, nothing more. And if you are compiling typically
-> the cost here is just a few seconds.
-
-Yeah, so let's make it clear that this is similar to COMPILE_TEST and
-people with fast machines and who don't mind building a couple more
-seconds longer, should enable it.
-
-You don't want to be doing bit-rotting tests on small, weak machines,
-which barely get done with the build as it is. I have a 32-bit atom
-which takes hours to build a kernel. Enabling that there is not making
-the kernel build any more fun.
-
-> > ... or you simply don't want to have stuff which is forcibly enabled on you even
-> > if you're never going to need it
-> > ...
+On Thu, Aug 11, 2016 at 05:54:08PM +0200, Arnd Bergmann wrote:
+> On Thursday, August 11, 2016 12:06:45 AM CEST Russell King - ARM Linux wrote:
+> > On Wed, Aug 10, 2016 at 09:41:23PM +0200, Arnd Bergmann wrote:
+> > > It might be better to start by making the fixed mapping readonly,
+> > > as KASLR doesn't protect that one at all, and change the TLS
+> > > code accordingly.
+> > 
+> > I think that's impossible, because we gave userspace permission to
+> > read 0xffff0ff0 directly without using __kuser_get_tls.  You're
+> > talking about potentially breaking userspace.
+> > 
+> > If you disable kuser helpers, then the page becomes read-only and
+> > invisible to userspace anyway.  So, everything is being done there
+> > which can be done - if you have kuser helpers enabled, then you
+> > lose some opportunities for these security improvements.
 > 
-> Which seems to be the same as the reason I noted ?
+> What I meant was writing to the page through the linear mapping
+> rather than the virtual mapping at 0xffff0000 so we can leave that
+> one read-only (I did not consider whether that might cause cache
+> aliasing problems when reading from the other address).
 
-No, the reason is we don't force stuff down people's throats just
-because we think we know better. Other people do that.
+Kees original patch was about moving the vector pages into the
+read-only area after init, so the linear mapping of them becomes
+read-only as well.  So that won't work.  We need at least one
+read-write mapping for FIQ, and for context switching for kuser
+helpers.
 
-Instead, we help them make an informed decision by describing the
-feature as precisely as possible.
+> Your other point is more important though: if one really cares
+> about optimizing security here, they probably should disable
+> kuser helpers completely anyway.
 
-> I can remove the grumpy maintainer description :)
+We could probably predicate moving the vectors page into the RO
+section when kuser helpers are enabled.
 
-Yap :-)
+> Kees, is that something you have on your radar already?
+
+I believe Android already disable kuser helpers as of a few years ago.
 
 -- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
---
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
