@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:56192 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752363AbcHLRfm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Aug 2016 13:35:42 -0400
-Date: Fri, 12 Aug 2016 19:35:07 +0200
-From: Borislav Petkov <bp@alien8.de>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52166 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751570AbcHLUX0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Aug 2016 16:23:26 -0400
+Date: Fri, 12 Aug 2016 22:23:34 +0200
+From: Greg KH <gregkh@linuxfoundation.org>
 Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Message-ID: <20160812173507.GC13315@nazgul.tnic>
+Message-ID: <20160812202334.GA10199@kroah.com>
 References: <20160729100630.GA27271@nazgul.tnic>
  <20160808150539.GG3296@wotan.suse.de>
  <20160809035508.GC11445@nazgul.tnic>
@@ -18,14 +18,14 @@ References: <20160729100630.GA27271@nazgul.tnic>
  <20160812155121.GB13315@nazgul.tnic>
  <20160812170451.GE3296@wotan.suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 In-Reply-To: <20160812170451.GE3296@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
-Message-ID: <20160812173507.xfBReOwU9lsWxtiXj1nhWU-PzGhx9FuKdxQXIfbMa5c@z>
+Cc: Borislav Petkov <bp@alien8.de>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
+Message-ID: <20160812202334.VYMlkD721tDJQccqbHvpq7MU9J9ErLKzwGOx0Jj588I@z>
 
 On Fri, Aug 12, 2016 at 07:04:52PM +0200, Luis R. Rodriguez wrote:
 > Alright, how's this new description:
@@ -44,21 +44,20 @@ On Fri, Aug 12, 2016 at 07:04:52PM +0200, Luis R. Rodriguez wrote:
 > +	help
 > +	  If enabled then the the special table-* Makefile targets will always
 > +	  be forced to be compiled even if their respective CONFIG_ option has
-
-"will always be compiled" is already absolute.
-
 > +	  been disabled, but its objects will only be linked in if the same
 > +	  respective CONFIG_ option has been enabled. This helps avoid code
 > +	  bit rot issues, use for these targets should be carefully considred
-
-s/This helps avoid code bit rot issues, u/U/
-
-The bit-rot thing comes again below.
-
 > +	  by maintainers. You can safely enable this option at the expense of
 > +	  increasing compile time. Enabling this option helps avoid code bit
 > +	  rot by taking advantage of the facilities provided and enabled by
 > +	  using linker tables documented under:
+
+As a kernel developer I have _no_ idea what this is trying to say at
+all, sorry.
+
+What is a "specially annotated target"?  Who is forcing it to be built?
+What does it mean if it isn't built?
+
 > +
 > +	  include/linux/tables.h
 > +
@@ -66,22 +65,24 @@ The bit-rot thing comes again below.
 > +
 > +	    o table-obj-y
 > +	    o table-lib-y
+
+What does this mean to me as a developer?  What does it mean to a user
+who wants to figure out if it should be enabled or not?
+
 > +
 > +	  Say Y if you have a decent build machine and would like to help test
 > +	  building code for more subsystems. Say N if you do you not have a
 > +	  good build machine or only want to compile what you've enabled for
 > +	  your kernel.
+
+How does this test different subsystems?  How does disabling it not test
+them?  Why would I care either way?
+
 > +
 > +	  Enabling this option never increases the size of your kernel.
-> +
 
-Other than those minor formulation nits, yeah, nice!
+Then what does it do?  Just burn electricity for no reason?
 
-Thanks.
+totally confused...
 
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
---
+greg k-h
