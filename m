@@ -1,68 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59588 "EHLO foss.arm.com"
+Received: from mx2.suse.de ([195.135.220.15]:35179 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753160AbcHLOgU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Aug 2016 10:36:20 -0400
-Date: Fri, 12 Aug 2016 15:36:12 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Message-ID: <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <6457502.FRufylo3sd@wuerfel>
- <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
- <2034620.lN3lAEBAXs@wuerfel>
+	id S1752194AbcHLPno (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Aug 2016 11:43:44 -0400
+Date: Fri, 12 Aug 2016 17:28:05 +0200
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [RFC v3 07/13] tables.h: add linker table support
+Message-ID: <20160812152805.GD3296@wotan.suse.de>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
+ <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
+ <20160729100630.GA27271@nazgul.tnic>
+ <20160808150539.GG3296@wotan.suse.de>
+ <20160809035508.GC11445@nazgul.tnic>
+ <20160812035129.GA3296@wotan.suse.de>
+ <20160812052303.GB12013@nazgul.tnic>
+ <20160812065011.GB3296@wotan.suse.de>
+ <20160812072507.GC12013@nazgul.tnic>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <2034620.lN3lAEBAXs@wuerfel>
+In-Reply-To: <20160812072507.GC12013@nazgul.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Yury Norov <ynorov@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-Message-ID: <20160812143612.RcE-hIad7eligphXSteDnbvTfDyanAJZmSGqcGX5KbI@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
+Message-ID: <20160812152805.d6w8hWnRBoF49UlVv-gnfrfpWS-1toBzcZrx0D69Ugo@z>
 
-On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
-> On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
-> > > > > and you can have ARM binaries with
-> > > > > PER_LINUX (using the arm64 uname) just like you can have
-> > > > > arm64 binaries running with PER_LINUX32.
-> > > > 
-> > > > I was actually looking to enforce the 32-bit binaries to only see
-> > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
-> > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
-> > > > 
-> > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
-> > > > 
-> > > > (you were summoned on that discussion couple of times ;))
+On Fri, Aug 12, 2016 at 09:25:07AM +0200, Borislav Petkov wrote:
+> On Fri, Aug 12, 2016 at 08:50:11AM +0200, Luis R. Rodriguez wrote:
+> > On Fri, Aug 12, 2016 at 07:23:03AM +0200, Borislav Petkov wrote:
+> > > On Fri, Aug 12, 2016 at 05:51:29AM +0200, Luis R. Rodriguez wrote:
+> > > > OK I've added CONFIG_BUILD_AVOID_BITROT.
 > > > 
-> > > Hmm, I thought I saw the thread and didn't have any good idea for
-> > > the uname information, but didn't notice it was for /proc/cpuinfo.
-> > > 
-> > > What's wrong with always showing both the 32-bit and the 64-bit
-> > > hwcap strings here (minus the duplicates, which hopefully have
-> > > the same meaning here)?
+> > > What does that do?
 > > 
-> > As I said above, some of them have the same name (which may be a good
-> > thing at a first look) but we don't have an architecture guarantee that
-> > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
-> > only be available in AArch64).
+> > 
+> > Enabling it allows the forced compilation chosen by maintainers.
+> > Otherwise forced compilations with the new special targets are
+> > ignored.
 > 
-> Is this the case on actual implementations that exist today? If they
-> are actually always both present, we might be able to get away with it.
+> Nice.
+> 
+> > I've gone with table-obj-y and table-lib-y as we have
+> > to support both lib-y and obj-y respective targets.
+> > 
+> > diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> > index 33e2966dd741..7893e3b8da82 100644
+> > --- a/lib/Kconfig.debug
+> > +++ b/lib/Kconfig.debug
+> > @@ -1895,6 +1895,30 @@ config PROVIDE_OHCI1394_DMA_INIT
+> >  
+> >  	  See Documentation/debugging-via-ohci1394.txt for more information.
+> >  
+> > +config BUILD_AVOID_BITROT
+> > +	bool "Always force building specially annotated"
+> 
+> 					   ...annotated targets"
+> 
+> > +	default y
+> > +	help
+> > +	  If enabled then the the special table-* Makefile targets will always
+> > +	  be forced to be compiled even if their respective CONFIG_ option has
+> > +	  been disabled, but its objects will only be linked in if the same
+> > +	  respective CONFIG_ option has been enabled. This helps avoid code
+> > +	  bit rot issues, use for these targets should be carefully considred
+> > +	  by maintainers. You can safely enable this option at the expense of
+> > +	  increasing compile time slightly. Enabling this option helps avoid
+> 
+> s/slightly//
+> 
+> :-)
+> 
+> > +	  code bit rot by taking advantage of the facilities provided and
+> > +	  enabled by using linker tables documented under:
+> > +
+> > +	  include/linux/tables.h
+> > +
+> > +	  The special targets supported are:
+> > +
+> > +	    o table-obj-y
+> > +	    o table-lib-y
+> > +
+> > +	  Say Y unless you are a grumpy maintainer and don't trust other
+> > +	  maintainer's judgements on what code should always get compiled.
+> 
+> ... or you're running a tiny-config setup
 
-It may be fine on current implementations but what would we do when/if
-we actually find such discrepancy? It's not just ARM Ltd designing the
-chips, so as long as the architecture doesn't mandate it you may find
-strange implementations.
+Even so, you don't link the compiled extra code so the only penalty
+here is when compiling, nothing more. And if you are compiling typically
+the cost here is just a few seconds.
 
-Imposing such restriction in the architecture doesn't make sense if the
-only reason is the /proc/cpuinfo file (and I can't think of any other
-reason why this should be enforced).
+> ... or you're an embedded, resource-constrained person
 
-What I'm worried about is 32-bit apps running on an arm64 kernel and
-making use of the 64-bit /proc/cpuinfo without any guarantee that the
-AArch32 state has such features. In my patch proposal linked above I
-wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
+For the compilation of th kernel ?
 
--- 
-Catalin
+> ... or you simply don't want to have stuff which is forcibly enabled on you even
+> if you're never going to need it
+> ...
+
+Which seems to be the same as the reason I noted ?
+
+> I got a million o'those :-)
+
+I can remove the grumpy maintainer description :)
+
+ Luis
