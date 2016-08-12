@@ -1,7 +1,7 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Fri, 12 Aug 2016 17:28:05 +0200
-Message-ID: <20160812152805.GD3296@wotan.suse.de>
+Date: Fri, 12 Aug 2016 17:51:21 +0200
+Message-ID: <20160812155121.GB13315@nazgul.tnic>
 References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
  <1469222687-1600-8-git-send-email-mcgrof@kernel.org>
  <20160729100630.GA27271@nazgul.tnic>
@@ -11,71 +11,50 @@ References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
  <20160812052303.GB12013@nazgul.tnic>
  <20160812065011.GB3296@wotan.suse.de>
  <20160812072507.GC12013@nazgul.tnic>
+ <20160812152805.GD3296@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160812072507.GC12013@nazgul.tnic>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, torvalds@linux-foundation.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, david.vrabel@citrix.com, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, realmz6@gmail.com, linux@rasmusvillemoes.dk, rusty@rustcorp.com.au, rostedt@goodmis.org, christopher.denicolo@suse.com, jbaron@akamai.com, ananth@
+In-Reply-To: <20160812152805.GD3296@wotan.suse.de>
+Sender: linux-sh-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBBdWcgMTIsIDIwMTYgYXQgMDk6MjU6MDdBTSArMDIwMCwgQm9yaXNsYXYgUGV0a292
-IHdyb3RlOgo+IE9uIEZyaSwgQXVnIDEyLCAyMDE2IGF0IDA4OjUwOjExQU0gKzAyMDAsIEx1aXMg
-Ui4gUm9kcmlndWV6IHdyb3RlOgo+ID4gT24gRnJpLCBBdWcgMTIsIDIwMTYgYXQgMDc6MjM6MDNB
-TSArMDIwMCwgQm9yaXNsYXYgUGV0a292IHdyb3RlOgo+ID4gPiBPbiBGcmksIEF1ZyAxMiwgMjAx
-NiBhdCAwNTo1MToyOUFNICswMjAwLCBMdWlzIFIuIFJvZHJpZ3VleiB3cm90ZToKPiA+ID4gPiBP
-SyBJJ3ZlIGFkZGVkIENPTkZJR19CVUlMRF9BVk9JRF9CSVRST1QuCj4gPiA+IAo+ID4gPiBXaGF0
-IGRvZXMgdGhhdCBkbz8KPiA+IAo+ID4gCj4gPiBFbmFibGluZyBpdCBhbGxvd3MgdGhlIGZvcmNl
-ZCBjb21waWxhdGlvbiBjaG9zZW4gYnkgbWFpbnRhaW5lcnMuCj4gPiBPdGhlcndpc2UgZm9yY2Vk
-IGNvbXBpbGF0aW9ucyB3aXRoIHRoZSBuZXcgc3BlY2lhbCB0YXJnZXRzIGFyZQo+ID4gaWdub3Jl
-ZC4KPiAKPiBOaWNlLgo+IAo+ID4gSSd2ZSBnb25lIHdpdGggdGFibGUtb2JqLXkgYW5kIHRhYmxl
-LWxpYi15IGFzIHdlIGhhdmUKPiA+IHRvIHN1cHBvcnQgYm90aCBsaWIteSBhbmQgb2JqLXkgcmVz
-cGVjdGl2ZSB0YXJnZXRzLgo+ID4gCj4gPiBkaWZmIC0tZ2l0IGEvbGliL0tjb25maWcuZGVidWcg
-Yi9saWIvS2NvbmZpZy5kZWJ1Zwo+ID4gaW5kZXggMzNlMjk2NmRkNzQxLi43ODkzZTNiOGRhODIg
-MTAwNjQ0Cj4gPiAtLS0gYS9saWIvS2NvbmZpZy5kZWJ1Zwo+ID4gKysrIGIvbGliL0tjb25maWcu
-ZGVidWcKPiA+IEBAIC0xODk1LDYgKzE4OTUsMzAgQEAgY29uZmlnIFBST1ZJREVfT0hDSTEzOTRf
-RE1BX0lOSVQKPiA+ICAKPiA+ICAJICBTZWUgRG9jdW1lbnRhdGlvbi9kZWJ1Z2dpbmctdmlhLW9o
-Y2kxMzk0LnR4dCBmb3IgbW9yZSBpbmZvcm1hdGlvbi4KPiA+ICAKPiA+ICtjb25maWcgQlVJTERf
-QVZPSURfQklUUk9UCj4gPiArCWJvb2wgIkFsd2F5cyBmb3JjZSBidWlsZGluZyBzcGVjaWFsbHkg
-YW5ub3RhdGVkIgo+IAo+IAkJCQkJICAgLi4uYW5ub3RhdGVkIHRhcmdldHMiCj4gCj4gPiArCWRl
-ZmF1bHQgeQo+ID4gKwloZWxwCj4gPiArCSAgSWYgZW5hYmxlZCB0aGVuIHRoZSB0aGUgc3BlY2lh
-bCB0YWJsZS0qIE1ha2VmaWxlIHRhcmdldHMgd2lsbCBhbHdheXMKPiA+ICsJICBiZSBmb3JjZWQg
-dG8gYmUgY29tcGlsZWQgZXZlbiBpZiB0aGVpciByZXNwZWN0aXZlIENPTkZJR18gb3B0aW9uIGhh
-cwo+ID4gKwkgIGJlZW4gZGlzYWJsZWQsIGJ1dCBpdHMgb2JqZWN0cyB3aWxsIG9ubHkgYmUgbGlu
-a2VkIGluIGlmIHRoZSBzYW1lCj4gPiArCSAgcmVzcGVjdGl2ZSBDT05GSUdfIG9wdGlvbiBoYXMg
-YmVlbiBlbmFibGVkLiBUaGlzIGhlbHBzIGF2b2lkIGNvZGUKPiA+ICsJICBiaXQgcm90IGlzc3Vl
-cywgdXNlIGZvciB0aGVzZSB0YXJnZXRzIHNob3VsZCBiZSBjYXJlZnVsbHkgY29uc2lkcmVkCj4g
-PiArCSAgYnkgbWFpbnRhaW5lcnMuIFlvdSBjYW4gc2FmZWx5IGVuYWJsZSB0aGlzIG9wdGlvbiBh
-dCB0aGUgZXhwZW5zZSBvZgo+ID4gKwkgIGluY3JlYXNpbmcgY29tcGlsZSB0aW1lIHNsaWdodGx5
-LiBFbmFibGluZyB0aGlzIG9wdGlvbiBoZWxwcyBhdm9pZAo+IAo+IHMvc2xpZ2h0bHkvLwo+IAo+
-IDotKQo+IAo+ID4gKwkgIGNvZGUgYml0IHJvdCBieSB0YWtpbmcgYWR2YW50YWdlIG9mIHRoZSBm
-YWNpbGl0aWVzIHByb3ZpZGVkIGFuZAo+ID4gKwkgIGVuYWJsZWQgYnkgdXNpbmcgbGlua2VyIHRh
-YmxlcyBkb2N1bWVudGVkIHVuZGVyOgo+ID4gKwo+ID4gKwkgIGluY2x1ZGUvbGludXgvdGFibGVz
-LmgKPiA+ICsKPiA+ICsJICBUaGUgc3BlY2lhbCB0YXJnZXRzIHN1cHBvcnRlZCBhcmU6Cj4gPiAr
-Cj4gPiArCSAgICBvIHRhYmxlLW9iai15Cj4gPiArCSAgICBvIHRhYmxlLWxpYi15Cj4gPiArCj4g
-PiArCSAgU2F5IFkgdW5sZXNzIHlvdSBhcmUgYSBncnVtcHkgbWFpbnRhaW5lciBhbmQgZG9uJ3Qg
-dHJ1c3Qgb3RoZXIKPiA+ICsJICBtYWludGFpbmVyJ3MganVkZ2VtZW50cyBvbiB3aGF0IGNvZGUg
-c2hvdWxkIGFsd2F5cyBnZXQgY29tcGlsZWQuCj4gCj4gLi4uIG9yIHlvdSdyZSBydW5uaW5nIGEg
-dGlueS1jb25maWcgc2V0dXAKCkV2ZW4gc28sIHlvdSBkb24ndCBsaW5rIHRoZSBjb21waWxlZCBl
-eHRyYSBjb2RlIHNvIHRoZSBvbmx5IHBlbmFsdHkKaGVyZSBpcyB3aGVuIGNvbXBpbGluZywgbm90
-aGluZyBtb3JlLiBBbmQgaWYgeW91IGFyZSBjb21waWxpbmcgdHlwaWNhbGx5CnRoZSBjb3N0IGhl
-cmUgaXMganVzdCBhIGZldyBzZWNvbmRzLgoKPiAuLi4gb3IgeW91J3JlIGFuIGVtYmVkZGVkLCBy
-ZXNvdXJjZS1jb25zdHJhaW5lZCBwZXJzb24KCkZvciB0aGUgY29tcGlsYXRpb24gb2YgdGgga2Vy
-bmVsID8KCj4gLi4uIG9yIHlvdSBzaW1wbHkgZG9uJ3Qgd2FudCB0byBoYXZlIHN0dWZmIHdoaWNo
-IGlzIGZvcmNpYmx5IGVuYWJsZWQgb24geW91IGV2ZW4KPiBpZiB5b3UncmUgbmV2ZXIgZ29pbmcg
-dG8gbmVlZCBpdAo+IC4uLgoKV2hpY2ggc2VlbXMgdG8gYmUgdGhlIHNhbWUgYXMgdGhlIHJlYXNv
-biBJIG5vdGVkID8KCj4gSSBnb3QgYSBtaWxsaW9uIG8ndGhvc2UgOi0pCgpJIGNhbiByZW1vdmUg
-dGhlIGdydW1weSBtYWludGFpbmVyIGRlc2NyaXB0aW9uIDopCgogTHVpcwoKX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlz
-dApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRldmVs
-Cg==
+On Fri, Aug 12, 2016 at 05:28:05PM +0200, Luis R. Rodriguez wrote:
+> Even so, you don't link the compiled extra code so the only penalty
+> here is when compiling, nothing more. And if you are compiling typically
+> the cost here is just a few seconds.
+
+Yeah, so let's make it clear that this is similar to COMPILE_TEST and
+people with fast machines and who don't mind building a couple more
+seconds longer, should enable it.
+
+You don't want to be doing bit-rotting tests on small, weak machines,
+which barely get done with the build as it is. I have a 32-bit atom
+which takes hours to build a kernel. Enabling that there is not making
+the kernel build any more fun.
+
+> > ... or you simply don't want to have stuff which is forcibly enabled on you even
+> > if you're never going to need it
+> > ...
+> 
+> Which seems to be the same as the reason I noted ?
+
+No, the reason is we don't force stuff down people's throats just
+because we think we know better. Other people do that.
+
+Instead, we help them make an informed decision by describing the
+feature as precisely as possible.
+
+> I can remove the grumpy maintainer description :)
+
+Yap :-)
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
+--
