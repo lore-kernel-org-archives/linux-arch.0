@@ -1,56 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59446 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751254AbcHLORL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Aug 2016 10:17:11 -0400
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:34213 "EHLO
+	pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753115AbcHLOcj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Aug 2016 10:32:39 -0400
+Date: Fri, 12 Aug 2016 15:32:31 +0100
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
 Subject: Re: [PATCH] arm: add an option for erratum 657417
+Message-ID: <20160812143231.GE1041@n2100.armlinux.org.uk>
 References: <1470989957-23671-1-git-send-email-npiggin@gmail.com>
  <20160812123314.GX1041@n2100.armlinux.org.uk>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <6bc288d9-6bea-1ee2-572f-d397221adaff@arm.com>
-Date: Fri, 12 Aug 2016 15:17:06 +0100
+ <6bc288d9-6bea-1ee2-572f-d397221adaff@arm.com>
+ <20160812142325.GC1041@n2100.armlinux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <20160812123314.GX1041@n2100.armlinux.org.uk>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160812142325.GC1041@n2100.armlinux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Alan Modra <amodra@gmail.com>, linux-kbuild@vger.kernel.org, Julian Brown <julian@codesourcery.com>, Michal Marek <mmarek@suse.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20160812141706.ty6m1YAjkLhbfQUzPd3QW9JVeeOH2a_1hbqhk0E7hFY@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Segher Boessenkool <segher@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Alan Modra <amodra@gmail.com>, linux-kbuild@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Julian Brown <julian@codesourcery.com>, Michal Marek <mmarek@suse.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160812143231.dLsv5CqIsV2NvnlZLHhKMCzOJJOskQPJMAsgADdPLUU@z>
 
-On 12/08/16 13:33, Russell King - ARM Linux wrote:
-> On Fri, Aug 12, 2016 at 06:19:17PM +1000, Nicholas Piggin wrote:
->> This patch adds an option which defaults to "y" in cases where we
->> could possibly be running Cortex A8 and using Thumb2 instructions.
->> In reality the workaround might not be required at all for the kernel
->> if virtual instruction memory is linear in physical memory.
-> 
-> Hmm.
-> 
-> The main kernel image is guaranteed to be contiguous in physical memory
-> for all sorts of reasons, so this really isn't a concern for the kernel
-> itself.
+On Fri, Aug 12, 2016 at 03:23:25PM +0100, Russell King - ARM Linux wrote:
+> I've not actually looked at the errata document - I need to jump through
+> all sorts of stupid hoops to get it through the ARM website.  Ever since
+> I requested a change of my email address, it now wants all sorts of
+> personal information that I'm refusing to type in again.  I've no idea
+> why ARM Ltd wiped out all that information just because I asked for my
+> email address to be changed.
 
-I'm not sure being contiguous matters much - looking at the errata doc,
-the implication is that the branch is supposed to use bits 31:12 of the
-address of the first page, but under the erratum conditions ends up
-taking bits 31:12 of the address of the _second_ page instead. There
-doesn't seem to be any importance of where those pages actually are
-relative to each other.
+... oh, and it's forgotten that I'm supposed to be able to access
+that information too - it wants me to apply for approval to access
+errata documents.
 
-> Modules, however, are a different matter, as they are mapped in using
-> individual pages, and are most likely to be non-contiguous in physical
-> memory.  The kernel's module linker knows nothing about this errata,
-> so it'll generally just fix up the relocations in the most basic of
-> ways.
-> 
-> So, I think we should always use this --no-fix-cortex-a8 option where
-> the linker supports it irrespective of whether we're running on a core
-> needing this workaround, but we probably need to fix the kernel module
-> linker to know about this.
+Maybe someone can send the appropriate document(s) my way instead.
 
-Given the above, I'm not convinced that sounds safe, but then I can't
-claim to have fist-hand experience with this bug either.
-
-Robin.
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
