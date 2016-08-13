@@ -1,149 +1,285 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Sat, 13 Aug 2016 12:46:16 +0200
-Message-ID: <20160813104616.GA16348@kroah.com>
-References: <20160809035508.GC11445@nazgul.tnic>
- <20160812035129.GA3296@wotan.suse.de>
- <20160812052303.GB12013@nazgul.tnic>
- <20160812065011.GB3296@wotan.suse.de>
- <20160812072507.GC12013@nazgul.tnic>
- <20160812152805.GD3296@wotan.suse.de>
- <20160812155121.GB13315@nazgul.tnic>
- <20160812170451.GE3296@wotan.suse.de>
- <20160812202334.GA10199@kroah.com>
- <20160812220042.GF3296@wotan.suse.de>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH] ilp32: fix {GET,SET}SIGMASK request for ptrace
+Date: Sat, 13 Aug 2016 17:52:28 +0300
+Message-ID: <20160813145228.GA24335@yury-N73SV>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+ <5770B041.3040509@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <libc-alpha-return-72468-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 Content-Disposition: inline
-In-Reply-To: <20160812220042.GF3296@wotan.suse.de>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.comx
+In-Reply-To: <5770B041.3040509@huawei.com>
+To: zhouchengming <zhouchengming1@huawei.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Aug 13, 2016 at 12:00:42AM +0200, Luis R. Rodriguez wrote:
-> On Fri, Aug 12, 2016 at 10:23:34PM +0200, Greg KH wrote:
-> > On Fri, Aug 12, 2016 at 07:04:52PM +0200, Luis R. Rodriguez wrote:
-> > > Alright, how's this new description:
-> > > 
-> > > diff --git a/init/Kconfig b/init/Kconfig
-> > > index cac3f096050d..73e4890c24c4 100644
-> > > --- a/init/Kconfig
-> > > +++ b/init/Kconfig
-> > > @@ -53,6 +53,34 @@ config CROSS_COMPILE
-> > >  	  need to set this unless you want the configured kernel build
-> > >  	  directory to select the cross-compiler automatically.
-> > >  
-> > > +config BUILD_AVOID_BITROT
-> > > +	bool "Always force building specially annotated targets"
-> > > +	default n
-> > > +	help
-> > > +	  If enabled then the the special table-* Makefile targets will always
-> > > +	  be forced to be compiled even if their respective CONFIG_ option has
-> > > +	  been disabled, but its objects will only be linked in if the same
-> > > +	  respective CONFIG_ option has been enabled. This helps avoid code
-> > > +	  bit rot issues, use for these targets should be carefully considred
-> > > +	  by maintainers. You can safely enable this option at the expense of
-> > > +	  increasing compile time. Enabling this option helps avoid code bit
-> > > +	  rot by taking advantage of the facilities provided and enabled by
-> > > +	  using linker tables documented under:
-> > 
-> > As a kernel developer I have _no_ idea what this is trying to say at
-> > all, sorry.
-> 
-> Hmm, wow OK, sorry, and I thought I was being too verbose...
+On Mon, Jun 27, 2016 at 12:49:05PM +0800, zhouchengming wrote:
+> The function compat_ptrace_request(used by ilp32) don't handle
+> {GET,SET}SIGMASK request, so it will be handled by ptrace_request.
+> But it's wrong because the compat_sigset_t of ilp32 differs from
+> the sigset_t of aarch64. The patch fixes it.
 
-All of your good explainations and detail need to go into the text
-itself.  Responding to my questions is wonderful, but is not going to
-help anyone out who sees the config option for the first time, unless
-you change the text there.
+Hi Zhou, all,
 
-> OK so first, linker tables allow for the ability to help simplify initialization
-> sequences so that you no longer have to add the respective static inline in
-> header files to do nothing, instead you simply get your init routine for your
-> feature pegged into the linker table or not at link time. If enabling your
-> feature does not require structural changes, you could then safely enable
-> compiling this feature all the time, and only allow linking when the feature
-> was enabled. We don't have an easy way to express this in our build system,
-> the new targets added lets you accomplish this.
+Reviewing your patch I found that we have 2 identical declarations of
+put_sigset_t() and get_sigset_t(). So I moved it under 
+arch/arm64/include/asm/signal32_common.h
 
-I still don't understand, sorry.
+I also reworked related code to remove unneeded function and variable
+declarations. With all that your patch is looking like below. You can
+try latest series here: https://github.com/norov/linux/tree/ilp32-4.8
 
-As a kernel developer, why do I care about this?  Who should care about
-this, a driver developer, subsystem developer, someone adding a syscall,
-an arch subsystem developer?
+It's based on v4.8, and addresses some comments. I'm going to meld
+this patch with current patchset as it basicly the bugfux and update
+submission when I'll finish with all comments.
 
-> > What is a "specially annotated target"?
-> 
-> The ones listed below, table-obj-y and table-lib-y
+Yury.
 
-circular logic doesn't work :)
 
-> > Who is forcing it to be built?
-> 
-> It would be up to maintainers for each subsystem/feature to decide if they want
-> to use the new targets or not within their subsystem.
+From 6a023da977713e9eade0a404c4f000d432d1fd67 Mon Sep 17 00:00:00 2001
+From: Yury Norov <ynorov@caviumnetworks.com>
+Date: Sat, 13 Aug 2016 17:36:59 +0300
+Subject: [PATCH] aaa
 
-Ok, as a maintainer of a subsystem, I still have no idea what any of
-this means.  But maybe I'm just don't understand kernel subsystem
-development...
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
+ arch/arm64/include/asm/signal32.h        |  3 ++
+ arch/arm64/include/asm/signal32_common.h |  3 ++
+ arch/arm64/include/asm/signal_ilp32.h    |  4 +++
+ arch/arm64/kernel/ptrace.c               | 47 ++++++++++++++++++++++++++++++--
+ arch/arm64/kernel/signal32.c             | 22 ---------------
+ arch/arm64/kernel/signal32_common.c      | 21 ++++++++++++++
+ arch/arm64/kernel/signal_ilp32.c         | 25 +----------------
+ 7 files changed, 76 insertions(+), 49 deletions(-)
 
-> > What does it mean if it isn't built?
-> 
-> If you have CONFIG_BUILD_AVOID_BITROT enabled and some code using the special
-> targets do not get built it means the dependencies it has were not met.
-
-What "dependencies"?
-
-> > > +
-> > > +	  include/linux/tables.h
-> > > +
-> > > +	  The special targets supported are:
-> > > +
-> > > +	    o table-obj-y
-> > > +	    o table-lib-y
-> > 
-> > What does this mean to me as a developer?
-> 
-> It mean you can count on a bit more build test coverage by
-> CONFIG_BUILD_AVOID_BITROT users. Using table-obj-y is functionally
-> equivalent to doing:
-> 
-> extra-y += foo.o
-> obj-y += foo.o
-
-Ok, but why change this?  What's the advantage?  Are you going to now go
-and change all locations of the above in the tree to the table-
-versions?  If not, why is this needed?
-
-> The above new targets are just short hand annotations for the same.  We could
-> actually use another shorthand prefix other than table-, however linker tables
-> help making more of these type of targets possible. For instance, on initialiation
-> sequences you no longer have to add each line for each feature onto a set routine,
-> rather you just get the initialization routine linked in or not. This lets us avoid
-> cluttering C code and header code with #idefs, and as a side consequences also
-> allows more targets to be compiled without implicating functionality.
-> 
-> As a developer you should take care to to use table-obj-y, or table-lib-y only if
-> you are certain the target does not require structural changes.
-
-How am I supposed to be "certain"?
-
-> > What does it mean to a user
-> > who wants to figure out if it should be enabled or not?
-> 
-> It depends on their build system capability and their goals. If they wish
-> to be able to report build bugs and have a decent build system they can
-> enable this. Otherwise they should disable it.
-
-Why is this differnent from CONFIG_TEST build option we have today (or
-whatever it's called...)
-
-Anyway, again, I have no idea what this is, nor how I should use it.
-And if I am the audience for this type of config option, well, perhaps
-it needs to be rethought...
-
-thanks,
-
-greg k-h
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index e68fcce..1c4ede7 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -13,6 +13,9 @@
+  * You should have received a copy of the GNU General Public License
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
++
++#include <asm/signal32_common.h>
++
+ #ifndef __ASM_SIGNAL32_H
+ #define __ASM_SIGNAL32_H
+ 
+diff --git a/arch/arm64/include/asm/signal32_common.h b/arch/arm64/include/asm/signal32_common.h
+index b4f2099..e3e2d01 100644
+--- a/arch/arm64/include/asm/signal32_common.h
++++ b/arch/arm64/include/asm/signal32_common.h
+@@ -19,6 +19,9 @@
+ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from);
+ int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from);
+ 
++int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set);
++int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset);
++
+ #endif /* CONFIG_COMPAT*/
+ 
+ #endif /* __ASM_SIGNAL32_COMMON_H */
+diff --git a/arch/arm64/include/asm/signal_ilp32.h b/arch/arm64/include/asm/signal_ilp32.h
+index 30eff23..3c6d737 100644
+--- a/arch/arm64/include/asm/signal_ilp32.h
++++ b/arch/arm64/include/asm/signal_ilp32.h
+@@ -11,6 +11,10 @@
+  * You should have received a copy of the GNU General Public License
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
++
++#include <asm/signal32_common.h>
++#include <asm/signal_common.h>
++
+ #ifndef __ASM_SIGNAL_ILP32_H
+ #define __ASM_SIGNAL_ILP32_H
+ 
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index e69c79a..4f0df07 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -41,6 +41,7 @@
+ 
+ #include <asm/debug-monitors.h>
+ #include <asm/pgtable.h>
++#include <asm/signal32_common.h>
+ #include <asm/syscall.h>
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+@@ -1332,15 +1333,55 @@ COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pi
+ 
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
+-#ifdef CONFIG_COMPAT
++#ifdef CONFIG_ARM64_ILP32
+ 
+ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+ 			compat_ulong_t caddr, compat_ulong_t cdata)
+ {
+-	return compat_ptrace_request(child, request, caddr, cdata);
++	sigset_t new_set;
++
++	switch (request) {
++	case PTRACE_GETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
++					&child->blocked);
++
++	case PTRACE_SETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
++			return -EFAULT;
++
++		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
++
++		/*
++		 * Every thread does recalc_sigpending() after resume, so
++		 * retarget_shared_pending() and recalc_sigpending() are not
++		 * called here.
++		 */
++		spin_lock_irq(&child->sighand->siglock);
++		child->blocked = new_set;
++		spin_unlock_irq(&child->sighand->siglock);
++
++		return 0;
++
++	default:
++		return compat_ptrace_request(child, request, caddr, cdata);
++	}
+ }
+ 
+-#endif /* CONFIG_COMPAT */
++#elif defined (CONFIG_COMPAT)
++
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++		compat_ulong_t caddr, compat_ulong_t cdata)
++{
++	return 0;
++}
++
++#endif
+ 
+ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ {
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index b103af3..f2c1a38 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -103,28 +103,6 @@ struct compat_rt_sigframe {
+ 
+ #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+ 
+-static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
+-{
+-	compat_sigset_t	cset;
+-
+-	cset.sig[0] = set->sig[0] & 0xffffffffull;
+-	cset.sig[1] = set->sig[0] >> 32;
+-
+-	return copy_to_user(uset, &cset, sizeof(*uset));
+-}
+-
+-static inline int get_sigset_t(sigset_t *set,
+-			       const compat_sigset_t __user *uset)
+-{
+-	compat_sigset_t s32;
+-
+-	if (copy_from_user(&s32, uset, sizeof(*uset)))
+-		return -EFAULT;
+-
+-	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
+-	return 0;
+-}
+-
+ /*
+  * VFP save/restore code.
+  *
+diff --git a/arch/arm64/kernel/signal32_common.c b/arch/arm64/kernel/signal32_common.c
+index 8fbb609..4a45aa6 100644
+--- a/arch/arm64/kernel/signal32_common.c
++++ b/arch/arm64/kernel/signal32_common.c
+@@ -28,6 +28,27 @@
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ 
++int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
++{
++	compat_sigset_t	cset;
++
++	cset.sig[0] = set->sig[0] & 0xffffffffull;
++	cset.sig[1] = set->sig[0] >> 32;
++
++	return copy_to_user(uset, &cset, sizeof(*uset));
++}
++
++int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset)
++{
++	compat_sigset_t s32;
++
++	if (copy_from_user(&s32, uset, sizeof(*uset)))
++		return -EFAULT;
++
++	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
++	return 0;
++}
++
+ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
+ {
+ 	int err;
+diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
+index 8ca64b9..7cc9122 100644
+--- a/arch/arm64/kernel/signal_ilp32.c
++++ b/arch/arm64/kernel/signal_ilp32.c
+@@ -26,8 +26,7 @@
+ 
+ #include <asm/esr.h>
+ #include <asm/fpsimd.h>
+-#include <asm/signal32_common.h>
+-#include <asm/signal_common.h>
++#include <asm/signal_ilp32.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ #include <asm/ucontext.h>
+@@ -58,28 +57,6 @@ struct ilp32_rt_sigframe {
+ 	struct ilp32_sigframe sig;
+ };
+ 
+-static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
+-{
+-	compat_sigset_t cset;
+-
+-	cset.sig[0] = set->sig[0] & 0xffffffffull;
+-	cset.sig[1] = set->sig[0] >> 32;
+-
+-	return copy_to_user(uset, &cset, sizeof(*uset));
+-}
+-
+-static inline int get_sigset_t(sigset_t *set,
+-                               const compat_sigset_t __user *uset)
+-{
+-	compat_sigset_t s32;
+-
+-	if (copy_from_user(&s32, uset, sizeof(*uset)))
+-		return -EFAULT;
+-
+-	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
+-	return 0;
+-}
+-
+ static int restore_ilp32_sigframe(struct pt_regs *regs,
+                             struct ilp32_sigframe __user *sf)
+ {
+-- 
+2.7.4
