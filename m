@@ -1,75 +1,79 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 18/19] arm64:ilp32: add vdso-ilp32 and use for signal
- return
-Date: Sat, 13 Aug 2016 17:54:03 +0300
-Message-ID: <20160813145403.GB24335@yury-N73SV>
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+Date: Sat, 13 Aug 2016 18:17:03 +0300
+Message-ID: <20160813151703.GC24335@yury-N73SV>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <1466207668-10549-19-git-send-email-ynorov@caviumnetworks.com>
- <mvminx3ud0m.fsf@hawking.suse.de>
+ <6457502.FRufylo3sd@wuerfel>
+ <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
+ <2034620.lN3lAEBAXs@wuerfel>
+ <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0088.outbound.protection.outlook.com ([104.47.36.88]:6784
-	"EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0053.outbound.protection.outlook.com ([104.47.33.53]:42653
+	"EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752384AbcHMOyR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 13 Aug 2016 10:54:17 -0400
+	id S1752398AbcHMPRU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 13 Aug 2016 11:17:20 -0400
 Content-Disposition: inline
-In-Reply-To: <mvminx3ud0m.fsf@hawking.suse.de>
+In-Reply-To: <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@suse.de>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muel
 
-On Mon, Jun 20, 2016 at 04:54:17PM +0200, Andreas Schwab wrote:
-> Yury Norov <ynorov@caviumnetworks.com> writes:
+On Fri, Aug 12, 2016 at 03:36:12PM +0100, Catalin Marinas wrote:
+> On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
+> > On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
+> > > > > > and you can have ARM binaries with
+> > > > > > PER_LINUX (using the arm64 uname) just like you can have
+> > > > > > arm64 binaries running with PER_LINUX32.
+> > > > > 
+> > > > > I was actually looking to enforce the 32-bit binaries to only see
+> > > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
+> > > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
+> > > > > 
+> > > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+> > > > > 
+> > > > > (you were summoned on that discussion couple of times ;))
+> > > > 
+> > > > Hmm, I thought I saw the thread and didn't have any good idea for
+> > > > the uname information, but didn't notice it was for /proc/cpuinfo.
+> > > > 
+> > > > What's wrong with always showing both the 32-bit and the 64-bit
+> > > > hwcap strings here (minus the duplicates, which hopefully have
+> > > > the same meaning here)?
+> > > 
+> > > As I said above, some of them have the same name (which may be a good
+> > > thing at a first look) but we don't have an architecture guarantee that
+> > > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
+> > > only be available in AArch64).
+> > 
+> > Is this the case on actual implementations that exist today? If they
+> > are actually always both present, we might be able to get away with it.
 > 
-> > diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-> > index 2a0de6f..e48ea34 100644
-> > --- a/arch/arm64/kernel/vdso.c
-> > +++ b/arch/arm64/kernel/vdso.c
-> > @@ -40,6 +40,12 @@ extern char vdso_start, vdso_end;
-> >  static unsigned long vdso_pages;
-> >  static struct page **vdso_pagelist;
-> >  
-> > +#ifdef CONFIG_ARM64_ILP32
-> > +extern char vdso_ilp32_start, vdso_ilp32_end;
-> > +static unsigned long vdso_ilp32_pages;
-> > +static struct page **vdso_ilp32_pagelist;
-> > +#endif
-> > +
-> >  /*
-> >   * The vDSO data page.
-> >   */
-> > @@ -110,24 +116,29 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
-> >  }
-> >  #endif /* CONFIG_AARCH32_EL0 */
-> >  
-> > -static struct vm_special_mapping vdso_spec[2];
-> > -
-> > -static int __init vdso_init(void)
-> > +static int __init vdso_init_common(char *vdso_start, char *vdso_end,
+> It may be fine on current implementations but what would we do when/if
+> we actually find such discrepancy? It's not just ARM Ltd designing the
+> chips, so as long as the architecture doesn't mandate it you may find
+> strange implementations.
 > 
-> Using the same name for the parameter as for the global variable is
-> dangerous ....
+> Imposing such restriction in the architecture doesn't make sense if the
+> only reason is the /proc/cpuinfo file (and I can't think of any other
+> reason why this should be enforced).
 > 
-> > +					  unsigned long *vdso_pagesp,
-> > +					  struct page ***vdso_pagelistp,
-> > +					  struct vm_special_mapping* vdso_spec)
-> >  {
-> >  	int i;
-> > +	unsigned long vdso_pages;
-> > +	struct page **vdso_pagelist;
-> >  
-> > -	if (memcmp(&vdso_start, "\177ELF", 4)) {
-> > +	if (memcmp(vdso_start, "\177ELF", 4)) {
-> 
-> ... because forgetting to remove & can be fatal, and your compiler may
-> not even warn you.
-> 
-> Andreas.
+> What I'm worried about is 32-bit apps running on an arm64 kernel and
+> making use of the 64-bit /proc/cpuinfo without any guarantee that the
+> AArch32 state has such features. In my patch proposal linked above I
+> wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
 
-Fixed. See here: https://github.com/norov/linux/tree/ilp32-4.8
-Thanks.
+The link doesn't work for me. Is there other link, or what's the
+maillist there?
+
+So, what we decided finally? Is my understanding correct that we leave
+everything as is in ilp32 series, and it will be resolved separately?
 
 Yury.
+
+> 
+> -- 
+> Catalin
