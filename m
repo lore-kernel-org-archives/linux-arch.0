@@ -1,80 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0053.outbound.protection.outlook.com ([104.47.33.53]:42653
-	"EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0061.outbound.protection.outlook.com ([104.47.40.61]:23225
+	"EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752398AbcHMPRU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 13 Aug 2016 11:17:20 -0400
-Date: Sat, 13 Aug 2016 18:17:03 +0300
+	id S1752648AbcHMP0r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 13 Aug 2016 11:26:47 -0400
+Date: Sat, 13 Aug 2016 17:52:28 +0300
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Message-ID: <20160813151703.GC24335@yury-N73SV>
+Subject: Re: [PATCH] ilp32: fix {GET,SET}SIGMASK request for ptrace
+Message-ID: <20160813145228.GA24335@yury-N73SV>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <6457502.FRufylo3sd@wuerfel>
- <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
- <2034620.lN3lAEBAXs@wuerfel>
- <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
+ <1466207668-10549-13-git-send-email-ynorov@caviumnetworks.com>
+ <5770B041.3040509@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
-In-Reply-To: <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
+In-Reply-To: <5770B041.3040509@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-Message-ID: <20160813151703.un0lYfFfh8_ahHYFJm0ye57Rti41ujAHHb3CEyx00C0@z>
+To: zhouchengming <zhouchengming1@huawei.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+Message-ID: <20160813145228.4mAbQFYOc_btACL3pSg2rr281XUeSD-GLWPAf5Buia8@z>
 
-On Fri, Aug 12, 2016 at 03:36:12PM +0100, Catalin Marinas wrote:
-> On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
-> > On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
-> > > > > > and you can have ARM binaries with
-> > > > > > PER_LINUX (using the arm64 uname) just like you can have
-> > > > > > arm64 binaries running with PER_LINUX32.
-> > > > > 
-> > > > > I was actually looking to enforce the 32-bit binaries to only see
-> > > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
-> > > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
-> > > > > 
-> > > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
-> > > > > 
-> > > > > (you were summoned on that discussion couple of times ;))
-> > > > 
-> > > > Hmm, I thought I saw the thread and didn't have any good idea for
-> > > > the uname information, but didn't notice it was for /proc/cpuinfo.
-> > > > 
-> > > > What's wrong with always showing both the 32-bit and the 64-bit
-> > > > hwcap strings here (minus the duplicates, which hopefully have
-> > > > the same meaning here)?
-> > > 
-> > > As I said above, some of them have the same name (which may be a good
-> > > thing at a first look) but we don't have an architecture guarantee that
-> > > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
-> > > only be available in AArch64).
-> > 
-> > Is this the case on actual implementations that exist today? If they
-> > are actually always both present, we might be able to get away with it.
-> 
-> It may be fine on current implementations but what would we do when/if
-> we actually find such discrepancy? It's not just ARM Ltd designing the
-> chips, so as long as the architecture doesn't mandate it you may find
-> strange implementations.
-> 
-> Imposing such restriction in the architecture doesn't make sense if the
-> only reason is the /proc/cpuinfo file (and I can't think of any other
-> reason why this should be enforced).
-> 
-> What I'm worried about is 32-bit apps running on an arm64 kernel and
-> making use of the 64-bit /proc/cpuinfo without any guarantee that the
-> AArch32 state has such features. In my patch proposal linked above I
-> wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
+On Mon, Jun 27, 2016 at 12:49:05PM +0800, zhouchengming wrote:
+> The function compat_ptrace_request(used by ilp32) don't handle
+> {GET,SET}SIGMASK request, so it will be handled by ptrace_request.
+> But it's wrong because the compat_sigset_t of ilp32 differs from
+> the sigset_t of aarch64. The patch fixes it.
 
-The link doesn't work for me. Is there other link, or what's the
-maillist there?
+Hi Zhou, all,
 
-So, what we decided finally? Is my understanding correct that we leave
-everything as is in ilp32 series, and it will be resolved separately?
+Reviewing your patch I found that we have 2 identical declarations of
+put_sigset_t() and get_sigset_t(). So I moved it under 
+arch/arm64/include/asm/signal32_common.h
+
+I also reworked related code to remove unneeded function and variable
+declarations. With all that your patch is looking like below. You can
+try latest series here: https://github.com/norov/linux/tree/ilp32-4.8
+
+It's based on v4.8, and addresses some comments. I'm going to meld
+this patch with current patchset as it basicly the bugfux and update
+submission when I'll finish with all comments.
 
 Yury.
-
-> 
-> -- 
-> Catalin
