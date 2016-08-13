@@ -1,154 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60562 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751566AbcHMKrH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Aug 2016 06:47:07 -0400
-Date: Sat, 13 Aug 2016 12:46:16 +0200
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Message-ID: <20160813104616.GA16348@kroah.com>
-References: <20160809035508.GC11445@nazgul.tnic>
- <20160812035129.GA3296@wotan.suse.de>
- <20160812052303.GB12013@nazgul.tnic>
- <20160812065011.GB3296@wotan.suse.de>
- <20160812072507.GC12013@nazgul.tnic>
- <20160812152805.GD3296@wotan.suse.de>
- <20160812155121.GB13315@nazgul.tnic>
- <20160812170451.GE3296@wotan.suse.de>
- <20160812202334.GA10199@kroah.com>
- <20160812220042.GF3296@wotan.suse.de>
+Received: from mail-bn3nam01on0053.outbound.protection.outlook.com ([104.47.33.53]:42653
+	"EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752398AbcHMPRU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 13 Aug 2016 11:17:20 -0400
+Date: Sat, 13 Aug 2016 18:17:03 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+Message-ID: <20160813151703.GC24335@yury-N73SV>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <6457502.FRufylo3sd@wuerfel>
+ <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
+ <2034620.lN3lAEBAXs@wuerfel>
+ <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
-In-Reply-To: <20160812220042.GF3296@wotan.suse.de>
+In-Reply-To: <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, ciaran.farrell@suse.com, christopher.denicolo@suse.com, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jpoimboe@redhat.com
-Message-ID: <20160813104616.fMYgaX8DZi02jO13NWDS1ASCjHC6fjotaxJzflroigM@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Message-ID: <20160813151703.un0lYfFfh8_ahHYFJm0ye57Rti41ujAHHb3CEyx00C0@z>
 
-On Sat, Aug 13, 2016 at 12:00:42AM +0200, Luis R. Rodriguez wrote:
-> On Fri, Aug 12, 2016 at 10:23:34PM +0200, Greg KH wrote:
-> > On Fri, Aug 12, 2016 at 07:04:52PM +0200, Luis R. Rodriguez wrote:
-> > > Alright, how's this new description:
+On Fri, Aug 12, 2016 at 03:36:12PM +0100, Catalin Marinas wrote:
+> On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
+> > On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
+> > > > > > and you can have ARM binaries with
+> > > > > > PER_LINUX (using the arm64 uname) just like you can have
+> > > > > > arm64 binaries running with PER_LINUX32.
+> > > > > 
+> > > > > I was actually looking to enforce the 32-bit binaries to only see
+> > > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
+> > > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
+> > > > > 
+> > > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+> > > > > 
+> > > > > (you were summoned on that discussion couple of times ;))
+> > > > 
+> > > > Hmm, I thought I saw the thread and didn't have any good idea for
+> > > > the uname information, but didn't notice it was for /proc/cpuinfo.
+> > > > 
+> > > > What's wrong with always showing both the 32-bit and the 64-bit
+> > > > hwcap strings here (minus the duplicates, which hopefully have
+> > > > the same meaning here)?
 > > > 
-> > > diff --git a/init/Kconfig b/init/Kconfig
-> > > index cac3f096050d..73e4890c24c4 100644
-> > > --- a/init/Kconfig
-> > > +++ b/init/Kconfig
-> > > @@ -53,6 +53,34 @@ config CROSS_COMPILE
-> > >  	  need to set this unless you want the configured kernel build
-> > >  	  directory to select the cross-compiler automatically.
-> > >  
-> > > +config BUILD_AVOID_BITROT
-> > > +	bool "Always force building specially annotated targets"
-> > > +	default n
-> > > +	help
-> > > +	  If enabled then the the special table-* Makefile targets will always
-> > > +	  be forced to be compiled even if their respective CONFIG_ option has
-> > > +	  been disabled, but its objects will only be linked in if the same
-> > > +	  respective CONFIG_ option has been enabled. This helps avoid code
-> > > +	  bit rot issues, use for these targets should be carefully considred
-> > > +	  by maintainers. You can safely enable this option at the expense of
-> > > +	  increasing compile time. Enabling this option helps avoid code bit
-> > > +	  rot by taking advantage of the facilities provided and enabled by
-> > > +	  using linker tables documented under:
+> > > As I said above, some of them have the same name (which may be a good
+> > > thing at a first look) but we don't have an architecture guarantee that
+> > > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
+> > > only be available in AArch64).
 > > 
-> > As a kernel developer I have _no_ idea what this is trying to say at
-> > all, sorry.
+> > Is this the case on actual implementations that exist today? If they
+> > are actually always both present, we might be able to get away with it.
 > 
-> Hmm, wow OK, sorry, and I thought I was being too verbose...
-
-All of your good explainations and detail need to go into the text
-itself.  Responding to my questions is wonderful, but is not going to
-help anyone out who sees the config option for the first time, unless
-you change the text there.
-
-> OK so first, linker tables allow for the ability to help simplify initialization
-> sequences so that you no longer have to add the respective static inline in
-> header files to do nothing, instead you simply get your init routine for your
-> feature pegged into the linker table or not at link time. If enabling your
-> feature does not require structural changes, you could then safely enable
-> compiling this feature all the time, and only allow linking when the feature
-> was enabled. We don't have an easy way to express this in our build system,
-> the new targets added lets you accomplish this.
-
-I still don't understand, sorry.
-
-As a kernel developer, why do I care about this?  Who should care about
-this, a driver developer, subsystem developer, someone adding a syscall,
-an arch subsystem developer?
-
-> > What is a "specially annotated target"?
+> It may be fine on current implementations but what would we do when/if
+> we actually find such discrepancy? It's not just ARM Ltd designing the
+> chips, so as long as the architecture doesn't mandate it you may find
+> strange implementations.
 > 
-> The ones listed below, table-obj-y and table-lib-y
-
-circular logic doesn't work :)
-
-> > Who is forcing it to be built?
+> Imposing such restriction in the architecture doesn't make sense if the
+> only reason is the /proc/cpuinfo file (and I can't think of any other
+> reason why this should be enforced).
 > 
-> It would be up to maintainers for each subsystem/feature to decide if they want
-> to use the new targets or not within their subsystem.
+> What I'm worried about is 32-bit apps running on an arm64 kernel and
+> making use of the 64-bit /proc/cpuinfo without any guarantee that the
+> AArch32 state has such features. In my patch proposal linked above I
+> wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
 
-Ok, as a maintainer of a subsystem, I still have no idea what any of
-this means.  But maybe I'm just don't understand kernel subsystem
-development...
+The link doesn't work for me. Is there other link, or what's the
+maillist there?
 
-> > What does it mean if it isn't built?
+So, what we decided finally? Is my understanding correct that we leave
+everything as is in ilp32 series, and it will be resolved separately?
+
+Yury.
+
 > 
-> If you have CONFIG_BUILD_AVOID_BITROT enabled and some code using the special
-> targets do not get built it means the dependencies it has were not met.
-
-What "dependencies"?
-
-> > > +
-> > > +	  include/linux/tables.h
-> > > +
-> > > +	  The special targets supported are:
-> > > +
-> > > +	    o table-obj-y
-> > > +	    o table-lib-y
-> > 
-> > What does this mean to me as a developer?
-> 
-> It mean you can count on a bit more build test coverage by
-> CONFIG_BUILD_AVOID_BITROT users. Using table-obj-y is functionally
-> equivalent to doing:
-> 
-> extra-y += foo.o
-> obj-y += foo.o
-
-Ok, but why change this?  What's the advantage?  Are you going to now go
-and change all locations of the above in the tree to the table-
-versions?  If not, why is this needed?
-
-> The above new targets are just short hand annotations for the same.  We could
-> actually use another shorthand prefix other than table-, however linker tables
-> help making more of these type of targets possible. For instance, on initialiation
-> sequences you no longer have to add each line for each feature onto a set routine,
-> rather you just get the initialization routine linked in or not. This lets us avoid
-> cluttering C code and header code with #idefs, and as a side consequences also
-> allows more targets to be compiled without implicating functionality.
-> 
-> As a developer you should take care to to use table-obj-y, or table-lib-y only if
-> you are certain the target does not require structural changes.
-
-How am I supposed to be "certain"?
-
-> > What does it mean to a user
-> > who wants to figure out if it should be enabled or not?
-> 
-> It depends on their build system capability and their goals. If they wish
-> to be able to report build bugs and have a decent build system they can
-> enable this. Otherwise they should disable it.
-
-Why is this differnent from CONFIG_TEST build option we have today (or
-whatever it's called...)
-
-Anyway, again, I have no idea what this is, nor how I should use it.
-And if I am the audience for this type of config option, well, perhaps
-it needs to be rethought...
-
-thanks,
-
-greg k-h
+> -- 
+> Catalin
