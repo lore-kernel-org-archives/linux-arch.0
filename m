@@ -1,150 +1,87 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [RFC v3 07/13] tables.h: add linker table support
-Date: Sat, 13 Aug 2016 19:54:08 +0200
-Message-ID: <20160813175408.GG3296@wotan.suse.de>
-References: <20160812035129.GA3296@wotan.suse.de>
- <20160812052303.GB12013@nazgul.tnic>
- <20160812065011.GB3296@wotan.suse.de>
- <20160812072507.GC12013@nazgul.tnic>
- <20160812152805.GD3296@wotan.suse.de>
- <20160812155121.GB13315@nazgul.tnic>
- <20160812170451.GE3296@wotan.suse.de>
- <20160812202334.GA10199@kroah.com>
- <20160812220042.GF3296@wotan.suse.de>
- <20160813104616.GA16348@kroah.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+Date: Mon, 15 Aug 2016 10:38:23 +0100
+Message-ID: <20160815093822.GA22320@e104818-lin.cambridge.arm.com>
+References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
+ <6457502.FRufylo3sd@wuerfel>
+ <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
+ <2034620.lN3lAEBAXs@wuerfel>
+ <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
+ <20160813151703.GC24335@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:39323 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752850AbcHOJia (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Aug 2016 05:38:30 -0400
 Content-Disposition: inline
-In-Reply-To: <20160813104616.GA16348@kroah.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, david.vrabel@citrix.com, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, realmz6@gmail.com, linux@rasmusvillemoes.dk, rusty@rustcorp.com.au, rostedt@goodmis.org, christopher.denicolo@suse.com, jbaron@akamai.com, ananth@linux.vnet.ibm.com, Borislav
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20160813151703.GC24335@yury-N73SV>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 
-T24gU2F0LCBBdWcgMTMsIDIwMTYgYXQgMTI6NDY6MTZQTSArMDIwMCwgR3JlZyBLSCB3cm90ZToK
-PiBPbiBTYXQsIEF1ZyAxMywgMjAxNiBhdCAxMjowMDo0MkFNICswMjAwLCBMdWlzIFIuIFJvZHJp
-Z3VleiB3cm90ZToKPiA+IE9uIEZyaSwgQXVnIDEyLCAyMDE2IGF0IDEwOjIzOjM0UE0gKzAyMDAs
-IEdyZWcgS0ggd3JvdGU6Cj4gPiA+IE9uIEZyaSwgQXVnIDEyLCAyMDE2IGF0IDA3OjA0OjUyUE0g
-KzAyMDAsIEx1aXMgUi4gUm9kcmlndWV6IHdyb3RlOgo+ID4gPiA+IEFscmlnaHQsIGhvdydzIHRo
-aXMgbmV3IGRlc2NyaXB0aW9uOgo+ID4gPiA+IAo+ID4gPiA+IGRpZmYgLS1naXQgYS9pbml0L0tj
-b25maWcgYi9pbml0L0tjb25maWcKPiA+ID4gPiBpbmRleCBjYWMzZjA5NjA1MGQuLjczZTQ4OTBj
-MjRjNCAxMDA2NDQKPiA+ID4gPiAtLS0gYS9pbml0L0tjb25maWcKPiA+ID4gPiArKysgYi9pbml0
-L0tjb25maWcKPiA+ID4gPiBAQCAtNTMsNiArNTMsMzQgQEAgY29uZmlnIENST1NTX0NPTVBJTEUK
-PiA+ID4gPiAgCSAgbmVlZCB0byBzZXQgdGhpcyB1bmxlc3MgeW91IHdhbnQgdGhlIGNvbmZpZ3Vy
-ZWQga2VybmVsIGJ1aWxkCj4gPiA+ID4gIAkgIGRpcmVjdG9yeSB0byBzZWxlY3QgdGhlIGNyb3Nz
-LWNvbXBpbGVyIGF1dG9tYXRpY2FsbHkuCj4gPiA+ID4gIAo+ID4gPiA+ICtjb25maWcgQlVJTERf
-QVZPSURfQklUUk9UCj4gPiA+ID4gKwlib29sICJBbHdheXMgZm9yY2UgYnVpbGRpbmcgc3BlY2lh
-bGx5IGFubm90YXRlZCB0YXJnZXRzIgo+ID4gPiA+ICsJZGVmYXVsdCBuCj4gPiA+ID4gKwloZWxw
-Cj4gPiA+ID4gKwkgIElmIGVuYWJsZWQgdGhlbiB0aGUgdGhlIHNwZWNpYWwgdGFibGUtKiBNYWtl
-ZmlsZSB0YXJnZXRzIHdpbGwgYWx3YXlzCj4gPiA+ID4gKwkgIGJlIGZvcmNlZCB0byBiZSBjb21w
-aWxlZCBldmVuIGlmIHRoZWlyIHJlc3BlY3RpdmUgQ09ORklHXyBvcHRpb24gaGFzCj4gPiA+ID4g
-KwkgIGJlZW4gZGlzYWJsZWQsIGJ1dCBpdHMgb2JqZWN0cyB3aWxsIG9ubHkgYmUgbGlua2VkIGlu
-IGlmIHRoZSBzYW1lCj4gPiA+ID4gKwkgIHJlc3BlY3RpdmUgQ09ORklHXyBvcHRpb24gaGFzIGJl
-ZW4gZW5hYmxlZC4gVGhpcyBoZWxwcyBhdm9pZCBjb2RlCj4gPiA+ID4gKwkgIGJpdCByb3QgaXNz
-dWVzLCB1c2UgZm9yIHRoZXNlIHRhcmdldHMgc2hvdWxkIGJlIGNhcmVmdWxseSBjb25zaWRyZWQK
-PiA+ID4gPiArCSAgYnkgbWFpbnRhaW5lcnMuIFlvdSBjYW4gc2FmZWx5IGVuYWJsZSB0aGlzIG9w
-dGlvbiBhdCB0aGUgZXhwZW5zZSBvZgo+ID4gPiA+ICsJICBpbmNyZWFzaW5nIGNvbXBpbGUgdGlt
-ZS4gRW5hYmxpbmcgdGhpcyBvcHRpb24gaGVscHMgYXZvaWQgY29kZSBiaXQKPiA+ID4gPiArCSAg
-cm90IGJ5IHRha2luZyBhZHZhbnRhZ2Ugb2YgdGhlIGZhY2lsaXRpZXMgcHJvdmlkZWQgYW5kIGVu
-YWJsZWQgYnkKPiA+ID4gPiArCSAgdXNpbmcgbGlua2VyIHRhYmxlcyBkb2N1bWVudGVkIHVuZGVy
-Ogo+ID4gPiAKPiA+ID4gQXMgYSBrZXJuZWwgZGV2ZWxvcGVyIEkgaGF2ZSBfbm9fIGlkZWEgd2hh
-dCB0aGlzIGlzIHRyeWluZyB0byBzYXkgYXQKPiA+ID4gYWxsLCBzb3JyeS4KPiA+IAo+ID4gSG1t
-LCB3b3cgT0ssIHNvcnJ5LCBhbmQgSSB0aG91Z2h0IEkgd2FzIGJlaW5nIHRvbyB2ZXJib3NlLi4u
-Cj4gCj4gQWxsIG9mIHlvdXIgZ29vZCBleHBsYWluYXRpb25zIGFuZCBkZXRhaWwgbmVlZCB0byBn
-byBpbnRvIHRoZSB0ZXh0Cj4gaXRzZWxmLiAgUmVzcG9uZGluZyB0byBteSBxdWVzdGlvbnMgaXMg
-d29uZGVyZnVsLCBidXQgaXMgbm90IGdvaW5nIHRvCj4gaGVscCBhbnlvbmUgb3V0IHdobyBzZWVz
-IHRoZSBjb25maWcgb3B0aW9uIGZvciB0aGUgZmlyc3QgdGltZSwgdW5sZXNzCj4geW91IGNoYW5n
-ZSB0aGUgdGV4dCB0aGVyZS4KClN1cmUuCgo+ID4gT0sgc28gZmlyc3QsIGxpbmtlciB0YWJsZXMg
-YWxsb3cgZm9yIHRoZSBhYmlsaXR5IHRvIGhlbHAgc2ltcGxpZnkgaW5pdGlhbGl6YXRpb24KPiA+
-IHNlcXVlbmNlcyBzbyB0aGF0IHlvdSBubyBsb25nZXIgaGF2ZSB0byBhZGQgdGhlIHJlc3BlY3Rp
-dmUgc3RhdGljIGlubGluZSBpbgo+ID4gaGVhZGVyIGZpbGVzIHRvIGRvIG5vdGhpbmcsIGluc3Rl
-YWQgeW91IHNpbXBseSBnZXQgeW91ciBpbml0IHJvdXRpbmUgZm9yIHlvdXIKPiA+IGZlYXR1cmUg
-cGVnZ2VkIGludG8gdGhlIGxpbmtlciB0YWJsZSBvciBub3QgYXQgbGluayB0aW1lLiBJZiBlbmFi
-bGluZyB5b3VyCj4gPiBmZWF0dXJlIGRvZXMgbm90IHJlcXVpcmUgc3RydWN0dXJhbCBjaGFuZ2Vz
-LCB5b3UgY291bGQgdGhlbiBzYWZlbHkgZW5hYmxlCj4gPiBjb21waWxpbmcgdGhpcyBmZWF0dXJl
-IGFsbCB0aGUgdGltZSwgYW5kIG9ubHkgYWxsb3cgbGlua2luZyB3aGVuIHRoZSBmZWF0dXJlCj4g
-PiB3YXMgZW5hYmxlZC4gV2UgZG9uJ3QgaGF2ZSBhbiBlYXN5IHdheSB0byBleHByZXNzIHRoaXMg
-aW4gb3VyIGJ1aWxkIHN5c3RlbSwKPiA+IHRoZSBuZXcgdGFyZ2V0cyBhZGRlZCBsZXRzIHlvdSBh
-Y2NvbXBsaXNoIHRoaXMuCj4gCj4gSSBzdGlsbCBkb24ndCB1bmRlcnN0YW5kLCBzb3JyeS4KPiAK
-PiBBcyBhIGtlcm5lbCBkZXZlbG9wZXIsIHdoeSBkbyBJIGNhcmUgYWJvdXQgdGhpcz8gIFdobyBz
-aG91bGQgY2FyZSBhYm91dAo+IHRoaXMsIGEgZHJpdmVyIGRldmVsb3Blciwgc3Vic3lzdGVtIGRl
-dmVsb3Blciwgc29tZW9uZSBhZGRpbmcgYSBzeXNjYWxsLAo+IGFuIGFyY2ggc3Vic3lzdGVtIGRl
-dmVsb3Blcj8KCkknbGwgdHJ5IHRvIGV4cGxhaW4gdGhpcyBtb3JlLgoKPiA+ID4gV2hhdCBpcyBh
-ICJzcGVjaWFsbHkgYW5ub3RhdGVkIHRhcmdldCI/Cj4gPiAKPiA+IFRoZSBvbmVzIGxpc3RlZCBi
-ZWxvdywgdGFibGUtb2JqLXkgYW5kIHRhYmxlLWxpYi15Cj4gCj4gY2lyY3VsYXIgbG9naWMgZG9l
-c24ndCB3b3JrIDopCj4gCj4gPiA+IFdobyBpcyBmb3JjaW5nIGl0IHRvIGJlIGJ1aWx0Pwo+ID4g
-Cj4gPiBJdCB3b3VsZCBiZSB1cCB0byBtYWludGFpbmVycyBmb3IgZWFjaCBzdWJzeXN0ZW0vZmVh
-dHVyZSB0byBkZWNpZGUgaWYgdGhleSB3YW50Cj4gPiB0byB1c2UgdGhlIG5ldyB0YXJnZXRzIG9y
-IG5vdCB3aXRoaW4gdGhlaXIgc3Vic3lzdGVtLgo+IAo+IE9rLCBhcyBhIG1haW50YWluZXIgb2Yg
-YSBzdWJzeXN0ZW0sIEkgc3RpbGwgaGF2ZSBubyBpZGVhIHdoYXQgYW55IG9mCj4gdGhpcyBtZWFu
-cy4gIEJ1dCBtYXliZSBJJ20ganVzdCBkb24ndCB1bmRlcnN0YW5kIGtlcm5lbCBzdWJzeXN0ZW0K
-PiBkZXZlbG9wbWVudC4uLgoKSmVlc2gsIE9LLCB3aWxsIGdpdmUgaXQgb25lIG1vcmUgZ28uCgo+
-ID4gPiBXaGF0IGRvZXMgaXQgbWVhbiBpZiBpdCBpc24ndCBidWlsdD8KPiA+IAo+ID4gSWYgeW91
-IGhhdmUgQ09ORklHX0JVSUxEX0FWT0lEX0JJVFJPVCBlbmFibGVkIGFuZCBzb21lIGNvZGUgdXNp
-bmcgdGhlIHNwZWNpYWwKPiA+IHRhcmdldHMgZG8gbm90IGdldCBidWlsdCBpdCBtZWFucyB0aGUg
-ZGVwZW5kZW5jaWVzIGl0IGhhcyB3ZXJlIG5vdCBtZXQuCj4gCj4gV2hhdCAiZGVwZW5kZW5jaWVz
-Ij8KCldpbGwgZWxhYm9yYXRlLgoKPiA+ID4gPiArCj4gPiA+ID4gKwkgIGluY2x1ZGUvbGludXgv
-dGFibGVzLmgKPiA+ID4gPiArCj4gPiA+ID4gKwkgIFRoZSBzcGVjaWFsIHRhcmdldHMgc3VwcG9y
-dGVkIGFyZToKPiA+ID4gPiArCj4gPiA+ID4gKwkgICAgbyB0YWJsZS1vYmoteQo+ID4gPiA+ICsJ
-ICAgIG8gdGFibGUtbGliLXkKPiA+ID4gCj4gPiA+IFdoYXQgZG9lcyB0aGlzIG1lYW4gdG8gbWUg
-YXMgYSBkZXZlbG9wZXI/Cj4gPiAKPiA+IEl0IG1lYW4geW91IGNhbiBjb3VudCBvbiBhIGJpdCBt
-b3JlIGJ1aWxkIHRlc3QgY292ZXJhZ2UgYnkKPiA+IENPTkZJR19CVUlMRF9BVk9JRF9CSVRST1Qg
-dXNlcnMuIFVzaW5nIHRhYmxlLW9iai15IGlzIGZ1bmN0aW9uYWxseQo+ID4gZXF1aXZhbGVudCB0
-byBkb2luZzoKPiA+IAo+ID4gZXh0cmEteSArPSBmb28ubwo+ID4gb2JqLXkgKz0gZm9vLm8KPiAK
-PiBPaywgYnV0IHdoeSBjaGFuZ2UgdGhpcz8gIFdoYXQncyB0aGUgYWR2YW50YWdlPyAgQXJlIHlv
-dSBnb2luZyB0byBub3cgZ28KPiBhbmQgY2hhbmdlIGFsbCBsb2NhdGlvbnMgb2YgdGhlIGFib3Zl
-IGluIHRoZSB0cmVlIHRvIHRoZSB0YWJsZS0KPiB2ZXJzaW9ucz8gIElmIG5vdCwgd2h5IGlzIHRo
-aXMgbmVlZGVkPwoKSGVsbCBubywgdGhlIGdhaW4gaGVyZSBpcyBjbGVhciBhbm5vdGF0aW9uIG9m
-IHdoZW4gdGhpcyBwcmFjdGljZSBpcyB1c2VkLgpMaW5rZXIgdGFibGUgdXNlIGNvdWxkIG1ha2Ug
-dGhpcyBwcmFjdGljZSBtb3JlIHByZXZhbGVudC4KCj4gPiBUaGUgYWJvdmUgbmV3IHRhcmdldHMg
-YXJlIGp1c3Qgc2hvcnQgaGFuZCBhbm5vdGF0aW9ucyBmb3IgdGhlIHNhbWUuICBXZSBjb3VsZAo+
-ID4gYWN0dWFsbHkgdXNlIGFub3RoZXIgc2hvcnRoYW5kIHByZWZpeCBvdGhlciB0aGFuIHRhYmxl
-LSwgaG93ZXZlciBsaW5rZXIgdGFibGVzCj4gPiBoZWxwIG1ha2luZyBtb3JlIG9mIHRoZXNlIHR5
-cGUgb2YgdGFyZ2V0cyBwb3NzaWJsZS4gRm9yIGluc3RhbmNlLCBvbiBpbml0aWFsaWF0aW9uCj4g
-PiBzZXF1ZW5jZXMgeW91IG5vIGxvbmdlciBoYXZlIHRvIGFkZCBlYWNoIGxpbmUgZm9yIGVhY2gg
-ZmVhdHVyZSBvbnRvIGEgc2V0IHJvdXRpbmUsCj4gPiByYXRoZXIgeW91IGp1c3QgZ2V0IHRoZSBp
-bml0aWFsaXphdGlvbiByb3V0aW5lIGxpbmtlZCBpbiBvciBub3QuIFRoaXMgbGV0cyB1cyBhdm9p
-ZAo+ID4gY2x1dHRlcmluZyBDIGNvZGUgYW5kIGhlYWRlciBjb2RlIHdpdGggI2lkZWZzLCBhbmQg
-YXMgYSBzaWRlIGNvbnNlcXVlbmNlcyBhbHNvCj4gPiBhbGxvd3MgbW9yZSB0YXJnZXRzIHRvIGJl
-IGNvbXBpbGVkIHdpdGhvdXQgaW1wbGljYXRpbmcgZnVuY3Rpb25hbGl0eS4KPiA+IAo+ID4gQXMg
-YSBkZXZlbG9wZXIgeW91IHNob3VsZCB0YWtlIGNhcmUgdG8gdG8gdXNlIHRhYmxlLW9iai15LCBv
-ciB0YWJsZS1saWIteSBvbmx5IGlmCj4gPiB5b3UgYXJlIGNlcnRhaW4gdGhlIHRhcmdldCBkb2Vz
-IG5vdCByZXF1aXJlIHN0cnVjdHVyYWwgY2hhbmdlcy4KPiAKPiBIb3cgYW0gSSBzdXBwb3NlZCB0
-byBiZSAiY2VydGFpbiI/CgpDb21waWxlIHRlc3RpbmcgaXMgb25lIGVhc3kgd2F5LCBidXQgYmV0
-dGVyIHlldCB1bmRlcnN0YW5kaW5nIHRoZSBjb2RlIGlzCmJlc3QuIFRoZSBzdHJ1Y3R1cmFsIGNo
-YW5nZSBjb21wbGljYXRpb24gd2FzIG9uZSBjb25zaWRlcmF0aW9uIHRoYXQgY2FtZQp0byBtaW5k
-LgoKPiA+ID4gV2hhdCBkb2VzIGl0IG1lYW4gdG8gYSB1c2VyCj4gPiA+IHdobyB3YW50cyB0byBm
-aWd1cmUgb3V0IGlmIGl0IHNob3VsZCBiZSBlbmFibGVkIG9yIG5vdD8KPiA+IAo+ID4gSXQgZGVw
-ZW5kcyBvbiB0aGVpciBidWlsZCBzeXN0ZW0gY2FwYWJpbGl0eSBhbmQgdGhlaXIgZ29hbHMuIElm
-IHRoZXkgd2lzaAo+ID4gdG8gYmUgYWJsZSB0byByZXBvcnQgYnVpbGQgYnVncyBhbmQgaGF2ZSBh
-IGRlY2VudCBidWlsZCBzeXN0ZW0gdGhleSBjYW4KPiA+IGVuYWJsZSB0aGlzLiBPdGhlcndpc2Ug
-dGhleSBzaG91bGQgZGlzYWJsZSBpdC4KPiAKPiBXaHkgaXMgdGhpcyBkaWZmZXJuZW50IGZyb20g
-Q09ORklHX1RFU1QgYnVpbGQgb3B0aW9uIHdlIGhhdmUgdG9kYXkgKG9yCj4gd2hhdGV2ZXIgaXQn
-cyBjYWxsZWQuLi4pCgpXZSBjb3VsZCBmb2xkIGl0IHVuZGVyIHRoYXQsIHN1cmUuCgo+IEFueXdh
-eSwgYWdhaW4sIEkgaGF2ZSBubyBpZGVhIHdoYXQgdGhpcyBpcywgbm9yIGhvdyBJIHNob3VsZCB1
-c2UgaXQuCj4gQW5kIGlmIEkgYW0gdGhlIGF1ZGllbmNlIGZvciB0aGlzIHR5cGUgb2YgY29uZmln
-IG9wdGlvbiwgd2VsbCwgcGVyaGFwcwo+IGl0IG5lZWRzIHRvIGJlIHJldGhvdWdodC4uLgoKQWxy
-aWdodCwgSSdsbCByaXAgYWxsIHRoaXMgY29kZSBiaXQgcm90IHRoaW5ncyBvdXQgaW50byBpdHMg
-b3duIHNlcGFyYXRlCnBhdGNoIGZvciBLYnVpbGQgY2hhbmdlcywgZG9jdW1lbnRhdGlvbiwgZXRj
-LCBhbmQgc2VlIGlmIHRoaXMgaGVscHMuIE90aGVyd2lzZQp3ZSBjYW4gZXZhbHVhdGUgaWYgd2Ug
-c2hvdWxkIGp1c3QgZHJvcCBpdC4gS2VlcCBpbiBtaW5kIHRoYXQgaVBYRSBhY3R1YWxseQp1c2Vk
-IGl0IGZvciB0aGlzIHB1cnBvc2UgYW5kIGVuYWJsZWQgaXQgdHJlZSB3aWRlLCBzaW5jZSBJIGtu
-ZXcgaXQgd291bGQKbGlrZWx5IG5vdCBiZSBhIHBvcHVsYXIgb3B0aW9uIGZvciBzb21lIEkgZmln
-dXJlZCBhbiBvcHRpb25hbCBidWlsZCB0YXJnZXQKd291bGQgYmUgYmV0dGVyLiBUaGUgcmVzdCBp
-cyB1cCB0byBtZSB0byB0cnkgdG8gZXhwbGFpbiB0aGVuIGhvdyBhbmQgd2h5IHNvbWUKZm9sa3Mg
-bWlnaHQgd2FudCB0aGlzLiBMaW5rZXIgdGFibGVzIGp1c3QgbWFrZSBpdCBhbiBlYXNpZXIgcHJh
-Y3RpY2UgdG8KdXNlIGR1ZSB0byB0aGUgc2ltcGxpY2F0aW9uIG9mIGNvZGUgZnJvbSAjaWZkZWYg
-c3RhdGVtZW50cyBvbiBLY29uZmlnCnN5bWJvbHMuCgpJJ2xsIGFkZHJlc3MgYWxsIHRoaXMgdGhl
-biBzZXBhcmF0ZWx5IGluIG15IG5leHQgcmVzcGluLiBJdCB3aWxsIGJlIGl0cyBvd24Kc2VwYXJh
-dGUgcGF0Y2guCgogIEx1aXMKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcK
-aHR0cHM6Ly9saXN0cy54ZW4ub3JnL3hlbi1kZXZlbAo=
+On Sat, Aug 13, 2016 at 06:17:03PM +0300, Yury Norov wrote:
+> On Fri, Aug 12, 2016 at 03:36:12PM +0100, Catalin Marinas wrote:
+> > On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
+> > > On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
+> > > > > > > and you can have ARM binaries with
+> > > > > > > PER_LINUX (using the arm64 uname) just like you can have
+> > > > > > > arm64 binaries running with PER_LINUX32.
+> > > > > > 
+> > > > > > I was actually looking to enforce the 32-bit binaries to only see
+> > > > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
+> > > > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
+> > > > > > 
+> > > > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+> > > > > > 
+> > > > > > (you were summoned on that discussion couple of times ;))
+> > > > > 
+> > > > > Hmm, I thought I saw the thread and didn't have any good idea for
+> > > > > the uname information, but didn't notice it was for /proc/cpuinfo.
+> > > > > 
+> > > > > What's wrong with always showing both the 32-bit and the 64-bit
+> > > > > hwcap strings here (minus the duplicates, which hopefully have
+> > > > > the same meaning here)?
+> > > > 
+> > > > As I said above, some of them have the same name (which may be a good
+> > > > thing at a first look) but we don't have an architecture guarantee that
+> > > > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
+> > > > only be available in AArch64).
+> > > 
+> > > Is this the case on actual implementations that exist today? If they
+> > > are actually always both present, we might be able to get away with it.
+> > 
+> > It may be fine on current implementations but what would we do when/if
+> > we actually find such discrepancy? It's not just ARM Ltd designing the
+> > chips, so as long as the architecture doesn't mandate it you may find
+> > strange implementations.
+> > 
+> > Imposing such restriction in the architecture doesn't make sense if the
+> > only reason is the /proc/cpuinfo file (and I can't think of any other
+> > reason why this should be enforced).
+> > 
+> > What I'm worried about is 32-bit apps running on an arm64 kernel and
+> > making use of the 64-bit /proc/cpuinfo without any guarantee that the
+> > AArch32 state has such features. In my patch proposal linked above I
+> > wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
+> 
+> The link doesn't work for me. Is there other link, or what's the
+> maillist there?
+
+With lkml.kernel.org, just change the 'g' with an 'r':
+
+http://lkml.kernel.org/r/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+
+It was on linux-arm-kernel.
+
+> So, what we decided finally? Is my understanding correct that we leave
+> everything as is in ilp32 series, and it will be resolved separately?
+
+ILP32 is not affected by this since the hwcap for ILP32 should match
+native. It was more a question about whether AArch32 tasks should ever
+have access to AArch64 hwcaps (and potential misuse).
+
+-- 
+Catalin
