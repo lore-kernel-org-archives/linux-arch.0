@@ -1,87 +1,112 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 05/19] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Date: Mon, 15 Aug 2016 10:38:23 +0100
-Message-ID: <20160815093822.GA22320@e104818-lin.cambridge.arm.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 01/19] compat ABI: use non-compat openat and
+ open_by_handle_at variants
+Date: Mon, 15 Aug 2016 17:30:28 +0300
+Message-ID: <20160815143028.GA7193@yury-N73SV>
 References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <6457502.FRufylo3sd@wuerfel>
- <20160811163003.GD18366@e104818-lin.cambridge.arm.com>
- <2034620.lN3lAEBAXs@wuerfel>
- <20160812143612.GH12939@e104818-lin.cambridge.arm.com>
- <20160813151703.GC24335@yury-N73SV>
+ <1466207668-10549-2-git-send-email-ynorov@caviumnetworks.com>
+ <mvmwplbkr8l.fsf@hawking.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39323 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752850AbcHOJia (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Aug 2016 05:38:30 -0400
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160813151703.GC24335@yury-N73SV>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, Hanjun Guo <guohanjun@huawei.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Andrew Pinski <apinski@cavium.com>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+In-Reply-To: <mvmwplbkr8l.fsf@hawking.suse.de>
+Sender: linux-doc-owner@vger.kernel.org
+To: Andreas Schwab <schwab@suse.de>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Aug 13, 2016 at 06:17:03PM +0300, Yury Norov wrote:
-> On Fri, Aug 12, 2016 at 03:36:12PM +0100, Catalin Marinas wrote:
-> > On Thu, Aug 11, 2016 at 10:29:03PM +0200, Arnd Bergmann wrote:
-> > > On Thursday, August 11, 2016 5:30:03 PM CEST Catalin Marinas wrote:
-> > > > > > > and you can have ARM binaries with
-> > > > > > > PER_LINUX (using the arm64 uname) just like you can have
-> > > > > > > arm64 binaries running with PER_LINUX32.
-> > > > > > 
-> > > > > > I was actually looking to enforce the 32-bit binaries to only see
-> > > > > > PER_LINUX32, though with a risk of breaking the ABI. OTOH, people are
-> > > > > > abusing this and write 32-bit apps relying on the 64-bit /proc/cpuinfo:
-> > > > > > 
-> > > > > > http://lkml.kernel.org/g/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
-> > > > > > 
-> > > > > > (you were summoned on that discussion couple of times ;))
-> > > > > 
-> > > > > Hmm, I thought I saw the thread and didn't have any good idea for
-> > > > > the uname information, but didn't notice it was for /proc/cpuinfo.
-> > > > > 
-> > > > > What's wrong with always showing both the 32-bit and the 64-bit
-> > > > > hwcap strings here (minus the duplicates, which hopefully have
-> > > > > the same meaning here)?
-> > > > 
-> > > > As I said above, some of them have the same name (which may be a good
-> > > > thing at a first look) but we don't have an architecture guarantee that
-> > > > the feature is present in both AArch32 and AArch64 modes (e.g. AES may
-> > > > only be available in AArch64).
-> > > 
-> > > Is this the case on actual implementations that exist today? If they
-> > > are actually always both present, we might be able to get away with it.
-> > 
-> > It may be fine on current implementations but what would we do when/if
-> > we actually find such discrepancy? It's not just ARM Ltd designing the
-> > chips, so as long as the architecture doesn't mandate it you may find
-> > strange implementations.
-> > 
-> > Imposing such restriction in the architecture doesn't make sense if the
-> > only reason is the /proc/cpuinfo file (and I can't think of any other
-> > reason why this should be enforced).
-> > 
-> > What I'm worried about is 32-bit apps running on an arm64 kernel and
-> > making use of the 64-bit /proc/cpuinfo without any guarantee that the
-> > AArch32 state has such features. In my patch proposal linked above I
-> > wanted to always force the compat /proc/cpuinfo for 32-bit tasks.
+On Mon, Jun 27, 2016 at 09:47:38AM +0200, Andreas Schwab wrote:
+> Yury Norov <ynorov@caviumnetworks.com> writes:
 > 
-> The link doesn't work for me. Is there other link, or what's the
-> maillist there?
+> > The only difference is that non-compat version forces O_LARGEFILE,
+> > and it should be the default behaviour for all architectures, as
+> > we don't support 32-bit off_t. The only exception is tile32, that
+> > continues with compat version of syscalls.
+> >
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
+> > ---
+> >  arch/tile/kernel/compat.c | 3 +++
+> >  1 file changed, 3 insertions(+)
+> >
+> > diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+> > index 4912084..489ae19 100644
+> > --- a/arch/tile/kernel/compat.c
+> > +++ b/arch/tile/kernel/compat.c
+> > @@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+> >  #define compat_sys_readahead sys32_readahead
+> >  #define sys_llseek compat_sys_llseek
+> >  
+> > +#define sys_openat		compat_sys_openat
+> > +#define sys_open_by_handle_at	compat_sys_open_by_handle_at
+> > +
+> >  /* Call the assembly trampolines where necessary. */
+> >  #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+> >  #define sys_clone _sys_clone
+> 
+> This is a no-op.  Did you mean to add this?  Without that the testsuite
+> of tar fails on ILP32.
 
-With lkml.kernel.org, just change the 'g' with an 'r':
+The change you suggest below is what I originally sent at the end of
+December, but that chunk was lost after one of numerous rebases probably.
 
-http://lkml.kernel.org/r/1464706504-25224-3-git-send-email-catalin.marinas@arm.com
+http://lkml.iu.edu/hypermail/linux/kernel/1512.3/00510.html
 
-It was on linux-arm-kernel.
+IIRC, the only difference between this couple of syscalls and their
+compat versions is that non-compat syscalls set O_LARGEFILE depending
+on (BITS_PER_LONG != 32). Next patch of this series introduces
+ARCH_32BIT_OFF_T config option to force O_LARGEFILE for 64-bit arches,
+and all new 32-bit arches, as ARCH_32BIT_OFF_T is enabled for existing
+32-bit arches explicitly.
 
-> So, what we decided finally? Is my understanding correct that we leave
-> everything as is in ilp32 series, and it will be resolved separately?
+O_LARGEFILE is controlled like this:
+        -#define force_o_largefile() (BITS_PER_LONG != 32)
+        +#define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
 
-ILP32 is not affected by this since the hwcap for ILP32 should match
-native. It was more a question about whether AArch32 tasks should ever
-have access to AArch64 hwcaps (and potential misuse).
+So if I restore original patch, everything will work. But my question
+is: if ARCH_32BIT_OFF_T disables O_LARGEFILE for tile32 anyway, what
+for we redirect native syscall handlers to compat ones? They are
+looking identical...
 
--- 
-Catalin
+If my understanding is correct, we can drop the change in
+arch/tile/kernel/compat.c and join this patch with next one in this
+series.
+
+Chris, Arnd?
+
+> 
+> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+> index a26415b..4dcc38d 100644
+> --- a/include/uapi/asm-generic/unistd.h
+> +++ b/include/uapi/asm-generic/unistd.h
+> @@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
+>  #define __NR_fchown 55
+>  __SYSCALL(__NR_fchown, sys_fchown)
+>  #define __NR_openat 56
+> -__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
+> +__SYSCALL(__NR_openat, sys_openat)
+>  #define __NR_close 57
+>  __SYSCALL(__NR_close, sys_close)
+>  #define __NR_vhangup 58
+> @@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
+>  #define __NR_name_to_handle_at         264
+>  __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
+>  #define __NR_open_by_handle_at         265
+> -__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
+> -	  compat_sys_open_by_handle_at)
+> +__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
+>  #define __NR_clock_adjtime 266
+>  __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
+>  #define __NR_syncfs 267
+> -- 
+> 2.9.0
+> 
+> 
+> Andreas.
+> 
+> -- 
+> Andreas Schwab, SUSE Labs, schwab@suse.de
+> GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+> "And now for something completely different."
