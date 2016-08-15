@@ -1,64 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db5eur01on0045.outbound.protection.outlook.com ([104.47.2.45]:43664
-	"EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752859AbcHOQ5P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Aug 2016 12:57:15 -0400
-Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
- cpus
-References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
- <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
- <20160809124325.GG13300@pathway.suse.cz>
- <feaaca8f-cc09-5847-ea3f-d27052704d9b@mellanox.com>
- <20160811152538.GH13300@pathway.suse.cz>
-From: Chris Metcalf <cmetcalf@mellanox.com>
-Message-ID: <12bc082c-067b-2b85-6c17-ff0a6c011add@mellanox.com>
-Date: Mon, 15 Aug 2016 12:41:54 -0400
+Received: from smtprelay0175.hostedemail.com ([216.40.44.175]:35716 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932182AbcHOVBN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Aug 2016 17:01:13 -0400
+Date: Mon, 15 Aug 2016 17:00:55 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
+ tables
+Message-ID: <20160815170055.248eee3e@gandalf.local.home>
+In-Reply-To: <1471292106.5944.3.camel@linux.intel.com>
+References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
+	<20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
+	<1470758947.2299.47.camel@HansenPartnership.com>
+	<CALCETrVmDhPC6BMu4_xTanSFZBKeW9V6A4SeQ4qxnpVod-eLbQ@mail.gmail.com>
+	<1471292106.5944.3.camel@linux.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20160811152538.GH13300@pathway.suse.cz>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Petr Mladek <pmladek@suse.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160815164154.XHoXVMaHHTLA1mN3u2cO9_4A85a-27bAX5H0Tu5eDxY@z>
+To: Alan Cox <alan@linux.intel.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, James Bottomley <James.Bottomley@hansenpartnership.com>, benh@kernel.crashing.org, masami.hiramatsu.pt@hitachi.com, linux@rasmusvillemoes.dk, linux-kbuild@vger.kernel.org, linux-sh@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dwmw2@infradead.org, xen-devel@lists.xensource.com, "Luis R. Rodriguez" <mcgrof@kernel.org>, anil.s.keshavamurthy@intel.com, will.deacon@arm.com, linux-ia64@vger.kernel.org, x86@kernel.org, korea.drzix@gmail.com, mingo@redhat.com, andrew.cooper3@citrix.com, jgross@suse.com, tglx@linutronix.de, keescook@chromium.org, ananth@linux.vnet.ibm.com, jpoimboe@redhat.com, hpa@zytor.com, arnd@arndb.de, davem@davemloft.net, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, platform-driver-x86@vger.kernel.org, jkosina@suse.cz, david.vrabel@citrix.com, realmz6@gmail.com, fontana@sharpeleven.org, konrad.wilk@oracle.com, ananth@in.ibm.com, paul.gortmaker@windriver.com, pali.rohar@gmail.com, ak@linux.intel.com, pebolle@tiscali.nl, jbaron@akamai.com, mmarek@suse.com, rusty@rustcorp.com.au, tony.luck@intel.com, catalin.marinas@arm.com, dvhart@infradead.org, linux-arm-kernel@lists.infradead.org, ming.lei@canonical.com, linux@arm.linux.org.uk, andriy.shevchenko@linux.intel.com, christopher.denicolo@suse.com, linux-arch@vger.kernel.org, mcb30@ipxe.org, heiko.carstens@de.ibm.com, gregkh@linuxfoundation.org, mhiramat@kernel.org, ciaran.farrell@suse.com, bp@alien8.de, sparclinux@vger.kernel.org
+Message-ID: <20160815210055._hSnh2c9HSYktGR8EsQkbvp8WPj0bAmyOr3edl_SG6E@z>
 
-On 8/11/2016 11:25 AM, Petr Mladek wrote:
-> On Mon 2016-08-08 12:03:38, Chris Metcalf wrote:
->>>> When doing an nmi backtrace of many cores, most of which are idle,
->>>> the output is a little overwhelming and very uninformative.  Suppress
->>>> messages for cpus that are idling when they are interrupted and just
->>>> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
-> Hmm, the problem is that native_safe_halt() is called from default_idle()
-> here. The function is marked as inline but the compiler did not inline
-> it.
->
-> It helped me to put native_safe_halt() into the __cpuidle_text section:
+On Mon, 15 Aug 2016 21:15:06 +0100
+Alan Cox <alan@linux.intel.com> wrote:
 
-Following Peter Z's suggestion, I have added an __always_inline marker
-to native_safe_halt.  For consistency, I also did arch_safe_halt(), since that
-invokes native_safe_halt, and then also native_halt() and halt(), so that
-we're not being weirdly inconsistent with markings for halt inlines.
+> > This is the module tag ... it says what licence the module is under,
+> > not the licence for the module combined with the kernel, which is
+> > always GPLv2 because the stricter licence rules.  
+> 
+> Because if I build a BSD licensed module against the kernel, give you
+> the binaries and refuse to give you the source I am conforming to the
+> BSD licence in letter. So to use it with the kernel it needs to be GPL
+> with additional rights (eg BSD including the source...)
+> 
 
-There are also the native_irq_enable(), etc., accessors in that same header
-that are still only marked "inline" not "always_inline", but I wanted to stop
-before I was touching too much unrelated code.
+But that only pertains to the code that was modified to be used with
+the Linux kernel, right? That is, if there's a BSD licensed module for
+device FOO, and I port it to the Linux kernel, that will need to have a
+GPL added to it to be included in Linux. But the original BSD code is
+not affected. If a fix is made to the GPL Linux version, I'm assuming
+(because I've been asked when doing something like this), that the
+author of that fix will have to give it a dual license to be used back
+in the original BSD only code. Correct?
 
-> I wonder if it would be possible to detect the idle thread an other
-> way. For example, I wonder if it would be enough to check for the
-> PID 0.
+I'm just trying to understand this. From what would make sense to me
+(but may or may not to a court of law, where it counts), is that the
+code added to Linux must be under GPL. But using that code depends on
+where you get it from. If you use BSD source, it stays under BSD. But
+any fixes to the GPL version will require permission to be put back to
+the BSD version. A change to the GPL version doesn't automatically get
+allowed back to the BSD only version?
 
-No, the problem is that pid 0 can also go off and run "interesting" code
-for things like power management, etc., so we really just want to
-focus on being quite sure that the running code isn't interesting before
-we suppress the backtrace information.
-
-See the thread around here:
-
-https://lkml.kernel.org/r/20160307204317.GR6344@twins.programming.kicks-ass.net
-
--- 
-Chris Metcalf, Mellanox Technologies
-http://www.mellanox.com
-
+-- Steve
