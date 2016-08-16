@@ -1,44 +1,53 @@
-Return-Path: <alan@linux.intel.com>
-Message-ID: <1471292106.5944.3.camel@linux.intel.com>
-Subject: Re: [RFC v3 00/13] linux: generalize sections, ranges and linker
- tables
-From: Alan Cox <alan@linux.intel.com>
-Date: Mon, 15 Aug 2016 21:15:06 +0100
-In-Reply-To: <CALCETrVmDhPC6BMu4_xTanSFZBKeW9V6A4SeQ4qxnpVod-eLbQ@mail.gmail.com>
-References: <1469222687-1600-1-git-send-email-mcgrof@kernel.org>
-	 <20160809152429.5bb1c077@lxorguk.ukuu.org.uk>
-	 <1470758947.2299.47.camel@HansenPartnership.com>
-	 <CALCETrVmDhPC6BMu4_xTanSFZBKeW9V6A4SeQ4qxnpVod-eLbQ@mail.gmail.com>
-Content-Type: multipart/alternative; boundary="=-9BDK4GqpUPTCxb1VKKOi"
-Mime-Version: 1.0
-To: Andy Lutomirski <luto@amacapital.net>, James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: benh@kernel.crashing.org, masami.hiramatsu.pt@hitachi.com, linux@rasmusvillemoes.dk, linux-kbuild@vger.kernel.org, linux-sh@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, dwmw2@infradead.org, xen-devel@lists.xensource.com, "Luis R. Rodriguez" <mcgrof@kernel.org>, anil.s.keshavamurthy@intel.com, will.deacon@arm.com, linux-ia64@vger.kernel.org, x86@kernel.org, korea.drzix@gmail.com, mingo@redhat.com, andrew.cooper3@citrix.com, jgross@suse.com, tglx@linutronix.de, keescook@chromium.org, ananth@linux.vnet.ibm.com, jpoimboe@redhat.com, rostedt@goodmis.org, hpa@zytor.com, arnd@arndb.de, davem@davemloft.net, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, platform-driver-x86@vger.kernel.org, jkosina@suse.cz, david.vrabel@citrix.com, realmz6@gmail.com, fontana@sharpeleven.org, konrad.wilk@oracle.com, ananth@in.ibm.com, paul.gortmaker@windriver.com, pali.rohar@gmail.com, ak@linux.intel.com, pebolle@tiscali.nl, jbaron@akamai.com, mmarek@suse.com, rusty@rustcorp.com.au, tony.luck@intel.com, catalin.marinas@arm.com, dvhart@infradead.org, linux-arm-kernel@lists.infradead.org, ming.lei@canonical.com, linux@arm.linux.org.uk, andriy.shevchenko@linux.intel.com, christopher.denicolo@suse.com, linux-arch@vger.kernel.org, mcb30@ipxe.org, heiko.carstens@de.ibm.com, gregkh@linuxfoundation.org, mhiramat@kernel.org, ciaran.farrell@suse.com, bp@alien8.de, sparclinux@vger.kernel.org
+Return-Path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:43054 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750752AbcHPFsa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Aug 2016 01:48:30 -0400
+Subject: Re: [RFC][PATCHSET v2] allowing exports in *.S
+References: <20160129191744.GB17997@ZenIV.linux.org.uk>
+ <20160203211953.GT17997@ZenIV.linux.org.uk> <57A0A7B8.7080107@suse.cz>
+From: Michal Marek <mmarek@suse.com>
+Message-ID: <57B2A920.5000802@suse.com>
+Date: Tue, 16 Aug 2016 07:48:16 +0200
+MIME-Version: 1.0
+In-Reply-To: <57A0A7B8.7080107@suse.cz>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Message-ID: <20160815201506.iEtPr-rRjDX9wsYRDLZshKDH7tD-3EfzLdaDMHXNK-4@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20160816054816.efoIfb6D0B_qVxs5Cy9Pi0hGfzBjXFHKIodXjV-yeMw@z>
 
+Dne 2.8.2016 v 16:01 Michal Marek napsal(a):
+> On 2016-02-03 22:19, Al Viro wrote:
+>> Shortlog:
+>> Al Viro (13):
+>>       [kbuild] handle exports in lib-y objects reliably
+>>       EXPORT_SYMBOL() for asm
+>>       x86: move exports to actual definitions
+>>       alpha: move exports to actual definitions
+>>       m68k: move exports to definitions
+>>       s390: move exports to definitions
+>>       arm: move exports to definitions
+>>       ppc: move exports to definitions
+>>       ppc: get rid of unreachable abs() implementation
+>>       sparc: move exports to definitions
+>>       [sparc] unify 32bit and 64bit string.h
+>>       sparc32: debride memcpy.S a bit
+>>       ia64: move exports to definitions
+> 
+> After several pings by Al (sorry about that!), I got around to review a
+> rebased version of this patchset at
+> 
+>   git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git asm-exports
+> 
+> The kbuild commits are good, but since we are close to the end of the
+> merge window, I will apply them to my kbuild branch after 4.8-rc1.
 
---=-9BDK4GqpUPTCxb1VKKOi
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+The rebased patchset is now in kbuild.git#kbuild. Before pushing, I
+noticed one issue: For some reason,
+drivers/firmware/efi/libstub/lib-ksyms.o is regenerated each time,
+leading to relink of vmlinux. I'm looking into this.
 
-
-> This is the module tag ... it says what licence the module is under,
-> not the licence for the module combined with the kernel, which is
-> always GPLv2 because the stricter licence rules.
-
-Because if I build a BSD licensed module against the kernel, give you
-the binaries and refuse to give you the source I am conforming to the
-BSD licence in letter. So to use it with the kernel it needs to be GPL
-with additional rights (eg BSD including the source...)
-
-Alan
-##SELECTION_END##
---=-9BDK4GqpUPTCxb1VKKOi
-Content-Type: text/html; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-
-<html><head></head><body><div><br>
-&gt; This is the module tag ... it says what licence the module is under,<br>
-&gt; not the licence for the module combined with the kernel, which is<br>
-&gt; always GPLv2 because the stricter licence rules.</div><div><br></div><div>Because if I build a BSD licensed module against the kernel, give you the binaries and refuse to give you the source I am conforming to the BSD licence in letter. So to use it with the kernel it needs to be GPL with additional rights (eg BSD including the source...)</div><div><br></div><div>Alan</div><div><br></div></body></html>
---=-9BDK4GqpUPTCxb1VKKOi--
+Michal
