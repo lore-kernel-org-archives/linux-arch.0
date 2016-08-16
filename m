@@ -1,66 +1,101 @@
-From: Petr Mladek <pmladek@suse.com>
-Subject: Re: [PATCH v7 4/4] nmi_backtrace: generate one-line reports for idle
- cpus
-Date: Tue, 16 Aug 2016 10:04:01 +0200
-Message-ID: <20160816080401.GJ13300@pathway.suse.cz>
-References: <1470672218-16059-1-git-send-email-cmetcalf@mellanox.com>
- <1470672218-16059-5-git-send-email-cmetcalf@mellanox.com>
- <20160809124325.GG13300@pathway.suse.cz>
- <feaaca8f-cc09-5847-ea3f-d27052704d9b@mellanox.com>
- <20160811152538.GH13300@pathway.suse.cz>
- <12bc082c-067b-2b85-6c17-ff0a6c011add@mellanox.com>
+From: Michal Marek <mmarek@suse.com>
+Subject: Re: [PATCH 3/6] kbuild: add arch specific post-link pass
+Date: Tue, 16 Aug 2016 11:23:45 +0200
+Message-ID: <57B2DBA1.6090304@suse.com>
+References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
+ <1470910580-18458-4-git-send-email-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:55192 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:43642 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750928AbcHPIEE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Aug 2016 04:04:04 -0400
-Content-Disposition: inline
-In-Reply-To: <12bc082c-067b-2b85-6c17-ff0a6c011add@mellanox.com>
+	id S1753103AbcHPJYA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Aug 2016 05:24:00 -0400
+In-Reply-To: <1470910580-18458-4-git-send-email-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 
-On Mon 2016-08-15 12:41:54, Chris Metcalf wrote:
-> On 8/11/2016 11:25 AM, Petr Mladek wrote:
-> >On Mon 2016-08-08 12:03:38, Chris Metcalf wrote:
-> >>>>When doing an nmi backtrace of many cores, most of which are idle,
-> >>>>the output is a little overwhelming and very uninformative.  Suppress
-> >>>>messages for cpus that are idling when they are interrupted and just
-> >>>>emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
-> >Hmm, the problem is that native_safe_halt() is called from default_idle()
-> >here. The function is marked as inline but the compiler did not inline
-> >it.
-> >
-> >It helped me to put native_safe_halt() into the __cpuidle_text section:
+Dne 11.8.2016 v 12:16 Nicholas Piggin napsal(a):
+> Add an option for architectures to pass over modules after they are
+> linked. powerpc will use this to check linker relocations for sanity,
+> and possibly to fix up alternate instruction patch relocations.
 > 
-> Following Peter Z's suggestion, I have added an __always_inline marker
-> to native_safe_halt.  For consistency, I also did arch_safe_halt(), since that
-> invokes native_safe_halt, and then also native_halt() and halt(), so that
-> we're not being weirdly inconsistent with markings for halt inlines.
+> Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> ---
+> Since v1,
+> - Switched to a more flexible arch makefile invocation.
+> - Provide a powerpc patch to use it to help existing build issue
+>   (rather than only justification being out-of-tree patch).
 > 
-> There are also the native_irq_enable(), etc., accessors in that same header
-> that are still only marked "inline" not "always_inline", but I wanted to stop
-> before I was touching too much unrelated code.
+>  Documentation/kbuild/makefiles.txt | 10 ++++++++++
+>  arch/Kconfig                       |  7 +++++++
+>  scripts/Makefile.modpost           |  3 +++
+>  scripts/link-vmlinux.sh            |  4 ++++
+>  4 files changed, 24 insertions(+)
+> 
+> diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> index 385a5ef..8581e38 100644
+> --- a/Documentation/kbuild/makefiles.txt
+> +++ b/Documentation/kbuild/makefiles.txt
+> @@ -41,6 +41,7 @@ This document describes the Linux kernel Makefiles.
+>  	   --- 6.8 Custom kbuild commands
+>  	   --- 6.9 Preprocessing linker scripts
+>  	   --- 6.10 Generic header files
+> +	   --- 6.11 Post-link pass
+>  
+>  	=== 7 Kbuild syntax for exported headers
+>  		--- 7.1 header-y
+> @@ -1237,6 +1238,15 @@ When kbuild executes, the following steps are followed (roughly):
+>  	to list the file in the Kbuild file.
+>  	See "7.4 generic-y" for further info on syntax etc.
+>  
+> +--- 6.11 Post-link pass
+> +
+> +	CONFIG_BUILD_ARCH_POSTLINK can be selected in order to have
+> +	arch/?/Makefile.postlink invoked on vmlinux and module.ko
+> +	files after final link.
+> +
+> +	For example, powerpc uses this to check relocations on the
+> +	linked vmlinux file.
+> +
+>  === 7 Kbuild syntax for exported headers
+>  
+>  The kernel includes a set of headers that is exported to userspace.
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index fc3f9e1..3a36ea8 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -461,6 +461,13 @@ config CC_STACKPROTECTOR_STRONG
+>  
+>  endchoice
+>  
+> +config BUILD_ARCH_POSTLINK
+> +	bool
+> +	help
+> +	  Select this if the architecture wants to have a Makefile invoked
+> +	  on modules and vmlinux after they are linked. The architecture
+> +	  must provide arch/?/Makefile.postlink
+> +
+>  config THIN_ARCHIVES
+>  	bool
+>  	help
+> diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
+> index 1366a94..1acaa20 100644
+> --- a/scripts/Makefile.modpost
+> +++ b/scripts/Makefile.modpost
+> @@ -123,6 +123,9 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+>  
+>  $(modules): %.ko :%.o %.mod.o FORCE
+>  	$(call if_changed,ld_ko_o)
+> +ifdef CONFIG_BUILD_ARCH_POSTLINK
+> +	$(Q)$(MAKE) -f $(srctree)/arch/$(SRCARCH)/Makefile.postlink $@
+> +endif
 
-Sounds fine.
+Why not simply branch off the existence of arch/*/Makefile.postlink and
+drop the kconfig option?
 
-> >I wonder if it would be possible to detect the idle thread an other
-> >way. For example, I wonder if it would be enough to check for the
-> >PID 0.
-> 
-> No, the problem is that pid 0 can also go off and run "interesting" code
-> for things like power management, etc., so we really just want to
-> focus on being quite sure that the running code isn't interesting before
-> we suppress the backtrace information.
-> 
-> See the thread around here:
-> 
-> https://lkml.kernel.org/r/20160307204317.GR6344@twins.programming.kicks-ass.net
-
-Makes sense. Thanks for the poitner.
-
-Best Regards,
-Petr
+Thanks,
+Michal
