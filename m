@@ -1,53 +1,69 @@
-From: Miroslav Benes <mbenes@suse.cz>
-Subject: Re: [PATCH] arm64: take SHN_LIVEPATCH syms into account when
- calculating plt_max_entries
-Date: Wed, 17 Aug 2016 11:38:27 +0200 (CEST)
-Message-ID: <alpine.LNX.2.00.1608171135360.29236@pobox.suse.cz>
-References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151722.B81C968D29@newverein.lst.de> <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz> <20160711215807.GA23097@packer-debian-8-amd64.digitalocean.com> <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
- <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 3/6] kbuild: add arch specific post-link pass
+Date: Wed, 17 Aug 2016 11:56:33 +0200
+Message-ID: <20160817095632.GA5187@ravnborg.org>
+References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
+ <1470910580-18458-4-git-send-email-npiggin@gmail.com>
+ <57B2DBA1.6090304@suse.com>
+ <20160817144322.4067391f@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jessica Yu <jeyu@redhat.com>
-Cc: Torsten Duwe <duwe@lst.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160817144322.4067391f@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 12 Jul 2016, Jessica Yu wrote:
+> diff --git a/Makefile b/Makefile
+> index 1d26fdb..20d3bfd 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -954,8 +954,14 @@ include/generated/autoksyms.h: FORCE
+>        cmd_link-vmlinux = $(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux)
+>  quiet_cmd_link-vmlinux = LINK    $@
+>  
+> +# Optional arch pass after final link
+> +ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
+> +      cmd_postlink-vmlinux = \
+> +          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+> +
+>  vmlinux: scripts/link-vmlinux.sh vmlinux_prereq $(vmlinux-deps) FORCE
+>  	+$(call if_changed,link-vmlinux)
+> +	+$(call if_changed,postlink-vmlinux)
+>  
+>  # Build samples along the rest of the kernel
+>  ifdef CONFIG_SAMPLES
+> @@ -1279,6 +1285,7 @@ $(clean-dirs):
+>  
+>  vmlinuxclean:
+>  	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
+> +	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
+>  
+>  clean: archclean vmlinuxclean
+>  
+Another option would be to embed the logic in the link-vmlinux shell script.
+It is much simpler for normal humans to read and understand shell scripts,
+and it would be simpler too.
 
-> SHN_LIVEPATCH symbols are technically a subset of SHN_UNDEF/undefined
-> symbols, except that their addresses are resolved by livepatch at runtime.
-> Therefore, when calculating the upper-bound for the number of plt entries
-> to allocate, make sure to take livepatch symbols into account as well.
-> 
-> Signed-off-by: Jessica Yu <jeyu@redhat.com>
 
-FWIW, I think the patch does what we want, but it's for arm people to 
-judge. It might be better to include it to Torsten's patch set.
+> diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
+> index 1366a94..a3e862e 100644
+> --- a/scripts/Makefile.modpost
+> +++ b/scripts/Makefile.modpost
+> @@ -121,8 +121,14 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+>                               $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
+>                               -o $@ $(filter-out FORCE,$^)
+>  
+> +# Optional arch pass after final link
+> +ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
+> +      cmd_postlink-ko = \
+> +          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+> +
+>  $(modules): %.ko :%.o %.mod.o FORCE
+>  	$(call if_changed,ld_ko_o)
+> +	+$(call if_changed,postlink-ko)
+For modules we have no script, so here we need this.
 
-Miroslav
-
-> ---
-> arch/arm64/kernel/module-plts.c | 3 ++-
-> 1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/kernel/module-plts.c b/arch/arm64/kernel/module-plts.c
-> index 1ce90d8..1e95dc1 100644
-> --- a/arch/arm64/kernel/module-plts.c
-> +++ b/arch/arm64/kernel/module-plts.c
-> @@ -122,7 +122,8 @@ static unsigned int count_plts(Elf64_Sym *syms, Elf64_Rela
-> *rela, int num)
->                         * as well, so modules can never grow beyond that
-> limit.
->                         */
->                        s = syms + ELF64_R_SYM(rela[i].r_info);
-> -                       if (s->st_shndx != SHN_UNDEF)
-> +                       if (s->st_shndx != SHN_UNDEF &&
-> +                           s->st_shndx != SHN_LIVEPATCH)
->                                break;
-> 
->                        /*
-> -- 
-> 2.5.5
-> 
+	Sam
