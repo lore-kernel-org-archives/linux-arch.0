@@ -1,144 +1,224 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 12/18] arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Wed, 17 Aug 2016 14:46:37 +0300
-Message-ID: <1471434403-25291-13-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 14/18] arm64: signal32: move ilp32 and aarch32 common code to separated file
+Date: Wed, 17 Aug 2016 14:46:39 +0300
+Message-ID: <1471434403-25291-15-git-send-email-ynorov@caviumnetworks.com>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <libc-alpha-return-72571-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-co1nam03on0064.outbound.protection.outlook.com ([104.47.40.64]:31881
+	"EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752569AbcHQLtX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 07:49:23 -0400
 In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
 
-From: Andrew Pinski <apinski@cavium.com>
-
-Add a separate syscall-table for ILP32, which dispatches either to native
-LP64 system call implementation or to compat-syscalls, as appropriate.
-
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/unistd.h |  6 ++-
- arch/arm64/kernel/Makefile      |  2 +-
- arch/arm64/kernel/entry.S       | 28 +++++++++++++-
- arch/arm64/kernel/sys_ilp32.c   | 86 +++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 118 insertions(+), 4 deletions(-)
- create mode 100644 arch/arm64/kernel/sys_ilp32.c
+ arch/arm64/include/asm/signal32.h        |   3 +
+ arch/arm64/include/asm/signal32_common.h |  28 +++++++
+ arch/arm64/kernel/Makefile               |   2 +-
+ arch/arm64/kernel/signal32.c             | 107 ------------------------
+ arch/arm64/kernel/signal32_common.c      | 136 +++++++++++++++++++++++++++++++
+ 5 files changed, 168 insertions(+), 108 deletions(-)
+ create mode 100644 arch/arm64/include/asm/signal32_common.h
+ create mode 100644 arch/arm64/kernel/signal32_common.c
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index fe9d6c1..250654c 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -13,13 +13,17 @@
+diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
+index e68fcce..1c4ede7 100644
+--- a/arch/arm64/include/asm/signal32.h
++++ b/arch/arm64/include/asm/signal32.h
+@@ -13,6 +13,9 @@
   * You should have received a copy of the GNU General Public License
   * along with this program.  If not, see <http://www.gnu.org/licenses/>.
   */
 +
-+#ifdef CONFIG_COMPAT
-+#define __ARCH_WANT_SYS_LLSEEK
-+#endif
++#include <asm/signal32_common.h>
 +
- #ifdef CONFIG_AARCH32_EL0
- #define __ARCH_WANT_COMPAT_SYS_GETDENTS64
- #define __ARCH_WANT_COMPAT_STAT64
- #define __ARCH_WANT_SYS_GETHOSTNAME
- #define __ARCH_WANT_SYS_PAUSE
- #define __ARCH_WANT_SYS_GETPGRP
--#define __ARCH_WANT_SYS_LLSEEK
- #define __ARCH_WANT_SYS_NICE
- #define __ARCH_WANT_SYS_SIGPENDING
- #define __ARCH_WANT_SYS_SIGPROCMASK
+ #ifndef __ASM_SIGNAL32_H
+ #define __ASM_SIGNAL32_H
+ 
+diff --git a/arch/arm64/include/asm/signal32_common.h b/arch/arm64/include/asm/signal32_common.h
+new file mode 100644
+index 0000000..e3e2d01
+--- /dev/null
++++ b/arch/arm64/include/asm/signal32_common.h
+@@ -0,0 +1,28 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SIGNAL32_COMMON_H
++#define __ASM_SIGNAL32_COMMON_H
++
++#ifdef CONFIG_COMPAT
++
++int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from);
++int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from);
++
++int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set);
++int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset);
++
++#endif /* CONFIG_COMPAT*/
++
++#endif /* __ASM_SIGNAL32_COMMON_H */
++
 diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 4a81d93..36257b7 100644
+index 36257b7..20e8e66 100644
 --- a/arch/arm64/kernel/Makefile
 +++ b/arch/arm64/kernel/Makefile
-@@ -27,7 +27,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 
+@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
  arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
  					   sys_compat.o entry32.o binfmt_elf32.o
--arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
- arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
+ arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
+-arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
++arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
  arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
  arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 9e18747..4c44312 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -255,6 +255,23 @@ tsk	.req	x28		// current thread_info
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+index b7063de..f2c1a38 100644
+--- a/arch/arm64/kernel/signal32.c
++++ b/arch/arm64/kernel/signal32.c
+@@ -103,113 +103,6 @@ struct compat_rt_sigframe {
  
- 	.text
+ #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
  
-+#ifdef CONFIG_ARM64_ILP32
-+/*
-+ * AARCH64/ILP32. Zero top halves of x0-x7
-+ * registers as userspace may put garbage there.
-+ */
-+	.macro	delouse_input_regs
-+	mov w0, w0
-+	mov w1, w1
-+	mov w2, w2
-+	mov w3, w3
-+	mov w4, w4
-+	mov w5, w5
-+	mov w6, w6
-+	mov w7, w7
-+	.endm
-+#endif
-+
+-static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
+-{
+-	compat_sigset_t	cset;
+-
+-	cset.sig[0] = set->sig[0] & 0xffffffffull;
+-	cset.sig[1] = set->sig[0] >> 32;
+-
+-	return copy_to_user(uset, &cset, sizeof(*uset));
+-}
+-
+-static inline int get_sigset_t(sigset_t *set,
+-			       const compat_sigset_t __user *uset)
+-{
+-	compat_sigset_t s32;
+-
+-	if (copy_from_user(&s32, uset, sizeof(*uset)))
+-		return -EFAULT;
+-
+-	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
+-	return 0;
+-}
+-
+-int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
+-{
+-	int err;
+-
+-	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
+-		return -EFAULT;
+-
+-	/* If you change siginfo_t structure, please be sure
+-	 * this code is fixed accordingly.
+-	 * It should never copy any pad contained in the structure
+-	 * to avoid security leaks, but must copy the generic
+-	 * 3 ints plus the relevant union member.
+-	 * This routine must convert siginfo from 64bit to 32bit as well
+-	 * at the same time.
+-	 */
+-	err = __put_user(from->si_signo, &to->si_signo);
+-	err |= __put_user(from->si_errno, &to->si_errno);
+-	err |= __put_user((short)from->si_code, &to->si_code);
+-	if (from->si_code < 0)
+-		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
+-				      SI_PAD_SIZE);
+-	else switch (from->si_code & __SI_MASK) {
+-	case __SI_KILL:
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		break;
+-	case __SI_TIMER:
+-		 err |= __put_user(from->si_tid, &to->si_tid);
+-		 err |= __put_user(from->si_overrun, &to->si_overrun);
+-		 err |= __put_user(from->si_int, &to->si_int);
+-		break;
+-	case __SI_POLL:
+-		err |= __put_user(from->si_band, &to->si_band);
+-		err |= __put_user(from->si_fd, &to->si_fd);
+-		break;
+-	case __SI_FAULT:
+-		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
+-				  &to->si_addr);
+-#ifdef BUS_MCEERR_AO
+-		/*
+-		 * Other callers might not initialize the si_lsb field,
+-		 * so check explicitly for the right codes here.
+-		 */
+-		if (from->si_signo == SIGBUS &&
+-		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
+-			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
+-#endif
+-		break;
+-	case __SI_CHLD:
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		err |= __put_user(from->si_status, &to->si_status);
+-		err |= __put_user(from->si_utime, &to->si_utime);
+-		err |= __put_user(from->si_stime, &to->si_stime);
+-		break;
+-	case __SI_RT: /* This is not generated by the kernel as of now. */
+-	case __SI_MESGQ: /* But this is */
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		err |= __put_user(from->si_int, &to->si_int);
+-		break;
+-	case __SI_SYS:
+-		err |= __put_user((compat_uptr_t)(unsigned long)
+-				from->si_call_addr, &to->si_call_addr);
+-		err |= __put_user(from->si_syscall, &to->si_syscall);
+-		err |= __put_user(from->si_arch, &to->si_arch);
+-		break;
+-	default: /* this is just in case for now ... */
+-		err |= __put_user(from->si_pid, &to->si_pid);
+-		err |= __put_user(from->si_uid, &to->si_uid);
+-		break;
+-	}
+-	return err;
+-}
+-
+-int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
+-{
+-	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
+-	    copy_from_user(to->_sifields._pad,
+-			   from->_sifields._pad, SI_PAD_SIZE))
+-		return -EFAULT;
+-
+-	return 0;
+-}
+-
  /*
-  * Exception vectors.
-  */
-@@ -523,6 +540,7 @@ el0_svc_compat:
- 	 * AArch32 syscall handling
- 	 */
- 	adrp	stbl, compat_sys_call_table	// load compat syscall table pointer
-+	ldr     x16, [tsk, #TI_FLAGS]
- 	uxtw	scno, w7			// syscall number in w7 (r7)
- 	mov     sc_nr, #__NR_compat_syscalls
- 	b	el0_svc_naked
-@@ -749,15 +767,21 @@ ENDPROC(ret_from_fork)
- 	.align	6
- el0_svc:
- 	adrp	stbl, sys_call_table		// load syscall table pointer
-+	ldr	x16, [tsk, #TI_FLAGS]
- 	uxtw	scno, w8			// syscall number in w8
- 	mov	sc_nr, #__NR_syscalls
-+#ifdef CONFIG_ARM64_ILP32
-+	tst	x16, #_TIF_32BIT_AARCH64
-+	b.eq	el0_svc_naked			// We are using LP64  syscall table
-+	adrp	stbl, sys_call_ilp32_table	// load ilp32 syscall table pointer
-+	delouse_input_regs
-+#endif
- el0_svc_naked:					// compat entry point
- 	stp	x0, scno, [sp, #S_ORIG_X0]	// save the original x0 and syscall number
- 	enable_dbg_and_irq
- 	ct_user_exit 1
- 
--	ldr	x16, [tsk, #TI_FLAGS]		// check for syscall hooks
--	tst	x16, #_TIF_SYSCALL_WORK
-+	tst	x16, #_TIF_SYSCALL_WORK		// check for syscall hooks
- 	b.ne	__sys_trace
- 	cmp     scno, sc_nr                     // check upper syscall limit
- 	b.hs	ni_sys
-diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
+  * VFP save/restore code.
+  *
+diff --git a/arch/arm64/kernel/signal32_common.c b/arch/arm64/kernel/signal32_common.c
 new file mode 100644
-index 0000000..10fc0ca
+index 0000000..4a45aa6
 --- /dev/null
-+++ b/arch/arm64/kernel/sys_ilp32.c
-@@ -0,0 +1,86 @@
++++ b/arch/arm64/kernel/signal32_common.c
+@@ -0,0 +1,136 @@
 +/*
-+ * AArch64- ILP32 specific system calls implementation
++ * Based on arch/arm/kernel/signal.c
 + *
-+ * Copyright (C) 2016 Cavium Inc.
-+ * Author: Andrew Pinski <apinski@cavium.com>
++ * Copyright (C) 1995-2009 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ * Modified by Will Deacon <will.deacon@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -153,72 +233,121 @@ index 0000000..10fc0ca
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#define __SYSCALL_COMPAT
-+
-+#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/msg.h>
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
 +#include <linux/compat.h>
-+#include <asm-generic/syscalls.h>
++#include <linux/signal.h>
++#include <linux/ratelimit.h>
 +
-+/*
-+ * Using aarch32 syscall handlerss where off_t is passed.
-+ */
-+#define compat_sys_fadvise64_64		compat_sys_fadvise64_64_wrapper
-+#define compat_sys_fallocate		compat_sys_fallocate_wrapper
-+#define compat_sys_fcntl64		sys_fcntl
-+#define compat_sys_ftruncate64		compat_sys_ftruncate64_wrapper
-+#define compat_sys_pread64		compat_sys_pread64_wrapper
-+#define compat_sys_pwrite64		compat_sys_pwrite64_wrapper
-+#define compat_sys_readahead		compat_sys_readahead_wrapper
-+#define compat_sys_shmat		sys_shmat
-+#define compat_sys_sync_file_range	compat_sys_sync_file_range2_wrapper
-+#define compat_sys_truncate64		compat_sys_truncate64_wrapper
-+#define sys_mmap2			compat_sys_mmap2_wrapper
-+#define sys_ptrace			compat_sys_ptrace
-+
-+/*
-+ * Use non-compat syscall handlers where rlimit, stat and statfs
-+ * structure pointers are passed, as their layout is identical to LP64.
-+ */
-+#define compat_sys_fstatfs64		sys_fstatfs
-+#define compat_sys_statfs64		sys_statfs
-+#define sys_fstat64			sys_newfstat
-+#define sys_fstatat64			sys_newfstatat
-+#define compat_sys_getrlimit		sys_getrlimit
-+#define compat_sys_setrlimit		sys_setrlimit
-+
-+asmlinkage long compat_sys_fadvise64_64_wrapper(void);
-+asmlinkage long compat_sys_fallocate_wrapper(void);
-+asmlinkage long compat_sys_ftruncate64_wrapper(void);
-+asmlinkage long compat_sys_mmap2_wrapper(void);
-+asmlinkage long compat_sys_pread64_wrapper(void);
-+asmlinkage long compat_sys_pwrite64_wrapper(void);
-+asmlinkage long compat_sys_readahead_wrapper(void);
-+asmlinkage long compat_sys_sync_file_range2_wrapper(void);
-+asmlinkage long compat_sys_truncate64_wrapper(void);
-+
-+asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
-+#define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
-+
-+#include <asm/syscall.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, sym)	[nr] = sym,
-+
-+/*
-+ * The sys_call_ilp32_table array must be 4K aligned to be accessible from
-+ * kernel/entry.S.
-+ */
-+void *sys_call_ilp32_table[__NR_syscalls] __aligned(4096) = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
++#include <asm/esr.h>
++#include <asm/fpsimd.h>
++#include <asm/signal32_common.h>
++#include <asm/uaccess.h>
 +#include <asm/unistd.h>
-+};
++
++int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
++{
++	compat_sigset_t	cset;
++
++	cset.sig[0] = set->sig[0] & 0xffffffffull;
++	cset.sig[1] = set->sig[0] >> 32;
++
++	return copy_to_user(uset, &cset, sizeof(*uset));
++}
++
++int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset)
++{
++	compat_sigset_t s32;
++
++	if (copy_from_user(&s32, uset, sizeof(*uset)))
++		return -EFAULT;
++
++	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
++	return 0;
++}
++
++int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
++{
++	int err;
++
++	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
++		return -EFAULT;
++
++	/* If you change siginfo_t structure, please be sure
++	 * this code is fixed accordingly.
++	 * It should never copy any pad contained in the structure
++	 * to avoid security leaks, but must copy the generic
++	 * 3 ints plus the relevant union member.
++	 * This routine must convert siginfo from 64bit to 32bit as well
++	 * at the same time.
++	 */
++	err = __put_user(from->si_signo, &to->si_signo);
++	err |= __put_user(from->si_errno, &to->si_errno);
++	err |= __put_user((short)from->si_code, &to->si_code);
++	if (from->si_code < 0)
++		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
++				      SI_PAD_SIZE);
++	else switch (from->si_code & __SI_MASK) {
++	case __SI_KILL:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	case __SI_TIMER:
++		 err |= __put_user(from->si_tid, &to->si_tid);
++		 err |= __put_user(from->si_overrun, &to->si_overrun);
++		 err |= __put_user(from->si_int, &to->si_int);
++		break;
++	case __SI_POLL:
++		err |= __put_user(from->si_band, &to->si_band);
++		err |= __put_user(from->si_fd, &to->si_fd);
++		break;
++	case __SI_FAULT:
++		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
++				  &to->si_addr);
++#ifdef BUS_MCEERR_AO
++		/*
++		 * Other callers might not initialize the si_lsb field,
++		 * so check explicitly for the right codes here.
++		 */
++		if (from->si_signo == SIGBUS &&
++		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
++			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
++#endif
++		break;
++	case __SI_CHLD:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		err |= __put_user(from->si_status, &to->si_status);
++		err |= __put_user(from->si_utime, &to->si_utime);
++		err |= __put_user(from->si_stime, &to->si_stime);
++		break;
++	case __SI_RT: /* This is not generated by the kernel as of now. */
++	case __SI_MESGQ: /* But this is */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		err |= __put_user(from->si_int, &to->si_int);
++		break;
++	case __SI_SYS:
++		err |= __put_user((compat_uptr_t)(unsigned long)
++				from->si_call_addr, &to->si_call_addr);
++		err |= __put_user(from->si_syscall, &to->si_syscall);
++		err |= __put_user(from->si_arch, &to->si_arch);
++		break;
++	default: /* this is just in case for now ... */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	}
++	return err;
++}
++
++int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
++{
++	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
++	    copy_from_user(to->_sifields._pad,
++			   from->_sifields._pad, SI_PAD_SIZE))
++		return -EFAULT;
++
++	return 0;
++}
++
 -- 
 2.7.4
