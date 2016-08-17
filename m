@@ -1,321 +1,249 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 15/18] arm64: ilp32: introduce ilp32-specific handlers for sigframe and ucontext
-Date: Wed, 17 Aug 2016 14:46:40 +0300
-Message-ID: <1471434403-25291-16-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
+Date: Wed, 17 Aug 2016 14:46:41 +0300
+Message-ID: <1471434403-25291-17-git-send-email-ynorov@caviumnetworks.com>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <libc-alpha-return-72574-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-doc-owner@vger.kernel.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrew Pinski <apinski@cavium.com>
+Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
+detection of the task type.
 
-ILP32 uses AARCH32 compat structures and syscall handlers for signals.
-But ILP32 struct rt_sigframe  and ucontext differs from both LP64 and
-AARCH32. So some specific mechanism is needed to take care of it.
-
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/signal_ilp32.h |  38 ++++++++
- arch/arm64/kernel/Makefile            |   3 +-
- arch/arm64/kernel/entry_ilp32.S       |  23 +++++
- arch/arm64/kernel/signal.c            |   3 +
- arch/arm64/kernel/signal_ilp32.c      | 171 ++++++++++++++++++++++++++++++++++
- 5 files changed, 237 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/signal_ilp32.h
- create mode 100644 arch/arm64/kernel/entry_ilp32.S
- create mode 100644 arch/arm64/kernel/signal_ilp32.c
+ arch/arm64/include/asm/unistd32.h |  2 +-
+ arch/arm64/kernel/ptrace.c        | 91 ++++++++++++++++++++++++++++++++++++++-
+ arch/arm64/kernel/sys32.c         |  1 +
+ include/linux/ptrace.h            |  6 +++
+ kernel/ptrace.c                   | 10 ++---
+ 5 files changed, 103 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/signal_ilp32.h b/arch/arm64/include/asm/signal_ilp32.h
-new file mode 100644
-index 0000000..3c6d737
---- /dev/null
-+++ b/arch/arm64/include/asm/signal_ilp32.h
-@@ -0,0 +1,38 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index b7e8ef1..6da7cbd 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
+ 			/* 25 was sys_stime */
+ __SYSCALL(25, sys_ni_syscall)
+ #define __NR_ptrace 26
+-__SYSCALL(__NR_ptrace, compat_sys_ptrace)
++__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
+ 			/* 27 was sys_alarm */
+ __SYSCALL(27, sys_ni_syscall)
+ 			/* 28 was sys_fstat */
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 1d075ed..4f0df07 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -29,6 +29,7 @@
+ #include <linux/user.h>
+ #include <linux/seccomp.h>
+ #include <linux/security.h>
++#include <linux/syscalls.h>
+ #include <linux/init.h>
+ #include <linux/signal.h>
+ #include <linux/uaccess.h>
+@@ -40,6 +41,7 @@
+ 
+ #include <asm/debug-monitors.h>
+ #include <asm/pgtable.h>
 +#include <asm/signal32_common.h>
-+#include <asm/signal_common.h>
+ #include <asm/syscall.h>
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+@@ -1215,7 +1217,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
+ }
+ #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
+ 
+-long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
+ 			compat_ulong_t caddr, compat_ulong_t cdata)
+ {
+ 	unsigned long addr = caddr;
+@@ -1292,8 +1294,95 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
+ 
+ 	return ret;
+ }
 +
-+#ifndef __ASM_SIGNAL_ILP32_H
-+#define __ASM_SIGNAL_ILP32_H
++COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
++		       compat_long_t, addr, compat_long_t, data)
++{
++	struct task_struct *child;
++	long ret;
 +
++	if (request == PTRACE_TRACEME) {
++		ret = ptrace_traceme();
++		goto out;
++	}
++
++	child = ptrace_get_task_struct(pid);
++	if (IS_ERR(child)) {
++		ret = PTR_ERR(child);
++		goto out;
++	}
++
++	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
++		ret = ptrace_attach(child, request, addr, data);
++		goto out_put_task_struct;
++	}
++
++	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
++				  request == PTRACE_INTERRUPT);
++	if (!ret) {
++		ret = compat_a32_ptrace(child, request, addr, data);
++		if (ret || request != PTRACE_DETACH)
++			ptrace_unfreeze_traced(child);
++	}
++
++ out_put_task_struct:
++	put_task_struct(child);
++ out:
++	return ret;
++}
++
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
 +#ifdef CONFIG_ARM64_ILP32
 +
-+#include <linux/compat.h>
-+
-+int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs);
-+
-+#else
-+
-+static inline int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++			compat_ulong_t caddr, compat_ulong_t cdata)
 +{
-+	return -ENOSYS;
++	sigset_t new_set;
++
++	switch (request) {
++	case PTRACE_GETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
++					&child->blocked);
++
++	case PTRACE_SETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
++			return -EFAULT;
++
++		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
++
++		/*
++		 * Every thread does recalc_sigpending() after resume, so
++		 * retarget_shared_pending() and recalc_sigpending() are not
++		 * called here.
++		 */
++		spin_lock_irq(&child->sighand->siglock);
++		child->blocked = new_set;
++		spin_unlock_irq(&child->sighand->siglock);
++
++		return 0;
++
++	default:
++		return compat_ptrace_request(child, request, caddr, cdata);
++	}
 +}
 +
-+#endif /* CONFIG_ARM64_ILP32 */
++#elif defined (CONFIG_COMPAT)
 +
-+#endif /* __ASM_SIGNAL_ILP32_H */
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 20e8e66..7038ffb 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -27,7 +27,8 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
--arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o 		\
-+					   signal_ilp32.o entry_ilp32.o
- arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
-diff --git a/arch/arm64/kernel/entry_ilp32.S b/arch/arm64/kernel/entry_ilp32.S
-new file mode 100644
-index 0000000..5063172
---- /dev/null
-+++ b/arch/arm64/kernel/entry_ilp32.S
-@@ -0,0 +1,23 @@
-+/*
-+ * ILP32 system call wrappers
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+ENTRY(ilp32_sys_rt_sigreturn_wrapper)
-+	mov	x0, sp
-+	b	ilp32_sys_rt_sigreturn
-+ENDPROC(ilp32_sys_rt_sigreturn_wrapper)
-+
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 5c73864..241bfeb 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -35,6 +35,7 @@
- #include <asm/signal32.h>
- #include <asm/vdso.h>
- #include <asm/signal_common.h>
-+#include <asm/signal_ilp32.h>
- 
- #define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig)	\
- 			+ offsetof(struct sigframe, fp))
-@@ -325,6 +326,8 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- 			ret = compat_setup_rt_frame(usig, ksig, oldset, regs);
- 		else
- 			ret = compat_setup_frame(usig, ksig, oldset, regs);
-+	} else if (is_ilp32_compat_task()) {
-+		ret = ilp32_setup_rt_frame(usig, ksig, oldset, regs);
- 	} else {
- 		ret = setup_rt_frame(usig, ksig, oldset, regs);
- 	}
-diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
-new file mode 100644
-index 0000000..7cc9122
---- /dev/null
-+++ b/arch/arm64/kernel/signal_ilp32.c
-@@ -0,0 +1,171 @@
-+/*
-+ * Based on arch/arm/kernel/signal.c
-+ *
-+ * Copyright (C) 1995-2009 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Copyright (C) 2016 Cavium Networks.
-+ * Yury Norov <ynorov@caviumnetworks.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/compat.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
-+#include <linux/ratelimit.h>
-+
-+#include <asm/esr.h>
-+#include <asm/fpsimd.h>
-+#include <asm/signal_ilp32.h>
-+#include <asm/uaccess.h>
-+#include <asm/unistd.h>
-+#include <asm/ucontext.h>
-+
-+
-+#define ILP32_RT_SIGFRAME_FP_POS (offsetof(struct ilp32_rt_sigframe, sig)	\
-+			+ offsetof(struct ilp32_sigframe, fp))
-+
-+struct ilp32_ucontext {
-+        u32		uc_flags;
-+        u32		uc_link;
-+        compat_stack_t  uc_stack;
-+        compat_sigset_t uc_sigmask;
-+        /* glibc uses a 1024-bit sigset_t */
-+        __u8            __unused[1024 / 8 - sizeof(compat_sigset_t)];
-+        /* last for future expansion */
-+        struct sigcontext uc_mcontext;
-+};
-+
-+struct ilp32_sigframe {
-+	struct ilp32_ucontext uc;
-+	u64 fp;
-+	u64 lr;
-+};
-+
-+struct ilp32_rt_sigframe {
-+	struct compat_siginfo info;
-+	struct ilp32_sigframe sig;
-+};
-+
-+static int restore_ilp32_sigframe(struct pt_regs *regs,
-+                            struct ilp32_sigframe __user *sf)
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++		compat_ulong_t caddr, compat_ulong_t cdata)
 +{
-+	sigset_t set;
-+	int err;
-+	err = get_sigset_t(&set, &sf->uc.uc_sigmask);
-+	if (err == 0)
-+		set_current_blocked(&set);
-+	err |= restore_sigcontext(regs, &sf->uc.uc_mcontext);
-+	return err;
-+}
-+
-+static int setup_ilp32_sigframe(struct ilp32_sigframe __user *sf,
-+                          struct pt_regs *regs, sigset_t *set)
-+{
-+	int err = 0;
-+	/* set up the stack frame for unwinding */
-+	__put_user_error(regs->regs[29], &sf->fp, err);
-+	__put_user_error(regs->regs[30], &sf->lr, err);
-+
-+	err |= put_sigset_t(&sf->uc.uc_sigmask, set);
-+	err |= setup_sigcontext(&sf->uc.uc_mcontext, regs);
-+	return err;
-+}
-+
-+asmlinkage long ilp32_sys_rt_sigreturn(struct pt_regs *regs)
-+{
-+	struct ilp32_rt_sigframe __user *frame;
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current->restart_block.fn = do_no_restart_syscall;
-+
-+	/*
-+	 * Since we stacked the signal on a 128-bit boundary,
-+	 * then 'sp' should be word aligned here.  If it's
-+	 * not, then the user is trying to mess with us.
-+	 */
-+	if (regs->sp & 15)
-+		goto badframe;
-+
-+	frame = (struct ilp32_rt_sigframe __user *)regs->sp;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof (*frame)))
-+		goto badframe;
-+
-+	if (restore_ilp32_sigframe(regs, &frame->sig))
-+		goto badframe;
-+
-+	if (compat_restore_altstack(&frame->sig.uc.uc_stack))
-+		goto badframe;
-+
-+	return regs->regs[0];
-+
-+badframe:
-+	if (show_unhandled_signals)
-+		pr_info_ratelimited("%s[%d]: bad frame in %s: pc=%08llx sp=%08llx\n",
-+				    current->comm, task_pid_nr(current), __func__,
-+				    regs->pc, regs->sp);
-+	force_sig(SIGSEGV, current);
 +	return 0;
 +}
 +
-+static struct ilp32_rt_sigframe __user *ilp32_get_sigframe(struct ksignal *ksig,
-+					       struct pt_regs *regs)
-+{
-+	unsigned long sp, sp_top;
-+	struct ilp32_rt_sigframe __user *frame;
++#endif
 +
-+	sp = sp_top = sigsp(regs->sp, ksig);
-+
-+	sp = (sp - sizeof(struct ilp32_rt_sigframe)) & ~15;
-+	frame = (struct ilp32_rt_sigframe __user *)sp;
-+
-+	/*
-+	 * Check that we can actually write to the signal frame.
-+	 */
-+	if (!access_ok(VERIFY_WRITE, frame, sp_top - sp))
-+		frame = NULL;
-+
-+	return frame;
-+}
-+
-+/*
-+ * ILP32 signal handling routines called from signal.c
-+ */
-+int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
-+			  sigset_t *set, struct pt_regs *regs)
-+{
-+	struct ilp32_rt_sigframe __user *frame;
-+	int err = 0;
-+
-+	frame = ilp32_get_sigframe(ksig, regs);
-+
-+	if (!frame)
-+		return 1;
-+
-+	err |= copy_siginfo_to_user32(&frame->info, &ksig->info);
-+
-+	__put_user_error(0, &frame->sig.uc.uc_flags, err);
-+	__put_user_error(0, &frame->sig.uc.uc_link, err);
-+
-+	err |= __compat_save_altstack(&frame->sig.uc.uc_stack, regs->sp);
-+	err |= setup_ilp32_sigframe(&frame->sig, regs, set);
-+	if (err == 0) {
-+		setup_return(regs, &ksig->ka, frame, ILP32_RT_SIGFRAME_FP_POS, usig);
-+		regs->regs[1] = (unsigned long)&frame->info;
-+		regs->regs[2] = (unsigned long)&frame->sig.uc;
-+	}
-+
-+	return err;
-+}
-+
+ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ {
+ #ifdef CONFIG_AARCH32_EL0
+diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
+index a40b134..3752443 100644
+--- a/arch/arm64/kernel/sys32.c
++++ b/arch/arm64/kernel/sys32.c
+@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+ asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+ asmlinkage long compat_sys_fallocate_wrapper(void);
+ asmlinkage long compat_sys_mmap2_wrapper(void);
++asmlinkage long compat_sys_aarch32_ptrace(void);
+ 
+ #undef __SYSCALL
+ #define __SYSCALL(nr, sym)	[nr] = sym,
+diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+index 504c98a..75887a0 100644
+--- a/include/linux/ptrace.h
++++ b/include/linux/ptrace.h
+@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
+ int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
++int ptrace_traceme(void);
++struct task_struct *ptrace_get_task_struct(pid_t pid);
++int ptrace_attach(struct task_struct *task, long request,
++			 unsigned long addr, unsigned long flags);
++int ptrace_check_attach(struct task_struct *child, bool ignore_state);
++void ptrace_unfreeze_traced(struct task_struct *task);
+ 
+ /**
+  * ptrace_parent - return the task that is tracing the given task
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 1d3b766..7cfbfca 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -136,7 +136,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
+ 	return ret;
+ }
+ 
+-static void ptrace_unfreeze_traced(struct task_struct *task)
++void ptrace_unfreeze_traced(struct task_struct *task)
+ {
+ 	if (task->state != __TASK_TRACED)
+ 		return;
+@@ -168,7 +168,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+  * RETURNS:
+  * 0 on success, -ESRCH if %child is not ready.
+  */
+-static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
++int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+ {
+ 	int ret = -ESRCH;
+ 
+@@ -292,7 +292,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
+ 	return !err;
+ }
+ 
+-static int ptrace_attach(struct task_struct *task, long request,
++int ptrace_attach(struct task_struct *task, long request,
+ 			 unsigned long addr,
+ 			 unsigned long flags)
+ {
+@@ -406,7 +406,7 @@ out:
+  * Performs checks and sets PT_PTRACED.
+  * Should be used by all ptrace implementations for PTRACE_TRACEME.
+  */
+-static int ptrace_traceme(void)
++ int ptrace_traceme(void)
+ {
+ 	int ret = -EPERM;
+ 
+@@ -1056,7 +1056,7 @@ int ptrace_request(struct task_struct *child, long request,
+ 	return ret;
+ }
+ 
+-static struct task_struct *ptrace_get_task_struct(pid_t pid)
++struct task_struct *ptrace_get_task_struct(pid_t pid)
+ {
+ 	struct task_struct *child;
+ 
 -- 
 2.7.4
-
