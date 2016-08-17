@@ -1,11 +1,11 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 11/18] arm64: ilp32: share aarch32 syscall handlers
-Date: Wed, 17 Aug 2016 14:46:36 +0300
-Message-ID: <1471434403-25291-12-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 13/18] arm64: signal: share lp64 signal routines to ilp32
+Date: Wed, 17 Aug 2016 14:46:38 +0300
+Message-ID: <1471434403-25291-14-git-send-email-ynorov@caviumnetworks.com>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <libc-alpha-return-72569-glibc-alpha=m.gmane.org@sourceware.org>
+Return-path: <libc-alpha-return-72570-glibc-alpha=m.gmane.org@sourceware.org>
 List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
 List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
 List-Archive: <http://sourceware.org/ml/libc-alpha/>
@@ -17,115 +17,25 @@ To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
 List-Id: linux-arch.vger.kernel.org
 
-off_t is  passed in register pair just like in aarch32.
-In this patch corresponding aarch32 handlers are shared to
-ilp32 code.
+After that, it will be possible to reuse it in ilp32.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/kernel/Makefile         |  1 +
- arch/arm64/kernel/entry32.S        | 65 --------------------------
- arch/arm64/kernel/entry32_common.S | 93 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 94 insertions(+), 65 deletions(-)
- create mode 100644 arch/arm64/kernel/entry32_common.S
+ arch/arm64/include/asm/signal_common.h | 33 ++++++++++++
+ arch/arm64/kernel/signal.c             | 93 +++++++++++++++++++++-------------
+ 2 files changed, 92 insertions(+), 34 deletions(-)
+ create mode 100644 arch/arm64/include/asm/signal_common.h
 
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 9b6c324..4a81d93 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
- arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
-+arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/entry32.S b/arch/arm64/kernel/entry32.S
-index f332d5d..fd2b0d5 100644
---- a/arch/arm64/kernel/entry32.S
-+++ b/arch/arm64/kernel/entry32.S
-@@ -54,68 +54,3 @@ ENTRY(compat_sys_fstatfs64_wrapper)
- 	b	compat_sys_fstatfs64
- ENDPROC(compat_sys_fstatfs64_wrapper)
- 
--/*
-- * Note: off_4k (w5) is always in units of 4K. If we can't do the
-- * requested offset because it is not page-aligned, we return -EINVAL.
-- */
--ENTRY(compat_sys_mmap2_wrapper)
--#if PAGE_SHIFT > 12
--	tst	w5, #~PAGE_MASK >> 12
--	b.ne	1f
--	lsr	w5, w5, #PAGE_SHIFT - 12
--#endif
--	b	sys_mmap_pgoff
--1:	mov	x0, #-EINVAL
--	ret
--ENDPROC(compat_sys_mmap2_wrapper)
--
--/*
-- * Wrappers for AArch32 syscalls that either take 64-bit parameters
-- * in registers or that take 32-bit parameters which require sign
-- * extension.
-- */
--ENTRY(compat_sys_pread64_wrapper)
--	regs_to_64	x3, x4, x5
--	b	sys_pread64
--ENDPROC(compat_sys_pread64_wrapper)
--
--ENTRY(compat_sys_pwrite64_wrapper)
--	regs_to_64	x3, x4, x5
--	b	sys_pwrite64
--ENDPROC(compat_sys_pwrite64_wrapper)
--
--ENTRY(compat_sys_truncate64_wrapper)
--	regs_to_64	x1, x2, x3
--	b	sys_truncate
--ENDPROC(compat_sys_truncate64_wrapper)
--
--ENTRY(compat_sys_ftruncate64_wrapper)
--	regs_to_64	x1, x2, x3
--	b	sys_ftruncate
--ENDPROC(compat_sys_ftruncate64_wrapper)
--
--ENTRY(compat_sys_readahead_wrapper)
--	regs_to_64	x1, x2, x3
--	mov	w2, w4
--	b	sys_readahead
--ENDPROC(compat_sys_readahead_wrapper)
--
--ENTRY(compat_sys_fadvise64_64_wrapper)
--	mov	w6, w1
--	regs_to_64	x1, x2, x3
--	regs_to_64	x2, x4, x5
--	mov	w3, w6
--	b	sys_fadvise64_64
--ENDPROC(compat_sys_fadvise64_64_wrapper)
--
--ENTRY(compat_sys_sync_file_range2_wrapper)
--	regs_to_64	x2, x2, x3
--	regs_to_64	x3, x4, x5
--	b	sys_sync_file_range2
--ENDPROC(compat_sys_sync_file_range2_wrapper)
--
--ENTRY(compat_sys_fallocate_wrapper)
--	regs_to_64	x2, x2, x3
--	regs_to_64	x3, x4, x5
--	b	sys_fallocate
--ENDPROC(compat_sys_fallocate_wrapper)
-diff --git a/arch/arm64/kernel/entry32_common.S b/arch/arm64/kernel/entry32_common.S
+diff --git a/arch/arm64/include/asm/signal_common.h b/arch/arm64/include/asm/signal_common.h
 new file mode 100644
-index 0000000..261cd97
+index 0000000..756ed2c
 --- /dev/null
-+++ b/arch/arm64/kernel/entry32_common.S
-@@ -0,0 +1,93 @@
++++ b/arch/arm64/include/asm/signal_common.h
+@@ -0,0 +1,33 @@
 +/*
-+ * Compat system call wrappers
-+ *
++ * Copyright (C) 1995-2009 Russell King
 + * Copyright (C) 2012 ARM Ltd.
-+ * Authors: Will Deacon <will.deacon@arm.com>
-+ *	    Catalin Marinas <catalin.marinas@arm.com>
++ * Copyright (C) 2016 Cavium Networks.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -140,78 +50,205 @@ index 0000000..261cd97
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/linkage.h>
-+#include <linux/const.h>
++#ifndef __ASM_SIGNAL_COMMON_H
++#define __ASM_SIGNAL_COMMON_H
 +
-+#include <asm/assembler.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/errno.h>
-+#include <asm/page.h>
++#include <linux/uaccess.h>
++#include <asm/ucontext.h>
++#include <asm/fpsimd.h>
 +
-+/*
-+ * Note: off_4k (w5) is always in units of 4K. If we can't do the
-+ * requested offset because it is not page-aligned, we return -EINVAL.
-+ */
-+ENTRY(compat_sys_mmap2_wrapper)
-+#if PAGE_SHIFT > 12
-+	tst	w5, #~PAGE_MASK >> 12
-+	b.ne	1f
-+	lsr	w5, w5, #PAGE_SHIFT - 12
-+#endif
-+	b	sys_mmap_pgoff
-+1:	mov	x0, #-EINVAL
-+	ret
-+ENDPROC(compat_sys_mmap2_wrapper)
++int preserve_fpsimd_context(struct fpsimd_context __user *ctx);
++int restore_fpsimd_context(struct fpsimd_context __user *ctx);
++int setup_sigcontext(struct sigcontext __user *uc_mcontext, struct pt_regs *regs);
++int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sf);
++void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++			void __user *frame, off_t sigframe_off, int usig);
 +
-+/*
-+ * Wrappers for AArch32 syscalls that either take 64-bit parameters
-+ * in registers or that take 32-bit parameters which require sign
-+ * extension.
-+ */
-+ENTRY(compat_sys_pread64_wrapper)
-+	regs_to_64	x3, x4, x5
-+	b	sys_pread64
-+ENDPROC(compat_sys_pread64_wrapper)
++#endif /* __ASM_SIGNAL_COMMON_H */
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index be02f65..5c73864 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -34,18 +34,26 @@
+ #include <asm/fpsimd.h>
+ #include <asm/signal32.h>
+ #include <asm/vdso.h>
++#include <asm/signal_common.h>
 +
-+ENTRY(compat_sys_pwrite64_wrapper)
-+	regs_to_64	x3, x4, x5
-+	b	sys_pwrite64
-+ENDPROC(compat_sys_pwrite64_wrapper)
++#define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig)	\
++			+ offsetof(struct sigframe, fp))
 +
-+ENTRY(compat_sys_truncate64_wrapper)
-+	regs_to_64	x1, x2, x3
-+	b	sys_truncate
-+ENDPROC(compat_sys_truncate64_wrapper)
++struct sigframe {
++	struct ucontext uc;
++	u64 fp;
++	u64 lr;
++};
+ 
+ /*
+  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
+  */
+ struct rt_sigframe {
+ 	struct siginfo info;
+-	struct ucontext uc;
+-	u64 fp;
+-	u64 lr;
++	struct sigframe sig;
+ };
+ 
+-static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
++int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ {
+ 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
+ 	int err;
+@@ -65,7 +73,7 @@ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ 	return err ? -EFAULT : 0;
+ }
+ 
+-static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
++int restore_fpsimd_context(struct fpsimd_context __user *ctx)
+ {
+ 	struct fpsimd_state fpsimd;
+ 	__u32 magic, size;
+@@ -93,22 +101,30 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
+ }
+ 
+ static int restore_sigframe(struct pt_regs *regs,
+-			    struct rt_sigframe __user *sf)
++			    struct sigframe __user *sf)
+ {
+ 	sigset_t set;
+-	int i, err;
+-	void *aux = sf->uc.uc_mcontext.__reserved;
+-
++	int err;
+ 	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
+ 	if (err == 0)
+ 		set_current_blocked(&set);
+ 
++	err |= restore_sigcontext(regs, &sf->uc.uc_mcontext);
++	return err;
++}
 +
-+ENTRY(compat_sys_ftruncate64_wrapper)
-+	regs_to_64	x1, x2, x3
-+	b	sys_ftruncate
-+ENDPROC(compat_sys_ftruncate64_wrapper)
 +
-+ENTRY(compat_sys_readahead_wrapper)
-+	regs_to_64	x1, x2, x3
-+	mov	w2, w4
-+	b	sys_readahead
-+ENDPROC(compat_sys_readahead_wrapper)
++int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *uc_mcontext)
++{
++	int i, err = 0;
++	void *aux = uc_mcontext->__reserved;
 +
-+ENTRY(compat_sys_fadvise64_64_wrapper)
-+	mov	w6, w1
-+	regs_to_64	x1, x2, x3
-+	regs_to_64	x2, x4, x5
-+	mov	w3, w6
-+	b	sys_fadvise64_64
-+ENDPROC(compat_sys_fadvise64_64_wrapper)
+ 	for (i = 0; i < 31; i++)
+-		__get_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++		__get_user_error(regs->regs[i], &uc_mcontext->regs[i],
+ 				 err);
+-	__get_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
+-	__get_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
+-	__get_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
++	__get_user_error(regs->sp, &uc_mcontext->sp, err);
++	__get_user_error(regs->pc, &uc_mcontext->pc, err);
++	__get_user_error(regs->pstate, &uc_mcontext->pstate, err);
+ 
+ 	/*
+ 	 * Avoid sys_rt_sigreturn() restarting.
+@@ -145,10 +161,10 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	if (!access_ok(VERIFY_READ, frame, sizeof (*frame)))
+ 		goto badframe;
+ 
+-	if (restore_sigframe(regs, frame))
++	if (restore_sigframe(regs, &frame->sig))
+ 		goto badframe;
+ 
+-	if (restore_altstack(&frame->uc.uc_stack))
++	if (restore_altstack(&frame->sig.uc.uc_stack))
+ 		goto badframe;
+ 
+ 	return regs->regs[0];
+@@ -162,27 +178,36 @@ badframe:
+ 	return 0;
+ }
+ 
+-static int setup_sigframe(struct rt_sigframe __user *sf,
++static int setup_sigframe(struct sigframe __user *sf,
+ 			  struct pt_regs *regs, sigset_t *set)
+ {
+-	int i, err = 0;
+-	void *aux = sf->uc.uc_mcontext.__reserved;
+-	struct _aarch64_ctx *end;
++	int err = 0;
+ 
+ 	/* set up the stack frame for unwinding */
+ 	__put_user_error(regs->regs[29], &sf->fp, err);
+ 	__put_user_error(regs->regs[30], &sf->lr, err);
++	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++	err |= setup_sigcontext(&sf->uc.uc_mcontext, regs);
 +
-+ENTRY(compat_sys_sync_file_range2_wrapper)
-+	regs_to_64	x2, x2, x3
-+	regs_to_64	x3, x4, x5
-+	b	sys_sync_file_range2
-+ENDPROC(compat_sys_sync_file_range2_wrapper)
++	return err;
++}
 +
-+ENTRY(compat_sys_fallocate_wrapper)
-+	regs_to_64	x2, x2, x3
-+	regs_to_64	x3, x4, x5
-+	b	sys_fallocate
-+ENDPROC(compat_sys_fallocate_wrapper)
++int setup_sigcontext(struct sigcontext __user *uc_mcontext,
++			struct pt_regs *regs)
++{
++	void *aux = uc_mcontext->__reserved;
++	struct _aarch64_ctx *end;
++	int i, err = 0;
+ 
+ 	for (i = 0; i < 31; i++)
+-		__put_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++		__put_user_error(regs->regs[i], &uc_mcontext->regs[i],
+ 				 err);
+-	__put_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
+-	__put_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
+-	__put_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
+ 
+-	__put_user_error(current->thread.fault_address, &sf->uc.uc_mcontext.fault_address, err);
++	__put_user_error(regs->sp, &uc_mcontext->sp, err);
++	__put_user_error(regs->pc, &uc_mcontext->pc, err);
++	__put_user_error(regs->pstate, &uc_mcontext->pstate, err);
+ 
+-	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++	__put_user_error(current->thread.fault_address, &uc_mcontext->fault_address, err);
+ 
+ 	if (err == 0) {
+ 		struct fpsimd_context *fpsimd_ctx =
+@@ -229,14 +254,14 @@ static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
+ 	return frame;
+ }
+ 
+-static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+-			 void __user *frame, int usig)
++void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++			 void __user *frame, off_t fp_pos, int usig)
+ {
+ 	__sigrestore_t sigtramp;
+ 
+ 	regs->regs[0] = usig;
+ 	regs->sp = (unsigned long)frame;
+-	regs->regs[29] = regs->sp + offsetof(struct rt_sigframe, fp);
++	regs->regs[29] = regs->sp + fp_pos;
+ 	regs->pc = (unsigned long)ka->sa.sa_handler;
+ 
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+@@ -257,17 +282,17 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 	if (!frame)
+ 		return 1;
+ 
+-	__put_user_error(0, &frame->uc.uc_flags, err);
+-	__put_user_error(NULL, &frame->uc.uc_link, err);
++	__put_user_error(0, &frame->sig.uc.uc_flags, err);
++	__put_user_error(NULL, &frame->sig.uc.uc_link, err);
+ 
+-	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+-	err |= setup_sigframe(frame, regs, set);
++	err |= __save_altstack(&frame->sig.uc.uc_stack, regs->sp);
++	err |= setup_sigframe(&frame->sig, regs, set);
+ 	if (err == 0) {
+-		setup_return(regs, &ksig->ka, frame, usig);
++		setup_return(regs, &ksig->ka, frame, RT_SIGFRAME_FP_POS, usig);
+ 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+ 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 			regs->regs[1] = (unsigned long)&frame->info;
+-			regs->regs[2] = (unsigned long)&frame->uc;
++			regs->regs[2] = (unsigned long)&frame->sig.uc;
+ 		}
+ 	}
+ 
 -- 
 2.7.4
