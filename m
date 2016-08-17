@@ -1,187 +1,219 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0058.outbound.protection.outlook.com ([104.47.33.58]:14624
-	"EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0083.outbound.protection.outlook.com ([104.47.37.83]:40864
+	"EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751839AbcHQMC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Aug 2016 08:02:27 -0400
+	id S1753112AbcHQMC7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 08:02:59 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [RFC2 nowrap: PATCH v7 00/18] ILP32 for ARM64
-Date: Wed, 17 Aug 2016 14:46:25 +0300
-Message-ID: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 11/18] arm64: ilp32: share aarch32 syscall handlers
+Date: Wed, 17 Aug 2016 14:46:36 +0300
+Message-ID: <1471434403-25291-12-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
-Message-ID: <20160817114625.8Zrm-tfFSENUOY4jeoH9xtXgMcZ550bB2cwImFObllY@z>
+Message-ID: <20160817114636.5WKxYKEPi1p_ob8T25nZdCIZEdAkwQSzF5IgJcMYDEs@z>
 
-This series enables aarch64 with ilp32 mode, and as supporting work,
-introduces ARCH_32BIT_OFF_T configuration option that is enabled for
-existing 32-bit architectures but disabled for new arches (so 64-bit
-off_t is is used by new userspace).
+off_t is  passed in register pair just like in aarch32.
+In this patch corresponding aarch32 handlers are shared to
+ilp32 code.
 
-This version is based on kernel v4.8-rc2.
-It works with glibc-2.23, and tested with LTP.
-
-This is RFC because there is still no solid understanding what type of registers
-top-halves delousing we prefer. In this patchset, w0-w7 are cleared for each
-syscall in assembler entry. The alternative approach is in introducing compat
-wrappers which is little faster for natively routed syscalls (~2.6% for syscall
-with no payload) but much more complicated.
-
-There's no major changes here comparing to previous submission, mostly
-the rebase to current master. All changes in details are listed below.
-No additional regression is observed since previous submission.
-
-Patch 1 may be applied separately from other patches of series.
-
-v3: https://lkml.org/lkml/2014/9/3/704
-v4: https://lkml.org/lkml/2015/4/13/691
-v5: https://lkml.org/lkml/2015/9/29/911
-v6: https://lkml.org/lkml/2016/5/23/661
-v7: RFC nowrap: https://lkml.org/lkml/2016/6/17/990
-v7: RFC2 nowrap:
- - rebased on kernel 4.8-rc2;
- - setrlimit(), getrlimit() are handled by non-compat handlers to follow 
-   switching rlim_t to 64-bit in glibc, as pointed by Andreas Shwab;
- - fixed {GET,SET}SIGMASK handling in ptrace(), as pointed by Zhou Chengming;
- - removed put_sig{set,get)_t duplication;
- - patches 1 and 2 from previous submission are joined, missed chunk restored,
-   found by by Andreas Shwab.
-
-Links:
-Kernel: https://github.com/norov/linux/commits/ilp32-4.8
-glibc:  https://github.com/norov/glibc/commits/ilp32-2.24-dev
-
-Andrew Pinski (6):
-  arm64: ensure the kernel is compiled for LP64
-  arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-  arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
-  arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use
-    it
-  arm64: ilp32: introduce ilp32-specific handlers for sigframe and
-    ucontext
-  arm64:ilp32: add ARM64_ILP32 to Kconfig
-
-Philipp Tomsich (1):
-  arm64:ilp32: add vdso-ilp32 and use for signal return
-
-Yury Norov (11):
-  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-  arm64: ilp32: add documentation on the ILP32 ABI for ARM64
-  thread: move thread bits accessors to separated file
-  arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
-  arm64: ilp32: add is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64
-  arm64: introduce binfmt_elf32.c
-  arm64: ilp32: introduce binfmt_ilp32.c
-  arm64: ilp32: share aarch32 syscall handlers
-  arm64: signal: share lp64 signal routines to ilp32
-  arm64: signal32: move ilp32 and aarch32 common code to separated file
-  arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
-
- Documentation/arm64/ilp32.txt                 |  54 ++++++++
- arch/Kconfig                                  |   4 +
- arch/arc/Kconfig                              |   1 +
- arch/arm/Kconfig                              |   1 +
- arch/arm64/Kconfig                            |  19 ++-
- arch/arm64/Makefile                           |   5 +
- arch/arm64/include/asm/compat.h               |  19 +--
- arch/arm64/include/asm/elf.h                  |  29 +++--
- arch/arm64/include/asm/fpsimd.h               |   2 +-
- arch/arm64/include/asm/ftrace.h               |   2 +-
- arch/arm64/include/asm/hwcap.h                |   6 +-
- arch/arm64/include/asm/is_compat.h            |  90 ++++++++++++++
- arch/arm64/include/asm/memory.h               |   5 +-
- arch/arm64/include/asm/processor.h            |  11 +-
- arch/arm64/include/asm/ptrace.h               |   2 +-
- arch/arm64/include/asm/signal32.h             |   9 +-
- arch/arm64/include/asm/signal32_common.h      |  28 +++++
- arch/arm64/include/asm/signal_common.h        |  33 +++++
- arch/arm64/include/asm/signal_ilp32.h         |  38 ++++++
- arch/arm64/include/asm/syscall.h              |   2 +-
- arch/arm64/include/asm/thread_info.h          |   4 +-
- arch/arm64/include/asm/unistd.h               |   6 +-
- arch/arm64/include/asm/unistd32.h             |   2 +-
- arch/arm64/include/asm/vdso.h                 |   6 +
- arch/arm64/include/uapi/asm/bitsperlong.h     |   9 +-
- arch/arm64/kernel/Makefile                    |  18 ++-
- arch/arm64/kernel/asm-offsets.c               |   9 +-
- arch/arm64/kernel/binfmt_elf32.c              |  31 +++++
- arch/arm64/kernel/binfmt_ilp32.c              |  96 +++++++++++++++
- arch/arm64/kernel/cpufeature.c                |   8 +-
- arch/arm64/kernel/cpuinfo.c                   |  20 +--
- arch/arm64/kernel/entry.S                     |  34 ++++-
- arch/arm64/kernel/entry32.S                   |  65 ----------
- arch/arm64/kernel/entry32_common.S            |  93 ++++++++++++++
- arch/arm64/kernel/entry_ilp32.S               |  23 ++++
- arch/arm64/kernel/head.S                      |   2 +-
- arch/arm64/kernel/hw_breakpoint.c             |  10 +-
- arch/arm64/kernel/perf_regs.c                 |   2 +-
- arch/arm64/kernel/process.c                   |   7 +-
- arch/arm64/kernel/ptrace.c                    | 110 +++++++++++++++--
- arch/arm64/kernel/signal.c                    | 102 +++++++++------
- arch/arm64/kernel/signal32.c                  | 107 ----------------
- arch/arm64/kernel/signal32_common.c           | 136 ++++++++++++++++++++
- arch/arm64/kernel/signal_ilp32.c              | 171 ++++++++++++++++++++++++++
- arch/arm64/kernel/sys32.c                     |   1 +
- arch/arm64/kernel/sys_ilp32.c                 |  86 +++++++++++++
- arch/arm64/kernel/traps.c                     |   5 +-
- arch/arm64/kernel/vdso-ilp32/.gitignore       |   2 +
- arch/arm64/kernel/vdso-ilp32/Makefile         |  74 +++++++++++
- arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S     |  33 +++++
- arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S |  95 ++++++++++++++
- arch/arm64/kernel/vdso.c                      |  79 +++++++++---
- arch/arm64/kernel/vdso/gettimeofday.S         |  18 ++-
- arch/blackfin/Kconfig                         |   1 +
- arch/cris/Kconfig                             |   1 +
- arch/frv/Kconfig                              |   1 +
- arch/h8300/Kconfig                            |   1 +
- arch/hexagon/Kconfig                          |   1 +
- arch/m32r/Kconfig                             |   1 +
- arch/m68k/Kconfig                             |   1 +
- arch/metag/Kconfig                            |   1 +
- arch/microblaze/Kconfig                       |   1 +
- arch/mips/Kconfig                             |   1 +
- arch/mn10300/Kconfig                          |   1 +
- arch/nios2/Kconfig                            |   1 +
- arch/openrisc/Kconfig                         |   1 +
- arch/parisc/Kconfig                           |   1 +
- arch/powerpc/Kconfig                          |   1 +
- arch/score/Kconfig                            |   1 +
- arch/sh/Kconfig                               |   1 +
- arch/sparc/Kconfig                            |   1 +
- arch/tile/Kconfig                             |   1 +
- arch/unicore32/Kconfig                        |   1 +
- arch/x86/Kconfig                              |   1 +
- arch/x86/um/Kconfig                           |   1 +
- arch/xtensa/Kconfig                           |   1 +
- drivers/clocksource/arm_arch_timer.c          |   2 +-
- include/linux/fcntl.h                         |   2 +-
- include/linux/ptrace.h                        |   6 +
- include/linux/thread_bits.h                   |  55 +++++++++
- include/linux/thread_info.h                   |  44 +------
- include/uapi/asm-generic/unistd.h             |   5 +-
- kernel/ptrace.c                               |  10 +-
- 83 files changed, 1597 insertions(+), 374 deletions(-)
- create mode 100644 Documentation/arm64/ilp32.txt
- create mode 100644 arch/arm64/include/asm/is_compat.h
- create mode 100644 arch/arm64/include/asm/signal32_common.h
- create mode 100644 arch/arm64/include/asm/signal_common.h
- create mode 100644 arch/arm64/include/asm/signal_ilp32.h
- create mode 100644 arch/arm64/kernel/binfmt_elf32.c
- create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
+ arch/arm64/kernel/Makefile         |  1 +
+ arch/arm64/kernel/entry32.S        | 65 --------------------------
+ arch/arm64/kernel/entry32_common.S | 93 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 94 insertions(+), 65 deletions(-)
  create mode 100644 arch/arm64/kernel/entry32_common.S
- create mode 100644 arch/arm64/kernel/entry_ilp32.S
- create mode 100644 arch/arm64/kernel/signal32_common.c
- create mode 100644 arch/arm64/kernel/signal_ilp32.c
- create mode 100644 arch/arm64/kernel/sys_ilp32.c
- create mode 100644 arch/arm64/kernel/vdso-ilp32/.gitignore
- create mode 100644 arch/arm64/kernel/vdso-ilp32/Makefile
- create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
- create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
- create mode 100644 include/linux/thread_bits.h
 
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 9b6c324..4a81d93 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -28,6 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
+ 					   sys_compat.o entry32.o binfmt_elf32.o
+ arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
++arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
+ arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+ arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/entry32.S b/arch/arm64/kernel/entry32.S
+index f332d5d..fd2b0d5 100644
+--- a/arch/arm64/kernel/entry32.S
++++ b/arch/arm64/kernel/entry32.S
+@@ -54,68 +54,3 @@ ENTRY(compat_sys_fstatfs64_wrapper)
+ 	b	compat_sys_fstatfs64
+ ENDPROC(compat_sys_fstatfs64_wrapper)
+ 
+-/*
+- * Note: off_4k (w5) is always in units of 4K. If we can't do the
+- * requested offset because it is not page-aligned, we return -EINVAL.
+- */
+-ENTRY(compat_sys_mmap2_wrapper)
+-#if PAGE_SHIFT > 12
+-	tst	w5, #~PAGE_MASK >> 12
+-	b.ne	1f
+-	lsr	w5, w5, #PAGE_SHIFT - 12
+-#endif
+-	b	sys_mmap_pgoff
+-1:	mov	x0, #-EINVAL
+-	ret
+-ENDPROC(compat_sys_mmap2_wrapper)
+-
+-/*
+- * Wrappers for AArch32 syscalls that either take 64-bit parameters
+- * in registers or that take 32-bit parameters which require sign
+- * extension.
+- */
+-ENTRY(compat_sys_pread64_wrapper)
+-	regs_to_64	x3, x4, x5
+-	b	sys_pread64
+-ENDPROC(compat_sys_pread64_wrapper)
+-
+-ENTRY(compat_sys_pwrite64_wrapper)
+-	regs_to_64	x3, x4, x5
+-	b	sys_pwrite64
+-ENDPROC(compat_sys_pwrite64_wrapper)
+-
+-ENTRY(compat_sys_truncate64_wrapper)
+-	regs_to_64	x1, x2, x3
+-	b	sys_truncate
+-ENDPROC(compat_sys_truncate64_wrapper)
+-
+-ENTRY(compat_sys_ftruncate64_wrapper)
+-	regs_to_64	x1, x2, x3
+-	b	sys_ftruncate
+-ENDPROC(compat_sys_ftruncate64_wrapper)
+-
+-ENTRY(compat_sys_readahead_wrapper)
+-	regs_to_64	x1, x2, x3
+-	mov	w2, w4
+-	b	sys_readahead
+-ENDPROC(compat_sys_readahead_wrapper)
+-
+-ENTRY(compat_sys_fadvise64_64_wrapper)
+-	mov	w6, w1
+-	regs_to_64	x1, x2, x3
+-	regs_to_64	x2, x4, x5
+-	mov	w3, w6
+-	b	sys_fadvise64_64
+-ENDPROC(compat_sys_fadvise64_64_wrapper)
+-
+-ENTRY(compat_sys_sync_file_range2_wrapper)
+-	regs_to_64	x2, x2, x3
+-	regs_to_64	x3, x4, x5
+-	b	sys_sync_file_range2
+-ENDPROC(compat_sys_sync_file_range2_wrapper)
+-
+-ENTRY(compat_sys_fallocate_wrapper)
+-	regs_to_64	x2, x2, x3
+-	regs_to_64	x3, x4, x5
+-	b	sys_fallocate
+-ENDPROC(compat_sys_fallocate_wrapper)
+diff --git a/arch/arm64/kernel/entry32_common.S b/arch/arm64/kernel/entry32_common.S
+new file mode 100644
+index 0000000..261cd97
+--- /dev/null
++++ b/arch/arm64/kernel/entry32_common.S
+@@ -0,0 +1,93 @@
++/*
++ * Compat system call wrappers
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Authors: Will Deacon <will.deacon@arm.com>
++ *	    Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <linux/const.h>
++
++#include <asm/assembler.h>
++#include <asm/asm-offsets.h>
++#include <asm/errno.h>
++#include <asm/page.h>
++
++/*
++ * Note: off_4k (w5) is always in units of 4K. If we can't do the
++ * requested offset because it is not page-aligned, we return -EINVAL.
++ */
++ENTRY(compat_sys_mmap2_wrapper)
++#if PAGE_SHIFT > 12
++	tst	w5, #~PAGE_MASK >> 12
++	b.ne	1f
++	lsr	w5, w5, #PAGE_SHIFT - 12
++#endif
++	b	sys_mmap_pgoff
++1:	mov	x0, #-EINVAL
++	ret
++ENDPROC(compat_sys_mmap2_wrapper)
++
++/*
++ * Wrappers for AArch32 syscalls that either take 64-bit parameters
++ * in registers or that take 32-bit parameters which require sign
++ * extension.
++ */
++ENTRY(compat_sys_pread64_wrapper)
++	regs_to_64	x3, x4, x5
++	b	sys_pread64
++ENDPROC(compat_sys_pread64_wrapper)
++
++ENTRY(compat_sys_pwrite64_wrapper)
++	regs_to_64	x3, x4, x5
++	b	sys_pwrite64
++ENDPROC(compat_sys_pwrite64_wrapper)
++
++ENTRY(compat_sys_truncate64_wrapper)
++	regs_to_64	x1, x2, x3
++	b	sys_truncate
++ENDPROC(compat_sys_truncate64_wrapper)
++
++ENTRY(compat_sys_ftruncate64_wrapper)
++	regs_to_64	x1, x2, x3
++	b	sys_ftruncate
++ENDPROC(compat_sys_ftruncate64_wrapper)
++
++ENTRY(compat_sys_readahead_wrapper)
++	regs_to_64	x1, x2, x3
++	mov	w2, w4
++	b	sys_readahead
++ENDPROC(compat_sys_readahead_wrapper)
++
++ENTRY(compat_sys_fadvise64_64_wrapper)
++	mov	w6, w1
++	regs_to_64	x1, x2, x3
++	regs_to_64	x2, x4, x5
++	mov	w3, w6
++	b	sys_fadvise64_64
++ENDPROC(compat_sys_fadvise64_64_wrapper)
++
++ENTRY(compat_sys_sync_file_range2_wrapper)
++	regs_to_64	x2, x2, x3
++	regs_to_64	x3, x4, x5
++	b	sys_sync_file_range2
++ENDPROC(compat_sys_sync_file_range2_wrapper)
++
++ENTRY(compat_sys_fallocate_wrapper)
++	regs_to_64	x2, x2, x3
++	regs_to_64	x3, x4, x5
++	b	sys_fallocate
++ENDPROC(compat_sys_fallocate_wrapper)
 -- 
 2.7.4
 
