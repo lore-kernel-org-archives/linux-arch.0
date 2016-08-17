@@ -1,24 +1,187 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0077.outbound.protection.outlook.com ([104.47.34.77]:31360
-	"EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0058.outbound.protection.outlook.com ([104.47.33.58]:14624
+	"EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751550AbcHQMC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1751839AbcHQMC1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 17 Aug 2016 08:02:27 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 04/18] arm64: rename COMPAT to AARCH32_EL0 in Kconfig
-Date: Wed, 17 Aug 2016 14:46:29 +0300
-Message-ID: <1471434403-25291-5-git-send-email-ynorov@caviumnetworks.com>
-In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
-References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+Subject: [RFC2 nowrap: PATCH v7 00/18] ILP32 for ARM64
+Date: Wed, 17 Aug 2016 14:46:25 +0300
+Message-ID: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Jian Zhang <bamvor.zhangjian@linaro.org>
-Message-ID: <20160817114629.qLxkth2DlsPZUKoYqgZOJF4gfNjj6X8xf-USYYR1z2k@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+Message-ID: <20160817114625.8Zrm-tfFSENUOY4jeoH9xtXgMcZ550bB2cwImFObllY@z>
 
-From: Andrew Pinski <apinski@cavium.com>
+This series enables aarch64 with ilp32 mode, and as supporting work,
+introduces ARCH_32BIT_OFF_T configuration option that is enabled for
+existing 32-bit architectures but disabled for new arches (so 64-bit
+off_t is is used by new userspace).
 
-In this patchset  ILP32 ABI support is added. Additionally to AARCH32,
-which is binary-compatible with ARM, ILP32 is (mostly) ABI-compatible.
+This version is based on kernel v4.8-rc2.
+It works with glibc-2.23, and tested with LTP.
+
+This is RFC because there is still no solid understanding what type of registers
+top-halves delousing we prefer. In this patchset, w0-w7 are cleared for each
+syscall in assembler entry. The alternative approach is in introducing compat
+wrappers which is little faster for natively routed syscalls (~2.6% for syscall
+with no payload) but much more complicated.
+
+There's no major changes here comparing to previous submission, mostly
+the rebase to current master. All changes in details are listed below.
+No additional regression is observed since previous submission.
+
+Patch 1 may be applied separately from other patches of series.
+
+v3: https://lkml.org/lkml/2014/9/3/704
+v4: https://lkml.org/lkml/2015/4/13/691
+v5: https://lkml.org/lkml/2015/9/29/911
+v6: https://lkml.org/lkml/2016/5/23/661
+v7: RFC nowrap: https://lkml.org/lkml/2016/6/17/990
+v7: RFC2 nowrap:
+ - rebased on kernel 4.8-rc2;
+ - setrlimit(), getrlimit() are handled by non-compat handlers to follow 
+   switching rlim_t to 64-bit in glibc, as pointed by Andreas Shwab;
+ - fixed {GET,SET}SIGMASK handling in ptrace(), as pointed by Zhou Chengming;
+ - removed put_sig{set,get)_t duplication;
+ - patches 1 and 2 from previous submission are joined, missed chunk restored,
+   found by by Andreas Shwab.
+
+Links:
+Kernel: https://github.com/norov/linux/commits/ilp32-4.8
+glibc:  https://github.com/norov/glibc/commits/ilp32-2.24-dev
+
+Andrew Pinski (6):
+  arm64: ensure the kernel is compiled for LP64
+  arm64: rename COMPAT to AARCH32_EL0 in Kconfig
+  arm64:uapi: set __BITS_PER_LONG correctly for ILP32 and LP64
+  arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use
+    it
+  arm64: ilp32: introduce ilp32-specific handlers for sigframe and
+    ucontext
+  arm64:ilp32: add ARM64_ILP32 to Kconfig
+
+Philipp Tomsich (1):
+  arm64:ilp32: add vdso-ilp32 and use for signal return
+
+Yury Norov (11):
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+  arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+  thread: move thread bits accessors to separated file
+  arm64: introduce is_a32_task and is_a32_thread (for AArch32 compat)
+  arm64: ilp32: add is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64
+  arm64: introduce binfmt_elf32.c
+  arm64: ilp32: introduce binfmt_ilp32.c
+  arm64: ilp32: share aarch32 syscall handlers
+  arm64: signal: share lp64 signal routines to ilp32
+  arm64: signal32: move ilp32 and aarch32 common code to separated file
+  arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
+
+ Documentation/arm64/ilp32.txt                 |  54 ++++++++
+ arch/Kconfig                                  |   4 +
+ arch/arc/Kconfig                              |   1 +
+ arch/arm/Kconfig                              |   1 +
+ arch/arm64/Kconfig                            |  19 ++-
+ arch/arm64/Makefile                           |   5 +
+ arch/arm64/include/asm/compat.h               |  19 +--
+ arch/arm64/include/asm/elf.h                  |  29 +++--
+ arch/arm64/include/asm/fpsimd.h               |   2 +-
+ arch/arm64/include/asm/ftrace.h               |   2 +-
+ arch/arm64/include/asm/hwcap.h                |   6 +-
+ arch/arm64/include/asm/is_compat.h            |  90 ++++++++++++++
+ arch/arm64/include/asm/memory.h               |   5 +-
+ arch/arm64/include/asm/processor.h            |  11 +-
+ arch/arm64/include/asm/ptrace.h               |   2 +-
+ arch/arm64/include/asm/signal32.h             |   9 +-
+ arch/arm64/include/asm/signal32_common.h      |  28 +++++
+ arch/arm64/include/asm/signal_common.h        |  33 +++++
+ arch/arm64/include/asm/signal_ilp32.h         |  38 ++++++
+ arch/arm64/include/asm/syscall.h              |   2 +-
+ arch/arm64/include/asm/thread_info.h          |   4 +-
+ arch/arm64/include/asm/unistd.h               |   6 +-
+ arch/arm64/include/asm/unistd32.h             |   2 +-
+ arch/arm64/include/asm/vdso.h                 |   6 +
+ arch/arm64/include/uapi/asm/bitsperlong.h     |   9 +-
+ arch/arm64/kernel/Makefile                    |  18 ++-
+ arch/arm64/kernel/asm-offsets.c               |   9 +-
+ arch/arm64/kernel/binfmt_elf32.c              |  31 +++++
+ arch/arm64/kernel/binfmt_ilp32.c              |  96 +++++++++++++++
+ arch/arm64/kernel/cpufeature.c                |   8 +-
+ arch/arm64/kernel/cpuinfo.c                   |  20 +--
+ arch/arm64/kernel/entry.S                     |  34 ++++-
+ arch/arm64/kernel/entry32.S                   |  65 ----------
+ arch/arm64/kernel/entry32_common.S            |  93 ++++++++++++++
+ arch/arm64/kernel/entry_ilp32.S               |  23 ++++
+ arch/arm64/kernel/head.S                      |   2 +-
+ arch/arm64/kernel/hw_breakpoint.c             |  10 +-
+ arch/arm64/kernel/perf_regs.c                 |   2 +-
+ arch/arm64/kernel/process.c                   |   7 +-
+ arch/arm64/kernel/ptrace.c                    | 110 +++++++++++++++--
+ arch/arm64/kernel/signal.c                    | 102 +++++++++------
+ arch/arm64/kernel/signal32.c                  | 107 ----------------
+ arch/arm64/kernel/signal32_common.c           | 136 ++++++++++++++++++++
+ arch/arm64/kernel/signal_ilp32.c              | 171 ++++++++++++++++++++++++++
+ arch/arm64/kernel/sys32.c                     |   1 +
+ arch/arm64/kernel/sys_ilp32.c                 |  86 +++++++++++++
+ arch/arm64/kernel/traps.c                     |   5 +-
+ arch/arm64/kernel/vdso-ilp32/.gitignore       |   2 +
+ arch/arm64/kernel/vdso-ilp32/Makefile         |  74 +++++++++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S     |  33 +++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S |  95 ++++++++++++++
+ arch/arm64/kernel/vdso.c                      |  79 +++++++++---
+ arch/arm64/kernel/vdso/gettimeofday.S         |  18 ++-
+ arch/blackfin/Kconfig                         |   1 +
+ arch/cris/Kconfig                             |   1 +
+ arch/frv/Kconfig                              |   1 +
+ arch/h8300/Kconfig                            |   1 +
+ arch/hexagon/Kconfig                          |   1 +
+ arch/m32r/Kconfig                             |   1 +
+ arch/m68k/Kconfig                             |   1 +
+ arch/metag/Kconfig                            |   1 +
+ arch/microblaze/Kconfig                       |   1 +
+ arch/mips/Kconfig                             |   1 +
+ arch/mn10300/Kconfig                          |   1 +
+ arch/nios2/Kconfig                            |   1 +
+ arch/openrisc/Kconfig                         |   1 +
+ arch/parisc/Kconfig                           |   1 +
+ arch/powerpc/Kconfig                          |   1 +
+ arch/score/Kconfig                            |   1 +
+ arch/sh/Kconfig                               |   1 +
+ arch/sparc/Kconfig                            |   1 +
+ arch/tile/Kconfig                             |   1 +
+ arch/unicore32/Kconfig                        |   1 +
+ arch/x86/Kconfig                              |   1 +
+ arch/x86/um/Kconfig                           |   1 +
+ arch/xtensa/Kconfig                           |   1 +
+ drivers/clocksource/arm_arch_timer.c          |   2 +-
+ include/linux/fcntl.h                         |   2 +-
+ include/linux/ptrace.h                        |   6 +
+ include/linux/thread_bits.h                   |  55 +++++++++
+ include/linux/thread_info.h                   |  44 +------
+ include/uapi/asm-generic/unistd.h             |   5 +-
+ kernel/ptrace.c                               |  10 +-
+ 83 files changed, 1597 insertions(+), 374 deletions(-)
+ create mode 100644 Documentation/arm64/ilp32.txt
+ create mode 100644 arch/arm64/include/asm/is_compat.h
+ create mode 100644 arch/arm64/include/asm/signal32_common.h
+ create mode 100644 arch/arm64/include/asm/signal_common.h
+ create mode 100644 arch/arm64/include/asm/signal_ilp32.h
+ create mode 100644 arch/arm64/kernel/binfmt_elf32.c
+ create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ create mode 100644 arch/arm64/kernel/entry32_common.S
+ create mode 100644 arch/arm64/kernel/entry_ilp32.S
+ create mode 100644 arch/arm64/kernel/signal32_common.c
+ create mode 100644 arch/arm64/kernel/signal_ilp32.c
+ create mode 100644 arch/arm64/kernel/sys_ilp32.c
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+ create mode 100644 include/linux/thread_bits.h
+
+-- 
+2.7.4
+
