@@ -1,148 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:36391 "EHLO
-	mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750784AbcHQEng (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Aug 2016 00:43:36 -0400
-Date: Wed, 17 Aug 2016 14:43:22 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 3/6] kbuild: add arch specific post-link pass
-Message-ID: <20160817144322.4067391f@roar.ozlabs.ibm.com>
-In-Reply-To: <57B2DBA1.6090304@suse.com>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
-	<1470910580-18458-4-git-send-email-npiggin@gmail.com>
-	<57B2DBA1.6090304@suse.com>
+Received: from mx2.suse.de ([195.135.220.15]:45165 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750910AbcHQJib (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 05:38:31 -0400
+Date: Wed, 17 Aug 2016 11:38:27 +0200 (CEST)
+From: Miroslav Benes <mbenes@suse.cz>
+Subject: Re: [PATCH] arm64: take SHN_LIVEPATCH syms into account when
+ calculating plt_max_entries
+In-Reply-To: <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
+Message-ID: <alpine.LNX.2.00.1608171135360.29236@pobox.suse.cz>
+References: <20160627151500.2247A68D20@newverein.lst.de> <20160627151722.B81C968D29@newverein.lst.de> <alpine.LNX.2.00.1607111556320.27989@pobox.suse.cz> <20160711215807.GA23097@packer-debian-8-amd64.digitalocean.com> <alpine.LNX.2.00.1607121141480.16277@pobox.suse.cz>
+ <20160713001113.GA30925@packer-debian-8-amd64.digitalocean.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160817044322.dHxR9C3-TCFBZO6TRJ3EIvSAy-_p3IrF660ljuxUyY4@z>
+To: Jessica Yu <jeyu@redhat.com>
+Cc: Torsten Duwe <duwe@lst.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, takahiro.akashi@linaro.org, Jungseok Lee <jungseoklee85@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Li Bin <huawei.libin@huawei.com>, Steven Rostedt <rostedt@goodmis.org>, Ingo Molnar <mingo@redhat.com>, Christopher Li <sparse@chrisli.org>, Jiri Kosina <jikos@kernel.org>, andrew.wafaa@arm.com, linux-arm-kernel@lists.infradead.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, live-patching@vger.kernel.org, linux-arch@vger.kernel.org, linux-sparse@vger.kernel.org
+Message-ID: <20160817093827.G2Phk_6RZVNVyFFRndd8_fdc2S5DoptttwZ4niFwc18@z>
 
-On Tue, 16 Aug 2016 11:23:45 +0200
-Michal Marek <mmarek@suse.com> wrote:
+On Tue, 12 Jul 2016, Jessica Yu wrote:
 
-> Dne 11.8.2016 v 12:16 Nicholas Piggin napsal(a):
-> >  $(modules): %.ko :%.o %.mod.o FORCE
-> >  	$(call if_changed,ld_ko_o)
-> > +ifdef CONFIG_BUILD_ARCH_POSTLINK
-> > +	$(Q)$(MAKE) -f $(srctree)/arch/$(SRCARCH)/Makefile.postlink $@
-> > +endif  
+> SHN_LIVEPATCH symbols are technically a subset of SHN_UNDEF/undefined
+> symbols, except that their addresses are resolved by livepatch at runtime.
+> Therefore, when calculating the upper-bound for the number of plt entries
+> to allocate, make sure to take livepatch symbols into account as well.
 > 
-> Why not simply branch off the existence of arch/*/Makefile.postlink and
-> drop the kconfig option?
+> Signed-off-by: Jessica Yu <jeyu@redhat.com>
 
-I just did not think of it. That does seem nicer, thanks. What do
-you think of this?
+FWIW, I think the patch does what we want, but it's for arm people to 
+judge. It might be better to include it to Torsten's patch set.
 
+Miroslav
 
-Allow architectures to create arch/xxx/Makefile.postlink with targets
-for vmlinux, modules.ko, and clean, which will be invoked after final
-linking of vmlinux and modules.
-
-powerpc will use this to check vmlinux linker relocations for sanity,
-and may use it to fix up alternate instruction patch branch addresses.
-
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-
----
-Since v1,
-- Switched to a more flexible arch makefile invocation.
-- Provide a powerpc patch to use it to help existing build issue
-  (rather than only justification being out-of-tree patch).
-
-Since v2
-- Depend on existence of Makefile.modpost, rather than config option.
-- Move post-vmlinux invocation into Makefile rather than link-vmlinux.sh
-- Add a clean target
-
----
- Documentation/kbuild/makefiles.txt | 16 ++++++++++++++++
- Makefile                           |  7 +++++++
- scripts/Makefile.modpost           |  6 ++++++
- 3 files changed, 29 insertions(+)
-
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 385a5ef..ce93dc7 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -41,6 +41,7 @@ This document describes the Linux kernel Makefiles.
- 	   --- 6.8 Custom kbuild commands
- 	   --- 6.9 Preprocessing linker scripts
- 	   --- 6.10 Generic header files
-+	   --- 6.11 Post-link pass
- 
- 	=== 7 Kbuild syntax for exported headers
- 		--- 7.1 header-y
-@@ -1237,6 +1238,21 @@ When kbuild executes, the following steps are followed (roughly):
- 	to list the file in the Kbuild file.
- 	See "7.4 generic-y" for further info on syntax etc.
- 
-+--- 6.11 Post-link pass
-+
-+	If the file arch/xxx/Makefile.postlink exists, this makefile
-+	will be invoked for post-link objects (vmlinux and modules.ko)
-+	for architectures to run post-link passes on. Must also handle
-+	the clean target.
-+
-+	This pass runs after kallsyms generation. If the architecture
-+	needs to modify symbol locations, rather than manipulate the
-+	kallsyms, it may be easier to add another postlink target for
-+        .tmp_vmlinux? targets to be called from link-vmlinux.sh.
-+
-+	For example, powerpc uses this to check relocation sanity of
-+	the linked vmlinux file.
-+
- === 7 Kbuild syntax for exported headers
- 
- The kernel includes a set of headers that is exported to userspace.
-diff --git a/Makefile b/Makefile
-index 1d26fdb..20d3bfd 100644
---- a/Makefile
-+++ b/Makefile
-@@ -954,8 +954,14 @@ include/generated/autoksyms.h: FORCE
-       cmd_link-vmlinux = $(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux)
- quiet_cmd_link-vmlinux = LINK    $@
- 
-+# Optional arch pass after final link
-+ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-+      cmd_postlink-vmlinux = \
-+          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
-+
- vmlinux: scripts/link-vmlinux.sh vmlinux_prereq $(vmlinux-deps) FORCE
- 	+$(call if_changed,link-vmlinux)
-+	+$(call if_changed,postlink-vmlinux)
- 
- # Build samples along the rest of the kernel
- ifdef CONFIG_SAMPLES
-@@ -1279,6 +1285,7 @@ $(clean-dirs):
- 
- vmlinuxclean:
- 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
-+	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
- 
- clean: archclean vmlinuxclean
- 
-diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-index 1366a94..a3e862e 100644
---- a/scripts/Makefile.modpost
-+++ b/scripts/Makefile.modpost
-@@ -121,8 +121,14 @@ quiet_cmd_ld_ko_o = LD [M]  $@
-                              $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
-                              -o $@ $(filter-out FORCE,$^)
- 
-+# Optional arch pass after final link
-+ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-+      cmd_postlink-ko = \
-+          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
-+
- $(modules): %.ko :%.o %.mod.o FORCE
- 	$(call if_changed,ld_ko_o)
-+	+$(call if_changed,postlink-ko)
- 
- targets += $(modules)
- 
--- 
-2.8.1
+> ---
+> arch/arm64/kernel/module-plts.c | 3 ++-
+> 1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/kernel/module-plts.c b/arch/arm64/kernel/module-plts.c
+> index 1ce90d8..1e95dc1 100644
+> --- a/arch/arm64/kernel/module-plts.c
+> +++ b/arch/arm64/kernel/module-plts.c
+> @@ -122,7 +122,8 @@ static unsigned int count_plts(Elf64_Sym *syms, Elf64_Rela
+> *rela, int num)
+>                         * as well, so modules can never grow beyond that
+> limit.
+>                         */
+>                        s = syms + ELF64_R_SYM(rela[i].r_info);
+> -                       if (s->st_shndx != SHN_UNDEF)
+> +                       if (s->st_shndx != SHN_UNDEF &&
+> +                           s->st_shndx != SHN_LIVEPATCH)
+>                                break;
+> 
+>                        /*
+> -- 
+> 2.5.5
+> 
 
