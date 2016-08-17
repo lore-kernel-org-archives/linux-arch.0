@@ -1,11 +1,11 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
-Date: Wed, 17 Aug 2016 14:46:41 +0300
-Message-ID: <1471434403-25291-17-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 17/18] arm64:ilp32: add vdso-ilp32 and use for signal return
+Date: Wed, 17 Aug 2016 14:46:42 +0300
+Message-ID: <1471434403-25291-18-git-send-email-ynorov@caviumnetworks.com>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <libc-alpha-return-72574-glibc-alpha=m.gmane.org@sourceware.org>
+Return-path: <libc-alpha-return-72575-glibc-alpha=m.gmane.org@sourceware.org>
 List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
 List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
 List-Archive: <http://sourceware.org/ml/libc-alpha/>
@@ -17,233 +17,546 @@ To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
 List-Id: linux-arch.vger.kernel.org
 
-Here new aarch32 ptrace syscall handler is introsuced to avoid run-time
-detection of the task type.
+From: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
 
+ILP32 VDSO exports next symbols:
+ __kernel_rt_sigreturn;
+ __kernel_gettimeofday;
+ __kernel_clock_gettime;
+ __kernel_clock_getres;
+
+What shared object to use, kernel selects depending on result of
+is_ilp32_compat_task() in arch/arm64/kernel/vdso.c, so it substitutes
+correct pages and spec.
+
+Adjusted to move the move data page before code pages in sync with
+commit 601255ae3c98fdeeee3a8bb4696425e4f868b4f1
+
+Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/unistd32.h |  2 +-
- arch/arm64/kernel/ptrace.c        | 91 ++++++++++++++++++++++++++++++++++++++-
- arch/arm64/kernel/sys32.c         |  1 +
- include/linux/ptrace.h            |  6 +++
- kernel/ptrace.c                   | 10 ++---
- 5 files changed, 103 insertions(+), 7 deletions(-)
+ arch/arm64/include/asm/vdso.h                 |  6 ++
+ arch/arm64/kernel/Makefile                    | 11 ++++
+ arch/arm64/kernel/asm-offsets.c               |  7 ++
+ arch/arm64/kernel/signal.c                    |  2 +
+ arch/arm64/kernel/vdso-ilp32/.gitignore       |  2 +
+ arch/arm64/kernel/vdso-ilp32/Makefile         | 74 +++++++++++++++++++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S     | 33 ++++++++++
+ arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S | 95 +++++++++++++++++++++++++++
+ arch/arm64/kernel/vdso.c                      | 75 ++++++++++++++++-----
+ arch/arm64/kernel/vdso/gettimeofday.S         | 18 ++++-
+ 10 files changed, 305 insertions(+), 18 deletions(-)
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/Makefile
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+ create mode 100644 arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
 
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index b7e8ef1..6da7cbd 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
- 			/* 25 was sys_stime */
- __SYSCALL(25, sys_ni_syscall)
- #define __NR_ptrace 26
--__SYSCALL(__NR_ptrace, compat_sys_ptrace)
-+__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
- 			/* 27 was sys_alarm */
- __SYSCALL(27, sys_ni_syscall)
- 			/* 28 was sys_fstat */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 1d075ed..4f0df07 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -29,6 +29,7 @@
- #include <linux/user.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
-+#include <linux/syscalls.h>
- #include <linux/init.h>
- #include <linux/signal.h>
- #include <linux/uaccess.h>
-@@ -40,6 +41,7 @@
+diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
+index 839ce00..649a9a4 100644
+--- a/arch/arm64/include/asm/vdso.h
++++ b/arch/arm64/include/asm/vdso.h
+@@ -29,6 +29,12 @@
  
- #include <asm/debug-monitors.h>
- #include <asm/pgtable.h>
-+#include <asm/signal32_common.h>
- #include <asm/syscall.h>
- #include <asm/traps.h>
- #include <asm/system_misc.h>
-@@ -1215,7 +1217,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
- }
- #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
- 
--long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
- 			compat_ulong_t caddr, compat_ulong_t cdata)
- {
- 	unsigned long addr = caddr;
-@@ -1292,8 +1294,95 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 
- 	return ret;
- }
-+
-+COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
-+		       compat_long_t, addr, compat_long_t, data)
-+{
-+	struct task_struct *child;
-+	long ret;
-+
-+	if (request == PTRACE_TRACEME) {
-+		ret = ptrace_traceme();
-+		goto out;
-+	}
-+
-+	child = ptrace_get_task_struct(pid);
-+	if (IS_ERR(child)) {
-+		ret = PTR_ERR(child);
-+		goto out;
-+	}
-+
-+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
-+		ret = ptrace_attach(child, request, addr, data);
-+		goto out_put_task_struct;
-+	}
-+
-+	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
-+				  request == PTRACE_INTERRUPT);
-+	if (!ret) {
-+		ret = compat_a32_ptrace(child, request, addr, data);
-+		if (ret || request != PTRACE_DETACH)
-+			ptrace_unfreeze_traced(child);
-+	}
-+
-+ out_put_task_struct:
-+	put_task_struct(child);
-+ out:
-+	return ret;
-+}
-+
- #endif /* CONFIG_AARCH32_EL0 */
+ #include <generated/vdso-offsets.h>
  
 +#ifdef CONFIG_ARM64_ILP32
++#include <generated/vdso-ilp32-offsets.h>
++#else
++#define vdso_offset_sigtramp_ilp32
++#endif
 +
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+			compat_ulong_t caddr, compat_ulong_t cdata)
+ #define VDSO_SYMBOL(base, name)						   \
+ ({									   \
+ 	(void *)(vdso_offset_##name - VDSO_LBASE + (unsigned long)(base)); \
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 7038ffb..86a12ba 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -53,6 +53,17 @@ arm64-obj-$(CONFIG_KEXEC)		+= machine_kexec.o relocate_kernel.o	\
+ 					   cpu-reset.o
+ 
+ obj-y					+= $(arm64-obj-y) vdso/ probes/
++obj-$(CONFIG_ARM64_ILP32)		+= vdso-ilp32/
+ obj-m					+= $(arm64-obj-m)
+ head-y					:= head.o
+ extra-y					+= $(head-y) vmlinux.lds
++
++# vDSO - this must be built first to generate the symbol offsets
++$(call objectify,$(arm64-obj-y)): $(obj)/vdso/vdso-offsets.h
++$(obj)/vdso/vdso-offsets.h: $(obj)/vdso
++
++ifeq ($(CONFIG_ARM64_ILP32),y)
++# vDSO - this must be built first to generate the symbol offsets
++$(call objectify,$(arm64-obj-y)): $(obj)/vdso-ilp32/vdso-ilp32-offsets.h
++$(obj)/vdso-ilp32/vdso-ilp32-offsets.h: $(obj)/vdso-ilp32
++endif
+diff --git a/arch/arm64/kernel/asm-offsets.c b/arch/arm64/kernel/asm-offsets.c
+index 19a6883..5815015 100644
+--- a/arch/arm64/kernel/asm-offsets.c
++++ b/arch/arm64/kernel/asm-offsets.c
+@@ -118,6 +118,13 @@ int main(void)
+   DEFINE(TSPEC_TV_SEC,		offsetof(struct timespec, tv_sec));
+   DEFINE(TSPEC_TV_NSEC,		offsetof(struct timespec, tv_nsec));
+   BLANK();
++#ifdef CONFIG_COMPAT
++  DEFINE(COMPAT_TVAL_TV_SEC,	offsetof(struct compat_timeval, tv_sec));
++  DEFINE(COMPAT_TVAL_TV_USEC,	offsetof(struct compat_timeval, tv_usec));
++  DEFINE(COMPAT_TSPEC_TV_SEC,	offsetof(struct compat_timespec, tv_sec));
++  DEFINE(COMPAT_TSPEC_TV_NSEC,	offsetof(struct compat_timespec, tv_nsec));
++  BLANK();
++#endif
+   DEFINE(TZ_MINWEST,		offsetof(struct timezone, tz_minuteswest));
+   DEFINE(TZ_DSTTIME,		offsetof(struct timezone, tz_dsttime));
+   BLANK();
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 241bfeb..7142b12 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -267,6 +267,8 @@ void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+ 		sigtramp = ka->sa.sa_restorer;
++	else if (is_ilp32_compat_task())
++		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp_ilp32);
+ 	else
+ 		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
+ 
+diff --git a/arch/arm64/kernel/vdso-ilp32/.gitignore b/arch/arm64/kernel/vdso-ilp32/.gitignore
+new file mode 100644
+index 0000000..61806c3
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/.gitignore
+@@ -0,0 +1,2 @@
++vdso-ilp32.lds
++vdso-ilp32-offsets.h
+diff --git a/arch/arm64/kernel/vdso-ilp32/Makefile b/arch/arm64/kernel/vdso-ilp32/Makefile
+new file mode 100644
+index 0000000..0671e88
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/Makefile
+@@ -0,0 +1,74 @@
++#
++# Building a vDSO image for AArch64.
++#
++# Author: Will Deacon <will.deacon@arm.com>
++# Heavily based on the vDSO Makefiles for other archs.
++#
++
++obj-ilp32-vdso := gettimeofday-ilp32.o note-ilp32.o sigreturn-ilp32.o
++
++# Build rules
++targets := $(obj-ilp32-vdso) vdso-ilp32.so vdso-ilp32.so.dbg
++obj-ilp32-vdso := $(addprefix $(obj)/, $(obj-ilp32-vdso))
++
++ccflags-y := -shared -fno-common -fno-builtin
++ccflags-y += -nostdlib -Wl,-soname=linux-ilp32-vdso.so.1 \
++		$(call cc-ldoption, -Wl$(comma)--hash-style=sysv)
++
++obj-y += vdso-ilp32.o
++extra-y += vdso-ilp32.lds vdso-ilp32-offsets.h
++CPPFLAGS_vdso-ilp32.lds += -P -C -U$(ARCH) -mabi=ilp32
++
++# Force dependency (incbin is bad)
++$(obj)/vdso-ilp32.o : $(obj)/vdso-ilp32.so
++
++# Link rule for the .so file, .lds has to be first
++$(obj)/vdso-ilp32.so.dbg: $(src)/vdso-ilp32.lds $(obj-ilp32-vdso)
++	$(call if_changed,vdso-ilp32ld)
++
++# Strip rule for the .so file
++$(obj)/%.so: OBJCOPYFLAGS := -S
++$(obj)/%.so: $(obj)/%.so.dbg FORCE
++	$(call if_changed,objcopy)
++
++# Generate VDSO offsets using helper script
++gen-vdsosym := $(srctree)/$(src)/../vdso/gen_vdso_offsets.sh
++quiet_cmd_vdsosym = VDSOSYM $@
++define cmd_vdsosym
++	$(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@ && \
++	cp $@ include/generated/
++endef
++
++$(obj)/vdso-ilp32-offsets.h: $(obj)/vdso-ilp32.so.dbg FORCE
++	$(call if_changed,vdsosym)
++
++# Assembly rules for the .S files
++#$(obj-ilp32-vdso): %.o: $(src)/../vdso/$(subst -ilp32,,%.S)
++#	$(call if_changed_dep,vdso-ilp32as)
++
++$(obj)/gettimeofday-ilp32.o: $(src)/../vdso/gettimeofday.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++$(obj)/note-ilp32.o: $(src)/../vdso/note.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++# This one should be fine because ILP32 uses the same generic
++# __NR_rt_sigreturn syscall number.
++$(obj)/sigreturn-ilp32.o: $(src)/../vdso/sigreturn.S
++	$(call if_changed_dep,vdso-ilp32as)
++
++# Actual build commands
++quiet_cmd_vdso-ilp32ld = VDSOILP32L $@
++      cmd_vdso-ilp32ld = $(CC) $(c_flags) -mabi=ilp32  -Wl,-n -Wl,-T $^ -o $@
++quiet_cmd_vdso-ilp32as = VDSOILP32A $@
++      cmd_vdso-ilp32as = $(CC) $(a_flags) -mabi=ilp32 -c -o $@ $<
++
++# Install commands for the unstripped file
++quiet_cmd_vdso_install = INSTALL $@
++      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso-ilp32.so: $(obj)/vdso-ilp32.so.dbg
++	@mkdir -p $(MODLIB)/vdso
++	$(call cmd,vdso_install)
++
++vdso_install: vdso-ilp32.so
+diff --git a/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+new file mode 100644
+index 0000000..46ac072
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.S
+@@ -0,0 +1,33 @@
++/*
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ */
++
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <linux/const.h>
++#include <asm/page.h>
++
++	__PAGE_ALIGNED_DATA
++
++	.globl vdso_ilp32_start, vdso_ilp32_end
++	.balign PAGE_SIZE
++vdso_ilp32_start:
++	.incbin "arch/arm64/kernel/vdso-ilp32/vdso-ilp32.so"
++	.balign PAGE_SIZE
++vdso_ilp32_end:
++
++	.previous
+diff --git a/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+new file mode 100644
+index 0000000..1dde31f
+--- /dev/null
++++ b/arch/arm64/kernel/vdso-ilp32/vdso-ilp32.lds.S
+@@ -0,0 +1,95 @@
++/*
++ * GNU linker script for the VDSO library.
++ *
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ * Heavily based on the vDSO linker scripts for other archs.
++ */
++
++#include <linux/const.h>
++#include <asm/page.h>
++#include <asm/vdso.h>
++
++SECTIONS
 +{
-+	sigset_t new_set;
++	PROVIDE(_vdso_data = . - PAGE_SIZE);
++	. = VDSO_LBASE + SIZEOF_HEADERS;
 +
-+	switch (request) {
-+	case PTRACE_GETSIGMASK:
-+		if (caddr != sizeof(compat_sigset_t))
-+			return -EINVAL;
++	.hash		: { *(.hash) }			:text
++	.gnu.hash	: { *(.gnu.hash) }
++	.dynsym		: { *(.dynsym) }
++	.dynstr		: { *(.dynstr) }
++	.gnu.version	: { *(.gnu.version) }
++	.gnu.version_d	: { *(.gnu.version_d) }
++	.gnu.version_r	: { *(.gnu.version_r) }
 +
-+		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
-+					&child->blocked);
++	.note		: { *(.note.*) }		:text	:note
 +
-+	case PTRACE_SETSIGMASK:
-+		if (caddr != sizeof(compat_sigset_t))
-+			return -EINVAL;
++	. = ALIGN(16);
 +
-+		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
-+			return -EFAULT;
++	.text		: { *(.text*) }			:text	=0xd503201f
++	PROVIDE (__etext = .);
++	PROVIDE (_etext = .);
++	PROVIDE (etext = .);
 +
-+		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
++	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text	:eh_frame_hdr
++	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
 +
-+		/*
-+		 * Every thread does recalc_sigpending() after resume, so
-+		 * retarget_shared_pending() and recalc_sigpending() are not
-+		 * called here.
-+		 */
-+		spin_lock_irq(&child->sighand->siglock);
-+		child->blocked = new_set;
-+		spin_unlock_irq(&child->sighand->siglock);
++	.dynamic	: { *(.dynamic) }		:text	:dynamic
 +
-+		return 0;
++	.rodata		: { *(.rodata*) }		:text
 +
-+	default:
-+		return compat_ptrace_request(child, request, caddr, cdata);
++	_end = .;
++	PROVIDE(end = .);
++
++	/DISCARD/	: {
++		*(.note.GNU-stack)
++		*(.data .data.* .gnu.linkonce.d.* .sdata*)
++		*(.bss .sbss .dynbss .dynsbss)
 +	}
 +}
 +
-+#elif defined (CONFIG_COMPAT)
-+
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+		compat_ulong_t caddr, compat_ulong_t cdata)
++/*
++ * We must supply the ELF program headers explicitly to get just one
++ * PT_LOAD segment, and set the flags explicitly to make segments read-only.
++ */
++PHDRS
 +{
-+	return 0;
++	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
++	note		PT_NOTE		FLAGS(4);		/* PF_R */
++	eh_frame_hdr	PT_GNU_EH_FRAME;
 +}
 +
++/*
++ * This controls what symbols we export from the DSO.
++ */
++VERSION
++{
++	LINUX_4.6 {
++	global:
++		__kernel_rt_sigreturn;
++		__kernel_gettimeofday;
++		__kernel_clock_gettime;
++		__kernel_clock_getres;
++	local: *;
++	};
++}
++
++/*
++ * Make the sigreturn code visible to the kernel.
++ */
++VDSO_sigtramp_ilp32		= __kernel_rt_sigreturn;
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 0adc4fb..cbf147b 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -40,6 +40,12 @@ extern char vdso_start, vdso_end;
+ static unsigned long vdso_pages;
+ static struct page **vdso_pagelist;
+ 
++#ifdef CONFIG_ARM64_ILP32
++extern char vdso_ilp32_start, vdso_ilp32_end;
++static unsigned long vdso_ilp32_pages;
++static struct page **vdso_ilp32_pagelist;
 +#endif
 +
- const struct user_regset_view *task_user_regset_view(struct task_struct *task)
- {
- #ifdef CONFIG_AARCH32_EL0
-diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
-index a40b134..3752443 100644
---- a/arch/arm64/kernel/sys32.c
-+++ b/arch/arm64/kernel/sys32.c
-@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
- asmlinkage long compat_sys_sync_file_range2_wrapper(void);
- asmlinkage long compat_sys_fallocate_wrapper(void);
- asmlinkage long compat_sys_mmap2_wrapper(void);
-+asmlinkage long compat_sys_aarch32_ptrace(void);
- 
- #undef __SYSCALL
- #define __SYSCALL(nr, sym)	[nr] = sym,
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index 504c98a..75887a0 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
- int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
-+int ptrace_traceme(void);
-+struct task_struct *ptrace_get_task_struct(pid_t pid);
-+int ptrace_attach(struct task_struct *task, long request,
-+			 unsigned long addr, unsigned long flags);
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state);
-+void ptrace_unfreeze_traced(struct task_struct *task);
- 
- /**
-  * ptrace_parent - return the task that is tracing the given task
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 1d3b766..7cfbfca 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -136,7 +136,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
- 	return ret;
- }
- 
--static void ptrace_unfreeze_traced(struct task_struct *task)
-+void ptrace_unfreeze_traced(struct task_struct *task)
- {
- 	if (task->state != __TASK_TRACED)
- 		return;
-@@ -168,7 +168,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
-  * RETURNS:
-  * 0 on success, -ESRCH if %child is not ready.
+ /*
+  * The vDSO data page.
   */
--static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- {
- 	int ret = -ESRCH;
- 
-@@ -292,7 +292,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
- 	return !err;
+@@ -110,57 +116,94 @@ int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
  }
+ #endif /* CONFIG_AARCH32_EL0 */
  
--static int ptrace_attach(struct task_struct *task, long request,
-+int ptrace_attach(struct task_struct *task, long request,
- 			 unsigned long addr,
- 			 unsigned long flags)
+-static struct vm_special_mapping vdso_spec[2];
+-
+-static int __init vdso_init(void)
++static int __init vdso_init_common(char *init_vdso_start, char *init_vdso_end,
++					  unsigned long *vdso_pagesp,
++					  struct page ***vdso_pagelistp,
++					  struct vm_special_mapping* vdso_spec)
  {
-@@ -406,7 +406,7 @@ out:
-  * Performs checks and sets PT_PTRACED.
-  * Should be used by all ptrace implementations for PTRACE_TRACEME.
-  */
--static int ptrace_traceme(void)
-+ int ptrace_traceme(void)
- {
- 	int ret = -EPERM;
+ 	int i;
++	unsigned long init_vdso_pages;
++	struct page **init_vdso_pagelist;
  
-@@ -1056,7 +1056,7 @@ int ptrace_request(struct task_struct *child, long request,
- 	return ret;
+-	if (memcmp(&vdso_start, "\177ELF", 4)) {
++	if (memcmp(init_vdso_start, "\177ELF", 4)) {
+ 		pr_err("vDSO is not a valid ELF object!\n");
+ 		return -EINVAL;
+ 	}
+ 
+-	vdso_pages = (&vdso_end - &vdso_start) >> PAGE_SHIFT;
++	init_vdso_pages = (init_vdso_end - init_vdso_start) >> PAGE_SHIFT;
++	*vdso_pagesp = init_vdso_pages;
+ 	pr_info("vdso: %ld pages (%ld code @ %p, %ld data @ %p)\n",
+-		vdso_pages + 1, vdso_pages, &vdso_start, 1L, vdso_data);
++					init_vdso_pages + 1, init_vdso_pages,
++					init_vdso_start, 1L, vdso_data);
+ 
+ 	/* Allocate the vDSO pagelist, plus a page for the data. */
+-	vdso_pagelist = kcalloc(vdso_pages + 1, sizeof(struct page *),
++	init_vdso_pagelist = kcalloc(init_vdso_pages + 1, sizeof(struct page *),
+ 				GFP_KERNEL);
+-	if (vdso_pagelist == NULL)
++	*vdso_pagelistp = init_vdso_pagelist;
++	if (init_vdso_pagelist == NULL)
+ 		return -ENOMEM;
+ 
+ 	/* Grab the vDSO data page. */
+-	vdso_pagelist[0] = pfn_to_page(PHYS_PFN(__pa(vdso_data)));
++	init_vdso_pagelist[0] = pfn_to_page(PHYS_PFN(__pa(vdso_data)));
+ 
+ 	/* Grab the vDSO code pages. */
+-	for (i = 0; i < vdso_pages; i++)
+-		vdso_pagelist[i + 1] = pfn_to_page(PHYS_PFN(__pa(&vdso_start)) + i);
++	for (i = 0; i < init_vdso_pages; i++)
++		init_vdso_pagelist[i + 1] =
++			pfn_to_page(PHYS_PFN(__pa(init_vdso_start)) + i);
+ 
+ 	/* Populate the special mapping structures */
+ 	vdso_spec[0] = (struct vm_special_mapping) {
+ 		.name	= "[vvar]",
+-		.pages	= vdso_pagelist,
++		.pages	= init_vdso_pagelist,
+ 	};
+ 
+ 	vdso_spec[1] = (struct vm_special_mapping) {
+ 		.name	= "[vdso]",
+-		.pages	= &vdso_pagelist[1],
++		.pages	= &init_vdso_pagelist[1],
+ 	};
+ 
+ 	return 0;
  }
++
++static struct vm_special_mapping vdso_spec[2];
++
++static int __init vdso_init(void)
++{
++	return vdso_init_common(&vdso_start, &vdso_end,
++				&vdso_pages, &vdso_pagelist,
++				vdso_spec);
++}
+ arch_initcall(vdso_init);
  
--static struct task_struct *ptrace_get_task_struct(pid_t pid)
-+struct task_struct *ptrace_get_task_struct(pid_t pid)
++#ifdef CONFIG_ARM64_ILP32
++static struct vm_special_mapping vdso_ilp32_spec[2];
++
++static int __init vdso_ilp32_init(void)
++{
++	return vdso_init_common(&vdso_ilp32_start, &vdso_ilp32_end,
++				&vdso_ilp32_pages, &vdso_ilp32_pagelist,
++				vdso_ilp32_spec);
++}
++arch_initcall(vdso_ilp32_init);
++#endif
++
+ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 				int uses_interp)
  {
- 	struct task_struct *child;
+ 	struct mm_struct *mm = current->mm;
+ 	unsigned long vdso_base, vdso_text_len, vdso_mapping_len;
+ 	void *ret;
++	unsigned long pages = vdso_pages;
++	struct vm_special_mapping *spec = vdso_spec;
++
++#ifdef CONFIG_ARM64_ILP32
++	if (is_ilp32_compat_task()) {
++	        pages = vdso_ilp32_pages;
++	        spec = vdso_ilp32_spec;
++	}
++#endif
  
+-	vdso_text_len = vdso_pages << PAGE_SHIFT;
++	vdso_text_len = pages << PAGE_SHIFT;
+ 	/* Be sure to map the data page */
+ 	vdso_mapping_len = vdso_text_len + PAGE_SIZE;
+ 
+@@ -173,7 +216,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	}
+ 	ret = _install_special_mapping(mm, vdso_base, PAGE_SIZE,
+ 				       VM_READ|VM_MAYREAD,
+-				       &vdso_spec[0]);
++				       &spec[0]);
+ 	if (IS_ERR(ret))
+ 		goto up_fail;
+ 
+@@ -182,7 +225,7 @@ int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 	ret = _install_special_mapping(mm, vdso_base, vdso_text_len,
+ 				       VM_READ|VM_EXEC|
+ 				       VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
+-				       &vdso_spec[1]);
++				       &spec[1]);
+ 	if (IS_ERR(ret))
+ 		goto up_fail;
+ 
+diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
+index e00b467..143b39e 100644
+--- a/arch/arm64/kernel/vdso/gettimeofday.S
++++ b/arch/arm64/kernel/vdso/gettimeofday.S
+@@ -25,6 +25,16 @@
+ #define NSEC_PER_SEC_LO16	0xca00
+ #define NSEC_PER_SEC_HI16	0x3b9a
+ 
++#ifdef __LP64__
++#define PTR_REG(n)	x##n
++#define OFFSET(n)	n
++#define DELOUSE(n)
++#else
++#define PTR_REG(n)	w##n
++#define OFFSET(n)	COMPAT_##n
++#define DELOUSE(n)	mov     w##n, w##n
++#endif
++
+ vdso_data	.req	x6
+ seqcnt		.req	w7
+ w_tmp		.req	w8
+@@ -136,6 +146,8 @@ x_tmp		.req	x8
+ /* int __kernel_gettimeofday(struct timeval *tv, struct timezone *tz); */
+ ENTRY(__kernel_gettimeofday)
+ 	.cfi_startproc
++	DELOUSE(0)
++	DELOUSE(1)
+ 	adr	vdso_data, _vdso_data
+ 	/* If tv is NULL, skip to the timezone code. */
+ 	cbz	x0, 2f
+@@ -160,7 +172,7 @@ ENTRY(__kernel_gettimeofday)
+ 	mov	x13, #1000
+ 	lsl	x13, x13, x12
+ 	udiv	x11, x11, x13
+-	stp	x10, x11, [x0, #TVAL_TV_SEC]
++	stp	PTR_REG(10), PTR_REG(11), [x0, #OFFSET(TVAL_TV_SEC)]
+ 2:
+ 	/* If tz is NULL, return 0. */
+ 	cbz	x1, 3f
+@@ -182,6 +194,7 @@ ENDPROC(__kernel_gettimeofday)
+ /* int __kernel_clock_gettime(clockid_t clock_id, struct timespec *tp); */
+ ENTRY(__kernel_clock_gettime)
+ 	.cfi_startproc
++	DELOUSE(1)
+ 	cmp	w0, #JUMPSLOT_MAX
+ 	b.hi	syscall
+ 	adr	vdso_data, _vdso_data
+@@ -297,6 +310,7 @@ ENDPROC(__kernel_clock_gettime)
+ /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
+ ENTRY(__kernel_clock_getres)
+ 	.cfi_startproc
++	DELOUSE(1)
+ 	cmp	w0, #CLOCK_REALTIME
+ 	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
+ 	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
+@@ -311,7 +325,7 @@ ENTRY(__kernel_clock_getres)
+ 	ldr	x2, 6f
+ 2:
+ 	cbz	w1, 3f
+-	stp	xzr, x2, [x1]
++	stp	PTR_REG(zr), PTR_REG(2), [x1]
+ 
+ 3:	/* res == NULL. */
+ 	mov	w0, wzr
 -- 
 2.7.4
