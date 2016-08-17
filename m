@@ -1,162 +1,109 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Wed, 17 Aug 2016 14:46:35 +0300
-Message-ID: <1471434403-25291-11-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 09/18] arm64: introduce binfmt_elf32.c
+Date: Wed, 17 Aug 2016 14:46:34 +0300
+Message-ID: <1471434403-25291-10-git-send-email-ynorov@caviumnetworks.com>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <libc-alpha-return-72568-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
 In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-doc-owner@vger.kernel.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
 List-Id: linux-arch.vger.kernel.org
 
-binfmt_ilp32.c is needed to handle ILP32 binaries
+As we support more than one compat formats, it looks more reasonable
+to not use fs/compat_binfmt.c. Custom binfmt_elf32.c allows to move aarch32
+specific definitions there and make code more maintainable and readable.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/elf.h     |  6 +++
- arch/arm64/kernel/Makefile       |  1 +
- arch/arm64/kernel/binfmt_ilp32.c | 96 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 103 insertions(+)
- create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ arch/arm64/Kconfig               |  1 -
+ arch/arm64/include/asm/hwcap.h   |  2 --
+ arch/arm64/kernel/Makefile       |  2 +-
+ arch/arm64/kernel/binfmt_elf32.c | 31 +++++++++++++++++++++++++++++++
+ 4 files changed, 32 insertions(+), 4 deletions(-)
+ create mode 100644 arch/arm64/kernel/binfmt_elf32.c
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index f259fe8..be29dde 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 08ca1cb..3d46250 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -998,7 +998,6 @@ config AARCH32_EL0
+ 	def_bool y
+ 	depends on ARM64_4K_PAGES || EXPERT
+ 	select COMPAT
+-	select COMPAT_BINFMT_ELF
+ 	select HAVE_UID16
+ 	select OLD_SIGSUSPEND3
+ 	select COMPAT_OLD_SIGACTION
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
+index 2c7fc5d..99dfd92 100644
+--- a/arch/arm64/include/asm/hwcap.h
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -47,8 +47,6 @@
+ #define ELF_HWCAP		(elf_hwcap)
  
- #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
+ #ifdef CONFIG_AARCH32_EL0
+-#define COMPAT_ELF_HWCAP	(compat_elf_hwcap)
+-#define COMPAT_ELF_HWCAP2	(compat_elf_hwcap2)
+ extern unsigned int compat_elf_hwcap, compat_elf_hwcap2;
+ #endif
  
-+#ifndef USE_AARCH64_GREG
- /* AArch32 registers. */
- #define COMPAT_ELF_NGREG		18
- typedef unsigned int			compat_elf_greg_t;
- typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-+#else /* AArch64 registers for AARCH64/ILP32 */
-+#define COMPAT_ELF_NGREG	ELF_NGREG
-+#define compat_elf_greg_t	elf_greg_t
-+#define compat_elf_gregset_t	elf_gregset_t
-+#endif
- 
- /* AArch32 EABI. */
- #define EF_ARM_EABI_MASK		0xff000000
 diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 949187c..9b6c324 100644
+index 4ec5886..949187c 100644
 --- a/arch/arm64/kernel/Makefile
 +++ b/arch/arm64/kernel/Makefile
-@@ -27,6 +27,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+@@ -26,7 +26,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 	$(call if_changed,objcopy)
  
  arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
+-					   sys_compat.o entry32.o
++					   sys_compat.o entry32.o binfmt_elf32.o
  arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
  arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
  arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
+diff --git a/arch/arm64/kernel/binfmt_elf32.c b/arch/arm64/kernel/binfmt_elf32.c
 new file mode 100644
-index 0000000..416b3f5
+index 0000000..aec1c8a
 --- /dev/null
-+++ b/arch/arm64/kernel/binfmt_ilp32.c
-@@ -0,0 +1,96 @@
++++ b/arch/arm64/kernel/binfmt_elf32.c
+@@ -0,0 +1,31 @@
 +/*
-+ * Support for ILP32 Linux/aarch64 ELF binaries.
++ * Support for AArch32 Linux ELF binaries.
 + */
-+#define USE_AARCH64_GREG
 +
-+#include <linux/elfcore-compat.h>
-+#include <linux/time.h>
++/* AArch32 EABI. */
++#define EF_ARM_EABI_MASK		0xff000000
 +
-+#undef	ELF_CLASS
-+#define ELF_CLASS	ELFCLASS32
-+
-+#undef	elfhdr
-+#undef	elf_phdr
-+#undef	elf_shdr
-+#undef	elf_note
-+#undef	elf_addr_t
-+#define elfhdr		elf32_hdr
-+#define elf_phdr	elf32_phdr
-+#define elf_shdr	elf32_shdr
-+#define elf_note	elf32_note
-+#define elf_addr_t	Elf32_Addr
-+
-+/*
-+ * Some data types as stored in coredump.
-+ */
-+#define user_long_t		compat_long_t
-+#define user_siginfo_t		compat_siginfo_t
-+#define copy_siginfo_to_user	copy_siginfo_to_user32
-+
-+/*
-+ * The machine-dependent core note format types are defined in elfcore-compat.h,
-+ * which requires asm/elf.h to define compat_elf_gregset_t et al.
-+ */
-+#define elf_prstatus	compat_elf_prstatus
-+#define elf_prpsinfo	compat_elf_prpsinfo
-+
-+/*
-+ * Compat version of cputime_to_compat_timeval, perhaps this
-+ * should be an inline in <linux/compat.h>.
-+ */
-+static void cputime_to_compat_timeval(const cputime_t cputime,
-+				      struct compat_timeval *value)
-+{
-+	struct timeval tv;
-+	cputime_to_timeval(cputime, &tv);
-+	value->tv_sec = tv.tv_sec;
-+	value->tv_usec = tv.tv_usec;
-+}
-+
-+#undef cputime_to_timeval
-+#define cputime_to_timeval cputime_to_compat_timeval
-+
-+/* AARCH64 ILP32 EABI. */
-+#undef elf_check_arch
-+#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
-+					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
-+
-+#undef SET_PERSONALITY
-+#define SET_PERSONALITY(ex)						\
-+do {									\
-+	set_thread_flag(TIF_32BIT_AARCH64);				\
-+	clear_thread_flag(TIF_32BIT);					\
++#define compat_start_thread		compat_start_thread
++#define COMPAT_SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	set_thread_flag(TIF_32BIT);		\
 +} while (0)
 +
-+#undef ARCH_DLINFO
-+#define ARCH_DLINFO							\
-+do {									\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-+		    (elf_addr_t)(long)current->mm->context.vdso);	\
-+} while (0)
++#define COMPAT_ARCH_DLINFO
++#define COMPAT_ELF_HWCAP		(compat_elf_hwcap)
++#define COMPAT_ELF_HWCAP2		(compat_elf_hwcap2)
 +
-+#undef ELF_PLATFORM
 +#ifdef __AARCH64EB__
-+#define ELF_PLATFORM		("aarch64_be:ilp32")
++#define COMPAT_ELF_PLATFORM		("v8b")
 +#else
-+#define ELF_PLATFORM		("aarch64:ilp32")
++#define COMPAT_ELF_PLATFORM		("v8l")
 +#endif
 +
-+#undef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
++#define compat_arch_setup_additional_pages \
++					aarch32_setup_vectors_page
++struct linux_binprm;
++extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
++				      int uses_interp);
 +
-+#undef ELF_HWCAP
-+#undef ELF_HWCAP2
-+#define ELF_HWCAP			((u32) elf_hwcap)
-+#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
-+
-+/*
-+ * Rename a few of the symbols that binfmt_elf.c will define.
-+ * These are all local so the names don't really matter, but it
-+ * might make some debugging less confusing not to duplicate them.
-+ */
-+#define elf_format		compat_elf_format
-+#define init_elf_binfmt		init_compat_elf_binfmt
-+#define exit_elf_binfmt		exit_compat_elf_binfmt
-+
-+#include "../../../fs/binfmt_elf.c"
++#include "../../../fs/compat_binfmt_elf.c"
 -- 
 2.7.4
-
