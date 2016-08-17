@@ -1,64 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0065.outbound.protection.outlook.com ([104.47.42.65]:2368
-	"EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-co1nam03on0054.outbound.protection.outlook.com ([104.47.40.54]:60813
+	"EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751839AbcHQMYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Aug 2016 08:24:22 -0400
+	id S1753019AbcHQMsn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 08:48:43 -0400
+Date: Wed, 17 Aug 2016 15:48:22 +0300
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 18/18] arm64:ilp32: add ARM64_ILP32 to Kconfig
-Date: Wed, 17 Aug 2016 14:46:43 +0300
-Message-ID: <1471434403-25291-19-git-send-email-ynorov@caviumnetworks.com>
-In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+Subject: Re: [RFC2 nowrap: PATCH v7 00/18] ILP32 for ARM64
+Message-ID: <20160817124822.GA25751@yury-N73SV>
 References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+ <175AE090-EDA7-4A8D-9044-3FFA74AC1903@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <175AE090-EDA7-4A8D-9044-3FFA74AC1903@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Message-ID: <20160817114643.t1lE8INOCnOGpRPSJMjbjD1lC4xiImXgtHv11dBf_OM@z>
+To: Alexander Graf <agraf@suse.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+Message-ID: <20160817124822.D5-m8jIssvIadlpIxIGPkjoxpSGYTxgheAW2miH5FtA@z>
 
-From: Andrew Pinski <apinski@cavium.com>
+On Wed, Aug 17, 2016 at 02:28:50PM +0200, Alexander Graf wrote:
+> 
+> > On 17 Aug 2016, at 13:46, Yury Norov <ynorov@caviumnetworks.com> wrote:
+> > 
+> > This series enables aarch64 with ilp32 mode, and as supporting work,
+> > introduces ARCH_32BIT_OFF_T configuration option that is enabled for
+> > existing 32-bit architectures but disabled for new arches (so 64-bit
+> > off_t is is used by new userspace).
+> > 
+> > This version is based on kernel v4.8-rc2.
+> > It works with glibc-2.23, and tested with LTP.
+> > 
+> > This is RFC because there is still no solid understanding what type of registers
+> > top-halves delousing we prefer. In this patchset, w0-w7 are cleared for each
+> > syscall in assembler entry. The alternative approach is in introducing compat
+> > wrappers which is little faster for natively routed syscalls (~2.6% for syscall
+> > with no payload) but much more complicated.
+> 
+> So you’re saying there are 2 options:
+> 
+>   1) easy to get right, slightly slower, same ABI to user space as 2
+>   2) harder to get right, minor performance benefit
 
-This patch adds the config option for ILP32.
+No, ABI is little different. If 1) we pass off_t in a pair to syscalls,
+if 2) - in a single register. So if 1, we 'd take some wrappers from aarch32.
+See patch 12 here.
 
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
-Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Reviewed-by: David Daney <ddaney@caviumnetworks.com>
----
- arch/arm64/Kconfig | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 3d46250..e4042a9 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -991,7 +991,7 @@ source "fs/Kconfig.binfmt"
- 
- config COMPAT
- 	bool
--	depends on AARCH32_EL0
-+	depends on AARCH32_EL0 || ARM64_ILP32
- 
- config AARCH32_EL0
- 	bool "Kernel support for 32-bit EL0"
-@@ -1013,6 +1013,14 @@ config AARCH32_EL0
- 
- 	  If you want to execute 32-bit userspace applications, say Y.
- 
-+config ARM64_ILP32
-+	bool "Kernel support for ILP32"
-+	select COMPAT
-+	help
-+	  This option enables support for AArch64 ILP32 user space.  ILP32
-+	  is an ABI where long and pointers are 32bits but it uses the AARCH64
-+	  instruction set. See Documentation/arm64/ilp32.txt for details.
-+
- config SYSVIPC_COMPAT
- 	def_bool y
- 	depends on COMPAT && SYSVIPC
--- 
-2.7.4
-
+> That’s an obvious pick, no? Mark it non-RFC and stay with the clearing in assembler entry. If anyone cares about those last few percent, they can still push the harder path upstream later if they want to, but at least we’ll have the ABI stable, so that you can start using and developing for ilp32 on aarch64.
+> 
+> 
+> Alex
