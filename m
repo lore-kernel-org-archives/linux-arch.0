@@ -1,68 +1,112 @@
-From: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
-Subject: Re: [RFC2 nowrap: PATCH v7 00/18] ILP32 for ARM64
-Date: Wed, 17 Aug 2016 14:54:59 +0200
-Message-ID: <DF24AFA0-5B5C-47E8-9B78-7C6C8711948E@theobroma-systems.com>
-References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com> <175AE090-EDA7-4A8D-9044-3FFA74AC1903@suse.de> <20160817124822.GA25751@yury-N73SV>
-Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2104\))
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <libc-alpha-return-72583-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-Reply-To: <20160817124822.GA25751@yury-N73SV>
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH 17/18] arm64:ilp32: add vdso-ilp32 and use for signal return
+Date: Wed, 17 Aug 2016 15:18:48 +0200
+Message-ID: <mvmbn0rpm87.fsf@hawking.suse.de>
+References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+	<1471434403-25291-18-git-send-email-ynorov@caviumnetworks.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:41432 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751802AbcHQNSw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 09:18:52 -0400
+In-Reply-To: <1471434403-25291-18-git-send-email-ynorov@caviumnetworks.com>
+	(Yury Norov's message of "Wed, 17 Aug 2016 14:46:42 +0300")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Alexander Graf <agraf@suse.de>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, =?utf-8?Q?Christoph_M=C3=BCllner?= <christoph.muellner@theobroma-systems.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, szabolcs.nagy@arm.com, Alexey Klimov <klimov.linux@gmail.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, geert@linux-m68k.org, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@dav
-List-Id: linux-arch.vger.kernel.org
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+
+On Aug 17 2016, Yury Norov <ynorov@caviumnetworks.com> wrote:
+
+> diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
+> index e00b467..143b39e 100644
+> --- a/arch/arm64/kernel/vdso/gettimeofday.S
+> +++ b/arch/arm64/kernel/vdso/gettimeofday.S
+> @@ -25,6 +25,16 @@
+>  #define NSEC_PER_SEC_LO16	0xca00
+>  #define NSEC_PER_SEC_HI16	0x3b9a
+>  
+> +#ifdef __LP64__
+> +#define PTR_REG(n)	x##n
+> +#define OFFSET(n)	n
+> +#define DELOUSE(n)
+> +#else
+> +#define PTR_REG(n)	w##n
+> +#define OFFSET(n)	COMPAT_##n
+> +#define DELOUSE(n)	mov     w##n, w##n
+> +#endif
+> +
+>  vdso_data	.req	x6
+>  seqcnt		.req	w7
+>  w_tmp		.req	w8
+> @@ -136,6 +146,8 @@ x_tmp		.req	x8
+>  /* int __kernel_gettimeofday(struct timeval *tv, struct timezone *tz); */
+>  ENTRY(__kernel_gettimeofday)
+>  	.cfi_startproc
+> +	DELOUSE(0)
+> +	DELOUSE(1)
+>  	adr	vdso_data, _vdso_data
+>  	/* If tv is NULL, skip to the timezone code. */
+>  	cbz	x0, 2f
+> @@ -160,7 +172,7 @@ ENTRY(__kernel_gettimeofday)
+>  	mov	x13, #1000
+>  	lsl	x13, x13, x12
+>  	udiv	x11, x11, x13
+> -	stp	x10, x11, [x0, #TVAL_TV_SEC]
+> +	stp	PTR_REG(10), PTR_REG(11), [x0, #OFFSET(TVAL_TV_SEC)]
+>  2:
+>  	/* If tz is NULL, return 0. */
+>  	cbz	x1, 3f
+> @@ -182,6 +194,7 @@ ENDPROC(__kernel_gettimeofday)
+>  /* int __kernel_clock_gettime(clockid_t clock_id, struct timespec *tp); */
+>  ENTRY(__kernel_clock_gettime)
+>  	.cfi_startproc
+> +	DELOUSE(1)
+>  	cmp	w0, #JUMPSLOT_MAX
+>  	b.hi	syscall
+>  	adr	vdso_data, _vdso_data
+> @@ -297,6 +310,7 @@ ENDPROC(__kernel_clock_gettime)
+>  /* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
+>  ENTRY(__kernel_clock_getres)
+>  	.cfi_startproc
+> +	DELOUSE(1)
+>  	cmp	w0, #CLOCK_REALTIME
+>  	ccmp	w0, #CLOCK_MONOTONIC, #0x4, ne
+>  	ccmp	w0, #CLOCK_MONOTONIC_RAW, #0x4, ne
+> @@ -311,7 +325,7 @@ ENTRY(__kernel_clock_getres)
+>  	ldr	x2, 6f
+>  2:
+>  	cbz	w1, 3f
+> -	stp	xzr, x2, [x1]
+> +	stp	PTR_REG(zr), PTR_REG(2), [x1]
+>  
+>  3:	/* res == NULL. */
+>  	mov	w0, wzr
+
+I think this is missing:
+
+diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso/gettimeofday.S
+index 143b39e..b463c5a 100644
+--- a/arch/arm64/kernel/vdso/gettimeofday.S
++++ b/arch/arm64/kernel/vdso/gettimeofday.S
+@@ -129,7 +129,7 @@ x_tmp		.req	x8
+ 	.if \shift == 1
+ 	lsr	x11, x11, x12
+ 	.endif
+-	stp	x10, x11, [x1, #TSPEC_TV_SEC]
++	stp	PTR_REG(10), PTR_REG(11), [x1, #OFFSET(TSPEC_TV_SEC)]
+ 	mov	x0, xzr
+ 	ret
+ 	.endm
+-- 
+2.9.3
 
 
-> On 17 Aug 2016, at 14:48, Yury Norov <ynorov@caviumnetworks.com> =
-wrote:
->=20
-> On Wed, Aug 17, 2016 at 02:28:50PM +0200, Alexander Graf wrote:
->>=20
->>> On 17 Aug 2016, at 13:46, Yury Norov <ynorov@caviumnetworks.com> =
-wrote:
->>>=20
->>> This series enables aarch64 with ilp32 mode, and as supporting work,
->>> introduces ARCH_32BIT_OFF_T configuration option that is enabled for
->>> existing 32-bit architectures but disabled for new arches (so 64-bit
->>> off_t is is used by new userspace).
->>>=20
->>> This version is based on kernel v4.8-rc2.
->>> It works with glibc-2.23, and tested with LTP.
->>>=20
->>> This is RFC because there is still no solid understanding what type =
-of registers
->>> top-halves delousing we prefer. In this patchset, w0-w7 are cleared =
-for each
->>> syscall in assembler entry. The alternative approach is in =
-introducing compat
->>> wrappers which is little faster for natively routed syscalls (~2.6% =
-for syscall
->>> with no payload) but much more complicated.
->>=20
->> So you=E2=80=99re saying there are 2 options:
->>=20
->>  1) easy to get right, slightly slower, same ABI to user space as 2
->>  2) harder to get right, minor performance benefit
->=20
-> No, ABI is little different. If 1) we pass off_t in a pair to =
-syscalls,
-> if 2) - in a single register. So if 1, we 'd take some wrappers from =
-aarch32.
-> See patch 12 here.
+Andreas.
 
-=46rom our experience with ILP32, I=E2=80=99d prefer to have off_t (and =
-similar) in a single register
-whenever possible (i.e. option #2).  It feels more natural to use the =
-full 64bit registers=20
-whenever possible, as ILP32 on ARMv8 should really be understood as a =
-64bit ABI with=20
-a 32bit memory model.
-
-Cheers,
-Philipp.=
+-- 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
