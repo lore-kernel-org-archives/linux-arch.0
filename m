@@ -1,74 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:41892 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750839AbcHQJ4k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Aug 2016 05:56:40 -0400
-Date: Wed, 17 Aug 2016 11:56:33 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 3/6] kbuild: add arch specific post-link pass
-Message-ID: <20160817095632.GA5187@ravnborg.org>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
- <1470910580-18458-4-git-send-email-npiggin@gmail.com>
- <57B2DBA1.6090304@suse.com>
- <20160817144322.4067391f@roar.ozlabs.ibm.com>
+Received: from mail-co1nam03on0050.outbound.protection.outlook.com ([104.47.40.50]:15998
+	"EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753615AbcHQLsM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Aug 2016 07:48:12 -0400
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 08/18] arm64: ilp32: add is_ilp32_compat_{task,thread} and TIF_32BIT_AARCH64
+Date: Wed, 17 Aug 2016 14:46:33 +0300
+Message-ID: <1471434403-25291-9-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160817144322.4067391f@roar.ozlabs.ibm.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160817095633.9VC9-d66zD0g9z_4d3ko-81UEVd7mSLSHvjGycoWiLw@z>
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Message-ID: <20160817114633.OwSRNhubJbEVR1bsFfKm0ZmdxXTpCiUG22H5ElQFg28@z>
 
-> diff --git a/Makefile b/Makefile
-> index 1d26fdb..20d3bfd 100644
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -954,8 +954,14 @@ include/generated/autoksyms.h: FORCE
->        cmd_link-vmlinux = $(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux)
->  quiet_cmd_link-vmlinux = LINK    $@
->  
-> +# Optional arch pass after final link
-> +ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-> +      cmd_postlink-vmlinux = \
-> +          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
-> +
->  vmlinux: scripts/link-vmlinux.sh vmlinux_prereq $(vmlinux-deps) FORCE
->  	+$(call if_changed,link-vmlinux)
-> +	+$(call if_changed,postlink-vmlinux)
->  
->  # Build samples along the rest of the kernel
->  ifdef CONFIG_SAMPLES
-> @@ -1279,6 +1285,7 @@ $(clean-dirs):
->  
->  vmlinuxclean:
->  	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
-> +	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
->  
->  clean: archclean vmlinuxclean
->  
-Another option would be to embed the logic in the link-vmlinux shell script.
-It is much simpler for normal humans to read and understand shell scripts,
-and it would be simpler too.
+ILP32 tasks are needed to be distinguished from lp64 and aarch32.
+This patch adds helper functions is_ilp32_compat_{task,thread} and
+thread flag TIF_32BIT_AARCH64 to address it. This is a preparation
+for following patches in ilp32 patchset.
 
+For consistency, SET_PERSONALITY is changed here accordingly.
 
-> diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-> index 1366a94..a3e862e 100644
-> --- a/scripts/Makefile.modpost
-> +++ b/scripts/Makefile.modpost
-> @@ -121,8 +121,14 @@ quiet_cmd_ld_ko_o = LD [M]  $@
->                               $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
->                               -o $@ $(filter-out FORCE,$^)
->  
-> +# Optional arch pass after final link
-> +ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-> +      cmd_postlink-ko = \
-> +          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
-> +
->  $(modules): %.ko :%.o %.mod.o FORCE
->  	$(call if_changed,ld_ko_o)
-> +	+$(call if_changed,postlink-ko)
-For modules we have no script, so here we need this.
+Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Reviewed-by: David Daney <ddaney@caviumnetworks.com>
+---
+ arch/arm64/include/asm/elf.h         | 13 +++++++++++--
+ arch/arm64/include/asm/is_compat.h   | 30 ++++++++++++++++++++++++++++--
+ arch/arm64/include/asm/thread_info.h |  2 ++
+ 3 files changed, 41 insertions(+), 4 deletions(-)
 
-	Sam
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 6a9049b..f259fe8 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -142,7 +142,11 @@ typedef struct user_fpsimd_state elf_fpregset_t;
+  */
+ #define ELF_PLAT_INIT(_r, load_addr)	(_r)->regs[0] = 0
+ 
+-#define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
++#define SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	clear_thread_flag(TIF_32BIT);		\
++} while (0)
+ 
+ /* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
+ #define ARCH_DLINFO							\
+@@ -183,7 +187,12 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
+ 					 ((x)->e_flags & EF_ARM_EABI_MASK))
+ 
+ #define compat_start_thread		compat_start_thread
+-#define COMPAT_SET_PERSONALITY(ex)	set_thread_flag(TIF_32BIT);
++#define COMPAT_SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	set_thread_flag(TIF_32BIT);		\
++} while (0)
++
+ #define COMPAT_ARCH_DLINFO
+ extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
+ 				      int uses_interp);
+diff --git a/arch/arm64/include/asm/is_compat.h b/arch/arm64/include/asm/is_compat.h
+index 8dba5ca..7726beb 100644
+--- a/arch/arm64/include/asm/is_compat.h
++++ b/arch/arm64/include/asm/is_compat.h
+@@ -45,18 +45,44 @@ static inline int is_a32_compat_thread(struct thread_info *thread)
+ 
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
++#ifdef CONFIG_ARM64_ILP32
++
++static inline int is_ilp32_compat_task(void)
++{
++	return test_thread_flag(TIF_32BIT_AARCH64);
++}
++
++static inline int is_ilp32_compat_thread(struct thread_info *thread)
++{
++	return test_ti_thread_flag(thread, TIF_32BIT_AARCH64);
++}
++
++#else
++
++static inline int is_ilp32_compat_task(void)
++{
++	return 0;
++}
++
++static inline int is_ilp32_compat_thread(struct thread_info *thread)
++{
++	return 0;
++}
++
++#endif /* CONFIG_ARM64_ILP32 */
++
+ #ifdef CONFIG_COMPAT
+ 
+ static inline int is_compat_task(void)
+ {
+-	return is_a32_compat_task();
++	return is_a32_compat_task() || is_ilp32_compat_task();
+ }
+ 
+ #endif /* CONFIG_COMPAT */
+ 
+ static inline int is_compat_thread(struct thread_info *thread)
+ {
+-	return is_a32_compat_thread(thread);
++	return is_a32_compat_thread(thread) || is_ilp32_compat_thread(thread);
+ }
+ 
+ 
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index 4daa559..8802645 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -119,6 +119,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_RESTORE_SIGMASK	20
+ #define TIF_SINGLESTEP		21
+ #define TIF_32BIT		22	/* AARCH32 process */
++#define TIF_32BIT_AARCH64	23	/* 32 bit process on AArch64(ILP32) */
+ 
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+@@ -130,6 +131,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
+ #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
++#define _TIF_32BIT_AARCH64	(1 << TIF_32BIT_AARCH64)
+ 
+ #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE)
+-- 
+2.7.4
+
