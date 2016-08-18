@@ -1,101 +1,116 @@
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 00/10] locking/rwsem: Enable reader optimistic spinning
-Date: Thu, 18 Aug 2016 17:11:02 -0400
-Message-ID: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [RFC PATCH-tip v4 09/10] locking/rwsem: Enable reactivation of reader spinning
+Date: Thu, 18 Aug 2016 17:11:11 -0400
+Message-ID: <1471554672-38662-10-git-send-email-Waiman.Long@hpe.com>
+References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+Sender: linux-ia64-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-v3->v4:
- - Rebased to the latest tip tree due to changes to rwsem-xadd.c.
- - Update the OSQ patch to fix race condition.
+Reader optimistic spinning will be disabled once the rspin_enabled
+count reaches 0. After that, it cannot be re-enabled. This may cause
+an eligible rwsem locked out of reader spinning because of a series
+of unfortunate events.
 
-v2->v3:
- - Used smp_acquire__after_ctrl_dep() to provide acquire barrier.
- - Added the following new patches:
-   1) make rwsem_spin_on_owner() return a tristate value.
-   2) reactivate reader spinning when there is a large number of
-      favorable writer-on-writer spinnings.
-   3) move all the rwsem macros in arch-specific rwsem.h files
-      into a common asm-generic/rwsem_types.h file.
-   4) add a boot parameter to specify the reader spinning threshold.
- - Updated some of the patches as suggested by PeterZ and adjusted
-   some of the reader spinning parameters.
+This patch looks at the regular writer-on-writer spinning history. If
+there are sufficient more successful spin attempts than failed ones,
+it will try to reactivate reader spinning.
 
-v1->v2:
- - Fixed a 0day build error.
- - Added a new patch 1 to make osq_lock() a proper acquire memory
-   barrier.
- - Replaced the explicit enabling of reader spinning by an autotuning
-   mechanism that disable reader spinning for those rwsems that may
-   not benefit from reader spinning.
- - Remove the last xfs patch as it is no longer necessary.
+Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+---
+ include/linux/rwsem.h       |   12 ++++++++----
+ kernel/locking/rwsem-xadd.c |   27 +++++++++++++++++++++++++--
+ 2 files changed, 33 insertions(+), 6 deletions(-)
 
-This patchset enables more aggressive optimistic spinning on
-both readers and writers waiting on a writer or reader owned
-lock. Spinning on writer is done by looking at the on_cpu flag of the
-lock owner. Spinning on readers, on the other hand, is count-based as
-there is no easy way to figure out if all the readers are running. The
-spinner will stop spinning once the count goes to 0. Because of that,
-spinning on readers may hurt performance in some cases.
+diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
+index 8978f87..98284b4 100644
+--- a/include/linux/rwsem.h
++++ b/include/linux/rwsem.h
+@@ -32,7 +32,11 @@ struct rw_semaphore {
+ 	raw_spinlock_t wait_lock;
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ 	struct optimistic_spin_queue osq; /* spinner MCS lock */
+-	int rspin_enabled;	/* protected by osq lock */
++	/*
++	 * Reader optimistic spinning fields protected by osq lock
++	 */
++	uint16_t rspin_enabled;
++	int16_t  wspin_cnt;
+ 
+ 	/*
+ 	 * Write owner. Used as a speculative check to see
+@@ -74,10 +78,10 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
+ /*
+  * Each successful reader spin will increment the rspin_enabled by 1.
+  * Each unsuccessful spin, on the other hand, will decrement it by 2.
+- * Reader spinning will be permanently disabled when it reaches 0.
++ * Reader spinning will be disabled when it reaches 0.
+  */
+ #ifndef RWSEM_RSPIN_ENABLED_DEFAULT
+-# define RWSEM_RSPIN_ENABLED_DEFAULT	40
++# define RWSEM_RSPIN_ENABLED_DEFAULT	30
+ #endif
+ #define RWSEM_RSPIN_ENABLED_MAX		1024
+ 
+@@ -87,7 +91,7 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
+ 
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ #define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, \
+-		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT
++		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT, .wspin_cnt = 0
+ #else
+ #define __RWSEM_OPT_INIT(lockname)
+ #endif
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index d850214..9978159 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -108,6 +108,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ 	sem->owner = NULL;
+ 	sem->rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT;
++	sem->wspin_cnt = 0;
+ 	osq_lock_init(&sem->osq);
+ #endif
+ }
+@@ -458,10 +459,32 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem,
+ 		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
+ 			sem->rspin_enabled++;
+ 		} else if (!taken) {
+-			if  (sem->rspin_enabled > 2)
++			if  (sem->rspin_enabled > 2) {
+ 				sem->rspin_enabled -= 2;
+-			else
++			} else if (sem->rspin_enabled) {
+ 				sem->rspin_enabled = 0;
++				/*
++				 * Reset wspin_cnt so that it won't get
++				 * re-enabled too soon.
++				 */
++				if (sem->wspin_cnt > -30)
++					sem->wspin_cnt = -30;
++			}
++		}
++	} else if (type == RWSEM_WAITING_FOR_WRITE) {
++		/*
++		 * Every 10 successful writer-on-writer spins more than failed
++		 * spins will increment rspin_enabled to encourage more
++		 * writer-on-reader spinning attempts.
++		 */
++		if (taken) {
++			if ((++sem->wspin_cnt >= 10) &&
++			    (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
++				sem->wspin_cnt = 0;
++				sem->rspin_enabled++;
++			}
++		} else if (sem->wspin_cnt > -100) {
++			sem->wspin_cnt--;
+ 		}
+ 	}
+ 	osq_unlock(&sem->osq);
+-- 
+1.7.1
 
-An autotuning mechanism is used to determine if a rwsem can benefit
-from reader optimistic spinning. It will maintain reader spinning as
-long as no less than 80% of the spins are successful.
-
-Patch 1 updates the osq_lock() function to make it a proper acquire
-memory barrier.
-
-Patch 2 reduces the length of the blocking window after a read locking
-attempt where writer lock stealing is disabled because of the active
-read lock. It can improve rwsem performance for contended lock. It is
-independent of the rest of the patchset.
-
-Patch 3 modifies rwsem_spin_on_owner() to return a tri-state value
-that can be used in later patch.
-
-Patch 4 puts in place the autotuning mechanism to check if reader
-optimistic spinning should be used or not.
-
-Patch 5 moves down the rwsem_down_read_failed() function for later
-patches.
-
-Patch 6 moves the macro definitions in various arch-specific rwsem.h
-header files into a commont asm-generic/rwsem_types.h file.
-
-Patch 7 changes RWSEM_WAITING_BIAS to simpify reader trylock code.
-
-Patch 8 enables readers to do optimistic spinning.
-
-Patch 9 allows reactivation of reader spinning when a lot of
-writer-on-writer spins are successful.
-
-Patch 10 adds a new boot parameter to change the reader spinning
-threshold which can be system specific.
-
-Waiman Long (10):
-  locking/osq: Make lock/unlock proper acquire/release barrier
-  locking/rwsem: Stop active read lock ASAP
-  locking/rwsem: Make rwsem_spin_on_owner() return a tri-state value
-  locking/rwsem: Enable count-based spinning on reader
-  locking/rwsem: move down rwsem_down_read_failed function
-  locking/rwsem: Move common rwsem macros to asm-generic/rwsem_types.h
-  locking/rwsem: Change RWSEM_WAITING_BIAS for better disambiguation
-  locking/rwsem: Enable spinning readers
-  locking/rwsem: Enable reactivation of reader spinning
-  locking/rwsem: Add a boot parameter to reader spinning threshold
-
- Documentation/kernel-parameters.txt |    3 +
- arch/alpha/include/asm/rwsem.h      |   11 +-
- arch/ia64/include/asm/rwsem.h       |    9 +-
- arch/s390/include/asm/rwsem.h       |    9 +-
- arch/x86/include/asm/rwsem.h        |   22 +---
- include/asm-generic/rwsem.h         |   20 +--
- include/asm-generic/rwsem_types.h   |   28 ++++
- include/linux/rwsem.h               |   23 +++-
- kernel/locking/osq_lock.c           |   24 ++-
- kernel/locking/rwsem-xadd.c         |  296 ++++++++++++++++++++++++++---------
- 10 files changed, 308 insertions(+), 137 deletions(-)
- create mode 100644 include/asm-generic/rwsem_types.h
