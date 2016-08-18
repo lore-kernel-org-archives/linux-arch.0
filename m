@@ -1,220 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:54157 "EHLO
-        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754039AbcHSA4k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 20:56:40 -0400
-From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 04/10] locking/rwsem: Enable count-based spinning on reader
-Date: Thu, 18 Aug 2016 17:11:06 -0400
-Message-ID: <1471554672-38662-5-git-send-email-Waiman.Long@hpe.com>
-In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+Received: from mx2.suse.de ([195.135.220.15]:35247 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754924AbcHSBds (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 18 Aug 2016 21:33:48 -0400
+Date: Thu, 18 Aug 2016 17:12:11 +0200
+From: Petr Mladek <pmladek@suse.com>
+Subject: Re: [PATCH v8 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Message-ID: <20160818151211.GN13300@pathway.suse.cz>
+References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
+ <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160818211106.fE0pB2sq61T64bixKYkj2_zzpeWah36xuOEOzFYOHUE@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160818151211.7Fsd5GcUZhucC1E2dJH55YoWtddJKlgdfDPsXJ8Hq34@z>
 
-When the rwsem is owned by reader, writers stop optimistic spinning
-simply because there is no easy way to figure out if all the readers
-are actively running or not. However, there are scenarios where
-the readers are unlikely to sleep and optimistic spinning can help
-performance.
+On Tue 2016-08-16 15:50:24, Chris Metcalf wrote:
+> When doing an nmi backtrace of many cores, most of which are idle,
+> the output is a little overwhelming and very uninformative.  Suppress
+> messages for cpus that are idling when they are interrupted and just
+> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+> 
+> We do this by grouping all the cpuidle code together into a new
+> .cpuidle.text section, and then checking the address of the
+> interrupted PC to see if it lies within that section.
+> 
+> This commit suitably tags x86 and tile idle routines, and only
+> adds in the minimal framework for other architectures.
+> 
+> diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
+> index b77f5edb03b0..4429f80aabcf 100644
+> --- a/arch/x86/include/asm/irqflags.h
+> +++ b/arch/x86/include/asm/irqflags.h
+> @@ -1,6 +1,7 @@
+>  #ifndef _X86_IRQFLAGS_H_
+>  #define _X86_IRQFLAGS_H_
+>  
+> +#include <linux/compiler.h>
+>  #include <asm/processor-flags.h>
+>  
+>  #ifndef __ASSEMBLY__
+> @@ -44,12 +45,12 @@ static inline void native_irq_enable(void)
+>  	asm volatile("sti": : :"memory");
+>  }
+>  
+> -static inline void native_safe_halt(void)
+> +static __always_inline void native_safe_halt(void)
+>  {
+>  	asm volatile("sti; hlt": : :"memory");
+>  }
 
-This patch provides an autotuning mechanism to find out if a rwsem
-can benefit from count-based reader optimistic spinning. A count
-(rspin_enabled) in the rwsem data structure is used to track if
-optimistic spinning should be enabled. Reader spinning is enabled
-by default. Each successful spin (with lock acquisition) will
-increment the count by 1 and each unsuccessful spin will decrement
-it by 4.  When the count reaches 0, reader spinning is disabled.
-Modification of that count is protected by the osq lock. Therefore,
-reader spinning will be maintained as long as at least 80% of the
-spins are successful.
+Ah, the __always_inline stuff did not helped here. It was
+not inlined:
 
-Both the spinning threshold and the default value for rspin_enabled
-can be overridden by architecture specific rwsem.h header file.
+$> nm -n vmlinux | grep native_safe_halt
+ffffffff81050bc0 t native_safe_halt
 
-Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
----
- include/linux/rwsem.h       |   19 +++++++++++-
- kernel/locking/rwsem-xadd.c |   66 ++++++++++++++++++++++++++++++++++++++----
- 2 files changed, 77 insertions(+), 8 deletions(-)
+The reason seems to be that it is called via
+PVOP_VCALL0(pv_irq_ops.safe_halt);, see below
+in the disassembly.
 
-diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
-index dd1d142..8978f87 100644
---- a/include/linux/rwsem.h
-+++ b/include/linux/rwsem.h
-@@ -32,6 +32,8 @@ struct rw_semaphore {
- 	raw_spinlock_t wait_lock;
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	struct optimistic_spin_queue osq; /* spinner MCS lock */
-+	int rspin_enabled;	/* protected by osq lock */
-+
- 	/*
- 	 * Write owner. Used as a speculative check to see
- 	 * if the owner is running on the cpu.
-@@ -69,8 +71,23 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
- # define __RWSEM_DEP_MAP_INIT(lockname)
- #endif
- 
-+/*
-+ * Each successful reader spin will increment the rspin_enabled by 1.
-+ * Each unsuccessful spin, on the other hand, will decrement it by 2.
-+ * Reader spinning will be permanently disabled when it reaches 0.
-+ */
-+#ifndef RWSEM_RSPIN_ENABLED_DEFAULT
-+# define RWSEM_RSPIN_ENABLED_DEFAULT	40
-+#endif
-+#define RWSEM_RSPIN_ENABLED_MAX		1024
-+
-+#ifndef RWSEM_RSPIN_THRESHOLD
-+# define RWSEM_RSPIN_THRESHOLD	(1 << 12)
-+#endif
-+
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
--#define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL
-+#define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, \
-+		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT
- #else
- #define __RWSEM_OPT_INIT(lockname)
- #endif
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 31cb286..4654624 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -85,6 +85,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
- 	INIT_LIST_HEAD(&sem->wait_list);
- #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
- 	sem->owner = NULL;
-+	sem->rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT;
- 	osq_lock_init(&sem->osq);
- #endif
- }
-@@ -339,9 +340,10 @@ static inline bool rwsem_can_spin_on_owner(struct rw_semaphore *sem)
- 	owner = READ_ONCE(sem->owner);
- 	if (!rwsem_owner_is_writer(owner)) {
- 		/*
--		 * Don't spin if the rwsem is readers owned.
-+		 * Don't spin if the rwsem is readers owned and the
-+		 * reader spinning threshold isn't set.
- 		 */
--		ret = !rwsem_owner_is_reader(owner);
-+		ret = !rwsem_owner_is_reader(owner) || sem->rspin_enabled;
- 		goto done;
- 	}
- 
-@@ -395,6 +397,8 @@ out:
- static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- {
- 	bool taken = false;
-+	int owner_state;	/* Lock owner state */
-+	int rspin_cnt;		/* Count for reader spinning */
- 
- 	preempt_disable();
- 
-@@ -405,14 +409,16 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	if (!osq_lock(&sem->osq))
- 		goto done;
- 
-+	rspin_cnt = sem->rspin_enabled ? RWSEM_RSPIN_THRESHOLD : 0;
-+
- 	/*
- 	 * Optimistically spin on the owner field and attempt to acquire the
- 	 * lock whenever the owner changes. Spinning will be stopped when:
--	 *  1) the owning writer isn't running; or
--	 *  2) readers own the lock as we can't determine if they are
--	 *     actively running or not.
-+	 *  1) the owning writer isn't running,
-+	 *  2) readers own the lock and reader spinning count has reached 0; or
-+	 *  3) its timeslice has been used up.
- 	 */
--	while (rwsem_spin_on_owner(sem) > 0) {
-+	while ((owner_state = rwsem_spin_on_owner(sem)) >= 0) {
- 		/*
- 		 * Try to acquire the lock
- 		 */
-@@ -422,12 +428,24 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		}
- 
- 		/*
-+		 * We only decremnt the rspin_cnt when the lock is owned
-+		 * by readers (owner_state == 0). In which case,
-+		 * rwsem_spin_on_owner() will essentially be a no-op
-+		 * and we will be spinning in this main loop.
-+		 */
-+		if (owner_state == 0) {
-+			if (!rspin_cnt)
-+				break;
-+			rspin_cnt--;
-+		}
-+
-+		/*
- 		 * When there's no owner, we might have preempted between the
- 		 * owner acquiring the lock and setting the owner field. If
- 		 * we're an RT task that will live-lock because we won't let
- 		 * the owner complete.
- 		 */
--		if (!sem->owner && (need_resched() || rt_task(current)))
-+		if (!sem->owner && rt_task(current))
- 			break;
- 
- 		/*
-@@ -438,6 +456,28 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 		 */
- 		cpu_relax_lowlatency();
- 	}
-+	/*
-+	 * Check the success or failure of writer spinning on reader so as
-+	 * to adjust the rspin_enabled count accordingly.
-+	 */
-+	if (rwsem_owner_is_reader(sem->owner)) {
-+		/*
-+		 * Update rspin_enabled for reader spinning.
-+		 *
-+		 * Right now, we need more than 2/3 successful spins to
-+		 * maintain reader spinning. We will get rid of it if we don't
-+		 * have enough successful spins. The decrement amount is kind
-+		 * of arbitrary and can be adjusted if necessary.
-+		 */
-+		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
-+			sem->rspin_enabled++;
-+		} else if (!taken) {
-+			if  (sem->rspin_enabled > 2)
-+				sem->rspin_enabled -= 2;
-+			else
-+				sem->rspin_enabled = 0;
-+		}
-+	}
- 	osq_unlock(&sem->osq);
- done:
- 	preempt_enable();
-@@ -452,6 +492,13 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- 	return osq_is_locked(&sem->osq);
- }
- 
-+/*
-+ * Return true if reader optimistic spinning is enabled
-+ */
-+static inline bool reader_spinning_enabled(struct rw_semaphore *sem)
-+{
-+	return sem->rspin_enabled;
-+}
- #else
- static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- {
-@@ -462,6 +509,11 @@ static inline bool rwsem_has_spinner(struct rw_semaphore *sem)
- {
- 	return false;
- }
-+
-+static inline bool reader_spinning_enabled(struct rw_semaphore *sem)
-+{
-+	return false;
-+}
- #endif
- 
- /*
--- 
-1.7.1
+I guess that it is because I have
+CONFIG_PARAVIRT=y
 
+
+void __cpuidle default_idle(void)
+{
+ffffffff819683f0:       e8 2b 2a 00 00          callq  ffffffff8196ae20 <__fentry__>
+ffffffff819683f5:       55                      push   %rbp
+ffffffff819683f6:       48 89 e5                mov    %rsp,%rbp
+ffffffff819683f9:       41 54                   push   %r12
+ffffffff819683fb:       53                      push   %rbx
+        trace_cpu_idle_rcuidle(1, smp_processor_id());
+ffffffff819683fc:       65 44 8b 25 0c 1d 6a    mov    %gs:0x7e6a1d0c(%rip),%r12d        # a110 <cpu_number>
+ffffffff81968403:       7e 
+ffffffff81968404:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+        safe_halt();
+ffffffff81968409:       e8 a2 23 76 ff          callq  ffffffff810ca7b0 <trace_hardirqs_on>
+}
+#endif
+
+static inline void arch_safe_halt(void)
+{
+        PVOP_VCALL0(pv_irq_ops.safe_halt);
+ffffffff8196840e:       ff 14 25 80 a1 e2 81    callq  *0xffffffff81e2a180
+        trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
+ffffffff81968415:       65 44 8b 25 f3 1c 6a    mov    %gs:0x7e6a1cf3(%rip),%r12d        # a110 <cpu_number>
+ffffffff8196841c:       7e 
+ffffffff8196841d:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+}
+ffffffff81968422:       5b                      pop    %rbx
+ffffffff81968423:       41 5c                   pop    %r12
+ffffffff81968425:       5d                      pop    %rbp
+ffffffff81968426:       c3                      retq   
+ffffffff81968427:       65 8b 05 e2 1c 6a 7e    mov    %gs:0x7e6a1ce2(%rip),%eax        # a110 <cpu_number>
+ffffffff8196842e:       89 c0                   mov    %eax,%eax
+
+
+Best Regards,
+Petr
