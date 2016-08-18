@@ -1,69 +1,97 @@
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 01/10] locking/osq: Make lock/unlock proper acquire/release barrier
-Date: Thu, 18 Aug 2016 17:11:03 -0400
-Message-ID: <1471554672-38662-2-git-send-email-Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v4 02/10] locking/rwsem: Stop active read lock ASAP
+Date: Thu, 18 Aug 2016 17:11:04 -0400
+Message-ID: <1471554672-38662-3-git-send-email-Waiman.Long@hpe.com>
 References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g2t1383g.austin.hpe.com ([15.233.16.89]:17277 "EHLO
+        g2t1383g.austin.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751096AbcHSC31 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:29:27 -0400
 In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-List-Id: linux-arch.vger.kernel.org
 
-The osq_lock() and osq_unlock() function may not provide the necessary
-acquire and release barrier in some cases. This patch makes sure
-that the proper barriers are provided when osq_lock() is successful
-or when osq_unlock() is called.
+Currently, when down_read() fails, the active read locking isn't undone
+until the rwsem_down_read_failed() function grabs the wait_lock. If the
+wait_lock is contended, it may takes a while to get the lock. During
+that period, writer lock stealing will be disabled because of the
+active read lock.
 
-Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+This patch will release the active read lock ASAP so that writer lock
+stealing can happen sooner. The only downside is when the reader is
+the first one in the wait queue as it has to issue another atomic
+operation to update the count.
+
+On a 4-socket Haswell machine running on a 4.7-rc1 tip-based kernel,
+the fio test with multithreaded randrw and randwrite tests on the
+same file on a XFS partition on top of a NVDIMM with DAX were run,
+the aggregated bandwidths before and after the patch were as follows:
+
+  Test      BW before patch     BW after patch  % change
+  ----      ---------------     --------------  --------
+  randrw        1210 MB/s          1352 MB/s      +12%
+  randwrite     1622 MB/s          1710 MB/s      +5.4%
+
+The write-only microbench also showed improvement because some read
+locking was done by the XFS code.
+
 Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
 ---
- kernel/locking/osq_lock.c |   24 ++++++++++++++++++------
- 1 files changed, 18 insertions(+), 6 deletions(-)
+ kernel/locking/rwsem-xadd.c |   21 +++++++++++++++------
+ 1 files changed, 15 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
-index 05a3785..3da0b97 100644
---- a/kernel/locking/osq_lock.c
-+++ b/kernel/locking/osq_lock.c
-@@ -124,6 +124,11 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index 2337b4b..9309e72 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -222,21 +222,31 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
+ __visible
+ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
+ {
+-	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
++	long count, adjustment = 0;
+ 	struct rwsem_waiter waiter;
+ 	struct task_struct *tsk = current;
+ 	WAKE_Q(wake_q);
  
- 		cpu_relax_lowlatency();
- 	}
 +	/*
-+	 * Add an acquire memory barrier for pairing with the release barrier
-+	 * in unlock.
++	 * Undo read bias from down_read operation to stop active locking.
++	 * Doing that after taking the wait_lock may block writer lock
++	 * stealing for too long impacting system performance.
 +	 */
-+	smp_acquire__after_ctrl_dep();
- 	return true;
- 
- unqueue:
-@@ -198,13 +203,20 @@ void osq_unlock(struct optimistic_spin_queue *lock)
- 	 * Second most likely case.
- 	 */
- 	node = this_cpu_ptr(&osq_node);
--	next = xchg(&node->next, NULL);
--	if (next) {
--		WRITE_ONCE(next->locked, 1);
-+	next = xchg_relaxed(&node->next, NULL);
-+	if (next)
-+		goto unlock;
++	atomic_long_add(-RWSEM_ACTIVE_READ_BIAS, &sem->count);
 +
-+	next = osq_wait_next(lock, node, NULL);
-+	if (unlikely(!next)) {
-+		/*
-+		 * In the unlikely event that the OSQ is empty, we need to
-+		 * provide a proper release barrier.
-+		 */
-+		smp_mb();
- 		return;
- 	}
+ 	waiter.task = tsk;
+ 	waiter.type = RWSEM_WAITING_FOR_READ;
  
--	next = osq_wait_next(lock, node, NULL);
--	if (next)
--		WRITE_ONCE(next->locked, 1);
-+unlock:
-+	smp_store_release(&next->locked, 1);
- }
+ 	raw_spin_lock_irq(&sem->wait_lock);
+ 	if (list_empty(&sem->wait_list))
+-		adjustment += RWSEM_WAITING_BIAS;
++		adjustment = RWSEM_WAITING_BIAS;
+ 	list_add_tail(&waiter.list, &sem->wait_list);
+ 
+-	/* we're now waiting on the lock, but no longer actively locking */
+-	count = atomic_long_add_return(adjustment, &sem->count);
++	/* we're now waiting on the lock */
++	if (adjustment)
++		count = atomic_long_add_return(adjustment, &sem->count);
++	else
++		count = atomic_long_read(&sem->count);
+ 
+ 	/*
+ 	 * If there are no active locks, wake the front queued process(es).
+@@ -245,8 +255,7 @@ struct rw_semaphore __sched *rwsem_down_read_failed(struct rw_semaphore *sem)
+ 	 * wake our own waiter to join the existing active readers !
+ 	 */
+ 	if (count == RWSEM_WAITING_BIAS ||
+-	    (count > RWSEM_WAITING_BIAS &&
+-	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
++	    (count > RWSEM_WAITING_BIAS && adjustment))
+ 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
+ 
+ 	raw_spin_unlock_irq(&sem->wait_lock);
 -- 
 1.7.1
-
