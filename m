@@ -1,106 +1,110 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [RFC2 nowrap: PATCH v7 00/18] ILP32 for ARM64
-Date: Thu, 18 Aug 2016 12:45:28 +0300
-Message-ID: <20160818094528.GA4765@yury-N73SV>
-References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
- <175AE090-EDA7-4A8D-9044-3FFA74AC1903@suse.de>
- <20160817124822.GA25751@yury-N73SV>
- <DF24AFA0-5B5C-47E8-9B78-7C6C8711948E@theobroma-systems.com>
- <20160817142916.GC20762@e104818-lin.cambridge.arm.com>
- <B06DCD94-01BD-4494-BCE8-4C03C11BFDE2@theobroma-systems.com>
- <20160817152642.GD20762@e104818-lin.cambridge.arm.com>
+From: Petr Mladek <pmladek@suse.com>
+Subject: Re: [PATCH v8 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Thu, 18 Aug 2016 17:12:11 +0200
+Message-ID: <20160818151211.GN13300@pathway.suse.cz>
+References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
+ <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0041.outbound.protection.outlook.com ([104.47.36.41]:39456
-	"EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752864AbcHRJpm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Aug 2016 05:45:42 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20160817152642.GD20762@e104818-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, libc-alpha@sourceware.org, Nathan Lynch <Nathan_Lynch@mentor.com>, LKML <linux-kernel@vger.kernel.org>, Martin Schwidefsky <schwidefsky>
+In-Reply-To: <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Andrew Morton <akpm@osdl.org>, linux-arch@vger.kernel.org, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Peter Zijlstra <peterz@infradead.org>, x86@kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Aaron Tomlin <atomlin@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 17, 2016 at 04:26:42PM +0100, Catalin Marinas wrote:
-> On Wed, Aug 17, 2016 at 04:32:23PM +0200, Dr. Philipp Tomsich wrote:
-> > On 17 Aug 2016, at 16:29, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > > On Wed, Aug 17, 2016 at 02:54:59PM +0200, Dr. Philipp Tomsich wrote:
-> > >> On 17 Aug 2016, at 14:48, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> > >>> On Wed, Aug 17, 2016 at 02:28:50PM +0200, Alexander Graf wrote:
-> > >>>> On 17 Aug 2016, at 13:46, Yury Norov <ynorov@caviumnetworks.com> wrote:
-> > >>>>> This series enables aarch64 with ilp32 mode, and as supporting work,
-> > >>>>> introduces ARCH_32BIT_OFF_T configuration option that is enabled for
-> > >>>>> existing 32-bit architectures but disabled for new arches (so 64-bit
-> > >>>>> off_t is is used by new userspace).
-> > >>>>> 
-> > >>>>> This version is based on kernel v4.8-rc2.
-> > >>>>> It works with glibc-2.23, and tested with LTP.
-> > >>>>> 
-> > >>>>> This is RFC because there is still no solid understanding what type of registers
-> > >>>>> top-halves delousing we prefer. In this patchset, w0-w7 are cleared for each
-> > >>>>> syscall in assembler entry. The alternative approach is in introducing compat
-> > >>>>> wrappers which is little faster for natively routed syscalls (~2.6% for syscall
-> > >>>>> with no payload) but much more complicated.
-> > >>>> 
-> > >>>> So you’re saying there are 2 options:
-> > >>>> 
-> > >>>> 1) easy to get right, slightly slower, same ABI to user space as 2
-> > >>>> 2) harder to get right, minor performance benefit
-> > >>> 
-> > >>> No, ABI is little different. If 1) we pass off_t in a pair to syscalls,
-> > >>> if 2) - in a single register. So if 1, we 'd take some wrappers from aarch32.
-> > >>> See patch 12 here.
-> > >> 
-> > >> From our experience with ILP32, I’d prefer to have off_t (and similar)
-> > >> in a single register whenever possible (i.e. option #2).  It feels
-> > >> more natural to use the full 64bit registers whenever possible, as
-> > >> ILP32 on ARMv8 should really be understood as a 64bit ABI with a 32bit
-> > >> memory model.
-> > > 
-> > > I think we are well past the point where we considered ILP32 a 64-bit
-> > > ABI. It would have been nice but we decided that breaking POSIX
-> > > compatibility is a bad idea, so we went back (again) to a 32-bit ABI for
-> > > ILP32. While there are 64-bit arguments that, at a first look, would
-> > > make sense to be passed in 64-bit registers, the kernel maintenance cost
-> > > is significant with changes to generic files.
-> > > 
-> > > Allowing 64-bit wide registers at the ILP32 syscall interface means that
-> > > the kernel would have to zero/sign-extend the upper half of the 32-bit
-> > > arguments for the cases where they are passed directly to a native
-> > > syscall that expects a 64-bit argument. This (a) adds a significant
-> > > number of wrappers to the generic code together additional annotations
-> > > to the generic unistd.h and (b) it adds a small overhead to the AArch32
-> > > (compat) ABI since it doesn't need such generic wrapping (the upper half
-> > > of 64-bit registers is guaranteed to be zero/preserved by the
-> > > architecture when coming from the AArch32 mode).
-> > 
-> > Yes, I remember the discussions and just wanted to put option #2 in
-> > context again.
+On Tue 2016-08-16 15:50:24, Chris Metcalf wrote:
+> When doing an nmi backtrace of many cores, most of which are idle,
+> the output is a little overwhelming and very uninformative.  Suppress
+> messages for cpus that are idling when they are interrupted and just
+> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
 > 
-> I don't particularly like splitting 64-bit arguments in two 32-bit
-> values either but I don't see a better alternative. To keep this
-> mostly in the arch code we would need an additional table of syscall
-> wrappers where the majority just use the default zero-extend everything
-> with a few specific wrappers where we pass 64-bit arguments. Or we could
-> set an extra bit in the syscall number for those syscalls that need
-> special wrapping and avoid zero-extending. But neither of these look any
-> nicer (well, maybe only from the user-space perspective).
+> We do this by grouping all the cpuidle code together into a new
+> .cpuidle.text section, and then checking the address of the
+> interrupted PC to see if it lies within that section.
 > 
+> This commit suitably tags x86 and tile idle routines, and only
+> adds in the minimal framework for other architectures.
+> 
+> diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
+> index b77f5edb03b0..4429f80aabcf 100644
+> --- a/arch/x86/include/asm/irqflags.h
+> +++ b/arch/x86/include/asm/irqflags.h
+> @@ -1,6 +1,7 @@
+>  #ifndef _X86_IRQFLAGS_H_
+>  #define _X86_IRQFLAGS_H_
+>  
+> +#include <linux/compiler.h>
+>  #include <asm/processor-flags.h>
+>  
+>  #ifndef __ASSEMBLY__
+> @@ -44,12 +45,12 @@ static inline void native_irq_enable(void)
+>  	asm volatile("sti": : :"memory");
+>  }
+>  
+> -static inline void native_safe_halt(void)
+> +static __always_inline void native_safe_halt(void)
+>  {
+>  	asm volatile("sti; hlt": : :"memory");
+>  }
 
-This is the discussion started by David Miller
-https://patchwork.kernel.org/patch/9132521/
+Ah, the __always_inline stuff did not helped here. It was
+not inlined:
 
-After it we switched to current version.
+$> nm -n vmlinux | grep native_safe_halt
+ffffffff81050bc0 t native_safe_halt
 
-> > Everything points to just going with the pair-of-registers and getting
-> > this merged quickly then, I suppose.
-> 
-> I will refrain from commenting on how quickly we merge this ;) (it may
-> be seen as binding by some).
-> 
-> -- 
-> Catalin
+The reason seems to be that it is called via
+PVOP_VCALL0(pv_irq_ops.safe_halt);, see below
+in the disassembly.
+
+I guess that it is because I have
+CONFIG_PARAVIRT=y
+
+
+void __cpuidle default_idle(void)
+{
+ffffffff819683f0:       e8 2b 2a 00 00          callq  ffffffff8196ae20 <__fentry__>
+ffffffff819683f5:       55                      push   %rbp
+ffffffff819683f6:       48 89 e5                mov    %rsp,%rbp
+ffffffff819683f9:       41 54                   push   %r12
+ffffffff819683fb:       53                      push   %rbx
+        trace_cpu_idle_rcuidle(1, smp_processor_id());
+ffffffff819683fc:       65 44 8b 25 0c 1d 6a    mov    %gs:0x7e6a1d0c(%rip),%r12d        # a110 <cpu_number>
+ffffffff81968403:       7e 
+ffffffff81968404:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+        safe_halt();
+ffffffff81968409:       e8 a2 23 76 ff          callq  ffffffff810ca7b0 <trace_hardirqs_on>
+}
+#endif
+
+static inline void arch_safe_halt(void)
+{
+        PVOP_VCALL0(pv_irq_ops.safe_halt);
+ffffffff8196840e:       ff 14 25 80 a1 e2 81    callq  *0xffffffff81e2a180
+        trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
+ffffffff81968415:       65 44 8b 25 f3 1c 6a    mov    %gs:0x7e6a1cf3(%rip),%r12d        # a110 <cpu_number>
+ffffffff8196841c:       7e 
+ffffffff8196841d:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
+}
+ffffffff81968422:       5b                      pop    %rbx
+ffffffff81968423:       41 5c                   pop    %r12
+ffffffff81968425:       5d                      pop    %rbp
+ffffffff81968426:       c3                      retq   
+ffffffff81968427:       65 8b 05 e2 1c 6a 7e    mov    %gs:0x7e6a1ce2(%rip),%eax        # a110 <cpu_number>
+ffffffff8196842e:       89 c0                   mov    %eax,%eax
+
+
+Best Regards,
+Petr
