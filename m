@@ -1,106 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:35247 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754924AbcHSBds (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 18 Aug 2016 21:33:48 -0400
-Date: Thu, 18 Aug 2016 17:12:11 +0200
-From: Petr Mladek <pmladek@suse.com>
-Subject: Re: [PATCH v8 4/4] nmi_backtrace: generate one-line reports for idle
- cpus
-Message-ID: <20160818151211.GN13300@pathway.suse.cz>
-References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
- <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
+Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:54081 "EHLO
+        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754010AbcHSA4k (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 20:56:40 -0400
+From: Waiman Long <Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v4 03/10] locking/rwsem: Make rwsem_spin_on_owner() return a tri-state value
+Date: Thu, 18 Aug 2016 17:11:05 -0400
+Message-ID: <1471554672-38662-4-git-send-email-Waiman.Long@hpe.com>
+In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160818151211.7Fsd5GcUZhucC1E2dJH55YoWtddJKlgdfDPsXJ8Hq34@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
+Message-ID: <20160818211105.Wef6Qdrp0L7RRs4FnydtMmH2hq2QKCpDjmuUAmSkabs@z>
 
-On Tue 2016-08-16 15:50:24, Chris Metcalf wrote:
-> When doing an nmi backtrace of many cores, most of which are idle,
-> the output is a little overwhelming and very uninformative.  Suppress
-> messages for cpus that are idling when they are interrupted and just
-> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
-> 
-> We do this by grouping all the cpuidle code together into a new
-> .cpuidle.text section, and then checking the address of the
-> interrupted PC to see if it lies within that section.
-> 
-> This commit suitably tags x86 and tile idle routines, and only
-> adds in the minimal framework for other architectures.
-> 
-> diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
-> index b77f5edb03b0..4429f80aabcf 100644
-> --- a/arch/x86/include/asm/irqflags.h
-> +++ b/arch/x86/include/asm/irqflags.h
-> @@ -1,6 +1,7 @@
->  #ifndef _X86_IRQFLAGS_H_
->  #define _X86_IRQFLAGS_H_
->  
-> +#include <linux/compiler.h>
->  #include <asm/processor-flags.h>
->  
->  #ifndef __ASSEMBLY__
-> @@ -44,12 +45,12 @@ static inline void native_irq_enable(void)
->  	asm volatile("sti": : :"memory");
->  }
->  
-> -static inline void native_safe_halt(void)
-> +static __always_inline void native_safe_halt(void)
->  {
->  	asm volatile("sti; hlt": : :"memory");
->  }
+This patch modifies rwsem_spin_on_owner() to return a tri-state value
+to better reflect the state of lock holder which enables us to make a
+better decision of what to do next.
 
-Ah, the __always_inline stuff did not helped here. It was
-not inlined:
+Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+---
+ kernel/locking/rwsem-xadd.c |   14 +++++++++-----
+ 1 files changed, 9 insertions(+), 5 deletions(-)
 
-$> nm -n vmlinux | grep native_safe_halt
-ffffffff81050bc0 t native_safe_halt
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index 9309e72..31cb286 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -352,9 +352,13 @@ done:
+ }
+ 
+ /*
+- * Return true only if we can still spin on the owner field of the rwsem.
++ * Return the folowing three values depending on the lock owner state.
++ *   1	when owner has changed and no reader is detected yet.
++ *   0	when owner has change and/or owner is a reader.
++ *  -1	when optimistic spinning has to stop because either the owner stops
++ *	running or its timeslice has been used up.
+  */
+-static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
++static noinline int rwsem_spin_on_owner(struct rw_semaphore *sem)
+ {
+ 	struct task_struct *owner = READ_ONCE(sem->owner);
+ 
+@@ -374,7 +378,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
+ 		/* abort spinning when need_resched or owner is not running */
+ 		if (!owner->on_cpu || need_resched()) {
+ 			rcu_read_unlock();
+-			return false;
++			return -1;
+ 		}
+ 
+ 		cpu_relax_lowlatency();
+@@ -385,7 +389,7 @@ out:
+ 	 * If there is a new owner or the owner is not set, we continue
+ 	 * spinning.
+ 	 */
+-	return !rwsem_owner_is_reader(READ_ONCE(sem->owner));
++	return rwsem_owner_is_reader(READ_ONCE(sem->owner)) ? 0 : 1;
+ }
+ 
+ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+@@ -408,7 +412,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
+ 	 *  2) readers own the lock as we can't determine if they are
+ 	 *     actively running or not.
+ 	 */
+-	while (rwsem_spin_on_owner(sem)) {
++	while (rwsem_spin_on_owner(sem) > 0) {
+ 		/*
+ 		 * Try to acquire the lock
+ 		 */
+-- 
+1.7.1
 
-The reason seems to be that it is called via
-PVOP_VCALL0(pv_irq_ops.safe_halt);, see below
-in the disassembly.
-
-I guess that it is because I have
-CONFIG_PARAVIRT=y
-
-
-void __cpuidle default_idle(void)
-{
-ffffffff819683f0:       e8 2b 2a 00 00          callq  ffffffff8196ae20 <__fentry__>
-ffffffff819683f5:       55                      push   %rbp
-ffffffff819683f6:       48 89 e5                mov    %rsp,%rbp
-ffffffff819683f9:       41 54                   push   %r12
-ffffffff819683fb:       53                      push   %rbx
-        trace_cpu_idle_rcuidle(1, smp_processor_id());
-ffffffff819683fc:       65 44 8b 25 0c 1d 6a    mov    %gs:0x7e6a1d0c(%rip),%r12d        # a110 <cpu_number>
-ffffffff81968403:       7e 
-ffffffff81968404:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
-        safe_halt();
-ffffffff81968409:       e8 a2 23 76 ff          callq  ffffffff810ca7b0 <trace_hardirqs_on>
-}
-#endif
-
-static inline void arch_safe_halt(void)
-{
-        PVOP_VCALL0(pv_irq_ops.safe_halt);
-ffffffff8196840e:       ff 14 25 80 a1 e2 81    callq  *0xffffffff81e2a180
-        trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
-ffffffff81968415:       65 44 8b 25 f3 1c 6a    mov    %gs:0x7e6a1cf3(%rip),%r12d        # a110 <cpu_number>
-ffffffff8196841c:       7e 
-ffffffff8196841d:       0f 1f 44 00 00          nopl   0x0(%rax,%rax,1)
-}
-ffffffff81968422:       5b                      pop    %rbx
-ffffffff81968423:       41 5c                   pop    %r12
-ffffffff81968425:       5d                      pop    %rbp
-ffffffff81968426:       c3                      retq   
-ffffffff81968427:       65 8b 05 e2 1c 6a 7e    mov    %gs:0x7e6a1ce2(%rip),%eax        # a110 <cpu_number>
-ffffffff8196842e:       89 c0                   mov    %eax,%eax
-
-
-Best Regards,
-Petr
