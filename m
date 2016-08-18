@@ -1,178 +1,69 @@
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 06/10] locking/rwsem: Move common rwsem macros to asm-generic/rwsem_types.h
-Date: Thu, 18 Aug 2016 17:11:08 -0400
-Message-ID: <1471554672-38662-7-git-send-email-Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v4 01/10] locking/osq: Make lock/unlock proper acquire/release barrier
+Date: Thu, 18 Aug 2016 17:11:03 -0400
+Message-ID: <1471554672-38662-2-git-send-email-Waiman.Long@hpe.com>
 References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-Sender: linux-alpha-owner@vger.kernel.org
+Sender: linux-doc-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Almost all the macro definitions in the various architecture specific
-rwsem.h header files are essentially the same. This patch moves all
-of them into a common header asm-generic/rwsem_types.h to eliminate
-the duplication.
+The osq_lock() and osq_unlock() function may not provide the necessary
+acquire and release barrier in some cases. This patch makes sure
+that the proper barriers are provided when osq_lock() is successful
+or when osq_unlock() is called.
 
 Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
 ---
- arch/alpha/include/asm/rwsem.h    |    8 +-------
- arch/ia64/include/asm/rwsem.h     |    7 ++-----
- arch/s390/include/asm/rwsem.h     |    7 +------
- arch/x86/include/asm/rwsem.h      |   19 +------------------
- include/asm-generic/rwsem.h       |   16 +---------------
- include/asm-generic/rwsem_types.h |   26 ++++++++++++++++++++++++++
- 6 files changed, 32 insertions(+), 51 deletions(-)
- create mode 100644 include/asm-generic/rwsem_types.h
+ kernel/locking/osq_lock.c |   24 ++++++++++++++++++------
+ 1 files changed, 18 insertions(+), 6 deletions(-)
 
-diff --git a/arch/alpha/include/asm/rwsem.h b/arch/alpha/include/asm/rwsem.h
-index 77873d0..f99e39a 100644
---- a/arch/alpha/include/asm/rwsem.h
-+++ b/arch/alpha/include/asm/rwsem.h
-@@ -13,13 +13,7 @@
- #ifdef __KERNEL__
+diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+index 05a3785..3da0b97 100644
+--- a/kernel/locking/osq_lock.c
++++ b/kernel/locking/osq_lock.c
+@@ -124,6 +124,11 @@ bool osq_lock(struct optimistic_spin_queue *lock)
  
- #include <linux/compiler.h>
--
--#define RWSEM_UNLOCKED_VALUE		0x0000000000000000L
--#define RWSEM_ACTIVE_BIAS		0x0000000000000001L
--#define RWSEM_ACTIVE_MASK		0x00000000ffffffffL
--#define RWSEM_WAITING_BIAS		(-0x0000000100000000L)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
+ 		cpu_relax_lowlatency();
+ 	}
++	/*
++	 * Add an acquire memory barrier for pairing with the release barrier
++	 * in unlock.
++	 */
++	smp_acquire__after_ctrl_dep();
+ 	return true;
  
- static inline void __down_read(struct rw_semaphore *sem)
- {
-diff --git a/arch/ia64/include/asm/rwsem.h b/arch/ia64/include/asm/rwsem.h
-index 8fa98dd..21a9066 100644
---- a/arch/ia64/include/asm/rwsem.h
-+++ b/arch/ia64/include/asm/rwsem.h
-@@ -26,13 +26,10 @@
- #endif
- 
- #include <asm/intrinsics.h>
-+#include <asm-generic/rwsem_types.h>
- 
-+#undef  RWSEM_UNLOCKED_VALUE
- #define RWSEM_UNLOCKED_VALUE		__IA64_UL_CONST(0x0000000000000000)
--#define RWSEM_ACTIVE_BIAS		(1L)
--#define RWSEM_ACTIVE_MASK		(0xffffffffL)
--#define RWSEM_WAITING_BIAS		(-0x100000000L)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
- 
- /*
-  * lock for reading
-diff --git a/arch/s390/include/asm/rwsem.h b/arch/s390/include/asm/rwsem.h
-index 597e7e9..13dedc8 100644
---- a/arch/s390/include/asm/rwsem.h
-+++ b/arch/s390/include/asm/rwsem.h
-@@ -39,12 +39,7 @@
- #error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
- #endif
- 
--#define RWSEM_UNLOCKED_VALUE	0x0000000000000000L
--#define RWSEM_ACTIVE_BIAS	0x0000000000000001L
--#define RWSEM_ACTIVE_MASK	0x00000000ffffffffL
--#define RWSEM_WAITING_BIAS	(-0x0000000100000000L)
--#define RWSEM_ACTIVE_READ_BIAS	RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS	(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- /*
-  * lock for reading
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index 8dbc762..da84726 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -38,24 +38,7 @@
- 
- #ifdef __KERNEL__
- #include <asm/asm.h>
--
--/*
-- * The bias values and the counter type limits the number of
-- * potential readers/writers to 32767 for 32 bits and 2147483647
-- * for 64 bits.
-- */
--
--#ifdef CONFIG_X86_64
--# define RWSEM_ACTIVE_MASK		0xffffffffL
--#else
--# define RWSEM_ACTIVE_MASK		0x0000ffffL
--#endif
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000L
--#define RWSEM_ACTIVE_BIAS		0x00000001L
--#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- /*
-  * lock for reading
-diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
-index 5be122e..3cb8d98 100644
---- a/include/asm-generic/rwsem.h
-+++ b/include/asm-generic/rwsem.h
-@@ -12,21 +12,7 @@
-  * Adapted largely from include/asm-i386/rwsem.h
-  * by Paul Mackerras <paulus@samba.org>.
-  */
--
--/*
-- * the semaphore definition
-- */
--#ifdef CONFIG_64BIT
--# define RWSEM_ACTIVE_MASK		0xffffffffL
--#else
--# define RWSEM_ACTIVE_MASK		0x0000ffffL
--#endif
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000L
--#define RWSEM_ACTIVE_BIAS		0x00000001L
--#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- /*
-  * lock for reading
-diff --git a/include/asm-generic/rwsem_types.h b/include/asm-generic/rwsem_types.h
-new file mode 100644
-index 0000000..093ef6a
---- /dev/null
-+++ b/include/asm-generic/rwsem_types.h
-@@ -0,0 +1,26 @@
-+#ifndef _ASM_GENERIC_RWSEM_TYPES_H
-+#define _ASM_GENERIC_RWSEM_TYPES_H
+ unqueue:
+@@ -198,13 +203,20 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+ 	 * Second most likely case.
+ 	 */
+ 	node = this_cpu_ptr(&osq_node);
+-	next = xchg(&node->next, NULL);
+-	if (next) {
+-		WRITE_ONCE(next->locked, 1);
++	next = xchg_relaxed(&node->next, NULL);
++	if (next)
++		goto unlock;
 +
-+#ifdef __KERNEL__
-+
-+/*
-+ * the semaphore definition
-+ *
-+ * The bias values and the counter type limits the number of
-+ * potential readers/writers to 32767 for 32 bits and 2147483647
-+ * for 64 bits.
-+ */
-+#ifdef CONFIG_64BIT
-+# define RWSEM_ACTIVE_MASK		0xffffffffL
-+#else
-+# define RWSEM_ACTIVE_MASK		0x0000ffffL
-+#endif
-+
-+#define RWSEM_UNLOCKED_VALUE		0x00000000L
-+#define RWSEM_ACTIVE_BIAS		0x00000001L
-+#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
-+#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
-+#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+
-+#endif	/* __KERNEL__ */
-+#endif	/* _ASM_GENERIC_RWSEM_TYPES_H */
++	next = osq_wait_next(lock, node, NULL);
++	if (unlikely(!next)) {
++		/*
++		 * In the unlikely event that the OSQ is empty, we need to
++		 * provide a proper release barrier.
++		 */
++		smp_mb();
+ 		return;
+ 	}
+ 
+-	next = osq_wait_next(lock, node, NULL);
+-	if (next)
+-		WRITE_ONCE(next->locked, 1);
++unlock:
++	smp_store_release(&next->locked, 1);
+ }
 -- 
 1.7.1
 
