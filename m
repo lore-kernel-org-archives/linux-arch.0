@@ -1,55 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:38879 "EHLO
-        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754180AbcHSCXK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:23:10 -0400
-Received: by mail-wm0-f47.google.com with SMTP id o80so20407548wme.1
-        for <linux-arch@vger.kernel.org>; Thu, 18 Aug 2016 19:23:09 -0700 (PDT)
-Subject: Re: [PATCH v8 0/4] improvements to the nmi_backtrace code
-References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Message-ID: <cae871a8-8d21-2cc0-6fed-0aed6b1159fa@linaro.org>
-Date: Thu, 18 Aug 2016 16:46:05 +0100
-MIME-Version: 1.0
-In-Reply-To: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from g2t1383g.austin.hpe.com ([15.233.16.89]:17408 "EHLO
+        g2t1383g.austin.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752980AbcHSC31 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:29:27 -0400
+From: Waiman Long <Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v4 01/10] locking/osq: Make lock/unlock proper acquire/release barrier
+Date: Thu, 18 Aug 2016 17:11:03 -0400
+Message-ID: <1471554672-38662-2-git-send-email-Waiman.Long@hpe.com>
+In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Mark Rutland <mark.rutland@arm.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160818154605.K78pMijmfnfrB045MkzaoAkZzZ04G8U_dH1p2JOAtAc@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
+Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
+Message-ID: <20160818211103.C5A8paLhddOUtMTKIOVlmusZ38H2Sdqg6S0HA_yegcQ@z>
 
-On 16/08/16 20:50, Chris Metcalf wrote:
-> This is a rebase of the series onto v4.8-rc2, plus some changes from
-> various reviewers.
->
-> From the version 1 cover letter:
->
->   This patch series modifies the trigger_xxx_backtrace() NMI-based
->   remote backtracing code to make it more flexible, and makes a few
->   small improvements along the way.
->
->   The motivation comes from the task isolation code, where there are
->   scenarios where we want to be able to diagnose a case where some cpu
->   is about to interrupt a task-isolated cpu.  It can be helpful to
->   see both where the interrupting cpu is, and also an approximation
->   of where the cpu that is being interrupted is.  The nmi_backtrace
->   framework allows us to discover the stack of the interrupted cpu.
->
-> I've tested that the change works as desired on tile, and build-tested
-> x86, arm, mips, and sparc64.  For x86 I confirmed that the generic
-> cpuidle stuff as well as the architecture-specific routines are in the
-> new cpuidle section.  For arm, mips, and sparc I just build-tested it
-> and made sure the generic cpuidle routines were in the new cpuidle
-> section, but I didn't attempt to figure out which the
-> platform-specific idle routines might be.  That might be more usefully
-> done by someone with platform experience in follow-up patches.
+The osq_lock() and osq_unlock() function may not provide the necessary
+acquire and release barrier in some cases. This patch makes sure
+that the proper barriers are provided when osq_lock() is successful
+or when osq_unlock() is called.
 
-You can add runtime testing on arm to the list (I didn't try to exploit 
-the new one-line-for-idle feature but there were no regressions). All 
-patches:
+Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+---
+ kernel/locking/osq_lock.c |   24 ++++++++++++++++++------
+ 1 files changed, 18 insertions(+), 6 deletions(-)
 
-Tested-by: Daniel Thompson <daniel.thompson@linaro.org>
+diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+index 05a3785..3da0b97 100644
+--- a/kernel/locking/osq_lock.c
++++ b/kernel/locking/osq_lock.c
+@@ -124,6 +124,11 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+ 
+ 		cpu_relax_lowlatency();
+ 	}
++	/*
++	 * Add an acquire memory barrier for pairing with the release barrier
++	 * in unlock.
++	 */
++	smp_acquire__after_ctrl_dep();
+ 	return true;
+ 
+ unqueue:
+@@ -198,13 +203,20 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+ 	 * Second most likely case.
+ 	 */
+ 	node = this_cpu_ptr(&osq_node);
+-	next = xchg(&node->next, NULL);
+-	if (next) {
+-		WRITE_ONCE(next->locked, 1);
++	next = xchg_relaxed(&node->next, NULL);
++	if (next)
++		goto unlock;
++
++	next = osq_wait_next(lock, node, NULL);
++	if (unlikely(!next)) {
++		/*
++		 * In the unlikely event that the OSQ is empty, we need to
++		 * provide a proper release barrier.
++		 */
++		smp_mb();
+ 		return;
+ 	}
+ 
+-	next = osq_wait_next(lock, node, NULL);
+-	if (next)
+-		WRITE_ONCE(next->locked, 1);
++unlock:
++	smp_store_release(&next->locked, 1);
+ }
+-- 
+1.7.1
 
-
-Daniel.
