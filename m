@@ -1,183 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t1383g.austin.hpe.com ([15.233.16.89]:17321 "EHLO
-        g2t1383g.austin.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752903AbcHSC31 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:29:27 -0400
+Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:60496 "EHLO
+        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753718AbcHSCgl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:36:41 -0400
 From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 06/10] locking/rwsem: Move common rwsem macros to asm-generic/rwsem_types.h
-Date: Thu, 18 Aug 2016 17:11:08 -0400
-Message-ID: <1471554672-38662-7-git-send-email-Waiman.Long@hpe.com>
+Subject: [RFC PATCH-tip v4 09/10] locking/rwsem: Enable reactivation of reader spinning
+Date: Thu, 18 Aug 2016 17:11:11 -0400
+Message-ID: <1471554672-38662-10-git-send-email-Waiman.Long@hpe.com>
 In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
 References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
 Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160818211108.l8QFELRrfkqbaz5IToq6jwvOwiOcse58d4J-HdMbY3E@z>
+Message-ID: <20160818211111.7DMI7l692j9JfL7Wm4B23ONZCvOB4fCIflItpZD42GU@z>
 
-Almost all the macro definitions in the various architecture specific
-rwsem.h header files are essentially the same. This patch moves all
-of them into a common header asm-generic/rwsem_types.h to eliminate
-the duplication.
+Reader optimistic spinning will be disabled once the rspin_enabled
+count reaches 0. After that, it cannot be re-enabled. This may cause
+an eligible rwsem locked out of reader spinning because of a series
+of unfortunate events.
 
-Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+This patch looks at the regular writer-on-writer spinning history. If
+there are sufficient more successful spin attempts than failed ones,
+it will try to reactivate reader spinning.
+
 Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
 ---
- arch/alpha/include/asm/rwsem.h    |    8 +-------
- arch/ia64/include/asm/rwsem.h     |    7 ++-----
- arch/s390/include/asm/rwsem.h     |    7 +------
- arch/x86/include/asm/rwsem.h      |   19 +------------------
- include/asm-generic/rwsem.h       |   16 +---------------
- include/asm-generic/rwsem_types.h |   26 ++++++++++++++++++++++++++
- 6 files changed, 32 insertions(+), 51 deletions(-)
- create mode 100644 include/asm-generic/rwsem_types.h
+ include/linux/rwsem.h       |   12 ++++++++----
+ kernel/locking/rwsem-xadd.c |   27 +++++++++++++++++++++++++--
+ 2 files changed, 33 insertions(+), 6 deletions(-)
 
-diff --git a/arch/alpha/include/asm/rwsem.h b/arch/alpha/include/asm/rwsem.h
-index 77873d0..f99e39a 100644
---- a/arch/alpha/include/asm/rwsem.h
-+++ b/arch/alpha/include/asm/rwsem.h
-@@ -13,13 +13,7 @@
- #ifdef __KERNEL__
+diff --git a/include/linux/rwsem.h b/include/linux/rwsem.h
+index 8978f87..98284b4 100644
+--- a/include/linux/rwsem.h
++++ b/include/linux/rwsem.h
+@@ -32,7 +32,11 @@ struct rw_semaphore {
+ 	raw_spinlock_t wait_lock;
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ 	struct optimistic_spin_queue osq; /* spinner MCS lock */
+-	int rspin_enabled;	/* protected by osq lock */
++	/*
++	 * Reader optimistic spinning fields protected by osq lock
++	 */
++	uint16_t rspin_enabled;
++	int16_t  wspin_cnt;
  
- #include <linux/compiler.h>
--
--#define RWSEM_UNLOCKED_VALUE		0x0000000000000000L
--#define RWSEM_ACTIVE_BIAS		0x0000000000000001L
--#define RWSEM_ACTIVE_MASK		0x00000000ffffffffL
--#define RWSEM_WAITING_BIAS		(-0x0000000100000000L)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- static inline void __down_read(struct rw_semaphore *sem)
- {
-diff --git a/arch/ia64/include/asm/rwsem.h b/arch/ia64/include/asm/rwsem.h
-index 8fa98dd..21a9066 100644
---- a/arch/ia64/include/asm/rwsem.h
-+++ b/arch/ia64/include/asm/rwsem.h
-@@ -26,13 +26,10 @@
- #endif
- 
- #include <asm/intrinsics.h>
-+#include <asm-generic/rwsem_types.h>
- 
-+#undef  RWSEM_UNLOCKED_VALUE
- #define RWSEM_UNLOCKED_VALUE		__IA64_UL_CONST(0x0000000000000000)
--#define RWSEM_ACTIVE_BIAS		(1L)
--#define RWSEM_ACTIVE_MASK		(0xffffffffL)
--#define RWSEM_WAITING_BIAS		(-0x100000000L)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
- 
+ 	/*
+ 	 * Write owner. Used as a speculative check to see
+@@ -74,10 +78,10 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
  /*
-  * lock for reading
-diff --git a/arch/s390/include/asm/rwsem.h b/arch/s390/include/asm/rwsem.h
-index 597e7e9..13dedc8 100644
---- a/arch/s390/include/asm/rwsem.h
-+++ b/arch/s390/include/asm/rwsem.h
-@@ -39,12 +39,7 @@
- #error "please don't include asm/rwsem.h directly, use linux/rwsem.h instead"
- #endif
- 
--#define RWSEM_UNLOCKED_VALUE	0x0000000000000000L
--#define RWSEM_ACTIVE_BIAS	0x0000000000000001L
--#define RWSEM_ACTIVE_MASK	0x00000000ffffffffL
--#define RWSEM_WAITING_BIAS	(-0x0000000100000000L)
--#define RWSEM_ACTIVE_READ_BIAS	RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS	(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- /*
-  * lock for reading
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index 8dbc762..da84726 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -38,24 +38,7 @@
- 
- #ifdef __KERNEL__
- #include <asm/asm.h>
--
--/*
-- * The bias values and the counter type limits the number of
-- * potential readers/writers to 32767 for 32 bits and 2147483647
-- * for 64 bits.
-- */
--
--#ifdef CONFIG_X86_64
--# define RWSEM_ACTIVE_MASK		0xffffffffL
--#else
--# define RWSEM_ACTIVE_MASK		0x0000ffffL
--#endif
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000L
--#define RWSEM_ACTIVE_BIAS		0x00000001L
--#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
- 
- /*
-  * lock for reading
-diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
-index 5be122e..3cb8d98 100644
---- a/include/asm-generic/rwsem.h
-+++ b/include/asm-generic/rwsem.h
-@@ -12,21 +12,7 @@
-  * Adapted largely from include/asm-i386/rwsem.h
-  * by Paul Mackerras <paulus@samba.org>.
+  * Each successful reader spin will increment the rspin_enabled by 1.
+  * Each unsuccessful spin, on the other hand, will decrement it by 2.
+- * Reader spinning will be permanently disabled when it reaches 0.
++ * Reader spinning will be disabled when it reaches 0.
   */
--
--/*
-- * the semaphore definition
-- */
--#ifdef CONFIG_64BIT
--# define RWSEM_ACTIVE_MASK		0xffffffffL
--#else
--# define RWSEM_ACTIVE_MASK		0x0000ffffL
--#endif
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000L
--#define RWSEM_ACTIVE_BIAS		0x00000001L
--#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+#include <asm-generic/rwsem_types.h>
+ #ifndef RWSEM_RSPIN_ENABLED_DEFAULT
+-# define RWSEM_RSPIN_ENABLED_DEFAULT	40
++# define RWSEM_RSPIN_ENABLED_DEFAULT	30
+ #endif
+ #define RWSEM_RSPIN_ENABLED_MAX		1024
  
- /*
-  * lock for reading
-diff --git a/include/asm-generic/rwsem_types.h b/include/asm-generic/rwsem_types.h
-new file mode 100644
-index 0000000..093ef6a
---- /dev/null
-+++ b/include/asm-generic/rwsem_types.h
-@@ -0,0 +1,26 @@
-+#ifndef _ASM_GENERIC_RWSEM_TYPES_H
-+#define _ASM_GENERIC_RWSEM_TYPES_H
-+
-+#ifdef __KERNEL__
-+
-+/*
-+ * the semaphore definition
-+ *
-+ * The bias values and the counter type limits the number of
-+ * potential readers/writers to 32767 for 32 bits and 2147483647
-+ * for 64 bits.
-+ */
-+#ifdef CONFIG_64BIT
-+# define RWSEM_ACTIVE_MASK		0xffffffffL
-+#else
-+# define RWSEM_ACTIVE_MASK		0x0000ffffL
-+#endif
-+
-+#define RWSEM_UNLOCKED_VALUE		0x00000000L
-+#define RWSEM_ACTIVE_BIAS		0x00000001L
-+#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
-+#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
-+#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+
-+#endif	/* __KERNEL__ */
-+#endif	/* _ASM_GENERIC_RWSEM_TYPES_H */
+@@ -87,7 +91,7 @@ static inline int rwsem_is_locked(struct rw_semaphore *sem)
+ 
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ #define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL, \
+-		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT
++		.rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT, .wspin_cnt = 0
+ #else
+ #define __RWSEM_OPT_INIT(lockname)
+ #endif
+diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
+index d850214..9978159 100644
+--- a/kernel/locking/rwsem-xadd.c
++++ b/kernel/locking/rwsem-xadd.c
+@@ -108,6 +108,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
+ #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+ 	sem->owner = NULL;
+ 	sem->rspin_enabled = RWSEM_RSPIN_ENABLED_DEFAULT;
++	sem->wspin_cnt = 0;
+ 	osq_lock_init(&sem->osq);
+ #endif
+ }
+@@ -458,10 +459,32 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem,
+ 		if (taken && (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
+ 			sem->rspin_enabled++;
+ 		} else if (!taken) {
+-			if  (sem->rspin_enabled > 2)
++			if  (sem->rspin_enabled > 2) {
+ 				sem->rspin_enabled -= 2;
+-			else
++			} else if (sem->rspin_enabled) {
+ 				sem->rspin_enabled = 0;
++				/*
++				 * Reset wspin_cnt so that it won't get
++				 * re-enabled too soon.
++				 */
++				if (sem->wspin_cnt > -30)
++					sem->wspin_cnt = -30;
++			}
++		}
++	} else if (type == RWSEM_WAITING_FOR_WRITE) {
++		/*
++		 * Every 10 successful writer-on-writer spins more than failed
++		 * spins will increment rspin_enabled to encourage more
++		 * writer-on-reader spinning attempts.
++		 */
++		if (taken) {
++			if ((++sem->wspin_cnt >= 10) &&
++			    (sem->rspin_enabled < RWSEM_RSPIN_ENABLED_MAX)) {
++				sem->wspin_cnt = 0;
++				sem->rspin_enabled++;
++			}
++		} else if (sem->wspin_cnt > -100) {
++			sem->wspin_cnt--;
+ 		}
+ 	}
+ 	osq_unlock(&sem->osq);
 -- 
 1.7.1
 
