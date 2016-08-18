@@ -1,76 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hpe.com ([15.241.32.99]:54081 "EHLO
-        g9t1613g.houston.hpe.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754010AbcHSA4k (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 20:56:40 -0400
-From: Waiman Long <Waiman.Long@hpe.com>
-Subject: [RFC PATCH-tip v4 03/10] locking/rwsem: Make rwsem_spin_on_owner() return a tri-state value
-Date: Thu, 18 Aug 2016 17:11:05 -0400
-Message-ID: <1471554672-38662-4-git-send-email-Waiman.Long@hpe.com>
-In-Reply-To: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+Received: from mail-wm0-f47.google.com ([74.125.82.47]:38879 "EHLO
+        mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754180AbcHSCXK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2016 22:23:10 -0400
+Received: by mail-wm0-f47.google.com with SMTP id o80so20407548wme.1
+        for <linux-arch@vger.kernel.org>; Thu, 18 Aug 2016 19:23:09 -0700 (PDT)
+Subject: Re: [PATCH v8 0/4] improvements to the nmi_backtrace code
+References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
+From: Daniel Thompson <daniel.thompson@linaro.org>
+Message-ID: <cae871a8-8d21-2cc0-6fed-0aed6b1159fa@linaro.org>
+Date: Thu, 18 Aug 2016 16:46:05 +0100
+MIME-Version: 1.0
+In-Reply-To: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>
-Cc: linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>, Waiman Long <Waiman.Long@hpe.com>
-Message-ID: <20160818211105.Wef6Qdrp0L7RRs4FnydtMmH2hq2QKCpDjmuUAmSkabs@z>
+To: Chris Metcalf <cmetcalf@mellanox.com>, Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Petr Mladek <pmladek@suse.com>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Mark Rutland <mark.rutland@arm.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160818154605.K78pMijmfnfrB045MkzaoAkZzZ04G8U_dH1p2JOAtAc@z>
 
-This patch modifies rwsem_spin_on_owner() to return a tri-state value
-to better reflect the state of lock holder which enables us to make a
-better decision of what to do next.
+On 16/08/16 20:50, Chris Metcalf wrote:
+> This is a rebase of the series onto v4.8-rc2, plus some changes from
+> various reviewers.
+>
+> From the version 1 cover letter:
+>
+>   This patch series modifies the trigger_xxx_backtrace() NMI-based
+>   remote backtracing code to make it more flexible, and makes a few
+>   small improvements along the way.
+>
+>   The motivation comes from the task isolation code, where there are
+>   scenarios where we want to be able to diagnose a case where some cpu
+>   is about to interrupt a task-isolated cpu.  It can be helpful to
+>   see both where the interrupting cpu is, and also an approximation
+>   of where the cpu that is being interrupted is.  The nmi_backtrace
+>   framework allows us to discover the stack of the interrupted cpu.
+>
+> I've tested that the change works as desired on tile, and build-tested
+> x86, arm, mips, and sparc64.  For x86 I confirmed that the generic
+> cpuidle stuff as well as the architecture-specific routines are in the
+> new cpuidle section.  For arm, mips, and sparc I just build-tested it
+> and made sure the generic cpuidle routines were in the new cpuidle
+> section, but I didn't attempt to figure out which the
+> platform-specific idle routines might be.  That might be more usefully
+> done by someone with platform experience in follow-up patches.
 
-Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
----
- kernel/locking/rwsem-xadd.c |   14 +++++++++-----
- 1 files changed, 9 insertions(+), 5 deletions(-)
+You can add runtime testing on arm to the list (I didn't try to exploit 
+the new one-line-for-idle feature but there were no regressions). All 
+patches:
 
-diff --git a/kernel/locking/rwsem-xadd.c b/kernel/locking/rwsem-xadd.c
-index 9309e72..31cb286 100644
---- a/kernel/locking/rwsem-xadd.c
-+++ b/kernel/locking/rwsem-xadd.c
-@@ -352,9 +352,13 @@ done:
- }
- 
- /*
-- * Return true only if we can still spin on the owner field of the rwsem.
-+ * Return the folowing three values depending on the lock owner state.
-+ *   1	when owner has changed and no reader is detected yet.
-+ *   0	when owner has change and/or owner is a reader.
-+ *  -1	when optimistic spinning has to stop because either the owner stops
-+ *	running or its timeslice has been used up.
-  */
--static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
-+static noinline int rwsem_spin_on_owner(struct rw_semaphore *sem)
- {
- 	struct task_struct *owner = READ_ONCE(sem->owner);
- 
-@@ -374,7 +378,7 @@ static noinline bool rwsem_spin_on_owner(struct rw_semaphore *sem)
- 		/* abort spinning when need_resched or owner is not running */
- 		if (!owner->on_cpu || need_resched()) {
- 			rcu_read_unlock();
--			return false;
-+			return -1;
- 		}
- 
- 		cpu_relax_lowlatency();
-@@ -385,7 +389,7 @@ out:
- 	 * If there is a new owner or the owner is not set, we continue
- 	 * spinning.
- 	 */
--	return !rwsem_owner_is_reader(READ_ONCE(sem->owner));
-+	return rwsem_owner_is_reader(READ_ONCE(sem->owner)) ? 0 : 1;
- }
- 
- static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
-@@ -408,7 +412,7 @@ static bool rwsem_optimistic_spin(struct rw_semaphore *sem)
- 	 *  2) readers own the lock as we can't determine if they are
- 	 *     actively running or not.
- 	 */
--	while (rwsem_spin_on_owner(sem)) {
-+	while (rwsem_spin_on_owner(sem) > 0) {
- 		/*
- 		 * Try to acquire the lock
- 		 */
--- 
-1.7.1
+Tested-by: Daniel Thompson <daniel.thompson@linaro.org>
 
+
+Daniel.
