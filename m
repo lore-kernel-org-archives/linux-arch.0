@@ -1,239 +1,475 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:38852 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:40232 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755137AbcHSVey (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Aug 2016 17:34:54 -0400
+        id S1755600AbcHSVfP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Aug 2016 17:35:15 -0400
 From: mcgrof@kernel.org
-Subject: [PATCH v4 00/16] linux: generalize sections, ranges and linker tables
-Date: Fri, 19 Aug 2016 14:33:58 -0700
-Message-ID: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v4 12/16] jump_label: port __jump_table to linker tables
+Date: Fri, 19 Aug 2016 14:34:10 -0700
+Message-ID: <1471642454-5679-13-git-send-email-mcgrof@kernel.org>
+In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20160819213358.veqt0mX04KQn3ILwos_kxZsGwsIrQkFvgoM429v14ug@z>
+Message-ID: <20160819213410.Q9ZVr4AgjPt35sCVCrBQbHOtnXa4zd480KTUAjJKHDs@z>
 
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-This v4 addresses feedback from the previous v3 series [0], and also
-addresses a huge array of additional tests against many architectures
-outside of what 0-day provides. As I mentioned in my last v3 series,
-0-day had only found one issue with the series, a blackfin architecture
-linker issue with the last series. Guenter Rock was kind enough to give
-my series a test spin on his test bed and he found quite a bit of other
-oddball issues with obscure architectures, and even on x86 with an old
-toolchain. After a lot of work and coordinating with a few maintainers
-I'm happy to report all issues found so far through all possible testing
-I could do are now fixed, this series also addresses all feedback from
-the last series, as such this goes submitted as PATCH form.
+Move the __jump_table from the a custom section solution
+to a generic solution, this avoiding extra vmlinux.lds.h
+customizations.
 
-In addressing fixing this work on a few architectures some of the previous
-patches are further simplified. The kprobes port to linker tables is made
-much easier now that I've addressed moving out core kprobe declarations
-into asm-generic/kprobes.h. Refer to the patch "kprobes: move kprobe
-declarations to asm-generic/kprobes.h". This makes for a much cleaner
-solution across architectures.
+This also demos the use of the .data (SECTION_DATA) linker
+table and of the shared asm call push_section_tbl().
 
-Boris feedback on making the code bit rot feature optional is addressed
-by using a new Kconfig symbol for this, CONFIG_BUILD_AVOID_BITROT,
-but given Greg's concerns over lack of clarity over what this was all about
-I've ripped that functionality out into its own patch with a bit more
-extensive documentation and re-wording. See the patch "kbuild: enable option
-to force compile force-obj-y and force-lib-y". I hope makes it clear how
-linker tables can help with avoiding code bit rot. I've gone with a new
-Kconfig symbol CONFIG_BUILD_AVOID_BITROT given CONFIG_COMPILE_TEST is
-not available on UML, this feature is desirable on all architectures.
+Built-in kernel functionality was tested with CONFIG_STATIC_KEYS_SELFTEST.
+Moduler  kernel functionality was tested with CONFIG_TEST_STATIC_KEYS.
+Both work as expected.
 
-The documentation is revamped, now that the DocBook format is deprecated
-I ported the documention into the trendy hipster Sphinx documentation
-format.
+Since __jump_table sections are also supported per
+module this also required expanding module-common.lds.S
+to capture and fold all .data.tlb.__jump_table.* onto
+the the section __jump_table -- in this case for modules
+need to keep a reference in place, given the alternative
+is to use DEFINE_LINKTABLE(struct jump_entry, __jump_table)
+per module -- and later through macro hacks instantiate
+the jump entries per module upon init. This is doable but
+we'd loose out on the sorting of the table using the
+linker, to sort we'd always still need to expand the
+module common linker script. An alternative mechanism
+is possible which would make these custom module sections
+extensions dynamic without requiring manual changes, this
+however is best done later through a separate evolution
+once linker tables are in place.
 
-AT Boris' request I've adapated the userspace linker table application
-forintegration into the kernel under tools/ to make it easier to keep
-things in sync, however since this requires a bit of changes to some headers
-in tools/ I'll submit that separately.
+A careful reviewer may note that some architectures use
+"\n\t" to separate asm code, while others just use a new line.
+Upon review last time it was deemed reasonable to for all
+architectures to just use "\n", this is defined as ASM_CMD_SEP,
+and if an architecture needs to override they can do so on their
+architecture sections.h prior to including asm-generic/sections.h
 
-[0] https://lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
+v4:
 
-If you'd like this in git-form, you can get it on the 20160819-linker-table-v4
-branch of my linux-next tree on kernel.org, this also includes the series of
-the linker table userspace sandbox:
+o Some architectures allow linker scripts to follow including header
+  files, some others do not, so if you need a helper on a linker script
+  you need to explicitly include it. So for instance although
+  scripts/module-common.lds.S includes <asm/tables.h> and this file
+  includes <asm/section-core.h>, you still need to explicitly
+  include it on the linker script. This issue is present on ARM.
 
-https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160819-linker-table-v4
+o as per Josh Poimboeuf open code the section table name instead
+  of including the kernel section headers, the simplicity and
+  independence from the kernel is preferred.
 
-Please let me know if there are any concerns or questions.
+v3:
 
-Luis R. Rodriguez (16):
-  x86: remove LTO_REFERENCE_INITCALL()
-  dell-smo8800: include uaccess.h
-  scripts/module-common.lds: enable generation
-  generic-sections: add section core helpers
-  xtensa: skip adding literal when SORT() is used
-  ranges.h: add helpers to build and identify Linux section ranges
-  tables.h: add linker table support
-  kbuild: enable option to force compile force-obj-y and force-lib-y
-  firmware/Makefile: force recompilation if makefile changes
-  firmware: port built-in section to linker table
-  jump_label: move guard #endif down where it belongs
-  jump_label: port __jump_table to linker tables
-  dynamic_debug: port to use linker tables
-  kprobes: move kprobe declarations to asm-generic/kprobes.h
-  kprobes: port .kprobes.text to section range
-  kprobes: port blacklist kprobes to linker table
+o More elaborate tests performed
+o first modular support use case, module tested was
+  CONFIG_TEST_STATIC_KEYS (lib/test_static_keys.ko), this
+  required us to extend module-common.lds.S
+o use generic push_section_tbl_any() for all architectures
+o Makes use of ASM_CMD_SEP to enable architectures to override later
+  if needed
+o guard tables.h inclusion and table definition with __KERNEL__
 
- .gitignore                                         |   2 +
- Documentation/index.rst                            |   1 +
- Documentation/kbuild/makefiles.txt                 |  36 ++
- Documentation/sections/conf.py                     |   4 +
- Documentation/sections/index.rst                   |  13 +
- Documentation/sections/linker-tables.rst           | 202 +++++++
- Documentation/sections/ranges.rst                  |  49 ++
- Documentation/sections/section-core.rst            | 153 +++++
- MAINTAINERS                                        |  37 ++
- Makefile                                           |   6 +-
- arch/alpha/include/asm/Kbuild                      |   4 +
- arch/arc/include/asm/Kbuild                        |   3 +
- arch/arc/include/asm/kprobes.h                     |   6 +-
- arch/arc/kernel/vmlinux.lds.S                      |   1 -
- arch/arm/include/asm/Kbuild                        |   3 +
- arch/arm/include/asm/jump_label.h                  |   6 +-
- arch/arm/include/asm/kprobes.h                     |   4 +
- arch/arm/kernel/entry-armv.S                       |   3 +-
- arch/arm/kernel/vmlinux-xip.lds.S                  |   1 -
- arch/arm/kernel/vmlinux.lds.S                      |   1 -
- arch/arm/probes/decode.h                           |   1 +
- arch/arm64/include/asm/Kbuild                      |   3 +
- arch/arm64/include/asm/jump_label.h                |   6 +-
- arch/arm64/include/asm/kprobes.h                   |   4 +
- arch/arm64/kernel/armv8_deprecated.c               |   1 +
- arch/arm64/kernel/insn.c                           |   1 +
- arch/arm64/kernel/probes/kprobes.c                 |   4 +-
- arch/arm64/kernel/vmlinux.lds.S                    |   1 -
- arch/avr32/include/asm/Kbuild                      |   3 +
- arch/avr32/include/asm/kprobes.h                   |   4 +
- arch/avr32/kernel/entry-avr32b.S                   |  13 +-
- arch/avr32/kernel/vmlinux.lds.S                    |   1 -
- arch/blackfin/include/asm/Kbuild                   |   4 +
- arch/blackfin/kernel/vmlinux.lds.S                 |   1 -
- arch/c6x/include/asm/Kbuild                        |   3 +
- arch/c6x/include/asm/tables.h                      |  26 +
- arch/c6x/kernel/vmlinux.lds.S                      |   1 -
- arch/cris/include/asm/Kbuild                       |   4 +
- arch/frv/include/asm/Kbuild                        |   4 +
- arch/h8300/include/asm/Kbuild                      |   4 +
- arch/hexagon/include/asm/Kbuild                    |   4 +
- arch/hexagon/kernel/vmlinux.lds.S                  |   1 -
- arch/ia64/include/asm/Kbuild                       |   3 +
- arch/ia64/include/asm/kprobes.h                    |   7 +-
- arch/ia64/kernel/jprobes.S                         |   3 +-
- arch/ia64/kernel/vmlinux.lds.S                     |   1 -
- arch/ia64/lib/flush.S                              |   6 +-
- arch/m32r/include/asm/Kbuild                       |   4 +
- arch/m68k/include/asm/Kbuild                       |   4 +
- arch/metag/include/asm/Kbuild                      |   4 +
- arch/metag/kernel/vmlinux.lds.S                    |   1 -
- arch/microblaze/include/asm/Kbuild                 |   4 +
- arch/microblaze/kernel/vmlinux.lds.S               |   1 -
- arch/mips/include/asm/Kbuild                       |   3 +
- arch/mips/include/asm/jump_label.h                 |   6 +-
- arch/mips/include/asm/kprobes.h                    |   6 +-
- arch/mips/kernel/vmlinux.lds.S                     |   1 -
- arch/mn10300/include/asm/Kbuild                    |   3 +
- arch/mn10300/include/asm/kprobes.h                 |   4 +
- arch/mn10300/kernel/vmlinux.lds.S                  |   1 -
- arch/nios2/include/asm/Kbuild                      |   4 +
- arch/nios2/kernel/vmlinux.lds.S                    |   1 -
- arch/openrisc/include/asm/Kbuild                   |   4 +
- arch/openrisc/kernel/vmlinux.lds.S                 |   1 -
- arch/parisc/include/asm/Kbuild                     |   4 +
- arch/parisc/kernel/vmlinux.lds.S                   |   1 -
- arch/powerpc/include/asm/Kbuild                    |   3 +
- arch/powerpc/include/asm/jump_label.h              |   8 +-
- arch/powerpc/include/asm/kprobes.h                 |   6 +
- arch/powerpc/include/asm/ppc_asm.h                 |   7 +-
- arch/powerpc/kernel/vmlinux.lds.S                  |   1 -
- arch/s390/include/asm/Kbuild                       |   3 +
- arch/s390/include/asm/jump_label.h                 |   6 +-
- arch/s390/include/asm/kprobes.h                    |   4 +
- arch/s390/kernel/entry.S                           |   5 +-
- arch/s390/kernel/kprobes.c                         |   6 +-
- arch/s390/kernel/mcount.S                          |   3 +-
- arch/s390/kernel/vmlinux.lds.S                     |   1 -
- arch/score/include/asm/Kbuild                      |   4 +
- arch/score/kernel/vmlinux.lds.S                    |   1 -
- arch/sh/include/asm/Kbuild                         |   3 +
- arch/sh/include/asm/kprobes.h                      |   2 +
- arch/sh/kernel/vmlinux.lds.S                       |   1 -
- arch/sparc/include/asm/Kbuild                      |   3 +
- arch/sparc/include/asm/jump_label.h                |   6 +-
- arch/sparc/include/asm/kprobes.h                   |   5 +
- arch/sparc/kernel/vmlinux.lds.S                    |   1 -
- arch/sparc/mm/ultra.S                              |   3 +-
- arch/tile/include/asm/Kbuild                       |   3 +
- arch/tile/include/asm/kprobes.h                    |   6 +-
- arch/tile/kernel/vmlinux.lds.S                     |   1 -
- arch/um/include/asm/Kbuild                         |   4 +
- arch/unicore32/include/asm/Kbuild                  |   3 +
- arch/unicore32/include/asm/section-core.h          |  19 +
- arch/x86/include/asm/Kbuild                        |   3 +
- arch/x86/include/asm/jump_label.h                  |  10 +-
- arch/x86/include/asm/kprobes.h                     |   6 +
- arch/x86/kernel/cpu/microcode/core.c               |   8 +-
- arch/x86/kernel/kprobes/core.c                     |  11 +-
- arch/x86/kernel/vmlinux.lds.S                      |   1 -
- arch/x86/tools/relocs.c                            |   4 +
- arch/xtensa/include/asm/Kbuild                     |   4 +
- arch/xtensa/kernel/Makefile                        |   8 +-
- drivers/base/firmware_class.c                      |  12 +-
- drivers/platform/x86/dell-smo8800.c                |   1 +
- firmware/Makefile                                  |   6 +-
- include/asm-generic/kprobes.h                      |  26 +
- include/asm-generic/ranges.h                       | 103 ++++
- include/asm-generic/section-core.h                 | 341 +++++++++++
- include/asm-generic/sections.h                     |   4 +-
- include/asm-generic/tables.h                       |  50 ++
- include/asm-generic/vmlinux.lds.h                  |  73 +--
- include/linux/compiler.h                           |   8 -
- include/linux/dynamic_debug.h                      |   5 +-
- include/linux/init.h                               |  20 +-
- include/linux/jump_label.h                         |   8 +-
- include/linux/kprobes.h                            |  24 +-
- include/linux/ranges.h                             | 128 +++++
- include/linux/sections.h                           | 111 ++++
- include/linux/tables.h                             | 638 +++++++++++++++++++++
- init/Kconfig                                       |  22 +
- kernel/jump_label.c                                |  17 +-
- kernel/kprobes.c                                   |  17 +-
- lib/dynamic_debug.c                                |  13 +-
- scripts/Makefile.build                             |   7 +-
- scripts/Makefile.clean                             |   2 +
- scripts/Makefile.lib                               |  11 +
- scripts/Makefile.modpost                           |   2 +-
- scripts/mod/modpost.c                              |   2 +-
- scripts/{module-common.lds => module-common.lds.S} |   6 +
- scripts/recordmcount.c                             |   2 +-
- scripts/recordmcount.pl                            |   2 +-
- tools/objtool/special.c                            |   2 +-
- 133 files changed, 2328 insertions(+), 214 deletions(-)
- create mode 100644 Documentation/sections/conf.py
- create mode 100644 Documentation/sections/index.rst
- create mode 100644 Documentation/sections/linker-tables.rst
- create mode 100644 Documentation/sections/ranges.rst
- create mode 100644 Documentation/sections/section-core.rst
- create mode 100644 arch/c6x/include/asm/tables.h
- create mode 100644 arch/unicore32/include/asm/section-core.h
- create mode 100644 include/asm-generic/kprobes.h
- create mode 100644 include/asm-generic/ranges.h
- create mode 100644 include/asm-generic/section-core.h
- create mode 100644 include/asm-generic/tables.h
- create mode 100644 include/linux/ranges.h
- create mode 100644 include/linux/sections.h
- create mode 100644 include/linux/tables.h
- rename scripts/{module-common.lds => module-common.lds.S} (80%)
+v2: introduced in this series
 
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ arch/arm/include/asm/jump_label.h     |  6 ++++--
+ arch/arm64/include/asm/jump_label.h   |  6 ++++--
+ arch/mips/include/asm/jump_label.h    |  6 ++++--
+ arch/powerpc/include/asm/jump_label.h |  8 +++++---
+ arch/s390/include/asm/jump_label.h    |  6 ++++--
+ arch/sparc/include/asm/jump_label.h   |  6 ++++--
+ arch/x86/include/asm/jump_label.h     | 10 ++++++----
+ include/asm-generic/vmlinux.lds.h     |  4 ----
+ include/linux/jump_label.h            |  4 ++--
+ kernel/jump_label.c                   | 17 ++++++++++-------
+ scripts/module-common.lds.S           |  5 +++++
+ tools/objtool/special.c               |  2 +-
+ 12 files changed, 49 insertions(+), 31 deletions(-)
+
+diff --git a/arch/arm/include/asm/jump_label.h b/arch/arm/include/asm/jump_label.h
+index 34f7b6980d21..960135a7b88e 100644
+--- a/arch/arm/include/asm/jump_label.h
++++ b/arch/arm/include/asm/jump_label.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_ARM_JUMP_LABEL_H
+ #define _ASM_ARM_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 WASM(nop) "\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+ 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
+@@ -26,7 +28,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 WASM(b) " %l[l_yes]\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+ 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
+diff --git a/arch/arm64/include/asm/jump_label.h b/arch/arm64/include/asm/jump_label.h
+index 1b5e0e843c3a..aa52cd2607e3 100644
+--- a/arch/arm64/include/asm/jump_label.h
++++ b/arch/arm64/include/asm/jump_label.h
+@@ -19,6 +19,8 @@
+ #ifndef __ASM_JUMP_LABEL_H
+ #define __ASM_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+@@ -29,7 +31,7 @@
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
+ {
+ 	asm goto("1: nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".align 3\n\t"
+ 		 ".quad 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+@@ -43,7 +45,7 @@ l_yes:
+ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
+ {
+ 	asm goto("1: b %l[l_yes]\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".align 3\n\t"
+ 		 ".quad 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection\n\t"
+diff --git a/arch/mips/include/asm/jump_label.h b/arch/mips/include/asm/jump_label.h
+index e77672539e8e..78e70cb98592 100644
+--- a/arch/mips/include/asm/jump_label.h
++++ b/arch/mips/include/asm/jump_label.h
+@@ -8,6 +8,8 @@
+ #ifndef _ASM_MIPS_JUMP_LABEL_H
+ #define _ASM_MIPS_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+@@ -30,7 +32,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:\t" NOP_INSN "\n\t"
+ 		"nop\n\t"
+-		".pushsection __jump_table,  \"aw\"\n\t"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
+ 		".popsection\n\t"
+ 		: :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -44,7 +46,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ {
+ 	asm_volatile_goto("1:\tj %l[l_yes]\n\t"
+ 		"nop\n\t"
+-		".pushsection __jump_table,  \"aw\"\n\t"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
+ 		".popsection\n\t"
+ 		: :  "i" (&((char *)key)[branch]) : : l_yes);
+diff --git a/arch/powerpc/include/asm/jump_label.h b/arch/powerpc/include/asm/jump_label.h
+index 9a287e0ac8b1..a1225f66887e 100644
+--- a/arch/powerpc/include/asm/jump_label.h
++++ b/arch/powerpc/include/asm/jump_label.h
+@@ -10,6 +10,8 @@
+  * 2 of the License, or (at your option) any later version.
+  */
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ #include <linux/types.h>
+ 
+@@ -23,7 +25,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 "nop # arch_static_branch\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+ 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -37,7 +39,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ {
+ 	asm_volatile_goto("1:\n\t"
+ 		 "b %l[l_yes] # arch_static_branch_jump\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+ 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
+@@ -62,7 +64,7 @@ struct jump_entry {
+ #else
+ #define ARCH_STATIC_BRANCH(LABEL, KEY)		\
+ 1098:	nop;					\
+-	.pushsection __jump_table, "aw";	\
++	push_section_tbl_any(SECTION_DATA, __jump_table, aw); \
+ 	FTR_ENTRY_LONG 1098b, LABEL, KEY;	\
+ 	.popsection
+ #endif
+diff --git a/arch/s390/include/asm/jump_label.h b/arch/s390/include/asm/jump_label.h
+index 9be198f5ee79..17f02aec4644 100644
+--- a/arch/s390/include/asm/jump_label.h
++++ b/arch/s390/include/asm/jump_label.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_S390_JUMP_LABEL_H
+ #define _ASM_S390_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+@@ -16,7 +18,7 @@
+ static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
+ {
+ 	asm_volatile_goto("0:	brcl 0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
+-		".pushsection __jump_table, \"aw\"\n"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		".balign 8\n"
+ 		".quad 0b, %l[label], %0\n"
+ 		".popsection\n"
+@@ -30,7 +32,7 @@ label:
+ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
+ {
+ 	asm_volatile_goto("0:	brcl 15, %l[label]\n"
+-		".pushsection __jump_table, \"aw\"\n"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		".balign 8\n"
+ 		".quad 0b, %l[label], %0\n"
+ 		".popsection\n"
+diff --git a/arch/sparc/include/asm/jump_label.h b/arch/sparc/include/asm/jump_label.h
+index 62d0354d1727..dde1275233f7 100644
+--- a/arch/sparc/include/asm/jump_label.h
++++ b/arch/sparc/include/asm/jump_label.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_SPARC_JUMP_LABEL_H
+ #define _ASM_SPARC_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ 	asm_volatile_goto("1:\n\t"
+ 		 "nop\n\t"
+ 		 "nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".align 4\n\t"
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+@@ -28,7 +30,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ 	asm_volatile_goto("1:\n\t"
+ 		 "b %l[l_yes]\n\t"
+ 		 "nop\n\t"
+-		 ".pushsection __jump_table,  \"aw\"\n\t"
++		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		 ".align 4\n\t"
+ 		 ".word 1b, %l[l_yes], %c0\n\t"
+ 		 ".popsection \n\t"
+diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
+index adc54c12cbd1..d25fafa3df4b 100644
+--- a/arch/x86/include/asm/jump_label.h
++++ b/arch/x86/include/asm/jump_label.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_X86_JUMP_LABEL_H
+ #define _ASM_X86_JUMP_LABEL_H
+ 
++#include <asm/tables.h>
++
+ #ifndef HAVE_JUMP_LABEL
+ /*
+  * For better or for worse, if jump labels (the gcc extension) are missing,
+@@ -34,7 +36,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
+ {
+ 	asm_volatile_goto("1:"
+ 		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		_ASM_ALIGN "\n\t"
+ 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
+ 		".popsection \n\t"
+@@ -50,7 +52,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
+ 	asm_volatile_goto("1:"
+ 		".byte 0xe9\n\t .long %l[l_yes] - 2f\n\t"
+ 		"2:\n\t"
+-		".pushsection __jump_table,  \"aw\" \n\t"
++		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 		_ASM_ALIGN "\n\t"
+ 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
+ 		".popsection \n\t"
+@@ -85,7 +87,7 @@ struct jump_entry {
+ 	.else
+ 	.byte		STATIC_KEY_INIT_NOP
+ 	.endif
+-	.pushsection __jump_table, "aw"
++	push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 	_ASM_ALIGN
+ 	_ASM_PTR	.Lstatic_jump_\@, \target, \key
+ 	.popsection
+@@ -101,7 +103,7 @@ struct jump_entry {
+ 	.long		\target - .Lstatic_jump_after_\@
+ .Lstatic_jump_after_\@:
+ 	.endif
+-	.pushsection __jump_table, "aw"
++	push_section_tbl_any(SECTION_DATA, __jump_table, aw)
+ 	_ASM_ALIGN
+ 	_ASM_PTR	.Lstatic_jump_\@, \target, \key + 1
+ 	.popsection
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 2413444c048d..140fbed4a817 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -212,10 +212,6 @@
+ 	STRUCT_ALIGN();							\
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+-	. = ALIGN(8);                                                   \
+-	VMLINUX_SYMBOL(__start___jump_table) = .;                       \
+-	*(__jump_table)                                                 \
+-	VMLINUX_SYMBOL(__stop___jump_table) = .;                        \
+ 	. = ALIGN(8);							\
+ 	VMLINUX_SYMBOL(__start___verbose) = .;                          \
+ 	*(__verbose)                                                    \
+diff --git a/include/linux/jump_label.h b/include/linux/jump_label.h
+index 1256f543b002..842a24892a91 100644
+--- a/include/linux/jump_label.h
++++ b/include/linux/jump_label.h
+@@ -115,6 +115,7 @@ enum jump_label_type {
+ struct module;
+ 
+ #ifdef HAVE_JUMP_LABEL
++#include <linux/tables.h>
+ 
+ #define JUMP_TYPE_FALSE	0UL
+ #define JUMP_TYPE_TRUE	1UL
+@@ -130,8 +131,7 @@ static __always_inline bool static_key_true(struct static_key *key)
+ 	return !arch_static_branch(key, true);
+ }
+ 
+-extern struct jump_entry __start___jump_table[];
+-extern struct jump_entry __stop___jump_table[];
++DECLARE_LINKTABLE(struct jump_entry, __jump_table);
+ 
+ extern void jump_label_init(void);
+ extern void jump_label_lock(void);
+diff --git a/kernel/jump_label.c b/kernel/jump_label.c
+index 93ad6c1fb9b6..7582ca28e3b8 100644
+--- a/kernel/jump_label.c
++++ b/kernel/jump_label.c
+@@ -15,9 +15,12 @@
+ #include <linux/static_key.h>
+ #include <linux/jump_label_ratelimit.h>
+ #include <linux/bug.h>
++#include <linux/tables.h>
+ 
+ #ifdef HAVE_JUMP_LABEL
+ 
++DEFINE_LINKTABLE(struct jump_entry, __jump_table);
++
+ /* mutex to protect coming/going of the the jump_label table */
+ static DEFINE_MUTEX(jump_label_mutex);
+ 
+@@ -274,8 +277,6 @@ static void __jump_label_update(struct static_key *key,
+ 
+ void __init jump_label_init(void)
+ {
+-	struct jump_entry *iter_start = __start___jump_table;
+-	struct jump_entry *iter_stop = __stop___jump_table;
+ 	struct static_key *key = NULL;
+ 	struct jump_entry *iter;
+ 
+@@ -292,9 +293,10 @@ void __init jump_label_init(void)
+ 		return;
+ 
+ 	jump_label_lock();
+-	jump_label_sort_entries(iter_start, iter_stop);
++	jump_label_sort_entries(LINUX_SECTION_START(__jump_table),
++				LINUX_SECTION_END(__jump_table));
+ 
+-	for (iter = iter_start; iter < iter_stop; iter++) {
++	LINKTABLE_FOR_EACH(iter, __jump_table) {
+ 		struct static_key *iterk;
+ 
+ 		/* rewrite NOPs */
+@@ -539,8 +541,9 @@ early_initcall(jump_label_init_module);
+  */
+ int jump_label_text_reserved(void *start, void *end)
+ {
+-	int ret = __jump_label_text_reserved(__start___jump_table,
+-			__stop___jump_table, start, end);
++	int ret = __jump_label_text_reserved(LINUX_SECTION_START(__jump_table),
++					     LINUX_SECTION_END(__jump_table),
++					     start, end);
+ 
+ 	if (ret)
+ 		return ret;
+@@ -553,7 +556,7 @@ int jump_label_text_reserved(void *start, void *end)
+ 
+ static void jump_label_update(struct static_key *key)
+ {
+-	struct jump_entry *stop = __stop___jump_table;
++	struct jump_entry *stop = LINUX_SECTION_END(__jump_table);
+ 	struct jump_entry *entry = static_key_entries(key);
+ #ifdef CONFIG_MODULES
+ 	struct module *mod;
+diff --git a/scripts/module-common.lds.S b/scripts/module-common.lds.S
+index 73a2c7da0e55..be3bde1ea0ce 100644
+--- a/scripts/module-common.lds.S
++++ b/scripts/module-common.lds.S
+@@ -3,6 +3,10 @@
+  * Archs are free to supply their own linker scripts.  ld will
+  * combine them automatically.
+  */
++
++#include <asm/section-core.h>
++#include <asm/tables.h>
++
+ SECTIONS {
+ 	/DISCARD/ : { *(.discard) }
+ 
+@@ -16,6 +20,7 @@ SECTIONS {
+ 	__kcrctab_unused	0 : { *(SORT(___kcrctab_unused+*)) }
+ 	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
+ 	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
++	__jump_table		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __jump_table, *))) }
+ 
+ 	. = ALIGN(8);
+ 	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
+diff --git a/tools/objtool/special.c b/tools/objtool/special.c
+index bff8abb3a4aa..6f7f519abacc 100644
+--- a/tools/objtool/special.c
++++ b/tools/objtool/special.c
+@@ -63,7 +63,7 @@ struct special_entry entries[] = {
+ 		.feature = ALT_FEATURE_OFFSET,
+ 	},
+ 	{
+-		.sec = "__jump_table",
++		.sec = ".data.tbl.__jump_table.any",
+ 		.jump_or_nop = true,
+ 		.size = JUMP_ENTRY_SIZE,
+ 		.orig = JUMP_ORIG_OFFSET,
 -- 
 2.9.2
 
