@@ -1,238 +1,203 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:42844 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:43010 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754449AbcHSVlO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Aug 2016 17:41:14 -0400
+        id S1755664AbcHSVlX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Aug 2016 17:41:23 -0400
 From: mcgrof@kernel.org
-Subject: [PATCH v4 00/16] linux: generalize sections, ranges and linker tables
-Date: Fri, 19 Aug 2016 14:32:49 -0700
-Message-ID: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v1 0/7] tools: add linker table userspace sandbox
+Date: Fri, 19 Aug 2016 14:41:08 -0700
+Message-ID: <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
+In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20160819213249.FVXDVE9EbRPBg0DLZwwlUw5A0F1k1-A8yQrf1GjHeKQ@z>
+To: acme@redhat.com, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
+Message-ID: <20160819214108.oxjRYvPaGbx59qMgkGs4PCruY7fE17nAA7BARJQQfS4@z>
 
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-This v4 addresses feedback from the previous v3 series [0], and also
-addresses a huge array of additional tests against many architectures
-outside of what 0-day provides. As I mentioned in my last v3 series,
-0-day had only found one issue with the series, a blackfin architecture
-linker issue with the last series. Guenter Rock was kind enough to give
-my series a test spin on his test bed and he found quite a bit of other
-oddball issues with obscure architectures, and even on x86 with an old
-toolchain. After a lot of work and coordinating with a few maintainers
-I'm happy to report all issues found so far through all possible testing
-I could do are now fixed, this series also addresses all feedback from
-the last series, as such this goes submitted as PATCH form.
+The original v3 series for linker tables made reference only to
+an external repository userspace sandbox application, however
+Boris noted it'd be difficult ot keep this in sync with the
+kernel so advised to consider integrate with the kernel. I've
+taken steps in this direction.
 
-In addressing fixing this work on a few architectures some of the previous
-patches are further simplified. The kprobes port to linker tables is made
-much easier now that I've addressed moving out core kprobe declarations
-into asm-generic/kprobes.h. Refer to the patch "kprobes: move kprobe
-declarations to asm-generic/kprobes.h". This makes for a much cleaner
-solution across architectures.
+A bit of prepping is done to help make use of the tools/include
+and tools/arch/$(ARCH)/include/asm directories. For now the tool
+only supports x86_64, however quite a bit of work was done to
+help make it work with a cross compiler, and try to make as
+architecture agnostic as possible. Adding suppor for another 
+architecture should not require much work, mosty just generating
+a userspace custom linker script, modifying it for linker tables,
+section ranges, and finally testing this with its toolchain.
 
-Boris feedback on making the code bit rot feature optional is addressed
-by using a new Kconfig symbol for this, CONFIG_BUILD_AVOID_BITROT,
-but given Greg's concerns over lack of clarity over what this was all about
-I've ripped that functionality out into its own patch with a bit more
-extensive documentation and re-wording. See the patch "kbuild: enable option
-to force compile force-obj-y and force-lib-y". I hope makes it clear how
-linker tables can help with avoiding code bit rot. I've gone with a new
-Kconfig symbol CONFIG_BUILD_AVOID_BITROT given CONFIG_COMPILE_TEST is
-not available on UML, this feature is desirable on all architectures.
+This is being submitted separately than the patches which adds
+linker table support into the kernel. This should be considered
+only if that gets merged.
 
-The documentation is revamped, now that the DocBook format is deprecated
-I ported the documention into the trendy hipster Sphinx documentation
-format.
-
-AT Boris' request I've adapated the userspace linker table application
-forintegration into the kernel under tools/ to make it easier to keep
-things in sync, however since this requires a bit of changes to some headers
-in tools/ I'll submit that separately.
-
-[0] https://lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
-
-If you'd like this in git-form, you can get it on the 20160819-linker-table-v4
-branch of my linux-next tree on kernel.org, this also includes the series of
-the linker table userspace sandbox:
-
+If you'd like this in git-form, you can get it on the 20160819-linker-table-v4  
+branch of my linux-next tree on kernel.org, this also includes the series of    
+that introduces linker tables into the kernel:
+                                                                                
 https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160819-linker-table-v4
 
-Please let me know if there are any concerns or questions.
+Please let me know if there are any issue or questions.
 
-Luis R. Rodriguez (16):
-  x86: remove LTO_REFERENCE_INITCALL()
-  dell-smo8800: include uaccess.h
-  scripts/module-common.lds: enable generation
-  generic-sections: add section core helpers
-  xtensa: skip adding literal when SORT() is used
-  ranges.h: add helpers to build and identify Linux section ranges
-  tables.h: add linker table support
-  kbuild: enable option to force compile force-obj-y and force-lib-y
-  firmware/Makefile: force recompilation if makefile changes
-  firmware: port built-in section to linker table
-  jump_label: move guard #endif down where it belongs
-  jump_label: port __jump_table to linker tables
-  dynamic_debug: port to use linker tables
-  kprobes: move kprobe declarations to asm-generic/kprobes.h
-  kprobes: port .kprobes.text to section range
-  kprobes: port blacklist kprobes to linker table
+Luis R. Rodriguez (7):
+  tools: add a userspace tools bug.h
+  tools: add a basic tools printk.h
+  tools: add init.h for tools
+  tools: add __used and enable to override
+  tools: expand export.h with VMLINUX_SYMBOL()
+  tools: add __section() to compiler.h
+  tools: add userspace linker table sandbox
 
- .gitignore                                         |   2 +
- Documentation/index.rst                            |   1 +
- Documentation/kbuild/makefiles.txt                 |  36 ++
- Documentation/sections/conf.py                     |   4 +
- Documentation/sections/index.rst                   |  13 +
- Documentation/sections/linker-tables.rst           | 202 +++++++
- Documentation/sections/ranges.rst                  |  49 ++
- Documentation/sections/section-core.rst            | 153 +++++
- MAINTAINERS                                        |  37 ++
- Makefile                                           |   6 +-
- arch/alpha/include/asm/Kbuild                      |   4 +
- arch/arc/include/asm/Kbuild                        |   3 +
- arch/arc/include/asm/kprobes.h                     |   6 +-
- arch/arc/kernel/vmlinux.lds.S                      |   1 -
- arch/arm/include/asm/Kbuild                        |   3 +
- arch/arm/include/asm/jump_label.h                  |   6 +-
- arch/arm/include/asm/kprobes.h                     |   4 +
- arch/arm/kernel/entry-armv.S                       |   3 +-
- arch/arm/kernel/vmlinux-xip.lds.S                  |   1 -
- arch/arm/kernel/vmlinux.lds.S                      |   1 -
- arch/arm/probes/decode.h                           |   1 +
- arch/arm64/include/asm/Kbuild                      |   3 +
- arch/arm64/include/asm/jump_label.h                |   6 +-
- arch/arm64/include/asm/kprobes.h                   |   4 +
- arch/arm64/kernel/armv8_deprecated.c               |   1 +
- arch/arm64/kernel/insn.c                           |   1 +
- arch/arm64/kernel/probes/kprobes.c                 |   4 +-
- arch/arm64/kernel/vmlinux.lds.S                    |   1 -
- arch/avr32/include/asm/Kbuild                      |   3 +
- arch/avr32/include/asm/kprobes.h                   |   4 +
- arch/avr32/kernel/entry-avr32b.S                   |  13 +-
- arch/avr32/kernel/vmlinux.lds.S                    |   1 -
- arch/blackfin/include/asm/Kbuild                   |   4 +
- arch/blackfin/kernel/vmlinux.lds.S                 |   1 -
- arch/c6x/include/asm/Kbuild                        |   3 +
- arch/c6x/include/asm/tables.h                      |  26 +
- arch/c6x/kernel/vmlinux.lds.S                      |   1 -
- arch/cris/include/asm/Kbuild                       |   4 +
- arch/frv/include/asm/Kbuild                        |   4 +
- arch/h8300/include/asm/Kbuild                      |   4 +
- arch/hexagon/include/asm/Kbuild                    |   4 +
- arch/hexagon/kernel/vmlinux.lds.S                  |   1 -
- arch/ia64/include/asm/Kbuild                       |   3 +
- arch/ia64/include/asm/kprobes.h                    |   7 +-
- arch/ia64/kernel/jprobes.S                         |   3 +-
- arch/ia64/kernel/vmlinux.lds.S                     |   1 -
- arch/ia64/lib/flush.S                              |   6 +-
- arch/m32r/include/asm/Kbuild                       |   4 +
- arch/m68k/include/asm/Kbuild                       |   4 +
- arch/metag/include/asm/Kbuild                      |   4 +
- arch/metag/kernel/vmlinux.lds.S                    |   1 -
- arch/microblaze/include/asm/Kbuild                 |   4 +
- arch/microblaze/kernel/vmlinux.lds.S               |   1 -
- arch/mips/include/asm/Kbuild                       |   3 +
- arch/mips/include/asm/jump_label.h                 |   6 +-
- arch/mips/include/asm/kprobes.h                    |   6 +-
- arch/mips/kernel/vmlinux.lds.S                     |   1 -
- arch/mn10300/include/asm/Kbuild                    |   3 +
- arch/mn10300/include/asm/kprobes.h                 |   4 +
- arch/mn10300/kernel/vmlinux.lds.S                  |   1 -
- arch/nios2/include/asm/Kbuild                      |   4 +
- arch/nios2/kernel/vmlinux.lds.S                    |   1 -
- arch/openrisc/include/asm/Kbuild                   |   4 +
- arch/openrisc/kernel/vmlinux.lds.S                 |   1 -
- arch/parisc/include/asm/Kbuild                     |   4 +
- arch/parisc/kernel/vmlinux.lds.S                   |   1 -
- arch/powerpc/include/asm/Kbuild                    |   3 +
- arch/powerpc/include/asm/jump_label.h              |   8 +-
- arch/powerpc/include/asm/kprobes.h                 |   6 +
- arch/powerpc/include/asm/ppc_asm.h                 |   7 +-
- arch/powerpc/kernel/vmlinux.lds.S                  |   1 -
- arch/s390/include/asm/Kbuild                       |   3 +
- arch/s390/include/asm/jump_label.h                 |   6 +-
- arch/s390/include/asm/kprobes.h                    |   4 +
- arch/s390/kernel/entry.S                           |   5 +-
- arch/s390/kernel/kprobes.c                         |   6 +-
- arch/s390/kernel/mcount.S                          |   3 +-
- arch/s390/kernel/vmlinux.lds.S                     |   1 -
- arch/score/include/asm/Kbuild                      |   4 +
- arch/score/kernel/vmlinux.lds.S                    |   1 -
- arch/sh/include/asm/Kbuild                         |   3 +
- arch/sh/include/asm/kprobes.h                      |   2 +
- arch/sh/kernel/vmlinux.lds.S                       |   1 -
- arch/sparc/include/asm/Kbuild                      |   3 +
- arch/sparc/include/asm/jump_label.h                |   6 +-
- arch/sparc/include/asm/kprobes.h                   |   5 +
- arch/sparc/kernel/vmlinux.lds.S                    |   1 -
- arch/sparc/mm/ultra.S                              |   3 +-
- arch/tile/include/asm/Kbuild                       |   3 +
- arch/tile/include/asm/kprobes.h                    |   6 +-
- arch/tile/kernel/vmlinux.lds.S                     |   1 -
- arch/um/include/asm/Kbuild                         |   4 +
- arch/unicore32/include/asm/Kbuild                  |   3 +
- arch/unicore32/include/asm/section-core.h          |  19 +
- arch/x86/include/asm/Kbuild                        |   3 +
- arch/x86/include/asm/jump_label.h                  |  10 +-
- arch/x86/include/asm/kprobes.h                     |   6 +
- arch/x86/kernel/cpu/microcode/core.c               |   8 +-
- arch/x86/kernel/kprobes/core.c                     |  11 +-
- arch/x86/kernel/vmlinux.lds.S                      |   1 -
- arch/x86/tools/relocs.c                            |   4 +
- arch/xtensa/include/asm/Kbuild                     |   4 +
- arch/xtensa/kernel/Makefile                        |   8 +-
- drivers/base/firmware_class.c                      |  12 +-
- drivers/platform/x86/dell-smo8800.c                |   1 +
- firmware/Makefile                                  |   6 +-
- include/asm-generic/kprobes.h                      |  26 +
- include/asm-generic/ranges.h                       | 103 ++++
- include/asm-generic/section-core.h                 | 341 +++++++++++
- include/asm-generic/sections.h                     |   4 +-
- include/asm-generic/tables.h                       |  50 ++
- include/asm-generic/vmlinux.lds.h                  |  73 +--
- include/linux/compiler.h                           |   8 -
- include/linux/dynamic_debug.h                      |   5 +-
- include/linux/init.h                               |  20 +-
- include/linux/jump_label.h                         |   8 +-
- include/linux/kprobes.h                            |  24 +-
- include/linux/ranges.h                             | 128 +++++
- include/linux/sections.h                           | 111 ++++
- include/linux/tables.h                             | 638 +++++++++++++++++++++
- init/Kconfig                                       |  22 +
- kernel/jump_label.c                                |  17 +-
- kernel/kprobes.c                                   |  17 +-
- lib/dynamic_debug.c                                |  13 +-
- scripts/Makefile.build                             |   7 +-
- scripts/Makefile.clean                             |   2 +
- scripts/Makefile.lib                               |  11 +
- scripts/Makefile.modpost                           |   2 +-
- scripts/mod/modpost.c                              |   2 +-
- scripts/{module-common.lds => module-common.lds.S} |   6 +
- scripts/recordmcount.c                             |   2 +-
- scripts/recordmcount.pl                            |   2 +-
- tools/objtool/special.c                            |   2 +-
- 133 files changed, 2328 insertions(+), 214 deletions(-)
- create mode 100644 Documentation/sections/conf.py
- create mode 100644 Documentation/sections/index.rst
- create mode 100644 Documentation/sections/linker-tables.rst
- create mode 100644 Documentation/sections/ranges.rst
- create mode 100644 Documentation/sections/section-core.rst
- create mode 100644 arch/c6x/include/asm/tables.h
- create mode 100644 arch/unicore32/include/asm/section-core.h
- create mode 100644 include/asm-generic/kprobes.h
- create mode 100644 include/asm-generic/ranges.h
- create mode 100644 include/asm-generic/section-core.h
- create mode 100644 include/asm-generic/tables.h
- create mode 100644 include/linux/ranges.h
- create mode 100644 include/linux/sections.h
- create mode 100644 include/linux/tables.h
- rename scripts/{module-common.lds => module-common.lds.S} (80%)
+ Documentation/sections/linker-tables.rst           |   4 +-
+ MAINTAINERS                                        |   1 +
+ include/linux/tables.h                             |   5 +-
+ tools/Makefile                                     |   3 +-
+ .../arch/x86/include/generated/asm/section-core.h  |   1 +
+ tools/arch/x86/include/generated/ranges.h          |   1 +
+ tools/arch/x86/include/generated/tables.h          |   1 +
+ tools/include/asm-generic/bug.h                    |  24 +
+ tools/include/asm-generic/ranges.h                 | 103 ++++
+ tools/include/asm-generic/section-core.h           | 341 +++++++++++
+ tools/include/asm-generic/tables.h                 |  50 ++
+ tools/include/linux/bug.h                          |   6 +
+ tools/include/linux/compiler.h                     |   8 +
+ tools/include/linux/export.h                       |  22 +
+ tools/include/linux/init.h                         |   9 +
+ tools/include/linux/kernel.h                       |   3 +
+ tools/include/linux/printk.h                       |  14 +
+ tools/include/linux/ranges.h                       | 128 ++++
+ tools/include/linux/sections.h                     | 111 ++++
+ tools/include/linux/string.h                       |   1 +
+ tools/include/linux/tables.h                       | 664 +++++++++++++++++++++
+ tools/linker-tables/.gitignore                     |   2 +
+ tools/linker-tables/Makefile                       | 184 ++++++
+ tools/linker-tables/README                         | 114 ++++
+ tools/linker-tables/arch/x86/include/asm/asm.h     |  17 +
+ tools/linker-tables/arch/x86/include/asm/boot.h    |   1 +
+ .../linker-tables/arch/x86/include/asm/bootparam.h |  32 +
+ tools/linker-tables/arch/x86/include/asm/kprobes.h |   7 +
+ .../linker-tables/arch/x86/include/asm/ps_const.h  |  21 +
+ tools/linker-tables/arch/x86/include/asm/ranges.h  |   6 +
+ .../arch/x86/include/asm/section-core.h            |   1 +
+ tools/linker-tables/arch/x86/include/asm/setup.h   |   6 +
+ tools/linker-tables/arch/x86/include/asm/tables.h  |   6 +
+ tools/linker-tables/arch/x86/include/asm/x86.h     |   4 +
+ .../arch/x86/include/asm/x86_init_fn.h             | 169 ++++++
+ tools/linker-tables/arch/x86/kernel/alpha.c        |   9 +
+ tools/linker-tables/arch/x86/kernel/alternative.c  |  31 +
+ tools/linker-tables/arch/x86/kernel/beta.c         |   9 +
+ tools/linker-tables/arch/x86/kernel/head64.c       |  58 ++
+ tools/linker-tables/arch/x86/kernel/init.c         |  42 ++
+ tools/linker-tables/arch/x86/kernel/kasan.c        |  10 +
+ tools/linker-tables/arch/x86/kernel/kprobes.c      |  51 ++
+ tools/linker-tables/arch/x86/kernel/vmlinux.lds.S  | 273 +++++++++
+ tools/linker-tables/arch/x86/mm/init.c             |  10 +
+ tools/linker-tables/arch/x86/xen/init.c            |  13 +
+ tools/linker-tables/drivers/acme.c                 |  32 +
+ tools/linker-tables/drivers/synth/common.c         |  16 +
+ tools/linker-tables/drivers/synth/common.h         |   2 +
+ tools/linker-tables/drivers/synth/main.c           |  35 ++
+ tools/linker-tables/drivers/synth/or.S             |  39 ++
+ tools/linker-tables/drivers/synth/synth.h          |   2 +
+ tools/linker-tables/drivers/xen-driver.c           |  11 +
+ .../include/asm-generic/arch_init_fn.h             |  50 ++
+ tools/linker-tables/include/asm-generic/kprobes.h  |  26 +
+ tools/linker-tables/include/linux/bitops.h         |   6 +
+ tools/linker-tables/include/linux/init.h           |  40 ++
+ tools/linker-tables/include/linux/kasan.h          |   5 +
+ tools/linker-tables/include/linux/kprobes.h        |  11 +
+ tools/linker-tables/include/linux/module.h         |  14 +
+ tools/linker-tables/include/linux/mutex.h          |  17 +
+ tools/linker-tables/include/linux/pci.h            |   7 +
+ tools/linker-tables/include/linux/ps_const.h       |  46 ++
+ tools/linker-tables/include/linux/sched.h          |   9 +
+ tools/linker-tables/include/linux/spinlock.h       |  13 +
+ tools/linker-tables/include/linux/start_kernel.h   |   1 +
+ tools/linker-tables/include/linux/types.h          |  13 +
+ tools/linker-tables/include/linux/workqueue.h      |  51 ++
+ tools/linker-tables/include/xen/xen.h              |   4 +
+ tools/linker-tables/kernel/locking/mutex.c         |  28 +
+ tools/linker-tables/kernel/locking/spinlock.c      |  26 +
+ tools/linker-tables/kernel/main.c                  |  32 +
+ tools/linker-tables/kernel/workqueue.c             |  43 ++
+ tools/linker-tables/lib/string.c                   |  26 +
+ tools/linker-tables/main.c                         |  20 +
+ tools/linker-tables/pci-quirks.c                   |  13 +
+ tools/linker-tables/pci.c                          |  29 +
+ 76 files changed, 3238 insertions(+), 5 deletions(-)
+ create mode 100644 tools/arch/x86/include/generated/asm/section-core.h
+ create mode 100644 tools/arch/x86/include/generated/ranges.h
+ create mode 100644 tools/arch/x86/include/generated/tables.h
+ create mode 100644 tools/include/asm-generic/bug.h
+ create mode 100644 tools/include/asm-generic/ranges.h
+ create mode 100644 tools/include/asm-generic/section-core.h
+ create mode 100644 tools/include/asm-generic/tables.h
+ create mode 100644 tools/include/linux/bug.h
+ create mode 100644 tools/include/linux/init.h
+ create mode 100644 tools/include/linux/printk.h
+ create mode 100644 tools/include/linux/ranges.h
+ create mode 100644 tools/include/linux/sections.h
+ create mode 100644 tools/include/linux/tables.h
+ create mode 100644 tools/linker-tables/.gitignore
+ create mode 100644 tools/linker-tables/Makefile
+ create mode 100644 tools/linker-tables/README
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/asm.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/boot.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/bootparam.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/kprobes.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/ps_const.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/ranges.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/section-core.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/setup.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/tables.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/x86.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/x86_init_fn.h
+ create mode 100644 tools/linker-tables/arch/x86/kernel/alpha.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/alternative.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/beta.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/head64.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/init.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/kasan.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/kprobes.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/vmlinux.lds.S
+ create mode 100644 tools/linker-tables/arch/x86/mm/init.c
+ create mode 100644 tools/linker-tables/arch/x86/xen/init.c
+ create mode 100644 tools/linker-tables/drivers/acme.c
+ create mode 100644 tools/linker-tables/drivers/synth/common.c
+ create mode 100644 tools/linker-tables/drivers/synth/common.h
+ create mode 100644 tools/linker-tables/drivers/synth/main.c
+ create mode 100644 tools/linker-tables/drivers/synth/or.S
+ create mode 100644 tools/linker-tables/drivers/synth/synth.h
+ create mode 100644 tools/linker-tables/drivers/xen-driver.c
+ create mode 100644 tools/linker-tables/include/asm-generic/arch_init_fn.h
+ create mode 100644 tools/linker-tables/include/asm-generic/kprobes.h
+ create mode 100644 tools/linker-tables/include/linux/bitops.h
+ create mode 100644 tools/linker-tables/include/linux/init.h
+ create mode 100644 tools/linker-tables/include/linux/kasan.h
+ create mode 100644 tools/linker-tables/include/linux/kprobes.h
+ create mode 100644 tools/linker-tables/include/linux/module.h
+ create mode 100644 tools/linker-tables/include/linux/mutex.h
+ create mode 100644 tools/linker-tables/include/linux/pci.h
+ create mode 100644 tools/linker-tables/include/linux/ps_const.h
+ create mode 100644 tools/linker-tables/include/linux/sched.h
+ create mode 100644 tools/linker-tables/include/linux/spinlock.h
+ create mode 100644 tools/linker-tables/include/linux/start_kernel.h
+ create mode 100644 tools/linker-tables/include/linux/types.h
+ create mode 100644 tools/linker-tables/include/linux/workqueue.h
+ create mode 100644 tools/linker-tables/include/xen/xen.h
+ create mode 100644 tools/linker-tables/kernel/locking/mutex.c
+ create mode 100644 tools/linker-tables/kernel/locking/spinlock.c
+ create mode 100644 tools/linker-tables/kernel/main.c
+ create mode 100644 tools/linker-tables/kernel/workqueue.c
+ create mode 100644 tools/linker-tables/lib/string.c
+ create mode 100644 tools/linker-tables/main.c
+ create mode 100644 tools/linker-tables/pci-quirks.c
+ create mode 100644 tools/linker-tables/pci.c
 
 -- 
 2.9.2
