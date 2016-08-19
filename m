@@ -1,7 +1,7 @@
 From: mcgrof@kernel.org
-Subject: [PATCH v4 14/16] kprobes: move kprobe declarations to asm-generic/kprobes.h
-Date: Fri, 19 Aug 2016 14:34:12 -0700
-Message-ID: <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
+Subject: [PATCH v4 08/16] kbuild: enable option to force compile force-obj-y and force-lib-y
+Date: Fri, 19 Aug 2016 14:34:06 -0700
+Message-ID: <1471642454-5679-9-git-send-email-mcgrof@kernel.org>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Return-path: <platform-driver-x86-owner@vger.kernel.org>
 In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
@@ -12,627 +12,313 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-Often all is needed is these small helpers, instead of compiler.h
-or a full kprobes.h. This is important for asm helpers, in fact even
-some asm/kprobes.h make use of these helpers... instead just keep a
-generic asm file with helpers useful for asm code with the least amount
-of clutter as possible.
+Linux provides a rich array of features, enabling each feature
+however increases the size of the kernel and there are many
+features which users often want disabled. The traditional
+solution to this problem is for each feature to have its own
+Kconfig symbol, followed by a series of #ifdef statements
+in C code and header files, allowing the feature to be compiled
+only when desirable. As the variability of Linux increases build
+tests can and are often done with random kernel configurations,
+allyesconfig, and allmodconfig to help find code issues. This
+however doesn't catch all errors and as a consequence code that
+is typically not enabled often can suffer from bit-rot over time.
 
-Likewise we need now to also address what to do about this file for both
-when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
-for when architectures have CONFIG_HAVE_KPROBES but have disabled
-CONFIG_KPROBES.
+An alternative approach for subsystems, which refer to as the 'build-all
+link-selectively philosophy' is to keep the Kconfig symbols, replace
+the #ifdef approach by having each feature implemented it its own C file,
+and force compilation for all features to avoid the code bit-rot problem.
+With this strategy only features that are enabled via Kconfig get
+linked into the kernel, so the forced compilation has no size impact
+on the kernel. The practice of having each feature implemented in its own
+C file is already prevalent in many subsystems, however #ifdefs are still
+typically required during feature initialization. For instance in:
 
-Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
-this means most architecture code cannot include asm/kprobes.h safely.
-Correct this and add guards for architectures missing them. Additionally
-provide architectures that not have kprobes support with the default
-asm-generic solution. This lets us force asm/kprobes.h on the header
-include/linux/kprobes.h always, but most importantly we can now safely
-include just asm/kprobes.h on architecture code without bringing
-the full kitchen sink of header files.
+  #ifdef CONFIG_FOO
+  foo_init();
+  #endif
 
-Two architectures already provided a guard against CONFIG_KPROBES on
-its kprobes.h: sh, arch. The rest of the architectures needed gaurds
-added. We avoid including any not-needed headers on asm/kprobes.h
-unless kprobes have been enabled.
+We cannot remove the #ifdef and leave foo_init() as we'd either
+need to always enable the feature or add a respective #ifdef in a
+foo.h which makes foo_init() do nothing when CONFIG_FOO is disabled.
 
-In a subsequent atomic change we can try now to remove compiler.h from
-include/linux/kprobes.h.
+Linker tables enable lifting the requirement to use of #ifdefs during
+initialization. With linker tables initialization sequences can instead
+be aggregated into a custom ELF section at link time, during run time
+the table can be iterated over and each init sequence enabled can be called.
+A feature's init routine is only added to a table when its respective
+Kconfig symbols has been enabled and therefore linked in. Linker tables
+enable subsystems to completely do away with #ifdefs if one is comfortable
+in accepting all subsystem's feature's structural size implications.
+
+Subsystems which want to follow the 'build-all link-selectively
+philosophy' still need a way to easily express and annotate that they
+wish for all code to always be compiled to help avoid code bit rot,
+as such two new targets force-obj-y and force-lib-y are provided to
+help with this. Its not fair to require everyone to force compilation
+of all features of a subsystem though, so as a compromise, the new
+targets only force compilation when CONFIG_BUILD_AVOID_BITROT is
+enabled.
+
+Only built-in features are supported at the moment. Module support
+is expected to be added after a generic solution to add linker
+tables to modules more easily is developed.
+
+v4: this patch was added to this series, it was split off from the
+    linker tables addition due to the confusion over the code bit
+    rot alternatives that are possible with linker tables.
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- arch/alpha/include/asm/Kbuild      |  1 +
- arch/arc/include/asm/kprobes.h     |  6 ++++--
- arch/arm/include/asm/kprobes.h     |  4 ++++
- arch/arm/probes/decode.h           |  1 +
- arch/arm64/include/asm/kprobes.h   |  4 ++++
- arch/arm64/kernel/insn.c           |  1 +
- arch/avr32/include/asm/kprobes.h   |  4 ++++
- arch/blackfin/include/asm/Kbuild   |  1 +
- arch/c6x/include/asm/Kbuild        |  1 +
- arch/cris/include/asm/Kbuild       |  1 +
- arch/frv/include/asm/Kbuild        |  1 +
- arch/h8300/include/asm/Kbuild      |  1 +
- arch/hexagon/include/asm/Kbuild    |  1 +
- arch/ia64/include/asm/kprobes.h    |  7 ++++++-
- arch/m32r/include/asm/Kbuild       |  1 +
- arch/m68k/include/asm/Kbuild       |  1 +
- arch/metag/include/asm/Kbuild      |  1 +
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/mips/include/asm/kprobes.h    |  6 +++++-
- arch/mn10300/include/asm/kprobes.h |  4 ++++
- arch/nios2/include/asm/Kbuild      |  1 +
- arch/openrisc/include/asm/Kbuild   |  1 +
- arch/parisc/include/asm/Kbuild     |  1 +
- arch/powerpc/include/asm/kprobes.h |  6 ++++++
- arch/s390/include/asm/kprobes.h    |  4 ++++
- arch/score/include/asm/Kbuild      |  1 +
- arch/sh/include/asm/kprobes.h      |  2 ++
- arch/sparc/include/asm/kprobes.h   |  5 +++++
- arch/tile/include/asm/kprobes.h    |  6 +++++-
- arch/um/include/asm/Kbuild         |  1 +
- arch/unicore32/include/asm/Kbuild  |  1 +
- arch/x86/include/asm/kprobes.h     |  6 ++++++
- arch/xtensa/include/asm/Kbuild     |  1 +
- include/asm-generic/kprobes.h      | 25 +++++++++++++++++++++++++
- include/linux/compiler.h           |  8 --------
- include/linux/kprobes.h            | 19 +++----------------
- 36 files changed, 107 insertions(+), 29 deletions(-)
- create mode 100644 include/asm-generic/kprobes.h
+ Documentation/kbuild/makefiles.txt       | 36 ++++++++++++++++
+ Documentation/sections/linker-tables.rst | 15 +++++++
+ include/linux/tables.h                   | 71 ++++++++++++++++++++++++++++++++
+ init/Kconfig                             | 22 ++++++++++
+ scripts/Makefile.build                   |  7 ++--
+ scripts/Makefile.lib                     | 11 +++++
+ 6 files changed, 159 insertions(+), 3 deletions(-)
 
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index f3bdc31d3c97..54d388fd026f 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += trace_clock.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/arc/include/asm/kprobes.h b/arch/arc/include/asm/kprobes.h
-index 944dbedb38b5..00bdbe167615 100644
---- a/arch/arc/include/asm/kprobes.h
-+++ b/arch/arc/include/asm/kprobes.h
-@@ -9,6 +9,8 @@
- #ifndef _ARC_KPROBES_H
- #define _ARC_KPROBES_H
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 385a5ef41c17..01c260913f5c 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -1089,6 +1089,42 @@ When kbuild executes, the following steps are followed (roughly):
+ 	In this example, extra-y is used to list object files that
+ 	shall be built, but shall not be linked as part of built-in.o.
  
-+#include <asm-generic/kprobes.h>
++    force-obj-y force-lib-y
 +
- #ifdef CONFIG_KPROBES
- 
- typedef u16 kprobe_opcode_t;
-@@ -55,6 +57,6 @@ void trap_is_kprobe(unsigned long address, struct pt_regs *regs);
- static void trap_is_kprobe(unsigned long address, struct pt_regs *regs)
- {
- }
--#endif
-+#endif /* CONFIG_KPROBES */
- 
--#endif
-+#endif /* _ARC_KPROBES_H */
-diff --git a/arch/arm/include/asm/kprobes.h b/arch/arm/include/asm/kprobes.h
-index 3ea9be559726..59655459da59 100644
---- a/arch/arm/include/asm/kprobes.h
-+++ b/arch/arm/include/asm/kprobes.h
-@@ -16,6 +16,9 @@
- #ifndef _ARM_KPROBES_H
- #define _ARM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
++	When CONFIG_BUILD_AVOID_BITROT is enabled using these targets for your
++	kconfig symbols forces compilation of the associated objects if the
++	kconfig's symbol's dependencies are met, the objects however are only
++	linked into to the kernel if and only if the kconfig symbol was
++	enabled. If CONFIG_BUILD_AVOID_BITROT is disabled the force-obj-y and
++	force-lib-y targets are functionally equilvalent to obj-y and lib-y
++	respectively.
 +
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/notifier.h>
-@@ -83,4 +86,5 @@ struct arch_optimized_insn {
- 	 */
- };
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ARM_KPROBES_H */
-diff --git a/arch/arm/probes/decode.h b/arch/arm/probes/decode.h
-index f9b08ba7fe73..548d622a3159 100644
---- a/arch/arm/probes/decode.h
-+++ b/arch/arm/probes/decode.h
-@@ -22,6 +22,7 @@
- #include <linux/types.h>
- #include <linux/stddef.h>
- #include <asm/probes.h>
-+#include <asm/kprobes.h>
- 
- void __init arm_probes_decode_init(void);
- 
-diff --git a/arch/arm64/include/asm/kprobes.h b/arch/arm64/include/asm/kprobes.h
-index 1737aecfcc5e..6deb8d726041 100644
---- a/arch/arm64/include/asm/kprobes.h
-+++ b/arch/arm64/include/asm/kprobes.h
-@@ -16,6 +16,9 @@
- #ifndef _ARM_KPROBES_H
- #define _ARM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
++	Using force-obj-y and force-lib-y are part of a code architecture and
++	build philosophy further enabled by linker tables, for more details
++	refer to the documention in include/linux/tables.h, refer to the
++	sections:
 +
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -57,4 +60,5 @@ int kprobe_single_step_handler(struct pt_regs *regs, unsigned int esr);
- void kretprobe_trampoline(void);
- void __kprobes *trampoline_probe_handler(struct pt_regs *regs);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ARM_KPROBES_H */
-diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
-index 63f9432d05e8..cc38f3241927 100644
---- a/arch/arm64/kernel/insn.c
-+++ b/arch/arm64/kernel/insn.c
-@@ -32,6 +32,7 @@
- #include <asm/fixmap.h>
- #include <asm/opcodes.h>
- #include <asm/insn.h>
-+#include <asm/kprobes.h>
- 
- #define AARCH64_INSN_SF_BIT	BIT(31)
- #define AARCH64_INSN_N_BIT	BIT(22)
-diff --git a/arch/avr32/include/asm/kprobes.h b/arch/avr32/include/asm/kprobes.h
-index 45f563ed73fd..09f39d8749ea 100644
---- a/arch/avr32/include/asm/kprobes.h
-+++ b/arch/avr32/include/asm/kprobes.h
-@@ -11,6 +11,9 @@
- #ifndef __ASM_AVR32_KPROBES_H
- #define __ASM_AVR32_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
++		o The code bit-rot problem
++		o The build-all selective-link philosophy
++		o Avoiding the code bit-rot problem with linker tables
++		o Linker table module support
 +
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
++	Modules support is expected to be enhanced in the future, so for now
++	only built-in features are supported.
++
++	Example use:
++
++		force-obj-$(CONFIG_FEATURE_FOO) += foo.o
++
++	An alternative to using force-obj-y, is to use extra-y followed by the
++	respective obj-y:
++
++		extra-y += foo.o
++		obj-$(CONFIG_FEATURE_FOO) += foo.o
++
++	Using force-obj-y and force-lib-y can be used to help annotate the
++	targets follow the 'build-all selective-link philosophy' further
++	enabled by linker tables.
  
- typedef u16	kprobe_opcode_t;
-@@ -46,4 +49,5 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
+ --- 6.7 Commands useful for building a boot image
  
- #define flush_insn_slot(p)	do { } while (0)
+diff --git a/Documentation/sections/linker-tables.rst b/Documentation/sections/linker-tables.rst
+index df11c632dca7..e425c5cd36d6 100644
+--- a/Documentation/sections/linker-tables.rst
++++ b/Documentation/sections/linker-tables.rst
+@@ -30,6 +30,21 @@ How linker tables simplify initialization code
+ .. kernel-doc:: include/linux/tables.h
+    :doc: How linker tables simplify initialization code
  
-+#endif /* CONFIG_KPROBES */
- #endif /* __ASM_AVR32_KPROBES_H */
-diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
-index b71893b1cd53..f56a68697353 100644
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -51,3 +51,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index cede2a950fbf..c54f7cc1f63e 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -64,3 +64,4 @@ generic-y += word-at-a-time.h
- generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
-+generic-y += kprobes.h
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 7062c1be7913..051d355feae3 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -48,3 +48,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index 4a59cbda5091..b58b9fc49383 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -11,3 +11,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index d79968d93c12..cfca7de52b37 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -78,3 +78,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index d59ac1c1858b..d7cc35451f30 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -63,3 +63,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/ia64/include/asm/kprobes.h b/arch/ia64/include/asm/kprobes.h
-index d5505d6f2382..36999c55f3f2 100644
---- a/arch/ia64/include/asm/kprobes.h
-+++ b/arch/ia64/include/asm/kprobes.h
-@@ -23,6 +23,10 @@
-  * 2005-Apr     Rusty Lynch <rusty.lynch@intel.com> and Anil S Keshavamurthy
-  *              <anil.s.keshavamurthy@intel.com> adapted from i386
++The code bit-rot problem
++------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: The code bit-rot problem
++
++The build-all selective-link philosophy
++---------------------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: The build-all selective-link philosophy
++
++Avoiding the code bit-rot problem with linker tables
++----------------------------------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: Avoiding the code bit-rot problem with linker tables
++
+ Using linker tables in Linux
+ ============================
+ 
+diff --git a/include/linux/tables.h b/include/linux/tables.h
+index 423827eafb52..bf8fae7f9246 100644
+--- a/include/linux/tables.h
++++ b/include/linux/tables.h
+@@ -169,6 +169,77 @@
   */
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
-+
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -124,4 +128,5 @@ extern void invalidate_stacked_regs(void);
- extern void flush_register_stack(void);
- extern void arch_remove_kprobe(struct kprobe *p);
  
--#endif				/* _ASM_KPROBES_H */
-+#endif /* CONFIG_KPROBES */
-+#endif /* _ASM_KPROBES_H */
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 24088f3c733c..198ad591ab41 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -14,3 +14,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 65c0df17f70e..ae86bb91e13b 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -38,3 +38,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
-index 2538224899fd..10f36ed301e1 100644
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -59,3 +59,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 01afb1b420f5..865ce3d96443 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -14,3 +14,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/mips/include/asm/kprobes.h b/arch/mips/include/asm/kprobes.h
-index daba1f9a4f79..291846d9ba83 100644
---- a/arch/mips/include/asm/kprobes.h
-+++ b/arch/mips/include/asm/kprobes.h
-@@ -22,6 +22,9 @@
- #ifndef _ASM_KPROBES_H
- #define _ASM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/ptrace.h>
- #include <linux/types.h>
- 
-@@ -94,4 +97,5 @@ struct kprobe_ctlblk {
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
- 
--#endif				/* _ASM_KPROBES_H */
-+#endif /* CONFIG_KPROBES */
-+#endif /* _ASM_KPROBES_H */
-diff --git a/arch/mn10300/include/asm/kprobes.h b/arch/mn10300/include/asm/kprobes.h
-index c800b590183a..5729bb5b972a 100644
---- a/arch/mn10300/include/asm/kprobes.h
-+++ b/arch/mn10300/include/asm/kprobes.h
-@@ -21,6 +21,9 @@
- #ifndef _ASM_KPROBES_H
- #define _ASM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- 
-@@ -47,4 +50,5 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
- 
- extern void arch_remove_kprobe(struct kprobe *p);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_KPROBES_H */
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index ee6220dac1e8..d6ce7edee7e0 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -66,3 +66,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index ceafe458e295..1bf89a67317c 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -74,3 +74,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 99211477bfb2..982886ba812a 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -32,3 +32,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/powerpc/include/asm/kprobes.h b/arch/powerpc/include/asm/kprobes.h
-index 2c9759bdb63b..e5d0dc5c6236 100644
---- a/arch/powerpc/include/asm/kprobes.h
-+++ b/arch/powerpc/include/asm/kprobes.h
-@@ -1,5 +1,9 @@
- #ifndef _ASM_POWERPC_KPROBES_H
- #define _ASM_POWERPC_KPROBES_H
-+
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #ifdef __KERNEL__
- /*
-  *  Kernel Probes (KProbes)
-@@ -127,5 +131,7 @@ struct kprobe_ctlblk {
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 					unsigned long val, void *data);
- extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
-+
- #endif /* __KERNEL__ */
-+#endif /* CONFIG_KPROBES */
- #endif	/* _ASM_POWERPC_KPROBES_H */
-diff --git a/arch/s390/include/asm/kprobes.h b/arch/s390/include/asm/kprobes.h
-index 591e5a5279b0..dc12b0135007 100644
---- a/arch/s390/include/asm/kprobes.h
-+++ b/arch/s390/include/asm/kprobes.h
-@@ -27,6 +27,9 @@
-  * 2005-Dec	Used as a template for s390 by Mike Grundy
-  *		<grundym@us.ibm.com>
-  */
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -91,4 +94,5 @@ int probe_is_insn_relative_long(u16 *insn);
- 
- #define flush_insn_slot(p)	do { } while (0)
- 
-+#endif /* CONFIG_KPROBES */
- #endif	/* _ASM_S390_KPROBES_H */
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index 16ea15a3e432..6ac8a7f5c768 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -17,3 +17,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
-index 134f3980e44a..0b9a54016eeb 100644
---- a/arch/sh/include/asm/kprobes.h
-+++ b/arch/sh/include/asm/kprobes.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_SH_KPROBES_H
- #define __ASM_SH_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
- #ifdef CONFIG_KPROBES
- 
- #include <linux/types.h>
-diff --git a/arch/sparc/include/asm/kprobes.h b/arch/sparc/include/asm/kprobes.h
-index a145d798e112..8c4cd15395f6 100644
---- a/arch/sparc/include/asm/kprobes.h
-+++ b/arch/sparc/include/asm/kprobes.h
-@@ -1,6 +1,9 @@
- #ifndef _SPARC64_KPROBES_H
- #define _SPARC64_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/percpu.h>
- 
-@@ -48,4 +51,6 @@ int kprobe_exceptions_notify(struct notifier_block *self,
- int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
- asmlinkage void __kprobes kprobe_trap(unsigned long trap_level,
- 				      struct pt_regs *regs);
-+
-+#endif /* CONFIG_KPROBES */
- #endif /* _SPARC64_KPROBES_H */
-diff --git a/arch/tile/include/asm/kprobes.h b/arch/tile/include/asm/kprobes.h
-index d8f9a83943b1..4a8b1cadca24 100644
---- a/arch/tile/include/asm/kprobes.h
-+++ b/arch/tile/include/asm/kprobes.h
-@@ -17,10 +17,13 @@
- #ifndef _ASM_TILE_KPROBES_H
- #define _ASM_TILE_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
-+
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
--
- #include <arch/opcode.h>
- 
- #define __ARCH_WANT_KPROBES_INSN_SLOT
-@@ -76,4 +79,5 @@ void arch_remove_kprobe(struct kprobe *);
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 			     unsigned long val, void *data);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_TILE_KPROBES_H */
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index eea5dd842992..f0314517090b 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -30,3 +30,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 5c31eafbf1fd..32321579011b 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -66,3 +66,4 @@ generic-y += word-at-a-time.h
- generic-y += xor.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
-index d1d1e5094c28..95c480dc8570 100644
---- a/arch/x86/include/asm/kprobes.h
-+++ b/arch/x86/include/asm/kprobes.h
-@@ -21,6 +21,10 @@
-  *
-  * See arch/x86/kernel/kprobes.c for x86 kprobes history.
-  */
-+
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -116,4 +120,6 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
- extern int kprobe_int3_handler(struct pt_regs *regs);
- extern int kprobe_debug_handler(struct pt_regs *regs);
-+
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_X86_KPROBES_H */
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index ae48f8fd9212..bf0e40100fda 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -34,3 +34,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/include/asm-generic/kprobes.h b/include/asm-generic/kprobes.h
-new file mode 100644
-index 000000000000..57af9f21d148
---- /dev/null
-+++ b/include/asm-generic/kprobes.h
-@@ -0,0 +1,25 @@
-+#ifndef _ASM_GENERIC_KPROBES_H
-+#define _ASM_GENERIC_KPROBES_H
-+
-+#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+#ifdef CONFIG_KPROBES
-+/*
-+ * Blacklist ganerating macro. Specify functions which is not probed
-+ * by using this macro.
+ /**
++ * DOC: The code bit-rot problem
++ *
++ * Linux provides a rich array of features, enabling each feature
++ * however increases the size of the kernel and there are many
++ * features which users often want disabled. The traditional
++ * solution to this problem is for each feature to have its own
++ * Kconfig symbol, followed by a series of #ifdef statements
++ * in C code and header files, allowing the feature to be compiled
++ * only when desirable. As the variability of Linux increases build
++ * tests can and are often done with random kernel configurations,
++ * allyesconfig, and allmodconfig to help find code issues. This
++ * however doesn't catch all errors and as a consequence code that
++ * is typically not enabled often can suffer from bit-rot over time.
 + */
-+# define __NOKPROBE_SYMBOL(fname)				\
-+static unsigned long __used					\
-+	__attribute__((__section__("_kprobe_blacklist")))	\
-+	_kbl_addr_##fname = (unsigned long)fname;
-+# define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
-+/* Use this to forbid a kprobes attach on very low level functions */
-+# define __kprobes	__attribute__((__section__(".kprobes.text")))
-+# define nokprobe_inline	__always_inline
-+#else
-+# define NOKPROBE_SYMBOL(fname)
-+# define __kprobes
-+# define nokprobe_inline	inline
-+#endif
-+#endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
 +
-+#endif /* _ASM_GENERIC_KPROBES_H */
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 1eed7f5e137d..4736dc5741e4 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -542,12 +542,4 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- 	(_________p1); \
- })
++/**
++ * DOC: The build-all selective-link philosophy
++ *
++ * A code architecture philosophy to help avoid code bit-rot consists
++ * of using Kconfig symbols for each subsystem feature, replace all #ifdefs
++ * by instead having each feature implemented it its own C file, and force
++ * compilation for all features. Only features that are enabled get linked in,
++ * the forced compilation therefore has no size impact on the final result of
++ * the kernel. The practice of having each feature implemented in its own C
++ * file is already prevalent in many subsystems, however #ifdefs are still
++ * typically required during feature initialization. For instance in::
++ *
++ *	#ifdef CONFIG_FOO
++ *	foo_init();
++ *	#endif
++ *
++ * We cannot remove the #ifdef and leave foo_init() as we'd either
++ * need to always enable the feature or add a respective #ifdef in a
++ * foo.h which makes foo_init() do nothing when ``CONFIG_FOO`` is disabled.
++ */
++
++/**
++ * DOC: Avoiding the code bit-rot problem with linker tables
++ *
++ * Linker tables can be used to further help avoid the code bit-rot problem
++ * when embracing the 'build-all selective-link philosophy' by lifting the
++ * requirement to use of #ifdefs during initialization. With linker tables
++ * initialization sequences can be aggregated into a custom ELF section at
++ * link time, during run time the table can be iterated over and each init
++ * sequence enabled can be called. A feature's init routine is only added to a
++ * table when its respective Kconfig symbols has been enabled and therefore
++ * linked in. Linker tables enable subsystems to completely do away with
++ * #ifdefs if one is comfortable in accepting all subsystem's feature's
++ * structural size implications.
++ *
++ * To further help with this the Linux build system supports two special
++ * targets, ``force-obj-y`` and ``force-lib-y``. A subsystem which wants to
++ * follow the 'build-all selective-link philosophy' can use these targets for a
++ * feature's kconfig symbol. Using these targets will always require
++ * compilation of the kconfig's objects if the kconfig symbol's dependencies
++ * are met but only link the objects into the kernel, and therefore enable the
++ * feature, if and only if the kconfig symbol has been enabled.
++ *
++ * Not all users or build systems may want to opt-in to compile all objects
++ * following the 'build-all selective-link philosophy', as such the targets
++ * ``force-obj-y`` and ``force-lib-y`` only force compilation when the kconfig
++ * symbol ``CONFIG_BUILD_AVOID_BITROT`` has been enabled. Disabling this feature
++ * makes ``force-obj-y`` and ``force-lib-y`` functionally equivalent to
++ * ``obj-y`` and ``lib-y`` respectively.
++ *
++ * Example use::
++ *
++ * 	force-obj-$(CONFIG_FEATURE_FOO) += foo.o
++ */
++
++/**
+  * DOC: Linker table module support
+  *
+  * Modules can use linker tables, however the linker table definition
+diff --git a/init/Kconfig b/init/Kconfig
+index cac3f096050d..ef09e83b9196 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -53,6 +53,28 @@ config CROSS_COMPILE
+ 	  need to set this unless you want the configured kernel build
+ 	  directory to select the cross-compiler automatically.
  
--/* Ignore/forbid kprobes attach on very low level functions marked by this attribute: */
--#ifdef CONFIG_KPROBES
--# define __kprobes	__attribute__((__section__(".kprobes.text")))
--# define nokprobe_inline	__always_inline
--#else
--# define __kprobes
--# define nokprobe_inline	inline
--#endif
- #endif /* __LINUX_COMPILER_H */
-diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index 8f6849084248..985ed79ef431 100644
---- a/include/linux/kprobes.h
-+++ b/include/linux/kprobes.h
-@@ -29,7 +29,7 @@
-  *		<jkenisto@us.ibm.com>  and Prasanna S Panchamukhi
-  *		<prasanna@in.ibm.com> added function-return probes.
-  */
--#include <linux/compiler.h>	/* for __kprobes */
-+#include <linux/compiler.h>
- #include <linux/linkage.h>
- #include <linux/list.h>
- #include <linux/notifier.h>
-@@ -40,9 +40,9 @@
- #include <linux/rcupdate.h>
- #include <linux/mutex.h>
- #include <linux/ftrace.h>
-+#include <asm/kprobes.h>
++config BUILD_AVOID_BITROT
++	bool "Enable force building of force-obj-y and force-lib-y"
++	default n
++	help
++	  When enabled objects under the force-obj-y and force-lib-y targets
++	  using a Kconfig symbol will be forced to compile if the Kconfig
++	  symbol's dependencies are met but only linked into the kernel if
++	  the Kconfig symbol is enabled. If a Kconfig symbol on a force-obj-y
++	  or force-lib-y target is disabled, it will be compiled but not linked
++	  into the kernel.
++
++	  The force-obj-y and force-lib-y targets can be used by subsystems
++	  which wish to want to follow the 'build-all selective-link philosophy'
++	  documented under include/linux/tables.h.
++
++	  Say Y if you have a decent build machine and would like to help test
++	  building code for more subsystems. Say N if you do you not have a
++	  good build machine or only want to compile what you've enabled for
++	  your kernel.
++
++	  Enabling this option never increases the size of your kernel.
++
+ config COMPILE_TEST
+ 	bool "Compile also drivers which will not load"
+ 	depends on !UML
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index cd9bf22bb027..cc2c7241d193 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -92,7 +92,8 @@ modorder-target := $(obj)/modules.order
  
- #ifdef CONFIG_KPROBES
--#include <asm/kprobes.h>
+ # We keep a list of all modules in $(MODVERDIR)
  
- /* kprobe_status settings */
- #define KPROBE_HIT_ACTIVE	0x00000001
-@@ -51,6 +51,7 @@
- #define KPROBE_HIT_SSDONE	0x00000008
+-__build: $(if $(KBUILD_BUILTIN),$(builtin-target) $(lib-target) $(extra-y)) \
++__build: $(if $(KBUILD_BUILTIN),$(builtin-target) $(lib-target) $(extra-y) \
++				$(force-obj-y)) \
+ 	 $(if $(KBUILD_MODULES),$(obj-m) $(modorder-target)) \
+ 	 $(subdir-ym) $(always)
+ 	@:
+@@ -326,8 +327,8 @@ cmd_as_o_S       = $(CC) $(a_flags) -c -o $@ $<
+ $(obj)/%.o: $(src)/%.S $(objtool_obj) FORCE
+ 	$(call if_changed_rule,as_o_S)
  
- #else /* CONFIG_KPROBES */
-+#include <asm-generic/kprobes.h>
- typedef int kprobe_opcode_t;
- struct arch_specific_insn {
- 	int dummy;
-@@ -481,18 +482,4 @@ static inline int enable_jprobe(struct jprobe *jp)
- 	return enable_kprobe(&jp->kp);
- }
+-targets += $(real-objs-y) $(real-objs-m) $(lib-y)
+-targets += $(extra-y) $(MAKECMDGOALS) $(always)
++targets += $(real-objs-y) $(real-objs-m) $(lib-y) $(force-lib-y)
++targets += $(extra-y) $(force-obj-y) $(MAKECMDGOALS) $(always)
  
--#ifdef CONFIG_KPROBES
--/*
-- * Blacklist ganerating macro. Specify functions which is not probed
-- * by using this macro.
-- */
--#define __NOKPROBE_SYMBOL(fname)			\
--static unsigned long __used				\
--	__attribute__((section("_kprobe_blacklist")))	\
--	_kbl_addr_##fname = (unsigned long)fname;
--#define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
--#else
--#define NOKPROBE_SYMBOL(fname)
--#endif
--
- #endif /* _LINUX_KPROBES_H */
+ # Linker scripts preprocessor (.lds.S -> .lds)
+ # ---------------------------------------------------------------------------
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0a07f9014944..d1cb0cfdf1bf 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -12,6 +12,15 @@ export KBUILD_SUBDIR_CCFLAGS := $(KBUILD_SUBDIR_CCFLAGS) $(subdir-ccflags-y)
+ # Figure out what we need to build from the various variables
+ # ===========================================================================
+ 
++ifeq ($(CONFIG_BUILD_AVOID_BITROT),y)
++extra-y += $(force-obj-) $(force-lib-)
++endif
++
++obj-m += $(force-obj-m)
++obj-y += $(force-obj-y)
++lib-m += $(force-lib-m)
++lib-y += $(force-lib-y)
++
+ # When an object is listed to be built compiled-in and modular,
+ # only build the compiled-in version
+ 
+@@ -72,6 +81,8 @@ real-objs-m := $(foreach m, $(obj-m), $(if $(strip $($(m:.o=-objs)) $($(m:.o=-y)
+ # Add subdir path
+ 
+ extra-y		:= $(addprefix $(obj)/,$(extra-y))
++force-obj-y		:= $(addprefix $(obj)/,$(force-obj-y))
++force-obj-m		:= $(addprefix $(obj)/,$(force-obj-m))
+ always		:= $(addprefix $(obj)/,$(always))
+ targets		:= $(addprefix $(obj)/,$(targets))
+ modorder	:= $(addprefix $(obj)/,$(modorder))
 -- 
 2.9.2
