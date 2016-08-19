@@ -1,73 +1,85 @@
 From: mcgrof@kernel.org
-Subject: [PATCH v4 01/16] x86: remove LTO_REFERENCE_INITCALL()
-Date: Fri, 19 Aug 2016 14:33:59 -0700
-Message-ID: <1471642454-5679-2-git-send-email-mcgrof@kernel.org>
+Subject: [PATCH v4 03/16] scripts/module-common.lds: enable
+	generation
+Date: Fri, 19 Aug 2016 14:34:01 -0700
+Message-ID: <1471642454-5679-4-git-send-email-mcgrof@kernel.org>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
-Return-path: <linux-sh-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
 In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
-Sender: linux-sh-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, ton
+Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, linux@rasmusvillemoes.dk, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, sparclinux@vger.kernel.org, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, xen-devel@lists.xensource.com, msalter@redhat.com, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, fontana@sharpeleven.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, jani.nikula@intel.com, will.deacon@arm.com, rusty@rustcorp.com.au, rostedt@goodmis.org, acme@redhat.com, ak@linux.intel.com, andriy.shevchenko@linux.intel.com, mcb30@ip
 List-Id: linux-arch.vger.kernel.org
 
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-
-The setup for LTO never made it upstream, and although this has
-some users, this is now really old stuff for a gcc 4.7 LTO problem.
-We know that at least LTO_REFERENCE_INITCALL() work around can
-be removed if LTO is not supported on v4.7 anymore.
-
-As per Andi the DISABLE_LTO and LTO_CFLAGS are still neeeded though.
-
-v3: added to this series, removing LTO_REFERENCE_INITCALL()
-    justifies that other future similar macros do not need
-    a respective LTO_REFERENCE_INITCALL() on them therefore
-    simplifying new code.
-
-Acked-by: Andi Kleen <ak@linux.intel.com>
-Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
----
- include/linux/init.h | 20 +-------------------
- 1 file changed, 1 insertion(+), 19 deletions(-)
-
-diff --git a/include/linux/init.h b/include/linux/init.h
-index 1e5c131d5c9a..aa662ad80d9c 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -151,23 +151,6 @@ extern bool initcall_debug;
- 
- #ifndef __ASSEMBLY__
- 
--#ifdef CONFIG_LTO
--/* Work around a LTO gcc problem: when there is no reference to a variable
-- * in a module it will be moved to the end of the program. This causes
-- * reordering of initcalls which the kernel does not like.
-- * Add a dummy reference function to avoid this. The function is
-- * deleted by the linker.
-- */
--#define LTO_REFERENCE_INITCALL(x) \
--	; /* yes this is needed */			\
--	static __used __exit void *reference_##x(void)	\
--	{						\
--		return &x;				\
--	}
--#else
--#define LTO_REFERENCE_INITCALL(x)
--#endif
--
- /* initcalls are now grouped by functionality into separate 
-  * subsections. Ordering inside the subsections is determined
-  * by link order. 
-@@ -180,8 +163,7 @@ extern bool initcall_debug;
- 
- #define __define_initcall(fn, id) \
- 	static initcall_t __initcall_##fn##id __used \
--	__attribute__((__section__(".initcall" #id ".init"))) = fn; \
--	LTO_REFERENCE_INITCALL(__initcall_##fn##id)
-+	__attribute__((__section__(".initcall" #id ".init"))) = fn;
- 
- /*
-  * Early initcalls run before initializing SMP.
--- 
-2.9.2
-
+RnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+CgpzY3JpcHRzL21v
+ZHVsZS1jb21tb24ubGRzIGlzIGN1cnJlbnRseSBwcmV0dHkgc3RhdGljLCBpbiB0aGUKZnV0dXJl
+IHRoaXMgbWF5IGNoYW5nZSBhbmQgd2Ugd2lsbCB3YW50IGFjY2VzcyB0byBrZXJuZWwgbWFjcm9z
+CnRvIGhlbHAgZXhwYW5kcyBjZXJ0YWluIGFyZWFzLiBUbyBnZXQgYWNjZXNzIHRvIHVzZSBtYWNy
+b3Mgd2UKbmVlZCB0byBnZW5lcmF0ZSBtb2R1bGUtY29tbW9uLmxkcyBmcm9tIG1vZHVsZS1jb21t
+b24ubGRzLlMsIGZvcgpub3cgdGhvdWdoIG9ubHkgZW5hYmxlIHRoZSBnZW5lcmF0aW9uLiBXZSds
+bCBsYXRlciBleHBhbmQgb24gdGhpcwphcyBuZWVkZWQuCgpTaW5jZSB0aGlzIGZpbGUgaXMgbm93
+IGdlbmVyYXRlZCBhZGQgaXQgdG8gLmdpdGlnbm9yZS4KCnY0OiBhZGQgZmlsZSB0byBNQUlOVEFJ
+TkVSUwp2MzogbmV3IHRvIHRoaXMgc2VyaWVzCgpTaWduZWQtb2ZmLWJ5OiBMdWlzIFIuIFJvZHJp
+Z3VleiA8bWNncm9mQGtlcm5lbC5vcmc+Ci0tLQogLmdpdGlnbm9yZSAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgfCAyICsrCiBNQUlOVEFJTkVSUyAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICB8IDEgKwogTWFrZWZpbGUgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCA2ICsrKysrLQogc2NyaXB0cy9NYWtlZmlsZS5t
+b2Rwb3N0ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAyICstCiBzY3JpcHRzL3ttb2R1bGUt
+Y29tbW9uLmxkcyA9PiBtb2R1bGUtY29tbW9uLmxkcy5TfSB8IDAKIDUgZmlsZXMgY2hhbmdlZCwg
+OSBpbnNlcnRpb25zKCspLCAyIGRlbGV0aW9ucygtKQogcmVuYW1lIHNjcmlwdHMve21vZHVsZS1j
+b21tb24ubGRzID0+IG1vZHVsZS1jb21tb24ubGRzLlN9ICgxMDAlKQoKZGlmZiAtLWdpdCBhLy5n
+aXRpZ25vcmUgYi8uZ2l0aWdub3JlCmluZGV4IGMyZWQ0ZWNiMGFjZC4uMGYwNzAyMDU0ZmRiIDEw
+MDY0NAotLS0gYS8uZ2l0aWdub3JlCisrKyBiLy5naXRpZ25vcmUKQEAgLTExNCwzICsxMTQsNSBA
+QCBhbGwuY29uZmlnCiAKICMgS2RldmVsb3A0CiAqLmtkZXY0CisKK3NjcmlwdHMvbW9kdWxlLWNv
+bW1vbi5sZHMKZGlmZiAtLWdpdCBhL01BSU5UQUlORVJTIGIvTUFJTlRBSU5FUlMKaW5kZXggZDYz
+NWFiMDQ3ZjNhLi41YWVjMDE4ODMwMjAgMTAwNjQ0Ci0tLSBhL01BSU5UQUlORVJTCisrKyBiL01B
+SU5UQUlORVJTCkBAIC03ODg3LDYgKzc4ODcsNyBAQCBNOglSdXN0eSBSdXNzZWxsIDxydXN0eUBy
+dXN0Y29ycC5jb20uYXU+CiBTOglNYWludGFpbmVkCiBGOglpbmNsdWRlL2xpbnV4L21vZHVsZS5o
+CiBGOglrZXJuZWwvbW9kdWxlLmMKK0Y6CXNjcmlwdHMvbW9kdWxlLWNvbW1vbi5sZHMuUwogCiBN
+T1RJT04gRVlFIFZBSU8gUElDVFVSRUJPT0sgQ0FNRVJBIERSSVZFUgogVzoJaHR0cDovL3BvcGll
+cy5uZXQvbWV5ZS8KZGlmZiAtLWdpdCBhL01ha2VmaWxlIGIvTWFrZWZpbGUKaW5kZXggNWMxOGJh
+YWQ3MjE4Li5iM2U1ZWE3OGQ1ODIgMTAwNjQ0Ci0tLSBhL01ha2VmaWxlCisrKyBiL01ha2VmaWxl
+CkBAIC00MDgsNiArNDA4LDEwIEBAIEtCVUlMRF9BRkxBR1NfTU9EVUxFICA6PSAtRE1PRFVMRQog
+S0JVSUxEX0NGTEFHU19NT0RVTEUgIDo9IC1ETU9EVUxFCiBLQlVJTERfTERGTEFHU19NT0RVTEUg
+Oj0gLVQgJChzcmN0cmVlKS9zY3JpcHRzL21vZHVsZS1jb21tb24ubGRzCiAKKyQoc3JjdHJlZSkv
+c2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkczogJChzcmN0cmVlKS9zY3JpcHRzL21vZHVsZS1jb21t
+b24ubGRzLlMKKwkkKFEpJChDQykgJChDRkxBR1MpICQoSU5DTFVERVMpICQoTElOVVhJTkNMVURF
+KSAtRSAtUCBcCisJCS1EX19BU1NFTUJMWV9fIC1ETElOS0VSX1NDUklQVCAtbyAkQCAkPAorCiAj
+IFJlYWQgS0VSTkVMUkVMRUFTRSBmcm9tIGluY2x1ZGUvY29uZmlnL2tlcm5lbC5yZWxlYXNlIChp
+ZiBpdCBleGlzdHMpCiBLRVJORUxSRUxFQVNFID0gJChzaGVsbCBjYXQgaW5jbHVkZS9jb25maWcv
+a2VybmVsLnJlbGVhc2UgMj4gL2Rldi9udWxsKQogS0VSTkVMVkVSU0lPTiA9ICQoVkVSU0lPTikk
+KGlmICQoUEFUQ0hMRVZFTCksLiQoUEFUQ0hMRVZFTCkkKGlmICQoU1VCTEVWRUwpLC4kKFNVQkxF
+VkVMKSkpJChFWFRSQVZFUlNJT04pCkBAIC0xMTc0LDcgKzExNzgsNyBAQCBhbGw6IG1vZHVsZXMK
+ICMgdXNpbmcgYXdrIHdoaWxlIGNvbmNhdGVuYXRpbmcgdG8gdGhlIGZpbmFsIGZpbGUuCiAKIFBI
+T05ZICs9IG1vZHVsZXMKLW1vZHVsZXM6ICQodm1saW51eC1kaXJzKSAkKGlmICQoS0JVSUxEX0JV
+SUxUSU4pLHZtbGludXgpIG1vZHVsZXMuYnVpbHRpbgorbW9kdWxlczogJChzcmN0cmVlKS9zY3Jp
+cHRzL21vZHVsZS1jb21tb24ubGRzICQodm1saW51eC1kaXJzKSAkKGlmICQoS0JVSUxEX0JVSUxU
+SU4pLHZtbGludXgpIG1vZHVsZXMuYnVpbHRpbgogCSQoUSkkKEFXSykgJyF4WyQkMF0rKycgJCh2
+bWxpbnV4LWRpcnM6JT0kKG9ianRyZWUpLyUvbW9kdWxlcy5vcmRlcikgPiAkKG9ianRyZWUpL21v
+ZHVsZXMub3JkZXIKIAlAJChrZWNobykgJyAgQnVpbGRpbmcgbW9kdWxlcywgc3RhZ2UgMi4nOwog
+CSQoUSkkKE1BS0UpIC1mICQoc3JjdHJlZSkvc2NyaXB0cy9NYWtlZmlsZS5tb2Rwb3N0CmRpZmYg
+LS1naXQgYS9zY3JpcHRzL01ha2VmaWxlLm1vZHBvc3QgYi9zY3JpcHRzL01ha2VmaWxlLm1vZHBv
+c3QKaW5kZXggMTM2NmE5NGI2YzM5Li4yZDhhZmY3NzM1ZDYgMTAwNjQ0Ci0tLSBhL3NjcmlwdHMv
+TWFrZWZpbGUubW9kcG9zdAorKysgYi9zY3JpcHRzL01ha2VmaWxlLm1vZHBvc3QKQEAgLTEyMSw3
+ICsxMjEsNyBAQCBxdWlldF9jbWRfbGRfa29fbyA9IExEIFtNXSAgJEAKICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgJChLQlVJTERfTERGTEFHU19NT0RVTEUpICQoTERGTEFHU19NT0RVTEUp
+IFwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLW8gJEAgJChmaWx0ZXItb3V0IEZPUkNF
+LCReKQogCi0kKG1vZHVsZXMpOiAlLmtvIDolLm8gJS5tb2QubyBGT1JDRQorJChtb2R1bGVzKTog
+JS5rbyA6ICQoc3JjdHJlZSkvc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcyAlLm8gJS5tb2QubyBG
+T1JDRQogCSQoY2FsbCBpZl9jaGFuZ2VkLGxkX2tvX28pCiAKIHRhcmdldHMgKz0gJChtb2R1bGVz
+KQpkaWZmIC0tZ2l0IGEvc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcyBiL3NjcmlwdHMvbW9kdWxl
+LWNvbW1vbi5sZHMuUwpzaW1pbGFyaXR5IGluZGV4IDEwMCUKcmVuYW1lIGZyb20gc2NyaXB0cy9t
+b2R1bGUtY29tbW9uLmxkcwpyZW5hbWUgdG8gc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcy5TCi0t
+IAoyLjkuMgoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+Clhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcKaHR0cHM6Ly9s
+aXN0cy54ZW4ub3JnL3hlbi1kZXZlbAo=
