@@ -1,47 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0100.outbound.protection.outlook.com ([104.47.41.100]:21120
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754510AbcHSR4h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Aug 2016 13:56:37 -0400
-Message-ID: <57B73225.7020303@hpe.com>
-Date: Fri, 19 Aug 2016 12:21:57 -0400
-From: Waiman Long <waiman.long@hpe.com>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH-tip v4 07/10] locking/rwsem: Change RWSEM_WAITING_BIAS
- for better disambiguation
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com> <1471554672-38662-8-git-send-email-Waiman.Long@hpe.com> <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
-In-Reply-To: <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail.kernel.org ([198.145.29.136]:36836 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754043AbcHSVey (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Aug 2016 17:34:54 -0400
+From: mcgrof@kernel.org
+Subject: [PATCH v4 03/16] scripts/module-common.lds: enable generation
+Date: Fri, 19 Aug 2016 14:32:52 -0700
+Message-ID: <1471642385-5629-4-git-send-email-mcgrof@kernel.org>
+In-Reply-To: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
+References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Wanpeng Li <kernellwp@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-Message-ID: <20160819162157.l-1bxvhVU9UHrMLvkDKS0cZAw-2FePPoWVhI45nqFzI@z>
+To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
+Message-ID: <20160819213252.cf7Ajn7X0epCqogE44HCG-CrVKkN01Tj7n6VbwVkzqc@z>
 
-On 08/19/2016 01:57 AM, Wanpeng Li wrote:
-> 2016-08-19 5:11 GMT+08:00 Waiman Long<Waiman.Long@hpe.com>:
->> When the count value is in between 0 and RWSEM_WAITING_BIAS, there
->> are 2 possibilities.
->> Either a writer is present and there is no waiter
-> count = 0xffff0001
->
->> or there are waiters and readers. There is no easy way to
-> count = 0xffff000X
->
-> However, RWSEM_WAITING_BIAS is equal to 0xffff0000, so both these two
-> cases are beyond RWSEM_WAITING_BIAS, right?
->
-> Regards,
-> Wanpeng Li
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-Perhaps I should make it clear that I am talking from a signed quantity 
-point of view (it is an atomic_long_t). So
+scripts/module-common.lds is currently pretty static, in the
+future this may change and we will want access to kernel macros
+to help expands certain areas. To get access to use macros we
+need to generate module-common.lds from module-common.lds.S, for
+now though only enable the generation. We'll later expand on this
+as needed.
 
-     RWSEM_WAITING_BIAS < RWSEM_ACTIVE_WRITE_BIAS < 0
+Since this file is now generated add it to .gitignore.
 
-Hope this clarify your question.
+v4: add file to MAINTAINERS
+v3: new to this series
 
-Cheers,
-Longman
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ .gitignore                                         | 2 ++
+ MAINTAINERS                                        | 1 +
+ Makefile                                           | 6 +++++-
+ scripts/Makefile.modpost                           | 2 +-
+ scripts/{module-common.lds => module-common.lds.S} | 0
+ 5 files changed, 9 insertions(+), 2 deletions(-)
+ rename scripts/{module-common.lds => module-common.lds.S} (100%)
+
+diff --git a/.gitignore b/.gitignore
+index c2ed4ecb0acd..0f0702054fdb 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -114,3 +114,5 @@ all.config
+ 
+ # Kdevelop4
+ *.kdev4
++
++scripts/module-common.lds
+diff --git a/MAINTAINERS b/MAINTAINERS
+index d635ab047f3a..5aec01883020 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -7887,6 +7887,7 @@ M:	Rusty Russell <rusty@rustcorp.com.au>
+ S:	Maintained
+ F:	include/linux/module.h
+ F:	kernel/module.c
++F:	scripts/module-common.lds.S
+ 
+ MOTION EYE VAIO PICTUREBOOK CAMERA DRIVER
+ W:	http://popies.net/meye/
+diff --git a/Makefile b/Makefile
+index 5c18baad7218..b3e5ea78d582 100644
+--- a/Makefile
++++ b/Makefile
+@@ -408,6 +408,10 @@ KBUILD_AFLAGS_MODULE  := -DMODULE
+ KBUILD_CFLAGS_MODULE  := -DMODULE
+ KBUILD_LDFLAGS_MODULE := -T $(srctree)/scripts/module-common.lds
+ 
++$(srctree)/scripts/module-common.lds: $(srctree)/scripts/module-common.lds.S
++	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $(LINUXINCLUDE) -E -P \
++		-D__ASSEMBLY__ -DLINKER_SCRIPT -o $@ $<
++
+ # Read KERNELRELEASE from include/config/kernel.release (if it exists)
+ KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
+ KERNELVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+@@ -1174,7 +1178,7 @@ all: modules
+ # using awk while concatenating to the final file.
+ 
+ PHONY += modules
+-modules: $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) modules.builtin
++modules: $(srctree)/scripts/module-common.lds $(vmlinux-dirs) $(if $(KBUILD_BUILTIN),vmlinux) modules.builtin
+ 	$(Q)$(AWK) '!x[$$0]++' $(vmlinux-dirs:%=$(objtree)/%/modules.order) > $(objtree)/modules.order
+ 	@$(kecho) '  Building modules, stage 2.';
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
+diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
+index 1366a94b6c39..2d8aff7735d6 100644
+--- a/scripts/Makefile.modpost
++++ b/scripts/Makefile.modpost
+@@ -121,7 +121,7 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+                              $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
+                              -o $@ $(filter-out FORCE,$^)
+ 
+-$(modules): %.ko :%.o %.mod.o FORCE
++$(modules): %.ko : $(srctree)/scripts/module-common.lds %.o %.mod.o FORCE
+ 	$(call if_changed,ld_ko_o)
+ 
+ targets += $(modules)
+diff --git a/scripts/module-common.lds b/scripts/module-common.lds.S
+similarity index 100%
+rename from scripts/module-common.lds
+rename to scripts/module-common.lds.S
+-- 
+2.9.2
+
