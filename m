@@ -1,7 +1,7 @@
 From: mcgrof@kernel.org
-Subject: [PATCH v4 12/16] jump_label: port __jump_table to linker tables
-Date: Fri, 19 Aug 2016 14:34:10 -0700
-Message-ID: <1471642454-5679-13-git-send-email-mcgrof@kernel.org>
+Subject: [PATCH v4 13/16] dynamic_debug: port to use linker tables
+Date: Fri, 19 Aug 2016 14:34:11 -0700
+Message-ID: <1471642454-5679-14-git-send-email-mcgrof@kernel.org>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Return-path: <linux-ia64-owner@vger.kernel.org>
 In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
@@ -12,459 +12,144 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-Move the __jump_table from the a custom section solution
-to a generic solution, this avoiding extra vmlinux.lds.h
-customizations.
+This removes the custom vmlinux.lds.h hacks and uses
+the generalized solution for .data (SECTION_DATA)
+entries.
 
-This also demos the use of the .data (SECTION_DATA) linker
-table and of the shared asm call push_section_tbl().
+This is much more potential for further fine tuning here
+though in the future. For instance, linker tables enable
+an extra postfix for order level annotations, this could
+easily be used as the KBUILD_MODNAME and with a bit of
+linker table changes we may be able to get a direct O(1)
+count of the entries for that KBUILD_MODNAME: it would
+just be a count on the number of entries for the given
+order level. This should help make dynamic_debug_init()
+cleaner and also reduce the amount of time it takes at
+boot time. Instead of iterating over each print until we
+have all for a KBUILD_MODNAME, we'd instead directly
+operate on each KBUILD_MODNAME directly.
 
-Built-in kernel functionality was tested with CONFIG_STATIC_KEYS_SELFTEST.
-Moduler  kernel functionality was tested with CONFIG_TEST_STATIC_KEYS.
-Both work as expected.
+Tested dynamic debug with dyndbg query ana debugfs control
+and it works as expected, for both built-in code and modules.
 
-Since __jump_table sections are also supported per
-module this also required expanding module-common.lds.S
-to capture and fold all .data.tlb.__jump_table.* onto
-the the section __jump_table -- in this case for modules
-need to keep a reference in place, given the alternative
-is to use DEFINE_LINKTABLE(struct jump_entry, __jump_table)
-per module -- and later through macro hacks instantiate
-the jump entries per module upon init. This is doable but
-we'd loose out on the sorting of the table using the
-linker, to sort we'd always still need to expand the
-module common linker script. An alternative mechanism
-is possible which would make these custom module sections
-extensions dynamic without requiring manual changes, this
-however is best done later through a separate evolution
-once linker tables are in place.
+v4: fix compilation on blackfin
+v3: added modular support
+v2: introduced this patch into the series
 
-A careful reviewer may note that some architectures use
-"\n\t" to separate asm code, while others just use a new line.
-Upon review last time it was deemed reasonable to for all
-architectures to just use "\n", this is defined as ASM_CMD_SEP,
-and if an architecture needs to override they can do so on their
-architecture sections.h prior to including asm-generic/sections.h
-
-v4:
-
-o Some architectures allow linker scripts to follow including header
-  files, some others do not, so if you need a helper on a linker script
-  you need to explicitly include it. So for instance although
-  scripts/module-common.lds.S includes <asm/tables.h> and this file
-  includes <asm/section-core.h>, you still need to explicitly
-  include it on the linker script. This issue is present on ARM.
-
-o as per Josh Poimboeuf open code the section table name instead
-  of including the kernel section headers, the simplicity and
-  independence from the kernel is preferred.
-
-v3:
-
-o More elaborate tests performed
-o first modular support use case, module tested was
-  CONFIG_TEST_STATIC_KEYS (lib/test_static_keys.ko), this
-  required us to extend module-common.lds.S
-o use generic push_section_tbl_any() for all architectures
-o Makes use of ASM_CMD_SEP to enable architectures to override later
-  if needed
-o guard tables.h inclusion and table definition with __KERNEL__
-
-v2: introduced in this series
-
+Cc: Barry Song <barry.song@analog.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Steven Miao <realmz6@gmail.com>
+Cc: Michael Matz <matz@suse.de>
+Cc: Guenter Roeck <linux@roeck-us.net>
+Cc: Fengguang Wu <fengguang.wu@intel.com>
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- arch/arm/include/asm/jump_label.h     |  6 ++++--
- arch/arm64/include/asm/jump_label.h   |  6 ++++--
- arch/mips/include/asm/jump_label.h    |  6 ++++--
- arch/powerpc/include/asm/jump_label.h |  8 +++++---
- arch/s390/include/asm/jump_label.h    |  6 ++++--
- arch/sparc/include/asm/jump_label.h   |  6 ++++--
- arch/x86/include/asm/jump_label.h     | 10 ++++++----
- include/asm-generic/vmlinux.lds.h     |  4 ----
- include/linux/jump_label.h            |  4 ++--
- kernel/jump_label.c                   | 17 ++++++++++-------
- scripts/module-common.lds.S           |  5 +++++
- tools/objtool/special.c               |  2 +-
- 12 files changed, 49 insertions(+), 31 deletions(-)
+ include/asm-generic/vmlinux.lds.h |  5 -----
+ include/linux/dynamic_debug.h     |  5 +++--
+ lib/dynamic_debug.c               | 13 ++++++-------
+ scripts/module-common.lds.S       |  1 +
+ 4 files changed, 10 insertions(+), 14 deletions(-)
 
-diff --git a/arch/arm/include/asm/jump_label.h b/arch/arm/include/asm/jump_label.h
-index 34f7b6980d21..960135a7b88e 100644
---- a/arch/arm/include/asm/jump_label.h
-+++ b/arch/arm/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_ARM_JUMP_LABEL_H
- #define _ASM_ARM_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\n\t"
- 		 WASM(nop) "\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
- 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
-@@ -26,7 +28,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\n\t"
- 		 WASM(b) " %l[l_yes]\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
- 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
-diff --git a/arch/arm64/include/asm/jump_label.h b/arch/arm64/include/asm/jump_label.h
-index 1b5e0e843c3a..aa52cd2607e3 100644
---- a/arch/arm64/include/asm/jump_label.h
-+++ b/arch/arm64/include/asm/jump_label.h
-@@ -19,6 +19,8 @@
- #ifndef __ASM_JUMP_LABEL_H
- #define __ASM_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -29,7 +31,7 @@
- static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
- {
- 	asm goto("1: nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".align 3\n\t"
- 		 ".quad 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
-@@ -43,7 +45,7 @@ l_yes:
- static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
- {
- 	asm goto("1: b %l[l_yes]\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".align 3\n\t"
- 		 ".quad 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
-diff --git a/arch/mips/include/asm/jump_label.h b/arch/mips/include/asm/jump_label.h
-index e77672539e8e..78e70cb98592 100644
---- a/arch/mips/include/asm/jump_label.h
-+++ b/arch/mips/include/asm/jump_label.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_MIPS_JUMP_LABEL_H
- #define _ASM_MIPS_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -30,7 +32,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\t" NOP_INSN "\n\t"
- 		"nop\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
- 		".popsection\n\t"
- 		: :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -44,7 +46,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\tj %l[l_yes]\n\t"
- 		"nop\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
- 		".popsection\n\t"
- 		: :  "i" (&((char *)key)[branch]) : : l_yes);
-diff --git a/arch/powerpc/include/asm/jump_label.h b/arch/powerpc/include/asm/jump_label.h
-index 9a287e0ac8b1..a1225f66887e 100644
---- a/arch/powerpc/include/asm/jump_label.h
-+++ b/arch/powerpc/include/asm/jump_label.h
-@@ -10,6 +10,8 @@
-  * 2 of the License, or (at your option) any later version.
-  */
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- #include <linux/types.h>
- 
-@@ -23,7 +25,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\n\t"
- 		 "nop # arch_static_branch\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
- 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -37,7 +39,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\n\t"
- 		 "b %l[l_yes] # arch_static_branch_jump\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
- 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -62,7 +64,7 @@ struct jump_entry {
- #else
- #define ARCH_STATIC_BRANCH(LABEL, KEY)		\
- 1098:	nop;					\
--	.pushsection __jump_table, "aw";	\
-+	push_section_tbl_any(SECTION_DATA, __jump_table, aw); \
- 	FTR_ENTRY_LONG 1098b, LABEL, KEY;	\
- 	.popsection
- #endif
-diff --git a/arch/s390/include/asm/jump_label.h b/arch/s390/include/asm/jump_label.h
-index 9be198f5ee79..17f02aec4644 100644
---- a/arch/s390/include/asm/jump_label.h
-+++ b/arch/s390/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_S390_JUMP_LABEL_H
- #define _ASM_S390_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -16,7 +18,7 @@
- static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
- {
- 	asm_volatile_goto("0:	brcl 0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
--		".pushsection __jump_table, \"aw\"\n"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		".balign 8\n"
- 		".quad 0b, %l[label], %0\n"
- 		".popsection\n"
-@@ -30,7 +32,7 @@ label:
- static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
- {
- 	asm_volatile_goto("0:	brcl 15, %l[label]\n"
--		".pushsection __jump_table, \"aw\"\n"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		".balign 8\n"
- 		".quad 0b, %l[label], %0\n"
- 		".popsection\n"
-diff --git a/arch/sparc/include/asm/jump_label.h b/arch/sparc/include/asm/jump_label.h
-index 62d0354d1727..dde1275233f7 100644
---- a/arch/sparc/include/asm/jump_label.h
-+++ b/arch/sparc/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SPARC_JUMP_LABEL_H
- #define _ASM_SPARC_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- 	asm_volatile_goto("1:\n\t"
- 		 "nop\n\t"
- 		 "nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".align 4\n\t"
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
-@@ -28,7 +30,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	asm_volatile_goto("1:\n\t"
- 		 "b %l[l_yes]\n\t"
- 		 "nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		 ".align 4\n\t"
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
-diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
-index adc54c12cbd1..d25fafa3df4b 100644
---- a/arch/x86/include/asm/jump_label.h
-+++ b/arch/x86/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_X86_JUMP_LABEL_H
- #define _ASM_X86_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
-+
- #ifndef HAVE_JUMP_LABEL
- /*
-  * For better or for worse, if jump labels (the gcc extension) are missing,
-@@ -34,7 +36,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:"
- 		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
--		".pushsection __jump_table,  \"aw\" \n\t"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		_ASM_ALIGN "\n\t"
- 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
- 		".popsection \n\t"
-@@ -50,7 +52,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	asm_volatile_goto("1:"
- 		".byte 0xe9\n\t .long %l[l_yes] - 2f\n\t"
- 		"2:\n\t"
--		".pushsection __jump_table,  \"aw\" \n\t"
-+		push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 		_ASM_ALIGN "\n\t"
- 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
- 		".popsection \n\t"
-@@ -85,7 +87,7 @@ struct jump_entry {
- 	.else
- 	.byte		STATIC_KEY_INIT_NOP
- 	.endif
--	.pushsection __jump_table, "aw"
-+	push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 	_ASM_ALIGN
- 	_ASM_PTR	.Lstatic_jump_\@, \target, \key
- 	.popsection
-@@ -101,7 +103,7 @@ struct jump_entry {
- 	.long		\target - .Lstatic_jump_after_\@
- .Lstatic_jump_after_\@:
- 	.endif
--	.pushsection __jump_table, "aw"
-+	push_section_tbl_any(SECTION_DATA, __jump_table, aw)
- 	_ASM_ALIGN
- 	_ASM_PTR	.Lstatic_jump_\@, \target, \key + 1
- 	.popsection
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 2413444c048d..140fbed4a817 100644
+index 140fbed4a817..ba49b7ad7af2 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -212,10 +212,6 @@
+@@ -211,11 +211,6 @@
+ 	*(.data.unlikely)						\
  	STRUCT_ALIGN();							\
  	*(__tracepoints)						\
- 	/* implement dynamic printk debug */				\
--	. = ALIGN(8);                                                   \
--	VMLINUX_SYMBOL(__start___jump_table) = .;                       \
--	*(__jump_table)                                                 \
--	VMLINUX_SYMBOL(__stop___jump_table) = .;                        \
- 	. = ALIGN(8);							\
- 	VMLINUX_SYMBOL(__start___verbose) = .;                          \
- 	*(__verbose)                                                    \
-diff --git a/include/linux/jump_label.h b/include/linux/jump_label.h
-index 1256f543b002..842a24892a91 100644
---- a/include/linux/jump_label.h
-+++ b/include/linux/jump_label.h
-@@ -115,6 +115,7 @@ enum jump_label_type {
- struct module;
- 
- #ifdef HAVE_JUMP_LABEL
+-	/* implement dynamic printk debug */				\
+-	. = ALIGN(8);							\
+-	VMLINUX_SYMBOL(__start___verbose) = .;                          \
+-	*(__verbose)                                                    \
+-	VMLINUX_SYMBOL(__stop___verbose) = .;				\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+ 	TRACE_PRINTKS()							\
+diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
+index 546d68057e3b..a52618a77b09 100644
+--- a/include/linux/dynamic_debug.h
++++ b/include/linux/dynamic_debug.h
+@@ -4,6 +4,7 @@
+ #if defined(CC_HAVE_ASM_GOTO) && defined(CONFIG_JUMP_LABEL)
+ #include <linux/jump_label.h>
+ #endif
 +#include <linux/tables.h>
  
- #define JUMP_TYPE_FALSE	0UL
- #define JUMP_TYPE_TRUE	1UL
-@@ -130,8 +131,7 @@ static __always_inline bool static_key_true(struct static_key *key)
- 	return !arch_static_branch(key, true);
- }
+ /*
+  * An instance of this structure is created in a special
+@@ -50,6 +51,7 @@ int ddebug_add_module(struct _ddebug *tab, unsigned int n,
+ 				const char *modname);
  
--extern struct jump_entry __start___jump_table[];
--extern struct jump_entry __stop___jump_table[];
-+DECLARE_LINKTABLE(struct jump_entry, __jump_table);
+ #if defined(CONFIG_DYNAMIC_DEBUG)
++DECLARE_LINKTABLE(struct _ddebug, __verbose);
+ extern int ddebug_remove_module(const char *mod_name);
+ extern __printf(2, 3)
+ void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
+@@ -71,8 +73,7 @@ void __dynamic_netdev_dbg(struct _ddebug *descriptor,
+ 			  const char *fmt, ...);
  
- extern void jump_label_init(void);
- extern void jump_label_lock(void);
-diff --git a/kernel/jump_label.c b/kernel/jump_label.c
-index 93ad6c1fb9b6..7582ca28e3b8 100644
---- a/kernel/jump_label.c
-+++ b/kernel/jump_label.c
-@@ -15,9 +15,12 @@
- #include <linux/static_key.h>
- #include <linux/jump_label_ratelimit.h>
- #include <linux/bug.h>
-+#include <linux/tables.h>
+ #define DEFINE_DYNAMIC_DEBUG_METADATA_KEY(name, fmt, key, init)	\
+-	static struct _ddebug  __aligned(8)			\
+-	__attribute__((section("__verbose"))) name = {		\
++	static LINKTABLE(__verbose, SECTION_ORDER_ANY) name = {	\
+ 		.modname = KBUILD_MODNAME,			\
+ 		.function = __func__,				\
+ 		.filename = __FILE__,				\
+diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
+index da796e2dc4f5..f0060c84c654 100644
+--- a/lib/dynamic_debug.c
++++ b/lib/dynamic_debug.c
+@@ -37,8 +37,7 @@
+ #include <linux/device.h>
+ #include <linux/netdevice.h>
  
- #ifdef HAVE_JUMP_LABEL
+-extern struct _ddebug __start___verbose[];
+-extern struct _ddebug __stop___verbose[];
++DEFINE_LINKTABLE(struct _ddebug, __verbose);
  
-+DEFINE_LINKTABLE(struct jump_entry, __jump_table);
-+
- /* mutex to protect coming/going of the the jump_label table */
- static DEFINE_MUTEX(jump_label_mutex);
+ struct ddebug_table {
+ 	struct list_head link;
+@@ -978,14 +977,14 @@ static int __init dynamic_debug_init(void)
+ 	int n = 0, entries = 0, modct = 0;
+ 	int verbose_bytes = 0;
  
-@@ -274,8 +277,6 @@ static void __jump_label_update(struct static_key *key,
+-	if (__start___verbose == __stop___verbose) {
+-		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
++	if (LINUX_SECTION_EMPTY(__verbose)) {
++		pr_warn("dynamic debug linker table empty on CONFIG_DYNAMIC_DEBUG build\n");
+ 		return 1;
+ 	}
+-	iter = __start___verbose;
++	iter = LINUX_SECTION_START(__verbose);
+ 	modname = iter->modname;
+ 	iter_start = iter;
+-	for (; iter < __stop___verbose; iter++) {
++	LINKTABLE_FOR_EACH(iter, __verbose) {
+ 		entries++;
+ 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
+ 			+ strlen(iter->filename) + strlen(iter->format);
+@@ -1008,7 +1007,7 @@ static int __init dynamic_debug_init(void)
+ 	ddebug_init_success = 1;
+ 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
+ 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
+-		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
++		 verbose_bytes + (int)(LINUX_SECTION_SIZE(__verbose)));
  
- void __init jump_label_init(void)
- {
--	struct jump_entry *iter_start = __start___jump_table;
--	struct jump_entry *iter_stop = __stop___jump_table;
- 	struct static_key *key = NULL;
- 	struct jump_entry *iter;
- 
-@@ -292,9 +293,10 @@ void __init jump_label_init(void)
- 		return;
- 
- 	jump_label_lock();
--	jump_label_sort_entries(iter_start, iter_stop);
-+	jump_label_sort_entries(LINUX_SECTION_START(__jump_table),
-+				LINUX_SECTION_END(__jump_table));
- 
--	for (iter = iter_start; iter < iter_stop; iter++) {
-+	LINKTABLE_FOR_EACH(iter, __jump_table) {
- 		struct static_key *iterk;
- 
- 		/* rewrite NOPs */
-@@ -539,8 +541,9 @@ early_initcall(jump_label_init_module);
-  */
- int jump_label_text_reserved(void *start, void *end)
- {
--	int ret = __jump_label_text_reserved(__start___jump_table,
--			__stop___jump_table, start, end);
-+	int ret = __jump_label_text_reserved(LINUX_SECTION_START(__jump_table),
-+					     LINUX_SECTION_END(__jump_table),
-+					     start, end);
- 
- 	if (ret)
- 		return ret;
-@@ -553,7 +556,7 @@ int jump_label_text_reserved(void *start, void *end)
- 
- static void jump_label_update(struct static_key *key)
- {
--	struct jump_entry *stop = __stop___jump_table;
-+	struct jump_entry *stop = LINUX_SECTION_END(__jump_table);
- 	struct jump_entry *entry = static_key_entries(key);
- #ifdef CONFIG_MODULES
- 	struct module *mod;
+ 	/* apply ddebug_query boot param, dont unload tables on err */
+ 	if (ddebug_setup_string[0] != '\0') {
 diff --git a/scripts/module-common.lds.S b/scripts/module-common.lds.S
-index 73a2c7da0e55..be3bde1ea0ce 100644
+index be3bde1ea0ce..be57ca0994dc 100644
 --- a/scripts/module-common.lds.S
 +++ b/scripts/module-common.lds.S
-@@ -3,6 +3,10 @@
-  * Archs are free to supply their own linker scripts.  ld will
-  * combine them automatically.
-  */
-+
-+#include <asm/section-core.h>
-+#include <asm/tables.h>
-+
- SECTIONS {
- 	/DISCARD/ : { *(.discard) }
- 
-@@ -16,6 +20,7 @@ SECTIONS {
- 	__kcrctab_unused	0 : { *(SORT(___kcrctab_unused+*)) }
+@@ -21,6 +21,7 @@ SECTIONS {
  	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
  	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
-+	__jump_table		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __jump_table, *))) }
+ 	__jump_table		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __jump_table, *))) }
++	__verbose		0 : { *(SORT(SECTION_TBL(SECTION_DATA, __verbose, *))) }
  
  	. = ALIGN(8);
  	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
-diff --git a/tools/objtool/special.c b/tools/objtool/special.c
-index bff8abb3a4aa..6f7f519abacc 100644
---- a/tools/objtool/special.c
-+++ b/tools/objtool/special.c
-@@ -63,7 +63,7 @@ struct special_entry entries[] = {
- 		.feature = ALT_FEATURE_OFFSET,
- 	},
- 	{
--		.sec = "__jump_table",
-+		.sec = ".data.tbl.__jump_table.any",
- 		.jump_or_nop = true,
- 		.size = JUMP_ENTRY_SIZE,
- 		.orig = JUMP_ORIG_OFFSET,
 -- 
 2.9.2
 
