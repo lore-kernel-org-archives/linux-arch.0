@@ -1,85 +1,234 @@
 From: mcgrof@kernel.org
-Subject: [PATCH v4 03/16] scripts/module-common.lds: enable
-	generation
-Date: Fri, 19 Aug 2016 14:34:01 -0700
-Message-ID: <1471642454-5679-4-git-send-email-mcgrof@kernel.org>
-References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+Subject: [PATCH v4 00/16] linux: generalize sections, ranges and linker tables
+Date: Fri, 19 Aug 2016 14:33:58 -0700
+Message-ID: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
-Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, linux@rasmusvillemoes.dk, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, sparclinux@vger.kernel.org, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, xen-devel@lists.xensource.com, msalter@redhat.com, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, fontana@sharpeleven.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, jani.nikula@intel.com, will.deacon@arm.com, rusty@rustcorp.com.au, rostedt@goodmis.org, acme@redhat.com, ak@linux.intel.com, andriy.shevchenko@linux.intel.com, mcb30@ip
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, ton
 List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+CgpzY3JpcHRzL21v
-ZHVsZS1jb21tb24ubGRzIGlzIGN1cnJlbnRseSBwcmV0dHkgc3RhdGljLCBpbiB0aGUKZnV0dXJl
-IHRoaXMgbWF5IGNoYW5nZSBhbmQgd2Ugd2lsbCB3YW50IGFjY2VzcyB0byBrZXJuZWwgbWFjcm9z
-CnRvIGhlbHAgZXhwYW5kcyBjZXJ0YWluIGFyZWFzLiBUbyBnZXQgYWNjZXNzIHRvIHVzZSBtYWNy
-b3Mgd2UKbmVlZCB0byBnZW5lcmF0ZSBtb2R1bGUtY29tbW9uLmxkcyBmcm9tIG1vZHVsZS1jb21t
-b24ubGRzLlMsIGZvcgpub3cgdGhvdWdoIG9ubHkgZW5hYmxlIHRoZSBnZW5lcmF0aW9uLiBXZSds
-bCBsYXRlciBleHBhbmQgb24gdGhpcwphcyBuZWVkZWQuCgpTaW5jZSB0aGlzIGZpbGUgaXMgbm93
-IGdlbmVyYXRlZCBhZGQgaXQgdG8gLmdpdGlnbm9yZS4KCnY0OiBhZGQgZmlsZSB0byBNQUlOVEFJ
-TkVSUwp2MzogbmV3IHRvIHRoaXMgc2VyaWVzCgpTaWduZWQtb2ZmLWJ5OiBMdWlzIFIuIFJvZHJp
-Z3VleiA8bWNncm9mQGtlcm5lbC5vcmc+Ci0tLQogLmdpdGlnbm9yZSAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgfCAyICsrCiBNQUlOVEFJTkVSUyAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICB8IDEgKwogTWFrZWZpbGUgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCA2ICsrKysrLQogc2NyaXB0cy9NYWtlZmlsZS5t
-b2Rwb3N0ICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAyICstCiBzY3JpcHRzL3ttb2R1bGUt
-Y29tbW9uLmxkcyA9PiBtb2R1bGUtY29tbW9uLmxkcy5TfSB8IDAKIDUgZmlsZXMgY2hhbmdlZCwg
-OSBpbnNlcnRpb25zKCspLCAyIGRlbGV0aW9ucygtKQogcmVuYW1lIHNjcmlwdHMve21vZHVsZS1j
-b21tb24ubGRzID0+IG1vZHVsZS1jb21tb24ubGRzLlN9ICgxMDAlKQoKZGlmZiAtLWdpdCBhLy5n
-aXRpZ25vcmUgYi8uZ2l0aWdub3JlCmluZGV4IGMyZWQ0ZWNiMGFjZC4uMGYwNzAyMDU0ZmRiIDEw
-MDY0NAotLS0gYS8uZ2l0aWdub3JlCisrKyBiLy5naXRpZ25vcmUKQEAgLTExNCwzICsxMTQsNSBA
-QCBhbGwuY29uZmlnCiAKICMgS2RldmVsb3A0CiAqLmtkZXY0CisKK3NjcmlwdHMvbW9kdWxlLWNv
-bW1vbi5sZHMKZGlmZiAtLWdpdCBhL01BSU5UQUlORVJTIGIvTUFJTlRBSU5FUlMKaW5kZXggZDYz
-NWFiMDQ3ZjNhLi41YWVjMDE4ODMwMjAgMTAwNjQ0Ci0tLSBhL01BSU5UQUlORVJTCisrKyBiL01B
-SU5UQUlORVJTCkBAIC03ODg3LDYgKzc4ODcsNyBAQCBNOglSdXN0eSBSdXNzZWxsIDxydXN0eUBy
-dXN0Y29ycC5jb20uYXU+CiBTOglNYWludGFpbmVkCiBGOglpbmNsdWRlL2xpbnV4L21vZHVsZS5o
-CiBGOglrZXJuZWwvbW9kdWxlLmMKK0Y6CXNjcmlwdHMvbW9kdWxlLWNvbW1vbi5sZHMuUwogCiBN
-T1RJT04gRVlFIFZBSU8gUElDVFVSRUJPT0sgQ0FNRVJBIERSSVZFUgogVzoJaHR0cDovL3BvcGll
-cy5uZXQvbWV5ZS8KZGlmZiAtLWdpdCBhL01ha2VmaWxlIGIvTWFrZWZpbGUKaW5kZXggNWMxOGJh
-YWQ3MjE4Li5iM2U1ZWE3OGQ1ODIgMTAwNjQ0Ci0tLSBhL01ha2VmaWxlCisrKyBiL01ha2VmaWxl
-CkBAIC00MDgsNiArNDA4LDEwIEBAIEtCVUlMRF9BRkxBR1NfTU9EVUxFICA6PSAtRE1PRFVMRQog
-S0JVSUxEX0NGTEFHU19NT0RVTEUgIDo9IC1ETU9EVUxFCiBLQlVJTERfTERGTEFHU19NT0RVTEUg
-Oj0gLVQgJChzcmN0cmVlKS9zY3JpcHRzL21vZHVsZS1jb21tb24ubGRzCiAKKyQoc3JjdHJlZSkv
-c2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkczogJChzcmN0cmVlKS9zY3JpcHRzL21vZHVsZS1jb21t
-b24ubGRzLlMKKwkkKFEpJChDQykgJChDRkxBR1MpICQoSU5DTFVERVMpICQoTElOVVhJTkNMVURF
-KSAtRSAtUCBcCisJCS1EX19BU1NFTUJMWV9fIC1ETElOS0VSX1NDUklQVCAtbyAkQCAkPAorCiAj
-IFJlYWQgS0VSTkVMUkVMRUFTRSBmcm9tIGluY2x1ZGUvY29uZmlnL2tlcm5lbC5yZWxlYXNlIChp
-ZiBpdCBleGlzdHMpCiBLRVJORUxSRUxFQVNFID0gJChzaGVsbCBjYXQgaW5jbHVkZS9jb25maWcv
-a2VybmVsLnJlbGVhc2UgMj4gL2Rldi9udWxsKQogS0VSTkVMVkVSU0lPTiA9ICQoVkVSU0lPTikk
-KGlmICQoUEFUQ0hMRVZFTCksLiQoUEFUQ0hMRVZFTCkkKGlmICQoU1VCTEVWRUwpLC4kKFNVQkxF
-VkVMKSkpJChFWFRSQVZFUlNJT04pCkBAIC0xMTc0LDcgKzExNzgsNyBAQCBhbGw6IG1vZHVsZXMK
-ICMgdXNpbmcgYXdrIHdoaWxlIGNvbmNhdGVuYXRpbmcgdG8gdGhlIGZpbmFsIGZpbGUuCiAKIFBI
-T05ZICs9IG1vZHVsZXMKLW1vZHVsZXM6ICQodm1saW51eC1kaXJzKSAkKGlmICQoS0JVSUxEX0JV
-SUxUSU4pLHZtbGludXgpIG1vZHVsZXMuYnVpbHRpbgorbW9kdWxlczogJChzcmN0cmVlKS9zY3Jp
-cHRzL21vZHVsZS1jb21tb24ubGRzICQodm1saW51eC1kaXJzKSAkKGlmICQoS0JVSUxEX0JVSUxU
-SU4pLHZtbGludXgpIG1vZHVsZXMuYnVpbHRpbgogCSQoUSkkKEFXSykgJyF4WyQkMF0rKycgJCh2
-bWxpbnV4LWRpcnM6JT0kKG9ianRyZWUpLyUvbW9kdWxlcy5vcmRlcikgPiAkKG9ianRyZWUpL21v
-ZHVsZXMub3JkZXIKIAlAJChrZWNobykgJyAgQnVpbGRpbmcgbW9kdWxlcywgc3RhZ2UgMi4nOwog
-CSQoUSkkKE1BS0UpIC1mICQoc3JjdHJlZSkvc2NyaXB0cy9NYWtlZmlsZS5tb2Rwb3N0CmRpZmYg
-LS1naXQgYS9zY3JpcHRzL01ha2VmaWxlLm1vZHBvc3QgYi9zY3JpcHRzL01ha2VmaWxlLm1vZHBv
-c3QKaW5kZXggMTM2NmE5NGI2YzM5Li4yZDhhZmY3NzM1ZDYgMTAwNjQ0Ci0tLSBhL3NjcmlwdHMv
-TWFrZWZpbGUubW9kcG9zdAorKysgYi9zY3JpcHRzL01ha2VmaWxlLm1vZHBvc3QKQEAgLTEyMSw3
-ICsxMjEsNyBAQCBxdWlldF9jbWRfbGRfa29fbyA9IExEIFtNXSAgJEAKICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgJChLQlVJTERfTERGTEFHU19NT0RVTEUpICQoTERGTEFHU19NT0RVTEUp
-IFwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgLW8gJEAgJChmaWx0ZXItb3V0IEZPUkNF
-LCReKQogCi0kKG1vZHVsZXMpOiAlLmtvIDolLm8gJS5tb2QubyBGT1JDRQorJChtb2R1bGVzKTog
-JS5rbyA6ICQoc3JjdHJlZSkvc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcyAlLm8gJS5tb2QubyBG
-T1JDRQogCSQoY2FsbCBpZl9jaGFuZ2VkLGxkX2tvX28pCiAKIHRhcmdldHMgKz0gJChtb2R1bGVz
-KQpkaWZmIC0tZ2l0IGEvc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcyBiL3NjcmlwdHMvbW9kdWxl
-LWNvbW1vbi5sZHMuUwpzaW1pbGFyaXR5IGluZGV4IDEwMCUKcmVuYW1lIGZyb20gc2NyaXB0cy9t
-b2R1bGUtY29tbW9uLmxkcwpyZW5hbWUgdG8gc2NyaXB0cy9tb2R1bGUtY29tbW9uLmxkcy5TCi0t
-IAoyLjkuMgoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-Clhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcKaHR0cHM6Ly9s
-aXN0cy54ZW4ub3JnL3hlbi1kZXZlbAo=
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+
+This v4 addresses feedback from the previous v3 series [0], and also
+addresses a huge array of additional tests against many architectures
+outside of what 0-day provides. As I mentioned in my last v3 series,
+0-day had only found one issue with the series, a blackfin architecture
+linker issue with the last series. Guenter Rock was kind enough to give
+my series a test spin on his test bed and he found quite a bit of other
+oddball issues with obscure architectures, and even on x86 with an old
+toolchain. After a lot of work and coordinating with a few maintainers
+I'm happy to report all issues found so far through all possible testing
+I could do are now fixed, this series also addresses all feedback from
+the last series, as such this goes submitted as PATCH form.
+
+In addressing fixing this work on a few architectures some of the previous
+patches are further simplified. The kprobes port to linker tables is made
+much easier now that I've addressed moving out core kprobe declarations
+into asm-generic/kprobes.h. Refer to the patch "kprobes: move kprobe
+declarations to asm-generic/kprobes.h". This makes for a much cleaner
+solution across architectures.
+
+Boris feedback on making the code bit rot feature optional is addressed
+by using a new Kconfig symbol for this, CONFIG_BUILD_AVOID_BITROT,
+but given Greg's concerns over lack of clarity over what this was all about
+I've ripped that functionality out into its own patch with a bit more
+extensive documentation and re-wording. See the patch "kbuild: enable option
+to force compile force-obj-y and force-lib-y". I hope makes it clear how
+linker tables can help with avoiding code bit rot. I've gone with a new
+Kconfig symbol CONFIG_BUILD_AVOID_BITROT given CONFIG_COMPILE_TEST is
+not available on UML, this feature is desirable on all architectures.
+
+The documentation is revamped, now that the DocBook format is deprecated
+I ported the documention into the trendy hipster Sphinx documentation
+format.
+
+AT Boris' request I've adapated the userspace linker table application
+forintegration into the kernel under tools/ to make it easier to keep
+things in sync, however since this requires a bit of changes to some headers
+in tools/ I'll submit that separately.
+
+[0] https://lkml.kernel.org/r/1469222687-1600-1-git-send-email-mcgrof@kernel.org
+
+If you'd like this in git-form, you can get it on the 20160819-linker-table-v4
+branch of my linux-next tree on kernel.org, this also includes the series of
+the linker table userspace sandbox:
+
+https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160819-linker-table-v4
+
+Please let me know if there are any concerns or questions.
+
+Luis R. Rodriguez (16):
+  x86: remove LTO_REFERENCE_INITCALL()
+  dell-smo8800: include uaccess.h
+  scripts/module-common.lds: enable generation
+  generic-sections: add section core helpers
+  xtensa: skip adding literal when SORT() is used
+  ranges.h: add helpers to build and identify Linux section ranges
+  tables.h: add linker table support
+  kbuild: enable option to force compile force-obj-y and force-lib-y
+  firmware/Makefile: force recompilation if makefile changes
+  firmware: port built-in section to linker table
+  jump_label: move guard #endif down where it belongs
+  jump_label: port __jump_table to linker tables
+  dynamic_debug: port to use linker tables
+  kprobes: move kprobe declarations to asm-generic/kprobes.h
+  kprobes: port .kprobes.text to section range
+  kprobes: port blacklist kprobes to linker table
+
+ .gitignore                                         |   2 +
+ Documentation/index.rst                            |   1 +
+ Documentation/kbuild/makefiles.txt                 |  36 ++
+ Documentation/sections/conf.py                     |   4 +
+ Documentation/sections/index.rst                   |  13 +
+ Documentation/sections/linker-tables.rst           | 202 +++++++
+ Documentation/sections/ranges.rst                  |  49 ++
+ Documentation/sections/section-core.rst            | 153 +++++
+ MAINTAINERS                                        |  37 ++
+ Makefile                                           |   6 +-
+ arch/alpha/include/asm/Kbuild                      |   4 +
+ arch/arc/include/asm/Kbuild                        |   3 +
+ arch/arc/include/asm/kprobes.h                     |   6 +-
+ arch/arc/kernel/vmlinux.lds.S                      |   1 -
+ arch/arm/include/asm/Kbuild                        |   3 +
+ arch/arm/include/asm/jump_label.h                  |   6 +-
+ arch/arm/include/asm/kprobes.h                     |   4 +
+ arch/arm/kernel/entry-armv.S                       |   3 +-
+ arch/arm/kernel/vmlinux-xip.lds.S                  |   1 -
+ arch/arm/kernel/vmlinux.lds.S                      |   1 -
+ arch/arm/probes/decode.h                           |   1 +
+ arch/arm64/include/asm/Kbuild                      |   3 +
+ arch/arm64/include/asm/jump_label.h                |   6 +-
+ arch/arm64/include/asm/kprobes.h                   |   4 +
+ arch/arm64/kernel/armv8_deprecated.c               |   1 +
+ arch/arm64/kernel/insn.c                           |   1 +
+ arch/arm64/kernel/probes/kprobes.c                 |   4 +-
+ arch/arm64/kernel/vmlinux.lds.S                    |   1 -
+ arch/avr32/include/asm/Kbuild                      |   3 +
+ arch/avr32/include/asm/kprobes.h                   |   4 +
+ arch/avr32/kernel/entry-avr32b.S                   |  13 +-
+ arch/avr32/kernel/vmlinux.lds.S                    |   1 -
+ arch/blackfin/include/asm/Kbuild                   |   4 +
+ arch/blackfin/kernel/vmlinux.lds.S                 |   1 -
+ arch/c6x/include/asm/Kbuild                        |   3 +
+ arch/c6x/include/asm/tables.h                      |  26 +
+ arch/c6x/kernel/vmlinux.lds.S                      |   1 -
+ arch/cris/include/asm/Kbuild                       |   4 +
+ arch/frv/include/asm/Kbuild                        |   4 +
+ arch/h8300/include/asm/Kbuild                      |   4 +
+ arch/hexagon/include/asm/Kbuild                    |   4 +
+ arch/hexagon/kernel/vmlinux.lds.S                  |   1 -
+ arch/ia64/include/asm/Kbuild                       |   3 +
+ arch/ia64/include/asm/kprobes.h                    |   7 +-
+ arch/ia64/kernel/jprobes.S                         |   3 +-
+ arch/ia64/kernel/vmlinux.lds.S                     |   1 -
+ arch/ia64/lib/flush.S                              |   6 +-
+ arch/m32r/include/asm/Kbuild                       |   4 +
+ arch/m68k/include/asm/Kbuild                       |   4 +
+ arch/metag/include/asm/Kbuild                      |   4 +
+ arch/metag/kernel/vmlinux.lds.S                    |   1 -
+ arch/microblaze/include/asm/Kbuild                 |   4 +
+ arch/microblaze/kernel/vmlinux.lds.S               |   1 -
+ arch/mips/include/asm/Kbuild                       |   3 +
+ arch/mips/include/asm/jump_label.h                 |   6 +-
+ arch/mips/include/asm/kprobes.h                    |   6 +-
+ arch/mips/kernel/vmlinux.lds.S                     |   1 -
+ arch/mn10300/include/asm/Kbuild                    |   3 +
+ arch/mn10300/include/asm/kprobes.h                 |   4 +
+ arch/mn10300/kernel/vmlinux.lds.S                  |   1 -
+ arch/nios2/include/asm/Kbuild                      |   4 +
+ arch/nios2/kernel/vmlinux.lds.S                    |   1 -
+ arch/openrisc/include/asm/Kbuild                   |   4 +
+ arch/openrisc/kernel/vmlinux.lds.S                 |   1 -
+ arch/parisc/include/asm/Kbuild                     |   4 +
+ arch/parisc/kernel/vmlinux.lds.S                   |   1 -
+ arch/powerpc/include/asm/Kbuild                    |   3 +
+ arch/powerpc/include/asm/jump_label.h              |   8 +-
+ arch/powerpc/include/asm/kprobes.h                 |   6 +
+ arch/powerpc/include/asm/ppc_asm.h                 |   7 +-
+ arch/powerpc/kernel/vmlinux.lds.S                  |   1 -
+ arch/s390/include/asm/Kbuild                       |   3 +
+ arch/s390/include/asm/jump_label.h                 |   6 +-
+ arch/s390/include/asm/kprobes.h                    |   4 +
+ arch/s390/kernel/entry.S                           |   5 +-
+ arch/s390/kernel/kprobes.c                         |   6 +-
+ arch/s390/kernel/mcount.S                          |   3 +-
+ arch/s390/kernel/vmlinux.lds.S                     |   1 -
+ arch/score/include/asm/Kbuild                      |   4 +
+ arch/score/kernel/vmlinux.lds.S                    |   1 -
+ arch/sh/include/asm/Kbuild                         |   3 +
+ arch/sh/include/asm/kprobes.h                      |   2 +
+ arch/sh/kernel/vmlinux.lds.S                       |   1 -
+ arch/sparc/include/asm/Kbuild                      |   3 +
+ arch/sparc/include/asm/jump_label.h                |   6 +-
+ arch/sparc/include/asm/kprobes.h                   |   5 +
+ arch/sparc/kernel/vmlinux.lds.S                    |   1 -
+ arch/sparc/mm/ultra.S                              |   3 +-
+ arch/tile/include/asm/Kbuild                       |   3 +
+ arch/tile/include/asm/kprobes.h                    |   6 +-
+ arch/tile/kernel/vmlinux.lds.S                     |   1 -
+ arch/um/include/asm/Kbuild                         |   4 +
+ arch/unicore32/include/asm/Kbuild                  |   3 +
+ arch/unicore32/include/asm/section-core.h          |  19 +
+ arch/x86/include/asm/Kbuild                        |   3 +
+ arch/x86/include/asm/jump_label.h                  |  10 +-
+ arch/x86/include/asm/kprobes.h                     |   6 +
+ arch/x86/kernel/cpu/microcode/core.c               |   8 +-
+ arch/x86/kernel/kprobes/core.c                     |  11 +-
+ arch/x86/kernel/vmlinux.lds.S                      |   1 -
+ arch/x86/tools/relocs.c                            |   4 +
+ arch/xtensa/include/asm/Kbuild                     |   4 +
+ arch/xtensa/kernel/Makefile                        |   8 +-
+ drivers/base/firmware_class.c                      |  12 +-
+ drivers/platform/x86/dell-smo8800.c                |   1 +
+ firmware/Makefile                                  |   6 +-
+ include/asm-generic/kprobes.h                      |  26 +
+ include/asm-generic/ranges.h                       | 103 ++++
+ include/asm-generic/section-core.h                 | 341 +++++++++++
+ include/asm-generic/sections.h                     |   4 +-
+ include/asm-generic/tables.h                       |  50 ++
+ include/asm-generic/vmlinux.lds.h                  |  73 +--
+ include/linux/compiler.h                           |   8 -
+ include/linux/dynamic_debug.h                      |   5 +-
+ include/linux/init.h                               |  20 +-
+ include/linux/jump_label.h                         |   8 +-
+ include/linux/kprobes.h                            |  24 +-
+ include/linux/ranges.h                             | 128 +++++
+ include/linux/sections.h                           | 111 ++++
+ include/linux/tables.h                             | 638 +++++++++++++++++++++
+ init/Kconfig                                       |  22 +
+ kernel/jump_label.c                                |  17 +-
+ kernel/kprobes.c                                   |  17 +-
+ lib/dynamic_debug.c                                |  13 +-
+ scripts/Makefile.build                             |   7 +-
+ scripts/Makefile.clean                             |   2 +
+ scripts/Makefile.lib                               |  11 +
+ scripts/Makefile.modpost                           |   2 +-
+ scripts/mod/modpost.c                              |   2 +-
+ scripts/{module-common.lds => module-common.lds.S} |   6 +
+ scripts/recordmcount.c                             |   2 +-
+ scripts/recordmcount.pl                            |   2 +-
+ tools/objtool/special.c                            |   2 +-
+ 133 files changed, 2328 insertions(+), 214 deletions(-)
+ create mode 100644 Documentation/sections/conf.py
+ create mode 100644 Documentation/sections/index.rst
+ create mode 100644 Documentation/sections/linker-tables.rst
+ create mode 100644 Documentation/sections/ranges.rst
+ create mode 100644 Documentation/sections/section-core.rst
+ create mode 100644 arch/c6x/include/asm/tables.h
+ create mode 100644 arch/unicore32/include/asm/section-core.h
+ create mode 100644 include/asm-generic/kprobes.h
+ create mode 100644 include/asm-generic/ranges.h
+ create mode 100644 include/asm-generic/section-core.h
+ create mode 100644 include/asm-generic/tables.h
+ create mode 100644 include/linux/ranges.h
+ create mode 100644 include/linux/sections.h
+ create mode 100644 include/linux/tables.h
+ rename scripts/{module-common.lds => module-common.lds.S} (80%)
+
+-- 
+2.9.2
+
