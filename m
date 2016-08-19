@@ -1,41 +1,45 @@
-From: Waiman Long <waiman.long@hpe.com>
-Subject: Re: [RFC PATCH-tip v4 07/10] locking/rwsem: Change RWSEM_WAITING_BIAS
- for better disambiguation
-Date: Fri, 19 Aug 2016 12:21:57 -0400
-Message-ID: <57B73225.7020303@hpe.com>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com> <1471554672-38662-8-git-send-email-Waiman.Long@hpe.com> <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: cmpxchg and x86 flags output
+Date: Fri, 19 Aug 2016 10:22:59 -0700
+Message-ID: <d92e22b3-d0af-de6f-def6-9dfe73b91542@zytor.com>
+References: <7d1c236f-80d1-2c58-be0e-6676769636b3@zytor.com>
+ <5e5b99d7-c739-9743-b3e0-fbe0636d6dee@zytor.com>
+ <40fd5f74-190e-b805-fbaa-f84899190fbc@zytor.com>
+ <20160615085002.GC30935@twins.programming.kicks-ass.net>
+ <4467.1466499980@warthog.procyon.org.uk>
+ <559ea507-b3cb-74e0-7816-26bb8cbc0238@zytor.com>
+ <16406.1466612063@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Wanpeng Li <kernellwp@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:42580 "EHLO mail.zytor.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754653AbcHSRZL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Aug 2016 13:25:11 -0400
+In-Reply-To: <16406.1466612063@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On 08/19/2016 01:57 AM, Wanpeng Li wrote:
-> 2016-08-19 5:11 GMT+08:00 Waiman Long<Waiman.Long@hpe.com>:
->> When the count value is in between 0 and RWSEM_WAITING_BIAS, there
->> are 2 possibilities.
->> Either a writer is present and there is no waiter
-> count = 0xffff0001
->
->> or there are waiters and readers. There is no easy way to
-> count = 0xffff000X
->
-> However, RWSEM_WAITING_BIAS is equal to 0xffff0000, so both these two
-> cases are beyond RWSEM_WAITING_BIAS, right?
->
-> Regards,
-> Wanpeng Li
+On 06/22/16 09:14, David Howells wrote:
+> H. Peter Anvin <hpa@zytor.com> wrote:
+> 
+>> So how do we make this move forward?
+> 
+> Getting my API additions in is relatively straightforward, I think.  The
+> whether-or-notness of the cmpxchg operation succeeding can be calculated by
+> comparing the original value read from memory with the value-to-be-replaced
+> inside the API function.
+> 
+> This can later be replaced with the boolean output from the CMPXCHG
+> instruction, the branch target from the LL/SC skipping or the result of the
+> intrinsics.
+> 
 
-Perhaps I should make it clear that I am talking from a signed quantity 
-point of view (it is an atomic_long_t). So
+Hi David,
 
-     RWSEM_WAITING_BIAS < RWSEM_ACTIVE_WRITE_BIAS < 0
+Any news on this?  Can we perhaps help making this go forward at some point?
 
-Hope this clarify your question.
-
-Cheers,
-Longman
+	-hpa
