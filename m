@@ -1,644 +1,869 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:40504 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:40738 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755600AbcHSVfX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 19 Aug 2016 17:35:23 -0400
+        id S1755811AbcHSVf2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 19 Aug 2016 17:35:28 -0400
 From: mcgrof@kernel.org
-Subject: [PATCH v4 14/16] kprobes: move kprobe declarations to asm-generic/kprobes.h
-Date: Fri, 19 Aug 2016 14:34:12 -0700
-Message-ID: <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
+Subject: [PATCH v4 15/16] kprobes: port .kprobes.text to section range
+Date: Fri, 19 Aug 2016 14:34:13 -0700
+Message-ID: <1471642454-5679-16-git-send-email-mcgrof@kernel.org>
 In-Reply-To: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20160819213412.rep4-6LkhA6N-On6fjQ7pOLEpA9QXj_50xTR7r60UDg@z>
+Message-ID: <20160819213413.4GqQ3W9pExU-zMJRhmEzkt1eP_RRbgCOh4aNPHEm3OY@z>
 
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-Often all is needed is these small helpers, instead of compiler.h
-or a full kprobes.h. This is important for asm helpers, in fact even
-some asm/kprobes.h make use of these helpers... instead just keep a
-generic asm file with helpers useful for asm code with the least amount
-of clutter as possible.
+kprobe makes use of two custom sections, each custom section
+is folded into one of the standard Linux sections types as follows,
+it currently relies on the linker script to fold the custom section
+onto the respective Linux section:
 
-Likewise we need now to also address what to do about this file for both
-when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
-for when architectures have CONFIG_HAVE_KPROBES but have disabled
-CONFIG_KPROBES.
+type  Linux-section custom section name  begin                    end
+table .init.data    _kprobe_blacklist    __start_kprobe_blacklist __stop_kprobe_blacklist
+range .text         .kprobes.text        __kprobes_text_start     __kprobes_text_end
 
-Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
-this means most architecture code cannot include asm/kprobes.h safely.
-Correct this and add guards for architectures missing them. Additionally
-provide architectures that not have kprobes support with the default
-asm-generic solution. This lets us force asm/kprobes.h on the header
-include/linux/kprobes.h always, but most importantly we can now safely
-include just asm/kprobes.h on architecture code without bringing
-the full kitchen sink of header files.
+This ports the .kprobes.text custom section to the standard
+Linux ranges API allowing us remove all the custom kprobe section
+declarations from the linker script.
 
-Two architectures already provided a guard against CONFIG_KPROBES on
-its kprobes.h: sh, arch. The rest of the architectures needed gaurds
-added. We avoid including any not-needed headers on asm/kprobes.h
-unless kprobes have been enabled.
+Tested with CONFIG_KPROBES_SANITY_TEST, it passes with:
 
-In a subsequent atomic change we can try now to remove compiler.h from
-include/linux/kprobes.h.
+Kprobe smoke test: started
+Kprobe smoke test: passed successfully
+
+Then tested CONFIG_SAMPLE_KPROBES on do_fork, and the kprobe bites
+and kicks as expected.
+
+Also ran ./ftracetest with no issues:
+
+$ sudo ./ftracetest
+=== Ftrace unit tests ===
+[1] Basic trace file check      [PASS]
+[2] Basic test for tracers      [PASS]
+[3] Basic trace clock test      [PASS]
+[4] Basic event tracing check   [PASS]
+[5] event tracing - enable/disable with event level files       [PASS]
+[6] event tracing - restricts events based on pid       [PASS]
+[7] event tracing - enable/disable with subsystem level files   [PASS]
+[8] event tracing - enable/disable with top level files [PASS]
+[9] ftrace - function graph filters with stack tracer   [PASS]
+[10] ftrace - function graph filters    [PASS]
+[11] ftrace - function profiler with function tracing   [PASS]
+[12] Test creation and deletion of trace instances while setting an event[PASS]
+[13] Test creation and deletion of trace instances      [PASS]
+[14] Kprobe dynamic event - adding and removing [PASS]
+[15] Kprobe dynamic event - busy event check    [PASS]
+[16] Kprobe dynamic event with arguments        [PASS]
+[17] Kprobe dynamic event with function tracer  [PASS]
+[18] Kretprobe dynamic event with arguments     [PASS]
+[19] event trigger - test event enable/disable trigger  [PASS]
+[20] event trigger - test trigger filter        [PASS]
+[21] event trigger - test histogram modifiers   [PASS]
+[22] event trigger - test histogram trigger     [PASS]
+[23] event trigger - test multiple histogram triggers   [PASS]
+[24] event trigger - test snapshot-trigger      [PASS]
+[25] event trigger - test stacktrace-trigger    [PASS]
+[26] event trigger - test traceon/off trigger   [PASS]
+
+ # of passed:  26
+ # of failed:  0
+ # of unresolved:  0
+ # of untested:  0
+ # of unsupported:  0
+ # of xfailed:  0
+ # of undefined(test bug):  0
+
+v4:
+
+o arm64 build fixes with allmodconfig
+
+o build fix suggested for avr32 with allnoconfig, otherwise we end up with:
+
+arch/avr32/kernel/built-in.o: In function `save_full_context_ex':
+(.ex.text+0x1c4): relocation truncated to fit: R_AVR32_16N_PCREL against
+symbol `debug_trampoline' defined in .text.rng.kprobes.any section in
+arch/avr32/kernel/built-in.o
+arch/avr32/kernel/built-in.o: In function `debug_exit_work':
+(.text.rng.kprobes.any+0xa8): relocation truncated to fit:
+R_AVR32_16N_PCREL against `.ex.text'+3aa
+make: *** [Makefile:953: vmlinux] Error 1
+
+o open-code section use on scripts/ code -- folks to prefer the
+  simplicity over dealing with having more tool code access kernel
+  headers.
+
+o NOPE: include #include <asm-generic/ranges.h> on compiler.h -- solves
+  a few 0-day compilation issues
+
+v3:
+
+o after v2 arch/arm/kernel/vmlinux-xip.lds.S got kprobe support,
+  this just removes the custom linker script reference to kprobes as
+  that is no longer needed with linker tables.
+
+o split kprobe linker table and kprobe section ranges use into
+  two separate patches. This should make it easier to review and
+  also demos both distinct use types, one a linker table another
+  a simple section range.
+
+v2: introduced this patch in this series
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- arch/alpha/include/asm/Kbuild      |  1 +
- arch/arc/include/asm/kprobes.h     |  6 ++++--
- arch/arm/include/asm/kprobes.h     |  4 ++++
- arch/arm/probes/decode.h           |  1 +
- arch/arm64/include/asm/kprobes.h   |  4 ++++
- arch/arm64/kernel/insn.c           |  1 +
- arch/avr32/include/asm/kprobes.h   |  4 ++++
- arch/blackfin/include/asm/Kbuild   |  1 +
- arch/c6x/include/asm/Kbuild        |  1 +
- arch/cris/include/asm/Kbuild       |  1 +
- arch/frv/include/asm/Kbuild        |  1 +
- arch/h8300/include/asm/Kbuild      |  1 +
- arch/hexagon/include/asm/Kbuild    |  1 +
- arch/ia64/include/asm/kprobes.h    |  7 ++++++-
- arch/m32r/include/asm/Kbuild       |  1 +
- arch/m68k/include/asm/Kbuild       |  1 +
- arch/metag/include/asm/Kbuild      |  1 +
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/mips/include/asm/kprobes.h    |  6 +++++-
- arch/mn10300/include/asm/kprobes.h |  4 ++++
- arch/nios2/include/asm/Kbuild      |  1 +
- arch/openrisc/include/asm/Kbuild   |  1 +
- arch/parisc/include/asm/Kbuild     |  1 +
- arch/powerpc/include/asm/kprobes.h |  6 ++++++
- arch/s390/include/asm/kprobes.h    |  4 ++++
- arch/score/include/asm/Kbuild      |  1 +
- arch/sh/include/asm/kprobes.h      |  2 ++
- arch/sparc/include/asm/kprobes.h   |  5 +++++
- arch/tile/include/asm/kprobes.h    |  6 +++++-
- arch/um/include/asm/Kbuild         |  1 +
- arch/unicore32/include/asm/Kbuild  |  1 +
- arch/x86/include/asm/kprobes.h     |  6 ++++++
- arch/xtensa/include/asm/Kbuild     |  1 +
- include/asm-generic/kprobes.h      | 25 +++++++++++++++++++++++++
- include/linux/compiler.h           |  8 --------
- include/linux/kprobes.h            | 19 +++----------------
- 36 files changed, 107 insertions(+), 29 deletions(-)
- create mode 100644 include/asm-generic/kprobes.h
+ arch/arc/kernel/vmlinux.lds.S        |  1 -
+ arch/arm/kernel/entry-armv.S         |  3 ++-
+ arch/arm/kernel/vmlinux-xip.lds.S    |  1 -
+ arch/arm/kernel/vmlinux.lds.S        |  1 -
+ arch/arm64/kernel/armv8_deprecated.c |  1 +
+ arch/arm64/kernel/probes/kprobes.c   |  4 ++--
+ arch/arm64/kernel/vmlinux.lds.S      |  1 -
+ arch/avr32/kernel/entry-avr32b.S     | 13 +++++++++++--
+ arch/avr32/kernel/vmlinux.lds.S      |  1 -
+ arch/blackfin/kernel/vmlinux.lds.S   |  1 -
+ arch/c6x/kernel/vmlinux.lds.S        |  1 -
+ arch/hexagon/kernel/vmlinux.lds.S    |  1 -
+ arch/ia64/kernel/jprobes.S           |  3 ++-
+ arch/ia64/kernel/vmlinux.lds.S       |  1 -
+ arch/ia64/lib/flush.S                |  6 +++---
+ arch/metag/kernel/vmlinux.lds.S      |  1 -
+ arch/microblaze/kernel/vmlinux.lds.S |  1 -
+ arch/mips/kernel/vmlinux.lds.S       |  1 -
+ arch/mn10300/kernel/vmlinux.lds.S    |  1 -
+ arch/nios2/kernel/vmlinux.lds.S      |  1 -
+ arch/openrisc/kernel/vmlinux.lds.S   |  1 -
+ arch/parisc/kernel/vmlinux.lds.S     |  1 -
+ arch/powerpc/include/asm/ppc_asm.h   |  7 ++++---
+ arch/powerpc/kernel/vmlinux.lds.S    |  1 -
+ arch/s390/kernel/entry.S             |  5 +++--
+ arch/s390/kernel/kprobes.c           |  6 +++---
+ arch/s390/kernel/mcount.S            |  3 ++-
+ arch/s390/kernel/vmlinux.lds.S       |  1 -
+ arch/score/kernel/vmlinux.lds.S      |  1 -
+ arch/sh/kernel/vmlinux.lds.S         |  1 -
+ arch/sparc/kernel/vmlinux.lds.S      |  1 -
+ arch/sparc/mm/ultra.S                |  3 ++-
+ arch/tile/kernel/vmlinux.lds.S       |  1 -
+ arch/x86/kernel/kprobes/core.c       | 11 +++++------
+ arch/x86/kernel/vmlinux.lds.S        |  1 -
+ include/asm-generic/kprobes.h        |  3 ++-
+ include/asm-generic/sections.h       |  2 --
+ include/asm-generic/vmlinux.lds.h    |  6 ------
+ include/linux/kprobes.h              |  3 +++
+ kernel/kprobes.c                     |  6 ++++--
+ scripts/mod/modpost.c                |  2 +-
+ scripts/recordmcount.c               |  2 +-
+ scripts/recordmcount.pl              |  2 +-
+ 43 files changed, 52 insertions(+), 62 deletions(-)
 
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index f3bdc31d3c97..54d388fd026f 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += trace_clock.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/arc/include/asm/kprobes.h b/arch/arc/include/asm/kprobes.h
-index 944dbedb38b5..00bdbe167615 100644
---- a/arch/arc/include/asm/kprobes.h
-+++ b/arch/arc/include/asm/kprobes.h
-@@ -9,6 +9,8 @@
- #ifndef _ARC_KPROBES_H
- #define _ARC_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
- #ifdef CONFIG_KPROBES
- 
- typedef u16 kprobe_opcode_t;
-@@ -55,6 +57,6 @@ void trap_is_kprobe(unsigned long address, struct pt_regs *regs);
- static void trap_is_kprobe(unsigned long address, struct pt_regs *regs)
- {
- }
--#endif
-+#endif /* CONFIG_KPROBES */
- 
--#endif
-+#endif /* _ARC_KPROBES_H */
-diff --git a/arch/arm/include/asm/kprobes.h b/arch/arm/include/asm/kprobes.h
-index 3ea9be559726..59655459da59 100644
---- a/arch/arm/include/asm/kprobes.h
-+++ b/arch/arm/include/asm/kprobes.h
-@@ -16,6 +16,9 @@
- #ifndef _ARM_KPROBES_H
- #define _ARM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/notifier.h>
-@@ -83,4 +86,5 @@ struct arch_optimized_insn {
- 	 */
- };
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ARM_KPROBES_H */
-diff --git a/arch/arm/probes/decode.h b/arch/arm/probes/decode.h
-index f9b08ba7fe73..548d622a3159 100644
---- a/arch/arm/probes/decode.h
-+++ b/arch/arm/probes/decode.h
-@@ -22,6 +22,7 @@
- #include <linux/types.h>
- #include <linux/stddef.h>
+diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
+index 894e696bddaa..52f23df2b9b6 100644
+--- a/arch/arc/kernel/vmlinux.lds.S
++++ b/arch/arc/kernel/vmlinux.lds.S
+@@ -98,7 +98,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		*(.fixup)
+ 		*(.gnu.warning)
+ 	}
+diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
+index 9f157e7c51e7..566823b904bd 100644
+--- a/arch/arm/kernel/entry-armv.S
++++ b/arch/arm/kernel/entry-armv.S
+@@ -34,6 +34,7 @@
+ #include "entry-header.S"
+ #include <asm/entry-macro-multi.S>
  #include <asm/probes.h>
-+#include <asm/kprobes.h>
++#include <asm/ranges.h>
  
- void __init arm_probes_decode_init(void);
- 
-diff --git a/arch/arm64/include/asm/kprobes.h b/arch/arm64/include/asm/kprobes.h
-index 1737aecfcc5e..6deb8d726041 100644
---- a/arch/arm64/include/asm/kprobes.h
-+++ b/arch/arm64/include/asm/kprobes.h
-@@ -16,6 +16,9 @@
- #ifndef _ARM_KPROBES_H
- #define _ARM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -57,4 +60,5 @@ int kprobe_single_step_handler(struct pt_regs *regs, unsigned int esr);
- void kretprobe_trampoline(void);
- void __kprobes *trampoline_probe_handler(struct pt_regs *regs);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ARM_KPROBES_H */
-diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
-index 63f9432d05e8..cc38f3241927 100644
---- a/arch/arm64/kernel/insn.c
-+++ b/arch/arm64/kernel/insn.c
-@@ -32,6 +32,7 @@
- #include <asm/fixmap.h>
- #include <asm/opcodes.h>
- #include <asm/insn.h>
-+#include <asm/kprobes.h>
- 
- #define AARCH64_INSN_SF_BIT	BIT(31)
- #define AARCH64_INSN_N_BIT	BIT(22)
-diff --git a/arch/avr32/include/asm/kprobes.h b/arch/avr32/include/asm/kprobes.h
-index 45f563ed73fd..09f39d8749ea 100644
---- a/arch/avr32/include/asm/kprobes.h
-+++ b/arch/avr32/include/asm/kprobes.h
-@@ -11,6 +11,9 @@
- #ifndef __ASM_AVR32_KPROBES_H
- #define __ASM_AVR32_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- 
- typedef u16	kprobe_opcode_t;
-@@ -46,4 +49,5 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
- 
- #define flush_insn_slot(p)	do { } while (0)
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* __ASM_AVR32_KPROBES_H */
-diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
-index b71893b1cd53..f56a68697353 100644
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -51,3 +51,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index cede2a950fbf..c54f7cc1f63e 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -64,3 +64,4 @@ generic-y += word-at-a-time.h
- generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
-+generic-y += kprobes.h
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 7062c1be7913..051d355feae3 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -48,3 +48,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index 4a59cbda5091..b58b9fc49383 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -11,3 +11,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index d79968d93c12..cfca7de52b37 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -78,3 +78,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index d59ac1c1858b..d7cc35451f30 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -63,3 +63,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/ia64/include/asm/kprobes.h b/arch/ia64/include/asm/kprobes.h
-index d5505d6f2382..36999c55f3f2 100644
---- a/arch/ia64/include/asm/kprobes.h
-+++ b/arch/ia64/include/asm/kprobes.h
-@@ -23,6 +23,10 @@
-  * 2005-Apr     Rusty Lynch <rusty.lynch@intel.com> and Anil S Keshavamurthy
-  *              <anil.s.keshavamurthy@intel.com> adapted from i386
-  */
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
-+
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -124,4 +128,5 @@ extern void invalidate_stacked_regs(void);
- extern void flush_register_stack(void);
- extern void arch_remove_kprobe(struct kprobe *p);
- 
--#endif				/* _ASM_KPROBES_H */
-+#endif /* CONFIG_KPROBES */
-+#endif /* _ASM_KPROBES_H */
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 24088f3c733c..198ad591ab41 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -14,3 +14,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 65c0df17f70e..ae86bb91e13b 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -38,3 +38,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
-index 2538224899fd..10f36ed301e1 100644
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -59,3 +59,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 01afb1b420f5..865ce3d96443 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -14,3 +14,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/mips/include/asm/kprobes.h b/arch/mips/include/asm/kprobes.h
-index daba1f9a4f79..291846d9ba83 100644
---- a/arch/mips/include/asm/kprobes.h
-+++ b/arch/mips/include/asm/kprobes.h
-@@ -22,6 +22,9 @@
- #ifndef _ASM_KPROBES_H
- #define _ASM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/ptrace.h>
- #include <linux/types.h>
- 
-@@ -94,4 +97,5 @@ struct kprobe_ctlblk {
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
- 
--#endif				/* _ASM_KPROBES_H */
-+#endif /* CONFIG_KPROBES */
-+#endif /* _ASM_KPROBES_H */
-diff --git a/arch/mn10300/include/asm/kprobes.h b/arch/mn10300/include/asm/kprobes.h
-index c800b590183a..5729bb5b972a 100644
---- a/arch/mn10300/include/asm/kprobes.h
-+++ b/arch/mn10300/include/asm/kprobes.h
-@@ -21,6 +21,9 @@
- #ifndef _ASM_KPROBES_H
- #define _ASM_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- 
-@@ -47,4 +50,5 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
- 
- extern void arch_remove_kprobe(struct kprobe *p);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_KPROBES_H */
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index ee6220dac1e8..d6ce7edee7e0 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -66,3 +66,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index ceafe458e295..1bf89a67317c 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -74,3 +74,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 99211477bfb2..982886ba812a 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -32,3 +32,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/powerpc/include/asm/kprobes.h b/arch/powerpc/include/asm/kprobes.h
-index 2c9759bdb63b..e5d0dc5c6236 100644
---- a/arch/powerpc/include/asm/kprobes.h
-+++ b/arch/powerpc/include/asm/kprobes.h
-@@ -1,5 +1,9 @@
- #ifndef _ASM_POWERPC_KPROBES_H
- #define _ASM_POWERPC_KPROBES_H
-+
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #ifdef __KERNEL__
  /*
-  *  Kernel Probes (KProbes)
-@@ -127,5 +131,7 @@ struct kprobe_ctlblk {
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 					unsigned long val, void *data);
- extern int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
-+
- #endif /* __KERNEL__ */
-+#endif /* CONFIG_KPROBES */
- #endif	/* _ASM_POWERPC_KPROBES_H */
-diff --git a/arch/s390/include/asm/kprobes.h b/arch/s390/include/asm/kprobes.h
-index 591e5a5279b0..dc12b0135007 100644
---- a/arch/s390/include/asm/kprobes.h
-+++ b/arch/s390/include/asm/kprobes.h
-@@ -27,6 +27,9 @@
-  * 2005-Dec	Used as a template for s390 by Mike Grundy
-  *		<grundym@us.ibm.com>
-  */
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -91,4 +94,5 @@ int probe_is_insn_relative_long(u16 *insn);
+  * Interrupt handling.
+@@ -83,7 +84,7 @@
+ 	.endm
  
- #define flush_insn_slot(p)	do { } while (0)
- 
-+#endif /* CONFIG_KPROBES */
- #endif	/* _ASM_S390_KPROBES_H */
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index 16ea15a3e432..6ac8a7f5c768 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -17,3 +17,4 @@ generic-y += word-at-a-time.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/sh/include/asm/kprobes.h b/arch/sh/include/asm/kprobes.h
-index 134f3980e44a..0b9a54016eeb 100644
---- a/arch/sh/include/asm/kprobes.h
-+++ b/arch/sh/include/asm/kprobes.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_SH_KPROBES_H
- #define __ASM_SH_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
  #ifdef CONFIG_KPROBES
+-	.section	.kprobes.text,"ax",%progbits
++	set_section_rng_type(SECTION_TEXT, kprobes, ax, %progbits)
+ #else
+ 	.text
+ #endif
+diff --git a/arch/arm/kernel/vmlinux-xip.lds.S b/arch/arm/kernel/vmlinux-xip.lds.S
+index cba1ec899a69..3aea8834e3d2 100644
+--- a/arch/arm/kernel/vmlinux-xip.lds.S
++++ b/arch/arm/kernel/vmlinux-xip.lds.S
+@@ -99,7 +99,6 @@ SECTIONS
+ 			TEXT_TEXT
+ 			SCHED_TEXT
+ 			LOCK_TEXT
+-			KPROBES_TEXT
+ 			*(.gnu.warning)
+ 			*(.glue_7)
+ 			*(.glue_7t)
+diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+index d24e5dd2aa7a..e88b77d01f0b 100644
+--- a/arch/arm/kernel/vmlinux.lds.S
++++ b/arch/arm/kernel/vmlinux.lds.S
+@@ -113,7 +113,6 @@ SECTIONS
+ 			SCHED_TEXT
+ 			LOCK_TEXT
+ 			HYPERVISOR_TEXT
+-			KPROBES_TEXT
+ 			*(.gnu.warning)
+ 			*(.glue_7)
+ 			*(.glue_7t)
+diff --git a/arch/arm64/kernel/armv8_deprecated.c b/arch/arm64/kernel/armv8_deprecated.c
+index 42ffdb54e162..200c5bfb8d16 100644
+--- a/arch/arm64/kernel/armv8_deprecated.c
++++ b/arch/arm64/kernel/armv8_deprecated.c
+@@ -23,6 +23,7 @@
+ #include <asm/traps.h>
+ #include <asm/uaccess.h>
+ #include <asm/cpufeature.h>
++#include <asm/kprobes.h>
  
- #include <linux/types.h>
-diff --git a/arch/sparc/include/asm/kprobes.h b/arch/sparc/include/asm/kprobes.h
-index a145d798e112..8c4cd15395f6 100644
---- a/arch/sparc/include/asm/kprobes.h
-+++ b/arch/sparc/include/asm/kprobes.h
-@@ -1,6 +1,9 @@
- #ifndef _SPARC64_KPROBES_H
- #define _SPARC64_KPROBES_H
+ #define CREATE_TRACE_POINTS
+ #include "trace-events-emulation.h"
+diff --git a/arch/arm64/kernel/probes/kprobes.c b/arch/arm64/kernel/probes/kprobes.c
+index c6b0f40620d8..04398745582c 100644
+--- a/arch/arm64/kernel/probes/kprobes.c
++++ b/arch/arm64/kernel/probes/kprobes.c
+@@ -23,6 +23,7 @@
+ #include <linux/slab.h>
+ #include <linux/stop_machine.h>
+ #include <linux/stringify.h>
++#include <linux/ranges.h>
+ #include <asm/traps.h>
+ #include <asm/ptrace.h>
+ #include <asm/cacheflush.h>
+@@ -546,8 +547,7 @@ bool arch_within_kprobe_blacklist(unsigned long addr)
+ 	extern char __idmap_text_start[], __idmap_text_end[];
+ 	extern char __hyp_idmap_text_start[], __hyp_idmap_text_end[];
  
-+#include <asm-generic/kprobes.h>
-+
+-	if ((addr >= (unsigned long)__kprobes_text_start &&
+-	    addr < (unsigned long)__kprobes_text_end) ||
++	if (SECTION_ADDR_IN_RANGE(kprobes, addr) ||
+ 	    (addr >= (unsigned long)__entry_text_start &&
+ 	    addr < (unsigned long)__entry_text_end) ||
+ 	    (addr >= (unsigned long)__idmap_text_start &&
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index 659963d40bb4..cfd8fc58290b 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -123,7 +123,6 @@ SECTIONS
+ 			TEXT_TEXT
+ 			SCHED_TEXT
+ 			LOCK_TEXT
+-			KPROBES_TEXT
+ 			HYPERVISOR_TEXT
+ 			IDMAP_TEXT
+ 			HIBERNATE_TEXT
+diff --git a/arch/avr32/kernel/entry-avr32b.S b/arch/avr32/kernel/entry-avr32b.S
+index 7301f4806bbe..74d82358fae9 100644
+--- a/arch/avr32/kernel/entry-avr32b.S
++++ b/arch/avr32/kernel/entry-avr32b.S
+@@ -23,6 +23,7 @@
+ #include <asm/sysreg.h>
+ #include <asm/thread_info.h>
+ #include <asm/unistd.h>
++#include <asm/ranges.h>
+ 
+ #ifdef CONFIG_PREEMPT
+ # define preempt_stop		mask_interrupts
+@@ -605,7 +606,11 @@ fault_exit_work:
+ 	brcc	fault_resume_user
+ 	rjmp	enter_monitor_mode
+ 
+-	.section .kprobes.text, "ax", @progbits
 +#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/percpu.h>
- 
-@@ -48,4 +51,6 @@ int kprobe_exceptions_notify(struct notifier_block *self,
- int kprobe_fault_handler(struct pt_regs *regs, int trapnr);
- asmlinkage void __kprobes kprobe_trap(unsigned long trap_level,
- 				      struct pt_regs *regs);
-+
-+#endif /* CONFIG_KPROBES */
- #endif /* _SPARC64_KPROBES_H */
-diff --git a/arch/tile/include/asm/kprobes.h b/arch/tile/include/asm/kprobes.h
-index d8f9a83943b1..4a8b1cadca24 100644
---- a/arch/tile/include/asm/kprobes.h
-+++ b/arch/tile/include/asm/kprobes.h
-@@ -17,10 +17,13 @@
- #ifndef _ASM_TILE_KPROBES_H
- #define _ASM_TILE_KPROBES_H
- 
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
-+
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
--
- #include <arch/opcode.h>
- 
- #define __ARCH_WANT_KPROBES_INSN_SLOT
-@@ -76,4 +79,5 @@ void arch_remove_kprobe(struct kprobe *);
- extern int kprobe_exceptions_notify(struct notifier_block *self,
- 			     unsigned long val, void *data);
- 
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_TILE_KPROBES_H */
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index eea5dd842992..f0314517090b 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -30,3 +30,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 5c31eafbf1fd..32321579011b 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -66,3 +66,4 @@ generic-y += word-at-a-time.h
- generic-y += xor.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/arch/x86/include/asm/kprobes.h b/arch/x86/include/asm/kprobes.h
-index d1d1e5094c28..95c480dc8570 100644
---- a/arch/x86/include/asm/kprobes.h
-+++ b/arch/x86/include/asm/kprobes.h
-@@ -21,6 +21,10 @@
-  *
-  * See arch/x86/kernel/kprobes.c for x86 kprobes history.
-  */
-+
-+#include <asm-generic/kprobes.h>
-+
-+#ifdef CONFIG_KPROBES
- #include <linux/types.h>
- #include <linux/ptrace.h>
- #include <linux/percpu.h>
-@@ -116,4 +120,6 @@ extern int kprobe_exceptions_notify(struct notifier_block *self,
- 				    unsigned long val, void *data);
- extern int kprobe_int3_handler(struct pt_regs *regs);
- extern int kprobe_debug_handler(struct pt_regs *regs);
-+
-+#endif /* CONFIG_KPROBES */
- #endif /* _ASM_X86_KPROBES_H */
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index ae48f8fd9212..bf0e40100fda 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -34,3 +34,4 @@ generic-y += xor.h
- generic-y += section-core.h
- generic-y += ranges.h
- generic-y += tables.h
-+generic-y += kprobes.h
-diff --git a/include/asm-generic/kprobes.h b/include/asm-generic/kprobes.h
-new file mode 100644
-index 000000000000..57af9f21d148
---- /dev/null
-+++ b/include/asm-generic/kprobes.h
-@@ -0,0 +1,25 @@
-+#ifndef _ASM_GENERIC_KPROBES_H
-+#define _ASM_GENERIC_KPROBES_H
-+
-+#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+#ifdef CONFIG_KPROBES
-+/*
-+ * Blacklist ganerating macro. Specify functions which is not probed
-+ * by using this macro.
-+ */
-+# define __NOKPROBE_SYMBOL(fname)				\
-+static unsigned long __used					\
-+	__attribute__((__section__("_kprobe_blacklist")))	\
-+	_kbl_addr_##fname = (unsigned long)fname;
-+# define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
-+/* Use this to forbid a kprobes attach on very low level functions */
-+# define __kprobes	__attribute__((__section__(".kprobes.text")))
-+# define nokprobe_inline	__always_inline
++	set_section_rng_type(SECTION_TEXT, kprobes, ax, @progbits)
 +#else
-+# define NOKPROBE_SYMBOL(fname)
-+# define __kprobes
-+# define nokprobe_inline	inline
++	.text
 +#endif
-+#endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
-+
-+#endif /* _ASM_GENERIC_KPROBES_H */
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 1eed7f5e137d..4736dc5741e4 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -542,12 +542,4 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
- 	(_________p1); \
- })
+ 	.type	handle_debug, @function
+ handle_debug:
+ 	sub	sp, 4		/* r12_orig */
+@@ -826,7 +831,11 @@ irq_level\level:
+ 	IRQ_LEVEL 2
+ 	IRQ_LEVEL 3
  
--/* Ignore/forbid kprobes attach on very low level functions marked by this attribute: */
--#ifdef CONFIG_KPROBES
+-	.section .kprobes.text, "ax", @progbits
++#ifdef CONFIG_KPROBES
++	set_section_rng_type(SECTION_TEXT, kprobes, ax, @progbits)
++#else
++	.text
++#endif
+ 	.type	enter_monitor_mode, @function
+ enter_monitor_mode:
+ 	/*
+diff --git a/arch/avr32/kernel/vmlinux.lds.S b/arch/avr32/kernel/vmlinux.lds.S
+index a4589176bed5..bf4f3f1f9dbb 100644
+--- a/arch/avr32/kernel/vmlinux.lds.S
++++ b/arch/avr32/kernel/vmlinux.lds.S
+@@ -49,7 +49,6 @@ SECTIONS
+ 		_stext = .;
+ 		*(.ex.text)
+ 		*(.irq.text)
+-		KPROBES_TEXT
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+diff --git a/arch/blackfin/kernel/vmlinux.lds.S b/arch/blackfin/kernel/vmlinux.lds.S
+index d920b959ff3a..8f7ca475c549 100644
+--- a/arch/blackfin/kernel/vmlinux.lds.S
++++ b/arch/blackfin/kernel/vmlinux.lds.S
+@@ -36,7 +36,6 @@ SECTIONS
+ 		LOCK_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+-		KPROBES_TEXT
+ #ifdef CONFIG_ROMKERNEL
+ 		__sinittext = .;
+ 		INIT_TEXT
+diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
+index 50bc10f97bcb..e7aae42f632e 100644
+--- a/arch/c6x/kernel/vmlinux.lds.S
++++ b/arch/c6x/kernel/vmlinux.lds.S
+@@ -73,7 +73,6 @@ SECTIONS
+ 		LOCK_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+-		KPROBES_TEXT
+ 		*(.fixup)
+ 		*(.gnu.warning)
+ 	}
+diff --git a/arch/hexagon/kernel/vmlinux.lds.S b/arch/hexagon/kernel/vmlinux.lds.S
+index 5f268c1071b3..a358b699ec64 100644
+--- a/arch/hexagon/kernel/vmlinux.lds.S
++++ b/arch/hexagon/kernel/vmlinux.lds.S
+@@ -51,7 +51,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		*(.fixup)
+ 	}
+ 	_etext = .;
+diff --git a/arch/ia64/kernel/jprobes.S b/arch/ia64/kernel/jprobes.S
+index f69389c7be1d..32f497978541 100644
+--- a/arch/ia64/kernel/jprobes.S
++++ b/arch/ia64/kernel/jprobes.S
+@@ -46,11 +46,12 @@
+  */
+ #include <asm/asmmacro.h>
+ #include <asm/break.h>
++#include <asm/ranges.h>
+ 
+ 	/*
+ 	 * void jprobe_break(void)
+ 	 */
+-	.section .kprobes.text, "ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ ENTRY(jprobe_break)
+ 	break.m __IA64_BREAK_JPROBE
+ END(jprobe_break)
+diff --git a/arch/ia64/kernel/vmlinux.lds.S b/arch/ia64/kernel/vmlinux.lds.S
+index dc506b05ffbd..884f36d38989 100644
+--- a/arch/ia64/kernel/vmlinux.lds.S
++++ b/arch/ia64/kernel/vmlinux.lds.S
+@@ -47,7 +47,6 @@ SECTIONS {
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		*(.gnu.linkonce.t*)
+ 	}
+ 
+diff --git a/arch/ia64/lib/flush.S b/arch/ia64/lib/flush.S
+index 9a5a2f9fad13..0b658993ca72 100644
+--- a/arch/ia64/lib/flush.S
++++ b/arch/ia64/lib/flush.S
+@@ -9,7 +9,7 @@
+ 
+ #include <asm/asmmacro.h>
+ #include <asm/export.h>
+-
++#include <asm/ranges.h>
+ 
+ 	/*
+ 	 * flush_icache_range(start,end)
+@@ -21,7 +21,7 @@
+ 	 *
+ 	 *	Note: "in0" and "in1" are preserved for debugging purposes.
+ 	 */
+-	.section .kprobes.text,"ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ GLOBAL_ENTRY(flush_icache_range)
+ 
+ 	.prologue
+@@ -74,7 +74,7 @@ EXPORT_SYMBOL_GPL(flush_icache_range)
+ 	 *
+ 	 *	Note: "in0" and "in1" are preserved for debugging purposes.
+ 	 */
+-	.section .kprobes.text,"ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ GLOBAL_ENTRY(clflush_cache_range)
+ 
+ 	.prologue
+diff --git a/arch/metag/kernel/vmlinux.lds.S b/arch/metag/kernel/vmlinux.lds.S
+index 150ace92c7ad..bee7031d6b65 100644
+--- a/arch/metag/kernel/vmlinux.lds.S
++++ b/arch/metag/kernel/vmlinux.lds.S
+@@ -22,7 +22,6 @@ SECTIONS
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+-	KPROBES_TEXT
+ 	IRQENTRY_TEXT
+ 	SOFTIRQENTRY_TEXT
+ 	*(.text.*)
+diff --git a/arch/microblaze/kernel/vmlinux.lds.S b/arch/microblaze/kernel/vmlinux.lds.S
+index 0a47f0410554..2da85501a97a 100644
+--- a/arch/microblaze/kernel/vmlinux.lds.S
++++ b/arch/microblaze/kernel/vmlinux.lds.S
+@@ -34,7 +34,6 @@ SECTIONS {
+ 		EXIT_CALL
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		. = ALIGN (4) ;
+diff --git a/arch/mips/kernel/vmlinux.lds.S b/arch/mips/kernel/vmlinux.lds.S
+index a82c178d0bb9..a4c1c9889bdf 100644
+--- a/arch/mips/kernel/vmlinux.lds.S
++++ b/arch/mips/kernel/vmlinux.lds.S
+@@ -56,7 +56,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		*(.text.*)
+diff --git a/arch/mn10300/kernel/vmlinux.lds.S b/arch/mn10300/kernel/vmlinux.lds.S
+index 13c4814c29f8..ead5efc01802 100644
+--- a/arch/mn10300/kernel/vmlinux.lds.S
++++ b/arch/mn10300/kernel/vmlinux.lds.S
+@@ -31,7 +31,6 @@ SECTIONS
+ 	TEXT_TEXT
+ 	SCHED_TEXT
+ 	LOCK_TEXT
+-	KPROBES_TEXT
+ 	*(.fixup)
+ 	*(.gnu.warning)
+ 	} = 0xcb
+diff --git a/arch/nios2/kernel/vmlinux.lds.S b/arch/nios2/kernel/vmlinux.lds.S
+index e23e89539967..51647b5c45db 100644
+--- a/arch/nios2/kernel/vmlinux.lds.S
++++ b/arch/nios2/kernel/vmlinux.lds.S
+@@ -40,7 +40,6 @@ SECTIONS
+ 		LOCK_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+-		KPROBES_TEXT
+ 	} =0
+ 	_etext = .;
+ 
+diff --git a/arch/openrisc/kernel/vmlinux.lds.S b/arch/openrisc/kernel/vmlinux.lds.S
+index d936de4c07ca..1e09dd42d7fa 100644
+--- a/arch/openrisc/kernel/vmlinux.lds.S
++++ b/arch/openrisc/kernel/vmlinux.lds.S
+@@ -48,7 +48,6 @@ SECTIONS
+ 	  TEXT_TEXT
+ 	  SCHED_TEXT
+ 	  LOCK_TEXT
+-	  KPROBES_TEXT
+ 	  IRQENTRY_TEXT
+ 	  SOFTIRQENTRY_TEXT
+ 	  *(.fixup)
+diff --git a/arch/parisc/kernel/vmlinux.lds.S b/arch/parisc/kernel/vmlinux.lds.S
+index f3ead0b6ce46..c48399848674 100644
+--- a/arch/parisc/kernel/vmlinux.lds.S
++++ b/arch/parisc/kernel/vmlinux.lds.S
+@@ -70,7 +70,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		*(.text.do_softirq)
+diff --git a/arch/powerpc/include/asm/ppc_asm.h b/arch/powerpc/include/asm/ppc_asm.h
+index d5d5b5e348f2..2ded7061e090 100644
+--- a/arch/powerpc/include/asm/ppc_asm.h
++++ b/arch/powerpc/include/asm/ppc_asm.h
+@@ -9,6 +9,7 @@
+ #include <asm/processor.h>
+ #include <asm/ppc-opcode.h>
+ #include <asm/firmware.h>
++#include <asm/ranges.h>
+ 
+ #ifndef __ASSEMBLY__
+ #error __FILE__ should only be used in assembler files
+@@ -218,7 +219,7 @@ name: \
+ 	.localentry name,.-name
+ 
+ #define _KPROBE(name) \
+-	.section ".kprobes.text","a"; \
++	set_section_rng(SECTION_TEXT, kprobes, a); \
+ 	.align 2 ; \
+ 	.type name,@function; \
+ 	.globl name; \
+@@ -248,7 +249,7 @@ GLUE(.,name):
+ #define _GLOBAL_TOC(name) _GLOBAL(name)
+ 
+ #define _KPROBE(name) \
+-	.section ".kprobes.text","a"; \
++	set_section_rng(SECTION_TEXT, kprobes, a); \
+ 	.align 2 ; \
+ 	.globl name; \
+ 	.globl GLUE(.,name); \
+@@ -280,7 +281,7 @@ n:
+ #define _GLOBAL_TOC(name) _GLOBAL(name)
+ 
+ #define _KPROBE(n)	\
+-	.section ".kprobes.text","a";	\
++	set_section_rng(SECTION_TEXT, kprobes, a); \
+ 	.globl	n;	\
+ n:
+ 
+diff --git a/arch/powerpc/kernel/vmlinux.lds.S b/arch/powerpc/kernel/vmlinux.lds.S
+index b5fba689fca6..544856210081 100644
+--- a/arch/powerpc/kernel/vmlinux.lds.S
++++ b/arch/powerpc/kernel/vmlinux.lds.S
+@@ -53,7 +53,6 @@ SECTIONS
+ 		*(.text .fixup __ftr_alt_* .ref.text)
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 
+diff --git a/arch/s390/kernel/entry.S b/arch/s390/kernel/entry.S
+index 49a30737adde..6dd5a868db51 100644
+--- a/arch/s390/kernel/entry.S
++++ b/arch/s390/kernel/entry.S
+@@ -24,6 +24,7 @@
+ #include <asm/setup.h>
+ #include <asm/nmi.h>
+ #include <asm/export.h>
++#include <asm/ranges.h>
+ 
+ __PT_R0      =	__PT_GPRS
+ __PT_R1      =	__PT_GPRS + 8
+@@ -163,7 +164,7 @@ _PIF_WORK	= (_PIF_PER_TRAP)
+ 		tm	off+\addr, \mask
+ 	.endm
+ 
+-	.section .kprobes.text, "ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ .Ldummy:
+ 	/*
+ 	 * This nop exists only in order to avoid that __switch_to starts at
+@@ -981,7 +982,7 @@ ENTRY(restart_int_handler)
+ 	brc	2,2b
+ 3:	j	3b
+ 
+-	.section .kprobes.text, "ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ 
+ #ifdef CONFIG_CHECK_STACK
+ /*
+diff --git a/arch/s390/kernel/kprobes.c b/arch/s390/kernel/kprobes.c
+index dd6306c51bd6..3882fa617532 100644
+--- a/arch/s390/kernel/kprobes.c
++++ b/arch/s390/kernel/kprobes.c
+@@ -287,9 +287,9 @@ static void kprobe_reenter_check(struct kprobe_ctlblk *kcb, struct kprobe *p)
+ 	case KPROBE_REENTER:
+ 	default:
+ 		/*
+-		 * A kprobe on the code path to single step an instruction
+-		 * is a BUG. The code path resides in the .kprobes.text
+-		 * section and is executed with interrupts disabled.
++		 * A kprobe on the code path to single step an instruction is a
++		 * BUG. The code path resides in the kprobes section range and
++		 * is executed with interrupts disabled.
+ 		 */
+ 		printk(KERN_EMERG "Invalid kprobe detected at %p.\n", p->addr);
+ 		dump_kprobe(p);
+diff --git a/arch/s390/kernel/mcount.S b/arch/s390/kernel/mcount.S
+index 9a17e4475d27..e766ba4f60ca 100644
+--- a/arch/s390/kernel/mcount.S
++++ b/arch/s390/kernel/mcount.S
+@@ -10,8 +10,9 @@
+ #include <asm/ftrace.h>
+ #include <asm/ptrace.h>
+ #include <asm/export.h>
++#include <asm/ranges.h>
+ 
+-	.section .kprobes.text, "ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ 
+ ENTRY(ftrace_stub)
+ 	br	%r14
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index 429bfd111961..33b0baf2233c 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -36,7 +36,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		*(.fixup)
+diff --git a/arch/score/kernel/vmlinux.lds.S b/arch/score/kernel/vmlinux.lds.S
+index 7274b5c4287e..36ebcb3b1215 100644
+--- a/arch/score/kernel/vmlinux.lds.S
++++ b/arch/score/kernel/vmlinux.lds.S
+@@ -41,7 +41,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		*(.text.*)
+ 		*(.fixup)
+ 		. = ALIGN (4) ;
+diff --git a/arch/sh/kernel/vmlinux.lds.S b/arch/sh/kernel/vmlinux.lds.S
+index 235a4101999f..d8ae0a60cdf2 100644
+--- a/arch/sh/kernel/vmlinux.lds.S
++++ b/arch/sh/kernel/vmlinux.lds.S
+@@ -37,7 +37,6 @@ SECTIONS
+ 		EXTRA_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		*(.fixup)
+diff --git a/arch/sparc/kernel/vmlinux.lds.S b/arch/sparc/kernel/vmlinux.lds.S
+index d79b3b734245..017eb4d7ccca 100644
+--- a/arch/sparc/kernel/vmlinux.lds.S
++++ b/arch/sparc/kernel/vmlinux.lds.S
+@@ -50,7 +50,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+ 		*(.gnu.warning)
+diff --git a/arch/sparc/mm/ultra.S b/arch/sparc/mm/ultra.S
+index b4f4733abc6e..194c16d0dcb4 100644
+--- a/arch/sparc/mm/ultra.S
++++ b/arch/sparc/mm/ultra.S
+@@ -16,6 +16,7 @@
+ #include <asm/cacheflush.h>
+ #include <asm/hypervisor.h>
+ #include <asm/cpudata.h>
++#include <asm/ranges.h>
+ 
+ 	/* Basically, most of the Spitfire vs. Cheetah madness
+ 	 * has to do with the fact that Cheetah does not support
+@@ -148,7 +149,7 @@ __spitfire_flush_tlb_mm_slow:
+ /*
+  * The following code flushes one page_size worth.
+  */
+-	.section .kprobes.text, "ax"
++	set_section_rng(SECTION_TEXT, kprobes, ax)
+ 	.align		32
+ 	.globl		__flush_icache_page
+ __flush_icache_page:	/* %o0 = phys_page */
+diff --git a/arch/tile/kernel/vmlinux.lds.S b/arch/tile/kernel/vmlinux.lds.S
+index 9d449caf8910..c222cea90b7a 100644
+--- a/arch/tile/kernel/vmlinux.lds.S
++++ b/arch/tile/kernel/vmlinux.lds.S
+@@ -43,7 +43,6 @@ SECTIONS
+     HEAD_TEXT
+     SCHED_TEXT
+     LOCK_TEXT
+-    KPROBES_TEXT
+     IRQENTRY_TEXT
+     SOFTIRQENTRY_TEXT
+     __fix_text_end = .;   /* tile-cpack won't rearrange before this */
+diff --git a/arch/x86/kernel/kprobes/core.c b/arch/x86/kernel/kprobes/core.c
+index 7847e5c0e0b5..5a08b2e7196d 100644
+--- a/arch/x86/kernel/kprobes/core.c
++++ b/arch/x86/kernel/kprobes/core.c
+@@ -579,9 +579,9 @@ static int reenter_kprobe(struct kprobe *p, struct pt_regs *regs,
+ 	case KPROBE_REENTER:
+ 		/* A probe has been hit in the codepath leading up to, or just
+ 		 * after, single-stepping of a probed instruction. This entire
+-		 * codepath should strictly reside in .kprobes.text section.
+-		 * Raise a BUG or we'll continue in an endless reentering loop
+-		 * and eventually a stack overflow.
++		 * codepath should strictly reside in the kprobes section
++		 * range. Raise a BUG or we'll continue in an endless
++		 * reentering loop and eventually a stack overflow.
+ 		 */
+ 		printk(KERN_WARNING "Unrecoverable kprobe detected at %p.\n",
+ 		       p->addr);
+@@ -1128,10 +1128,9 @@ NOKPROBE_SYMBOL(longjmp_break_handler);
+ 
+ bool arch_within_kprobe_blacklist(unsigned long addr)
+ {
+-	return  (addr >= (unsigned long)__kprobes_text_start &&
+-		 addr < (unsigned long)__kprobes_text_end) ||
++	return  (SECTION_ADDR_IN_RANGE(kprobes, addr) ||
+ 		(addr >= (unsigned long)__entry_text_start &&
+-		 addr < (unsigned long)__entry_text_end);
++		 addr < (unsigned long)__entry_text_end));
+ }
+ 
+ int __init arch_init_kprobes(void)
+diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
+index 9297a002d8e5..8a5dfa38fde3 100644
+--- a/arch/x86/kernel/vmlinux.lds.S
++++ b/arch/x86/kernel/vmlinux.lds.S
+@@ -98,7 +98,6 @@ SECTIONS
+ 		TEXT_TEXT
+ 		SCHED_TEXT
+ 		LOCK_TEXT
+-		KPROBES_TEXT
+ 		ENTRY_TEXT
+ 		IRQENTRY_TEXT
+ 		SOFTIRQENTRY_TEXT
+diff --git a/include/asm-generic/kprobes.h b/include/asm-generic/kprobes.h
+index 57af9f21d148..7b986f4b7ccd 100644
+--- a/include/asm-generic/kprobes.h
++++ b/include/asm-generic/kprobes.h
+@@ -3,6 +3,7 @@
+ 
+ #if defined(__KERNEL__) && !defined(__ASSEMBLY__)
+ #ifdef CONFIG_KPROBES
++#include <asm/ranges.h>
+ /*
+  * Blacklist ganerating macro. Specify functions which is not probed
+  * by using this macro.
+@@ -13,7 +14,7 @@ static unsigned long __used					\
+ 	_kbl_addr_##fname = (unsigned long)fname;
+ # define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
+ /* Use this to forbid a kprobes attach on very low level functions */
 -# define __kprobes	__attribute__((__section__(".kprobes.text")))
--# define nokprobe_inline	__always_inline
--#else
--# define __kprobes
--# define nokprobe_inline	inline
--#endif
- #endif /* __LINUX_COMPILER_H */
++# define __kprobes	__LINUX_RANGE(SECTION_TEXT, kprobes)
+ # define nokprobe_inline	__always_inline
+ #else
+ # define NOKPROBE_SYMBOL(fname)
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 298252df3c81..742b9d903461 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -24,7 +24,6 @@
+  * Following global variables are optional and may be unavailable on some
+  * architectures and/or kernel configurations.
+  *	_text, _data
+- *	__kprobes_text_start, __kprobes_text_end
+  *	__entry_text_start, __entry_text_end
+  *	__ctors_start, __ctors_end
+  */
+@@ -35,7 +34,6 @@ extern char __init_begin[], __init_end[];
+ extern char _sinittext[], _einittext[];
+ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+-extern char __kprobes_text_start[], __kprobes_text_end[];
+ extern char __entry_text_start[], __entry_text_end[];
+ extern char __start_rodata[], __end_rodata[];
+ 
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index ba49b7ad7af2..f2444d82d02a 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -449,12 +449,6 @@
+ 		*(.spinlock.text)					\
+ 		VMLINUX_SYMBOL(__lock_text_end) = .;
+ 
+-#define KPROBES_TEXT							\
+-		ALIGN_FUNCTION();					\
+-		VMLINUX_SYMBOL(__kprobes_text_start) = .;		\
+-		*(.kprobes.text)					\
+-		VMLINUX_SYMBOL(__kprobes_text_end) = .;
+-
+ #define ENTRY_TEXT							\
+ 		ALIGN_FUNCTION();					\
+ 		VMLINUX_SYMBOL(__entry_text_start) = .;			\
 diff --git a/include/linux/kprobes.h b/include/linux/kprobes.h
-index 8f6849084248..985ed79ef431 100644
+index 985ed79ef431..445cc6fe7afa 100644
 --- a/include/linux/kprobes.h
 +++ b/include/linux/kprobes.h
-@@ -29,7 +29,7 @@
-  *		<jkenisto@us.ibm.com>  and Prasanna S Panchamukhi
-  *		<prasanna@in.ibm.com> added function-return probes.
-  */
--#include <linux/compiler.h>	/* for __kprobes */
-+#include <linux/compiler.h>
- #include <linux/linkage.h>
- #include <linux/list.h>
- #include <linux/notifier.h>
-@@ -40,9 +40,9 @@
- #include <linux/rcupdate.h>
- #include <linux/mutex.h>
- #include <linux/ftrace.h>
-+#include <asm/kprobes.h>
+@@ -43,6 +43,9 @@
+ #include <asm/kprobes.h>
  
  #ifdef CONFIG_KPROBES
--#include <asm/kprobes.h>
++#include <linux/ranges.h>
++
++DECLARE_SECTION_RANGE(kprobes);
  
  /* kprobe_status settings */
  #define KPROBE_HIT_ACTIVE	0x00000001
-@@ -51,6 +51,7 @@
- #define KPROBE_HIT_SSDONE	0x00000008
- 
- #else /* CONFIG_KPROBES */
-+#include <asm-generic/kprobes.h>
- typedef int kprobe_opcode_t;
- struct arch_specific_insn {
- 	int dummy;
-@@ -481,18 +482,4 @@ static inline int enable_jprobe(struct jprobe *jp)
- 	return enable_kprobe(&jp->kp);
+diff --git a/kernel/kprobes.c b/kernel/kprobes.c
+index d10ab6b9b5e0..387605682622 100644
+--- a/kernel/kprobes.c
++++ b/kernel/kprobes.c
+@@ -1328,8 +1328,7 @@ out:
+ bool __weak arch_within_kprobe_blacklist(unsigned long addr)
+ {
+ 	/* The __kprobes marked functions and entry code must not be probed */
+-	return addr >= (unsigned long)__kprobes_text_start &&
+-	       addr < (unsigned long)__kprobes_text_end;
++	return SECTION_ADDR_IN_RANGE(kprobes, addr);
  }
  
--#ifdef CONFIG_KPROBES
--/*
-- * Blacklist ganerating macro. Specify functions which is not probed
-- * by using this macro.
-- */
--#define __NOKPROBE_SYMBOL(fname)			\
--static unsigned long __used				\
--	__attribute__((section("_kprobe_blacklist")))	\
--	_kbl_addr_##fname = (unsigned long)fname;
--#define NOKPROBE_SYMBOL(fname)	__NOKPROBE_SYMBOL(fname)
--#else
--#define NOKPROBE_SYMBOL(fname)
--#endif
--
- #endif /* _LINUX_KPROBES_H */
+ bool within_kprobe_blacklist(unsigned long addr)
+@@ -2129,6 +2128,9 @@ static struct notifier_block kprobe_module_nb = {
+ extern unsigned long __start_kprobe_blacklist[];
+ extern unsigned long __stop_kprobe_blacklist[];
+ 
++/* Actual kprobes section range */
++DEFINE_SECTION_RANGE(kprobes, SECTION_TEXT);
++
+ static int __init init_kprobes(void)
+ {
+ 	int i, err = 0;
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 48958d3cec9e..1a50a83304d3 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -888,7 +888,7 @@ static void check_section(const char *modname, struct elf_info *elf,
+ 
+ #define DATA_SECTIONS ".data", ".data.rel"
+ #define TEXT_SECTIONS ".text", ".text.unlikely", ".sched.text", \
+-		".kprobes.text"
++		".text.rng.kprobes.any"
+ #define OTHER_TEXT_SECTIONS ".ref.text", ".head.text", ".spinlock.text", \
+ 		".fixup", ".entry.text", ".exception.text", ".text.*", \
+ 		".coldtext"
+diff --git a/scripts/recordmcount.c b/scripts/recordmcount.c
+index 42396a74405d..7f66cce79612 100644
+--- a/scripts/recordmcount.c
++++ b/scripts/recordmcount.c
+@@ -363,7 +363,7 @@ is_mcounted_section_name(char const *const txtname)
+ 		strcmp(".sched.text",    txtname) == 0 ||
+ 		strcmp(".spinlock.text", txtname) == 0 ||
+ 		strcmp(".irqentry.text", txtname) == 0 ||
+-		strcmp(".kprobes.text", txtname) == 0 ||
++		strcmp(".text.rng.kprobes.any", txtname) == 0 ||
+ 		strcmp(".text.unlikely", txtname) == 0;
+ }
+ 
+diff --git a/scripts/recordmcount.pl b/scripts/recordmcount.pl
+index 96e2486a6fc4..f663a7c5d6ab 100755
+--- a/scripts/recordmcount.pl
++++ b/scripts/recordmcount.pl
+@@ -134,7 +134,7 @@ my %text_sections = (
+      ".sched.text" => 1,
+      ".spinlock.text" => 1,
+      ".irqentry.text" => 1,
+-     ".kprobes.text" => 1,
++     ".text.rng.kprobes.any" => 1,
+      ".text.unlikely" => 1,
+ );
+ 
 -- 
 2.9.2
 
