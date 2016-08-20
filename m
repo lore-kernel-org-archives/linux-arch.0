@@ -1,53 +1,35 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v1 7/7] tools: add userspace linker table
-	sandbox
-Date: Fri, 19 Aug 2016 15:31:47 -0700
-Message-ID: <CAGXu5jKX-VZR_r9wMsnLAU+Z10vB4yDiRPpvwXbRZj0=wU208A@mail.gmail.com>
+From: Rob Landley <rob@landley.net>
+Subject: Re: [PATCH v1 0/7] tools: add linker table userspace sandbox
+Date: Fri, 19 Aug 2016 23:57:18 -0500
+Message-ID: <ef5f6b3f-1b00-d33f-4ce1-81e03f4f2f10@landley.net>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
  <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
- <1471642875-5957-8-git-send-email-mcgrof@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <1471642875-5957-8-git-send-email-mcgrof@kernel.org>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: mcgrof@kernel.org, acme@redhat.com, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, ton
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMjo0MSBQTSwgIDxtY2dyb2ZAa2VybmVsLm9yZz4gd3Jv
-dGU6Cj4gRnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+Cj4KPiBB
-ZGQgYSB1c2Vyc3BhY2Ugc2FuZGJveCB0byBhbGxvdyBlYXN5IGV4cGVyaW1lbnRhdGlvbiBhbmQK
-PiB0ZXN0IGV4dGVuc2lvbnMgd2l0aCBsaW5rZXIgdGFibGVzLCBzZWN0aW9uIHJhbmdlcyBhbmQg
-dGhlCj4gbmV3IHNlY3Rpb24gY29yZSBkZWZpbml0aW9ucy4KPgo+IFRoZSB1c2Vyc3BhY2Ugc2Fu
-ZGJveCB0cmllcyB0byBtaW1pYyB0aGUgTGludXgga2VybmVsIGRldmVsb3BtZW50Cj4gZmxvdyBh
-cyBtdWNoIGFzIHBvc3NpYmxlLCBpdCBob3dldmVyIHJlbGllcyBvbiBhbmQgdXNlcyBsaWJjLiBT
-dXBwb3J0Cj4gaXMgY3VycmVudGx5IG9ubHkgcHJvdmlkZWQgdG8geDg2XzY0Lgo+Cj4gdjQ6IHRo
-aXMgcGF0Y2ggaXMgbmV3IGluIHRoaXMgc2VyaWVzIC0tIGFkZGVkIHRvIHRoZSBrZW5yZWwgYXMK
-PiAgICAgc3VnZ2VzdGVkIGJ5IEJvcmlzLCBhcyBvdGhlcndpc2UgaXQnZCBiZSByZWFsbHkgaGFy
-ZCB0byBrZWVwCj4gICAgIGFuIGV4dGVybmFsIHVzZXJzcGFjZSByZXBvc2l0b3J5IGluIHN5bmMu
-Cj4KPiBTaWduZWQtb2ZmLWJ5OiBMdWlzIFIuIFJvZHJpZ3VleiA8bWNncm9mQGtlcm5lbC5vcmc+
-Cj4gLS0tCj4gIERvY3VtZW50YXRpb24vc2VjdGlvbnMvbGlua2VyLXRhYmxlcy5yc3QgICAgICAg
-ICAgIHwgICA0ICstCj4gIE1BSU5UQUlORVJTICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgIHwgICAxICsKPiAgaW5jbHVkZS9saW51eC90YWJsZXMuaCAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgfCAgIDUgKy0KPiAgdG9vbHMvTWFrZWZpbGUgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgfCAgIDMgKy0KPiAgLi4uL2FyY2gveDg2L2luY2x1ZGUvZ2Vu
-ZXJhdGVkL2FzbS9zZWN0aW9uLWNvcmUuaCAgfCAgIDEgKwo+ICB0b29scy9hcmNoL3g4Ni9pbmNs
-dWRlL2dlbmVyYXRlZC9yYW5nZXMuaCAgICAgICAgICB8ICAgMSArCj4gIHRvb2xzL2FyY2gveDg2
-L2luY2x1ZGUvZ2VuZXJhdGVkL3RhYmxlcy5oICAgICAgICAgIHwgICAxICsKPiAgdG9vbHMvaW5j
-bHVkZS9hc20tZ2VuZXJpYy9yYW5nZXMuaCAgICAgICAgICAgICAgICAgfCAxMDMgKysrKwo+ICB0
-b29scy9pbmNsdWRlL2FzbS1nZW5lcmljL3NlY3Rpb24tY29yZS5oICAgICAgICAgICB8IDM0MSAr
-KysrKysrKysrKwo+ICB0b29scy9pbmNsdWRlL2FzbS1nZW5lcmljL3RhYmxlcy5oICAgICAgICAg
-ICAgICAgICB8ICA1MCArKwoKQXJlbid0IGEgYnVuY2ggb2YgdGhlc2UgZmlsZXMgZXhhY3QgZHVw
-bGljYXRlcyBvZiB0aGUgaGVhZGVycyBpbiBpbmNsdWRlL2xpbnV4PwoKLUtlZXMKCi0tIApLZWVz
-IENvb2sKTmV4dXMgU2VjdXJpdHkKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5v
-cmcKaHR0cHM6Ly9saXN0cy54ZW4ub3JnL3hlbi1kZXZlbAo=
+On 08/19/2016 04:41 PM, mcgrof@kernel.org wrote:
+> Please let me know if there are any issue or questions.
+
+Only that this has been the majority of the traffic on the linux-sh
+mailing list for over a month and I'm still not sure why anyone should care.
+
+I have no idea what problem it solves, despite reading a couple dozen
+messages in the thread, and the most recent two 0/x intro messages. Its
+purpose seems to be ensuring that lld.llvm.org has more work to do if it
+ever wants to build the kernel without binutils?
+
+I also am not certain why every revision of it is cc'd to linux-sh. Is
+it generic linker infrastructure change, or is it something that affects
+this architecture specifically? As far as I can tell nothing in this
+most recent 7-patch series touches arch/sh at all, you just cc'd our
+list because you think the work you're doing is _important_, not that
+it's specifically relevant to us.
+
+Rob
