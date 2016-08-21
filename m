@@ -1,71 +1,66 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Sun, 21 Aug 2016 01:11:44 +0100
-Message-ID: <20160821001141.GV2356@ZenIV.linux.org.uk>
+Date: Sat, 20 Aug 2016 17:45:00 -0700
+Message-ID: <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com>
 References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com>
- <20160819212428.GR2356@ZenIV.linux.org.uk>
- <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
+ <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
  <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
- <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
+ <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com> <20160821001141.GV2356@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:56482 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751222AbcHUAMK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Aug 2016 20:12:10 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:33848 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752517AbcHUApC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Aug 2016 20:45:02 -0400
+In-Reply-To: <20160821001141.GV2356@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Al Viro <viro@zeniv.linux.org.uk>, Jakub Jelinek <jakub@redhat.com>
 Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>
 
-On Sat, Aug 20, 2016 at 04:32:57PM -0700, Linus Torvalds wrote:
+On Sat, Aug 20, 2016 at 5:11 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> Interesting...  BTW, how's this in the "really vile tricks" department?
+>
+>         if (!uaccess_begin())
+>                 goto fail;
 
-> Anyway, the asm coming out of gcc looks nasty, because it has all the
-> ugly section stuiff and fixups for SMAP not existing on some CPU's
-> etc. So the resulting fs/readdir.s file is hard to read. But if you
-> look at the disassembly at the object file that hides all that (and
-> shows what the end result actually is), the actual filldir user
-> accesses end up looking beautiful, with no extra code anywhere. An
-> exception just goes to the EFAULT handling directly.
-> 
-> Sadly, unsafe_get_user() looking as good does require gcc improvements
-> that aren't imminent.
-> 
-> This patch is untested, although the earlier original pre-rebased
-> version of it actually got a fair amount of testing on my machine
-> (including the filldir use)
+So I slightly considered it, because gcc actually has support for that
+kind of behavior thanks to setjmp/longjmp (and yes, the compiler
+actually needs to know about the magic "this code can be entered a
+second time from elsewhere" - it _used_ to be purely a library thing
+back in the days of stupid compilers, but no more).
 
-Interesting...  BTW, how's this in the "really vile tricks" department?
+And I'm not saying it's wrong, but I'm not a huge fan of
+setjmp/longjmp. Afaik it tends to make gcc generate potentially much
+worse code in the function that uses setjmp.
 
-	if (!uaccess_begin())
-		goto fail;
-	unsafe_...
-	...
-	uacess_end();
+That said, you have a really strong argument that I hadn't even thought about:
 
-with uaccess_begin() along the lines of
-	p = &current_thread_info()->foo;
-	asm
-		.text:
-			STAC
-			*p = 1f
-			res = true;
-			2:;
-		.fixups:
-			1:res = false;
-			CLAC
-			jmp 2;
-	if (unlikely(res))
-		asm
-			clobber everything
-	res;
-and exception handlers in unsafe_... jumping to the address found
-in current_thread_info()->foo.  AFAICS, it should avoid the problems
-with asm goto, right?  The branch target is tied to the entry into the
-damn series, so it's not as if it could disappear; and path to a branch
-cc(1) doesn't see passes through the chunk produced by that asm block
-in uaccess_begin(), so if it looks unreachable without taking those branches
-into account, it _is_ unreachable.
+> AFAICS, it should avoid the problems with asm goto, right?
+
+Yes. That was something I never even thought about. I just thought
+"asm goto has some limitations, but they aren't _fundamental_, so
+hopefully they get fixed". But they may not be fundamental, but it
+will take a long time. If ever.
+
+And you're right, using setjmp semantics would avoid all that and
+"just work". Even for "get_user()" that needs to return a value.
+
+Hmm.
+
+You have to save the stack pointer at the setjmp point too. And there
+might be other architecture-specific ABI rules for that. But you're
+right, it might be worth it.
+
+I *would* be a bit worried about code generation issues.
+setjmp/longjmp is so seldom used that it's one of those things where
+it might be best to verify with some gcc person that it doesn't cause
+huge code-gen problems.
+
+Adding Jakub just to check: Jakub, would a setjump/longjump kind of
+interface for exception handling going to cause us problems
+(performance or correctness) with gcc?
+
+            Linus
