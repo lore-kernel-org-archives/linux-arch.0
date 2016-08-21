@@ -1,58 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:47508 "EHLO mail.zytor.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751222AbcHUBJ1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 20 Aug 2016 21:09:27 -0400
-In-Reply-To: <CA+55aFwgPkDE7AUQ3vDrDgE384B5JGQ3XV3pjQ2tyuWc56M9Kg@mail.gmail.com>
-References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com> <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com> <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com> <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com> <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com> <CA+55aFwgPkDE7AUQ3vDrDgE384B5JGQ3XV3pjQ2tyuWc56M9Kg@mail.gmail.com>
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:59817 "EHLO
+        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750871AbcHUFEq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Aug 2016 01:04:46 -0400
+Date: Sun, 21 Aug 2016 00:59:59 -0400
+From: Rich Felker <dalias@libc.org>
+Subject: Re: [PATCH v1 0/7] tools: add linker table userspace sandbox
+Message-ID: <20160821045959.GR15995@brightrain.aerifal.cx>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
+ <ef5f6b3f-1b00-d33f-4ce1-81e03f4f2f10@landley.net>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain;
- charset=UTF-8
-Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Sat, 20 Aug 2016 18:09:15 -0700
-Message-ID: <DEDD7B96-A44C-4992-A1C3-067D607EB419@zytor.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ef5f6b3f-1b00-d33f-4ce1-81e03f4f2f10@landley.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Jakub Jelinek <jakub@redhat.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20160821010915.tZiDpxFzcNPlqF4tvYOGS49XErJLPPzfyQ6eyQuOf0A@z>
+To: Rob Landley <rob@landley.net>
+Cc: mcgrof@kernel.org, acme@redhat.com, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
+Message-ID: <20160821045959.VhRxStuQ2-mnaBriWZM2OxXyOJ_6GlzQNNEgOa0mbTA@z>
 
-On August 20, 2016 6:00:17 PM PDT, Linus Torvalds <torvalds@linux-foundation.org> wrote:
->On Sat, Aug 20, 2016 at 5:45 PM, Linus Torvalds
-><torvalds@linux-foundation.org> wrote:
->>
->> So I slightly considered it, because gcc actually has support for
->that
->> kind of behavior thanks to setjmp/longjmp (and yes, the compiler
->> actually needs to know about the magic "this code can be entered a
->> second time from elsewhere" - it _used_ to be purely a library thing
->> back in the days of stupid compilers, but no more).
->
->Hmm. I may just be full of sh*t.
->
->I was pretty sure that there used to be a "setjmp" attribute that gcc
->used to make sure that "setjmp()" really could return twice, without
->bad things happening on the stack.
->
->But looking at the normal user space headers, I see nothing like that.
->It's just
->
->    extern int setjmp (jmp_buf __env) __THROWNL;
->
->where __THROWNL just sets the __nothrow__ attribute, which shouldn't
->even matter in the kernel since we use -fno-exceptions.
->
->So my "setjmp does potentially bad things to the optimization of the
->function calling it" seems to have been just some drug-induced fever
->dream of mine.
->
->Sorry for the bogus noise. I don't know why I was so convinced setjmp
->needed special gcc semantics.
->
->             Linus
+On Fri, Aug 19, 2016 at 11:57:18PM -0500, Rob Landley wrote:
+> On 08/19/2016 04:41 PM, mcgrof@kernel.org wrote:
+> > Please let me know if there are any issue or questions.
+> 
+> Only that this has been the majority of the traffic on the linux-sh
+> mailing list for over a month and I'm still not sure why anyone should care.
+> 
+> I have no idea what problem it solves, despite reading a couple dozen
+> messages in the thread, and the most recent two 0/x intro messages. Its
+> purpose seems to be ensuring that lld.llvm.org has more work to do if it
+> ever wants to build the kernel without binutils?
+> 
+> I also am not certain why every revision of it is cc'd to linux-sh. Is
+> it generic linker infrastructure change, or is it something that affects
+> this architecture specifically? As far as I can tell nothing in this
+> most recent 7-patch series touches arch/sh at all, you just cc'd our
+> list because you think the work you're doing is _important_, not that
+> it's specifically relevant to us.
 
-I think the specific name setjmp() is magic in gcc.
--- 
-Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
+Incidentally I'm happy to have been CC'd since this infrastructure is
+_really_ nice for doing things generically with device tree. The
+ability to add new linker-section-based tables without having to
+manually hack up linker script templates will make it so we can do
+things like adding tables for cache controllers or mmus (that are
+needed quite early in init and can't go through the platform device
+system).
+
+BTW we kinda lucked out that there was already the linker table
+infrastructure for cpu enable methods for smp; this patch series makes
+it so future stuff doesn't have to rely on luck or invasive changes.
+
+Rich
