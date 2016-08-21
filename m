@@ -1,177 +1,71 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Sat, 20 Aug 2016 16:32:57 -0700
-Message-ID: <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
+Date: Sun, 21 Aug 2016 01:11:44 +0100
+Message-ID: <20160821001141.GV2356@ZenIV.linux.org.uk>
 References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com>
- <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
+ <20160819212428.GR2356@ZenIV.linux.org.uk>
+ <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
  <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
+ <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=001a1137372436b74f053a893ca0
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:56482 "EHLO
+        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751222AbcHUAMK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Aug 2016 20:12:10 -0400
+Content-Disposition: inline
+In-Reply-To: <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>
-List-Id: linux-arch.vger.kernel.org
 
---001a1137372436b74f053a893ca0
-Content-Type: text/plain; charset=UTF-8
+On Sat, Aug 20, 2016 at 04:32:57PM -0700, Linus Torvalds wrote:
 
-On Fri, Aug 19, 2016 at 3:11 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->>
->> (I have some experimental patches that actually use "asm goto" in
->> "unsafe_put_user()" to get that nice code generation, but they only
->> work if your gcc version supports "asm goto", which some older
->> versions of gcc does not)
->
-> Since you actually are looking at the user access stuff, I'll just put
-> them here.
+> Anyway, the asm coming out of gcc looks nasty, because it has all the
+> ugly section stuiff and fixups for SMAP not existing on some CPU's
+> etc. So the resulting fs/readdir.s file is hard to read. But if you
+> look at the disassembly at the object file that hides all that (and
+> shows what the end result actually is), the actual filldir user
+> accesses end up looking beautiful, with no extra code anywhere. An
+> exception just goes to the EFAULT handling directly.
+> 
+> Sadly, unsafe_get_user() looking as good does require gcc improvements
+> that aren't imminent.
+> 
+> This patch is untested, although the earlier original pre-rebased
+> version of it actually got a fair amount of testing on my machine
+> (including the filldir use)
 
-Here's an updated patch that applies on current git and that actually
-uses this for filldir() (but not signal handling).
+Interesting...  BTW, how's this in the "really vile tricks" department?
 
-It turns out that on Skylake, which supports SMAP, the clac/stac
-instructions are quite slow, and doing them for each access makes
-things insanely much slower than it could be. And "filldir" does the
-user accesses one by one (except for the name copying), and is
-actually somewhat common under some loads (ie the "find . -name XYZ"
-kind of thing).
+	if (!uaccess_begin())
+		goto fail;
+	unsafe_...
+	...
+	uacess_end();
 
-Anyway, the asm coming out of gcc looks nasty, because it has all the
-ugly section stuiff and fixups for SMAP not existing on some CPU's
-etc. So the resulting fs/readdir.s file is hard to read. But if you
-look at the disassembly at the object file that hides all that (and
-shows what the end result actually is), the actual filldir user
-accesses end up looking beautiful, with no extra code anywhere. An
-exception just goes to the EFAULT handling directly.
-
-Sadly, unsafe_get_user() looking as good does require gcc improvements
-that aren't imminent.
-
-This patch is untested, although the earlier original pre-rebased
-version of it actually got a fair amount of testing on my machine
-(including the filldir use)
-
-                    Linus
-
---001a1137372436b74f053a893ca0
-Content-Type: text/plain; charset=US-ASCII; name="patch.diff"
-Content-Disposition: attachment; filename="patch.diff"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_is3tlewe1
-
-IGFyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaCB8IDgwICsrKysrKysrKysrKysrKysrKysr
-LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQogZnMvcmVhZGRpci5jICAgICAgICAgICAgICAgICAgIHwg
-MjIgKysrKysrLS0tLS0tCiAyIGZpbGVzIGNoYW5nZWQsIDUxIGluc2VydGlvbnMoKyksIDUxIGRl
-bGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaCBi
-L2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaAppbmRleCBhMGFlNjEwYjkyODAuLjhkNmIy
-OTk1MjJmMSAxMDA2NDQKLS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oCisrKyBi
-L2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaApAQCAtMjA0LDE5ICsyMDQsMTQgQEAgX190
-eXBlb2ZfXyhfX2J1aWx0aW5fY2hvb3NlX2V4cHIoc2l6ZW9mKHgpID4gc2l6ZW9mKDBVTCksIDBV
-TEwsIDBVTCkpCiAKIAogI2lmZGVmIENPTkZJR19YODZfMzIKLSNkZWZpbmUgX19wdXRfdXNlcl9h
-c21fdTY0KHgsIGFkZHIsIGVyciwgZXJycmV0KQkJCVwKLQlhc20gdm9sYXRpbGUoIlxuIgkJCQkJ
-CVwKLQkJICAgICAiMToJbW92bCAlJWVheCwwKCUyKVxuIgkJCVwKLQkJICAgICAiMjoJbW92bCAl
-JWVkeCw0KCUyKVxuIgkJCVwKLQkJICAgICAiMzoiCQkJCQkJXAotCQkgICAgICIuc2VjdGlvbiAu
-Zml4dXAsXCJheFwiXG4iCQkJCVwKLQkJICAgICAiNDoJbW92bCAlMywlMFxuIgkJCQlcCi0JCSAg
-ICAgIglqbXAgM2JcbiIJCQkJCVwKLQkJICAgICAiLnByZXZpb3VzXG4iCQkJCQlcCi0JCSAgICAg
-X0FTTV9FWFRBQkxFKDFiLCA0YikJCQkJXAotCQkgICAgIF9BU01fRVhUQUJMRSgyYiwgNGIpCQkJ
-CVwKLQkJICAgICA6ICI9ciIgKGVycikJCQkJCVwKLQkJICAgICA6ICJBIiAoeCksICJyIiAoYWRk
-ciksICJpIiAoZXJycmV0KSwgIjAiIChlcnIpKQorI2RlZmluZSBfX3B1dF91c2VyX2dvdG9fdTY0
-KHgsIGFkZHIsIGxhYmVsKQkJCVwKKwlhc20gdm9sYXRpbGUoIlxuIgkJCQkJXAorCQkgICAgICIx
-Ogltb3ZsICUlZWF4LDAoJTIpXG4iCQlcCisJCSAgICAgIjI6CW1vdmwgJSVlZHgsNCglMilcbiIJ
-CVwKKwkJICAgICBfQVNNX0VYVEFCTEUoMWIsICUybCkJCQlcCisJCSAgICAgX0FTTV9FWFRBQkxF
-KDJiLCAlMmwpCQkJXAorCQkgICAgIDogOiAiQSIgKHgpLCAiciIgKGFkZHIpCQkJXAorCQkgICAg
-IDogOiBsYWJlbCkKIAogI2RlZmluZSBfX3B1dF91c2VyX2FzbV9leF91NjQoeCwgYWRkcikJCQkJ
-CVwKIAlhc20gdm9sYXRpbGUoIlxuIgkJCQkJCVwKQEAgLTIzMSw4ICsyMjYsOCBAQCBfX3R5cGVv
-Zl9fKF9fYnVpbHRpbl9jaG9vc2VfZXhwcihzaXplb2YoeCkgPiBzaXplb2YoMFVMKSwgMFVMTCwg
-MFVMKSkKIAlhc20gdm9sYXRpbGUoImNhbGwgX19wdXRfdXNlcl84IiA6ICI9YSIgKF9fcmV0X3B1
-KQlcCiAJCSAgICAgOiAiQSIgKCh0eXBlb2YoKihwdHIpKSkoeCkpLCAiYyIgKHB0cikgOiAiZWJ4
-IikKICNlbHNlCi0jZGVmaW5lIF9fcHV0X3VzZXJfYXNtX3U2NCh4LCBwdHIsIHJldHZhbCwgZXJy
-cmV0KSBcCi0JX19wdXRfdXNlcl9hc20oeCwgcHRyLCByZXR2YWwsICJxIiwgIiIsICJlciIsIGVy
-cnJldCkKKyNkZWZpbmUgX19wdXRfdXNlcl9nb3RvX3U2NCh4LCBwdHIsIGxhYmVsKSBcCisJX19w
-dXRfdXNlcl9nb3RvKHgsIHB0ciwgInEiLCAiIiwgImVyIiwgbGFiZWwpCiAjZGVmaW5lIF9fcHV0
-X3VzZXJfYXNtX2V4X3U2NCh4LCBhZGRyKQlcCiAJX19wdXRfdXNlcl9hc21fZXgoeCwgYWRkciwg
-InEiLCAiIiwgImVyIikKICNkZWZpbmUgX19wdXRfdXNlcl94OCh4LCBwdHIsIF9fcmV0X3B1KSBf
-X3B1dF91c2VyX3goOCwgeCwgcHRyLCBfX3JldF9wdSkKQEAgLTI5MywyMyArMjg4LDIxIEBAIGV4
-dGVybiB2b2lkIF9fcHV0X3VzZXJfOCh2b2lkKTsKIAlfX2J1aWx0aW5fZXhwZWN0KF9fcmV0X3B1
-LCAwKTsJCQkJXAogfSkKIAotI2RlZmluZSBfX3B1dF91c2VyX3NpemUoeCwgcHRyLCBzaXplLCBy
-ZXR2YWwsIGVycnJldCkJCQlcCisjZGVmaW5lIF9fcHV0X3VzZXJfc2l6ZSh4LCBwdHIsIHNpemUs
-IGxhYmVsKQkJCQlcCiBkbyB7CQkJCQkJCQkJXAotCXJldHZhbCA9IDA7CQkJCQkJCVwKIAlfX2No
-a191c2VyX3B0cihwdHIpOwkJCQkJCVwKIAlzd2l0Y2ggKHNpemUpIHsJCQkJCQkJXAogCWNhc2Ug
-MToJCQkJCQkJCVwKLQkJX19wdXRfdXNlcl9hc20oeCwgcHRyLCByZXR2YWwsICJiIiwgImIiLCAi
-aXEiLCBlcnJyZXQpOwlcCisJCV9fcHV0X3VzZXJfZ290byh4LCBwdHIsICJiIiwgImIiLCAiaXEi
-LCBsYWJlbCk7CVwKIAkJYnJlYWs7CQkJCQkJCVwKIAljYXNlIDI6CQkJCQkJCQlcCi0JCV9fcHV0
-X3VzZXJfYXNtKHgsIHB0ciwgcmV0dmFsLCAidyIsICJ3IiwgImlyIiwgZXJycmV0KTsJXAorCQlf
-X3B1dF91c2VyX2dvdG8oeCwgcHRyLCAidyIsICJ3IiwgImlyIiwgbGFiZWwpOwkJXAogCQlicmVh
-azsJCQkJCQkJXAogCWNhc2UgNDoJCQkJCQkJCVwKLQkJX19wdXRfdXNlcl9hc20oeCwgcHRyLCBy
-ZXR2YWwsICJsIiwgImsiLCAiaXIiLCBlcnJyZXQpOwlcCisJCV9fcHV0X3VzZXJfZ290byh4LCBw
-dHIsICJsIiwgImsiLCAiaXIiLCBsYWJlbCk7CQlcCiAJCWJyZWFrOwkJCQkJCQlcCiAJY2FzZSA4
-OgkJCQkJCQkJXAotCQlfX3B1dF91c2VyX2FzbV91NjQoKF9fdHlwZW9mX18oKnB0cikpKHgpLCBw
-dHIsIHJldHZhbCwJXAotCQkJCSAgIGVycnJldCk7CQkJCVwKKwkJX19wdXRfdXNlcl9nb3RvX3U2
-NCgoX190eXBlb2ZfXygqcHRyKSkoeCksIHB0ciwgbGFiZWwpOwlcCiAJCWJyZWFrOwkJCQkJCQlc
-CiAJZGVmYXVsdDoJCQkJCQkJXAogCQlfX3B1dF91c2VyX2JhZCgpOwkJCQkJXApAQCAtNDM4LDkg
-KzQzMSwxMiBAQCBkbyB7CQkJCQkJCQkJXAogCiAjZGVmaW5lIF9fcHV0X3VzZXJfbm9jaGVjayh4
-LCBwdHIsIHNpemUpCQkJXAogKHsJCQkJCQkJCVwKLQlpbnQgX19wdV9lcnI7CQkJCQkJXAorCV9f
-bGFiZWxfXyBfX3B1X2xhYmVsOwkJCQkJXAorCWludCBfX3B1X2VyciA9IC1FRkFVTFQ7CQkJCQlc
-CiAJX191YWNjZXNzX2JlZ2luKCk7CQkJCQlcCi0JX19wdXRfdXNlcl9zaXplKCh4KSwgKHB0ciks
-IChzaXplKSwgX19wdV9lcnIsIC1FRkFVTFQpOwlcCisJX19wdXRfdXNlcl9zaXplKCh4KSwgKHB0
-ciksIChzaXplKSwgX19wdV9sYWJlbCk7CVwKKwlfX3B1X2VyciA9IDA7CQkJCQkJXAorX19wdV9s
-YWJlbDoJCQkJCQkJXAogCV9fdWFjY2Vzc19lbmQoKTsJCQkJCVwKIAlfX2J1aWx0aW5fZXhwZWN0
-KF9fcHVfZXJyLCAwKTsJCQkJXAogfSkKQEAgLTQ2NSwxNyArNDYxLDIzIEBAIHN0cnVjdCBfX2xh
-cmdlX3N0cnVjdCB7IHVuc2lnbmVkIGxvbmcgYnVmWzEwMF07IH07CiAgKiB3ZSBkbyBub3Qgd3Jp
-dGUgdG8gYW55IG1lbW9yeSBnY2Mga25vd3MgYWJvdXQsIHNvIHRoZXJlIGFyZSBubwogICogYWxp
-YXNpbmcgaXNzdWVzLgogICovCi0jZGVmaW5lIF9fcHV0X3VzZXJfYXNtKHgsIGFkZHIsIGVyciwg
-aXR5cGUsIHJ0eXBlLCBsdHlwZSwgZXJycmV0KQlcCi0JYXNtIHZvbGF0aWxlKCJcbiIJCQkJCQlc
-Ci0JCSAgICAgIjE6CW1vdiJpdHlwZSIgJSJydHlwZSIxLCUyXG4iCQlcCi0JCSAgICAgIjI6XG4i
-CQkJCQkJXAotCQkgICAgICIuc2VjdGlvbiAuZml4dXAsXCJheFwiXG4iCQkJCVwKLQkJICAgICAi
-MzoJbW92ICUzLCUwXG4iCQkJCVwKLQkJICAgICAiCWptcCAyYlxuIgkJCQkJXAotCQkgICAgICIu
-cHJldmlvdXNcbiIJCQkJCVwKLQkJICAgICBfQVNNX0VYVEFCTEUoMWIsIDNiKQkJCQlcCi0JCSAg
-ICAgOiAiPXIiKGVycikJCQkJCVwKLQkJICAgICA6IGx0eXBlKHgpLCAibSIgKF9fbShhZGRyKSks
-ICJpIiAoZXJycmV0KSwgIjAiIChlcnIpKQorI2RlZmluZSBfX3B1dF91c2VyX2dvdG8oeCwgYWRk
-ciwgaXR5cGUsIHJ0eXBlLCBsdHlwZSwgbGFiZWwpCVwKKwlhc20gdm9sYXRpbGUgZ290bygiXG4i
-CQkJCQkJXAorCQkiMToJbW92Iml0eXBlIiAlInJ0eXBlIjAsJTFcbiIJCQlcCisJCV9BU01fRVhU
-QUJMRSgxYiwgJWwyKQkJCQkJXAorCQk6IDogbHR5cGUoeCksICJtIiAoX19tKGFkZHIpKQkJCQlc
-CisJCTogOiBsYWJlbCkKKworI2RlZmluZSBfX3B1dF91c2VyX2ZhaWxlZCh4LCBhZGRyLCBpdHlw
-ZSwgcnR5cGUsIGx0eXBlLCBlcnJyZXQpCQlcCisJKHsJX19sYWJlbF9fIF9fcHVmbGFiOwkJCQkJ
-XAorCQlpbnQgX19wdWZyZXQgPSBlcnJyZXQ7CQkJCQlcCisJCV9fcHV0X3VzZXJfZ290byh4LGFk
-ZHIsaXR5cGUscnR5cGUsbHR5cGUsX19wdWZsYWIpOwlcCisJCV9fcHVmcmV0ID0gMDsJCQkJCQlc
-CisJX19wdWZsYWI6IF9fcHVmcmV0OyB9KQorCisjZGVmaW5lIF9fcHV0X3VzZXJfYXNtKHgsIGFk
-ZHIsIHJldHZhbCwgaXR5cGUsIHJ0eXBlLCBsdHlwZSwgZXJycmV0KQlkbyB7CVwKKwlyZXR2YWwg
-PSBfX3B1dF91c2VyX2ZhaWxlZCh4LCBhZGRyLCBpdHlwZSwgcnR5cGUsIGx0eXBlLCBlcnJyZXQp
-OwlcCit9IHdoaWxlICgwKQogCiAjZGVmaW5lIF9fcHV0X3VzZXJfYXNtX2V4KHgsIGFkZHIsIGl0
-eXBlLCBydHlwZSwgbHR5cGUpCQkJXAogCWFzbSB2b2xhdGlsZSgiMToJbW92Iml0eXBlIiAlInJ0
-eXBlIjAsJTFcbiIJCVwKQEAgLTgxNCwxMiArODE2LDggQEAgY29weV90b191c2VyKHZvaWQgX191
-c2VyICp0bywgY29uc3Qgdm9pZCAqZnJvbSwgdW5zaWduZWQgbG9uZyBuKQogI2RlZmluZSB1c2Vy
-X2FjY2Vzc19iZWdpbigpCV9fdWFjY2Vzc19iZWdpbigpCiAjZGVmaW5lIHVzZXJfYWNjZXNzX2Vu
-ZCgpCV9fdWFjY2Vzc19lbmQoKQogCi0jZGVmaW5lIHVuc2FmZV9wdXRfdXNlcih4LCBwdHIsIGVy
-cl9sYWJlbCkJCQkJCVwKLWRvIHsJCQkJCQkJCQkJXAotCWludCBfX3B1X2VycjsJCQkJCQkJCVwK
-LQlfX3B1dF91c2VyX3NpemUoKHgpLCAocHRyKSwgc2l6ZW9mKCoocHRyKSksIF9fcHVfZXJyLCAt
-RUZBVUxUKTsJCVwKLQlpZiAodW5saWtlbHkoX19wdV9lcnIpKSBnb3RvIGVycl9sYWJlbDsJCQkJ
-CVwKLX0gd2hpbGUgKDApCisjZGVmaW5lIHVuc2FmZV9wdXRfdXNlcih4LCBwdHIsIGxhYmVsKQlc
-CisJX19wdXRfdXNlcl9zaXplKCh4KSwgKHB0ciksIHNpemVvZigqKHB0cikpLCBsYWJlbCkKIAog
-I2RlZmluZSB1bnNhZmVfZ2V0X3VzZXIoeCwgcHRyLCBlcnJfbGFiZWwpCQkJCQlcCiBkbyB7CQkJ
-CQkJCQkJCVwKZGlmZiAtLWdpdCBhL2ZzL3JlYWRkaXIuYyBiL2ZzL3JlYWRkaXIuYwppbmRleCA5
-ZDAyMTJjMzc0ZDYuLjAzMzI0ZjU0YzBlOSAxMDA2NDQKLS0tIGEvZnMvcmVhZGRpci5jCisrKyBi
-L2ZzL3JlYWRkaXIuYwpAQCAtMTg0LDI1ICsxODQsMjcgQEAgc3RhdGljIGludCBmaWxsZGlyKHN0
-cnVjdCBkaXJfY29udGV4dCAqY3R4LCBjb25zdCBjaGFyICpuYW1lLCBpbnQgbmFtbGVuLAogCWlm
-IChkaXJlbnQpIHsKIAkJaWYgKHNpZ25hbF9wZW5kaW5nKGN1cnJlbnQpKQogCQkJcmV0dXJuIC1F
-SU5UUjsKLQkJaWYgKF9fcHV0X3VzZXIob2Zmc2V0LCAmZGlyZW50LT5kX29mZikpCi0JCQlnb3Rv
-IGVmYXVsdDsKIAl9CisKKwl1c2VyX2FjY2Vzc19iZWdpbigpOworCWlmIChkaXJlbnQpCisJCXVu
-c2FmZV9wdXRfdXNlcihvZmZzZXQsICZkaXJlbnQtPmRfb2ZmLCBlZmF1bHRfZW5kKTsKIAlkaXJl
-bnQgPSBidWYtPmN1cnJlbnRfZGlyOwotCWlmIChfX3B1dF91c2VyKGRfaW5vLCAmZGlyZW50LT5k
-X2lubykpCi0JCWdvdG8gZWZhdWx0OwotCWlmIChfX3B1dF91c2VyKHJlY2xlbiwgJmRpcmVudC0+
-ZF9yZWNsZW4pKQotCQlnb3RvIGVmYXVsdDsKKwl1bnNhZmVfcHV0X3VzZXIoZF9pbm8sICZkaXJl
-bnQtPmRfaW5vLCBlZmF1bHRfZW5kKTsKKwl1bnNhZmVfcHV0X3VzZXIocmVjbGVuLCAmZGlyZW50
-LT5kX3JlY2xlbiwgZWZhdWx0X2VuZCk7CisJdW5zYWZlX3B1dF91c2VyKDAsIGRpcmVudC0+ZF9u
-YW1lICsgbmFtbGVuLCBlZmF1bHRfZW5kKTsKKwl1bnNhZmVfcHV0X3VzZXIoZF90eXBlLCAoY2hh
-ciBfX3VzZXIgKikgZGlyZW50ICsgcmVjbGVuIC0gMSwgZWZhdWx0X2VuZCk7CisJdXNlcl9hY2Nl
-c3NfZW5kKCk7CisKIAlpZiAoY29weV90b191c2VyKGRpcmVudC0+ZF9uYW1lLCBuYW1lLCBuYW1s
-ZW4pKQogCQlnb3RvIGVmYXVsdDsKLQlpZiAoX19wdXRfdXNlcigwLCBkaXJlbnQtPmRfbmFtZSAr
-IG5hbWxlbikpCi0JCWdvdG8gZWZhdWx0OwotCWlmIChfX3B1dF91c2VyKGRfdHlwZSwgKGNoYXIg
-X191c2VyICopIGRpcmVudCArIHJlY2xlbiAtIDEpKQotCQlnb3RvIGVmYXVsdDsKIAlidWYtPnBy
-ZXZpb3VzID0gZGlyZW50OwogCWRpcmVudCA9ICh2b2lkIF9fdXNlciAqKWRpcmVudCArIHJlY2xl
-bjsKIAlidWYtPmN1cnJlbnRfZGlyID0gZGlyZW50OwogCWJ1Zi0+Y291bnQgLT0gcmVjbGVuOwog
-CXJldHVybiAwOworZWZhdWx0X2VuZDoKKwl1c2VyX2FjY2Vzc19lbmQoKTsKIGVmYXVsdDoKIAli
-dWYtPmVycm9yID0gLUVGQVVMVDsKIAlyZXR1cm4gLUVGQVVMVDsK
---001a1137372436b74f053a893ca0--
+with uaccess_begin() along the lines of
+	p = &current_thread_info()->foo;
+	asm
+		.text:
+			STAC
+			*p = 1f
+			res = true;
+			2:;
+		.fixups:
+			1:res = false;
+			CLAC
+			jmp 2;
+	if (unlikely(res))
+		asm
+			clobber everything
+	res;
+and exception handlers in unsafe_... jumping to the address found
+in current_thread_info()->foo.  AFAICS, it should avoid the problems
+with asm goto, right?  The branch target is tied to the entry into the
+damn series, so it's not as if it could disappear; and path to a branch
+cc(1) doesn't see passes through the chunk produced by that asm block
+in uaccess_begin(), so if it looks unreachable without taking those branches
+into account, it _is_ unreachable.
