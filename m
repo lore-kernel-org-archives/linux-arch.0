@@ -1,408 +1,145 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v2 20/20] x86: Add support to make use of Secure Memory
- Encryption
-Date: Mon, 22 Aug 2016 17:39:08 -0500
-Message-ID: <20160822223908.29880.50365.stgit@tlendack-t1.amdoffice.net>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v4 00/16] linux: generalize sections,
+ ranges and linker tables
+Date: Tue, 23 Aug 2016 01:06:38 +0200
+Message-ID: <20160822230638.GS3296@wotan.suse.de>
+References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
+ <CAGXu5j+_9374X7hCRn5MYTSph0BVuLndmVb4GJF6MXOt+faG1A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek
- Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy
- Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+_9374X7hCRn5MYTSph0BVuLndmVb4GJF6MXOt+faG1A@mail.gmail.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the support to check if SME has been enabled and if the
-mem_encrypt=on command line option is set. If both of these conditions
-are true, then the encryption mask is set and the kernel is encrypted
-"in place."
-
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- Documentation/kernel-parameters.txt |    3 
- arch/x86/kernel/asm-offsets.c       |    2 
- arch/x86/kernel/mem_encrypt.S       |  302 +++++++++++++++++++++++++++++++++++
- arch/x86/mm/mem_encrypt.c           |    2 
- 4 files changed, 309 insertions(+)
-
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 46c030a..a1986c8 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -2268,6 +2268,9 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 			memory contents and reserves bad memory
- 			regions that are detected.
- 
-+	mem_encrypt=on	[X86_64] Enable memory encryption on processors
-+			that support this feature.
-+
- 	meye.*=		[HW] Set MotionEye Camera parameters
- 			See Documentation/video4linux/meye.txt.
- 
-diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
-index 2bd5c6f..e485ada 100644
---- a/arch/x86/kernel/asm-offsets.c
-+++ b/arch/x86/kernel/asm-offsets.c
-@@ -85,6 +85,8 @@ void common(void) {
- 	OFFSET(BP_init_size, boot_params, hdr.init_size);
- 	OFFSET(BP_pref_address, boot_params, hdr.pref_address);
- 	OFFSET(BP_code32_start, boot_params, hdr.code32_start);
-+	OFFSET(BP_cmd_line_ptr, boot_params, hdr.cmd_line_ptr);
-+	OFFSET(BP_ext_cmd_line_ptr, boot_params, ext_cmd_line_ptr);
- 
- 	BLANK();
- 	DEFINE(PTREGS_SIZE, sizeof(struct pt_regs));
-diff --git a/arch/x86/kernel/mem_encrypt.S b/arch/x86/kernel/mem_encrypt.S
-index f2e0536..bf9f6a9 100644
---- a/arch/x86/kernel/mem_encrypt.S
-+++ b/arch/x86/kernel/mem_encrypt.S
-@@ -12,13 +12,230 @@
- 
- #include <linux/linkage.h>
- 
-+#include <asm/processor-flags.h>
-+#include <asm/pgtable.h>
-+#include <asm/page.h>
-+#include <asm/msr.h>
-+#include <asm/asm-offsets.h>
-+
- 	.text
- 	.code64
- ENTRY(sme_enable)
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+	/* Check for AMD processor */
-+	xorl	%eax, %eax
-+	cpuid
-+	cmpl    $0x68747541, %ebx	# AuthenticAMD
-+	jne     .Lmem_encrypt_exit
-+	cmpl    $0x69746e65, %edx
-+	jne     .Lmem_encrypt_exit
-+	cmpl    $0x444d4163, %ecx
-+	jne     .Lmem_encrypt_exit
-+
-+	/* Check for memory encryption leaf */
-+	movl	$0x80000000, %eax
-+	cpuid
-+	cmpl	$0x8000001f, %eax
-+	jb	.Lmem_encrypt_exit
-+
-+	/*
-+	 * Check for memory encryption feature:
-+	 *   CPUID Fn8000_001F[EAX] - Bit 0
-+	 *     Secure Memory Encryption support
-+	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-+	 *     Pagetable bit position used to indicate encryption
-+	 *   CPUID Fn8000_001F[EBX] - Bits 11:6
-+	 *     Reduction in physical address space (in bits) when enabled
-+	 */
-+	movl	$0x8000001f, %eax
-+	cpuid
-+	bt	$0, %eax
-+	jnc	.Lmem_encrypt_exit
-+
-+	/* Check if BIOS/UEFI has allowed memory encryption */
-+	movl	$MSR_K8_SYSCFG, %ecx
-+	rdmsr
-+	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-+	jnc	.Lmem_encrypt_exit
-+
-+	/* Check for the mem_encrypt=on command line option */
-+	push	%rsi			/* Save RSI (real_mode_data) */
-+	push	%rbx			/* Save CPUID information */
-+	movl	BP_ext_cmd_line_ptr(%rsi), %ecx
-+	shlq	$32, %rcx
-+	movl	BP_cmd_line_ptr(%rsi), %edi
-+	addq	%rcx, %rdi
-+	leaq	mem_encrypt_enable_option(%rip), %rsi
-+	call	cmdline_find_option_bool
-+	pop	%rbx			/* Restore CPUID information */
-+	pop	%rsi			/* Restore RSI (real_mode_data) */
-+	testl	%eax, %eax
-+	jz	.Lno_mem_encrypt
-+
-+	/* Set memory encryption mask */
-+	movl	%ebx, %ecx
-+	andl	$0x3f, %ecx
-+	bts	%ecx, sme_me_mask(%rip)
-+
-+.Lno_mem_encrypt:
-+	/*
-+	 * BIOS/UEFI has allowed memory encryption so we need to set
-+	 * the amount of physical address space reduction even if
-+	 * the user decides not to use memory encryption.
-+	 */
-+	movl	%ebx, %ecx
-+	shrl	$6, %ecx
-+	andl	$0x3f, %ecx
-+	movb	%cl, sme_me_loss(%rip)
-+
-+.Lmem_encrypt_exit:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	ret
- ENDPROC(sme_enable)
- 
- ENTRY(sme_encrypt_kernel)
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+	/* If SME is not active then no need to encrypt the kernel */
-+	cmpq	$0, sme_me_mask(%rip)
-+	jz	.Lencrypt_exit
-+
-+	/*
-+	 * Encrypt the kernel.
-+	 * Pagetables for performing kernel encryption:
-+	 *   0x0000000000 - 0x00FFFFFFFF will map just the memory occupied by
-+	 *				 the kernel as encrypted memory
-+	 *   0x8000000000 - 0x80FFFFFFFF will map all memory as write-protected,
-+	 *				 non-encrypted
-+	 *
-+	 * The use of write-protected memory will prevent any of the
-+	 * non-encrypted memory from being cached.
-+	 *
-+	 * 0x00... and 0x80... represent the first and second PGD entries.
-+	 *
-+	 * This collection of entries will be created in an area outside
-+	 * of the area that is being encrypted (outside the kernel) and
-+	 * requires 11 4K pages:
-+	 *   1 - PGD
-+	 *   2 - PUDs (1 for each mapping)
-+	 *   8 - PMDs (4 for each mapping)
-+	 */
-+	leaq	_end(%rip), %rdi
-+	addq	$~PMD_PAGE_MASK, %rdi
-+	andq	$PMD_PAGE_MASK, %rdi	/* RDI points to the new PGD */
-+
-+	/* Clear the pagetable memory */
-+	movq	%rdi, %rbx		/* Save pointer to PGD */
-+	movl	$(4096 * 11), %ecx
-+	xorl	%eax, %eax
-+	rep	stosb
-+	movq	%rbx, %rdi		/* Restore pointer to PGD */
-+
-+	/* Set up PGD entries for the two mappings */
-+	leaq	(0x1000 + 0x03)(%rdi), %rbx	/* PUD for encrypted kernel */
-+	movq	%rbx, (%rdi)
-+	leaq	(0x2000 + 0x03)(%rdi), %rbx	/* PUD for unencrypted kernel */
-+	movq	%rbx, 8(%rdi)
-+
-+	/* Set up PUD entries (4 per mapping) for the two mappings */
-+	leaq	(0x3000 + 0x03)(%rdi), %rbx	/* PMD for encrypted kernel */
-+	leaq	(0x7000 + 0x03)(%rdi), %rdx	/* PMD for unencrypted kernel */
-+	xorq	%rcx, %rcx
-+1:
-+	/* Populate the PUD entries in each mapping */
-+	movq	%rbx, 0x1000(%rdi, %rcx, 8)
-+	movq	%rdx, 0x2000(%rdi, %rcx, 8)
-+	addq	$0x1000, %rbx
-+	addq	$0x1000, %rdx
-+	incq	%rcx
-+	cmpq	$4, %rcx
-+	jb	1b
-+
-+	/*
-+	 * Set up PMD entries (4GB worth) for the two mappings.
-+	 *   For the encrypted kernel mapping, when R11 is above RDX
-+	 *   and below RDI then we know we are in the kernel and we
-+	 *   set the encryption mask for that PMD entry.
-+	 *
-+	 *   The use of _PAGE_PAT and _PAGE_PWT will provide for the
-+	 *   write-protected mapping.
-+	 */
-+	movq	sme_me_mask(%rip), %r10
-+	movq	$__PAGE_KERNEL_LARGE_EXEC, %r11
-+	andq	$~_PAGE_GLOBAL, %r11
-+	movq	%r11, %r12
-+	andq	$~_PAGE_CACHE_MASK, %r12
-+	orq	$(_PAGE_PAT | _PAGE_PWT), %r12	/* PA5 index */
-+	xorq	%rcx, %rcx
-+	leaq	_text(%rip), %rdx	/* RDX points to start of kernel */
-+1:
-+	/* Populate the PMD entries in each mapping */
-+	movq	%r11, 0x3000(%rdi, %rcx, 8)
-+	movq	%r12, 0x7000(%rdi, %rcx, 8)
-+
-+	/*
-+	 * Check if we are in the kernel range, and if so, set the
-+	 * memory encryption mask.
-+	 */
-+	cmpq	%r11, %rdx
-+	jae	2f
-+	cmpq	%r11, %rdi
-+	jbe	2f
-+	orq	%r10, 0x3000(%rdi, %rcx, 8)
-+2:
-+	addq	$PMD_SIZE, %r11
-+	addq	$PMD_SIZE, %r12
-+	incq	%rcx
-+	cmpq	$2048, %rcx
-+	jb	1b
-+
-+	/*
-+	 * Set up a one page stack in the non-encrypted memory area.
-+	 *   Set RAX to point to the next page in memory after all the
-+	 *   page tables. The stack grows from the bottom so point to
-+	 *   the end of the page.
-+	 */
-+	leaq	(4096 * 11)(%rdi), %rax
-+	addq	$PAGE_SIZE, %rax
-+	movq	%rsp, %rbp
-+	movq	%rax, %rsp
-+	push	%rbp			/* Save original stack pointer */
-+
-+	push	%rsi			/* Save RSI (real mode data) */
-+
-+	/*
-+	 * Copy encryption routine into safe memory
-+	 *   - RAX points to the page after all the page tables and stack
-+	 *     where the routine will copied
-+	 *   - RDI points to the PGD table
-+	 *   - Setup registers for call
-+	 * and then call it
-+	 */
-+	movq	%rdi, %rbx
-+
-+	leaq	.Lencrypt_start(%rip), %rsi
-+	movq	%rax, %rdi
-+	movq	$(.Lencrypt_stop - .Lencrypt_start), %rcx
-+	rep	movsb
-+
-+	leaq	_text(%rip), %rsi	/* Kernel start */
-+	movq	%rbx, %rcx		/* New PGD start */
-+	subq	%rsi, %rcx		/* Size of area to encrypt */
-+
-+	movq	%rsi, %rdi		/* Encrypted kernel space start */
-+	movq	$1, %rsi
-+	shlq	$PGDIR_SHIFT, %rsi
-+	addq	%rdi, %rsi		/* Non-encrypted kernel start */
-+
-+	/* Call the encryption routine */
-+	call	*%rax
-+
-+	pop	%rsi			/* Restore RSI (real mode data ) */
-+
-+	pop	%rsp			/* Restore original stack pointer */
-+.Lencrypt_exit:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	ret
- ENDPROC(sme_encrypt_kernel)
- 
-@@ -28,6 +245,87 @@ ENTRY(sme_get_me_loss)
- 	ret
- ENDPROC(sme_get_me_loss)
- 
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+/*
-+ * Routine used to encrypt kernel.
-+ *   This routine must be run outside of the kernel proper since
-+ *   the kernel will be encrypted during the process. So this
-+ *   routine is defined here and then copied to an area outside
-+ *   of the kernel where it will remain and run un-encrypted
-+ *   during execution.
-+ *
-+ *   On entry the registers must be:
-+ *   - RAX points to this routine
-+ *   - RBX points to new PGD to use
-+ *   - RCX contains the kernel length
-+ *   - RSI points to the non-encrypted kernel space
-+ *   - RDI points to the encrypted kernel space
-+ *
-+ * The kernel will be encrypted by copying from the non-encrypted
-+ * kernel space to a temporary buffer and then copying from the
-+ * temporary buffer back to the encrypted kernel space. The physical
-+ * addresses of the two kernel space mappings are the same which
-+ * results in the kernel being encrypted "in place".
-+ */
-+.Lencrypt_start:
-+	/* Enable the new page tables */
-+	mov	%rbx, %cr3
-+
-+	/* Flush any global TLBs */
-+	mov	%cr4, %rbx
-+	andq	$~X86_CR4_PGE, %rbx
-+	mov	%rbx, %cr4
-+	orq	$X86_CR4_PGE, %rbx
-+	mov	%rbx, %cr4
-+
-+	/* Set the PAT register PA5 entry to write-protect */
-+	push	%rax
-+	push	%rcx
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	push	%rdx			/* Save original PAT value */
-+	andl	$0xffff00ff, %edx	/* Clear PA5 */
-+	orl	$0x00000500, %edx	/* Set PA5 to WP */
-+	wrmsr
-+	pop	%rdx			/* RDX contains original PAT value */
-+	pop	%rcx
-+	pop	%rax
-+
-+	movq	%rsi, %r10		/* Save source address */
-+	movq	%rdi, %r11		/* Save destination address */
-+	movq	%rcx, %r12		/* Save length */
-+	addq	$PAGE_SIZE, %rax	/* RAX now points to temp copy page */
-+
-+	wbinvd				/* Invalidate any cache entries */
-+
-+	/* Copy/encrypt 2MB at a time */
-+1:
-+	movq	%r10, %rsi
-+	movq	%rax, %rdi
-+	movq	$PMD_PAGE_SIZE, %rcx
-+	rep	movsb
-+
-+	movq	%rax, %rsi
-+	movq	%r11, %rdi
-+	movq	$PMD_PAGE_SIZE, %rcx
-+	rep	movsb
-+
-+	addq	$PMD_PAGE_SIZE, %r10
-+	addq	$PMD_PAGE_SIZE, %r11
-+	subq	$PMD_PAGE_SIZE, %r12
-+	jnz	1b
-+
-+	/* Restore PAT register */
-+	push	%rdx
-+	movl	$MSR_IA32_CR_PAT, %ecx
-+	rdmsr
-+	pop	%rdx
-+	wrmsr
-+
-+	ret
-+.Lencrypt_stop:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	.data
- 	.align 16
- ENTRY(sme_me_mask)
-@@ -35,3 +333,7 @@ ENTRY(sme_me_mask)
- sme_me_loss:
- 	.byte	0x00
- 	.align	8
-+
-+mem_encrypt_enable_option:
-+	.asciz "mem_encrypt=on"
-+	.align	8
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 2f28d87..1154353 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -183,6 +183,8 @@ void __init mem_encrypt_init(void)
- 
- 	/* Make SWIOTLB use an unencrypted DMA area */
- 	swiotlb_clear_encryption();
-+
-+	pr_info("memory encryption active\n");
- }
- 
- unsigned long amd_iommu_get_me_mask(void)
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+T24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDM6Mjk6MjRQTSAtMDcwMCwgS2VlcyBDb29rIHdyb3Rl
+Ogo+IE9uIEZyaSwgQXVnIDE5LCAyMDE2IGF0IDI6MzIgUE0sICA8bWNncm9mQGtlcm5lbC5vcmc+
+IHdyb3RlOgo+ID4gRnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+
+Cj4gPgo+ID4gVGhpcyB2NCBhZGRyZXNzZXMgZmVlZGJhY2sgZnJvbSB0aGUgcHJldmlvdXMgdjMg
+c2VyaWVzIFswXSwgYW5kIGFsc28KPiA+IGFkZHJlc3NlcyBhIGh1Z2UgYXJyYXkgb2YgYWRkaXRp
+b25hbCB0ZXN0cyBhZ2FpbnN0IG1hbnkgYXJjaGl0ZWN0dXJlcwo+ID4gb3V0c2lkZSBvZiB3aGF0
+IDAtZGF5IHByb3ZpZGVzLiBBcyBJIG1lbnRpb25lZCBpbiBteSBsYXN0IHYzIHNlcmllcywKPiA+
+IDAtZGF5IGhhZCBvbmx5IGZvdW5kIG9uZSBpc3N1ZSB3aXRoIHRoZSBzZXJpZXMsIGEgYmxhY2tm
+aW4gYXJjaGl0ZWN0dXJlCj4gPiBsaW5rZXIgaXNzdWUgd2l0aCB0aGUgbGFzdCBzZXJpZXMuIEd1
+ZW50ZXIgUm9jayB3YXMga2luZCBlbm91Z2ggdG8gZ2l2ZQo+ID4gbXkgc2VyaWVzIGEgdGVzdCBz
+cGluIG9uIGhpcyB0ZXN0IGJlZCBhbmQgaGUgZm91bmQgcXVpdGUgYSBiaXQgb2Ygb3RoZXIKPiA+
+IG9kZGJhbGwgaXNzdWVzIHdpdGggb2JzY3VyZSBhcmNoaXRlY3R1cmVzLCBhbmQgZXZlbiBvbiB4
+ODYgd2l0aCBhbiBvbGQKPiA+IHRvb2xjaGFpbi4gQWZ0ZXIgYSBsb3Qgb2Ygd29yayBhbmQgY29v
+cmRpbmF0aW5nIHdpdGggYSBmZXcgbWFpbnRhaW5lcnMKPiA+IEknbSBoYXBweSB0byByZXBvcnQg
+YWxsIGlzc3VlcyBmb3VuZCBzbyBmYXIgdGhyb3VnaCBhbGwgcG9zc2libGUgdGVzdGluZwo+ID4g
+SSBjb3VsZCBkbyBhcmUgbm93IGZpeGVkLCB0aGlzIHNlcmllcyBhbHNvIGFkZHJlc3NlcyBhbGwg
+ZmVlZGJhY2sgZnJvbQo+ID4gdGhlIGxhc3Qgc2VyaWVzLCBhcyBzdWNoIHRoaXMgZ29lcyBzdWJt
+aXR0ZWQgYXMgUEFUQ0ggZm9ybS4KPiA+Cj4gPiBJbiBhZGRyZXNzaW5nIGZpeGluZyB0aGlzIHdv
+cmsgb24gYSBmZXcgYXJjaGl0ZWN0dXJlcyBzb21lIG9mIHRoZSBwcmV2aW91cwo+ID4gcGF0Y2hl
+cyBhcmUgZnVydGhlciBzaW1wbGlmaWVkLiBUaGUga3Byb2JlcyBwb3J0IHRvIGxpbmtlciB0YWJs
+ZXMgaXMgbWFkZQo+ID4gbXVjaCBlYXNpZXIgbm93IHRoYXQgSSd2ZSBhZGRyZXNzZWQgbW92aW5n
+IG91dCBjb3JlIGtwcm9iZSBkZWNsYXJhdGlvbnMKPiA+IGludG8gYXNtLWdlbmVyaWMva3Byb2Jl
+cy5oLiBSZWZlciB0byB0aGUgcGF0Y2ggImtwcm9iZXM6IG1vdmUga3Byb2JlCj4gPiBkZWNsYXJh
+dGlvbnMgdG8gYXNtLWdlbmVyaWMva3Byb2Jlcy5oIi4gVGhpcyBtYWtlcyBmb3IgYSBtdWNoIGNs
+ZWFuZXIKPiA+IHNvbHV0aW9uIGFjcm9zcyBhcmNoaXRlY3R1cmVzLgo+ID4KPiA+IEJvcmlzIGZl
+ZWRiYWNrIG9uIG1ha2luZyB0aGUgY29kZSBiaXQgcm90IGZlYXR1cmUgb3B0aW9uYWwgaXMgYWRk
+cmVzc2VkCj4gPiBieSB1c2luZyBhIG5ldyBLY29uZmlnIHN5bWJvbCBmb3IgdGhpcywgQ09ORklH
+X0JVSUxEX0FWT0lEX0JJVFJPVCwKPiA+IGJ1dCBnaXZlbiBHcmVnJ3MgY29uY2VybnMgb3ZlciBs
+YWNrIG9mIGNsYXJpdHkgb3ZlciB3aGF0IHRoaXMgd2FzIGFsbCBhYm91dAo+ID4gSSd2ZSByaXBw
+ZWQgdGhhdCBmdW5jdGlvbmFsaXR5IG91dCBpbnRvIGl0cyBvd24gcGF0Y2ggd2l0aCBhIGJpdCBt
+b3JlCj4gPiBleHRlbnNpdmUgZG9jdW1lbnRhdGlvbiBhbmQgcmUtd29yZGluZy4gU2VlIHRoZSBw
+YXRjaCAia2J1aWxkOiBlbmFibGUgb3B0aW9uCj4gPiB0byBmb3JjZSBjb21waWxlIGZvcmNlLW9i
+ai15IGFuZCBmb3JjZS1saWIteSIuIEkgaG9wZSBtYWtlcyBpdCBjbGVhciBob3cKPiA+IGxpbmtl
+ciB0YWJsZXMgY2FuIGhlbHAgd2l0aCBhdm9pZGluZyBjb2RlIGJpdCByb3QuIEkndmUgZ29uZSB3
+aXRoIGEgbmV3Cj4gPiBLY29uZmlnIHN5bWJvbCBDT05GSUdfQlVJTERfQVZPSURfQklUUk9UIGdp
+dmVuIENPTkZJR19DT01QSUxFX1RFU1QgaXMKPiA+IG5vdCBhdmFpbGFibGUgb24gVU1MLCB0aGlz
+IGZlYXR1cmUgaXMgZGVzaXJhYmxlIG9uIGFsbCBhcmNoaXRlY3R1cmVzLgo+ID4KPiA+IFRoZSBk
+b2N1bWVudGF0aW9uIGlzIHJldmFtcGVkLCBub3cgdGhhdCB0aGUgRG9jQm9vayBmb3JtYXQgaXMg
+ZGVwcmVjYXRlZAo+ID4gSSBwb3J0ZWQgdGhlIGRvY3VtZW50aW9uIGludG8gdGhlIHRyZW5keSBo
+aXBzdGVyIFNwaGlueCBkb2N1bWVudGF0aW9uCj4gPiBmb3JtYXQuCj4gPgo+ID4gQVQgQm9yaXMn
+IHJlcXVlc3QgSSd2ZSBhZGFwYXRlZCB0aGUgdXNlcnNwYWNlIGxpbmtlciB0YWJsZSBhcHBsaWNh
+dGlvbgo+ID4gZm9yaW50ZWdyYXRpb24gaW50byB0aGUga2VybmVsIHVuZGVyIHRvb2xzLyB0byBt
+YWtlIGl0IGVhc2llciB0byBrZWVwCj4gPiB0aGluZ3MgaW4gc3luYywgaG93ZXZlciBzaW5jZSB0
+aGlzIHJlcXVpcmVzIGEgYml0IG9mIGNoYW5nZXMgdG8gc29tZSBoZWFkZXJzCj4gPiBpbiB0b29s
+cy8gSSdsbCBzdWJtaXQgdGhhdCBzZXBhcmF0ZWx5Lgo+ID4KPiA+IFswXSBodHRwczovL2xrbWwu
+a2VybmVsLm9yZy9yLzE0NjkyMjI2ODctMTYwMC0xLWdpdC1zZW5kLWVtYWlsLW1jZ3JvZkBrZXJu
+ZWwub3JnCj4gPgo+ID4gSWYgeW91J2QgbGlrZSB0aGlzIGluIGdpdC1mb3JtLCB5b3UgY2FuIGdl
+dCBpdCBvbiB0aGUgMjAxNjA4MTktbGlua2VyLXRhYmxlLXY0Cj4gPiBicmFuY2ggb2YgbXkgbGlu
+dXgtbmV4dCB0cmVlIG9uIGtlcm5lbC5vcmcsIHRoaXMgYWxzbyBpbmNsdWRlcyB0aGUgc2VyaWVz
+IG9mCj4gPiB0aGUgbGlua2VyIHRhYmxlIHVzZXJzcGFjZSBzYW5kYm94Ogo+ID4KPiA+IGh0dHBz
+Oi8vZ2l0Lmtlcm5lbC5vcmcvY2dpdC9saW51eC9rZXJuZWwvZ2l0L21jZ3JvZi9saW51eC1uZXh0
+LmdpdC9sb2cvP2g9MjAxNjA4MTktbGlua2VyLXRhYmxlLXY0Cj4gPgo+ID4gUGxlYXNlIGxldCBt
+ZSBrbm93IGlmIHRoZXJlIGFyZSBhbnkgY29uY2VybnMgb3IgcXVlc3Rpb25zLgo+IAo+IFRoYW5r
+cyBmb3IgdGhlIGRvY3VtZW50YXRpb24gYW5kIGV4YW1wbGVzIG9uIHRoaXMgZmVhdHVyZTsgSSBh
+cHByZWNpYXRlIGl0ISA6KQo+IAo+IFdoaWxlIGl0IHNlZW1zIGxpa2UgYWxsIHRoZSBzZWN0aW9u
+IGRlY2xhcmF0aW9ucyB3b3JrIGluIHRoaXMgc2VyaWVzCj4gaXMgZGVzaWduZWQgZm9yIGFzc2Vt
+YmxlciBzb3VyY2UsIEknbSBjdXJpb3VzIGlmIEkndmUgbWlzc2VkIGEgd2F5IHRvCj4gZG8gdGhp
+cyBpbiAuYyBzb3VyY2UgdG9vLgoKQWN0dWFsbHksIHRoZSB3aG9sZSBwb2ludCB0byB0aGlzIG9y
+aWdpbmFsbHkgd2FzIHRvIHByb3ZpZGUgaGVscGVycyB0bwpvbmx5IGRvIHRoaXMgaW4gLmMgc291
+cmNlIGNvZGUgLS0gdGhlIGZhY3QgdGhhdCB0aGVyZSBhcmUgYSBmZXcgYXNtIGhlbHBlcnMKbm93
+IGlzIGFuIGFmdGVyIHRob3VnaHQgdG8gcHJvdmlkZSBwYXJpdHkgb2YgZnVuY3Rpb25hbGl0eSB0
+byBhc20gY29kZSB0byBkbwp0aGUgZXhhY3Qgc2FtZSB0aGluZy4gVGhlIHNhbWUgbWFjcm9zIHBy
+b3ZpZGUgdGhlIHNhbWUgZnVuY3Rpb25hbGl0eSBpbgpib3RoIEMgYW5kIGFzbSBjb2RlIHRoZW4g
+YW5kIGlmIHRoZXJlIGlzIHNvbWUgZnVuY3Rpb25hbGl0eSBsYWNraW5nIGl0IG1heQpmb3Igbm93
+IGp1c3QgYmUgb24gdGhlIGFzbSBzaWRlLgoKU28gZm9yIGluc3RhbmNlIHdlIGhhdmUgREVDTEFS
+RV9TRUNUSU9OX1JBTkdFKCkgYW5kIHRoYXQgZXhpc3QgZm9yIEMgYW5kCmFzbSwgYnV0IERFQ0xB
+UkVfTElOS1RBQkxFKCkgaXMgY3VycmVudGx5IG9ubHkgaW1wbGVtZW50ZWQgZm9yIEMgY29kZSwK
+d2hlbiBhbmQgaWYgd2Ugd2FudCBpdCB3ZSBjYW4gYWRkIGl0LiBERUNMQVJFX1NFQ1RJT05fUkFO
+R0UoKSBoYXMgYSBkZW1vCnVzZSBpbiB0aGUgdXNlcnNwYWNlIGxpbmtlciB0YWJsZSBzYW5kYm94
+LgoKPiBJJ2QgbG92ZSB0byBhdm9pZCBkb2luZyB0aGUgY3JhenkgdGhpbmcgSSdtIGN1cnJlbnRs
+eSBkb2luZyBpbiBsa2R0bSAKPiB3aXRoIHNlY3Rpb24gbWFya2luZ3MuIE5hbWVseSwgSSB3YW50
+IHRvIHdyaXRlIGEgZnVuY3Rpb24gaW4gLmMgYW5kIGhhdmUgaXQKPiBtb3ZlZCBpbnRvIHRoZSAu
+cm9kYXRhIHNlY3Rpb24uIFRoZSBsaW5rZXJzIGdldCB2ZXJ5IHZlcnkgYW5ncnkgd2l0aCBtZSBh
+bmQgSQo+IGRvbid0IHNlZW0gdG8gYmUgYWJsZSB0byBvdmVycmlkZSB0aGUgcHJvZ2JpdHMgdG8g
+bG9zZSAieCIuIFJpZ2h0IG5vdyBJJ20KPiBkb2luZyBhbiBvYmpjb3B5IGluCj4gZHJpdmVycy9t
+aXNjL01ha2VmaWxlOgo+IAo+IE9CSkNPUFlGTEFHU19sa2R0bV9yb2RhdGFfb2JqY29weS5vIDo9
+IFwKPiAgICAgICAgICAgICAgICAgICAgICAgICAtLXNldC1zZWN0aW9uLWZsYWdzIC50ZXh0PWFs
+bG9jLHJlYWRvbmx5IFwKPiAgICAgICAgICAgICAgICAgICAgICAgICAtLXJlbmFtZS1zZWN0aW9u
+IC50ZXh0PS5yb2RhdGEKPiB0YXJnZXRzICs9IGxrZHRtX3JvZGF0YS5vIGxrZHRtX3JvZGF0YV9v
+Ympjb3B5Lm8KPiAkKG9iaikvbGtkdG1fcm9kYXRhX29iamNvcHkubzogJChvYmopL2xrZHRtX3Jv
+ZGF0YS5vIEZPUkNFCj4gICAgICAgICAkKGNhbGwgaWZfY2hhbmdlZCxvYmpjb3B5KQo+IAo+IFRo
+YW5rcyEKCkknZCBoYXZlIHRvIHRha2UgYSBjbG9zZXIgbG9vayBidXQgZnJvbSB3aGF0IHlvdSBk
+ZXNjcmliZSBpbmRlZWQgdGhpcyBpcwpzb21ldGhpbmcgdGhhdCBsaW5rZXIgdGFibGVzIGFuZCBz
+ZWN0aW9uIHJhbmdlcyBpcyBzdXBwb3NlZCB0byBoZWxwIHdpdGggLS0gYQpnZW5lcmljIEFQSSB0
+byBzZXQgc2VjdGlvbnMgaW4gYW4gYXJjaGl0ZWN0dXJlLWFnbm9zdGljIHdheS4gIElmIHlvdSBj
+YW4KY2xhc3NpZnkgeW91ciBmdW5jdGlvbnMgd2l0aCBzZWN0aW9uIHJhbmdlcyBvciBsaW5rZXIg
+dGFibGVzIHRoZW4geW91IHNob3VsZCBiZQpzZXQuIFRoZXkgZmxhZ3MgdXNlZCBpcyB3aGF0ZXZl
+ciB0aGUgYXJjaGl0ZWN0dXJlIGhhcyBkZWNpZGVkIHRvIHVzZSBmb3IgdGhlCnNlY3Rpb24gYXMg
+cGVyIHRoZSBsaW5rZXIgc2NyaXB0IGFuZCB3aGVyZSBlYWNoIHNlY3Rpb24gZmFsbHMgdW5kZXIu
+IElmIHlvdQpuZWVkIG1vcmUgc3BlY2lhbCB0d2Vha2luZyAoc2VlIGZsYWdzIGluIHB1c2hfc2Vj
+dGlvbl90YmwoKSkgdGhlbiBpbmRlZWQgc29tZQpuZXdlciBBUElzIG1pZ2h0IGJlIG5lZWRlZCBp
+biBDLCBhcyB0aGVzZSBmbGFncyB0d2Vha3MgYXJlIG9ubHkgcHJvdmlkZWQgZm9yCmFzbSByaWdo
+dCBub3cgYnV0IGl0J2QgYmUgZ29vZCB0byBrbm93IGlmIGp1c3QgdXNpbmcgdGhlIGV4aXN0aW5n
+IEFQSXMgd2l0aApkZWZhdWx0cyBmb3IgdGhlIHNlY3Rpb24geW91IG5lZWRzIGZvciBDIGNvZGUg
+d291bGQgbm90IHN1ZmZpY2UuCgpJZiBhbGwgeW91IGhhdmUgaXMgZnVuY3Rpb25zIHlvdSBjYW4g
+c3RpY2sgdG8gc2VjdGlvbiByYW5nZXMsIGlmIHRoZXNlCmZ1bmN0aW9ucyBhcmUgaW5zdGVhZCBw
+YXJ0IG9mIGEgbGFyZ2VyIGRhdGEgc3RydWN0dXJlIHlvdSBuZWVkIGxpbmtlcgp0YWJsZXMuIEl0
+IHNvdW5kcyBsaWtlIHlvdSBqdXN0IGhhdmUgZnVuY3Rpb25zLCBhbmQgZXZlbiBpZiB5b3UgbmVl
+ZGVkCnNvbWV0aGluZyBvdXRzaWRlIG9mIHdoYXQgaXMgcHJvdmlkZWQsIHNheSB0aGUgZmxhZ3Ms
+IHRoZW4gYWRkaW5nIGEgbmV3Cl9fTElOVVhfUkFOR0VfRkxBR1MoKSBjb3VsZCBiZSBhZGRlZCBl
+YXNpbHkgdGhhdCBhbHNvIGxldHMgeW91IHNwZWNpZnkKdGhlIGZsYWdzIHlvdSBuZWVkLgoKRm9y
+IGFuIGV4YW1wbGUgb2Ygc2VjdGlvbiByYW5nZSB1cyBrcHJvYmVzIHdhcyBwb3J0ZWQgb3ZlciBz
+byB3ZSBoYXZlCmZvciBpbnN0YW5jZToKCiMgZGVmaW5lIF9fa3Byb2JlcyAgICAgIF9fTElOVVhf
+UkFOR0UoU0VDVElPTl9URVhULCBrcHJvYmVzKQoKSWYgeW91IGhhZCBzb21ldGhpbmcgdGhhdCBu
+ZWVkZWQgY3VzdG9tIGZsYWdzIHlvdSBjb3VsZCBzZWUgaWYKYWRkaW5nIGEgX19MSU5VWF9SQU5H
+RV9GTEFHUygpIHdvdWxkIHN1ZmZpY2UsIGJ1dCBJJ2QgYmUgdmVyeQppbnRlcmVzdGVkIHRvIGtu
+b3cgaWYgdGhlIGRlZmF1bHRzIHVzZWQgYnkgdGhlIHNwZWNpZmllZCBzZWN0aW9uCmRvZXMgbm90
+IHN1ZmZpY2UuCgpBbHNvICB5b3VyIHVzZSBjYXNlIHNlZW1zIHRvIHJlcXVpcmUgYSBmdWxsIGZp
+bGUgc2V0IHRvIGEgc2VjdGlvbiB3aXRoIHNwZWNpZmljCmF0dHJpYnV0ZXMuIEFsdGhvdWdoIGZp
+cnN0IGluc3RpbmN0IG1pZ2h0IGJlIHRvIHVzZSBzZWN0aW9uIHJhbmdlcywgaWYgdGhlCnNlY3Rp
+b24gcmFuZ2UgYWNjZXNzZWQgc29tZSBnbG9iYWwgdmFyaWFibGUgb3IgZGF0YSBzdHJ1Y3R1cmUg
+aW4gdGhlIGZpbGUgdGhlcmUKbWF5IGJlIGFuIGlzc3VlLCBvciB5b3UnZCBoYXZlIHRvIHRoZSBh
+bHNvIHBlZyB0aGUgZGF0YSBpbnRvIGEgc2VjdGlvbi4gSWYgdGhpcwppcyBkb25lIGl0IG9jY3Vy
+cyB0byBtZSBhbiBhbHRlcm5hdGl2ZSBpcyB0byBqdXN0IHVzZSBhIGxhcmdlIGRhdGEgc3RydWN0
+dXJlCnRvIHJlcHJlc2VudCB0aGUgZnVsbCBvZiBmdW5jdGlvbnMgYW5kIGRhdGEsIHNvIHRvIHVz
+ZSBhIGxpbmtlciB0YWJsZSB0aGF0IHdheQp0aGUgYXNzb2NpYXRpb24gaXMgZG9uZSBpbiBvbmUg
+ZnVsbCBzd2luZyB3aXRoIHRoZSBkZWZpbml0aW9uIG9mIHRoZSB0YWJsZS4KClRoaXMgb2YgY291
+cnNlIGlzIGp1c3QgYXQgYSBjdXJzb3J5IHJldmlldy4KCiAgTHVpcwoKX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApY
+ZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRldmVsCg==
