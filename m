@@ -1,40 +1,59 @@
 From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v05 15/72] include/uapi/asm-generic/msgbuf.h: include asm/ipcbuf.h
-Date: Mon, 22 Aug 2016 20:32:32 +0200
-Message-ID: <1471890809-4383-16-git-send-email-mikko.rapeli@iki.fi>
+Subject: [PATCH v05 16/72] include/uapi/asm-generic/shmbuf.h: include fixes
+Date: Mon, 22 Aug 2016 20:32:33 +0200
+Message-ID: <1471890809-4383-17-git-send-email-mikko.rapeli@iki.fi>
 References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kapsi.fi ([217.30.184.167]:52733 "EHLO mail.kapsi.fi"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752927AbcHVSfq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 14:35:46 -0400
 In-Reply-To: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+
+Include linux/types.h and asm/msgbuf.h and use __kernel_size_t instead
+of size_t.
 
 Fixes userspace compilation errors like:
 
-error: field ‘msg_perm’ has incomplete type
-struct ipc64_perm msg_perm
+error: field ‘shm_perm’ has incomplete type
+struct ipc64_perm shm_perm; /* operation perms */
+error: unknown type name ‘size_t’
+error: unknown type name ‘__kernel_time_t’
 
 Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
 ---
- include/uapi/asm-generic/msgbuf.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/uapi/asm-generic/shmbuf.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
-index f55ecc4..f5fbd8e 100644
---- a/include/uapi/asm-generic/msgbuf.h
-+++ b/include/uapi/asm-generic/msgbuf.h
-@@ -2,6 +2,8 @@
- #define __ASM_GENERIC_MSGBUF_H
+diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
+index 7e9fb2f..ae867ad 100644
+--- a/include/uapi/asm-generic/shmbuf.h
++++ b/include/uapi/asm-generic/shmbuf.h
+@@ -1,7 +1,9 @@
+ #ifndef __ASM_GENERIC_SHMBUF_H
+ #define __ASM_GENERIC_SHMBUF_H
  
++#include <linux/types.h>
  #include <asm/bitsperlong.h>
-+#include <asm/ipcbuf.h>
-+
++#include <asm/msgbuf.h>
+ 
  /*
-  * generic msqid64_ds structure.
-  *
+  * The shmid64_ds structure for x86 architecture.
+@@ -24,7 +26,7 @@
+ 
+ struct shmid64_ds {
+ 	struct ipc64_perm	shm_perm;	/* operation perms */
+-	size_t			shm_segsz;	/* size of segment (bytes) */
++	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
+ 	__kernel_time_t		shm_atime;	/* last attach time */
+ #if __BITS_PER_LONG != 64
+ 	unsigned long		__unused1;
 -- 
 2.8.1
