@@ -1,61 +1,47 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Mon, 22 Aug 2016 16:12:50 -0700
-Message-ID: <20F4A326-4107-452C-AF84-385136D9501F@zytor.com>
-References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com> <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com> <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com> <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com> <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com> <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk> <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com> <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v4 04/16] generic-sections: add section core
+	helpers
+Date: Tue, 23 Aug 2016 01:13:03 +0200
+Message-ID: <20160822231303.GT3296@wotan.suse.de>
+References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
+ <1471642385-5629-5-git-send-email-mcgrof@kernel.org>
+ <CAGXu5jL4u13rR76y49qF=0cZMQW97Bg4apPXNFMAkGyzD2-a7Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:36614 "EHLO mail.zytor.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756623AbcHVXNF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 19:13:05 -0400
-In-Reply-To: <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jL4u13rR76y49qF=0cZMQW97Bg4apPXNFMAkGyzD2-a7Q@mail.gmail.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
+List-Id: linux-arch.vger.kernel.org
 
-On August 22, 2016 3:23:06 PM PDT, Linus Torvalds <torvalds@linux-foundation.org> wrote:
->On Sun, Aug 21, 2016 at 10:52 AM, Linus Torvalds
-><torvalds@linux-foundation.org> wrote:
->> On Sat, Aug 20, 2016 at 11:42 PM, Al Viro <viro@zeniv.linux.org.uk>
->wrote:
->>>
->>> It's not exactly setjmp/longjmp; what I had in mind was along the
->lines of
->>
->> That ends up having all the exact same issues as setjmp, and
->generally
->> you *do* want the compiler to know about it.
->
->So just in case you wanted to play around with it, here's a kernel
->implementation of 'setjmp/longjmp' for x86.
->
->It's very lightly tested (and I'll admit to editing it for some
->cleanups after that light testing), but it does look largely sane.
->
->The whole interface choice may be debatable: maybe it would be better
->to allocate the register buffer on the stack, and just hide a pointer
->to it in the task struct. Things like that could be changed fairly
->easily. But if you want to play around with this, this patch should
->get you started.
->
->Of course, you'd want to wrap things up somehow, and I would *not*
->want to see naked setjmp() calls in the kernel.
->
->And we'd need this for all other architectures too, but it's usually
->not hard to do. It needs to save all the callee-saved registers and
->the stack pointer and return address. That should generally be it.
->
->The 32-bit version has not been tested at all, but it compiled at some
->point, and the code looks mostly sane. The 64-bit code I actually had
->a stupid non-user-access test-case for.
->
->                Linus
-
-How about the gcc native __builtin_setjmp stuff which is supposedly better?
--- 
-Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
+T24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDI6NDc6NDhQTSAtMDcwMCwgS2VlcyBDb29rIHdyb3Rl
+Ogo+IE9uIEZyaSwgQXVnIDE5LCAyMDE2IGF0IDI6MzIgUE0sICA8bWNncm9mQGtlcm5lbC5vcmc+
+IHdyb3RlOgo+ID4gRnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+
+Cj4gPgo+ID4gK1NFQ1RJT05fUk9EQVRBCj4gPiArLS0tLS0tLS0tLS0tLS0KPiA+ICsuLiBrZXJu
+ZWwtZG9jOjogaW5jbHVkZS9hc20tZ2VuZXJpYy9zZWN0aW9uLWNvcmUuaAo+ID4gKyAgIDpkb2M6
+IFNFQ1RJT05fUk9EQVRBCj4gPiArCj4gPiArU0VDVElPTl9ST0RBVEEKPiAKPiBUeXBvOiBzaG91
+bGQgdGhpcyBiZSBjYWxsZWQgU0VDVElPTl9URVhUIGluc3RlYWQ/CgpGaXhlZCB0aGFua3MuCgo+
+ID4gKy0tLS0tLS0tLS0tLS0tCj4gPiArLi4ga2VybmVsLWRvYzo6IGluY2x1ZGUvYXNtLWdlbmVy
+aWMvc2VjdGlvbi1jb3JlLmgKPiA+ICsgICA6ZG9jOiBTRUNUSU9OX1RFWFQKPiA+ICsKPiA+ICtT
+RUNUSU9OX0RBVEEKPiA+ICstLS0tLS0tLS0tLS0KPiA+ICsuLiBrZXJuZWwtZG9jOjogaW5jbHVk
+ZS9hc20tZ2VuZXJpYy9zZWN0aW9uLWNvcmUuaAo+ID4gKyAgIDpkb2M6IFNFQ1RJT05fREFUQQo+
+IAo+IE1pc3NpbmcgZnJvbSB0aGlzIGxpc3QgYXJlIHRoaW5ncyBsaWtlIHRoZSBfX3JlYWRfbW9z
+dGx5Cj4gKCIuZGF0YS4ucmVhZF9tb3N0bHkiKSBhbmQgX19yb19hZnRlcl9pbml0ICgiLmRhdGEu
+LnJvX2FmdGVyX2luaXQiKQo+IHNlY3Rpb25zLiBTaG91bGQgdGhvc2UgYmUgaW5jbHVkZWQgdG9v
+LCBvciBhcmUgeW91IG9ubHkgZG9pbmcgdGhlICJ0b3AKPiBsZXZlbCIgc2VjdGlvbnM/CgpJJ20g
+ZG9pbmcgdG9wIGxldmVsIHJpZ2h0IG5vdyBqdXN0IHRvIHN0YXJ0IG9mZiBhbmQgZ2V0IHRoZQpi
+aWtlc2hlZGRpbmcgb3V0IG9mIHRoZSB3YXkuIFdlIGNhbiBhZGQgbW9yZSB3aXRoIG1vcmUgdGlt
+ZQpvciBhcyB3ZSBwb3J0IG1vcmUgdGhpbmdzIG9yIGFzIHRoZSBuZWVkIGFyaXNlcy4KCiAgTHVp
+cwoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRl
+dmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhl
+bi5vcmcveGVuLWRldmVsCg==
