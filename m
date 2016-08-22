@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0045.outbound.protection.outlook.com ([104.47.41.45]:39352
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0068.outbound.protection.outlook.com ([104.47.36.68]:55004
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932828AbcHVWyg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 18:54:36 -0400
+        id S1756288AbcHVWxi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 18:53:38 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v2 14/20] x86: DMA support for memory encryption
-Date: Mon, 22 Aug 2016 17:38:07 -0500
-Message-ID: <20160822223807.29880.69294.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v2 20/20] x86: Add support to make use of Secure Memory
+ Encryption
+Date: Mon, 22 Aug 2016 17:39:08 -0500
+Message-ID: <20160822223908.29880.50365.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,364 +18,390 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160822223807.Ow8CXwhvOT6U2OQOJMTYFDM0lr4TQcWWFo61oeFHJaE@z>
+Message-ID: <20160822223908.zRVszy4nPi97VTIrojqmZ0E6idjEWwqwfx7aUA2Apbs@z>
 
-Since DMA addresses will effectively look like 48-bit addresses when the
-memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
-device performing the DMA does not support 48-bits. SWIOTLB will be
-initialized to create un-encrypted bounce buffers for use by these devices.
+This patch adds the support to check if SME has been enabled and if the
+mem_encrypt=on command line option is set. If both of these conditions
+are true, then the encryption mask is set and the kernel is encrypted
+"in place."
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/dma-mapping.h |    5 ++-
- arch/x86/include/asm/mem_encrypt.h |    6 +++
- arch/x86/kernel/pci-dma.c          |   11 ++++--
- arch/x86/kernel/pci-nommu.c        |    2 +
- arch/x86/kernel/pci-swiotlb.c      |    8 +++--
- arch/x86/mm/mem_encrypt.c          |   22 ++++++++++++
- include/linux/swiotlb.h            |    1 +
- init/main.c                        |   13 +++++++
- lib/swiotlb.c                      |   64 ++++++++++++++++++++++++++++++++----
- 9 files changed, 115 insertions(+), 17 deletions(-)
+ Documentation/kernel-parameters.txt |    3 
+ arch/x86/kernel/asm-offsets.c       |    2 
+ arch/x86/kernel/mem_encrypt.S       |  302 +++++++++++++++++++++++++++++++++++
+ arch/x86/mm/mem_encrypt.c           |    2 
+ 4 files changed, 309 insertions(+)
 
-diff --git a/arch/x86/include/asm/dma-mapping.h b/arch/x86/include/asm/dma-mapping.h
-index 4446162..c9cdcae 100644
---- a/arch/x86/include/asm/dma-mapping.h
-+++ b/arch/x86/include/asm/dma-mapping.h
-@@ -12,6 +12,7 @@
- #include <asm/io.h>
- #include <asm/swiotlb.h>
- #include <linux/dma-contiguous.h>
-+#include <asm/mem_encrypt.h>
+diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+index 46c030a..a1986c8 100644
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -2268,6 +2268,9 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+ 			memory contents and reserves bad memory
+ 			regions that are detected.
  
- #ifdef CONFIG_ISA
- # define ISA_DMA_BIT_MASK DMA_BIT_MASK(24)
-@@ -69,12 +70,12 @@ static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- 
- static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
--	return paddr;
-+	return paddr | sme_me_mask;
- }
- 
- static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
- {
--	return daddr;
-+	return daddr & ~sme_me_mask;
- }
- #endif /* CONFIG_X86_DMA_REMAP */
- 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 5616ed1..384fdfb 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -33,6 +33,12 @@ void __init sme_early_mem_dec(resource_size_t paddr,
- 
- void __init sme_early_init(void);
- 
-+/* Architecture __weak replacement functions */
-+void __init mem_encrypt_init(void);
++	mem_encrypt=on	[X86_64] Enable memory encryption on processors
++			that support this feature.
 +
-+unsigned long swiotlb_get_me_mask(void);
-+void swiotlb_set_mem_dec(void *vaddr, unsigned long size);
+ 	meye.*=		[HW] Set MotionEye Camera parameters
+ 			See Documentation/video4linux/meye.txt.
+ 
+diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
+index 2bd5c6f..e485ada 100644
+--- a/arch/x86/kernel/asm-offsets.c
++++ b/arch/x86/kernel/asm-offsets.c
+@@ -85,6 +85,8 @@ void common(void) {
+ 	OFFSET(BP_init_size, boot_params, hdr.init_size);
+ 	OFFSET(BP_pref_address, boot_params, hdr.pref_address);
+ 	OFFSET(BP_code32_start, boot_params, hdr.code32_start);
++	OFFSET(BP_cmd_line_ptr, boot_params, hdr.cmd_line_ptr);
++	OFFSET(BP_ext_cmd_line_ptr, boot_params, ext_cmd_line_ptr);
+ 
+ 	BLANK();
+ 	DEFINE(PTREGS_SIZE, sizeof(struct pt_regs));
+diff --git a/arch/x86/kernel/mem_encrypt.S b/arch/x86/kernel/mem_encrypt.S
+index f2e0536..bf9f6a9 100644
+--- a/arch/x86/kernel/mem_encrypt.S
++++ b/arch/x86/kernel/mem_encrypt.S
+@@ -12,13 +12,230 @@
+ 
+ #include <linux/linkage.h>
+ 
++#include <asm/processor-flags.h>
++#include <asm/pgtable.h>
++#include <asm/page.h>
++#include <asm/msr.h>
++#include <asm/asm-offsets.h>
 +
- #define __sme_pa(x)		(__pa((x)) | sme_me_mask)
- #define __sme_pa_nodebug(x)	(__pa_nodebug((x)) | sme_me_mask)
- 
-diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-index d30c377..0ce28df 100644
---- a/arch/x86/kernel/pci-dma.c
-+++ b/arch/x86/kernel/pci-dma.c
-@@ -92,9 +92,12 @@ again:
- 	/* CMA can be used only in the context which permits sleeping */
- 	if (gfpflags_allow_blocking(flag)) {
- 		page = dma_alloc_from_contiguous(dev, count, get_order(size));
--		if (page && page_to_phys(page) + size > dma_mask) {
--			dma_release_from_contiguous(dev, page, count);
--			page = NULL;
-+		if (page) {
-+			addr = phys_to_dma(dev, page_to_phys(page));
-+			if (addr + size > dma_mask) {
-+				dma_release_from_contiguous(dev, page, count);
-+				page = NULL;
-+			}
- 		}
- 	}
- 	/* fallback */
-@@ -103,7 +106,7 @@ again:
- 	if (!page)
- 		return NULL;
- 
--	addr = page_to_phys(page);
-+	addr = phys_to_dma(dev, page_to_phys(page));
- 	if (addr + size > dma_mask) {
- 		__free_pages(page, get_order(size));
- 
-diff --git a/arch/x86/kernel/pci-nommu.c b/arch/x86/kernel/pci-nommu.c
-index 00e71ce..922c10d 100644
---- a/arch/x86/kernel/pci-nommu.c
-+++ b/arch/x86/kernel/pci-nommu.c
-@@ -30,7 +30,7 @@ static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
- 				 enum dma_data_direction dir,
- 				 unsigned long attrs)
- {
--	dma_addr_t bus = page_to_phys(page) + offset;
-+	dma_addr_t bus = phys_to_dma(dev, page_to_phys(page)) + offset;
- 	WARN_ON(size == 0);
- 	if (!check_addr("map_single", dev, bus, size))
- 		return DMA_ERROR_CODE;
-diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-index b47edb8..34a9e524 100644
---- a/arch/x86/kernel/pci-swiotlb.c
-+++ b/arch/x86/kernel/pci-swiotlb.c
-@@ -12,6 +12,8 @@
- #include <asm/dma.h>
- #include <asm/xen/swiotlb-xen.h>
- #include <asm/iommu_table.h>
-+#include <asm/mem_encrypt.h>
+ 	.text
+ 	.code64
+ ENTRY(sme_enable)
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++	/* Check for AMD processor */
++	xorl	%eax, %eax
++	cpuid
++	cmpl    $0x68747541, %ebx	# AuthenticAMD
++	jne     .Lmem_encrypt_exit
++	cmpl    $0x69746e65, %edx
++	jne     .Lmem_encrypt_exit
++	cmpl    $0x444d4163, %ecx
++	jne     .Lmem_encrypt_exit
 +
- int swiotlb __read_mostly;
++	/* Check for memory encryption leaf */
++	movl	$0x80000000, %eax
++	cpuid
++	cmpl	$0x8000001f, %eax
++	jb	.Lmem_encrypt_exit
++
++	/*
++	 * Check for memory encryption feature:
++	 *   CPUID Fn8000_001F[EAX] - Bit 0
++	 *     Secure Memory Encryption support
++	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
++	 *     Pagetable bit position used to indicate encryption
++	 *   CPUID Fn8000_001F[EBX] - Bits 11:6
++	 *     Reduction in physical address space (in bits) when enabled
++	 */
++	movl	$0x8000001f, %eax
++	cpuid
++	bt	$0, %eax
++	jnc	.Lmem_encrypt_exit
++
++	/* Check if BIOS/UEFI has allowed memory encryption */
++	movl	$MSR_K8_SYSCFG, %ecx
++	rdmsr
++	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
++	jnc	.Lmem_encrypt_exit
++
++	/* Check for the mem_encrypt=on command line option */
++	push	%rsi			/* Save RSI (real_mode_data) */
++	push	%rbx			/* Save CPUID information */
++	movl	BP_ext_cmd_line_ptr(%rsi), %ecx
++	shlq	$32, %rcx
++	movl	BP_cmd_line_ptr(%rsi), %edi
++	addq	%rcx, %rdi
++	leaq	mem_encrypt_enable_option(%rip), %rsi
++	call	cmdline_find_option_bool
++	pop	%rbx			/* Restore CPUID information */
++	pop	%rsi			/* Restore RSI (real_mode_data) */
++	testl	%eax, %eax
++	jz	.Lno_mem_encrypt
++
++	/* Set memory encryption mask */
++	movl	%ebx, %ecx
++	andl	$0x3f, %ecx
++	bts	%ecx, sme_me_mask(%rip)
++
++.Lno_mem_encrypt:
++	/*
++	 * BIOS/UEFI has allowed memory encryption so we need to set
++	 * the amount of physical address space reduction even if
++	 * the user decides not to use memory encryption.
++	 */
++	movl	%ebx, %ecx
++	shrl	$6, %ecx
++	andl	$0x3f, %ecx
++	movb	%cl, sme_me_loss(%rip)
++
++.Lmem_encrypt_exit:
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
+ 	ret
+ ENDPROC(sme_enable)
  
- void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
-@@ -64,13 +66,15 @@ static struct dma_map_ops swiotlb_dma_ops = {
-  * pci_swiotlb_detect_override - set swiotlb to 1 if necessary
-  *
-  * This returns non-zero if we are forced to use swiotlb (by the boot
-- * option).
-+ * option). If memory encryption is enabled then swiotlb will be set
-+ * to 1 so that bounce buffers are allocated and used for devices that
-+ * do not support the addressing range required for the encryption mask.
-  */
- int __init pci_swiotlb_detect_override(void)
- {
- 	int use_swiotlb = swiotlb | swiotlb_force;
+ ENTRY(sme_encrypt_kernel)
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++	/* If SME is not active then no need to encrypt the kernel */
++	cmpq	$0, sme_me_mask(%rip)
++	jz	.Lencrypt_exit
++
++	/*
++	 * Encrypt the kernel.
++	 * Pagetables for performing kernel encryption:
++	 *   0x0000000000 - 0x00FFFFFFFF will map just the memory occupied by
++	 *				 the kernel as encrypted memory
++	 *   0x8000000000 - 0x80FFFFFFFF will map all memory as write-protected,
++	 *				 non-encrypted
++	 *
++	 * The use of write-protected memory will prevent any of the
++	 * non-encrypted memory from being cached.
++	 *
++	 * 0x00... and 0x80... represent the first and second PGD entries.
++	 *
++	 * This collection of entries will be created in an area outside
++	 * of the area that is being encrypted (outside the kernel) and
++	 * requires 11 4K pages:
++	 *   1 - PGD
++	 *   2 - PUDs (1 for each mapping)
++	 *   8 - PMDs (4 for each mapping)
++	 */
++	leaq	_end(%rip), %rdi
++	addq	$~PMD_PAGE_MASK, %rdi
++	andq	$PMD_PAGE_MASK, %rdi	/* RDI points to the new PGD */
++
++	/* Clear the pagetable memory */
++	movq	%rdi, %rbx		/* Save pointer to PGD */
++	movl	$(4096 * 11), %ecx
++	xorl	%eax, %eax
++	rep	stosb
++	movq	%rbx, %rdi		/* Restore pointer to PGD */
++
++	/* Set up PGD entries for the two mappings */
++	leaq	(0x1000 + 0x03)(%rdi), %rbx	/* PUD for encrypted kernel */
++	movq	%rbx, (%rdi)
++	leaq	(0x2000 + 0x03)(%rdi), %rbx	/* PUD for unencrypted kernel */
++	movq	%rbx, 8(%rdi)
++
++	/* Set up PUD entries (4 per mapping) for the two mappings */
++	leaq	(0x3000 + 0x03)(%rdi), %rbx	/* PMD for encrypted kernel */
++	leaq	(0x7000 + 0x03)(%rdi), %rdx	/* PMD for unencrypted kernel */
++	xorq	%rcx, %rcx
++1:
++	/* Populate the PUD entries in each mapping */
++	movq	%rbx, 0x1000(%rdi, %rcx, 8)
++	movq	%rdx, 0x2000(%rdi, %rcx, 8)
++	addq	$0x1000, %rbx
++	addq	$0x1000, %rdx
++	incq	%rcx
++	cmpq	$4, %rcx
++	jb	1b
++
++	/*
++	 * Set up PMD entries (4GB worth) for the two mappings.
++	 *   For the encrypted kernel mapping, when R11 is above RDX
++	 *   and below RDI then we know we are in the kernel and we
++	 *   set the encryption mask for that PMD entry.
++	 *
++	 *   The use of _PAGE_PAT and _PAGE_PWT will provide for the
++	 *   write-protected mapping.
++	 */
++	movq	sme_me_mask(%rip), %r10
++	movq	$__PAGE_KERNEL_LARGE_EXEC, %r11
++	andq	$~_PAGE_GLOBAL, %r11
++	movq	%r11, %r12
++	andq	$~_PAGE_CACHE_MASK, %r12
++	orq	$(_PAGE_PAT | _PAGE_PWT), %r12	/* PA5 index */
++	xorq	%rcx, %rcx
++	leaq	_text(%rip), %rdx	/* RDX points to start of kernel */
++1:
++	/* Populate the PMD entries in each mapping */
++	movq	%r11, 0x3000(%rdi, %rcx, 8)
++	movq	%r12, 0x7000(%rdi, %rcx, 8)
++
++	/*
++	 * Check if we are in the kernel range, and if so, set the
++	 * memory encryption mask.
++	 */
++	cmpq	%r11, %rdx
++	jae	2f
++	cmpq	%r11, %rdi
++	jbe	2f
++	orq	%r10, 0x3000(%rdi, %rcx, 8)
++2:
++	addq	$PMD_SIZE, %r11
++	addq	$PMD_SIZE, %r12
++	incq	%rcx
++	cmpq	$2048, %rcx
++	jb	1b
++
++	/*
++	 * Set up a one page stack in the non-encrypted memory area.
++	 *   Set RAX to point to the next page in memory after all the
++	 *   page tables. The stack grows from the bottom so point to
++	 *   the end of the page.
++	 */
++	leaq	(4096 * 11)(%rdi), %rax
++	addq	$PAGE_SIZE, %rax
++	movq	%rsp, %rbp
++	movq	%rax, %rsp
++	push	%rbp			/* Save original stack pointer */
++
++	push	%rsi			/* Save RSI (real mode data) */
++
++	/*
++	 * Copy encryption routine into safe memory
++	 *   - RAX points to the page after all the page tables and stack
++	 *     where the routine will copied
++	 *   - RDI points to the PGD table
++	 *   - Setup registers for call
++	 * and then call it
++	 */
++	movq	%rdi, %rbx
++
++	leaq	.Lencrypt_start(%rip), %rsi
++	movq	%rax, %rdi
++	movq	$(.Lencrypt_stop - .Lencrypt_start), %rcx
++	rep	movsb
++
++	leaq	_text(%rip), %rsi	/* Kernel start */
++	movq	%rbx, %rcx		/* New PGD start */
++	subq	%rsi, %rcx		/* Size of area to encrypt */
++
++	movq	%rsi, %rdi		/* Encrypted kernel space start */
++	movq	$1, %rsi
++	shlq	$PGDIR_SHIFT, %rsi
++	addq	%rdi, %rsi		/* Non-encrypted kernel start */
++
++	/* Call the encryption routine */
++	call	*%rax
++
++	pop	%rsi			/* Restore RSI (real mode data ) */
++
++	pop	%rsp			/* Restore original stack pointer */
++.Lencrypt_exit:
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
+ 	ret
+ ENDPROC(sme_encrypt_kernel)
  
--	if (swiotlb_force)
-+	if (swiotlb_force || sme_me_mask)
- 		swiotlb = 1;
+@@ -28,6 +245,87 @@ ENTRY(sme_get_me_loss)
+ 	ret
+ ENDPROC(sme_get_me_loss)
  
- 	return use_swiotlb;
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++/*
++ * Routine used to encrypt kernel.
++ *   This routine must be run outside of the kernel proper since
++ *   the kernel will be encrypted during the process. So this
++ *   routine is defined here and then copied to an area outside
++ *   of the kernel where it will remain and run un-encrypted
++ *   during execution.
++ *
++ *   On entry the registers must be:
++ *   - RAX points to this routine
++ *   - RBX points to new PGD to use
++ *   - RCX contains the kernel length
++ *   - RSI points to the non-encrypted kernel space
++ *   - RDI points to the encrypted kernel space
++ *
++ * The kernel will be encrypted by copying from the non-encrypted
++ * kernel space to a temporary buffer and then copying from the
++ * temporary buffer back to the encrypted kernel space. The physical
++ * addresses of the two kernel space mappings are the same which
++ * results in the kernel being encrypted "in place".
++ */
++.Lencrypt_start:
++	/* Enable the new page tables */
++	mov	%rbx, %cr3
++
++	/* Flush any global TLBs */
++	mov	%cr4, %rbx
++	andq	$~X86_CR4_PGE, %rbx
++	mov	%rbx, %cr4
++	orq	$X86_CR4_PGE, %rbx
++	mov	%rbx, %cr4
++
++	/* Set the PAT register PA5 entry to write-protect */
++	push	%rax
++	push	%rcx
++	movl	$MSR_IA32_CR_PAT, %ecx
++	rdmsr
++	push	%rdx			/* Save original PAT value */
++	andl	$0xffff00ff, %edx	/* Clear PA5 */
++	orl	$0x00000500, %edx	/* Set PA5 to WP */
++	wrmsr
++	pop	%rdx			/* RDX contains original PAT value */
++	pop	%rcx
++	pop	%rax
++
++	movq	%rsi, %r10		/* Save source address */
++	movq	%rdi, %r11		/* Save destination address */
++	movq	%rcx, %r12		/* Save length */
++	addq	$PAGE_SIZE, %rax	/* RAX now points to temp copy page */
++
++	wbinvd				/* Invalidate any cache entries */
++
++	/* Copy/encrypt 2MB at a time */
++1:
++	movq	%r10, %rsi
++	movq	%rax, %rdi
++	movq	$PMD_PAGE_SIZE, %rcx
++	rep	movsb
++
++	movq	%rax, %rsi
++	movq	%r11, %rdi
++	movq	$PMD_PAGE_SIZE, %rcx
++	rep	movsb
++
++	addq	$PMD_PAGE_SIZE, %r10
++	addq	$PMD_PAGE_SIZE, %r11
++	subq	$PMD_PAGE_SIZE, %r12
++	jnz	1b
++
++	/* Restore PAT register */
++	push	%rdx
++	movl	$MSR_IA32_CR_PAT, %ecx
++	rdmsr
++	pop	%rdx
++	wrmsr
++
++	ret
++.Lencrypt_stop:
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
+ 	.data
+ 	.align 16
+ ENTRY(sme_me_mask)
+@@ -35,3 +333,7 @@ ENTRY(sme_me_mask)
+ sme_me_loss:
+ 	.byte	0x00
+ 	.align	8
++
++mem_encrypt_enable_option:
++	.asciz "mem_encrypt=on"
++	.align	8
 diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index b0f39c5..6b2e8bf 100644
+index 2f28d87..1154353 100644
 --- a/arch/x86/mm/mem_encrypt.c
 +++ b/arch/x86/mm/mem_encrypt.c
-@@ -12,6 +12,8 @@
+@@ -183,6 +183,8 @@ void __init mem_encrypt_init(void)
  
- #include <linux/init.h>
- #include <linux/mm.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/swiotlb.h>
- 
- #include <asm/mem_encrypt.h>
- #include <asm/cacheflush.h>
-@@ -172,3 +174,23 @@ void __init sme_early_init(void)
- 	for (i = 0; i < ARRAY_SIZE(protection_map); i++)
- 		protection_map[i] = __pgprot(pgprot_val(protection_map[i]) | sme_me_mask);
- }
+ 	/* Make SWIOTLB use an unencrypted DMA area */
+ 	swiotlb_clear_encryption();
 +
-+/* Architecture __weak replacement functions */
-+void __init mem_encrypt_init(void)
-+{
-+	if (!sme_me_mask)
-+		return;
-+
-+	/* Make SWIOTLB use an unencrypted DMA area */
-+	swiotlb_clear_encryption();
-+}
-+
-+unsigned long swiotlb_get_me_mask(void)
-+{
-+	return sme_me_mask;
-+}
-+
-+void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
-+{
-+	sme_set_mem_dec(vaddr, size);
-+}
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index 5f81f8a..5c909fc 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -29,6 +29,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
- extern unsigned long swiotlb_nr_tbl(void);
- unsigned long swiotlb_size_or_default(void);
- extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
-+extern void __init swiotlb_clear_encryption(void);
- 
- /*
-  * Enumeration for sync targets
-diff --git a/init/main.c b/init/main.c
-index a8a58e2..82c7cd9 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -458,6 +458,10 @@ void __init __weak thread_stack_cache_init(void)
- }
- #endif
- 
-+void __init __weak mem_encrypt_init(void)
-+{
-+}
-+
- /*
-  * Set up kernel memory allocators
-  */
-@@ -598,6 +602,15 @@ asmlinkage __visible void __init start_kernel(void)
- 	 */
- 	locking_selftest();
- 
-+	/*
-+	 * This needs to be called before any devices perform DMA
-+	 * operations that might use the swiotlb bounce buffers.
-+	 * This call will mark the bounce buffers as un-encrypted so
-+	 * that the usage of them will not cause "plain-text" data
-+	 * to be decrypted when accessed.
-+	 */
-+	mem_encrypt_init();
-+
- #ifdef CONFIG_BLK_DEV_INITRD
- 	if (initrd_start && !initrd_below_start_ok &&
- 	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 22e13a0..15d5741 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -131,6 +131,26 @@ unsigned long swiotlb_size_or_default(void)
- 	return size ? size : (IO_TLB_DEFAULT_SIZE);
++	pr_info("memory encryption active\n");
  }
  
-+/*
-+ * Support for memory encryption. If memory encryption is supported, then an
-+ * override to these functions will be provided.
-+ */
-+unsigned long __weak swiotlb_get_me_mask(void)
-+{
-+	return 0;
-+}
-+
-+void __weak swiotlb_set_mem_dec(void *vaddr, unsigned long size)
-+{
-+}
-+
-+/* For swiotlb, clear memory encryption mask from dma addresses */
-+static dma_addr_t swiotlb_phys_to_dma(struct device *hwdev,
-+				      phys_addr_t address)
-+{
-+	return phys_to_dma(hwdev, address) & ~swiotlb_get_me_mask();
-+}
-+
- /* Note that this doesn't work with highmem page */
- static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
- 				      volatile void *address)
-@@ -159,6 +179,30 @@ void swiotlb_print_info(void)
- 	       bytes >> 20, vstart, vend - 1);
- }
- 
-+/*
-+ * If memory encryption is active, the DMA address for an encrypted page may
-+ * be beyond the range of the device. If bounce buffers are required be sure
-+ * that they are not on an encrypted page. This should be called before the
-+ * iotlb area is used.
-+ */
-+void __init swiotlb_clear_encryption(void)
-+{
-+	void *vaddr;
-+	unsigned long bytes;
-+
-+	if (no_iotlb_memory || !io_tlb_start || late_alloc)
-+		return;
-+
-+	vaddr = phys_to_virt(io_tlb_start);
-+	bytes = PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT);
-+	swiotlb_set_mem_dec(vaddr, bytes);
-+	memset(vaddr, 0, bytes);
-+
-+	vaddr = phys_to_virt(io_tlb_overflow_buffer);
-+	bytes = PAGE_ALIGN(io_tlb_overflow);
-+	swiotlb_set_mem_dec(vaddr, bytes);
-+}
-+
- int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
- {
- 	void *v_overflow_buffer;
-@@ -294,6 +338,8 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
- 	io_tlb_start = virt_to_phys(tlb);
- 	io_tlb_end = io_tlb_start + bytes;
- 
-+	/* Keep TLB in unencrypted memory if memory encryption is active */
-+	swiotlb_set_mem_dec(tlb, bytes);
- 	memset(tlb, 0, bytes);
- 
- 	/*
-@@ -304,6 +350,8 @@ swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs)
- 	if (!v_overflow_buffer)
- 		goto cleanup2;
- 
-+	/* Keep overflow in unencrypted memory if memory encryption is active */
-+	swiotlb_set_mem_dec(v_overflow_buffer, io_tlb_overflow);
- 	io_tlb_overflow_buffer = virt_to_phys(v_overflow_buffer);
- 
- 	/*
-@@ -541,7 +589,7 @@ static phys_addr_t
- map_single(struct device *hwdev, phys_addr_t phys, size_t size,
- 	   enum dma_data_direction dir)
- {
--	dma_addr_t start_dma_addr = phys_to_dma(hwdev, io_tlb_start);
-+	dma_addr_t start_dma_addr = swiotlb_phys_to_dma(hwdev, io_tlb_start);
- 
- 	return swiotlb_tbl_map_single(hwdev, start_dma_addr, phys, size, dir);
- }
-@@ -659,7 +707,7 @@ swiotlb_alloc_coherent(struct device *hwdev, size_t size,
- 			goto err_warn;
- 
- 		ret = phys_to_virt(paddr);
--		dev_addr = phys_to_dma(hwdev, paddr);
-+		dev_addr = swiotlb_phys_to_dma(hwdev, paddr);
- 
- 		/* Confirm address can be DMA'd by device */
- 		if (dev_addr + size - 1 > dma_mask) {
-@@ -758,15 +806,15 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 	map = map_single(dev, phys, size, dir);
- 	if (map == SWIOTLB_MAP_ERROR) {
- 		swiotlb_full(dev, size, dir, 1);
--		return phys_to_dma(dev, io_tlb_overflow_buffer);
-+		return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
- 	}
- 
--	dev_addr = phys_to_dma(dev, map);
-+	dev_addr = swiotlb_phys_to_dma(dev, map);
- 
- 	/* Ensure that the address returned is DMA'ble */
- 	if (!dma_capable(dev, dev_addr, size)) {
- 		swiotlb_tbl_unmap_single(dev, map, size, dir);
--		return phys_to_dma(dev, io_tlb_overflow_buffer);
-+		return swiotlb_phys_to_dma(dev, io_tlb_overflow_buffer);
- 	}
- 
- 	return dev_addr;
-@@ -901,7 +949,7 @@ swiotlb_map_sg_attrs(struct device *hwdev, struct scatterlist *sgl, int nelems,
- 				sg_dma_len(sgl) = 0;
- 				return 0;
- 			}
--			sg->dma_address = phys_to_dma(hwdev, map);
-+			sg->dma_address = swiotlb_phys_to_dma(hwdev, map);
- 		} else
- 			sg->dma_address = dev_addr;
- 		sg_dma_len(sg) = sg->length;
-@@ -985,7 +1033,7 @@ EXPORT_SYMBOL(swiotlb_sync_sg_for_device);
- int
- swiotlb_dma_mapping_error(struct device *hwdev, dma_addr_t dma_addr)
- {
--	return (dma_addr == phys_to_dma(hwdev, io_tlb_overflow_buffer));
-+	return (dma_addr == swiotlb_phys_to_dma(hwdev, io_tlb_overflow_buffer));
- }
- EXPORT_SYMBOL(swiotlb_dma_mapping_error);
- 
-@@ -998,6 +1046,6 @@ EXPORT_SYMBOL(swiotlb_dma_mapping_error);
- int
- swiotlb_dma_supported(struct device *hwdev, u64 mask)
- {
--	return phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
-+	return swiotlb_phys_to_dma(hwdev, io_tlb_end - 1) <= mask;
- }
- EXPORT_SYMBOL(swiotlb_dma_supported);
+ unsigned long amd_iommu_get_me_mask(void)
 
