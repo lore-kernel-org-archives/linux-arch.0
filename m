@@ -1,163 +1,173 @@
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v05 71/72] uapi term*.h: glibc termios.h header file compatibility fixes
-Date: Mon, 22 Aug 2016 20:33:28 +0200
-Message-ID: <1471890809-4383-72-git-send-email-mikko.rapeli@iki.fi>
-References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
+Date: Mon, 22 Aug 2016 15:23:06 -0700
+Message-ID: <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
+References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com>
+ <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
+ <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
+ <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
+ <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com>
+ <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk>
+ <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
 Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=94eb2c09b5921686bb053ab07e32
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f65.google.com ([209.85.218.65]:36833 "EHLO
+        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752794AbcHVWXI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2016 18:23:08 -0400
+In-Reply-To: <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>
+
+--94eb2c09b5921686bb053ab07e32
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-Fixes these userspace compile errors and warnings when glibc termios.h
-is included before linux/termios.h:
+On Sun, Aug 21, 2016 at 10:52 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Sat, Aug 20, 2016 at 11:42 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>>
+>> It's not exactly setjmp/longjmp; what I had in mind was along the lines of
+>
+> That ends up having all the exact same issues as setjmp, and generally
+> you *do* want the compiler to know about it.
 
-asm-generic/termbits.h:11:8: error: redefinition of ‘struct termios’
-asm-generic/termios.h:14:8: error: redefinition of ‘struct winsize’
-asm-generic/termios.h:22:8: error: redefinition of ‘struct termio’
+So just in case you wanted to play around with it, here's a kernel
+implementation of 'setjmp/longjmp' for x86.
 
-Not fixing multiple NCSS definitions since I don't know which one would be
-correct so this warning remains:
+It's very lightly tested (and I'll admit to editing it for some
+cleanups after that light testing), but it does look largely sane.
 
-asm-generic/termbits.h:10:0: warning: "NCCS" redefined
- #define NCCS 19
- ^
-bits/termios.h:27:0: note: this is the location of the previous definition
- #define NCCS 32
- ^
+The whole interface choice may be debatable: maybe it would be better
+to allocate the register buffer on the stack, and just hide a pointer
+to it in the task struct. Things like that could be changed fairly
+easily. But if you want to play around with this, this patch should
+get you started.
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
----
- include/uapi/asm-generic/termbits.h |  3 +++
- include/uapi/asm-generic/termios.h  |  5 +++++
- include/uapi/linux/libc-compat.h    | 28 ++++++++++++++++++++++++++++
- 3 files changed, 36 insertions(+)
+Of course, you'd want to wrap things up somehow, and I would *not*
+want to see naked setjmp() calls in the kernel.
 
-diff --git a/include/uapi/asm-generic/termbits.h b/include/uapi/asm-generic/termbits.h
-index 232b478..314bfef 100644
---- a/include/uapi/asm-generic/termbits.h
-+++ b/include/uapi/asm-generic/termbits.h
-@@ -1,6 +1,7 @@
- #ifndef __ASM_GENERIC_TERMBITS_H
- #define __ASM_GENERIC_TERMBITS_H
- 
-+#include <linux/libc-compat.h>
- #include <linux/posix_types.h>
- 
- typedef unsigned char	cc_t;
-@@ -8,6 +9,7 @@ typedef unsigned int	speed_t;
- typedef unsigned int	tcflag_t;
- 
- #define NCCS 19
-+#if __UAPI_DEF_TERMIOS
- struct termios {
- 	tcflag_t c_iflag;		/* input mode flags */
- 	tcflag_t c_oflag;		/* output mode flags */
-@@ -16,6 +18,7 @@ struct termios {
- 	cc_t c_line;			/* line discipline */
- 	cc_t c_cc[NCCS];		/* control characters */
- };
-+#endif /* __UAPI_DEF_TERMIOS */
- 
- struct termios2 {
- 	tcflag_t c_iflag;		/* input mode flags */
-diff --git a/include/uapi/asm-generic/termios.h b/include/uapi/asm-generic/termios.h
-index 0881760..3428999 100644
---- a/include/uapi/asm-generic/termios.h
-+++ b/include/uapi/asm-generic/termios.h
-@@ -8,17 +8,21 @@
-  * New architectures should not provide their own version.
-  */
- 
-+#include <linux/libc-compat.h>
- #include <asm/termbits.h>
- #include <asm/ioctls.h>
- 
-+#if __UAPI_DEF_WINSIZE
- struct winsize {
- 	unsigned short ws_row;
- 	unsigned short ws_col;
- 	unsigned short ws_xpixel;
- 	unsigned short ws_ypixel;
- };
-+#endif /* __UAPI_DEF_WINSIZE */
- 
- #define NCC 8
-+#if __UAPI_DEF_TERMIO
- struct termio {
- 	unsigned short c_iflag;		/* input mode flags */
- 	unsigned short c_oflag;		/* output mode flags */
-@@ -27,6 +31,7 @@ struct termio {
- 	unsigned char c_line;		/* line discipline */
- 	unsigned char c_cc[NCC];	/* control characters */
- };
-+#endif /* __UAPI_DEF_TERMIO */
- 
- /* modem lines */
- #define TIOCM_LE	0x001
-diff --git a/include/uapi/linux/libc-compat.h b/include/uapi/linux/libc-compat.h
-index cb25f16..07a3462 100644
---- a/include/uapi/linux/libc-compat.h
-+++ b/include/uapi/linux/libc-compat.h
-@@ -230,6 +230,13 @@
- 
- #endif /* defined(_NETROSE_ROSE_H) */
- 
-+/* Coordinate with glibc pty.h */
-+#if defined(_PTY_H)
-+#define __UAPI_DEF_TERMIOS	0
-+#else /* defined(_PTY_H) */
-+#define __UAPI_DEF_TERMIOS	1
-+#endif /* defined(_PTY_H) */
-+
- /* Coordinate with glibc time.h */
- #if defined(_TIME_H)
- #define __UAPI_DEF_TIMESPEC		0
-@@ -245,6 +252,15 @@
- 
- #endif /* defined(_TIME_H) */
- 
-+/* Definitions for sys/ioctl.h */
-+#if defined(_SYS_IOCTL_H)
-+#define __UAPI_DEF_TERMIO		0
-+#define __UAPI_DEF_WINSIZE		0
-+#else /* defined(_SYS_IOCTL_H) */
-+#define __UAPI_DEF_TERMIO		1
-+#define __UAPI_DEF_WINSIZE		1
-+#endif /* defined(_SYS_IOCTL_H) */
-+
- /* Definitions for sys/uio.h */
- #if defined(_SYS_UIO_H)
- #define __UAPI_DEF_IOVEC		0
-@@ -265,6 +281,13 @@
- 
- #endif /* defined(_SYS_TIME_H) */
- 
-+/* Coordinate with glibc termios.h */
-+#if defined(_TERMIOS_H)
-+#define __UAPI_DEF_TERMIOS	0
-+#else /* defined(_TERMIOS_H) */
-+#define __UAPI_DEF_TERMIOS	1
-+#endif /* defined(_TERMIOS_H) */
-+
- /* Definitions for xattr.h */
- #if defined(_SYS_XATTR_H)
- #define __UAPI_DEF_XATTR		0
-@@ -282,6 +305,11 @@
- #define __UAPI_DEF_F_DUPFD_CLOEXEC		1
- #define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	1
- 
-+/* Definitions for asm-generic/termbits.h and asm-generic/termios.h */
-+#define __UAPI_DEF_TERMIO		1
-+#define __UAPI_DEF_TERMIOS		1
-+#define __UAPI_DEF_WINSIZE		1
-+
- /* Definitions for ax25.h */
- #define __UAPI_DEF_SIOCAX25GETUID_TO_SIOCAX25DELFWD	1
- #define __UAPI_DEF_SIOCAX25GETINFO			1
--- 
-2.8.1
+And we'd need this for all other architectures too, but it's usually
+not hard to do. It needs to save all the callee-saved registers and
+the stack pointer and return address. That should generally be it.
+
+The 32-bit version has not been tested at all, but it compiled at some
+point, and the code looks mostly sane. The 64-bit code I actually had
+a stupid non-user-access test-case for.
+
+                Linus
+
+--94eb2c09b5921686bb053ab07e32
+Content-Type: text/x-patch; charset=US-ASCII; name="setjmp.patch"
+Content-Disposition: attachment; filename="setjmp.patch"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_is6lwj3k0
+
+Y29tbWl0IGE4MDYyZWNiNzgwYmVkODFlYWVjMTBiZDlmZWE2MGJmNTk1YTljNDAKQXV0aG9yOiBM
+aW51cyBUb3J2YWxkcyA8dG9ydmFsZHNAbGludXgtZm91bmRhdGlvbi5vcmc+CkRhdGU6ICAgTW9u
+IEF1ZyAyMiAxMzoxNTo1MSAyMDE2IC0wNzAwCgogICAgeDg2OiBhZGQgYmFzaWMgc2V0am1wL2xv
+bmdqbXAgaW1wbGVtZW50YXRpb24KICAgIAogICAgVG8gbWFrZSB0aGUgY29tcGlsZXIgaGFwcHks
+IHdlIGhhdmUgdG8gYWN0dWFsbHkgY2FsbCBpdCBzZXRqbXAvbG9uZ2ptcAogICAgdG9vLiAgRXZl
+biBpZiB0aGUgZXhhY3Qgc2VtYW50aWNzIGFyZW4ndCB0aGUgc2FtZSAtIHdlIGtlZXAgdGhlIHJl
+Z2lzdGVyCiAgICBidWZmZXIgaW4gdGhlIHRocmVhZCBzdHJ1Y3R1cmUsIGZvciBleGFtcGxlLCBy
+YXRoZXIgdGhhbiBwYXNzIGl0IGluIGFzCiAgICBhbiBhcmd1bWVudC4KICAgIAogICAgU2lnbmVk
+LW9mZi1ieTogTGludXMgVG9ydmFsZHMgPHRvcnZhbGRzQGxpbnV4LWZvdW5kYXRpb24ub3JnPgot
+LS0KIGFyY2gveDg2L2luY2x1ZGUvYXNtL3Byb2Nlc3Nvci5oIHwgIDIgKysKIGFyY2gveDg2L2lu
+Y2x1ZGUvYXNtL3NldGptcC5oICAgIHwgMzEgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysr
+CiBhcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYyAgICB8ICAxICsKIGFyY2gveDg2L2xpYi9N
+YWtlZmlsZSAgICAgICAgICAgIHwgIDEgKwogYXJjaC94ODYvbGliL3NldGptcF8zMi5TICAgICAg
+ICAgfCAzNyArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKIGFyY2gveDg2L2xp
+Yi9zZXRqbXBfNjQuUyAgICAgICAgIHwgNDEgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysr
+KysrKysrKysrKwogaW5jbHVkZS9saW51eC9zZXRqbXAuaCAgICAgICAgICAgfCAxOSArKysrKysr
+KysrKysrKysrKysrCiA3IGZpbGVzIGNoYW5nZWQsIDEzMiBpbnNlcnRpb25zKCspCgpkaWZmIC0t
+Z2l0IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcHJvY2Vzc29yLmggYi9hcmNoL3g4Ni9pbmNsdWRl
+L2FzbS9wcm9jZXNzb3IuaAppbmRleCA2M2RlZjk1MzdhMmQuLjFhZjJjNzAyNWQ1MSAxMDA2NDQK
+LS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcHJvY2Vzc29yLmgKKysrIGIvYXJjaC94ODYvaW5j
+bHVkZS9hc20vcHJvY2Vzc29yLmgKQEAgLTIyLDYgKzIyLDcgQEAgc3RydWN0IHZtODY7CiAjaW5j
+bHVkZSA8YXNtL25vcHMuaD4KICNpbmNsdWRlIDxhc20vc3BlY2lhbF9pbnNucy5oPgogI2luY2x1
+ZGUgPGFzbS9mcHUvdHlwZXMuaD4KKyNpbmNsdWRlIDxhc20vc2V0am1wLmg+CiAKICNpbmNsdWRl
+IDxsaW51eC9wZXJzb25hbGl0eS5oPgogI2luY2x1ZGUgPGxpbnV4L2NhY2hlLmg+CkBAIC00MjUs
+NiArNDI2LDcgQEAgc3RydWN0IHRocmVhZF9zdHJ1Y3QgewogCXVuc2lnbmVkCQlpb19iaXRtYXBf
+bWF4OwogCiAJbW1fc2VnbWVudF90CQlhZGRyX2xpbWl0OworCXN0cnVjdCBzZXRqbXAJCXNldGpt
+cDsKIAogCXVuc2lnbmVkIGludAkJc2lnX29uX3VhY2Nlc3NfZXJyOjE7CiAJdW5zaWduZWQgaW50
+CQl1YWNjZXNzX2VycjoxOwkvKiB1YWNjZXNzIGZhaWxlZCAqLwpkaWZmIC0tZ2l0IGEvYXJjaC94
+ODYvaW5jbHVkZS9hc20vc2V0am1wLmggYi9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9zZXRqbXAuaApu
+ZXcgZmlsZSBtb2RlIDEwMDY0NAppbmRleCAwMDAwMDAwMDAwMDAuLjZjZGE4NjA4Y2UwNAotLS0g
+L2Rldi9udWxsCisrKyBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3NldGptcC5oCkBAIC0wLDAgKzEs
+MzEgQEAKKyNpZm5kZWYgX0FTTV9TRVRKTVBfSAorI2RlZmluZSBfQVNNX1NFVEpNUF9ICisKKy8q
+CisgKiBzZXRqbXAgbmVlZHMgdG8gc2F2ZSB0aGUgY2FsbGVlLXNhdmVkIHJlZ2lzdGVycyBhbmQK
+KyAqIHRoZSBzdGFjayBzZXR1cCwgc28gdGhhdCBpdCBsb29rcyBsaWtlIGEgbm9ybWFsIGNhbGwu
+CisgKgorICogSW4gYWRkaXRpb24sIGdjYyBuZWVkcyB0byBrbm93IHRoYXQgaXQncyBzZXRqbXAs
+IGJ1dAorICogdGhhdCBzZWVtcyB0byBsaXRlcmFsbHkganVzdCB0cmlnZ2VyIG9uIHRoZSBuYW1l
+LgorICoKKyAqIFVubGlrZSB0aGUgbGVnYWN5IEMgaW1wbGVtZW50YXRpb24sIHdlIGp1c3QgaGF2
+ZSB0aGUKKyAqIHNhdmUgYXJlYSBpbiB0aGUgdGFzayBzdHJ1Y3R1cmUuCisgKi8KKworI2lmZGVm
+IENPTkZJR19YODZfNjQKKworc3RydWN0IHNldGptcCB7CisJdW5zaWduZWQgbG9uZyByYngsIHIx
+MiwgcjEzLCByMTQsIHIxNTsKKwl1bnNpZ25lZCBsb25nIHJicCwgcnNwLCByaXA7Cit9OworCisj
+ZWxzZQorCitzdHJ1Y3Qgc2V0am1wIHsKKwl1bnNpZ25lZCBsb25nIGVieCwgZXNpLCBlZGk7CisJ
+dW5zaWduZWQgbG9uZyBlYnAsIGVzcCwgZWlwOworfTsKKworI2VuZGlmCisKKyNlbmRpZiAvLyBf
+QVNNX1NFVEpNUF9ICmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYyBi
+L2FyY2gveDg2L2tlcm5lbC9hc20tb2Zmc2V0cy5jCmluZGV4IDJiZDVjNmZmN2VlNy4uNzhhMTBl
+YjA0OGU4IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYworKysgYi9h
+cmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYwpAQCAtMzQsNiArMzQsNyBAQCB2b2lkIGNvbW1v
+bih2b2lkKSB7CiAKIAlCTEFOSygpOwogCU9GRlNFVChUQVNLX2FkZHJfbGltaXQsIHRhc2tfc3Ry
+dWN0LCB0aHJlYWQuYWRkcl9saW1pdCk7CisJT0ZGU0VUKFRBU0tfc2V0am1wLCB0YXNrX3N0cnVj
+dCwgdGhyZWFkLnNldGptcCk7CiAKIAlCTEFOSygpOwogCU9GRlNFVChjcnlwdG9fdGZtX2N0eF9v
+ZmZzZXQsIGNyeXB0b190Zm0sIF9fY3J0X2N0eCk7CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9saWIv
+TWFrZWZpbGUgYi9hcmNoL3g4Ni9saWIvTWFrZWZpbGUKaW5kZXggMzRhNzQxMzFhMTJjLi5iYjdh
+MzQ2NDhjMmMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi9NYWtlZmlsZQorKysgYi9hcmNoL3g4
+Ni9saWIvTWFrZWZpbGUKQEAgLTIyLDYgKzIyLDcgQEAgb2JqLSQoQ09ORklHX1NNUCkgKz0gbXNy
+LXNtcC5vIGNhY2hlLXNtcC5vCiBsaWIteSA6PSBkZWxheS5vIG1pc2MubyBjbWRsaW5lLm8gY3B1
+Lm8KIGxpYi15ICs9IHVzZXJjb3B5XyQoQklUUykubyB1c2VyY29weS5vIGdldHVzZXIubyBwdXR1
+c2VyLm8KIGxpYi15ICs9IG1lbWNweV8kKEJJVFMpLm8KK2xpYi15ICs9IHNldGptcF8kKEJJVFMp
+Lm8KIGxpYi0kKENPTkZJR19SV1NFTV9YQ0hHQUREX0FMR09SSVRITSkgKz0gcndzZW0ubwogbGli
+LSQoQ09ORklHX0lOU1RSVUNUSU9OX0RFQ09ERVIpICs9IGluc24ubyBpbmF0Lm8KIGxpYi0kKENP
+TkZJR19SQU5ET01JWkVfQkFTRSkgKz0ga2FzbHIubwpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvbGli
+L3NldGptcF8zMi5TIGIvYXJjaC94ODYvbGliL3NldGptcF8zMi5TCm5ldyBmaWxlIG1vZGUgMTAw
+NjQ0CmluZGV4IDAwMDAwMDAwMDAwMC4uNDRmM2Q1MmVlNDBjCi0tLSAvZGV2L251bGwKKysrIGIv
+YXJjaC94ODYvbGliL3NldGptcF8zMi5TCkBAIC0wLDAgKzEsMzcgQEAKKyNpbmNsdWRlIDxsaW51
+eC9saW5rYWdlLmg+CisjaW5jbHVkZSA8YXNtL2FzbS1vZmZzZXRzLmg+CisjaW5jbHVkZSA8YXNt
+L2FzbS5oPgorI2luY2x1ZGUgPGFzbS9wZXJjcHUuaD4KKworLy8gVGhlIGV4cGxpY2l0IGFkZCBv
+ZiBUQVNLX3NldGptcCBrZWVwcyB0aGUKKy8vIGZvbGxvd2luZyBvZmZzZXQgOC1iaXQgdmFsdWVz
+LCBhbmQgc2hyaW5rcworLy8gdGhlIG1vZHJtIGJ5dGVzIGluIHRoZSBpbnN0cnVjdGlvbnMgdGhh
+dAorLy8gZm9sbG93LgorCitFTlRSWShzZXRqbXApCisJbW92bCBQRVJfQ1BVX1ZBUihjdXJyZW50
+X3Rhc2spLCVlYXgKKwlhZGRsICRUQVNLX3NldGptcCwlZWF4CisKKwltb3ZsICVlYngsKCVlYXgp
+CisJbW92bCAlZXNpLDQoJWVheCkKKwltb3ZsICVlZGksOCglZWF4KQorCW1vdmwgJWVicCwxMigl
+ZWF4KQorCWxlYSA0KCVlc3ApLCVlZHgKKwltb3ZsICVlZHgsMTYoJWVheCkKKwltb3ZsICglZXNw
+KSwlZWR4CisJbW92bCAlZWR4LDIwKCVlYXgpCisJeG9ybCAlZWF4LCVlYXgKKwlyZXQKKworRU5U
+UlkobG9uZ2ptcCkKKwltb3ZsIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJWVheAorCWFkZGwg
+JFRBU0tfc2V0am1wLCVlYXgKKworCW1vdmwgKCVlYXgpLCVlYngKKwltb3ZsIDQoJWVheCksJWVz
+aQorCW1vdmwgOCglZWF4KSwlZWRpCisJbW92bCAxMiglZWF4KSwlZWJwCisJbW92bCAxNiglZWF4
+KSwlZXNwCisJbW92bCAyMCglZWF4KSwlZWR4CisJbW92bCAkMSwlZWF4CisJam1wIColZWR4CmRp
+ZmYgLS1naXQgYS9hcmNoL3g4Ni9saWIvc2V0am1wXzY0LlMgYi9hcmNoL3g4Ni9saWIvc2V0am1w
+XzY0LlMKbmV3IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMDAwMDAwLi5jMTEzZTEzMmU0
+ZDgKLS0tIC9kZXYvbnVsbAorKysgYi9hcmNoL3g4Ni9saWIvc2V0am1wXzY0LlMKQEAgLTAsMCAr
+MSw0MSBAQAorI2luY2x1ZGUgPGxpbnV4L2xpbmthZ2UuaD4KKyNpbmNsdWRlIDxhc20vYXNtLW9m
+ZnNldHMuaD4KKyNpbmNsdWRlIDxhc20vYXNtLmg+CisjaW5jbHVkZSA8YXNtL3BlcmNwdS5oPgor
+CisvLyBUaGUgZXhwbGljaXQgYWRkIG9mIFRBU0tfc2V0am1wIGtlZXBzIHRoZQorLy8gZm9sbG93
+aW5nIG9mZnNldCA4LWJpdCB2YWx1ZXMsIGFuZCBzaHJpbmtzCisvLyB0aGUgbW9kcm0gYnl0ZXMg
+aW4gdGhlIGluc3RydWN0aW9ucyB0aGF0CisvLyBmb2xsb3cuCisKK0VOVFJZKHNldGptcCkKKwlt
+b3ZxIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJXJheAorCWFkZHEgJFRBU0tfc2V0am1wLCVy
+YXgKKworCW1vdnEgJXJieCwoJXJheCkKKwltb3ZxICVyMTIsOCglcmF4KQorCW1vdnEgJXIxMywx
+NiglcmF4KQorCW1vdnEgJXIxNCwyNCglcmF4KQorCW1vdnEgJXIxNSwzMiglcmF4KQorCW1vdnEg
+JXJicCw0MCglcmF4KQorCWxlYSA4KCVyc3ApLCVyZHgKKwltb3ZxICVyZHgsNDgoJXJheCkKKwlt
+b3ZxICglcnNwKSwlcmR4CisJbW92cSAlcmR4LDU2KCVyYXgpCisJeG9ybCAlZWF4LCVlYXgKKwly
+ZXQKKworRU5UUlkobG9uZ2ptcCkKKwltb3ZxIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJXJh
+eAorCWFkZHEgJFRBU0tfc2V0am1wLCVyYXgKKworCW1vdnEgKCVyYXgpLCVyYngKKwltb3ZxIDgo
+JXJheCksJXIxMgorCW1vdnEgMTYoJXJheCksJXIxMworCW1vdnEgMjQoJXJheCksJXIxNAorCW1v
+dnEgMzIoJXJheCksJXIxNQorCW1vdnEgNDAoJXJheCksJXJicAorCW1vdnEgNDgoJXJheCksJXJz
+cAorCW1vdnEgNTYoJXJheCksJXJkeAorCW1vdmwgJDEsJWVheAorCWptcCAqJXJkeApkaWZmIC0t
+Z2l0IGEvaW5jbHVkZS9saW51eC9zZXRqbXAuaCBiL2luY2x1ZGUvbGludXgvc2V0am1wLmgKbmV3
+IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMDAwMDAwLi40MmQ0Njc0NzkxZTgKLS0tIC9k
+ZXYvbnVsbAorKysgYi9pbmNsdWRlL2xpbnV4L3NldGptcC5oCkBAIC0wLDAgKzEsMTkgQEAKKyNp
+Zm5kZWYgX0xJTlVYX1NFVEpNUF9ICisjZGVmaW5lIF9MSU5VWF9TRVRKTVBfSAorCisjaW5jbHVk
+ZSA8bGludXgvY29tcGlsZXIuaD4KKworLy8KKy8vIE5PVEUhIFdlIGNhbGwgaXQgJ3NldGptcCcg
+dG8gbWFrZSBnY2MgdHJlYXQgaXQgc3BlY2lhbGx5LAorLy8gYnV0IHRoZSBjYWxsaW5nIGNvbnZl
+bnRpb25zIGFyZSBkaWZmZXJlbnQgZnJvbSB0aGUgcmVndWxhcgorLy8gdXNlci1zcGFjZSBzZXRq
+bXAuCisvLworLy8gU28gc2V0am1wKCkgYWx3YXlzIHJldHVybnMgMC8xLCBhbmQgdGhlICByZWdp
+c3RlciBidWZmZXIKKy8vIGlzIGFsd2F5cyBpbiB0aGUgdGFzayBzdHJ1Y3QgcmF0aGVyIHRoYW4g
+YmVpbmcgcGFzc2VkIGluCisvLyBhcyBhbiBhcmd1bWVudC4KKy8vCisKK2V4dGVybiBpbnQgc2V0
+am1wKHZvaWQpOworZXh0ZXJuIHZvaWQgX19ub3JldHVybiBsb25nam1wKHZvaWQpOworCisjZW5k
+aWYgLy8gX0xJTlVYX1NFVEpNUF9ICg==
+--94eb2c09b5921686bb053ab07e32--
