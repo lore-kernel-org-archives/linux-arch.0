@@ -1,96 +1,50 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Sun, 21 Aug 2016 10:52:14 -0700
-Message-ID: <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
-References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com>
- <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
- <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
- <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
- <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com>
- <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk>
+From: Wanpeng Li <kernellwp@gmail.com>
+Subject: Re: [RFC PATCH-tip v4 07/10] locking/rwsem: Change RWSEM_WAITING_BIAS
+ for better disambiguation
+Date: Mon, 22 Aug 2016 10:15:28 +0800
+Message-ID: <CANRm+Cw2G1K22zi7ov4N4D3s863bsOot_ZDoyph5=n-BTZjFEg@mail.gmail.com>
+References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+ <1471554672-38662-8-git-send-email-Waiman.Long@hpe.com> <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
+ <57B73225.7020303@hpe.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160821064229.GX2356@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <57B73225.7020303@hpe.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Waiman Long <waiman.long@hpe.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Aug 20, 2016 at 11:42 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+2016-08-20 0:21 GMT+08:00 Waiman Long <waiman.long@hpe.com>:
+> On 08/19/2016 01:57 AM, Wanpeng Li wrote:
+>>
+>> 2016-08-19 5:11 GMT+08:00 Waiman Long<Waiman.Long@hpe.com>:
+>>>
+>>> When the count value is in between 0 and RWSEM_WAITING_BIAS, there
+>>> are 2 possibilities.
+>>> Either a writer is present and there is no waiter
+>>
+>> count = 0xffff0001
+>>
+>>> or there are waiters and readers. There is no easy way to
+>>
+>> count = 0xffff000X
+>>
+>> However, RWSEM_WAITING_BIAS is equal to 0xffff0000, so both these two
+>> cases are beyond RWSEM_WAITING_BIAS, right?
+>>
+>> Regards,
+>> Wanpeng Li
 >
-> It's not exactly setjmp/longjmp; what I had in mind was along the lines of
+>
+> Perhaps I should make it clear that I am talking from a signed quantity
+> point of view (it is an atomic_long_t). So
+>
+>     RWSEM_WAITING_BIAS < RWSEM_ACTIVE_WRITE_BIAS < 0
+>
+> Hope this clarify your question.
 
-That ends up having all the exact same issues as setjmp, and generally
-you *do* want the compiler to know about it.
+Yeah, thank you. :)
 
-For example, let's say that you have something like
-
-    if (start())
-        return -EFAULT;
-
-    ... do things that can fault and trigger an exception ..
-
-    stop();
-    return 0;
-
-then it doesn't matter that "start" clobbers all memory and registers,
-if it returns twice the code generation by a compiler that doesn't
-know about the magical setjmp-like behavior can trigger bugs.
-
-For example, the most common case is that lots of compilers try to
-share the final return-point - sometimes because of instrumentation,
-sometimes just because there's a big stack frame and the return is a
-lot of pop instructions and stack undo code.
-
-And *particularly* if your magical 'start()' function has an inline
-asm that clobbers memory and registers, the compiler will have to
-spill state to stack around it - but part of the spill might be the
-return value that it had in a register.
-
-So the compiler might end up generating code like this:
-
-         movl $-EFAULT,8(%rbp)    # retval
-         call start
-         testl %eax,%eax
-         jne return_point;
-
-         ...
-
-         movl $0,8(%rbp)    # retval
-
-         ....
-
-    return_point:
-        .. pop-pop-pop-whatever ..
-        movl 4(%rbp),%eax
-        .. more stack frame cleanup ..
-        ret
-
-and notice how if "start()" returns a second time - even if it
-restored all registers including the stack pointer - the function
-might return the wrong error value if the exception that caused
-longjmp happened after the code that had updated the return.
-
-There are lots of other ways a setjmp() point is special. Some
-compilers might push/pop values just temporarily around a call, so you
-might have sequences like
-
-     pushq %rdx
-     call fn
-     popq %rdx
-
-where the compiler wanted to save register %rdx around the call (I've
-never actually seen gcc generate that code, the exact same thing may
-happen with just random register spills).
-
-Again, that fails completely in the presence of a function that
-returns twice - even it the stack pointer itself gets reset, the stack
-*contents* that the code pops the saved value of %rdx might have been
-re-used for something else (and for a register spill, the frame slot
-might have been re-used). So now you're restoring garbage.
-
-So the interface you propose is in fact *exactly* the same as setjmp,
-and we'd need to make sure that the compiler knows that.
-
-                       Linus
+Regards,
+Wanpeng Li
