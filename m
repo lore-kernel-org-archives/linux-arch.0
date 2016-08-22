@@ -1,169 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:47483 "EHLO mail.kapsi.fi"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932444AbcHVTmZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 15:42:25 -0400
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v05 71/72] uapi term*.h: glibc termios.h header file compatibility fixes
-Date: Mon, 22 Aug 2016 20:33:28 +0200
-Message-ID: <1471890809-4383-72-git-send-email-mikko.rapeli@iki.fi>
-In-Reply-To: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
-References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
+Received: from mail-sn1nam02on0088.outbound.protection.outlook.com ([104.47.36.88]:35648
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754797AbcHVWja (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 18:39:30 -0400
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [RFC PATCH v2 16/20] x86: Check for memory encryption on the APs
+Date: Mon, 22 Aug 2016 17:38:29 -0500
+Message-ID: <20160822223829.29880.10341.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, linux-arch@vger.kernel.org
-Message-ID: <20160822183328.jD2CsJYTyLo4JF8Npzcf7ZxHMrZjy2GQ91rnVq9Fiz0@z>
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160822223829.iGKCNJCIQcJd4f7EQbyDzKLZ7Y8MrbaEtaBbA2WpT2M@z>
 
-Fixes these userspace compile errors and warnings when glibc termios.h
-is included before linux/termios.h:
+Add support to check if memory encryption is active in the kernel and that
+it has been enabled on the AP. If memory encryption is active in the kernel
+but has not been enabled on the AP then do not allow the AP to continue
+start up.
 
-asm-generic/termbits.h:11:8: error: redefinition of ‘struct termios’
-asm-generic/termios.h:14:8: error: redefinition of ‘struct winsize’
-asm-generic/termios.h:22:8: error: redefinition of ‘struct termio’
-
-Not fixing multiple NCSS definitions since I don't know which one would be
-correct so this warning remains:
-
-asm-generic/termbits.h:10:0: warning: "NCCS" redefined
- #define NCCS 19
- ^
-bits/termios.h:27:0: note: this is the location of the previous definition
- #define NCCS 32
- ^
-
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- include/uapi/asm-generic/termbits.h |  3 +++
- include/uapi/asm-generic/termios.h  |  5 +++++
- include/uapi/linux/libc-compat.h    | 28 ++++++++++++++++++++++++++++
- 3 files changed, 36 insertions(+)
+ arch/x86/include/asm/msr-index.h     |    2 ++
+ arch/x86/include/asm/realmode.h      |   12 ++++++++++++
+ arch/x86/realmode/init.c             |    4 ++++
+ arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
+ 4 files changed, 37 insertions(+)
 
-diff --git a/include/uapi/asm-generic/termbits.h b/include/uapi/asm-generic/termbits.h
-index 232b478..314bfef 100644
---- a/include/uapi/asm-generic/termbits.h
-+++ b/include/uapi/asm-generic/termbits.h
-@@ -1,6 +1,7 @@
- #ifndef __ASM_GENERIC_TERMBITS_H
- #define __ASM_GENERIC_TERMBITS_H
+diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+index 56f4c66..797d228 100644
+--- a/arch/x86/include/asm/msr-index.h
++++ b/arch/x86/include/asm/msr-index.h
+@@ -336,6 +336,8 @@
+ #define MSR_K8_TOP_MEM1			0xc001001a
+ #define MSR_K8_TOP_MEM2			0xc001001d
+ #define MSR_K8_SYSCFG			0xc0010010
++#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
++#define MSR_K8_SYSCFG_MEM_ENCRYPT	(1ULL << MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
+ #define MSR_K8_INT_PENDING_MSG		0xc0010055
+ /* C1E active bits in int pending message */
+ #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
+diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+index 230e190..c89e326 100644
+--- a/arch/x86/include/asm/realmode.h
++++ b/arch/x86/include/asm/realmode.h
+@@ -1,6 +1,15 @@
+ #ifndef _ARCH_X86_REALMODE_H
+ #define _ARCH_X86_REALMODE_H
  
-+#include <linux/libc-compat.h>
- #include <linux/posix_types.h>
++/*
++ * Flag bit definitions for use with the flags field of the trampoline header
++ * when configured for X86_64
++ */
++#define TH_FLAGS_SME_ENABLE_BIT		0
++#define TH_FLAGS_SME_ENABLE		(1ULL << TH_FLAGS_SME_ENABLE_BIT)
++
++#ifndef __ASSEMBLY__
++
+ #include <linux/types.h>
+ #include <asm/io.h>
  
- typedef unsigned char	cc_t;
-@@ -8,6 +9,7 @@ typedef unsigned int	speed_t;
- typedef unsigned int	tcflag_t;
- 
- #define NCCS 19
-+#if __UAPI_DEF_TERMIOS
- struct termios {
- 	tcflag_t c_iflag;		/* input mode flags */
- 	tcflag_t c_oflag;		/* output mode flags */
-@@ -16,6 +18,7 @@ struct termios {
- 	cc_t c_line;			/* line discipline */
- 	cc_t c_cc[NCCS];		/* control characters */
+@@ -38,6 +47,7 @@ struct trampoline_header {
+ 	u64 start;
+ 	u64 efer;
+ 	u32 cr4;
++	u32 flags;
+ #endif
  };
-+#endif /* __UAPI_DEF_TERMIOS */
  
- struct termios2 {
- 	tcflag_t c_iflag;		/* input mode flags */
-diff --git a/include/uapi/asm-generic/termios.h b/include/uapi/asm-generic/termios.h
-index 0881760..3428999 100644
---- a/include/uapi/asm-generic/termios.h
-+++ b/include/uapi/asm-generic/termios.h
-@@ -8,17 +8,21 @@
-  * New architectures should not provide their own version.
-  */
+@@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
+ void set_real_mode_mem(phys_addr_t mem, size_t size);
+ void reserve_real_mode(void);
  
-+#include <linux/libc-compat.h>
- #include <asm/termbits.h>
- #include <asm/ioctls.h>
- 
-+#if __UAPI_DEF_WINSIZE
- struct winsize {
- 	unsigned short ws_row;
- 	unsigned short ws_col;
- 	unsigned short ws_xpixel;
- 	unsigned short ws_ypixel;
- };
-+#endif /* __UAPI_DEF_WINSIZE */
- 
- #define NCC 8
-+#if __UAPI_DEF_TERMIO
- struct termio {
- 	unsigned short c_iflag;		/* input mode flags */
- 	unsigned short c_oflag;		/* output mode flags */
-@@ -27,6 +31,7 @@ struct termio {
- 	unsigned char c_line;		/* line discipline */
- 	unsigned char c_cc[NCC];	/* control characters */
- };
-+#endif /* __UAPI_DEF_TERMIO */
- 
- /* modem lines */
- #define TIOCM_LE	0x001
-diff --git a/include/uapi/linux/libc-compat.h b/include/uapi/linux/libc-compat.h
-index cb25f16..07a3462 100644
---- a/include/uapi/linux/libc-compat.h
-+++ b/include/uapi/linux/libc-compat.h
-@@ -230,6 +230,13 @@
- 
- #endif /* defined(_NETROSE_ROSE_H) */
- 
-+/* Coordinate with glibc pty.h */
-+#if defined(_PTY_H)
-+#define __UAPI_DEF_TERMIOS	0
-+#else /* defined(_PTY_H) */
-+#define __UAPI_DEF_TERMIOS	1
-+#endif /* defined(_PTY_H) */
++#endif /* __ASSEMBLY__ */
 +
- /* Coordinate with glibc time.h */
- #if defined(_TIME_H)
- #define __UAPI_DEF_TIMESPEC		0
-@@ -245,6 +252,15 @@
+ #endif /* _ARCH_X86_REALMODE_H */
+diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+index f74925f..c3edb49 100644
+--- a/arch/x86/realmode/init.c
++++ b/arch/x86/realmode/init.c
+@@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
+ 	trampoline_cr4_features = &trampoline_header->cr4;
+ 	*trampoline_cr4_features = mmu_cr4_features;
  
- #endif /* defined(_TIME_H) */
- 
-+/* Definitions for sys/ioctl.h */
-+#if defined(_SYS_IOCTL_H)
-+#define __UAPI_DEF_TERMIO		0
-+#define __UAPI_DEF_WINSIZE		0
-+#else /* defined(_SYS_IOCTL_H) */
-+#define __UAPI_DEF_TERMIO		1
-+#define __UAPI_DEF_WINSIZE		1
-+#endif /* defined(_SYS_IOCTL_H) */
++	trampoline_header->flags = 0;
++	if (sme_me_mask)
++		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
 +
- /* Definitions for sys/uio.h */
- #if defined(_SYS_UIO_H)
- #define __UAPI_DEF_IOVEC		0
-@@ -265,6 +281,13 @@
+ 	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
+ 	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
+ 	trampoline_pgd[511] = init_level4_pgt[511].pgd;
+diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+index dac7b20..94e29f4 100644
+--- a/arch/x86/realmode/rm/trampoline_64.S
++++ b/arch/x86/realmode/rm/trampoline_64.S
+@@ -30,6 +30,7 @@
+ #include <asm/msr.h>
+ #include <asm/segment.h>
+ #include <asm/processor-flags.h>
++#include <asm/realmode.h>
+ #include "realmode.h"
  
- #endif /* defined(_SYS_TIME_H) */
+ 	.text
+@@ -92,6 +93,23 @@ ENTRY(startup_32)
+ 	movl	%edx, %fs
+ 	movl	%edx, %gs
  
-+/* Coordinate with glibc termios.h */
-+#if defined(_TERMIOS_H)
-+#define __UAPI_DEF_TERMIOS	0
-+#else /* defined(_TERMIOS_H) */
-+#define __UAPI_DEF_TERMIOS	1
-+#endif /* defined(_TERMIOS_H) */
++	/* Check for memory encryption support */
++	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
++	jnc	.Ldone
++	movl	$MSR_K8_SYSCFG, %ecx
++	rdmsr
++	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
++	jc	.Ldone
 +
- /* Definitions for xattr.h */
- #if defined(_SYS_XATTR_H)
- #define __UAPI_DEF_XATTR		0
-@@ -282,6 +305,11 @@
- #define __UAPI_DEF_F_DUPFD_CLOEXEC		1
- #define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	1
- 
-+/* Definitions for asm-generic/termbits.h and asm-generic/termios.h */
-+#define __UAPI_DEF_TERMIO		1
-+#define __UAPI_DEF_TERMIOS		1
-+#define __UAPI_DEF_WINSIZE		1
++	/*
++	 * Memory encryption is enabled but the MSR has not been set on this
++	 * CPU so we can't continue
++	 */
++.Lno_sme:
++	hlt
++	jmp	.Lno_sme
++.Ldone:
 +
- /* Definitions for ax25.h */
- #define __UAPI_DEF_SIOCAX25GETUID_TO_SIOCAX25DELFWD	1
- #define __UAPI_DEF_SIOCAX25GETINFO			1
--- 
-2.8.1
+ 	movl	pa_tr_cr4, %eax
+ 	movl	%eax, %cr4		# Enable PAE mode
+ 
+@@ -147,6 +165,7 @@ GLOBAL(trampoline_header)
+ 	tr_start:		.space	8
+ 	GLOBAL(tr_efer)		.space	8
+ 	GLOBAL(tr_cr4)		.space	4
++	GLOBAL(tr_flags)	.space	4
+ END(trampoline_header)
+ 
+ #include "trampoline_common.S"
 
