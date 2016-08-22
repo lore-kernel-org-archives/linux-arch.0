@@ -1,16 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0053.outbound.protection.outlook.com ([104.47.34.53]:32994
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0065.outbound.protection.outlook.com ([104.47.37.65]:20230
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932280AbcHVXKx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 19:10:53 -0400
+        id S1754818AbcHVXJR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 19:09:17 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v2 12/20] x86: Add support for changing memory
- encryption attribute
-Date: Mon, 22 Aug 2016 17:37:49 -0500
-Message-ID: <20160822223749.29880.10183.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v2 00/20] x86: Secure Memory Encryption (AMD)
+Date: Mon, 22 Aug 2016 17:35:29 -0500
+Message-ID: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -18,215 +15,168 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160822223749.6PsRZCRRfTTAGIJNwx_H1twFj57wYlj7tq-TtmaRkvY@z>
+Message-ID: <20160822223529.hxnvDTQ8vhtFSO_FrTecDWuwgsaEKJgVwH__btXx5kg@z>
 
-This patch adds support to be change the memory encryption attribute for
-one or more memory pages.
+This RFC patch series provides support for AMD's new Secure Memory
+Encryption (SME) feature.
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+SME can be used to mark individual pages of memory as encrypted through the
+page tables. A page of memory that is marked encrypted will be automatically
+decrypted when read from DRAM and will be automatically encrypted when
+written to DRAM. Details on SME can found in the links below.
+
+The SME feature is identified through a CPUID function and enabled through
+the SYSCFG MSR. Once enabled, page table entries will determine how the
+memory is accessed. If a page table entry has the memory encryption mask set,
+then that memory will be accessed as encrypted memory. The memory encryption
+mask (as well as other related information) is determined from settings
+returned through the same CPUID function that identifies the presence of the
+feature.
+
+The approach that this patch series takes is to encrypt everything possible
+starting early in the boot where the kernel is encrypted. Using the page
+table macros the encryption mask can be incorporated into all page table
+entries and page allocations. By updating the protection map, userspace
+allocations are also marked encrypted. Certain data must be accounted for
+as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+and accessed accordingly.
+
+This patch series is a pre-cursor to another AMD processor feature called
+Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+the SME support and will be submitted later. Details on SEV can be found
+in the links below.
+
+The following links provide additional detail:
+
+AMD Memory Encryption whitepaper:
+   http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
+
+AMD64 Architecture Programmer's Manual:
+   http://support.amd.com/TechDocs/24593.pdf
+   SME is section 7.10
+   SEV is section 15.34
+
+This patch series is based off of the master branch of tip.
+  Commit 9fc6ddd95cbb ("Merge branch 'x86/platform'")
+
 ---
- arch/x86/include/asm/cacheflush.h  |    3 +
- arch/x86/include/asm/mem_encrypt.h |   13 ++++++
- arch/x86/mm/mem_encrypt.c          |   43 +++++++++++++++++++++
- arch/x86/mm/pageattr.c             |   75 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 134 insertions(+)
 
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
-index 61518cf..bfb08e5 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -13,6 +13,7 @@
-  * Executability : eXeutable, NoteXecutable
-  * Read/Write    : ReadOnly, ReadWrite
-  * Presence      : NotPresent
-+ * Encryption    : ENCrypted, DECrypted
-  *
-  * Within a category, the attributes are mutually exclusive.
-  *
-@@ -48,6 +49,8 @@ int set_memory_ro(unsigned long addr, int numpages);
- int set_memory_rw(unsigned long addr, int numpages);
- int set_memory_np(unsigned long addr, int numpages);
- int set_memory_4k(unsigned long addr, int numpages);
-+int set_memory_enc(unsigned long addr, int numpages);
-+int set_memory_dec(unsigned long addr, int numpages);
- 
- int set_memory_array_uc(unsigned long *addr, int addrinarray);
- int set_memory_array_wc(unsigned long *addr, int addrinarray);
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 2785493..5616ed1 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -23,6 +23,9 @@ extern unsigned long sme_me_mask;
- 
- u8 sme_get_me_loss(void);
- 
-+int sme_set_mem_enc(void *vaddr, unsigned long size);
-+int sme_set_mem_dec(void *vaddr, unsigned long size);
-+
- void __init sme_early_mem_enc(resource_size_t paddr,
- 			      unsigned long size);
- void __init sme_early_mem_dec(resource_size_t paddr,
-@@ -44,6 +47,16 @@ static inline u8 sme_get_me_loss(void)
- 	return 0;
- }
- 
-+static inline int sme_set_mem_enc(void *vaddr, unsigned long size)
-+{
-+	return 0;
-+}
-+
-+static inline int sme_set_mem_dec(void *vaddr, unsigned long size)
-+{
-+	return 0;
-+}
-+
- static inline void __init sme_early_mem_enc(resource_size_t paddr,
- 					    unsigned long size)
- {
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index f35a646..b0f39c5 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -14,12 +14,55 @@
- #include <linux/mm.h>
- 
- #include <asm/mem_encrypt.h>
-+#include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
- #include <asm/fixmap.h>
- 
- /* Buffer used for early in-place encryption by BSP, no locking needed */
- static char me_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
- 
-+int sme_set_mem_enc(void *vaddr, unsigned long size)
-+{
-+	unsigned long addr, numpages;
-+
-+	if (!sme_me_mask)
-+		return 0;
-+
-+	addr = (unsigned long)vaddr & PAGE_MASK;
-+	numpages = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+
-+	/*
-+	 * The set_memory_xxx functions take an integer for numpages, make
-+	 * sure it doesn't exceed that.
-+	 */
-+	if (numpages > INT_MAX)
-+		return -EINVAL;
-+
-+	return set_memory_enc(addr, numpages);
-+}
-+EXPORT_SYMBOL_GPL(sme_set_mem_enc);
-+
-+int sme_set_mem_dec(void *vaddr, unsigned long size)
-+{
-+	unsigned long addr, numpages;
-+
-+	if (!sme_me_mask)
-+		return 0;
-+
-+	addr = (unsigned long)vaddr & PAGE_MASK;
-+	numpages = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+
-+	/*
-+	 * The set_memory_xxx functions take an integer for numpages, make
-+	 * sure it doesn't exceed that.
-+	 */
-+	if (numpages > INT_MAX)
-+		return -EINVAL;
-+
-+	return set_memory_dec(addr, numpages);
-+}
-+EXPORT_SYMBOL_GPL(sme_set_mem_dec);
-+
- /*
-  * This routine does not change the underlying encryption setting of the
-  * page(s) that map this memory. It assumes that eventually the memory is
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 72c292d..0ba9382 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -1728,6 +1728,81 @@ int set_memory_4k(unsigned long addr, int numpages)
- 					__pgprot(0), 1, 0, NULL);
- }
- 
-+static int __set_memory_enc_dec(struct cpa_data *cpa)
-+{
-+	unsigned long addr;
-+	int numpages;
-+	int ret;
-+
-+	if (*cpa->vaddr & ~PAGE_MASK) {
-+		*cpa->vaddr &= PAGE_MASK;
-+
-+		/* People should not be passing in unaligned addresses */
-+		WARN_ON_ONCE(1);
-+	}
-+
-+	addr = *cpa->vaddr;
-+	numpages = cpa->numpages;
-+
-+	/* Must avoid aliasing mappings in the highmem code */
-+	kmap_flush_unused();
-+	vm_unmap_aliases();
-+
-+	ret = __change_page_attr_set_clr(cpa, 1);
-+
-+	/* Check whether we really changed something */
-+	if (!(cpa->flags & CPA_FLUSHTLB))
-+		goto out;
-+
-+	/*
-+	 * On success we use CLFLUSH, when the CPU supports it to
-+	 * avoid the WBINVD.
-+	 */
-+	if (!ret && static_cpu_has(X86_FEATURE_CLFLUSH))
-+		cpa_flush_range(addr, numpages, 1);
-+	else
-+		cpa_flush_all(1);
-+
-+out:
-+	return ret;
-+}
-+
-+int set_memory_enc(unsigned long addr, int numpages)
-+{
-+	struct cpa_data cpa;
-+
-+	if (!sme_me_mask)
-+		return 0;
-+
-+	memset(&cpa, 0, sizeof(cpa));
-+	cpa.vaddr = &addr;
-+	cpa.numpages = numpages;
-+	cpa.mask_set = __pgprot(_PAGE_ENC);
-+	cpa.mask_clr = __pgprot(0);
-+	cpa.pgd = init_mm.pgd;
-+
-+	return __set_memory_enc_dec(&cpa);
-+}
-+EXPORT_SYMBOL(set_memory_enc);
-+
-+int set_memory_dec(unsigned long addr, int numpages)
-+{
-+	struct cpa_data cpa;
-+
-+	if (!sme_me_mask)
-+		return 0;
-+
-+	memset(&cpa, 0, sizeof(cpa));
-+	cpa.vaddr = &addr;
-+	cpa.numpages = numpages;
-+	cpa.mask_set = __pgprot(0);
-+	cpa.mask_clr = __pgprot(_PAGE_ENC);
-+	cpa.pgd = init_mm.pgd;
-+
-+	return __set_memory_enc_dec(&cpa);
-+}
-+EXPORT_SYMBOL(set_memory_dec);
-+
- int set_pages_uc(struct page *page, int numpages)
- {
- 	unsigned long addr = (unsigned long)page_address(page);
+Sorry for the delay in getting v2 out.
 
+Still to do: kexec support
+
+Changes since v1:
+- Added Documentation.
+- Removed AMD vendor check for setting the PAT write protect mode
+- Updated naming of trampoline flag for SME as well as moving of the
+  SME check to before paging is enabled.
+- Change to early_memremap to identify the data being mapped as either
+  boot data or kernel data.  The idea being that boot data will have
+  been placed in memory as un-encrypted data and would need to be accessed
+  as such.
+- Updated debugfs support for the bootparams to access the data properly.
+- Do not set the SYSCFG[MEME] bit, only check it.  The setting of the
+  MemEncryptionModeEn bit results in a reduction of physical address size
+  of the processor.  It is possible that BIOS could have configured resources
+  resources into a range that will now not be addressable.  To prevent this,
+  rely on BIOS to set the SYSCFG[MEME] bit and only then enable memory
+  encryption support in the kernel.
+
+Tom Lendacky (20):
+      x86: Documentation for AMD Secure Memory Encryption (SME)
+      x86: Set the write-protect cache mode for full PAT support
+      x86: Secure Memory Encryption (SME) build enablement
+      x86: Secure Memory Encryption (SME) support
+      x86: Add the Secure Memory Encryption cpu feature
+      x86: Handle reduction in physical address size with SME
+      x86: Provide general kernel support for memory encryption
+      x86: Extend the early_memmap support with additional attrs
+      x86: Add support for early encryption/decryption of memory
+      x86: Insure that memory areas are encrypted when possible
+      mm: Access BOOT related data in the clear
+      x86: Add support for changing memory encryption attribute
+      x86: Decrypt trampoline area if memory encryption is active
+      x86: DMA support for memory encryption
+      iommu/amd: AMD IOMMU support for memory encryption
+      x86: Check for memory encryption on the APs
+      x86: Do not specify encrypted memory for VGA mapping
+      x86/kvm: Enable Secure Memory Encryption of nested page tables
+      x86: Access the setup data through debugfs un-encrypted
+      x86: Add support to make use of Secure Memory Encryption
+
+
+ Documentation/kernel-parameters.txt         |    3 
+ Documentation/x86/amd-memory-encryption.txt |   35 +++
+ arch/arm64/kernel/acpi.c                    |    2 
+ arch/ia64/include/asm/early_ioremap.h       |    2 
+ arch/x86/Kconfig                            |    9 +
+ arch/x86/boot/compressed/pagetable.c        |    7 +
+ arch/x86/include/asm/cacheflush.h           |    3 
+ arch/x86/include/asm/cpufeature.h           |    7 -
+ arch/x86/include/asm/cpufeatures.h          |    5 
+ arch/x86/include/asm/disabled-features.h    |    3 
+ arch/x86/include/asm/dma-mapping.h          |    5 
+ arch/x86/include/asm/fixmap.h               |   16 +
+ arch/x86/include/asm/kvm_host.h             |    3 
+ arch/x86/include/asm/mem_encrypt.h          |   91 +++++++
+ arch/x86/include/asm/msr-index.h            |    2 
+ arch/x86/include/asm/pgtable.h              |   26 +-
+ arch/x86/include/asm/pgtable_types.h        |   49 +++-
+ arch/x86/include/asm/processor.h            |    3 
+ arch/x86/include/asm/realmode.h             |   12 +
+ arch/x86/include/asm/required-features.h    |    3 
+ arch/x86/include/asm/vga.h                  |   13 +
+ arch/x86/kernel/Makefile                    |    2 
+ arch/x86/kernel/asm-offsets.c               |    2 
+ arch/x86/kernel/cpu/common.c                |    2 
+ arch/x86/kernel/cpu/scattered.c             |    1 
+ arch/x86/kernel/devicetree.c                |    6 
+ arch/x86/kernel/e820.c                      |    2 
+ arch/x86/kernel/espfix_64.c                 |    2 
+ arch/x86/kernel/head64.c                    |  103 ++++++++
+ arch/x86/kernel/head_64.S                   |   42 +++
+ arch/x86/kernel/kdebugfs.c                  |   30 +-
+ arch/x86/kernel/machine_kexec_64.c          |    2 
+ arch/x86/kernel/mem_encrypt.S               |  339 +++++++++++++++++++++++++++
+ arch/x86/kernel/pci-dma.c                   |   11 +
+ arch/x86/kernel/pci-nommu.c                 |    2 
+ arch/x86/kernel/pci-swiotlb.c               |    8 -
+ arch/x86/kernel/setup.c                     |   17 +
+ arch/x86/kernel/x8664_ksyms_64.c            |    6 
+ arch/x86/kvm/mmu.c                          |    8 -
+ arch/x86/kvm/vmx.c                          |    3 
+ arch/x86/kvm/x86.c                          |    3 
+ arch/x86/mm/Makefile                        |    1 
+ arch/x86/mm/fault.c                         |    5 
+ arch/x86/mm/ioremap.c                       |   50 ++++
+ arch/x86/mm/kasan_init_64.c                 |    4 
+ arch/x86/mm/mem_encrypt.c                   |  203 ++++++++++++++++
+ arch/x86/mm/pageattr.c                      |   78 ++++++
+ arch/x86/mm/pat.c                           |    4 
+ arch/x86/platform/efi/efi.c                 |   15 +
+ arch/x86/platform/efi/efi_64.c              |   13 +
+ arch/x86/platform/efi/quirks.c              |    4 
+ arch/x86/realmode/init.c                    |   13 +
+ arch/x86/realmode/rm/trampoline_64.S        |   19 ++
+ arch/x86/xen/mmu.c                          |    9 -
+ arch/x86/xen/setup.c                        |    6 
+ drivers/acpi/tables.c                       |    2 
+ drivers/firmware/efi/arm-init.c             |   13 +
+ drivers/firmware/efi/efi.c                  |    7 -
+ drivers/firmware/efi/esrt.c                 |    4 
+ drivers/firmware/efi/fake_mem.c             |    3 
+ drivers/firmware/efi/memattr.c              |    2 
+ drivers/iommu/amd_iommu.c                   |   10 +
+ include/asm-generic/early_ioremap.h         |   17 +
+ include/linux/swiotlb.h                     |    1 
+ init/main.c                                 |   13 +
+ lib/swiotlb.c                               |   64 ++++-
+ mm/early_ioremap.c                          |   51 +++-
+ 67 files changed, 1351 insertions(+), 150 deletions(-)
+ create mode 100644 Documentation/x86/amd-memory-encryption.txt
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/kernel/mem_encrypt.S
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+
+-- 
+Tom Lendacky
