@@ -1,173 +1,184 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Mon, 22 Aug 2016 15:23:06 -0700
-Message-ID: <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
-References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com>
- <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com>
- <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
- <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
- <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com>
- <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk>
- <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: [RFC PATCH v2 00/20] x86: Secure Memory Encryption (AMD)
+Date: Mon, 22 Aug 2016 17:35:29 -0500
+Message-ID: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=94eb2c09b5921686bb053ab07e32
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:36833 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752794AbcHVWXI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2016 18:23:08 -0400
-In-Reply-To: <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
+Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek
+ Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy
+ Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+List-Id: linux-arch.vger.kernel.org
 
---94eb2c09b5921686bb053ab07e32
-Content-Type: text/plain; charset=UTF-8
+This RFC patch series provides support for AMD's new Secure Memory
+Encryption (SME) feature.
 
-On Sun, Aug 21, 2016 at 10:52 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Sat, Aug 20, 2016 at 11:42 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->>
->> It's not exactly setjmp/longjmp; what I had in mind was along the lines of
->
-> That ends up having all the exact same issues as setjmp, and generally
-> you *do* want the compiler to know about it.
+SME can be used to mark individual pages of memory as encrypted through the
+page tables. A page of memory that is marked encrypted will be automatically
+decrypted when read from DRAM and will be automatically encrypted when
+written to DRAM. Details on SME can found in the links below.
 
-So just in case you wanted to play around with it, here's a kernel
-implementation of 'setjmp/longjmp' for x86.
+The SME feature is identified through a CPUID function and enabled through
+the SYSCFG MSR. Once enabled, page table entries will determine how the
+memory is accessed. If a page table entry has the memory encryption mask set,
+then that memory will be accessed as encrypted memory. The memory encryption
+mask (as well as other related information) is determined from settings
+returned through the same CPUID function that identifies the presence of the
+feature.
 
-It's very lightly tested (and I'll admit to editing it for some
-cleanups after that light testing), but it does look largely sane.
+The approach that this patch series takes is to encrypt everything possible
+starting early in the boot where the kernel is encrypted. Using the page
+table macros the encryption mask can be incorporated into all page table
+entries and page allocations. By updating the protection map, userspace
+allocations are also marked encrypted. Certain data must be accounted for
+as having been placed in memory before SME was enabled (EFI, initrd, etc.)
+and accessed accordingly.
 
-The whole interface choice may be debatable: maybe it would be better
-to allocate the register buffer on the stack, and just hide a pointer
-to it in the task struct. Things like that could be changed fairly
-easily. But if you want to play around with this, this patch should
-get you started.
+This patch series is a pre-cursor to another AMD processor feature called
+Secure Encrypted Virtualization (SEV). The support for SEV will build upon
+the SME support and will be submitted later. Details on SEV can be found
+in the links below.
 
-Of course, you'd want to wrap things up somehow, and I would *not*
-want to see naked setjmp() calls in the kernel.
+The following links provide additional detail:
 
-And we'd need this for all other architectures too, but it's usually
-not hard to do. It needs to save all the callee-saved registers and
-the stack pointer and return address. That should generally be it.
+AMD Memory Encryption whitepaper:
+   http://amd-dev.wpengine.netdna-cdn.com/wordpress/media/2013/12/AMD_Memory_Encryption_Whitepaper_v7-Public.pdf
 
-The 32-bit version has not been tested at all, but it compiled at some
-point, and the code looks mostly sane. The 64-bit code I actually had
-a stupid non-user-access test-case for.
+AMD64 Architecture Programmer's Manual:
+   http://support.amd.com/TechDocs/24593.pdf
+   SME is section 7.10
+   SEV is section 15.34
 
-                Linus
+This patch series is based off of the master branch of tip.
+  Commit 9fc6ddd95cbb ("Merge branch 'x86/platform'")
 
---94eb2c09b5921686bb053ab07e32
-Content-Type: text/x-patch; charset=US-ASCII; name="setjmp.patch"
-Content-Disposition: attachment; filename="setjmp.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_is6lwj3k0
+---
 
-Y29tbWl0IGE4MDYyZWNiNzgwYmVkODFlYWVjMTBiZDlmZWE2MGJmNTk1YTljNDAKQXV0aG9yOiBM
-aW51cyBUb3J2YWxkcyA8dG9ydmFsZHNAbGludXgtZm91bmRhdGlvbi5vcmc+CkRhdGU6ICAgTW9u
-IEF1ZyAyMiAxMzoxNTo1MSAyMDE2IC0wNzAwCgogICAgeDg2OiBhZGQgYmFzaWMgc2V0am1wL2xv
-bmdqbXAgaW1wbGVtZW50YXRpb24KICAgIAogICAgVG8gbWFrZSB0aGUgY29tcGlsZXIgaGFwcHks
-IHdlIGhhdmUgdG8gYWN0dWFsbHkgY2FsbCBpdCBzZXRqbXAvbG9uZ2ptcAogICAgdG9vLiAgRXZl
-biBpZiB0aGUgZXhhY3Qgc2VtYW50aWNzIGFyZW4ndCB0aGUgc2FtZSAtIHdlIGtlZXAgdGhlIHJl
-Z2lzdGVyCiAgICBidWZmZXIgaW4gdGhlIHRocmVhZCBzdHJ1Y3R1cmUsIGZvciBleGFtcGxlLCBy
-YXRoZXIgdGhhbiBwYXNzIGl0IGluIGFzCiAgICBhbiBhcmd1bWVudC4KICAgIAogICAgU2lnbmVk
-LW9mZi1ieTogTGludXMgVG9ydmFsZHMgPHRvcnZhbGRzQGxpbnV4LWZvdW5kYXRpb24ub3JnPgot
-LS0KIGFyY2gveDg2L2luY2x1ZGUvYXNtL3Byb2Nlc3Nvci5oIHwgIDIgKysKIGFyY2gveDg2L2lu
-Y2x1ZGUvYXNtL3NldGptcC5oICAgIHwgMzEgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysr
-CiBhcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYyAgICB8ICAxICsKIGFyY2gveDg2L2xpYi9N
-YWtlZmlsZSAgICAgICAgICAgIHwgIDEgKwogYXJjaC94ODYvbGliL3NldGptcF8zMi5TICAgICAg
-ICAgfCAzNyArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKIGFyY2gveDg2L2xp
-Yi9zZXRqbXBfNjQuUyAgICAgICAgIHwgNDEgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysr
-KysrKysrKysrKwogaW5jbHVkZS9saW51eC9zZXRqbXAuaCAgICAgICAgICAgfCAxOSArKysrKysr
-KysrKysrKysrKysrCiA3IGZpbGVzIGNoYW5nZWQsIDEzMiBpbnNlcnRpb25zKCspCgpkaWZmIC0t
-Z2l0IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcHJvY2Vzc29yLmggYi9hcmNoL3g4Ni9pbmNsdWRl
-L2FzbS9wcm9jZXNzb3IuaAppbmRleCA2M2RlZjk1MzdhMmQuLjFhZjJjNzAyNWQ1MSAxMDA2NDQK
-LS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20vcHJvY2Vzc29yLmgKKysrIGIvYXJjaC94ODYvaW5j
-bHVkZS9hc20vcHJvY2Vzc29yLmgKQEAgLTIyLDYgKzIyLDcgQEAgc3RydWN0IHZtODY7CiAjaW5j
-bHVkZSA8YXNtL25vcHMuaD4KICNpbmNsdWRlIDxhc20vc3BlY2lhbF9pbnNucy5oPgogI2luY2x1
-ZGUgPGFzbS9mcHUvdHlwZXMuaD4KKyNpbmNsdWRlIDxhc20vc2V0am1wLmg+CiAKICNpbmNsdWRl
-IDxsaW51eC9wZXJzb25hbGl0eS5oPgogI2luY2x1ZGUgPGxpbnV4L2NhY2hlLmg+CkBAIC00MjUs
-NiArNDI2LDcgQEAgc3RydWN0IHRocmVhZF9zdHJ1Y3QgewogCXVuc2lnbmVkCQlpb19iaXRtYXBf
-bWF4OwogCiAJbW1fc2VnbWVudF90CQlhZGRyX2xpbWl0OworCXN0cnVjdCBzZXRqbXAJCXNldGpt
-cDsKIAogCXVuc2lnbmVkIGludAkJc2lnX29uX3VhY2Nlc3NfZXJyOjE7CiAJdW5zaWduZWQgaW50
-CQl1YWNjZXNzX2VycjoxOwkvKiB1YWNjZXNzIGZhaWxlZCAqLwpkaWZmIC0tZ2l0IGEvYXJjaC94
-ODYvaW5jbHVkZS9hc20vc2V0am1wLmggYi9hcmNoL3g4Ni9pbmNsdWRlL2FzbS9zZXRqbXAuaApu
-ZXcgZmlsZSBtb2RlIDEwMDY0NAppbmRleCAwMDAwMDAwMDAwMDAuLjZjZGE4NjA4Y2UwNAotLS0g
-L2Rldi9udWxsCisrKyBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3NldGptcC5oCkBAIC0wLDAgKzEs
-MzEgQEAKKyNpZm5kZWYgX0FTTV9TRVRKTVBfSAorI2RlZmluZSBfQVNNX1NFVEpNUF9ICisKKy8q
-CisgKiBzZXRqbXAgbmVlZHMgdG8gc2F2ZSB0aGUgY2FsbGVlLXNhdmVkIHJlZ2lzdGVycyBhbmQK
-KyAqIHRoZSBzdGFjayBzZXR1cCwgc28gdGhhdCBpdCBsb29rcyBsaWtlIGEgbm9ybWFsIGNhbGwu
-CisgKgorICogSW4gYWRkaXRpb24sIGdjYyBuZWVkcyB0byBrbm93IHRoYXQgaXQncyBzZXRqbXAs
-IGJ1dAorICogdGhhdCBzZWVtcyB0byBsaXRlcmFsbHkganVzdCB0cmlnZ2VyIG9uIHRoZSBuYW1l
-LgorICoKKyAqIFVubGlrZSB0aGUgbGVnYWN5IEMgaW1wbGVtZW50YXRpb24sIHdlIGp1c3QgaGF2
-ZSB0aGUKKyAqIHNhdmUgYXJlYSBpbiB0aGUgdGFzayBzdHJ1Y3R1cmUuCisgKi8KKworI2lmZGVm
-IENPTkZJR19YODZfNjQKKworc3RydWN0IHNldGptcCB7CisJdW5zaWduZWQgbG9uZyByYngsIHIx
-MiwgcjEzLCByMTQsIHIxNTsKKwl1bnNpZ25lZCBsb25nIHJicCwgcnNwLCByaXA7Cit9OworCisj
-ZWxzZQorCitzdHJ1Y3Qgc2V0am1wIHsKKwl1bnNpZ25lZCBsb25nIGVieCwgZXNpLCBlZGk7CisJ
-dW5zaWduZWQgbG9uZyBlYnAsIGVzcCwgZWlwOworfTsKKworI2VuZGlmCisKKyNlbmRpZiAvLyBf
-QVNNX1NFVEpNUF9ICmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYyBi
-L2FyY2gveDg2L2tlcm5lbC9hc20tb2Zmc2V0cy5jCmluZGV4IDJiZDVjNmZmN2VlNy4uNzhhMTBl
-YjA0OGU4IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYworKysgYi9h
-cmNoL3g4Ni9rZXJuZWwvYXNtLW9mZnNldHMuYwpAQCAtMzQsNiArMzQsNyBAQCB2b2lkIGNvbW1v
-bih2b2lkKSB7CiAKIAlCTEFOSygpOwogCU9GRlNFVChUQVNLX2FkZHJfbGltaXQsIHRhc2tfc3Ry
-dWN0LCB0aHJlYWQuYWRkcl9saW1pdCk7CisJT0ZGU0VUKFRBU0tfc2V0am1wLCB0YXNrX3N0cnVj
-dCwgdGhyZWFkLnNldGptcCk7CiAKIAlCTEFOSygpOwogCU9GRlNFVChjcnlwdG9fdGZtX2N0eF9v
-ZmZzZXQsIGNyeXB0b190Zm0sIF9fY3J0X2N0eCk7CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9saWIv
-TWFrZWZpbGUgYi9hcmNoL3g4Ni9saWIvTWFrZWZpbGUKaW5kZXggMzRhNzQxMzFhMTJjLi5iYjdh
-MzQ2NDhjMmMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi9NYWtlZmlsZQorKysgYi9hcmNoL3g4
-Ni9saWIvTWFrZWZpbGUKQEAgLTIyLDYgKzIyLDcgQEAgb2JqLSQoQ09ORklHX1NNUCkgKz0gbXNy
-LXNtcC5vIGNhY2hlLXNtcC5vCiBsaWIteSA6PSBkZWxheS5vIG1pc2MubyBjbWRsaW5lLm8gY3B1
-Lm8KIGxpYi15ICs9IHVzZXJjb3B5XyQoQklUUykubyB1c2VyY29weS5vIGdldHVzZXIubyBwdXR1
-c2VyLm8KIGxpYi15ICs9IG1lbWNweV8kKEJJVFMpLm8KK2xpYi15ICs9IHNldGptcF8kKEJJVFMp
-Lm8KIGxpYi0kKENPTkZJR19SV1NFTV9YQ0hHQUREX0FMR09SSVRITSkgKz0gcndzZW0ubwogbGli
-LSQoQ09ORklHX0lOU1RSVUNUSU9OX0RFQ09ERVIpICs9IGluc24ubyBpbmF0Lm8KIGxpYi0kKENP
-TkZJR19SQU5ET01JWkVfQkFTRSkgKz0ga2FzbHIubwpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvbGli
-L3NldGptcF8zMi5TIGIvYXJjaC94ODYvbGliL3NldGptcF8zMi5TCm5ldyBmaWxlIG1vZGUgMTAw
-NjQ0CmluZGV4IDAwMDAwMDAwMDAwMC4uNDRmM2Q1MmVlNDBjCi0tLSAvZGV2L251bGwKKysrIGIv
-YXJjaC94ODYvbGliL3NldGptcF8zMi5TCkBAIC0wLDAgKzEsMzcgQEAKKyNpbmNsdWRlIDxsaW51
-eC9saW5rYWdlLmg+CisjaW5jbHVkZSA8YXNtL2FzbS1vZmZzZXRzLmg+CisjaW5jbHVkZSA8YXNt
-L2FzbS5oPgorI2luY2x1ZGUgPGFzbS9wZXJjcHUuaD4KKworLy8gVGhlIGV4cGxpY2l0IGFkZCBv
-ZiBUQVNLX3NldGptcCBrZWVwcyB0aGUKKy8vIGZvbGxvd2luZyBvZmZzZXQgOC1iaXQgdmFsdWVz
-LCBhbmQgc2hyaW5rcworLy8gdGhlIG1vZHJtIGJ5dGVzIGluIHRoZSBpbnN0cnVjdGlvbnMgdGhh
-dAorLy8gZm9sbG93LgorCitFTlRSWShzZXRqbXApCisJbW92bCBQRVJfQ1BVX1ZBUihjdXJyZW50
-X3Rhc2spLCVlYXgKKwlhZGRsICRUQVNLX3NldGptcCwlZWF4CisKKwltb3ZsICVlYngsKCVlYXgp
-CisJbW92bCAlZXNpLDQoJWVheCkKKwltb3ZsICVlZGksOCglZWF4KQorCW1vdmwgJWVicCwxMigl
-ZWF4KQorCWxlYSA0KCVlc3ApLCVlZHgKKwltb3ZsICVlZHgsMTYoJWVheCkKKwltb3ZsICglZXNw
-KSwlZWR4CisJbW92bCAlZWR4LDIwKCVlYXgpCisJeG9ybCAlZWF4LCVlYXgKKwlyZXQKKworRU5U
-UlkobG9uZ2ptcCkKKwltb3ZsIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJWVheAorCWFkZGwg
-JFRBU0tfc2V0am1wLCVlYXgKKworCW1vdmwgKCVlYXgpLCVlYngKKwltb3ZsIDQoJWVheCksJWVz
-aQorCW1vdmwgOCglZWF4KSwlZWRpCisJbW92bCAxMiglZWF4KSwlZWJwCisJbW92bCAxNiglZWF4
-KSwlZXNwCisJbW92bCAyMCglZWF4KSwlZWR4CisJbW92bCAkMSwlZWF4CisJam1wIColZWR4CmRp
-ZmYgLS1naXQgYS9hcmNoL3g4Ni9saWIvc2V0am1wXzY0LlMgYi9hcmNoL3g4Ni9saWIvc2V0am1w
-XzY0LlMKbmV3IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMDAwMDAwLi5jMTEzZTEzMmU0
-ZDgKLS0tIC9kZXYvbnVsbAorKysgYi9hcmNoL3g4Ni9saWIvc2V0am1wXzY0LlMKQEAgLTAsMCAr
-MSw0MSBAQAorI2luY2x1ZGUgPGxpbnV4L2xpbmthZ2UuaD4KKyNpbmNsdWRlIDxhc20vYXNtLW9m
-ZnNldHMuaD4KKyNpbmNsdWRlIDxhc20vYXNtLmg+CisjaW5jbHVkZSA8YXNtL3BlcmNwdS5oPgor
-CisvLyBUaGUgZXhwbGljaXQgYWRkIG9mIFRBU0tfc2V0am1wIGtlZXBzIHRoZQorLy8gZm9sbG93
-aW5nIG9mZnNldCA4LWJpdCB2YWx1ZXMsIGFuZCBzaHJpbmtzCisvLyB0aGUgbW9kcm0gYnl0ZXMg
-aW4gdGhlIGluc3RydWN0aW9ucyB0aGF0CisvLyBmb2xsb3cuCisKK0VOVFJZKHNldGptcCkKKwlt
-b3ZxIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJXJheAorCWFkZHEgJFRBU0tfc2V0am1wLCVy
-YXgKKworCW1vdnEgJXJieCwoJXJheCkKKwltb3ZxICVyMTIsOCglcmF4KQorCW1vdnEgJXIxMywx
-NiglcmF4KQorCW1vdnEgJXIxNCwyNCglcmF4KQorCW1vdnEgJXIxNSwzMiglcmF4KQorCW1vdnEg
-JXJicCw0MCglcmF4KQorCWxlYSA4KCVyc3ApLCVyZHgKKwltb3ZxICVyZHgsNDgoJXJheCkKKwlt
-b3ZxICglcnNwKSwlcmR4CisJbW92cSAlcmR4LDU2KCVyYXgpCisJeG9ybCAlZWF4LCVlYXgKKwly
-ZXQKKworRU5UUlkobG9uZ2ptcCkKKwltb3ZxIFBFUl9DUFVfVkFSKGN1cnJlbnRfdGFzayksJXJh
-eAorCWFkZHEgJFRBU0tfc2V0am1wLCVyYXgKKworCW1vdnEgKCVyYXgpLCVyYngKKwltb3ZxIDgo
-JXJheCksJXIxMgorCW1vdnEgMTYoJXJheCksJXIxMworCW1vdnEgMjQoJXJheCksJXIxNAorCW1v
-dnEgMzIoJXJheCksJXIxNQorCW1vdnEgNDAoJXJheCksJXJicAorCW1vdnEgNDgoJXJheCksJXJz
-cAorCW1vdnEgNTYoJXJheCksJXJkeAorCW1vdmwgJDEsJWVheAorCWptcCAqJXJkeApkaWZmIC0t
-Z2l0IGEvaW5jbHVkZS9saW51eC9zZXRqbXAuaCBiL2luY2x1ZGUvbGludXgvc2V0am1wLmgKbmV3
-IGZpbGUgbW9kZSAxMDA2NDQKaW5kZXggMDAwMDAwMDAwMDAwLi40MmQ0Njc0NzkxZTgKLS0tIC9k
-ZXYvbnVsbAorKysgYi9pbmNsdWRlL2xpbnV4L3NldGptcC5oCkBAIC0wLDAgKzEsMTkgQEAKKyNp
-Zm5kZWYgX0xJTlVYX1NFVEpNUF9ICisjZGVmaW5lIF9MSU5VWF9TRVRKTVBfSAorCisjaW5jbHVk
-ZSA8bGludXgvY29tcGlsZXIuaD4KKworLy8KKy8vIE5PVEUhIFdlIGNhbGwgaXQgJ3NldGptcCcg
-dG8gbWFrZSBnY2MgdHJlYXQgaXQgc3BlY2lhbGx5LAorLy8gYnV0IHRoZSBjYWxsaW5nIGNvbnZl
-bnRpb25zIGFyZSBkaWZmZXJlbnQgZnJvbSB0aGUgcmVndWxhcgorLy8gdXNlci1zcGFjZSBzZXRq
-bXAuCisvLworLy8gU28gc2V0am1wKCkgYWx3YXlzIHJldHVybnMgMC8xLCBhbmQgdGhlICByZWdp
-c3RlciBidWZmZXIKKy8vIGlzIGFsd2F5cyBpbiB0aGUgdGFzayBzdHJ1Y3QgcmF0aGVyIHRoYW4g
-YmVpbmcgcGFzc2VkIGluCisvLyBhcyBhbiBhcmd1bWVudC4KKy8vCisKK2V4dGVybiBpbnQgc2V0
-am1wKHZvaWQpOworZXh0ZXJuIHZvaWQgX19ub3JldHVybiBsb25nam1wKHZvaWQpOworCisjZW5k
-aWYgLy8gX0xJTlVYX1NFVEpNUF9ICg==
---94eb2c09b5921686bb053ab07e32--
+Sorry for the delay in getting v2 out.
+
+Still to do: kexec support
+
+Changes since v1:
+- Added Documentation.
+- Removed AMD vendor check for setting the PAT write protect mode
+- Updated naming of trampoline flag for SME as well as moving of the
+  SME check to before paging is enabled.
+- Change to early_memremap to identify the data being mapped as either
+  boot data or kernel data.  The idea being that boot data will have
+  been placed in memory as un-encrypted data and would need to be accessed
+  as such.
+- Updated debugfs support for the bootparams to access the data properly.
+- Do not set the SYSCFG[MEME] bit, only check it.  The setting of the
+  MemEncryptionModeEn bit results in a reduction of physical address size
+  of the processor.  It is possible that BIOS could have configured resources
+  resources into a range that will now not be addressable.  To prevent this,
+  rely on BIOS to set the SYSCFG[MEME] bit and only then enable memory
+  encryption support in the kernel.
+
+Tom Lendacky (20):
+      x86: Documentation for AMD Secure Memory Encryption (SME)
+      x86: Set the write-protect cache mode for full PAT support
+      x86: Secure Memory Encryption (SME) build enablement
+      x86: Secure Memory Encryption (SME) support
+      x86: Add the Secure Memory Encryption cpu feature
+      x86: Handle reduction in physical address size with SME
+      x86: Provide general kernel support for memory encryption
+      x86: Extend the early_memmap support with additional attrs
+      x86: Add support for early encryption/decryption of memory
+      x86: Insure that memory areas are encrypted when possible
+      mm: Access BOOT related data in the clear
+      x86: Add support for changing memory encryption attribute
+      x86: Decrypt trampoline area if memory encryption is active
+      x86: DMA support for memory encryption
+      iommu/amd: AMD IOMMU support for memory encryption
+      x86: Check for memory encryption on the APs
+      x86: Do not specify encrypted memory for VGA mapping
+      x86/kvm: Enable Secure Memory Encryption of nested page tables
+      x86: Access the setup data through debugfs un-encrypted
+      x86: Add support to make use of Secure Memory Encryption
+
+
+ Documentation/kernel-parameters.txt         |    3 
+ Documentation/x86/amd-memory-encryption.txt |   35 +++
+ arch/arm64/kernel/acpi.c                    |    2 
+ arch/ia64/include/asm/early_ioremap.h       |    2 
+ arch/x86/Kconfig                            |    9 +
+ arch/x86/boot/compressed/pagetable.c        |    7 +
+ arch/x86/include/asm/cacheflush.h           |    3 
+ arch/x86/include/asm/cpufeature.h           |    7 -
+ arch/x86/include/asm/cpufeatures.h          |    5 
+ arch/x86/include/asm/disabled-features.h    |    3 
+ arch/x86/include/asm/dma-mapping.h          |    5 
+ arch/x86/include/asm/fixmap.h               |   16 +
+ arch/x86/include/asm/kvm_host.h             |    3 
+ arch/x86/include/asm/mem_encrypt.h          |   91 +++++++
+ arch/x86/include/asm/msr-index.h            |    2 
+ arch/x86/include/asm/pgtable.h              |   26 +-
+ arch/x86/include/asm/pgtable_types.h        |   49 +++-
+ arch/x86/include/asm/processor.h            |    3 
+ arch/x86/include/asm/realmode.h             |   12 +
+ arch/x86/include/asm/required-features.h    |    3 
+ arch/x86/include/asm/vga.h                  |   13 +
+ arch/x86/kernel/Makefile                    |    2 
+ arch/x86/kernel/asm-offsets.c               |    2 
+ arch/x86/kernel/cpu/common.c                |    2 
+ arch/x86/kernel/cpu/scattered.c             |    1 
+ arch/x86/kernel/devicetree.c                |    6 
+ arch/x86/kernel/e820.c                      |    2 
+ arch/x86/kernel/espfix_64.c                 |    2 
+ arch/x86/kernel/head64.c                    |  103 ++++++++
+ arch/x86/kernel/head_64.S                   |   42 +++
+ arch/x86/kernel/kdebugfs.c                  |   30 +-
+ arch/x86/kernel/machine_kexec_64.c          |    2 
+ arch/x86/kernel/mem_encrypt.S               |  339 +++++++++++++++++++++++++++
+ arch/x86/kernel/pci-dma.c                   |   11 +
+ arch/x86/kernel/pci-nommu.c                 |    2 
+ arch/x86/kernel/pci-swiotlb.c               |    8 -
+ arch/x86/kernel/setup.c                     |   17 +
+ arch/x86/kernel/x8664_ksyms_64.c            |    6 
+ arch/x86/kvm/mmu.c                          |    8 -
+ arch/x86/kvm/vmx.c                          |    3 
+ arch/x86/kvm/x86.c                          |    3 
+ arch/x86/mm/Makefile                        |    1 
+ arch/x86/mm/fault.c                         |    5 
+ arch/x86/mm/ioremap.c                       |   50 ++++
+ arch/x86/mm/kasan_init_64.c                 |    4 
+ arch/x86/mm/mem_encrypt.c                   |  203 ++++++++++++++++
+ arch/x86/mm/pageattr.c                      |   78 ++++++
+ arch/x86/mm/pat.c                           |    4 
+ arch/x86/platform/efi/efi.c                 |   15 +
+ arch/x86/platform/efi/efi_64.c              |   13 +
+ arch/x86/platform/efi/quirks.c              |    4 
+ arch/x86/realmode/init.c                    |   13 +
+ arch/x86/realmode/rm/trampoline_64.S        |   19 ++
+ arch/x86/xen/mmu.c                          |    9 -
+ arch/x86/xen/setup.c                        |    6 
+ drivers/acpi/tables.c                       |    2 
+ drivers/firmware/efi/arm-init.c             |   13 +
+ drivers/firmware/efi/efi.c                  |    7 -
+ drivers/firmware/efi/esrt.c                 |    4 
+ drivers/firmware/efi/fake_mem.c             |    3 
+ drivers/firmware/efi/memattr.c              |    2 
+ drivers/iommu/amd_iommu.c                   |   10 +
+ include/asm-generic/early_ioremap.h         |   17 +
+ include/linux/swiotlb.h                     |    1 
+ init/main.c                                 |   13 +
+ lib/swiotlb.c                               |   64 ++++-
+ mm/early_ioremap.c                          |   51 +++-
+ 67 files changed, 1351 insertions(+), 150 deletions(-)
+ create mode 100644 Documentation/x86/amd-memory-encryption.txt
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/kernel/mem_encrypt.S
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+
+-- 
+Tom Lendacky
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
