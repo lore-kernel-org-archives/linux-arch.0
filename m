@@ -1,7 +1,7 @@
 From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v05 65/72] uapi fcntl.h: glibc fcntl.h header file compatibility fixes
-Date: Mon, 22 Aug 2016 20:33:22 +0200
-Message-ID: <1471890809-4383-66-git-send-email-mikko.rapeli@iki.fi>
+Subject: [PATCH v05 71/72] uapi term*.h: glibc termios.h header file compatibility fixes
+Date: Mon, 22 Aug 2016 20:33:28 +0200
+Message-ID: <1471890809-4383-72-git-send-email-mikko.rapeli@iki.fi>
 References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -10,127 +10,154 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, Jeff Layton <jlayton@poochiereds.net>, "J. Bruce Fields" <bfields@fieldses.org>, "David S. Miller" <davem@davemloft.net>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fixes these userspace compile warnings and error when glibc fcntl.h is
-included before linux/fcntl.h:
+Fixes these userspace compile errors and warnings when glibc termios.h
+is included before linux/termios.h:
 
-asm-generic/fcntl.h:18:0: warning: "O_ACCMODE" redefined
-asm-generic/fcntl.h:19:0: warning: "O_RDONLY" redefined
-asm-generic/fcntl.h:20:0: warning: "O_WRONLY" redefined
-asm-generic/fcntl.h:21:0: warning: "O_RDWR" redefined
-asm-generic/fcntl.h:195:8: error: redefinition of ‘struct flock’
-linux/fcntl.h:16:0: warning: "F_DUPFD_CLOEXEC" redefined
+asm-generic/termbits.h:11:8: error: redefinition of ‘struct termios’
+asm-generic/termios.h:14:8: error: redefinition of ‘struct winsize’
+asm-generic/termios.h:22:8: error: redefinition of ‘struct termio’
+
+Not fixing multiple NCSS definitions since I don't know which one would be
+correct so this warning remains:
+
+asm-generic/termbits.h:10:0: warning: "NCCS" redefined
+ #define NCCS 19
+ ^
+bits/termios.h:27:0: note: this is the location of the previous definition
+ #define NCCS 32
+ ^
 
 Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
 ---
- include/uapi/asm-generic/fcntl.h |  6 ++++++
- include/uapi/linux/fcntl.h       |  3 +++
- include/uapi/linux/libc-compat.h | 20 ++++++++++++++++++++
- 3 files changed, 29 insertions(+)
+ include/uapi/asm-generic/termbits.h |  3 +++
+ include/uapi/asm-generic/termios.h  |  5 +++++
+ include/uapi/linux/libc-compat.h    | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 36 insertions(+)
 
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index e063eff..3b429ce 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
+diff --git a/include/uapi/asm-generic/termbits.h b/include/uapi/asm-generic/termbits.h
+index 232b478..314bfef 100644
+--- a/include/uapi/asm-generic/termbits.h
++++ b/include/uapi/asm-generic/termbits.h
 @@ -1,6 +1,7 @@
- #ifndef _ASM_GENERIC_FCNTL_H
- #define _ASM_GENERIC_FCNTL_H
+ #ifndef __ASM_GENERIC_TERMBITS_H
+ #define __ASM_GENERIC_TERMBITS_H
  
 +#include <linux/libc-compat.h>
- #include <linux/types.h>
+ #include <linux/posix_types.h>
  
- /*
-@@ -15,10 +16,13 @@
-  * When introducing new O_* bits, please check its uniqueness in fcntl_init().
+ typedef unsigned char	cc_t;
+@@ -8,6 +9,7 @@ typedef unsigned int	speed_t;
+ typedef unsigned int	tcflag_t;
+ 
+ #define NCCS 19
++#if __UAPI_DEF_TERMIOS
+ struct termios {
+ 	tcflag_t c_iflag;		/* input mode flags */
+ 	tcflag_t c_oflag;		/* output mode flags */
+@@ -16,6 +18,7 @@ struct termios {
+ 	cc_t c_line;			/* line discipline */
+ 	cc_t c_cc[NCCS];		/* control characters */
+ };
++#endif /* __UAPI_DEF_TERMIOS */
+ 
+ struct termios2 {
+ 	tcflag_t c_iflag;		/* input mode flags */
+diff --git a/include/uapi/asm-generic/termios.h b/include/uapi/asm-generic/termios.h
+index 0881760..3428999 100644
+--- a/include/uapi/asm-generic/termios.h
++++ b/include/uapi/asm-generic/termios.h
+@@ -8,17 +8,21 @@
+  * New architectures should not provide their own version.
   */
  
-+#if __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR
- #define O_ACCMODE	00000003
- #define O_RDONLY	00000000
- #define O_WRONLY	00000001
- #define O_RDWR		00000002
-+#endif /* __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR */
-+
- #ifndef O_CREAT
- #define O_CREAT		00000100	/* not fcntl */
- #endif
-@@ -192,6 +196,7 @@ struct f_owner_ex {
- #define __ARCH_FLOCK_PAD
- #endif
- 
-+#if __UAPI_DEF_FLOCK
- struct flock {
- 	short	l_type;
- 	short	l_whence;
-@@ -200,6 +205,7 @@ struct flock {
- 	__kernel_pid_t	l_pid;
- 	__ARCH_FLOCK_PAD
- };
-+#endif /* __UAPI_DEF_FLOCK */
- #endif
- 
- #ifndef HAVE_ARCH_STRUCT_FLOCK64
-diff --git a/include/uapi/linux/fcntl.h b/include/uapi/linux/fcntl.h
-index beed138..279bcfb 100644
---- a/include/uapi/linux/fcntl.h
-+++ b/include/uapi/linux/fcntl.h
-@@ -1,6 +1,7 @@
- #ifndef _UAPI_LINUX_FCNTL_H
- #define _UAPI_LINUX_FCNTL_H
- 
 +#include <linux/libc-compat.h>
- #include <asm/fcntl.h>
+ #include <asm/termbits.h>
+ #include <asm/ioctls.h>
  
- #define F_SETLEASE	(F_LINUX_SPECIFIC_BASE + 0)
-@@ -13,7 +14,9 @@
- #define F_CANCELLK	(F_LINUX_SPECIFIC_BASE + 5)
++#if __UAPI_DEF_WINSIZE
+ struct winsize {
+ 	unsigned short ws_row;
+ 	unsigned short ws_col;
+ 	unsigned short ws_xpixel;
+ 	unsigned short ws_ypixel;
+ };
++#endif /* __UAPI_DEF_WINSIZE */
  
- /* Create a file descriptor with FD_CLOEXEC set. */
-+#if __UAPI_DEF_F_DUPFD_CLOEXEC
- #define F_DUPFD_CLOEXEC	(F_LINUX_SPECIFIC_BASE + 6)
-+#endif /* __UAPI_DEF_F_DUPFD_CLOEXEC */
+ #define NCC 8
++#if __UAPI_DEF_TERMIO
+ struct termio {
+ 	unsigned short c_iflag;		/* input mode flags */
+ 	unsigned short c_oflag;		/* output mode flags */
+@@ -27,6 +31,7 @@ struct termio {
+ 	unsigned char c_line;		/* line discipline */
+ 	unsigned char c_cc[NCC];	/* control characters */
+ };
++#endif /* __UAPI_DEF_TERMIO */
  
- /*
-  * Request nofications on a directory.
+ /* modem lines */
+ #define TIOCM_LE	0x001
 diff --git a/include/uapi/linux/libc-compat.h b/include/uapi/linux/libc-compat.h
-index 44b8a6b..40190a4 100644
+index cb25f16..07a3462 100644
 --- a/include/uapi/linux/libc-compat.h
 +++ b/include/uapi/linux/libc-compat.h
-@@ -51,6 +51,21 @@
- /* We have included glibc headers... */
- #if defined(__GLIBC__)
+@@ -230,6 +230,13 @@
  
-+/* Coordinate with glibc fcntl.h header. */
-+#if defined(_FCNTL_H)
-+
-+#define __UAPI_DEF_FLOCK			0
-+#define __UAPI_DEF_F_DUPFD_CLOEXEC		0
-+#define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	0
-+
-+#else /* defined(_FCNTL_H) */
-+
-+#define __UAPI_DEF_FLOCK			1
-+#define __UAPI_DEF_F_DUPFD_CLOEXEC		1
-+#define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	1
-+
-+#endif /* defined(_FCNTL_H) */
-+
- /* Coordinate with glibc net/if.h header. */
- #if defined(_NET_IF_H) && defined(__USE_MISC)
+ #endif /* defined(_NETROSE_ROSE_H) */
  
-@@ -170,6 +185,11 @@
-  * that we need. */
- #else /* !defined(__GLIBC__) */
- 
-+/* Definitions for asm-generic/fcntl.h */
-+#define __UAPI_DEF_FLOCK			1
-+#define __UAPI_DEF_F_DUPFD_CLOEXEC		1
-+#define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	1
++/* Coordinate with glibc pty.h */
++#if defined(_PTY_H)
++#define __UAPI_DEF_TERMIOS	0
++#else /* defined(_PTY_H) */
++#define __UAPI_DEF_TERMIOS	1
++#endif /* defined(_PTY_H) */
 +
- /* Definitions for if.h */
- #define __UAPI_DEF_IF_IFCONF 1
- #define __UAPI_DEF_IF_IFMAP 1
+ /* Coordinate with glibc time.h */
+ #if defined(_TIME_H)
+ #define __UAPI_DEF_TIMESPEC		0
+@@ -245,6 +252,15 @@
+ 
+ #endif /* defined(_TIME_H) */
+ 
++/* Definitions for sys/ioctl.h */
++#if defined(_SYS_IOCTL_H)
++#define __UAPI_DEF_TERMIO		0
++#define __UAPI_DEF_WINSIZE		0
++#else /* defined(_SYS_IOCTL_H) */
++#define __UAPI_DEF_TERMIO		1
++#define __UAPI_DEF_WINSIZE		1
++#endif /* defined(_SYS_IOCTL_H) */
++
+ /* Definitions for sys/uio.h */
+ #if defined(_SYS_UIO_H)
+ #define __UAPI_DEF_IOVEC		0
+@@ -265,6 +281,13 @@
+ 
+ #endif /* defined(_SYS_TIME_H) */
+ 
++/* Coordinate with glibc termios.h */
++#if defined(_TERMIOS_H)
++#define __UAPI_DEF_TERMIOS	0
++#else /* defined(_TERMIOS_H) */
++#define __UAPI_DEF_TERMIOS	1
++#endif /* defined(_TERMIOS_H) */
++
+ /* Definitions for xattr.h */
+ #if defined(_SYS_XATTR_H)
+ #define __UAPI_DEF_XATTR		0
+@@ -282,6 +305,11 @@
+ #define __UAPI_DEF_F_DUPFD_CLOEXEC		1
+ #define __UAPI_DEF_O_ACCMODE_RDONLY_WRONLY_RDWR	1
+ 
++/* Definitions for asm-generic/termbits.h and asm-generic/termios.h */
++#define __UAPI_DEF_TERMIO		1
++#define __UAPI_DEF_TERMIOS		1
++#define __UAPI_DEF_WINSIZE		1
++
+ /* Definitions for ax25.h */
+ #define __UAPI_DEF_SIOCAX25GETUID_TO_SIOCAX25DELFWD	1
+ #define __UAPI_DEF_SIOCAX25GETINFO			1
 -- 
 2.8.1
