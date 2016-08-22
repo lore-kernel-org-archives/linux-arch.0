@@ -1,43 +1,40 @@
 From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v05 14/72] include/uapi/asm-generic/ipcbuf.h: include linux/posix_types.h
-Date: Mon, 22 Aug 2016 20:32:31 +0200
-Message-ID: <1471890809-4383-15-git-send-email-mikko.rapeli@iki.fi>
+Subject: [PATCH v05 15/72] include/uapi/asm-generic/msgbuf.h: include asm/ipcbuf.h
+Date: Mon, 22 Aug 2016 20:32:32 +0200
+Message-ID: <1471890809-4383-16-git-send-email-mikko.rapeli@iki.fi>
 References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:52021 "EHLO mail.kapsi.fi"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756173AbcHVSfo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 14:35:44 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Fixes userspace compilation error:
+Fixes userspace compilation errors like:
 
-error: unknown type name ‘__kernel_key_t’
+error: field ‘msg_perm’ has incomplete type
+struct ipc64_perm msg_perm
 
 Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
 ---
- include/uapi/asm-generic/ipcbuf.h | 2 ++
+ include/uapi/asm-generic/msgbuf.h | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/include/uapi/asm-generic/ipcbuf.h b/include/uapi/asm-generic/ipcbuf.h
-index 3dbcc1e..909f825 100644
---- a/include/uapi/asm-generic/ipcbuf.h
-+++ b/include/uapi/asm-generic/ipcbuf.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_GENERIC_IPCBUF_H
- #define __ASM_GENERIC_IPCBUF_H
+diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
+index f55ecc4..f5fbd8e 100644
+--- a/include/uapi/asm-generic/msgbuf.h
++++ b/include/uapi/asm-generic/msgbuf.h
+@@ -2,6 +2,8 @@
+ #define __ASM_GENERIC_MSGBUF_H
  
-+#include <linux/posix_types.h>
+ #include <asm/bitsperlong.h>
++#include <asm/ipcbuf.h>
 +
  /*
-  * The generic ipc64_perm structure:
-  * Note extra padding because this structure is passed back and forth
+  * generic msqid64_ds structure.
+  *
 -- 
 2.8.1
