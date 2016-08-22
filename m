@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0057.outbound.protection.outlook.com ([104.47.34.57]:17444
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam03on0075.outbound.protection.outlook.com ([104.47.42.75]:19425
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752016AbcHVXI1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 19:08:27 -0400
+        id S1755057AbcHVXIt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 19:08:49 -0400
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v2 06/20] x86: Handle reduction in physical address size
- with SME
-Date: Mon, 22 Aug 2016 17:36:34 -0500
-Message-ID: <20160822223634.29880.93825.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v2 01/20] x86: Documentation for AMD Secure Memory
+ Encryption (SME)
+Date: Mon, 22 Aug 2016 17:35:39 -0500
+Message-ID: <20160822223539.29880.96739.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,35 +18,56 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160822223634.wlD4DOXvUIuOtx78XZW_CCLIDBNpYhIVsHwqUKljnhQ@z>
+Message-ID: <20160822223539.-SMtOuInCHGW14cSCZ3Z_8e851ZPvGEGuui5s06wpa4@z>
 
-When System Memory Encryption (SME) is enabled, the physical address
-space is reduced. Adjust the x86_phys_bits value to reflect this
-reduction.
+This patch adds a Documenation entry to decribe the AMD Secure Memory
+Encryption (SME) feature.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/cpu/common.c |    2 ++
- 1 file changed, 2 insertions(+)
+ Documentation/x86/amd-memory-encryption.txt |   35 +++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+ create mode 100644 Documentation/x86/amd-memory-encryption.txt
 
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index ce7a4c1..c0fe783 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -44,6 +44,7 @@
- #include <asm/pat.h>
- #include <asm/microcode.h>
- #include <asm/microcode_intel.h>
-+#include <asm/mem_encrypt.h>
- 
- #ifdef CONFIG_X86_LOCAL_APIC
- #include <asm/uv/uv.h>
-@@ -736,6 +737,7 @@ void get_cpu_cap(struct cpuinfo_x86 *c)
- 
- 		c->x86_virt_bits = (eax >> 8) & 0xff;
- 		c->x86_phys_bits = eax & 0xff;
-+		c->x86_phys_bits -= sme_get_me_loss();
- 		c->x86_capability[CPUID_8000_0008_EBX] = ebx;
- 	}
- #ifdef CONFIG_X86_32
+diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
+new file mode 100644
+index 0000000..f19c555
+--- /dev/null
++++ b/Documentation/x86/amd-memory-encryption.txt
+@@ -0,0 +1,35 @@
++Secure Memory Encryption (SME) is a feature found on AMD processors.
++
++SME provides the ability to mark individual pages of memory as encrypted using
++the standard x86 page tables.  A page that is marked encrpyted will be
++automatically decrypted when read from DRAM and encrypted when written to
++DRAM.  SME can therefore be used to protect the contents of DRAM from physical
++attacks on the system.
++
++Support for SME can be determined through the CPUID instruction. The CPUID
++function 0x8000001f reports information related to SME:
++
++	0x8000001f[eax]:
++		Bit[0] indicates support for SME
++	0x8000001f[ebx]:
++		Bit[5:0]  pagetable bit number used to enable memory encryption
++		Bit[11:6] reduction in physical address space, in bits, when
++			  memory encryption is enabled (this only affects system
++			  physical addresses, not guest physical addresses)
++
++If support for SME is present, MSR 0xc00100010 (SYS_CFG) can be used to
++determine if SME is enabled and/or to enable memory encryption:
++
++	0xc0010010:
++		Bit[23]   0 = memory encryption features are disabled
++			  1 = memory encryption features are enabled
++
++Linux relies on BIOS to set this bit if BIOS has determined that the reduction
++in the physical address space as a result of enabling memory encryption (see
++CPUID information above) will not conflict with the address space resource
++requirements for the system.  If this bit is not set upon Linux startup then
++Linux itself will not set it and memory encryption will not be possible.
++
++SME support is configurable in the kernel through the AMD_MEM_ENCRYPT config
++option. Additionally, the mem_encrypt=on command line parameter is required
++to activate memory encryption.
 
