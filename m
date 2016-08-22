@@ -1,145 +1,61 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 00/16] linux: generalize sections,
- ranges and linker tables
-Date: Tue, 23 Aug 2016 01:06:38 +0200
-Message-ID: <20160822230638.GS3296@wotan.suse.de>
-References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
- <CAGXu5j+_9374X7hCRn5MYTSph0BVuLndmVb4GJF6MXOt+faG1A@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
+Date: Mon, 22 Aug 2016 16:12:50 -0700
+Message-ID: <20F4A326-4107-452C-AF84-385136D9501F@zytor.com>
+References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com> <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com> <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com> <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com> <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com> <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk> <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com> <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5j+_9374X7hCRn5MYTSph0BVuLndmVb4GJF6MXOt+faG1A@mail.gmail.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:36614 "EHLO mail.zytor.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1756623AbcHVXNF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 19:13:05 -0400
+In-Reply-To: <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
 
-T24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDM6Mjk6MjRQTSAtMDcwMCwgS2VlcyBDb29rIHdyb3Rl
-Ogo+IE9uIEZyaSwgQXVnIDE5LCAyMDE2IGF0IDI6MzIgUE0sICA8bWNncm9mQGtlcm5lbC5vcmc+
-IHdyb3RlOgo+ID4gRnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+
-Cj4gPgo+ID4gVGhpcyB2NCBhZGRyZXNzZXMgZmVlZGJhY2sgZnJvbSB0aGUgcHJldmlvdXMgdjMg
-c2VyaWVzIFswXSwgYW5kIGFsc28KPiA+IGFkZHJlc3NlcyBhIGh1Z2UgYXJyYXkgb2YgYWRkaXRp
-b25hbCB0ZXN0cyBhZ2FpbnN0IG1hbnkgYXJjaGl0ZWN0dXJlcwo+ID4gb3V0c2lkZSBvZiB3aGF0
-IDAtZGF5IHByb3ZpZGVzLiBBcyBJIG1lbnRpb25lZCBpbiBteSBsYXN0IHYzIHNlcmllcywKPiA+
-IDAtZGF5IGhhZCBvbmx5IGZvdW5kIG9uZSBpc3N1ZSB3aXRoIHRoZSBzZXJpZXMsIGEgYmxhY2tm
-aW4gYXJjaGl0ZWN0dXJlCj4gPiBsaW5rZXIgaXNzdWUgd2l0aCB0aGUgbGFzdCBzZXJpZXMuIEd1
-ZW50ZXIgUm9jayB3YXMga2luZCBlbm91Z2ggdG8gZ2l2ZQo+ID4gbXkgc2VyaWVzIGEgdGVzdCBz
-cGluIG9uIGhpcyB0ZXN0IGJlZCBhbmQgaGUgZm91bmQgcXVpdGUgYSBiaXQgb2Ygb3RoZXIKPiA+
-IG9kZGJhbGwgaXNzdWVzIHdpdGggb2JzY3VyZSBhcmNoaXRlY3R1cmVzLCBhbmQgZXZlbiBvbiB4
-ODYgd2l0aCBhbiBvbGQKPiA+IHRvb2xjaGFpbi4gQWZ0ZXIgYSBsb3Qgb2Ygd29yayBhbmQgY29v
-cmRpbmF0aW5nIHdpdGggYSBmZXcgbWFpbnRhaW5lcnMKPiA+IEknbSBoYXBweSB0byByZXBvcnQg
-YWxsIGlzc3VlcyBmb3VuZCBzbyBmYXIgdGhyb3VnaCBhbGwgcG9zc2libGUgdGVzdGluZwo+ID4g
-SSBjb3VsZCBkbyBhcmUgbm93IGZpeGVkLCB0aGlzIHNlcmllcyBhbHNvIGFkZHJlc3NlcyBhbGwg
-ZmVlZGJhY2sgZnJvbQo+ID4gdGhlIGxhc3Qgc2VyaWVzLCBhcyBzdWNoIHRoaXMgZ29lcyBzdWJt
-aXR0ZWQgYXMgUEFUQ0ggZm9ybS4KPiA+Cj4gPiBJbiBhZGRyZXNzaW5nIGZpeGluZyB0aGlzIHdv
-cmsgb24gYSBmZXcgYXJjaGl0ZWN0dXJlcyBzb21lIG9mIHRoZSBwcmV2aW91cwo+ID4gcGF0Y2hl
-cyBhcmUgZnVydGhlciBzaW1wbGlmaWVkLiBUaGUga3Byb2JlcyBwb3J0IHRvIGxpbmtlciB0YWJs
-ZXMgaXMgbWFkZQo+ID4gbXVjaCBlYXNpZXIgbm93IHRoYXQgSSd2ZSBhZGRyZXNzZWQgbW92aW5n
-IG91dCBjb3JlIGtwcm9iZSBkZWNsYXJhdGlvbnMKPiA+IGludG8gYXNtLWdlbmVyaWMva3Byb2Jl
-cy5oLiBSZWZlciB0byB0aGUgcGF0Y2ggImtwcm9iZXM6IG1vdmUga3Byb2JlCj4gPiBkZWNsYXJh
-dGlvbnMgdG8gYXNtLWdlbmVyaWMva3Byb2Jlcy5oIi4gVGhpcyBtYWtlcyBmb3IgYSBtdWNoIGNs
-ZWFuZXIKPiA+IHNvbHV0aW9uIGFjcm9zcyBhcmNoaXRlY3R1cmVzLgo+ID4KPiA+IEJvcmlzIGZl
-ZWRiYWNrIG9uIG1ha2luZyB0aGUgY29kZSBiaXQgcm90IGZlYXR1cmUgb3B0aW9uYWwgaXMgYWRk
-cmVzc2VkCj4gPiBieSB1c2luZyBhIG5ldyBLY29uZmlnIHN5bWJvbCBmb3IgdGhpcywgQ09ORklH
-X0JVSUxEX0FWT0lEX0JJVFJPVCwKPiA+IGJ1dCBnaXZlbiBHcmVnJ3MgY29uY2VybnMgb3ZlciBs
-YWNrIG9mIGNsYXJpdHkgb3ZlciB3aGF0IHRoaXMgd2FzIGFsbCBhYm91dAo+ID4gSSd2ZSByaXBw
-ZWQgdGhhdCBmdW5jdGlvbmFsaXR5IG91dCBpbnRvIGl0cyBvd24gcGF0Y2ggd2l0aCBhIGJpdCBt
-b3JlCj4gPiBleHRlbnNpdmUgZG9jdW1lbnRhdGlvbiBhbmQgcmUtd29yZGluZy4gU2VlIHRoZSBw
-YXRjaCAia2J1aWxkOiBlbmFibGUgb3B0aW9uCj4gPiB0byBmb3JjZSBjb21waWxlIGZvcmNlLW9i
-ai15IGFuZCBmb3JjZS1saWIteSIuIEkgaG9wZSBtYWtlcyBpdCBjbGVhciBob3cKPiA+IGxpbmtl
-ciB0YWJsZXMgY2FuIGhlbHAgd2l0aCBhdm9pZGluZyBjb2RlIGJpdCByb3QuIEkndmUgZ29uZSB3
-aXRoIGEgbmV3Cj4gPiBLY29uZmlnIHN5bWJvbCBDT05GSUdfQlVJTERfQVZPSURfQklUUk9UIGdp
-dmVuIENPTkZJR19DT01QSUxFX1RFU1QgaXMKPiA+IG5vdCBhdmFpbGFibGUgb24gVU1MLCB0aGlz
-IGZlYXR1cmUgaXMgZGVzaXJhYmxlIG9uIGFsbCBhcmNoaXRlY3R1cmVzLgo+ID4KPiA+IFRoZSBk
-b2N1bWVudGF0aW9uIGlzIHJldmFtcGVkLCBub3cgdGhhdCB0aGUgRG9jQm9vayBmb3JtYXQgaXMg
-ZGVwcmVjYXRlZAo+ID4gSSBwb3J0ZWQgdGhlIGRvY3VtZW50aW9uIGludG8gdGhlIHRyZW5keSBo
-aXBzdGVyIFNwaGlueCBkb2N1bWVudGF0aW9uCj4gPiBmb3JtYXQuCj4gPgo+ID4gQVQgQm9yaXMn
-IHJlcXVlc3QgSSd2ZSBhZGFwYXRlZCB0aGUgdXNlcnNwYWNlIGxpbmtlciB0YWJsZSBhcHBsaWNh
-dGlvbgo+ID4gZm9yaW50ZWdyYXRpb24gaW50byB0aGUga2VybmVsIHVuZGVyIHRvb2xzLyB0byBt
-YWtlIGl0IGVhc2llciB0byBrZWVwCj4gPiB0aGluZ3MgaW4gc3luYywgaG93ZXZlciBzaW5jZSB0
-aGlzIHJlcXVpcmVzIGEgYml0IG9mIGNoYW5nZXMgdG8gc29tZSBoZWFkZXJzCj4gPiBpbiB0b29s
-cy8gSSdsbCBzdWJtaXQgdGhhdCBzZXBhcmF0ZWx5Lgo+ID4KPiA+IFswXSBodHRwczovL2xrbWwu
-a2VybmVsLm9yZy9yLzE0NjkyMjI2ODctMTYwMC0xLWdpdC1zZW5kLWVtYWlsLW1jZ3JvZkBrZXJu
-ZWwub3JnCj4gPgo+ID4gSWYgeW91J2QgbGlrZSB0aGlzIGluIGdpdC1mb3JtLCB5b3UgY2FuIGdl
-dCBpdCBvbiB0aGUgMjAxNjA4MTktbGlua2VyLXRhYmxlLXY0Cj4gPiBicmFuY2ggb2YgbXkgbGlu
-dXgtbmV4dCB0cmVlIG9uIGtlcm5lbC5vcmcsIHRoaXMgYWxzbyBpbmNsdWRlcyB0aGUgc2VyaWVz
-IG9mCj4gPiB0aGUgbGlua2VyIHRhYmxlIHVzZXJzcGFjZSBzYW5kYm94Ogo+ID4KPiA+IGh0dHBz
-Oi8vZ2l0Lmtlcm5lbC5vcmcvY2dpdC9saW51eC9rZXJuZWwvZ2l0L21jZ3JvZi9saW51eC1uZXh0
-LmdpdC9sb2cvP2g9MjAxNjA4MTktbGlua2VyLXRhYmxlLXY0Cj4gPgo+ID4gUGxlYXNlIGxldCBt
-ZSBrbm93IGlmIHRoZXJlIGFyZSBhbnkgY29uY2VybnMgb3IgcXVlc3Rpb25zLgo+IAo+IFRoYW5r
-cyBmb3IgdGhlIGRvY3VtZW50YXRpb24gYW5kIGV4YW1wbGVzIG9uIHRoaXMgZmVhdHVyZTsgSSBh
-cHByZWNpYXRlIGl0ISA6KQo+IAo+IFdoaWxlIGl0IHNlZW1zIGxpa2UgYWxsIHRoZSBzZWN0aW9u
-IGRlY2xhcmF0aW9ucyB3b3JrIGluIHRoaXMgc2VyaWVzCj4gaXMgZGVzaWduZWQgZm9yIGFzc2Vt
-YmxlciBzb3VyY2UsIEknbSBjdXJpb3VzIGlmIEkndmUgbWlzc2VkIGEgd2F5IHRvCj4gZG8gdGhp
-cyBpbiAuYyBzb3VyY2UgdG9vLgoKQWN0dWFsbHksIHRoZSB3aG9sZSBwb2ludCB0byB0aGlzIG9y
-aWdpbmFsbHkgd2FzIHRvIHByb3ZpZGUgaGVscGVycyB0bwpvbmx5IGRvIHRoaXMgaW4gLmMgc291
-cmNlIGNvZGUgLS0gdGhlIGZhY3QgdGhhdCB0aGVyZSBhcmUgYSBmZXcgYXNtIGhlbHBlcnMKbm93
-IGlzIGFuIGFmdGVyIHRob3VnaHQgdG8gcHJvdmlkZSBwYXJpdHkgb2YgZnVuY3Rpb25hbGl0eSB0
-byBhc20gY29kZSB0byBkbwp0aGUgZXhhY3Qgc2FtZSB0aGluZy4gVGhlIHNhbWUgbWFjcm9zIHBy
-b3ZpZGUgdGhlIHNhbWUgZnVuY3Rpb25hbGl0eSBpbgpib3RoIEMgYW5kIGFzbSBjb2RlIHRoZW4g
-YW5kIGlmIHRoZXJlIGlzIHNvbWUgZnVuY3Rpb25hbGl0eSBsYWNraW5nIGl0IG1heQpmb3Igbm93
-IGp1c3QgYmUgb24gdGhlIGFzbSBzaWRlLgoKU28gZm9yIGluc3RhbmNlIHdlIGhhdmUgREVDTEFS
-RV9TRUNUSU9OX1JBTkdFKCkgYW5kIHRoYXQgZXhpc3QgZm9yIEMgYW5kCmFzbSwgYnV0IERFQ0xB
-UkVfTElOS1RBQkxFKCkgaXMgY3VycmVudGx5IG9ubHkgaW1wbGVtZW50ZWQgZm9yIEMgY29kZSwK
-d2hlbiBhbmQgaWYgd2Ugd2FudCBpdCB3ZSBjYW4gYWRkIGl0LiBERUNMQVJFX1NFQ1RJT05fUkFO
-R0UoKSBoYXMgYSBkZW1vCnVzZSBpbiB0aGUgdXNlcnNwYWNlIGxpbmtlciB0YWJsZSBzYW5kYm94
-LgoKPiBJJ2QgbG92ZSB0byBhdm9pZCBkb2luZyB0aGUgY3JhenkgdGhpbmcgSSdtIGN1cnJlbnRs
-eSBkb2luZyBpbiBsa2R0bSAKPiB3aXRoIHNlY3Rpb24gbWFya2luZ3MuIE5hbWVseSwgSSB3YW50
-IHRvIHdyaXRlIGEgZnVuY3Rpb24gaW4gLmMgYW5kIGhhdmUgaXQKPiBtb3ZlZCBpbnRvIHRoZSAu
-cm9kYXRhIHNlY3Rpb24uIFRoZSBsaW5rZXJzIGdldCB2ZXJ5IHZlcnkgYW5ncnkgd2l0aCBtZSBh
-bmQgSQo+IGRvbid0IHNlZW0gdG8gYmUgYWJsZSB0byBvdmVycmlkZSB0aGUgcHJvZ2JpdHMgdG8g
-bG9zZSAieCIuIFJpZ2h0IG5vdyBJJ20KPiBkb2luZyBhbiBvYmpjb3B5IGluCj4gZHJpdmVycy9t
-aXNjL01ha2VmaWxlOgo+IAo+IE9CSkNPUFlGTEFHU19sa2R0bV9yb2RhdGFfb2JqY29weS5vIDo9
-IFwKPiAgICAgICAgICAgICAgICAgICAgICAgICAtLXNldC1zZWN0aW9uLWZsYWdzIC50ZXh0PWFs
-bG9jLHJlYWRvbmx5IFwKPiAgICAgICAgICAgICAgICAgICAgICAgICAtLXJlbmFtZS1zZWN0aW9u
-IC50ZXh0PS5yb2RhdGEKPiB0YXJnZXRzICs9IGxrZHRtX3JvZGF0YS5vIGxrZHRtX3JvZGF0YV9v
-Ympjb3B5Lm8KPiAkKG9iaikvbGtkdG1fcm9kYXRhX29iamNvcHkubzogJChvYmopL2xrZHRtX3Jv
-ZGF0YS5vIEZPUkNFCj4gICAgICAgICAkKGNhbGwgaWZfY2hhbmdlZCxvYmpjb3B5KQo+IAo+IFRo
-YW5rcyEKCkknZCBoYXZlIHRvIHRha2UgYSBjbG9zZXIgbG9vayBidXQgZnJvbSB3aGF0IHlvdSBk
-ZXNjcmliZSBpbmRlZWQgdGhpcyBpcwpzb21ldGhpbmcgdGhhdCBsaW5rZXIgdGFibGVzIGFuZCBz
-ZWN0aW9uIHJhbmdlcyBpcyBzdXBwb3NlZCB0byBoZWxwIHdpdGggLS0gYQpnZW5lcmljIEFQSSB0
-byBzZXQgc2VjdGlvbnMgaW4gYW4gYXJjaGl0ZWN0dXJlLWFnbm9zdGljIHdheS4gIElmIHlvdSBj
-YW4KY2xhc3NpZnkgeW91ciBmdW5jdGlvbnMgd2l0aCBzZWN0aW9uIHJhbmdlcyBvciBsaW5rZXIg
-dGFibGVzIHRoZW4geW91IHNob3VsZCBiZQpzZXQuIFRoZXkgZmxhZ3MgdXNlZCBpcyB3aGF0ZXZl
-ciB0aGUgYXJjaGl0ZWN0dXJlIGhhcyBkZWNpZGVkIHRvIHVzZSBmb3IgdGhlCnNlY3Rpb24gYXMg
-cGVyIHRoZSBsaW5rZXIgc2NyaXB0IGFuZCB3aGVyZSBlYWNoIHNlY3Rpb24gZmFsbHMgdW5kZXIu
-IElmIHlvdQpuZWVkIG1vcmUgc3BlY2lhbCB0d2Vha2luZyAoc2VlIGZsYWdzIGluIHB1c2hfc2Vj
-dGlvbl90YmwoKSkgdGhlbiBpbmRlZWQgc29tZQpuZXdlciBBUElzIG1pZ2h0IGJlIG5lZWRlZCBp
-biBDLCBhcyB0aGVzZSBmbGFncyB0d2Vha3MgYXJlIG9ubHkgcHJvdmlkZWQgZm9yCmFzbSByaWdo
-dCBub3cgYnV0IGl0J2QgYmUgZ29vZCB0byBrbm93IGlmIGp1c3QgdXNpbmcgdGhlIGV4aXN0aW5n
-IEFQSXMgd2l0aApkZWZhdWx0cyBmb3IgdGhlIHNlY3Rpb24geW91IG5lZWRzIGZvciBDIGNvZGUg
-d291bGQgbm90IHN1ZmZpY2UuCgpJZiBhbGwgeW91IGhhdmUgaXMgZnVuY3Rpb25zIHlvdSBjYW4g
-c3RpY2sgdG8gc2VjdGlvbiByYW5nZXMsIGlmIHRoZXNlCmZ1bmN0aW9ucyBhcmUgaW5zdGVhZCBw
-YXJ0IG9mIGEgbGFyZ2VyIGRhdGEgc3RydWN0dXJlIHlvdSBuZWVkIGxpbmtlcgp0YWJsZXMuIEl0
-IHNvdW5kcyBsaWtlIHlvdSBqdXN0IGhhdmUgZnVuY3Rpb25zLCBhbmQgZXZlbiBpZiB5b3UgbmVl
-ZGVkCnNvbWV0aGluZyBvdXRzaWRlIG9mIHdoYXQgaXMgcHJvdmlkZWQsIHNheSB0aGUgZmxhZ3Ms
-IHRoZW4gYWRkaW5nIGEgbmV3Cl9fTElOVVhfUkFOR0VfRkxBR1MoKSBjb3VsZCBiZSBhZGRlZCBl
-YXNpbHkgdGhhdCBhbHNvIGxldHMgeW91IHNwZWNpZnkKdGhlIGZsYWdzIHlvdSBuZWVkLgoKRm9y
-IGFuIGV4YW1wbGUgb2Ygc2VjdGlvbiByYW5nZSB1cyBrcHJvYmVzIHdhcyBwb3J0ZWQgb3ZlciBz
-byB3ZSBoYXZlCmZvciBpbnN0YW5jZToKCiMgZGVmaW5lIF9fa3Byb2JlcyAgICAgIF9fTElOVVhf
-UkFOR0UoU0VDVElPTl9URVhULCBrcHJvYmVzKQoKSWYgeW91IGhhZCBzb21ldGhpbmcgdGhhdCBu
-ZWVkZWQgY3VzdG9tIGZsYWdzIHlvdSBjb3VsZCBzZWUgaWYKYWRkaW5nIGEgX19MSU5VWF9SQU5H
-RV9GTEFHUygpIHdvdWxkIHN1ZmZpY2UsIGJ1dCBJJ2QgYmUgdmVyeQppbnRlcmVzdGVkIHRvIGtu
-b3cgaWYgdGhlIGRlZmF1bHRzIHVzZWQgYnkgdGhlIHNwZWNpZmllZCBzZWN0aW9uCmRvZXMgbm90
-IHN1ZmZpY2UuCgpBbHNvICB5b3VyIHVzZSBjYXNlIHNlZW1zIHRvIHJlcXVpcmUgYSBmdWxsIGZp
-bGUgc2V0IHRvIGEgc2VjdGlvbiB3aXRoIHNwZWNpZmljCmF0dHJpYnV0ZXMuIEFsdGhvdWdoIGZp
-cnN0IGluc3RpbmN0IG1pZ2h0IGJlIHRvIHVzZSBzZWN0aW9uIHJhbmdlcywgaWYgdGhlCnNlY3Rp
-b24gcmFuZ2UgYWNjZXNzZWQgc29tZSBnbG9iYWwgdmFyaWFibGUgb3IgZGF0YSBzdHJ1Y3R1cmUg
-aW4gdGhlIGZpbGUgdGhlcmUKbWF5IGJlIGFuIGlzc3VlLCBvciB5b3UnZCBoYXZlIHRvIHRoZSBh
-bHNvIHBlZyB0aGUgZGF0YSBpbnRvIGEgc2VjdGlvbi4gSWYgdGhpcwppcyBkb25lIGl0IG9jY3Vy
-cyB0byBtZSBhbiBhbHRlcm5hdGl2ZSBpcyB0byBqdXN0IHVzZSBhIGxhcmdlIGRhdGEgc3RydWN0
-dXJlCnRvIHJlcHJlc2VudCB0aGUgZnVsbCBvZiBmdW5jdGlvbnMgYW5kIGRhdGEsIHNvIHRvIHVz
-ZSBhIGxpbmtlciB0YWJsZSB0aGF0IHdheQp0aGUgYXNzb2NpYXRpb24gaXMgZG9uZSBpbiBvbmUg
-ZnVsbCBzd2luZyB3aXRoIHRoZSBkZWZpbml0aW9uIG9mIHRoZSB0YWJsZS4KClRoaXMgb2YgY291
-cnNlIGlzIGp1c3QgYXQgYSBjdXJzb3J5IHJldmlldy4KCiAgTHVpcwoKX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcgbGlzdApY
-ZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRldmVsCg==
+On August 22, 2016 3:23:06 PM PDT, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+>On Sun, Aug 21, 2016 at 10:52 AM, Linus Torvalds
+><torvalds@linux-foundation.org> wrote:
+>> On Sat, Aug 20, 2016 at 11:42 PM, Al Viro <viro@zeniv.linux.org.uk>
+>wrote:
+>>>
+>>> It's not exactly setjmp/longjmp; what I had in mind was along the
+>lines of
+>>
+>> That ends up having all the exact same issues as setjmp, and
+>generally
+>> you *do* want the compiler to know about it.
+>
+>So just in case you wanted to play around with it, here's a kernel
+>implementation of 'setjmp/longjmp' for x86.
+>
+>It's very lightly tested (and I'll admit to editing it for some
+>cleanups after that light testing), but it does look largely sane.
+>
+>The whole interface choice may be debatable: maybe it would be better
+>to allocate the register buffer on the stack, and just hide a pointer
+>to it in the task struct. Things like that could be changed fairly
+>easily. But if you want to play around with this, this patch should
+>get you started.
+>
+>Of course, you'd want to wrap things up somehow, and I would *not*
+>want to see naked setjmp() calls in the kernel.
+>
+>And we'd need this for all other architectures too, but it's usually
+>not hard to do. It needs to save all the callee-saved registers and
+>the stack pointer and return address. That should generally be it.
+>
+>The 32-bit version has not been tested at all, but it compiled at some
+>point, and the code looks mostly sane. The 64-bit code I actually had
+>a stupid non-user-access test-case for.
+>
+>                Linus
+
+How about the gcc native __builtin_setjmp stuff which is supposedly better?
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
