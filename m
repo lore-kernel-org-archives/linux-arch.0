@@ -1,50 +1,67 @@
-From: Wanpeng Li <kernellwp@gmail.com>
-Subject: Re: [RFC PATCH-tip v4 07/10] locking/rwsem: Change RWSEM_WAITING_BIAS
- for better disambiguation
-Date: Mon, 22 Aug 2016 10:15:28 +0800
-Message-ID: <CANRm+Cw2G1K22zi7ov4N4D3s863bsOot_ZDoyph5=n-BTZjFEg@mail.gmail.com>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
- <1471554672-38662-8-git-send-email-Waiman.Long@hpe.com> <CANRm+CzfQFHDZDdBc+WxSkFPaE6x=b+PGBeEnnAqgmjDi=1DDA@mail.gmail.com>
- <57B73225.7020303@hpe.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v1 0/7] tools: add linker table userspace sandbox
+Date: Sun, 21 Aug 2016 21:04:42 -0700
+Message-ID: <201608220404.u7M44o21022786__44619.20326944$1471839382$gmane$org@mail.zytor.com>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org> <1471642875-5957-1-git-send-email-mcgrof@kernel.org> <ef5f6b3f-1b00-d33f-4ce1-81e03f4f2f10@landley.net> <20160821045959.GR15995@brightrain.aerifal.cx>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <57B73225.7020303@hpe.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Waiman Long <waiman.long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Davidlohr Bueso <dave@stgolabs.net>, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:43132 "EHLO mail.zytor.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932167AbcHVEQL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 00:16:11 -0400
+In-Reply-To: <20160821045959.GR15995@brightrain.aerifal.cx>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rich Felker <dalias@libc.org>, Rob Landley <rob@landley.net>
 
-2016-08-20 0:21 GMT+08:00 Waiman Long <waiman.long@hpe.com>:
-> On 08/19/2016 01:57 AM, Wanpeng Li wrote:
->>
->> 2016-08-19 5:11 GMT+08:00 Waiman Long<Waiman.Long@hpe.com>:
->>>
->>> When the count value is in between 0 and RWSEM_WAITING_BIAS, there
->>> are 2 possibilities.
->>> Either a writer is present and there is no waiter
->>
->> count = 0xffff0001
->>
->>> or there are waiters and readers. There is no easy way to
->>
->> count = 0xffff000X
->>
->> However, RWSEM_WAITING_BIAS is equal to 0xffff0000, so both these two
->> cases are beyond RWSEM_WAITING_BIAS, right?
->>
->> Regards,
->> Wanpeng Li
->
->
-> Perhaps I should make it clear that I am talking from a signed quantity
-> point of view (it is an atomic_long_t). So
->
->     RWSEM_WAITING_BIAS < RWSEM_ACTIVE_WRITE_BIAS < 0
->
-> Hope this clarify your question.
+mcgrof@kernel.org,acme@redhat.com,tglx@linutronix.de,mingo@redhat.com,jpoimboe@redhat.com,bp@alien8.de,linux@arm.linux.org.uk,mhiramat@kernel.org,masami.hiramatsu.pt@hitachi.com,jbaron@akamai.com,heiko.carstens@de.ibm.com,ananth@linux.vnet.ibm.com,anil.s.keshavamurthy@intel.com,davem@davemloft.net,realmz6@gmail.com,x86@kernel.org,luto@amacapital.net,keescook@chromium.org,torvalds@linux-foundation.org,gregkh@linuxfoundation.org,rusty@rustcorp.com.au,gnomes@lxorguk.ukuu.org.uk,alan@linux.intel.com,dwmw2@infradead.org,arnd@arndb.de,ming.lei@canonical.com,linux-arch@vger.kernel.org,benh@kernel.crashing.org,ananth@in.ibm.com,pebolle@tiscali.nl,fontana@sharpeleven.org,david.vrabel@citrix.com,konrad.wilk@oracle.com,mcb30@ipxe.org,jgross@suse.com,andrew.cooper3@citrix.com,andriy.shevchenko@linux.i
+ ntel.com,paul.gortmaker@windriver.com,xen-devel@lists.xensource.com,ak@linux.intel.com,pali.rohar@gmail.com,dvhart@infradead.org,platform-driver-x86@vger.kernel.org,mmarek@suse.com,linux@ra!
+ smusville
+moes.dk,jkosina@suse.cz,korea.drzix@gmail.com,linux-kbuild@vger.kernel.org,tony.luck@intel.com,akpm@linux-foundation.org,linux-ia64@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-sh@vger.kernel.org,sparclinux@vger.kernel.org,catalin.marinas@arm.com,will.deacon@arm.com,rostedt@goodmis.org,jani.nikula@intel.com,mchehab@osg.samsung.com,markus.heiser@darmarit.de,jolsa@kernel.org,msalter@redhat.com,chris@zankel.net,jcmvbkbc@gmail.com,linux-xtensa@linux-xtensa.org,paulus@samba.org,mpe@ellerman.id.au,James.Bottomley@HansenPartnership.com
+Message-ID: <5150EFE4-3E00-4BD2-AE6F-F99FBBC74273@zytor.com>
 
-Yeah, thank you. :)
+On August 20, 2016 9:59:59 PM PDT, Rich Felker <dalias@libc.org> wrote:
+>On Fri, Aug 19, 2016 at 11:57:18PM -0500, Rob Landley wrote:
+>> On 08/19/2016 04:41 PM, mcgrof@kernel.org wrote:
+>> > Please let me know if there are any issue or questions.
+>> 
+>> Only that this has been the majority of the traffic on the linux-sh
+>> mailing list for over a month and I'm still not sure why anyone
+>should care.
+>> 
+>> I have no idea what problem it solves, despite reading a couple dozen
+>> messages in the thread, and the most recent two 0/x intro messages.
+>Its
+>> purpose seems to be ensuring that lld.llvm.org has more work to do if
+>it
+>> ever wants to build the kernel without binutils?
+>> 
+>> I also am not certain why every revision of it is cc'd to linux-sh.
+>Is
+>> it generic linker infrastructure change, or is it something that
+>affects
+>> this architecture specifically? As far as I can tell nothing in this
+>> most recent 7-patch series touches arch/sh at all, you just cc'd our
+>> list because you think the work you're doing is _important_, not that
+>> it's specifically relevant to us.
+>
+>Incidentally I'm happy to have been CC'd since this infrastructure is
+>_really_ nice for doing things generically with device tree. The
+>ability to add new linker-section-based tables without having to
+>manually hack up linker script templates will make it so we can do
+>things like adding tables for cache controllers or mmus (that are
+>needed quite early in init and can't go through the platform device
+>system).
+>
+>BTW we kinda lucked out that there was already the linker table
+>infrastructure for cpu enable methods for smp; this patch series makes
+>it so future stuff doesn't have to rely on luck or invasive changes.
+>
+>Rich
 
-Regards,
-Wanpeng Li
+Incidentally, I want to use this for the RAID algorithms.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
