@@ -1,130 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-co1nam03on0063.outbound.protection.outlook.com ([104.47.40.63]:59654
-        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1756603AbcHVXOd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 22 Aug 2016 19:14:33 -0400
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v2 18/20] x86/kvm: Enable Secure Memory Encryption of
- nested page tables
-Date: Mon, 22 Aug 2016 17:38:49 -0500
-Message-ID: <20160822223849.29880.35462.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Received: from shards.monkeyblade.net ([184.105.139.130]:46908 "EHLO
+        shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753407AbcHVX5O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2016 19:57:14 -0400
+Date: Mon, 22 Aug 2016 16:57:10 -0700 (PDT)
+Message-ID: <20160822.165710.1114970253560467646.davem@davemloft.net>
+Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of
+ fault
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
+References: <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
+        <20F4A326-4107-452C-AF84-385136D9501F@zytor.com>
+        <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
-Cc: Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160822223849.GCxEXfsfCA4vsVT8BIATKjyLdf_3ffaYtzP7C_Kc5jw@z>
+To: torvalds@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, jakub@redhat.com, Vineet.Gupta1@synopsys.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mingo@redhat.com
+Message-ID: <20160822235710.5zSANkh0_pPk9F5bGbL9UygnQH0iFpxjDpLLY3Gim1A@z>
 
-Update the KVM support to include the memory encryption mask when creating
-and using nested page tables.
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 22 Aug 2016 16:48:00 -0700
 
-Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
----
- arch/x86/include/asm/kvm_host.h |    3 ++-
- arch/x86/kvm/mmu.c              |    8 ++++++--
- arch/x86/kvm/vmx.c              |    3 ++-
- arch/x86/kvm/x86.c              |    3 ++-
- 4 files changed, 12 insertions(+), 5 deletions(-)
+> How new is it? The whole point was that we'd not have to worry and
+> wait for gcc features..
 
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index 33ae3a4..c51c1cb 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -1039,7 +1039,8 @@ void kvm_mmu_setup(struct kvm_vcpu *vcpu);
- void kvm_mmu_init_vm(struct kvm *kvm);
- void kvm_mmu_uninit_vm(struct kvm *kvm);
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
--		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask);
-+		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
-+		u64 me_mask);
- 
- void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
- void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
-diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
-index 3d4cc8cc..a7040f4 100644
---- a/arch/x86/kvm/mmu.c
-+++ b/arch/x86/kvm/mmu.c
-@@ -122,7 +122,7 @@ module_param(dbg, bool, 0644);
- 					    * PT32_LEVEL_BITS))) - 1))
- 
- #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
--			| shadow_x_mask | shadow_nx_mask)
-+			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
- 
- #define ACC_EXEC_MASK    1
- #define ACC_WRITE_MASK   PT_WRITABLE_MASK
-@@ -177,6 +177,7 @@ static u64 __read_mostly shadow_accessed_mask;
- static u64 __read_mostly shadow_dirty_mask;
- static u64 __read_mostly shadow_mmio_mask;
- static u64 __read_mostly shadow_present_mask;
-+static u64 __read_mostly shadow_me_mask;
- 
- static void mmu_spte_set(u64 *sptep, u64 spte);
- static void mmu_free_roots(struct kvm_vcpu *vcpu);
-@@ -284,7 +285,8 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
- }
- 
- void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
--		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask)
-+		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
-+		u64 me_mask)
- {
- 	shadow_user_mask = user_mask;
- 	shadow_accessed_mask = accessed_mask;
-@@ -292,6 +294,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
- 	shadow_nx_mask = nx_mask;
- 	shadow_x_mask = x_mask;
- 	shadow_present_mask = p_mask;
-+	shadow_me_mask = me_mask;
- }
- EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
- 
-@@ -2553,6 +2556,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
- 		pte_access &= ~ACC_WRITE_MASK;
- 
- 	spte |= (u64)pfn << PAGE_SHIFT;
-+	spte |= shadow_me_mask;
- 
- 	if (pte_access & ACC_WRITE_MASK) {
- 
-diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
-index 87eaa6b..9040645 100644
---- a/arch/x86/kvm/vmx.c
-+++ b/arch/x86/kvm/vmx.c
-@@ -6485,7 +6485,8 @@ static __init int hardware_setup(void)
- 			(enable_ept_ad_bits) ? VMX_EPT_DIRTY_BIT : 0ull,
- 			0ull, VMX_EPT_EXECUTABLE_MASK,
- 			cpu_has_vmx_ept_execute_only() ?
--				      0ull : VMX_EPT_READABLE_MASK);
-+				      0ull : VMX_EPT_READABLE_MASK,
-+			0ull);
- 		ept_set_mmio_spte_mask();
- 		kvm_enable_tdp();
- 	} else
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 19f9f9e..d432894 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -65,6 +65,7 @@
- #include <asm/pvclock.h>
- #include <asm/div64.h>
- #include <asm/irq_remapping.h>
-+#include <asm/mem_encrypt.h>
- 
- #define CREATE_TRACE_POINTS
- #include "trace.h"
-@@ -5875,7 +5876,7 @@ int kvm_arch_init(void *opaque)
- 
- 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
- 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
--			PT_PRESENT_MASK);
-+			PT_PRESENT_MASK, sme_me_mask);
- 	kvm_timer_init();
- 
- 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
+It's been around for a long time.
 
+I'd say at least gcc-3.0 and later support it.
