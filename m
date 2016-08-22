@@ -1,84 +1,42 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 06/16] ranges.h: add helpers to build and
- identify Linux section ranges
-Date: Tue, 23 Aug 2016 01:48:51 +0200
-Message-ID: <20160822234851.GU3296@wotan.suse.de>
-References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
- <1471642385-5629-7-git-send-email-mcgrof@kernel.org>
- <CAGXu5jJeUCZjVwhFG9Rsbz8PBiEb5pByickO-oPxqOMmxmCuuQ@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
+Date: Mon, 22 Aug 2016 16:51:28 -0700
+Message-ID: <6A9009F1-3024-4644-BCF3-31C72ECC1AF7@zytor.com>
+References: <1471633802-2936-1-git-send-email-vgupta@synopsys.com> <20160819212428.GR2356@ZenIV.linux.org.uk> <CA+55aFyvBd+sMTC-NsEG4QzVApmy0UhSfpoVOP58m-Zg2wumPQ@mail.gmail.com> <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com> <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com> <20160821001141.GV2356@ZenIV.linux.org.uk> <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com> <20160821045402.GC14857@tucnak.redhat.com> <20160821064229.GX2356@ZenIV.linux.org.uk> <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com> <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com> <20F4A326-4107-452C-AF84-385136D9501F@zytor.com> <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jJeUCZjVwhFG9Rsbz8PBiEb5pByickO-oPxqOMmxmCuuQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:37700 "EHLO mail.zytor.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751980AbcHVXvi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 22 Aug 2016 19:51:38 -0400
+In-Reply-To: <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
 
-T24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDI6NTU6NDNQTSAtMDcwMCwgS2VlcyBDb29rIHdyb3Rl
-Ogo+IE9uIEZyaSwgQXVnIDE5LCAyMDE2IGF0IDI6MzIgUE0sICA8bWNncm9mQGtlcm5lbC5vcmc+
-IHdyb3RlOgo+ID4gRnJvbTogIkx1aXMgUi4gUm9kcmlndWV6IiA8bWNncm9mQGtlcm5lbC5vcmc+
-Cj4gPgo+ID4gU2VjdGlvbiByYW5nZXMgYXJlIG9uIG9uZSBvZiB0aGUgdHlwZXMgb2YgY3VzdG9t
-IHNlY3Rpb25zCj4gPiB0eXBlcyB1c2VkIGluIExpbnV4LiBUaGlzIHByb3ZpZGVzIGEgc2VyaWVz
-IG9mIGhlbHBlcnMgZm9yCj4gPiBkZWZpbmluZyB0aGVtIGFuZCB1c2luZyB0aGVtLiBNb3N0IGlt
-cG9ydGFudGx5IHRoaXMgYWxzbwo+ID4gZW5hYmxlcyB1cyB0byBhdm9pZCBtb2RpZnlpbmcgdGhl
-IGxpbmtlciBzY3JpcHQgd2hlbiB3ZQo+ID4gYWRkIGEgbmV3IHNlY3Rpb24gcmFuZ2UuCj4gPgo+
-ID4gSXQgdHVybnMgb3V0IGEgbG90IG9mIGN1c3RvbSBzZWN0aW9ucyBhcmUgYWN0dWFsbHkgc2Vj
-dGlvbiByYW5nZXMsCj4gPiBhbmQgdGhlc2UgYXJlIHR5cGljYWxseSBzcGVsbGVkIG91dCBpbiB0
-aGVpciBhcmNoaXRlY3R1cmUgc3BlY2lmaWMKPiA+IGFzbS9zZWN0aW9ucy5oIGZpbGUgLS0gd2Ug
-YW5hYmxlIGFyY2hpdGVjdHVyZXMgdG8gb3ZlcnJpZGUgd2hhdCBhc20KPiAKPiBUeXBvOiBhbmFi
-bGUgLT4gZW5hYmxlCgpGaXhlZC4KCj4gPiBpcyB1c2VkIGZvciBzZWN0aW9uIHJhbmdlcyBidXQg
-c3RhcnQgYnkgZGVmYXVsdCB0cnVzdGluZyB0aGUKPiA+IGFzbS1nZW5lcmljIHZlcnNpb24gYWxs
-IGFyb3VuZC4KPiAKPiBDYW4geW91IGV4cGxhaW4gdGhlIGFkZGl0aW9uIG9mIHRoZSBTT1JUKCkg
-c3R1ZmYgaW4gdGhpcyBwYXRjaD8gSXRzCj4gcHVycG9zZSBpc24ndCBjbGVhciB0byBtZSBhbmQg
-ZG9lc24ndCBhcHBlYXIgdG8gYmUgbWVudGlvbmVkIGluIHRoZQo+IGNvbW1pdCBsb2cuCgpJbmRl
-ZWQsIGxldCBtZSBleHBsYWluIGFuZCBJJ2xsIGFsc28gYWRkIHRoaXMgdG8gdGhlIGNvbW1pdCBs
-b2cuCldlIG5lZWQgdG8gdXNlIFNPUlQoKSBpbiB2bWxpbnV4Lmxkcy5TIGZvciBzZWN0aW9uIHJh
-bmdlcyBmb3IgdHdvCnJlYXNvbnM6CgphKSBCeSB1c2luZyBTT1JUKCkgYW5kIHVzaW5nICJhbnki
-IGZvciBjYXNlcyB3aGVyZSBvcmRlciBkb2VzIG5vdAogICBtYXR0ZXIgd2UncmUgYWJsZSB0byBl
-eHRlbmQgc2VjdGlvbiByYW5nZXMgd2l0aG91dCBtb2RpZnlpbmcgdGhlCiAgIGxpbmtlciBzY3Jp
-cHQuIFRoZSBzcGVjaWFsIGFubm90YXRpb24gdXNlZCBmb3IgdGhlICJvcmRlciIgZm9yCiAgIHRo
-ZSBmaXJzdCBlbGVtZW50IG9mIGEgc2VjdGlvbiByYW5nZSBpcyB0aGUgZW1wdHkgc3RyaW5nIChz
-ZWUKICAgX19TRUNUSU9OX1JBTkdFX0JFR0lOKCksIHRoZSBlbmRpbmcgZWxlbWVudCB1c2VzIHRo
-ZSBjaGFyYWN0ZXIKICAgIn4iLCBzZWUgX19TRUNUSU9OX1JBTkdFX0VORCgpLiBCeSBkZWZhdWx0
-IGFueXRoaW5nIGFkZGVkIGluIGJldHdlZW4KICAgdXNlcyB0aGUgImFueSIgb3JkZXIsIHdoZW4g
-eW91IHVzZSBTT1JUKCkgb24gdGhpcyB5b3UgZW5kIHVwIHN0dWZmaW5nCiAgIGFsbCBlbGVtZW50
-cyB3aXRoIHRoZSAiYW55IiBvcmRlciBpbiBiZXR3ZWVuLCBhbmQgYWxsb3dpbmcgeW91IHRvIGhh
-dmUKICAgYSBiZWdpbm5pbmcgYW5kIGVuZCByZWZlcmVuY2UgLS0gd2l0aG91dCBtb2RpZnlpbmcg
-dGhlIGxpbmtlciBzY3JpcHQuCgpiKSBBbHRob3VnaCBleHBsaWNpdCBvcmRlciBpcyB0eXBpY2Fs
-bHkgbm90IHJlcXVpcmVkIGZvciBzZWN0aW9uIHJhbmdlcwogICB0aGVyZSBpcyBvbmUgdXNlIGNh
-c2UgYnJvdWdodCB0byBteSBhdHRlbnRpb24gd2Ugd2FudGVkIHRvIHN1cHBvcnQKICAgd2hlcmUg
-b3JkZXIgd2FzIGRlc2lyZWQgLS0gdG8gYnVpbGQgc3ludGhldGljIGZ1bmN0aW9ucy4gQW4gZXhh
-bXBsZQogICBpcyBwcm92aWRlZCBpbiBhc20gaW4gdG9vbHMgaW4gdGhlIGxhc3QgcGF0Y2ggd2hl
-cmUgdGhlIGxpbmtlciB0YWJsZXMKICAgc2FuZGJveCBpcyBwcm92aWRlZC4gUmVmZXIgdG8gdG9v
-bHMvbGlua2VyLXRhYmxlcy9kcml2ZXJzL3N5bnRoL29yLlMKCj4gPiBkaWZmIC0tZ2l0IGEvaW5j
-bHVkZS9hc20tZ2VuZXJpYy9yYW5nZXMuaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcmFuZ2VzLmgK
-PiA+IG5ldyBmaWxlIG1vZGUgMTAwNjQ0Cj4gPiBpbmRleCAwMDAwMDAwMDAwMDAuLjc0Y2Q5NDFh
-YTJmOAo+ID4gLS0tIC9kZXYvbnVsbAo+ID4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9yYW5n
-ZXMuaAo+ID4gQEAgLTAsMCArMSw4OSBAQAo+ID4gKyNpZm5kZWYgX0FTTV9HRU5FUklDX1JBTkdF
-U19IXwo+ID4gKyNkZWZpbmUgX0FTTV9HRU5FUklDX1JBTkdFU19IXwo+ID4gKy8qCj4gPiArICog
-Q29weXJpZ2h0IChDKSAyMDE2IEx1aXMgUi4gUm9kcmlndWV6IDxtY2dyb2ZAa2VybmVsLm9yZz4K
-PiA+ICsgKgo+ID4gKyAqIFRoaXMgcHJvZ3JhbSBpcyBmcmVlIHNvZnR3YXJlOyB5b3UgY2FuIHJl
-ZGlzdHJpYnV0ZSBpdCBhbmQvb3IgbW9kaWZ5IGl0Cj4gPiArICogdW5kZXIgdGhlIHRlcm1zIG9m
-IGNvcHlsZWZ0LW5leHQgKHZlcnNpb24gMC4zLjEgb3IgbGF0ZXIpIGFzIHB1Ymxpc2hlZAo+ID4g
-KyAqIGF0IGh0dHA6Ly9jb3B5bGVmdC1uZXh0Lm9yZy8uCj4gPiArICovCj4gPiArI2luY2x1ZGUg
-PGFzbS9zZWN0aW9uLWNvcmUuaD4KPiA+ICsKPiA+ICsjZGVmaW5lIFNFQ1RJT05fUk5HKHNlY3Rp
-b24sIG5hbWUpICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIFwKPiAKPiBJIHdv
-dWxkIHJlYWxseSBwcmVmZXIgdG8gYXZvaWQgc2hvcnRlbmluZyAicmFuZ2UiIHRvIHRoZSBhY3Jv
-bnltIGZvcgo+ICJyYW5kb20gbnVtYmVyIGdlbmVyYXRvciIuIFRoYXQncyB2ZXJ5IGNvbmZ1c2lu
-Zy4gOlAgSXQncyBvbmx5IHR3bwo+IGxldHRlcnMgbW9yZS4uLgoKU3BlYWtpbmcgb2YsIGl0J2Qg
-YmUgZ3JlYXQgaWYgeW91IGNvdWxkIHRyaW0geW91ciByZXBseSB0byB0aGUgaHVua3Mgb2YKaW50
-ZXJlc3QgOikgYnV0IHllcyBzdXJlLCBtb3JlIGJpa2Ugc2hlZGRpbmcgLS0gSSdtIGhhcHB5IHRv
-IGdvIHdpdGggdGhhdAppZiB0aGF0IGlzIHRoZSBjb25zZW5zdXMuCgogIEx1aXMKCl9fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWlsaW5n
-IGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcKaHR0cHM6Ly9saXN0cy54ZW4ub3JnL3hlbi1k
-ZXZlbAo=
+On August 22, 2016 4:48:00 PM PDT, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+>On Mon, Aug 22, 2016 at 4:12 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>>
+>> How about the gcc native __builtin_setjmp stuff which is supposedly
+>better?
+>
+>How new is it? The whole point was that we'd not have to worry and
+>wait for gcc features..
+>
+>glibc doesn't use it, which worries me a bit. Has it ever gotten any
+>use/testing?
+>
+>But yes, the compiler could do better. If we can rely on it, and it
+>doesn't do stupid things (like have signal state etc crap - glibc
+>seems to just alias "setjmp" to "sigsetjmp" with a "didn't save
+>signals" flag)
+>
+>             Linus
+
+We can always fall back on the classic implementation for older gcc, just like we do for so many other features.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
