@@ -1,63 +1,218 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 14/16] kprobes: move kprobe declarations to
- asm-generic/kprobes.h
-Date: Tue, 23 Aug 2016 18:31:05 +0200
-Message-ID: <20160823163104.GZ3296@wotan.suse.de>
+Subject: Re: [PATCH v4 04/16] generic-sections: add section core helpers
+Date: Tue, 23 Aug 2016 19:33:06 +0200
+Message-ID: <20160823173306.GA3296@wotan.suse.de>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
- <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
+ <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
+ <20160823112633.7d482e62@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-ia64-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
+In-Reply-To: <20160823112633.7d482e62@roar.ozlabs.ibm.com>
 Sender: linux-ia64-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: mcgrof@kernel.org, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.c
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: mcgrof@kernel.org, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.coman
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 23, 2016 at 12:11:40AM +0900, Masami Hiramatsu wrote:
-> On Fri, 19 Aug 2016 14:34:12 -0700
+On Tue, Aug 23, 2016 at 11:26:33AM +1000, Nicholas Piggin wrote:
+> On Fri, 19 Aug 2016 14:34:02 -0700
 > mcgrof@kernel.org wrote:
+> > +/**
+> > + * DOC: Standard ELF section use in Linux
+> > + *
+> > + * Linux makes use of the standard ELF sections, this sections documents
+> > + * these.
+> > + */
+> > +
+> > +/**
+> > + * DOC: SECTION_RODATA
+> > + *
+> > + * Macro name for code which must be protected from write access, read only
+> > + * data.
+> > + */
+> > +#define SECTION_RODATA			.rodata
 > 
-> > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-> > 
-> > Often all is needed is these small helpers, instead of compiler.h
-> > or a full kprobes.h. This is important for asm helpers, in fact even
-> > some asm/kprobes.h make use of these helpers... instead just keep a
-> > generic asm file with helpers useful for asm code with the least amount
-> > of clutter as possible.
-> > 
-> > Likewise we need now to also address what to do about this file for both
-> > when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
-> > for when architectures have CONFIG_HAVE_KPROBES but have disabled
-> > CONFIG_KPROBES.
-> > 
-> > Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
-> > this means most architecture code cannot include asm/kprobes.h safely.
-> > Correct this and add guards for architectures missing them. Additionally
-> > provide architectures that not have kprobes support with the default
-> > asm-generic solution. This lets us force asm/kprobes.h on the header
-> > include/linux/kprobes.h always, but most importantly we can now safely
-> > include just asm/kprobes.h on architecture code without bringing
-> > the full kitchen sink of header files.
-> > 
-> > Two architectures already provided a guard against CONFIG_KPROBES on
-> > its kprobes.h: sh, arch. The rest of the architectures needed gaurds
-> > added. We avoid including any not-needed headers on asm/kprobes.h
-> > unless kprobes have been enabled.
-> > 
-> > In a subsequent atomic change we can try now to remove compiler.h from
-> > include/linux/kprobes.h.
-> 
-> Hmm, this looks a bit overkill... I rather like move it into linux/table.h.
+> These, for example. The exact name of the section is important in linker
+> scripts and asm, so I can't see the benefit of hiding it. I could be
+> missing the bigger picture.
 
-That's the thing, we can't reasonably expect every table to add an entry into
-table.h, this should be up to each user. Moving it to tables.h just prolongs
-what needs to be done. In this case the change is justifiable given kprobe
-annotations are required for some architectures early in architecture code, and
-including compiler.h on early architecture code blows up. There is no easy fix
-to this, and this this was *actually* the cleanest solution I could devise
-without much changes.
+There's two goals by using a macro for these core names. One is to allow us
+to easily aggregate documentation in central place for each, the second is
+to then provide more easily grep'able helpers so we can use them when devising
+extensions or using them in extensions which further customize the sections
+in the kernel.
+
+> > +/**
+> > + * DOC: SECTION_TEXT
+> > + *
+> > + * Macro name used to annotate code (functions) used during regular
+> > + * kernel run time. This is combined with `SECTION_RODATA`, only this
+> > + * section also allows for execution.
+> > + *
+> > + */
+> > +#define SECTION_TEXT			.text
+> 
+> I can't see how these comments are right. .rodata doesn't seem like it
+> should be combined with .text, and is not currently on powerpc. I think
+> it's for data, not code.
+
+On x86 and powerpc .rodata follows .text. On power currently the comment
+above in .rodata is:
+
+/* Text, read only data and other permanent read-only sections */
+
+When this was introduced however read commit 14cf11af6cf60 ("powerpc: Merge
+enough to start building in arch/powerpc.")
+
+/* Read-only sections, merged into text segment: */
+
+The format and style of putting rodata after text is kept from the older
+commits.
+
+This begs the question. What the hell is this thing talking about?
+
+On Linux this is done via mark_rodata_ro() on init/main.c when CONFIG_DEBUG_RODATA
+on architectures that support it. Architectures that implement this typically use
+issues set_memory_ro() -- on x86 a start address used is PFN_ALIGN(_text) with
+an end address of &__end_rodata_hpage_align.
+
+When architectures do not have CONFIG_DEBUG_RODATA() you end up with:
+
+static inline void mark_readonly(void)                                          
+{                                                                               
+        pr_warn("This architecture does not have kernel memory protection.\n"); 
+}
+
+So -- I should I clarify then in Linux we strive to have helpers adjust text and
+rodata set to ro with memory protection implemented via mark_readonly(). Architectures
+that do not support memory protection will lack a mark_readonly() implementation.
+
+For now I figured a less controversial introduction to the documentation as
+bland as it was above in my original patch would suffice, we can then expand on
+it with something like the above. Thoughts?
+
+> > +/*
+> > + * These section _ALL() helpers are for use on linker scripts and helpers
+> > + */
+> > +#define SECTION_ALL(__section)						\
+> > +	__section##.*
+> 
+> This is another example. We know what .text.* does in the linker scripts
+> -- it's self documenting. But SECTION_ALL(.text)? I'm not sure that's an
+> improvement. Actually I saw it in the linker script changes and had to
+> come find the definition because I was a bit mislead:
+> 
+> SECTION_ALL(.text)
+> 
+> Initially I would expect this to be
+> 
+> .text*
+> 
+> Not
+> 
+> .text.*
+> 
+> The latter does not grab the .text section!
+
+Its not intended to grab .text but rather its for helpers that provide customizations
+based on a core section as base, in this case given your example it would be used by
+section ranges and linker tables for .text. Both section ranges and linker tables
+use postfix .something for their customizations. The SECTION_ALL() macro then is
+a helper for customizations on a core section.
+
+If the name is misleading would SECTION_CORE_ALL() be better with some documentation
+explaining this and the above goal ?
+
+> > +/*
+> > + * As per gcc's documentation a common asm separator is a new line followed
+> > + * by tab [0], it however seems possible to also just use a newline as its
+> > + * the most commonly empirically observed semantic and folks seem to agree
+> > + * this even works on S390. In case your architecture disagrees you may
+> > + * override this and define your own and keep the rest of the macros.
+> > + *
+> > + * [0] https://gcc.gnu.org/onlinedocs/gcc/Basic-Asm.html#Basic-Asm
+> > + */
+> > +# ifndef ASM_CMD_SEP
+> > +#  define ASM_CMD_SEP	"\n"
+> > +# endif
+> 
+> This does not seem like it belongs here. The name is fairly ugly too.
+
+Help me bikeshed, any name suggestions?
+
+> I guess something might be needed like this when dealing with generic
+> as directives common to all architectures, though.
+
+Indeed, it actually seems we don't have much in this area, so this is small
+baby step in that direction.
+
+> I would say include/asm-generic/asm.h should be a better place.
+
+I thought about this -- I'd be adding a new asm-generic/asm.h -- are folks OK
+with that right now? Or should we do that as a secondary step ? I preferred to
+do this as a secondary step as this series is long enough already and there is
+quite a bit that can be dumped in a common asm-generic/asm.h, a few thoughts
+on this already:
+
+ o x86's asm/asm.h's use of __ASM_FORM() and include/linux/stringify.h share
+   some traits which deserve possible consideration / rebranding.
+ o Since C asm() just wrap things in strings defining a core set of
+   helpers for a task seems justifiable, so for example we have
+   __set_section_core_type(). Raw asm code then would use __set_section_core_type()
+   directly and C asm() would just __stringify() it.
+
+I figured a bit of bikeshedding would be possible here, so I decided to leave
+this for a later set of patches. But indeed, I agree with you. If we want
+this meshed out now.. let me know and lets bikeshed away...
+
+> > diff --git a/include/linux/sections.h b/include/linux/sections.h
+> > new file mode 100644
+> > index 000000000000..f21c6ee88ded
+> > --- /dev/null
+> > +++ b/include/linux/sections.h
+> > @@ -0,0 +1,111 @@
+> > +#ifndef _LINUX_SECTIONS_H
+> > +#define _LINUX_SECTIONS_H
+> > +/*
+> > + * Linux de-facto sections
+> > + *
+> > + * Copyright (C) 2016 Luis R. Rodriguez <mcgrof@kernel.org>
+> > + *
+> > + * This program is free software; you can redistribute it and/or modify it
+> > + * under the terms of copyleft-next (version 0.3.1 or later) as published
+> > + * at http://copyleft-next.org/.
+> > + */
+> > +
+> > +#include <asm/section-core.h>
+> > +#include <linux/export.h>
+> > +
+> > +#ifndef __ASSEMBLY__
+> > +
+> > +/**
+> > + * DOC: Introduction
+> > + *
+> > + * Linux defines a set of common helpers which can be used to against its use
+> > + * of standard or custom Linux sections, this section is dedicated to these
+> > + * helpers.
+> 
+> I'm still not quite sure what a Linux de-facto/standard/common section is
+> after this. Are they output sections?
+
+We have ELF standard sections, and we have then sections which Linux has introduced
+over the years which are now just known to be expected part of Linux, such as init
+stuff which we free after boot. The combination of the ELF standard sections and
+series of expected sections in Linux across all architectures is what this refers
+to as Linux de-facto/standard/common sections. The header file is intended to
+document these, step by step, and also provide helpers which allow further
+customizations based on these sections.
+
+> 
+> I think it would be reasonable to drop the LINUX_ prefix and references to
+> Linux.
+
+I'm not so sure about this for section stuff -- are we certain we won't ever
+clash with some built in compiler things? I'm fine to drop the prefix --
+bikeshedding -- will drop it for the next series unless I hear otherwise...
 
   Luis
