@@ -1,167 +1,55 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH v4 04/16] generic-sections: add section core helpers
-Date: Tue, 23 Aug 2016 11:26:33 +1000
-Message-ID: <20160823112633.7d482e62@roar.ozlabs.ibm.com>
-References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
-        <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
+Subject: Re: [PATCH 0/6 v2] kbuild changes, thin archives, --gc-sections
+Date: Tue, 23 Aug 2016 16:17:39 +1000
+Message-ID: <20160823161739.0f4f7337@roar.ozlabs.ibm.com>
+References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: mcgrof@kernel.org
-Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 19 Aug 2016 14:34:02 -0700
-mcgrof@kernel.org wrote:
+On Thu, 11 Aug 2016 20:16:14 +1000
+Nicholas Piggin <npiggin@gmail.com> wrote:
 
-> From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+> Hi,
 > 
-> Linux makes extensive use of custom ELF header sections,
-> documentation for these are well scatterred. Unify this
-> documentation in a central place and provide helpers to
-> build custom Linux sections.
+> I would like to submit the kbuild changes in patches 1-3 for
+> consideration.
 > 
-> This also generalizes sections code to enable avoiding
-> modifying the linker scripts when we want to add new
-> custom Linux sections. In order to make this generally
-> useful we need to ensure all architectures can make use of
-> core section helpers but that they can also override should
-> this be needed. Instead of relying on section.h this adds
-> a sections-core.h since this will be targetted to be safe
-> to be used on asm code, linker scripts and C code.
+> I've taken on the feedback, so thanks everybody for that. The
+> biggest change since last time is a more general way for
+> architectures to do a post-link pass in patch 3.
+> 
+> On the question of whether to enable thin archives unconditionally,
+> I prefer to have architectures enable them as they are tested. But
+> I would like to see everybody moved as soon as possible and the
+> incremental linking removed.
+> 
+> All patches should be basically noops without arch enablement,
+> so I include initial powerpc enablement in patches 4-6 for
+> reference, but I will submit those via powerpc maintainer if
+> the kbuild changes are merged.
 
-Hi Luis,
+Hi Michal,
 
-The linker stuff in the kernel definitely needs someone to take care
-of it, so it's good to see some effort to clean up and generalize some
-of it.
+I'm wondering what your thoughts are with this series?
 
-Not all your patches seem to depend on each other, so it might be good
-to push some of the cleanups through first. And some of these core
-patches could go in bit by bit if necessary.
+Sam had some other comment on patch 3, but I think it has come to a
+matter of preference. I don't mind too much, so I can change it to
+whatever people prefer (sh or makefile).
 
-On this specific patch: while the as and ld sections syntax and
-semantics are pretty ugly and esoteric, I question how much of this is
-actually an improvement. Some of it seems to just be wrapping one name
-with another, or hiding some behaviour in a maybe not intuitive way.
+And did you want me to re-post the series, or are you happy to take
+updated patches from replies?
 
-
-> +/**
-> + * DOC: Standard ELF section use in Linux
-> + *
-> + * Linux makes use of the standard ELF sections, this sections documents
-> + * these.
-> + */
-> +
-> +/**
-> + * DOC: SECTION_RODATA
-> + *
-> + * Macro name for code which must be protected from write access, read only
-> + * data.
-> + */
-> +#define SECTION_RODATA			.rodata
-
-These, for example. The exact name of the section is important in linker
-scripts and asm, so I can't see the benefit of hiding it. I could be
-missing the bigger picture.
-
-
-> +/**
-> + * DOC: SECTION_TEXT
-> + *
-> + * Macro name used to annotate code (functions) used during regular
-> + * kernel run time. This is combined with `SECTION_RODATA`, only this
-> + * section also allows for execution.
-> + *
-> + */
-> +#define SECTION_TEXT			.text
-
-I can't see how these comments are right. .rodata doesn't seem like it
-should be combined with .text, and is not currently on powerpc. I think
-it's for data, not code.
-
-
-> +/*
-> + * These section _ALL() helpers are for use on linker scripts and helpers
-> + */
-> +#define SECTION_ALL(__section)						\
-> +	__section##.*
-
-This is another example. We know what .text.* does in the linker scripts
--- it's self documenting. But SECTION_ALL(.text)? I'm not sure that's an
-improvement. Actually I saw it in the linker script changes and had to
-come find the definition because I was a bit mislead:
-
-SECTION_ALL(.text)
-
-Initially I would expect this to be
-
-.text*
-
-Not
-
-.text.*
-
-The latter does not grab the .text section!
-
-
-> +/*
-> + * As per gcc's documentation a common asm separator is a new line followed
-> + * by tab [0], it however seems possible to also just use a newline as its
-> + * the most commonly empirically observed semantic and folks seem to agree
-> + * this even works on S390. In case your architecture disagrees you may
-> + * override this and define your own and keep the rest of the macros.
-> + *
-> + * [0] https://gcc.gnu.org/onlinedocs/gcc/Basic-Asm.html#Basic-Asm
-> + */
-> +# ifndef ASM_CMD_SEP
-> +#  define ASM_CMD_SEP	"\n"
-> +# endif
-
-This does not seem like it belongs here. The name is fairly ugly too.
-I guess something might be needed like this when dealing with generic
-as directives common to all architectures, though. I would say
-include/asm-generic/asm.h should be a better place.
-
-
-> diff --git a/include/linux/sections.h b/include/linux/sections.h
-> new file mode 100644
-> index 000000000000..f21c6ee88ded
-> --- /dev/null
-> +++ b/include/linux/sections.h
-> @@ -0,0 +1,111 @@
-> +#ifndef _LINUX_SECTIONS_H
-> +#define _LINUX_SECTIONS_H
-> +/*
-> + * Linux de-facto sections
-> + *
-> + * Copyright (C) 2016 Luis R. Rodriguez <mcgrof@kernel.org>
-> + *
-> + * This program is free software; you can redistribute it and/or modify it
-> + * under the terms of copyleft-next (version 0.3.1 or later) as published
-> + * at http://copyleft-next.org/.
-> + */
-> +
-> +#include <asm/section-core.h>
-> +#include <linux/export.h>
-> +
-> +#ifndef __ASSEMBLY__
-> +
-> +/**
-> + * DOC: Introduction
-> + *
-> + * Linux defines a set of common helpers which can be used to against its use
-> + * of standard or custom Linux sections, this section is dedicated to these
-> + * helpers.
-
-I'm still not quite sure what a Linux de-facto/standard/common section is
-after this. Are they output sections?
-
-I think it would be reasonable to drop the LINUX_ prefix and references to
-Linux.
+The ARM slowness with allyesconfig builds with thin archives was a
+linker workaround for a processor bug that they don't need to enable
+for allyesconfig build anyway. I provided them a patch to avoid that.
+For usual sized builds, it's not noticeable.
 
 Thanks,
 Nick
