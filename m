@@ -1,81 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:60037 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:60633 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751214AbcHWQYl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 23 Aug 2016 12:24:41 -0400
-Date: Tue, 23 Aug 2016 17:49:06 +0200
+        id S932434AbcHWQbS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 23 Aug 2016 12:31:18 -0400
+Date: Tue, 23 Aug 2016 18:31:05 +0200
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v1 0/7] tools: add linker table userspace sandbox
-Message-ID: <20160823154906.GY3296@wotan.suse.de>
+Subject: Re: [PATCH v4 14/16] kprobes: move kprobe declarations to
+ asm-generic/kprobes.h
+Message-ID: <20160823163104.GZ3296@wotan.suse.de>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
- <CAOMGZ=G2wVYxbg9Jerkuq0HdoB3W5SwZdiKM2zNz5EXfVYR2jQ@mail.gmail.com>
+ <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
+ <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAOMGZ=G2wVYxbg9Jerkuq0HdoB3W5SwZdiKM2zNz5EXfVYR2jQ@mail.gmail.com>
+In-Reply-To: <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vegard Nossum <vegard.nossum@gmail.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, linux-arch@vger.kernel.org, kbuild <linux-kbuild@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-Message-ID: <20160823154906.dXIaa6xKYj75LvWxlDoOOvyDM0rQ5IUcRl-gfIavxSY@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: mcgrof@kernel.org, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
+Message-ID: <20160823163105.4oxrW-Ql2U5J3q5MNl30-Z8Yrc31wLzE9iX-SxXEt3w@z>
 
-On Mon, Aug 22, 2016 at 11:59:46AM +0200, Vegard Nossum wrote:
-> On 19 August 2016 at 23:41,  <mcgrof@kernel.org> wrote:
+On Tue, Aug 23, 2016 at 12:11:40AM +0900, Masami Hiramatsu wrote:
+> On Fri, 19 Aug 2016 14:34:12 -0700
+> mcgrof@kernel.org wrote:
+> 
 > > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-> >
-> > The original v3 series for linker tables made reference only to
-> > an external repository userspace sandbox application, however
-> > Boris noted it'd be difficult ot keep this in sync with the
-> > kernel so advised to consider integrate with the kernel. I've
-> > taken steps in this direction.
-> [...]
-> > Please let me know if there are any issue or questions.
+> > 
+> > Often all is needed is these small helpers, instead of compiler.h
+> > or a full kprobes.h. This is important for asm helpers, in fact even
+> > some asm/kprobes.h make use of these helpers... instead just keep a
+> > generic asm file with helpers useful for asm code with the least amount
+> > of clutter as possible.
+> > 
+> > Likewise we need now to also address what to do about this file for both
+> > when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
+> > for when architectures have CONFIG_HAVE_KPROBES but have disabled
+> > CONFIG_KPROBES.
+> > 
+> > Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
+> > this means most architecture code cannot include asm/kprobes.h safely.
+> > Correct this and add guards for architectures missing them. Additionally
+> > provide architectures that not have kprobes support with the default
+> > asm-generic solution. This lets us force asm/kprobes.h on the header
+> > include/linux/kprobes.h always, but most importantly we can now safely
+> > include just asm/kprobes.h on architecture code without bringing
+> > the full kitchen sink of header files.
+> > 
+> > Two architectures already provided a guard against CONFIG_KPROBES on
+> > its kprobes.h: sh, arch. The rest of the architectures needed gaurds
+> > added. We avoid including any not-needed headers on asm/kprobes.h
+> > unless kprobes have been enabled.
+> > 
+> > In a subsequent atomic change we can try now to remove compiler.h from
+> > include/linux/kprobes.h.
 > 
-> +#define __VMLINUX_SYMBOL(x) x
-> 
-> +#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
-> 
-> +#define LINUX_SECTION_START(name)      VMLINUX_SYMBOL(name)
-> 
-> +#define DECLARE_LINUX_SECTION(type, name)                              \
-> +        extern type VMLINUX_SYMBOL(name)[], \
-> +                    VMLINUX_SYMBOL(name##__end)[]
-> 
-> +#define DECLARE_LINKTABLE(type, name)                                  \
-> +       DECLARE_LINUX_SECTION(type, name)
-> 
-> +#define LINKTABLE_FOR_EACH(pointer, tbl)                               \
-> +       for (pointer = LINUX_SECTION_START(tbl);                        \
-> +            pointer < LINUX_SECTION_END(tbl);                          \
-> +            pointer++)
-> 
-> I think this is subject to getting optimised out by newer gccs, since
-> it sees the START(tbl) and END(tbl) symbols as two completely
-> different arrays. See the short discussion here:
-> 
-> https://lkml.org/lkml/2016/6/26/73 (the first attempt is wrong, so
-> don't look at that)
-> 
-> It is possible that < is different from != and always does the right
-> thing, but I haven't checked.
-> 
-> I have a WIP branch that converts most of the existing tables in the
-> kernel to use the external_array() macro which makes gcc throw away
-> any knowledge it had about a pointer being part of an array.
+> Hmm, this looks a bit overkill... I rather like move it into linux/table.h.
 
-Was there no compiler option to disable the optimization ?
-
-Please do Cc me on your patches, either way we can coordinate changes depending
-on which series gets merged. If your external_array() change lands upstream
-first I'll see it on linux-next shortly can rebase and adjust code then as
-that is what I base my patches on.
-
-Do we know if there exceptions to the optimization issue for this and if so what
-patterns follow ? We can test with simple userspace code if this will be an 
-issue with gcc 7 by trying the demo in tools/linker-tables/ using this git tree
-and branch 20160819-linker-table-v4 :
-
-https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20160819-linker-table-v4
+That's the thing, we can't reasonably expect every table to add an entry into
+table.h, this should be up to each user. Moving it to tables.h just prolongs
+what needs to be done. In this case the change is justifiable given kprobe
+annotations are required for some architectures early in architecture code, and
+including compiler.h on early architecture code blows up. There is no easy fix
+to this, and this this was *actually* the cleanest solution I could devise
+without much changes.
 
   Luis
