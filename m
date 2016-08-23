@@ -1,55 +1,37 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 0/6 v2] kbuild changes, thin archives, --gc-sections
-Date: Tue, 23 Aug 2016 16:17:39 +1000
-Message-ID: <20160823161739.0f4f7337@roar.ozlabs.ibm.com>
-References: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1470910580-18458-1-git-send-email-npiggin@gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: linux-kbuild@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: Lorenzo Stoakes <lstoakes@gmail.com>
+Subject: [PATCH] asm-generic: page.h: fix comment typo
+Date: Tue, 23 Aug 2016 08:33:59 +0100
+Message-ID: <20160823073359.21690-1-lstoakes@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:35027 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751389AbcHWHeE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 23 Aug 2016 03:34:04 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Lorenzo Stoakes <lstoakes@gmail.com>
 
-On Thu, 11 Aug 2016 20:16:14 +1000
-Nicholas Piggin <npiggin@gmail.com> wrote:
+This patch prefixes a '!' to a /* __ASSEMBLY__ */ comment following an #ifndef
+__ASSEMBLY__ block.
 
-> Hi,
-> 
-> I would like to submit the kbuild changes in patches 1-3 for
-> consideration.
-> 
-> I've taken on the feedback, so thanks everybody for that. The
-> biggest change since last time is a more general way for
-> architectures to do a post-link pass in patch 3.
-> 
-> On the question of whether to enable thin archives unconditionally,
-> I prefer to have architectures enable them as they are tested. But
-> I would like to see everybody moved as soon as possible and the
-> incremental linking removed.
-> 
-> All patches should be basically noops without arch enablement,
-> so I include initial powerpc enablement in patches 4-6 for
-> reference, but I will submit those via powerpc maintainer if
-> the kbuild changes are merged.
+Signed-off-by: Lorenzo Stoakes <lstoakes@gmail.com>
+---
+ include/asm-generic/page.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Hi Michal,
-
-I'm wondering what your thoughts are with this series?
-
-Sam had some other comment on patch 3, but I think it has come to a
-matter of preference. I don't mind too much, so I can change it to
-whatever people prefer (sh or makefile).
-
-And did you want me to re-post the series, or are you happy to take
-updated patches from replies?
-
-The ARM slowness with allyesconfig builds with thin archives was a
-linker workaround for a processor bug that they don't need to enable
-for allyesconfig build anyway. I provided them a patch to avoid that.
-For usual sized builds, it's not noticeable.
-
-Thanks,
-Nick
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 67cfb7d..8847a6e 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -92,7 +92,7 @@ extern unsigned long memory_end;
+ #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+ 				((void *)(kaddr) < (void *)memory_end))
+ 
+-#endif /* __ASSEMBLY__ */
++#endif /* !__ASSEMBLY__ */
+ 
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/getorder.h>
+-- 
+2.9.3
