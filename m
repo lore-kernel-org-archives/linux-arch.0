@@ -1,52 +1,73 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH] ARC: uaccess: get_user to zero out dest in cause of fault
-Date: Tue, 23 Aug 2016 01:17:15 +0100
-Message-ID: <20160823001715.GZ2356@ZenIV.linux.org.uk>
-References: <CA+55aFyB_r5KMJrYMygdkFw-UdxFUCExQJDL-d2Cd+Sk2+xLrw@mail.gmail.com>
- <CA+55aFx9ih9WX-8iUM95fvbuFJ8hf-dK6vwKsVZPh=fdcSB8Cg@mail.gmail.com>
- <20160821001141.GV2356@ZenIV.linux.org.uk>
- <CA+55aFyYOZ2U=Fb=oGrVzqvKUprFOAdL8Ra7sTw5KhgibvN0pA@mail.gmail.com>
- <20160821045402.GC14857@tucnak.redhat.com>
- <20160821064229.GX2356@ZenIV.linux.org.uk>
- <CA+55aFxq=KPcS2ZOV51XP3eQNuaiWdJv579NRR+QFSx2sRq5Ww@mail.gmail.com>
- <CA+55aFzKkVDuizFBH66s8n0u=1FRSXGPNKun9G8rFHaXw5Lx4w@mail.gmail.com>
- <20F4A326-4107-452C-AF84-385136D9501F@zytor.com>
- <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v1 7/7] tools: add userspace linker table sandbox
+Date: Mon, 22 Aug 2016 17:28:42 -0700
+Message-ID: <201608230028.u7N0SneR020502@mail.zytor.com>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org> <1471642875-5957-1-git-send-email-mcgrof@kernel.org> <1471642875-5957-8-git-send-email-mcgrof@kernel.org> <CAGXu5jKX-VZR_r9wMsnLAU+Z10vB4yDiRPpvwXbRZj0=wU208A@mail.gmail.com> <20160823000739.GX3296@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:58134 "EHLO
-        ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756168AbcHWARW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2016 20:17:22 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzsk220hcPXpdsDN_jWhYHqf-zkyN=BxmvfK9q_jp6W4A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Jakub Jelinek <jakub@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20160823000739.GX3296@wotan.suse.de>
+Sender: linux-ia64-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Kees Cook <keescook@chromium.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, mhiramat@kernel.org, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, jbaron@akamai.com, Heiko Carstens <heiko.carstens@de.ibm.com>, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, "David S. Miller" <davem@davemloft.net>, Miao Steven <realmz6@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Greg KH <gregkh@linuxfoundation.org>, Rusty Russell <rusty@rustcorp.com.au>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, Alan Cox <alan@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Arnd
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 22, 2016 at 04:48:00PM -0700, Linus Torvalds wrote:
-> On Mon, Aug 22, 2016 at 4:12 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> >
-> > How about the gcc native __builtin_setjmp stuff which is supposedly better?
-> 
-> How new is it? The whole point was that we'd not have to worry and
-> wait for gcc features..
+Vrabel <david.vrabel@citrix.com>,Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>,Michael Brown <mcb30@ipxe.org>,Juergen Gross <jgross@suse.com>,Andrew Cooper <andrew.cooper3@citrix.com>,Andy Shevchenko <andriy.shevchenko@linux.intel.com>,Paul Gortmaker <paul.gortmaker@windriver.com>,"xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>,Andi Kleen <ak@linux.intel.com>,pali.rohar@gmail.com,dvhart@infradead.org,platform-driver-x86@vger.kernel.org,Michal Marek <mmarek@suse.com>,Rasmus Villemoes <linux@rasmusvillemoes.dk>,Jiri Kosina <jkosina@suse.cz>,=?UTF-8?B?7KGw6rK966+8?= <korea.drzix@gmail.com>,linux-kbuild <linux-kbuild@vger.kernel.org>,Tony Luck <tony.luck@intel.com>,Andrew Morton <akpm@linux-foundation.org>,linux-ia64@vger.kernel.org,"linux-arm-kernel@lists.infradead.org" <linu
+ x-arm-kernel@lists.infradead.org>,linux-sh <linux-sh@vger.kernel.org>,sparclinux <sparclinux@vger.kernel.org>,Catalin Marinas <catalin.marinas@arm.com>,Will Deacon <will.deacon@arm.com>,Ste!
+ ven
+Rostedt <rostedt@goodmis.org>,Jani Nikula <jani.nikula@intel.com>,Mauro Carvalho Chehab <mchehab@osg.samsung.com>,markus.heiser@darmarit.de,jolsa@kernel.org,Mark Salter <msalter@redhat.com>,Chris Zankel <chris@zankel.net>,Max Filippov <jcmvbkbc@gmail.com>,linux-xtensa@linux-xtensa.org,Paul Mackerras <paulus@samba.org>,Michael Ellerman <mpe@ellerman.id.au>,James Bottomley <James.Bottomley@hansenpartnership.com>
+Message-ID: <58F06CEA-AEB3-4ED7-8211-95F402C9D3D3@zytor.com>
 
-Sat Jan 27 07:59:25 1996  Richard Kenner  (kenner@vlsi1.ultra.nyu.edu)
+On August 22, 2016 5:07:39 PM PDT, "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+>On Fri, Aug 19, 2016 at 03:31:47PM -0700, Kees Cook wrote:
+>> On Fri, Aug 19, 2016 at 2:41 PM,  <mcgrof@kernel.org> wrote:
+>> > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+>> >
+>> > Add a userspace sandbox to allow easy experimentation and
+>> > test extensions with linker tables, section ranges and the
+>> > new section core definitions.
+>> >
+>> > The userspace sandbox tries to mimic the Linux kernel development
+>> > flow as much as possible, it however relies on and uses libc.
+>Support
+>> > is currently only provided to x86_64.
+>> >
+>> > v4: this patch is new in this series -- added to the kenrel as
+>> >     suggested by Boris, as otherwise it'd be really hard to keep
+>> >     an external userspace repository in sync.
+>> >
+>> > Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+>> > ---
+>> >  Documentation/sections/linker-tables.rst           |   4 +-
+>> >  MAINTAINERS                                        |   1 +
+>> >  include/linux/tables.h                             |   5 +-
+>> >  tools/Makefile                                     |   3 +-
+>> >  .../arch/x86/include/generated/asm/section-core.h  |   1 +
+>> >  tools/arch/x86/include/generated/ranges.h          |   1 +
+>> >  tools/arch/x86/include/generated/tables.h          |   1 +
+>> >  tools/include/asm-generic/ranges.h                 | 103 ++++
+>> >  tools/include/asm-generic/section-core.h           | 341
+>+++++++++++
+>> >  tools/include/asm-generic/tables.h                 |  50 ++
+>> 
+>> Aren't a bunch of these files exact duplicates of the headers in
+>include/linux?
+>
+>Indeed... This a userspace tools/ architecture decision that was made
+>long ago,
+>so its not up to me, I am just following the strategy devised and
+>picked up.
+>Refer to 7d7d1bf1d1dabe435ef50efb051724b8664749cb ("perf bench: Copy
+>kernel
+>files needed to build mem{cpy,set} x86_64 benchmarks") for an example
+>of
+>previous similar work. By sharing header files this enable more tools/
+>to be hacked on.
+>
+>  Luis
 
-        * tree.h (enum built_in_function): Add BUILT_IN_{SET,LONG}JMP.
-        * expr.c: Include hard-reg-set.h.
-        (arg_pointer_save_area): New declaration.
-        (expand_builtin, case BUILT_IN_{SET,LONG}JMP): New cases.
-        * Makefile.in (expr.o): Includes hard-reg-set.h.
-        * c-decl.c (init_decl_processing): Add definitions for
-        __builtin_setjmp and __builtin_longjmp.
-        * cccp.c (initialize_builtins): Add def of __HAVE_BUILTIN_SETJMP__.
-
-        * expr.c (expand_expr, case COMPONENT_REF): Pass EXPAND_INITIALIZER
-        to recursive call.
-
-IOW - old; the last branch lacking it is 2.7.2.*  Both 2.8 and egcs (and thus
-2.95 and everything subsequent) have it.
+I think this is a legacy from before the uapi change that should really be fixed.  If we need to export additional kernel structures for the tools, we could define a third level of we really need it.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse brevity and formatting.
