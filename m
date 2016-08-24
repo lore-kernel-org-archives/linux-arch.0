@@ -1,45 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:62687 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755223AbcHXNQu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2016 09:16:50 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/3 v3] kbuild changes, thin archives, --gc-sections
-Date: Wed, 24 Aug 2016 15:06:39 +0200
-Message-ID: <1686648.CKXrTpUETq@wuerfel>
+Received: from mx1.redhat.com ([209.132.183.28]:35654 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753890AbcHXObk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Aug 2016 10:31:40 -0400
+From: David Howells <dhowells@redhat.com>
 In-Reply-To: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
 References: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
+Subject: Re: [PATCH 0/3 v3] kbuild changes, thin archives, --gc-sections
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
+Content-ID: <12109.1472048481.1@warthog.procyon.org.uk>
+Date: Wed, 24 Aug 2016 15:21:21 +0100
+Message-ID: <12110.1472048481@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160824130639.ZgbveBPVoGUIpr4uvevqsuRX1SMkUVPuiMNKCIUN_0I@z>
+Cc: dhowells@redhat.com, Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20160824142121.a2kXs4AIRDng9ReEizZoMVD6c-SaLTPclXxlYZdodcw@z>
 
-On Wednesday, August 24, 2016 10:29:18 PM CEST Nicholas Piggin wrote:
-> Hi Michal,
-> 
-> I ended up deciding to do a v3, because I had several changes
-> accumulated, as described in patches.
-> 
-> I've also left off the powerpc arch patches -- they can be found
-> in previous posts, for reference.
-> 
-> I've again tested ARM and it seems to be building okay and without
-> performance regression with my configurations. I think it's going
-> to be a matter of some toolchain options for them to go through.
-> arm64, x86, powerpc, and arm for me all built fine with thin archives
-> and --gc-sections enabled, so I can't see there being a fundamental
-> issue that can't be solved. Worst case, the incremental link option
-> can remain for a time.
-> 
+Out of interest, does using LTO also fix the problem?
 
-I clearly want to use this on ARM, and I am still investigating
-the performance regression that I see on my build box, but that
-is no reason to delay your patches.
-
-Everything looks good to me,
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+David
