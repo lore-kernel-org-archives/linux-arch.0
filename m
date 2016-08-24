@@ -1,34 +1,91 @@
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: [RFC PATCH-tip v4 10/10] locking/rwsem: Add a boot parameter to
- reader spinning threshold
-Date: Tue, 23 Aug 2016 21:00:07 -0700
-Message-ID: <20160824040007.GA17186@linux-80c1.suse>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
- <1471554672-38662-11-git-send-email-Waiman.Long@hpe.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] arm: add an option for erratum 657417
+Date: Wed, 24 Aug 2016 14:00:44 +1000
+Message-ID: <20160824140044.266d045d@roar.ozlabs.ibm.com>
+References: <1470989957-23671-1-git-send-email-npiggin@gmail.com>
+        <2466265.8og15RQ8jv@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1471554672-38662-11-git-send-email-Waiman.Long@hpe.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Waiman Long <Waiman.Long@hpe.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <2466265.8og15RQ8jv@wuerfel>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, Russell King <linux@armlinux.org.uk>, linux-kbuild@vger.kernel.org, Nicolas Pitre <nicolas.pitre@linaro.org>, Julian Brown <julian@codesourcery.com>, Alan Modra <amodra@gmail.com>, Segher Boessenkool <segher@kernel.crashing.org>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.com>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 18 Aug 2016, Waiman Long wrote:
+On Tue, 23 Aug 2016 14:01:29 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
 
->The default reader spining threshold is current set to 4096. However,
->the right reader spinning threshold may vary from one system to
->another and among the different architectures. This patch adds a new
->kernel boot parameter to modify the threshold value. This enables
->better tailoring to the needs of different systems as well as for
->testing purposes.
+> On Friday, August 12, 2016 6:19:17 PM CEST Nicholas Piggin wrote:
+> > Erratum 657417 is worked around by the linker by inserting additional
+> > branch trampolines to avoid problematic branch target locations. This
+> > results in much higher linking time and presumably slower and larger
+> > generated code. The workaround also seems to only be required when
+> > linking thumb2 code, but the linker applies it for non-thumb2 code as
+> > well.
+> > 
+> > The workaround today is left to the linker to apply, which is overly
+> > conservative.
+> > 
+> > https://sourceware.org/ml/binutils/2009-05/msg00297.html
+> > 
+> > This patch adds an option which defaults to "y" in cases where we
+> > could possibly be running Cortex A8 and using Thumb2 instructions.
+> > In reality the workaround might not be required at all for the kernel
+> > if virtual instruction memory is linear in physical memory. However it
+> > is more conservative to keep the workaround, and it may be the case
+> > that the TLB lookup would be required in order to catch branches to
+> > unmapped or no-execute pages.
+> > 
+> > In an allyesconfig build, this workaround causes a large load on
+> > the linker's branch stub hash and slows down the final link by a
+> > factor of 5.
+> > 
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> >   
+> 
+> Thanks a lot for finding this issue. I can confirm that your patch
+> helps noticeably in all configurations, reducing time for a relink
+> from 18 minutes to 9 minutes on my machine in the best case, but
+> the factor 10 slowdown of the final link with your thin archives
+> and gc-sections patches remains.
+> 
+> I suspect there is still something else going on besides the 657417
+> slowing things down, but it's also possible that I'm doing something
+> wrong here.
 
-It also means that those systems could very easily be incorrectly tailored.
-(and worse case scenario: reboot, is obviously a terrible way to get rid
-of any issues). I very much disagree with exposing this sort of core stuff,
-it should work well for everyone out of the box, not relying on users to
-properly configure this.
+Okay, I was only testing thin archives. gc-sections I didn't look at.
+With thin archives, one final arm allyesconfig link with this patch is
+not showing a regression. gc-sections must be causing something else
+ARM specific, because powerpc seems to link fast with gc-sections.
+
+Can you send your latest ARM patch to enable this and I'll have a look
+at it?
+
+
+> Aside from that, I notice that for the purpose of speeding up
+> "allyesconfig", we don't actually need to make this user
+> configurable, it's sufficient to disable the workaround when
+> CONFIG_THUMB2_KERNEL is disabled, which is what allyesconfig
+> and all the defconfig files (but not randconfig) use. I also found
+> that using THUMB2_KERNEL itself causes a 50% slowdown. I have
+> patches on my "randconfig" test tree that have the side-effect
+> of enabling THUMB2_KERNEL for allyesconfig, which is one reason
+> I have been getting worse results than others.
+> 
+> I could also try to revive an older patch I started, to annotate
+> the specific CPU core on each ARMv7 platform. I think I have all the
+> information we need for that, and there are other advantages in
+> doing it: we could be more selective with all the ARMv7 errata,
+> and automatically determine whether some optional CPU features
+> (LPAE, virtualization, integer divide) are available on all
+> of the selected CPU cores.
+
+Yeah I was just trying to follow existing pattern and be conservative
+with the workaround. From my brief look, it does seem like there is
+room to optimize build options by having more fine grained selection
+of target CPU/platform.
 
 Thanks,
-Davidlohr
+Nick
