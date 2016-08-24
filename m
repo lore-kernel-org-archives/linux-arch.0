@@ -1,156 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f66.google.com ([209.85.220.66]:35532 "EHLO
-        mail-pa0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754654AbcHXMaT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2016 08:30:19 -0400
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 3/3] kbuild: add arch specific post-link Makefile
-Date: Wed, 24 Aug 2016 22:29:21 +1000
-Message-ID: <1472041761-14414-4-git-send-email-npiggin@gmail.com>
-In-Reply-To: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
-References: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
+Received: from mail.kernel.org ([198.145.29.136]:40648 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754250AbcHXMqQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 24 Aug 2016 08:46:16 -0400
+Date: Wed, 24 Aug 2016 09:39:03 -0300
+From: Arnaldo Carvalho de Melo <acme@kernel.org>
+Subject: Re: [PATCH v1 7/7] tools: add userspace linker table sandbox
+Message-ID: <20160824123903.GA10063@kernel.org>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
+ <1471642875-5957-8-git-send-email-mcgrof@kernel.org>
+ <CAGXu5jKX-VZR_r9wMsnLAU+Z10vB4yDiRPpvwXbRZj0=wU208A@mail.gmail.com>
+ <20160823000739.GX3296@wotan.suse.de>
+ <201608230028.u7N0SneR020502@mail.zytor.com>
+ <20160823143028.GA2834@redhat.com>
+ <CAGXu5j+JsFAUJ4AfCvK2FVE3TOOeLjyiOD1Buy-X4oRHu=Cz=A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+JsFAUJ4AfCvK2FVE3TOOeLjyiOD1Buy-X4oRHu=Cz=A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org
-Cc: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@linaro.org>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160824122921.DBhNI_UVscWuUC9PqjbJyBopqLXZJ2vhIM7VsikGALg@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arnaldo Carvalho de Melo <acme@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "Luis R. Rodriguez" <mcgrof@kernel.org>, Josh Poimboeuf <jpoimboe@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Masami Hiramatsu <mhiramat@kernel.org>, jbaron@akamai.com, Heiko Carstens <heiko.carstens@de.ibm.com>, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, "David S. Miller" <davem@davemloft.net>, Miao Steven <realmz6@gmail.com>, "x86@kernel.org" <x86@kernel.org>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, Greg KH <gregkh@linuxfoundation.org>, Rusty Russell <rusty@rustcorp.com.au>, "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, Alan Cox <alan@linux.intel.com>, David Woodhouse <dwmw2@infradead.org>, Arnd Bergmann <arnd@arndb.de>, Ming Lei <ming.lei@canonical.com>, linux-arch <linux-arch@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "ananth@in.ibm.com" <ananth@in.ibm.com>, Paul Bolle <pebolle@tiscali.nl>, fontana@sharpeleven.org, David@zytor.com
+Message-ID: <20160824123903.e2-tcBryB1ZLLneQlz7kaad6rA48KOn_vcsDiGehi60@z>
 
-Allow architectures to create arch/xxx/Makefile.postlink with targets
-for vmlinux, modules.ko, and clean, which will be invoked after final
-linking of vmlinux and modules.
+Em Tue, Aug 23, 2016 at 10:28:39PM -0400, Kees Cook escreveu:
+> On Tue, Aug 23, 2016 at 10:30 AM, Arnaldo Carvalho de Melo
+> <acme@redhat.com> wrote:
+> > Em Mon, Aug 22, 2016 at 05:28:42PM -0700, H. Peter Anvin escreveu:
+> >> On August 22, 2016 5:07:39 PM PDT, "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+> >> >On Fri, Aug 19, 2016 at 03:31:47PM -0700, Kees Cook wrote:
 
-powerpc will use this to check vmlinux linker relocations for sanity,
-and may use it to fix up alternate instruction patch branch addresses.
+> >> >> Aren't a bunch of these files exact duplicates of the headers in
+> >> >include/linux?
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> >> >Indeed... This a userspace tools/ architecture decision that was made
+> >> >long ago, so its not up to me, I am just following the strategy
+> >> >devised and picked up.  Refer to
+> >> >7d7d1bf1d1dabe435ef50efb051724b8664749cb ("perf bench: Copy kernel
+> >> >files needed to build mem{cpy,set} x86_64 benchmarks") for an example
+> >> >of previous similar work. By sharing header files this enable more
+> >> >tools/ to be hacked on.
 
----
-Since v1,
-- Switched to a more flexible arch makefile invocation.
-- Provide a powerpc patch to use it to help existing build issue
-  (rather than only justification being out-of-tree patch).
+> >> I think this is a legacy from before the uapi change that should
+> >> really be fixed.  If we need to export additional kernel structures
+> >> for the tools, we could define a third level of we really need it.
 
-Since v2
-- Depend on existence of Makefile.modpost, rather than config option.
-- Add a clean target
-- Move post-vmlinux invocation into Makefile rather than link-vmlinux.sh
-- Arch postlink must always be done after final link, not on an if_changed
-  basis, because the vmlinux itself is not a dependency.
+> > No, it is something recent, its just that from time to time files that
+> > tools/ included from outside, i.e. from the kernel sources, made tools/
+> > break, so after discussion with Linus and Ingo[1], it was decided we would
 
- Documentation/kbuild/makefiles.txt | 16 ++++++++++++++++
- Makefile                           | 10 +++++++---
- arch/Kconfig                       |  7 +++++++
- scripts/Makefile.modpost           | 14 +++++++++-----
- 4 files changed, 39 insertions(+), 8 deletions(-)
+> This [1] reference seems missing. I'm curious to see the thread. I
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 13f888a..16841a7 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -41,6 +41,7 @@ This document describes the Linux kernel Makefiles.
- 	   --- 6.8 Custom kbuild commands
- 	   --- 6.9 Preprocessing linker scripts
- 	   --- 6.10 Generic header files
-+	   --- 6.11 Post-link pass
- 
- 	=== 7 Kbuild syntax for exported headers
- 		--- 7.1 header-y
-@@ -1236,6 +1237,21 @@ When kbuild executes, the following steps are followed (roughly):
- 	to list the file in the Kbuild file.
- 	See "7.4 generic-y" for further info on syntax etc.
- 
-+--- 6.11 Post-link pass
-+
-+	If the file arch/xxx/Makefile.postlink exists, this makefile
-+	will be invoked for post-link objects (vmlinux and modules.ko)
-+	for architectures to run post-link passes on. Must also handle
-+	the clean target.
-+
-+	This pass runs after kallsyms generation. If the architecture
-+	needs to modify symbol locations, rather than manipulate the
-+	kallsyms, it may be easier to add another postlink target for
-+	.tmp_vmlinux? targets to be called from link-vmlinux.sh.
-+
-+	For example, powerpc uses this to check relocation sanity of
-+	the linked vmlinux file.
-+
- === 7 Kbuild syntax for exported headers
- 
- The kernel includes a set of headers that is exported to userspace.
-diff --git a/Makefile b/Makefile
-index b29c6c0..9c6992f 100644
---- a/Makefile
-+++ b/Makefile
-@@ -967,9 +967,12 @@ endif
- include/generated/autoksyms.h: FORCE
- 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/adjust_autoksyms.sh true
- 
--# Final link of vmlinux
--      cmd_link-vmlinux = $(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux)
--quiet_cmd_link-vmlinux = LINK    $@
-+ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-+
-+# Final link of vmlinux with optional arch pass after final link
-+    cmd_link-vmlinux =                                                 \
-+	$(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux) ;       \
-+	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
- 
- vmlinux: scripts/link-vmlinux.sh vmlinux_prereq $(vmlinux-deps) FORCE
- 	+$(call if_changed,link-vmlinux)
-@@ -1268,6 +1271,7 @@ $(clean-dirs):
- 
- vmlinuxclean:
- 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/link-vmlinux.sh clean
-+	$(Q)$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) clean)
- 
- clean: archclean vmlinuxclean
- 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 94138e5..c8a1677 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -424,6 +424,13 @@ config CC_STACKPROTECTOR_STRONG
- 
- endchoice
- 
-+config BUILD_ARCH_POSTLINK
-+	bool
-+	help
-+	  Select this if the architecture wants to have a Makefile invoked
-+	  on modules and vmlinux after they are linked. The architecture
-+	  must provide arch/?/Makefile.postlink
-+
- config THIN_ARCHIVES
- 	bool
- 	help
-diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-index 1366a94..16923ba 100644
---- a/scripts/Makefile.modpost
-+++ b/scripts/Makefile.modpost
-@@ -115,14 +115,18 @@ $(modules:.ko=.mod.o): %.mod.o: %.mod.c FORCE
- 
- targets += $(modules:.ko=.mod.o)
- 
--# Step 6), final link of the modules
-+ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
-+
-+# Step 6), final link of the modules with optional arch pass after final link
- quiet_cmd_ld_ko_o = LD [M]  $@
--      cmd_ld_ko_o = $(LD) -r $(LDFLAGS)                                 \
--                             $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE) \
--                             -o $@ $(filter-out FORCE,$^)
-+      cmd_ld_ko_o =                                                     \
-+	$(LD) -r $(LDFLAGS)                                             \
-+                 $(KBUILD_LDFLAGS_MODULE) $(LDFLAGS_MODULE)             \
-+                 -o $@ $(filter-out FORCE,$^) ;                         \
-+	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
- 
- $(modules): %.ko :%.o %.mod.o FORCE
--	$(call if_changed,ld_ko_o)
-+	+$(call if_changed,ld_ko_o)
- 
- targets += $(modules)
- 
--- 
-2.8.1
+I added the '[1]', went to look for the discussion yesterday, but it was
+a private conversation with ~15 people, bummer, but the one below has
+Ingo describing it in another occasion where a new utility got added to
+tools/, objtool:
 
+  https://lkml.kernel.org/r/20160309183945.GA17956@gmail.com
+
+And yeah, I started using stuff directly from the kernel, breakage took
+place, we changed course.
+
+> wonder if something could be done to just generate the needed headers
+> from the canonical locations into the tools/ locations?
+
+Then that would bring possible problems, better to do it manually when
+auto-detected.
+ 
+> > grab copies and never more access anything outside tools/ directly.
+> >
+> > Instead we would check for changes and warn the tools/ developers about
+> > it, so that they could check what has changed, that could mean changes
+> > should/could be done to tools/ using those headers.
+> 
+> Is there anything automated in place to notice when these changes happen?
+
+See 791cceb89f7987c0375ff2e8971928a47f62ccae, among others, but it will
+amount to something like:
+
+    Changes detected by the tools build system:
+    
+      $ make -C tools/perf O=/tmp/build/perf install-bin
+      make: Entering directory '/home/acme/git/linux/tools/perf'
+        BUILD:   Doing 'make -j4' parallel build
+--->  Warning: tools/include/uapi/linux/bpf.h differs from kernel <-------
+        INSTALL  GTK UI
+        CC       /tmp/build/perf/bench/mem-memcpy-x86-64-asm.o
+      <SNIP>
+      $
+
+- Arnaldo
