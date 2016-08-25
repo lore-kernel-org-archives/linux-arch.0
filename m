@@ -1,427 +1,226 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 04/16] generic-sections: add section core helpers
-Date: Wed, 24 Aug 2016 22:12:53 +0200
-Message-ID: <20160824201253.GS3296@wotan.suse.de>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v4 04/16] generic-sections: add section core
+	helpers
+Date: Thu, 25 Aug 2016 12:06:33 +1000
+Message-ID: <20160825120633.057b2f6f@roar.ozlabs.ibm.com>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
  <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
  <20160823112633.7d482e62@roar.ozlabs.ibm.com>
  <20160823173306.GA3296@wotan.suse.de>
  <20160824135141.2c8f06ec@roar.ozlabs.ibm.com>
+ <20160824201253.GS3296@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160824135141.2c8f06ec@roar.ozlabs.ibm.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
+In-Reply-To: <20160824201253.GS3296@wotan.suse.de>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, david.vrabel@citrix.com, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 24, 2016 at 01:51:41PM +1000, Nicholas Piggin wrote:
-> On Tue, 23 Aug 2016 19:33:06 +0200
-> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
-> 
-> > On Tue, Aug 23, 2016 at 11:26:33AM +1000, Nicholas Piggin wrote:
-> > > On Fri, 19 Aug 2016 14:34:02 -0700
-> > > mcgrof@kernel.org wrote:  
-> > > > +/**
-> > > > + * DOC: Standard ELF section use in Linux
-> > > > + *
-> > > > + * Linux makes use of the standard ELF sections, this sections documents
-> > > > + * these.
-> > > > + */
-> > > > +
-> > > > +/**
-> > > > + * DOC: SECTION_RODATA
-> > > > + *
-> > > > + * Macro name for code which must be protected from write access, read only
-> > > > + * data.
-> > > > + */
-> > > > +#define SECTION_RODATA			.rodata  
-> > > 
-> > > These, for example. The exact name of the section is important in linker
-> > > scripts and asm, so I can't see the benefit of hiding it. I could be
-> > > missing the bigger picture.  
-> > 
-> > There's two goals by using a macro for these core names. One is to allow us
-> > to easily aggregate documentation in central place for each, the second is
-> > to then provide more easily grep'able helpers so we can use them when devising
-> > extensions or using them in extensions which further customize the sections
-> > in the kernel.
-
-Just thought of more more justification I had forgotten. I cover it below.
-
-> Documentation is good, but not necessary to have the extra name indirection.
-
-Fair point.
-
-> Sections tend (not always, but it would be nice if they did) to follow the
-> .name convention, which makes them reasonably easy to grep for.
-
-git grep .text  doesn't work but that is typically expected...
-git grep \.text doesn't work as expected
-
-Ah finally:
-
-git grep "\.text" seems to work. But WTF.
-
-But:
-
-git grep SECTION_TEXT works as expected immediately.
-
-I guess its a matter of perspective.
-
-> They are also
-> the names you'll be grepping for when you look at disassembly.
-
-Sure but if you're grepping asm, you very likely know what to look for.
-
-> > > > +/**
-> > > > + * DOC: SECTION_TEXT
-> > > > + *
-> > > > + * Macro name used to annotate code (functions) used during regular
-> > > > + * kernel run time. This is combined with `SECTION_RODATA`, only this
-> > > > + * section also allows for execution.
-> > > > + *
-> > > > + */
-> > > > +#define SECTION_TEXT			.text  
-> > > 
-> > > I can't see how these comments are right. .rodata doesn't seem like it
-> > > should be combined with .text, and is not currently on powerpc. I think
-> > > it's for data, not code.  
-> > 
-> > On x86 and powerpc .rodata follows .text.
-> 
-> But follows is not the same as combined.
-
-True and as I confirmed below, on PowerPC this is certainly not true.
-
-> And together with the comment that RODATA is for code (which is wrong, it's data),
-
-Where did I have that? If you refer to the above SECTION_TEXT documentation, it
-refers to SECTION_TEXT being for code, but the goal was to highlight that
-SECTION_TEXT is for execution, while SECTION_RODATA was for data. This
-certainly can use some love though, thanks, will just drop the SECTION_RODATA
-reference *or* properly explain the whole thing below.
-
-> it make it seem like it is actually combined.
-
-Will fix to ensure this is understood in proper context.
-
-> > On power currently the comment
-> > above in .rodata is:
-> > 
-> > /* Text, read only data and other permanent read-only sections */
-> > 
-> > When this was introduced however read commit 14cf11af6cf60 ("powerpc: Merge
-> > enough to start building in arch/powerpc.")
-> > 
-> > /* Read-only sections, merged into text segment: */
-> > 
-> > The format and style of putting rodata after text is kept from the older
-> > commits.
-> > 
-> > This begs the question. What the hell is this thing talking about?
-> > 
-> > On Linux this is done via mark_rodata_ro() on init/main.c when CONFIG_DEBUG_RODATA
-> > on architectures that support it. Architectures that implement this typically use
-> > issues set_memory_ro() -- on x86 a start address used is PFN_ALIGN(_text) with
-> > an end address of &__end_rodata_hpage_align.
-> > 
-> > When architectures do not have CONFIG_DEBUG_RODATA() you end up with:
-> > 
-> > static inline void mark_readonly(void)                                          
-> > {                                                                               
-> >         pr_warn("This architecture does not have kernel memory protection.\n"); 
-> > }
-> > 
-> > So -- I should I clarify then in Linux we strive to have helpers adjust text and
-> > rodata set to ro with memory protection implemented via mark_readonly(). Architectures
-> > that do not support memory protection will lack a mark_readonly() implementation.
-> 
-> Right, I wasn't talking about arch implementation of how the ro
-> protection is done, so much as just the comments being a bit misleading.
-
-Sure, got it, thanks, will fix.
-
-> > For now I figured a less controversial introduction to the documentation as
-> > bland as it was above in my original patch would suffice, we can then expand on
-> > it with something like the above. Thoughts?
-> 
-> I think comments are one of the key features of this patch series (or at
-> least this patch, I've not looked through the others so much yet).
-
-Definitely -- the goal was to give us central place to document some of this
-obscure dark magic only a few witches and warlocks tend to be aware of.
-
-> I'm no
-> expert on linker stuff, but I think a lot of arch maintainers aren't
-> necessarily either so you tend to get a lot of copy and paste without
-> always people knowing what exactly is happening.
-
-:) Yes indeed, the little crusade over the PowerPC linker script comments
-on .text and ro data is an example of how easily things can be misleading.
-
-> It would be really good
-> to have some longer explanations and justifications/examples IMO. So I
-> don't think that would be controversial if you wanted to expand on it.
-
-Sure, but what I was trying to say above is I'd rather have the basic
-layout of the documentation finalized before we start getting into very
-specific detailed elaborate details on some of these things. For instance
-we still haven't decided if we wanted SECTION_TEXT or just require everyone
-to hard code in .text in every place a user wants to use .text sections.
-I'd rather settle that before trying to document mark_readonly().
-
-> > > > +/*
-> > > > + * These section _ALL() helpers are for use on linker scripts and helpers
-> > > > + */
-> > > > +#define SECTION_ALL(__section)						\
-> > > > +	__section##.*  
-> > > 
-> > > This is another example. We know what .text.* does in the linker scripts
-> > > -- it's self documenting. But SECTION_ALL(.text)? I'm not sure that's an
-> > > improvement. Actually I saw it in the linker script changes and had to
-> > > come find the definition because I was a bit mislead:
-> > > 
-> > > SECTION_ALL(.text)
-> > > 
-> > > Initially I would expect this to be
-> > > 
-> > > .text*
-> > > 
-> > > Not
-> > > 
-> > > .text.*
-> > > 
-> > > The latter does not grab the .text section!  
-> > 
-> > Its not intended to grab .text but rather its for helpers that provide customizations
-> > based on a core section as base, in this case given your example it would be used by
-> > section ranges and linker tables for .text. Both section ranges and linker tables
-> > use postfix .something for their customizations. The SECTION_ALL() macro then is
-> > a helper for customizations on a core section.
-> 
-> Right, it's just that .text.* is *immediately* obvious. SECTION_ALL() is not.
-
-Which is why I was suggesting perhaps an alternative name.
-
-> > If the name is misleading would SECTION_CORE_ALL() be better with some documentation
-> > explaining this and the above goal ?
-> 
-> I don't know... not to be glib, but .section.* would be better and not require
-> documentation.
-
-Well consider the issues below for a second... and keep in mind with linker
-tables we are about to open the prospect to add more things into the kernel's
-sections more easily than before.
-
-> CORE does not really add anything as far as I can see. Other types of .text including
-> ones which are automatically generated by the compiler, for better or worse, are
-> .text.x sections too.
-
-Actually, sorry, in this case SECTION_ALL() *was* intended for things that are
-not linker tables or section ranges, instead this was for globs that want to
-use the new section macro names, so we only use this for:
-*(SECTION_ALL(SECTION_RODATA)) at this time.  It would seem we just did not
-have .text.* and friends (other section names documented here). So this is
-more of a reaction to provide a way to use a glob for section names if they
-have a macro name.
-
-The idea was to add helpers to do the globbing more easily.
-
-The glob for sections now documented   is SECTION_ALL()
-The glob that is range specific        is SECTION_RNG_ALL()
-The glob that is linker table specific is SECTION_TBL_ALL()
-
-The only one needing SECTION_ALL() it turns out was .rodata:
-
--               *(.rodata) *(.rodata.*)                                 \
-+               *(SECTION_RODATA) *(SECTION_ALL(SECTION_RODATA))        \
-
-> I would like to see more standardisation of naming convention -- some sections start
-> with .., some start with no dots, some use . to separate logical "subsections", others
-> use underscores or something else.
-
-Agreed... Actually while at it -- anyone happen to know why the two dot thing
-started creeping up?
-
-> I just don't see it would be a problem to simply use the raw names and linker
-> wildcards for it.
-
-A concern here is more abuse over this if we now expose APIs to users to
-more easily customize sections. So let's review what the chances are.
-
-$ git grep DEFINE_SECTION_RANGE| egrep -v "tools|include|Document"
-kernel/kprobes.c:DEFINE_SECTION_RANGE(kprobes, SECTION_TEXT);
-
-These require the actual desired section specified. Do we want
-to just hide that ? Or are we OK in assuming users willing to use
-proper names here?
-
-For linker tables we actually provide full helpers for each section
-type. So we have:
-
-$ git grep DEFINE_LINKTABLE| egrep -v "tools|include|Document"
-drivers/base/firmware_class.c:DEFINE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
-kernel/jump_label.c:DEFINE_LINKTABLE(struct jump_entry, __jump_table);
-kernel/kprobes.c:DEFINE_LINKTABLE_INIT_DATA(unsigned long, _kprobe_blacklist);
-lib/dynamic_debug.c:DEFINE_LINKTABLE(struct _ddebug, __verbose);
-
-So for linker tables we're safe from abuse as we provide all direct use
-of the section up to the implementation behind the scenes.
-
-If we're happy then with people using a proper section name for section
-ranges then I think we can require the full section name being
-spelled out.
-
-> > > > +/*
-> > > > + * As per gcc's documentation a common asm separator is a new line followed
-> > > > + * by tab [0], it however seems possible to also just use a newline as its
-> > > > + * the most commonly empirically observed semantic and folks seem to agree
-> > > > + * this even works on S390. In case your architecture disagrees you may
-> > > > + * override this and define your own and keep the rest of the macros.
-> > > > + *
-> > > > + * [0] https://gcc.gnu.org/onlinedocs/gcc/Basic-Asm.html#Basic-Asm
-> > > > + */
-> > > > +# ifndef ASM_CMD_SEP
-> > > > +#  define ASM_CMD_SEP	"\n"
-> > > > +# endif  
-> > > 
-> > > This does not seem like it belongs here. The name is fairly ugly too.  
-> > 
-> > Help me bikeshed, any name suggestions?
-> 
-> BTW, I'm not trying to bikeshed :) This doesn't affect the value of your
-> patch at all, it was just an offhand thing I saw.
-
-Just saying, if you say its ugly please help me with a different name then.
-
-> > > I guess something might be needed like this when dealing with generic
-> > > as directives common to all architectures, though.  
-> > 
-> > Indeed, it actually seems we don't have much in this area, so this is small
-> > baby step in that direction.
-> > 
-> > > I would say include/asm-generic/asm.h should be a better place.  
-> > 
-> > I thought about this -- I'd be adding a new asm-generic/asm.h -- are folks OK
-> > with that right now? Or should we do that as a secondary step ? I preferred to
-> > do this as a secondary step as this series is long enough already and there is
-> > quite a bit that can be dumped in a common asm-generic/asm.h, a few thoughts
-> > on this already:
-> > 
-> >  o x86's asm/asm.h's use of __ASM_FORM() and include/linux/stringify.h share
-> >    some traits which deserve possible consideration / rebranding.
-> >  o Since C asm() just wrap things in strings defining a core set of
-> >    helpers for a task seems justifiable, so for example we have
-> >    __set_section_core_type(). Raw asm code then would use __set_section_core_type()
-> >    directly and C asm() would just __stringify() it.
-> > 
-> > I figured a bit of bikeshedding would be possible here, so I decided to leave
-> > this for a later set of patches. But indeed, I agree with you. If we want
-> > this meshed out now.. let me know and lets bikeshed away...
-> 
-> It's fine, I don't mind too much. I think asm-generic/asm.h should be
-> fine for generic asm'isms though. Or assembler.h to match compiler.h.
-
-I'd like address this in asm.h but I would hope we can do this as a secondary
-step, given the length of this patch set already. Thoughts ?
-
-> 
-> > > > diff --git a/include/linux/sections.h b/include/linux/sections.h
-> > > > new file mode 100644
-> > > > index 000000000000..f21c6ee88ded
-> > > > --- /dev/null
-> > > > +++ b/include/linux/sections.h
-> > > > @@ -0,0 +1,111 @@
-> > > > +#ifndef _LINUX_SECTIONS_H
-> > > > +#define _LINUX_SECTIONS_H
-> > > > +/*
-> > > > + * Linux de-facto sections
-> > > > + *
-> > > > + * Copyright (C) 2016 Luis R. Rodriguez <mcgrof@kernel.org>
-> > > > + *
-> > > > + * This program is free software; you can redistribute it and/or modify it
-> > > > + * under the terms of copyleft-next (version 0.3.1 or later) as published
-> > > > + * at http://copyleft-next.org/.
-> > > > + */
-> > > > +
-> > > > +#include <asm/section-core.h>
-> > > > +#include <linux/export.h>
-> > > > +
-> > > > +#ifndef __ASSEMBLY__
-> > > > +
-> > > > +/**
-> > > > + * DOC: Introduction
-> > > > + *
-> > > > + * Linux defines a set of common helpers which can be used to against its use
-> > > > + * of standard or custom Linux sections, this section is dedicated to these
-> > > > + * helpers.  
-> > > 
-> > > I'm still not quite sure what a Linux de-facto/standard/common section is
-> > > after this. Are they output sections?  
-> > 
-> > We have ELF standard sections, and we have then sections which Linux has introduced
-> > over the years which are now just known to be expected part of Linux, such as init
-> > stuff which we free after boot. The combination of the ELF standard sections and
-> > series of expected sections in Linux across all architectures is what this refers
-> > to as Linux de-facto/standard/common sections. The header file is intended to
-> > document these, step by step, and also provide helpers which allow further
-> > customizations based on these sections.
-> 
-> Well but your macros are not linker sections. They are "Linux sections", which
-> appear to give you a start and end symbol name, but does not direct the linker
-> to create a specific output section.
-
-You're right the above can use some love to help explain this better.
-
-How about:
-
-At the top just use "Linux sections helpers"
-
-Then:
-
-/**
- * DOC: Introduction
- *
- * We document below a dedicated set of helpers used in Linux to make sections
- * defined in the Linux linker script accessible in C code in a generic form and 
- * and provide certain attributes about them.
- */
-
-> I just can't work out what exactly is a
-> "custom Linux section", and what DECLARE_LINUX_SECTION(), for example, actaully
-> gives you.
-
-Its a way to replace the:
-
-extern char foo[], foo__end[];
-
-So this provides a generalized form to use declarations used in C code to make
-the linker script start and end symbols from esctions accessible in C code. Since
-DEFINE_SECTION_RANGE() and DEFINE_LINKTABLE() macros use this, then the
-DECLARE_LINUX_SECTION() is only needed if you need access to these symbols in C
-code outside of the one that is defining and mainly in charge of managing the
-section. We provide DECLARE_*() helpers for section ranges and linker tables
-though so those can be used instead to help annotate the type of a custom
-section they are.
-
-So for instance, since the following tables are used in C code outside
-of the code that implemented and manages them:
-
-mcgrof@ergon ~/linux-next (git::20160822-linker-table-v5)$ git grep DECLARE_LINKTA| egrep -v "Documentation|tools|tables"
-arch/x86/kernel/cpu/microcode/core.c:DECLARE_LINKTABLE_RO(struct builtin_fw, builtin_fw);
-include/linux/dynamic_debug.h:DECLARE_LINKTABLE(struct _ddebug, __verbose);
-include/linux/jump_label.h:DECLARE_LINKTABLE(struct jump_entry, __jump_table);
-include/linux/kprobes.h:DECLARE_LINKTABLE(unsigned long, _kprobe_blacklist);
-
-Note that the big trick here was to enable users to associate a new custom
-section in C to a well defined already existing Linux section without modifying
-the Linux linker script. Then, since as we observe and study uses of how Linux
-sections are used, we've noticed a pattern -- most declarations of these sections
-of really of two types, a section ranges or linker table. The patch set then
-provides generic building blocks for these and ports a few existing custom Linux
-sections to them as an example.
-
-  Luis
+T24gV2VkLCAyNCBBdWcgMjAxNiAyMjoxMjo1MyArMDIwMAoiTHVpcyBSLiBSb2RyaWd1ZXoiIDxt
+Y2dyb2ZAa2VybmVsLm9yZz4gd3JvdGU6Cgo+IE9uIFdlZCwgQXVnIDI0LCAyMDE2IGF0IDAxOjUx
+OjQxUE0gKzEwMDAsIE5pY2hvbGFzIFBpZ2dpbiB3cm90ZToKPiA+IE9uIFR1ZSwgMjMgQXVnIDIw
+MTYgMTk6MzM6MDYgKzAyMDAKPiA+ICJMdWlzIFIuIFJvZHJpZ3VleiIgPG1jZ3JvZkBrZXJuZWwu
+b3JnPiB3cm90ZToKPiA+ICAgCj4gPiA+IE9uIFR1ZSwgQXVnIDIzLCAyMDE2IGF0IDExOjI2OjMz
+QU0gKzEwMDAsIE5pY2hvbGFzIFBpZ2dpbiB3cm90ZTogIAo+ID4gPiA+IE9uIEZyaSwgMTkgQXVn
+IDIwMTYgMTQ6MzQ6MDIgLTA3MDAKPiA+ID4gPiBtY2dyb2ZAa2VybmVsLm9yZyB3cm90ZTogICAg
+Cj4gPiA+ID4gPiArLyoqCj4gPiA+ID4gPiArICogRE9DOiBTdGFuZGFyZCBFTEYgc2VjdGlvbiB1
+c2UgaW4gTGludXgKPiA+ID4gPiA+ICsgKgo+ID4gPiA+ID4gKyAqIExpbnV4IG1ha2VzIHVzZSBv
+ZiB0aGUgc3RhbmRhcmQgRUxGIHNlY3Rpb25zLCB0aGlzIHNlY3Rpb25zIGRvY3VtZW50cwo+ID4g
+PiA+ID4gKyAqIHRoZXNlLgo+ID4gPiA+ID4gKyAqLwo+ID4gPiA+ID4gKwo+ID4gPiA+ID4gKy8q
+Kgo+ID4gPiA+ID4gKyAqIERPQzogU0VDVElPTl9ST0RBVEEKPiA+ID4gPiA+ICsgKgo+ID4gPiA+
+ID4gKyAqIE1hY3JvIG5hbWUgZm9yIGNvZGUgd2hpY2ggbXVzdCBiZSBwcm90ZWN0ZWQgZnJvbSB3
+cml0ZSBhY2Nlc3MsIHJlYWQgb25seQo+ID4gPiA+ID4gKyAqIGRhdGEuCj4gPiA+ID4gPiArICov
+Cj4gPiA+ID4gPiArI2RlZmluZSBTRUNUSU9OX1JPREFUQQkJCS5yb2RhdGEgICAgCj4gPiA+ID4g
+Cj4gPiA+ID4gVGhlc2UsIGZvciBleGFtcGxlLiBUaGUgZXhhY3QgbmFtZSBvZiB0aGUgc2VjdGlv
+biBpcyBpbXBvcnRhbnQgaW4gbGlua2VyCj4gPiA+ID4gc2NyaXB0cyBhbmQgYXNtLCBzbyBJIGNh
+bid0IHNlZSB0aGUgYmVuZWZpdCBvZiBoaWRpbmcgaXQuIEkgY291bGQgYmUKPiA+ID4gPiBtaXNz
+aW5nIHRoZSBiaWdnZXIgcGljdHVyZS4gICAgCj4gPiA+IAo+ID4gPiBUaGVyZSdzIHR3byBnb2Fs
+cyBieSB1c2luZyBhIG1hY3JvIGZvciB0aGVzZSBjb3JlIG5hbWVzLiBPbmUgaXMgdG8gYWxsb3cg
+dXMKPiA+ID4gdG8gZWFzaWx5IGFnZ3JlZ2F0ZSBkb2N1bWVudGF0aW9uIGluIGNlbnRyYWwgcGxh
+Y2UgZm9yIGVhY2gsIHRoZSBzZWNvbmQgaXMKPiA+ID4gdG8gdGhlbiBwcm92aWRlIG1vcmUgZWFz
+aWx5IGdyZXAnYWJsZSBoZWxwZXJzIHNvIHdlIGNhbiB1c2UgdGhlbSB3aGVuIGRldmlzaW5nCj4g
+PiA+IGV4dGVuc2lvbnMgb3IgdXNpbmcgdGhlbSBpbiBleHRlbnNpb25zIHdoaWNoIGZ1cnRoZXIg
+Y3VzdG9taXplIHRoZSBzZWN0aW9ucwo+ID4gPiBpbiB0aGUga2VybmVsLiAgCj4gCj4gSnVzdCB0
+aG91Z2h0IG9mIG1vcmUgbW9yZSBqdXN0aWZpY2F0aW9uIEkgaGFkIGZvcmdvdHRlbi4gSSBjb3Zl
+ciBpdCBiZWxvdy4KPiAKPiA+IERvY3VtZW50YXRpb24gaXMgZ29vZCwgYnV0IG5vdCBuZWNlc3Nh
+cnkgdG8gaGF2ZSB0aGUgZXh0cmEgbmFtZSBpbmRpcmVjdGlvbi4gIAo+IAo+IEZhaXIgcG9pbnQu
+Cj4gCj4gPiBTZWN0aW9ucyB0ZW5kIChub3QgYWx3YXlzLCBidXQgaXQgd291bGQgYmUgbmljZSBp
+ZiB0aGV5IGRpZCkgdG8gZm9sbG93IHRoZQo+ID4gLm5hbWUgY29udmVudGlvbiwgd2hpY2ggbWFr
+ZXMgdGhlbSByZWFzb25hYmx5IGVhc3kgdG8gZ3JlcCBmb3IuICAKPiAKPiBnaXQgZ3JlcCAudGV4
+dCAgZG9lc24ndCB3b3JrIGJ1dCB0aGF0IGlzIHR5cGljYWxseSBleHBlY3RlZC4uLgo+IGdpdCBn
+cmVwIFwudGV4dCBkb2Vzbid0IHdvcmsgYXMgZXhwZWN0ZWQKPiAKPiBBaCBmaW5hbGx5Ogo+IAo+
+IGdpdCBncmVwICJcLnRleHQiIHNlZW1zIHRvIHdvcmsuIEJ1dCBXVEYuCgpUaGlzIGlzIHNpbXBs
+eSBob3cgZ3JlcCB3b3JrcyB0aG91Z2guCgoKPiBCdXQ6Cj4gCj4gZ2l0IGdyZXAgU0VDVElPTl9U
+RVhUIHdvcmtzIGFzIGV4cGVjdGVkIGltbWVkaWF0ZWx5Lgo+IAo+IEkgZ3Vlc3MgaXRzIGEgbWF0
+dGVyIG9mIHBlcnNwZWN0aXZlLgo+IAo+ID4gVGhleSBhcmUgYWxzbwo+ID4gdGhlIG5hbWVzIHlv
+dSdsbCBiZSBncmVwcGluZyBmb3Igd2hlbiB5b3UgbG9vayBhdCBkaXNhc3NlbWJseS4gIAo+IAo+
+IFN1cmUgYnV0IGlmIHlvdSdyZSBncmVwcGluZyBhc20sIHlvdSB2ZXJ5IGxpa2VseSBrbm93IHdo
+YXQgdG8gbG9vayBmb3IuCgpBZnRlciB5b3UgaGF2ZSBnb25lIHRocm91Z2ggdGhlIGV4dHJhIGxh
+eWVyIG9mIG5hbWluZyBpbmRpcmVjdGlvbgp0byB3b3JrIG91dCB3aGF0IGl0IGlzLiBJJ20gc3Rp
+bGwgbm90IHNvbGQgb24gdGhlIG5hbWUgaW5kaXJlY3Rpb24KYW5kIGhpZGluZyB3aWxkY2FyZHMu
+IE5vdCBqdXN0IGZvciBhc20gZ3JlcHBpbmcsIGJ1dCBJIGRvbid0IHRoaW5rCml0J3MgYSBuZWdh
+dGl2ZSB0aGluZyBmb3IgZGV2cyB3b3JraW5nIG9uIHRoZSBsaW5rZXIgdG8ga25vdyB3aGF0CmFj
+dHVhbCBzZWN0aW9uIG5hbWVzIGFuZCBjb21tYW5kcyBhcmUgYmVpbmcgdXNlZCwgYXMgbXVjaCBh
+cyBwb3NzaWJsZS4KCgo+ID4gPiA+ID4gKy8qKgo+ID4gPiA+ID4gKyAqIERPQzogU0VDVElPTl9U
+RVhUCj4gPiA+ID4gPiArICoKPiA+ID4gPiA+ICsgKiBNYWNybyBuYW1lIHVzZWQgdG8gYW5ub3Rh
+dGUgY29kZSAoZnVuY3Rpb25zKSB1c2VkIGR1cmluZyByZWd1bGFyCj4gPiA+ID4gPiArICoga2Vy
+bmVsIHJ1biB0aW1lLiBUaGlzIGlzIGNvbWJpbmVkIHdpdGggYFNFQ1RJT05fUk9EQVRBYCwgb25s
+eSB0aGlzCj4gPiA+ID4gPiArICogc2VjdGlvbiBhbHNvIGFsbG93cyBmb3IgZXhlY3V0aW9uLgo+
+ID4gPiA+ID4gKyAqCj4gPiA+ID4gPiArICovCj4gPiA+ID4gPiArI2RlZmluZSBTRUNUSU9OX1RF
+WFQJCQkudGV4dCAgICAKPiA+ID4gPiAKPiA+ID4gPiBJIGNhbid0IHNlZSBob3cgdGhlc2UgY29t
+bWVudHMgYXJlIHJpZ2h0LiAucm9kYXRhIGRvZXNuJ3Qgc2VlbSBsaWtlIGl0Cj4gPiA+ID4gc2hv
+dWxkIGJlIGNvbWJpbmVkIHdpdGggLnRleHQsIGFuZCBpcyBub3QgY3VycmVudGx5IG9uIHBvd2Vy
+cGMuIEkgdGhpbmsKPiA+ID4gPiBpdCdzIGZvciBkYXRhLCBub3QgY29kZS4gICAgCj4gPiA+IAo+
+ID4gPiBPbiB4ODYgYW5kIHBvd2VycGMgLnJvZGF0YSBmb2xsb3dzIC50ZXh0LiAgCj4gPiAKPiA+
+IEJ1dCBmb2xsb3dzIGlzIG5vdCB0aGUgc2FtZSBhcyBjb21iaW5lZC4gIAo+IAo+IFRydWUgYW5k
+IGFzIEkgY29uZmlybWVkIGJlbG93LCBvbiBQb3dlclBDIHRoaXMgaXMgY2VydGFpbmx5IG5vdCB0
+cnVlLgoKT0suCgoKPiA+IEFuZCB0b2dldGhlciB3aXRoIHRoZSBjb21tZW50IHRoYXQgUk9EQVRB
+IGlzIGZvciBjb2RlICh3aGljaCBpcyB3cm9uZywgaXQncyBkYXRhKSwgIAo+IAo+IFdoZXJlIGRp
+ZCBJIGhhdmUgdGhhdD8gSWYgeW91IHJlZmVyIHRvIHRoZSBhYm92ZSBTRUNUSU9OX1RFWFQgZG9j
+dW1lbnRhdGlvbiwgaXQKPiByZWZlcnMgdG8gU0VDVElPTl9URVhUIGJlaW5nIGZvciBjb2RlLCBi
+dXQgdGhlIGdvYWwgd2FzIHRvIGhpZ2hsaWdodCB0aGF0Cj4gU0VDVElPTl9URVhUIGlzIGZvciBl
+eGVjdXRpb24sIHdoaWxlIFNFQ1RJT05fUk9EQVRBIHdhcyBmb3IgZGF0YS4gVGhpcwo+IGNlcnRh
+aW5seSBjYW4gdXNlIHNvbWUgbG92ZSB0aG91Z2gsIHRoYW5rcywgd2lsbCBqdXN0IGRyb3AgdGhl
+IFNFQ1RJT05fUk9EQVRBCj4gcmVmZXJlbmNlICpvciogcHJvcGVybHkgZXhwbGFpbiB0aGUgd2hv
+bGUgdGhpbmcgYmVsb3cuCgorLyoqCisgKiBET0M6IFNFQ1RJT05fUk9EQVRBCisgKgorICogTWFj
+cm8gbmFtZSBmb3IgY29kZSB3aGljaCBtdXN0IGJlIHByb3RlY3RlZCBmcm9tIHdyaXRlIGFjY2Vz
+cywgcmVhZCBvbmx5CisgKiBkYXRhLgorICovCisjZGVmaW5lIFNFQ1RJT05fUk9EQVRBCQkJLnJv
+ZGF0YQoKVGhpcyB0b2dldGhlciB3aXRoIHRoZSAiY29tYmluZWQgd2l0aCAudGV4dCIgcGFydCBj
+b25mdXNlZCBtZS4KCgo+ID4gaXQgbWFrZSBpdCBzZWVtIGxpa2UgaXQgaXMgYWN0dWFsbHkgY29t
+YmluZWQuICAKPiAKPiBXaWxsIGZpeCB0byBlbnN1cmUgdGhpcyBpcyB1bmRlcnN0b29kIGluIHBy
+b3BlciBjb250ZXh0LgoKVGhhbmtzLgoKCgo+ID4gPiBJdHMgbm90IGludGVuZGVkIHRvIGdyYWIg
+LnRleHQgYnV0IHJhdGhlciBpdHMgZm9yIGhlbHBlcnMgdGhhdCBwcm92aWRlIGN1c3RvbWl6YXRp
+b25zCj4gPiA+IGJhc2VkIG9uIGEgY29yZSBzZWN0aW9uIGFzIGJhc2UsIGluIHRoaXMgY2FzZSBn
+aXZlbiB5b3VyIGV4YW1wbGUgaXQgd291bGQgYmUgdXNlZCBieQo+ID4gPiBzZWN0aW9uIHJhbmdl
+cyBhbmQgbGlua2VyIHRhYmxlcyBmb3IgLnRleHQuIEJvdGggc2VjdGlvbiByYW5nZXMgYW5kIGxp
+bmtlciB0YWJsZXMKPiA+ID4gdXNlIHBvc3RmaXggLnNvbWV0aGluZyBmb3IgdGhlaXIgY3VzdG9t
+aXphdGlvbnMuIFRoZSBTRUNUSU9OX0FMTCgpIG1hY3JvIHRoZW4gaXMKPiA+ID4gYSBoZWxwZXIg
+Zm9yIGN1c3RvbWl6YXRpb25zIG9uIGEgY29yZSBzZWN0aW9uLiAgCj4gPiAKPiA+IFJpZ2h0LCBp
+dCdzIGp1c3QgdGhhdCAudGV4dC4qIGlzICppbW1lZGlhdGVseSogb2J2aW91cy4gU0VDVElPTl9B
+TEwoKSBpcyBub3QuICAKPiAKPiBXaGljaCBpcyB3aHkgSSB3YXMgc3VnZ2VzdGluZyBwZXJoYXBz
+IGFuIGFsdGVybmF0aXZlIG5hbWUuCj4gCj4gPiA+IElmIHRoZSBuYW1lIGlzIG1pc2xlYWRpbmcg
+d291bGQgU0VDVElPTl9DT1JFX0FMTCgpIGJlIGJldHRlciB3aXRoIHNvbWUgZG9jdW1lbnRhdGlv
+bgo+ID4gPiBleHBsYWluaW5nIHRoaXMgYW5kIHRoZSBhYm92ZSBnb2FsID8gIAo+ID4gCj4gPiBJ
+IGRvbid0IGtub3cuLi4gbm90IHRvIGJlIGdsaWIsIGJ1dCAuc2VjdGlvbi4qIHdvdWxkIGJlIGJl
+dHRlciBhbmQgbm90IHJlcXVpcmUKPiA+IGRvY3VtZW50YXRpb24uICAKPiAKPiBXZWxsIGNvbnNp
+ZGVyIHRoZSBpc3N1ZXMgYmVsb3cgZm9yIGEgc2Vjb25kLi4uIGFuZCBrZWVwIGluIG1pbmQgd2l0
+aCBsaW5rZXIKPiB0YWJsZXMgd2UgYXJlIGFib3V0IHRvIG9wZW4gdGhlIHByb3NwZWN0IHRvIGFk
+ZCBtb3JlIHRoaW5ncyBpbnRvIHRoZSBrZXJuZWwncwo+IHNlY3Rpb25zIG1vcmUgZWFzaWx5IHRo
+YW4gYmVmb3JlLgo+IAo+ID4gQ09SRSBkb2VzIG5vdCByZWFsbHkgYWRkIGFueXRoaW5nIGFzIGZh
+ciBhcyBJIGNhbiBzZWUuIE90aGVyIHR5cGVzIG9mIC50ZXh0IGluY2x1ZGluZwo+ID4gb25lcyB3
+aGljaCBhcmUgYXV0b21hdGljYWxseSBnZW5lcmF0ZWQgYnkgdGhlIGNvbXBpbGVyLCBmb3IgYmV0
+dGVyIG9yIHdvcnNlLCBhcmUKPiA+IC50ZXh0Lnggc2VjdGlvbnMgdG9vLiAgCj4gCj4gQWN0dWFs
+bHksIHNvcnJ5LCBpbiB0aGlzIGNhc2UgU0VDVElPTl9BTEwoKSAqd2FzKiBpbnRlbmRlZCBmb3Ig
+dGhpbmdzIHRoYXQgYXJlCj4gbm90IGxpbmtlciB0YWJsZXMgb3Igc2VjdGlvbiByYW5nZXMsIGlu
+c3RlYWQgdGhpcyB3YXMgZm9yIGdsb2JzIHRoYXQgd2FudCB0bwo+IHVzZSB0aGUgbmV3IHNlY3Rp
+b24gbWFjcm8gbmFtZXMsIHNvIHdlIG9ubHkgdXNlIHRoaXMgZm9yOgo+ICooU0VDVElPTl9BTEwo
+U0VDVElPTl9ST0RBVEEpKSBhdCB0aGlzIHRpbWUuICBJdCB3b3VsZCBzZWVtIHdlIGp1c3QgZGlk
+IG5vdAo+IGhhdmUgLnRleHQuKiBhbmQgZnJpZW5kcyAob3RoZXIgc2VjdGlvbiBuYW1lcyBkb2N1
+bWVudGVkIGhlcmUpLiBTbyB0aGlzIGlzCj4gbW9yZSBvZiBhIHJlYWN0aW9uIHRvIHByb3ZpZGUg
+YSB3YXkgdG8gdXNlIGEgZ2xvYiBmb3Igc2VjdGlvbiBuYW1lcyBpZiB0aGV5Cj4gaGF2ZSBhIG1h
+Y3JvIG5hbWUuCj4gCj4gVGhlIGlkZWEgd2FzIHRvIGFkZCBoZWxwZXJzIHRvIGRvIHRoZSBnbG9i
+YmluZyBtb3JlIGVhc2lseS4KPiAKPiBUaGUgZ2xvYiBmb3Igc2VjdGlvbnMgbm93IGRvY3VtZW50
+ZWQgICBpcyBTRUNUSU9OX0FMTCgpCj4gVGhlIGdsb2IgdGhhdCBpcyByYW5nZSBzcGVjaWZpYyAg
+ICAgICAgaXMgU0VDVElPTl9STkdfQUxMKCkKPiBUaGUgZ2xvYiB0aGF0IGlzIGxpbmtlciB0YWJs
+ZSBzcGVjaWZpYyBpcyBTRUNUSU9OX1RCTF9BTEwoKQoKSSBzdGlsbCBkb24ndCBzZWUgdGhpcyBp
+cyBiZXR0ZXIgdGhhbgoKLnRleHQqCi50ZXh0LioKLnRleHQucmFuZ2UuKgoudGV4dC50YWJsZS4q
+CmV0Yy4KCgoKPiAKPiBUaGUgb25seSBvbmUgbmVlZGluZyBTRUNUSU9OX0FMTCgpIGl0IHR1cm5z
+IG91dCB3YXMgLnJvZGF0YToKPiAKPiAtICAgICAgICAgICAgICAgKigucm9kYXRhKSAqKC5yb2Rh
+dGEuKikgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBcCj4gKyAgICAgICAgICAgICAg
+ICooU0VDVElPTl9ST0RBVEEpICooU0VDVElPTl9BTEwoU0VDVElPTl9ST0RBVEEpKSAgICAgICAg
+XAo+IAo+ID4gSSB3b3VsZCBsaWtlIHRvIHNlZSBtb3JlIHN0YW5kYXJkaXNhdGlvbiBvZiBuYW1p
+bmcgY29udmVudGlvbiAtLSBzb21lIHNlY3Rpb25zIHN0YXJ0Cj4gPiB3aXRoIC4uLCBzb21lIHN0
+YXJ0IHdpdGggbm8gZG90cywgc29tZSB1c2UgLiB0byBzZXBhcmF0ZSBsb2dpY2FsICJzdWJzZWN0
+aW9ucyIsIG90aGVycwo+ID4gdXNlIHVuZGVyc2NvcmVzIG9yIHNvbWV0aGluZyBlbHNlLiAgCj4g
+Cj4gQWdyZWVkLi4uIEFjdHVhbGx5IHdoaWxlIGF0IGl0IC0tIGFueW9uZSBoYXBwZW4gdG8ga25v
+dyB3aHkgdGhlIHR3byBkb3QgdGhpbmcKPiBzdGFydGVkIGNyZWVwaW5nIHVwPwoKSSdtIG5vdCBz
+dXJlLCBidXQgSSBzdXNwZWN0IGl0IG1heSBoYXZlIGJlZW4gZHVlIHRvIC4gbm90IGJlaW5nIGEg
+dmFsaWQgQwpzeW1ib2wgbmFtZS4gSSdtIG5vdCBzYXlpbmcgaXQncyBhbHdheXMgdGhlIHdyb25n
+IHRoaW5nIHRvIGRvLCBidXQgSSB0aGluawpjb3B5JnBhc3RlIGFuZCBsYWNrIG9mIGRvY3VtZW50
+YXRpb24gaGFzIGxlZnQgdGhlIG5hbWluZyBjb252ZW50aW9ucyBpbgpuZWVkIG9mIHNvbWUgbG92
+ZS4KClRoZSBzZWN0aW9uIG5hbWVzIHRoZW1zZWx2ZXMgb2YgY291cnNlIGNhbiBhbmQgc2hvdWxk
+IGhhdmUgc29tZSBncmVwcGFibGUKZGlzdGluZ3Vpc2hpbmcgY29udmVudGlvbnMgLS0gd2UgZG9u
+J3QgbmVlZCBtYWNybyBuYW1lIGZvciB0aGF0LgoKCj4gPiBJIGp1c3QgZG9uJ3Qgc2VlIGl0IHdv
+dWxkIGJlIGEgcHJvYmxlbSB0byBzaW1wbHkgdXNlIHRoZSByYXcgbmFtZXMgYW5kIGxpbmtlcgo+
+ID4gd2lsZGNhcmRzIGZvciBpdC4gIAo+IAo+IEEgY29uY2VybiBoZXJlIGlzIG1vcmUgYWJ1c2Ug
+b3ZlciB0aGlzIGlmIHdlIG5vdyBleHBvc2UgQVBJcyB0byB1c2VycyB0bwo+IG1vcmUgZWFzaWx5
+IGN1c3RvbWl6ZSBzZWN0aW9ucy4gU28gbGV0J3MgcmV2aWV3IHdoYXQgdGhlIGNoYW5jZXMgYXJl
+Lgo+IAo+ICQgZ2l0IGdyZXAgREVGSU5FX1NFQ1RJT05fUkFOR0V8IGVncmVwIC12ICJ0b29sc3xp
+bmNsdWRlfERvY3VtZW50Igo+IGtlcm5lbC9rcHJvYmVzLmM6REVGSU5FX1NFQ1RJT05fUkFOR0Uo
+a3Byb2JlcywgU0VDVElPTl9URVhUKTsKPiAKPiBUaGVzZSByZXF1aXJlIHRoZSBhY3R1YWwgZGVz
+aXJlZCBzZWN0aW9uIHNwZWNpZmllZC4gRG8gd2Ugd2FudAo+IHRvIGp1c3QgaGlkZSB0aGF0ID8g
+T3IgYXJlIHdlIE9LIGluIGFzc3VtaW5nIHVzZXJzIHdpbGxpbmcgdG8gdXNlCj4gcHJvcGVyIG5h
+bWVzIGhlcmU/CgpGb3IgbWUsIERFRklORV9TRUNUSU9OX1JBTkdFKGtwcm9iZXMsIC50ZXh0KSB3
+b3VsZCBiZSBmaW5lLgoKCj4gPiBCVFcsIEknbSBub3QgdHJ5aW5nIHRvIGJpa2VzaGVkIDopIFRo
+aXMgZG9lc24ndCBhZmZlY3QgdGhlIHZhbHVlIG9mIHlvdXIKPiA+IHBhdGNoIGF0IGFsbCwgaXQg
+d2FzIGp1c3QgYW4gb2ZmaGFuZCB0aGluZyBJIHNhdy4gIAo+IAo+IEp1c3Qgc2F5aW5nLCBpZiB5
+b3Ugc2F5IGl0cyB1Z2x5IHBsZWFzZSBoZWxwIG1lIHdpdGggYSBkaWZmZXJlbnQgbmFtZSB0aGVu
+LgoKU3VyZSwgYnV0IHBvaW50IHRha2VuIGl0J3MgbW9yZSBwcm9kdWN0aXZlIHRvIGRpc2N1c3Mg
+ZnVuZGFtZW50YWxzCmZpcnN0LiBMZXQncyBjb25zaWRlciBleGFjdCBkZXRhaWxzIGFmdGVyd2Fy
+ZC4KCgo+ID4gSXQncyBmaW5lLCBJIGRvbid0IG1pbmQgdG9vIG11Y2guIEkgdGhpbmsgYXNtLWdl
+bmVyaWMvYXNtLmggc2hvdWxkIGJlCj4gPiBmaW5lIGZvciBnZW5lcmljIGFzbSdpc21zIHRob3Vn
+aC4gT3IgYXNzZW1ibGVyLmggdG8gbWF0Y2ggY29tcGlsZXIuaC4gIAo+IAo+IEknZCBsaWtlIGFk
+ZHJlc3MgdGhpcyBpbiBhc20uaCBidXQgSSB3b3VsZCBob3BlIHdlIGNhbiBkbyB0aGlzIGFzIGEg
+c2Vjb25kYXJ5Cj4gc3RlcCwgZ2l2ZW4gdGhlIGxlbmd0aCBvZiB0aGlzIHBhdGNoIHNldCBhbHJl
+YWR5LiBUaG91Z2h0cyA/CgpJdCdzIG5vdCBhIGJpZyBkZWFsLCBzbyB3aGF0ZXZlciBzdWl0cyB5
+b3UuIFNvbWUgb2YgdGhlIGJ1Z2ZpeGVzIGFuZApjbGVhbnVwcyBjb3VsZCBiZSBwdXNoZWQgdGhy
+b3VnaCB2YXJpb3VzIGFyY2ggYW5kIG90aGVyIG1haW50YWluZXJzCmZpcnN0IHRvbywgd2hpY2gg
+d291bGQgbWFrZSB0aGUgY29yZSBzZXJpZXMgbG9vayBtb3JlIG1hbmFnYWJsZSBhbmQKdG91Y2gg
+ZmV3ZXIgcGFydHMuCgoKPiA+IFdlbGwgYnV0IHlvdXIgbWFjcm9zIGFyZSBub3QgbGlua2VyIHNl
+Y3Rpb25zLiBUaGV5IGFyZSAiTGludXggc2VjdGlvbnMiLCB3aGljaAo+ID4gYXBwZWFyIHRvIGdp
+dmUgeW91IGEgc3RhcnQgYW5kIGVuZCBzeW1ib2wgbmFtZSwgYnV0IGRvZXMgbm90IGRpcmVjdCB0
+aGUgbGlua2VyCj4gPiB0byBjcmVhdGUgYSBzcGVjaWZpYyBvdXRwdXQgc2VjdGlvbi4gIAo+IAo+
+IFlvdSdyZSByaWdodCB0aGUgYWJvdmUgY2FuIHVzZSBzb21lIGxvdmUgdG8gaGVscCBleHBsYWlu
+IHRoaXMgYmV0dGVyLgo+IAo+IEhvdyBhYm91dDoKPiAKPiBBdCB0aGUgdG9wIGp1c3QgdXNlICJM
+aW51eCBzZWN0aW9ucyBoZWxwZXJzIgo+IAo+IFRoZW46Cj4gCj4gLyoqCj4gICogRE9DOiBJbnRy
+b2R1Y3Rpb24KPiAgKgo+ICAqIFdlIGRvY3VtZW50IGJlbG93IGEgZGVkaWNhdGVkIHNldCBvZiBo
+ZWxwZXJzIHVzZWQgaW4gTGludXggdG8gbWFrZSBzZWN0aW9ucwo+ICAqIGRlZmluZWQgaW4gdGhl
+IExpbnV4IGxpbmtlciBzY3JpcHQgYWNjZXNzaWJsZSBpbiBDIGNvZGUgaW4gYSBnZW5lcmljIGZv
+cm0gYW5kIAo+ICAqIGFuZCBwcm92aWRlIGNlcnRhaW4gYXR0cmlidXRlcyBhYm91dCB0aGVtLgo+
+ICAqLwo+IAo+ID4gSSBqdXN0IGNhbid0IHdvcmsgb3V0IHdoYXQgZXhhY3RseSBpcyBhCj4gPiAi
+Y3VzdG9tIExpbnV4IHNlY3Rpb24iLCBhbmQgd2hhdCBERUNMQVJFX0xJTlVYX1NFQ1RJT04oKSwg
+Zm9yIGV4YW1wbGUsIGFjdGF1bGx5Cj4gPiBnaXZlcyB5b3UuICAKPiAKPiBJdHMgYSB3YXkgdG8g
+cmVwbGFjZSB0aGU6Cj4gCj4gZXh0ZXJuIGNoYXIgZm9vW10sIGZvb19fZW5kW107Cj4gCj4gU28g
+dGhpcyBwcm92aWRlcyBhIGdlbmVyYWxpemVkIGZvcm0gdG8gdXNlIGRlY2xhcmF0aW9ucyB1c2Vk
+IGluIEMgY29kZSB0byBtYWtlCj4gdGhlIGxpbmtlciBzY3JpcHQgc3RhcnQgYW5kIGVuZCBzeW1i
+b2xzIGZyb20gZXNjdGlvbnMgYWNjZXNzaWJsZSBpbiBDIGNvZGUuIFNpbmNlCj4gREVGSU5FX1NF
+Q1RJT05fUkFOR0UoKSBhbmQgREVGSU5FX0xJTktUQUJMRSgpIG1hY3JvcyB1c2UgdGhpcywgdGhl
+biB0aGUKPiBERUNMQVJFX0xJTlVYX1NFQ1RJT04oKSBpcyBvbmx5IG5lZWRlZCBpZiB5b3UgbmVl
+ZCBhY2Nlc3MgdG8gdGhlc2Ugc3ltYm9scyBpbiBDCj4gY29kZSBvdXRzaWRlIG9mIHRoZSBvbmUg
+dGhhdCBpcyBkZWZpbmluZyBhbmQgbWFpbmx5IGluIGNoYXJnZSBvZiBtYW5hZ2luZyB0aGUKPiBz
+ZWN0aW9uLiBXZSBwcm92aWRlIERFQ0xBUkVfKigpIGhlbHBlcnMgZm9yIHNlY3Rpb24gcmFuZ2Vz
+IGFuZCBsaW5rZXIgdGFibGVzCj4gdGhvdWdoIHNvIHRob3NlIGNhbiBiZSB1c2VkIGluc3RlYWQg
+dG8gaGVscCBhbm5vdGF0ZSB0aGUgdHlwZSBvZiBhIGN1c3RvbQo+IHNlY3Rpb24gdGhleSBhcmUu
+CgpPaCwgdGhhdCBtYWtlcyBtb3JlIHNlbnNlLiBUaGUgU0VDVElPTiBzdHVmZiBhbmQgY3VzdG9t
+IHNlY3Rpb25zIHdhcwpjb25mdXNpbmcgbWUuIEkgd291bGQgcHJlZmVyIGp1c3QgdG8gZHJvcCBh
+bGwgdGhlIExJTlVYX1NFQ1RJT04gbmFtaW5nCmFuZCBtYWtlIGl0IG1hdGNoIHRoZSBmdW5jdGlv
+bmFsaXR5IHlvdSdyZSB1c2luZy4gRm9yIGV4YW1wbGU6CgorREVGSU5FX0xJTktUQUJMRShzdHJ1
+Y3QganVtcF9lbnRyeSwgX19qdW1wX3RhYmxlKTsKKwogLyogbXV0ZXggdG8gcHJvdGVjdCBjb21p
+bmcvZ29pbmcgb2YgdGhlIHRoZSBqdW1wX2xhYmVsIHRhYmxlICovCiBzdGF0aWMgREVGSU5FX01V
+VEVYKGp1bXBfbGFiZWxfbXV0ZXgpOwogCkBAIC0yNzQsOCArMjc3LDYgQEAgc3RhdGljIHZvaWQg
+X19qdW1wX2xhYmVsX3VwZGF0ZShzdHJ1Y3Qgc3RhdGljX2tleSAqa2V5LAogCiB2b2lkIF9faW5p
+dCBqdW1wX2xhYmVsX2luaXQodm9pZCkKIHsKLQlzdHJ1Y3QganVtcF9lbnRyeSAqaXRlcl9zdGFy
+dCA9IF9fc3RhcnRfX19qdW1wX3RhYmxlOwotCXN0cnVjdCBqdW1wX2VudHJ5ICppdGVyX3N0b3Ag
+PSBfX3N0b3BfX19qdW1wX3RhYmxlOwogCXN0cnVjdCBzdGF0aWNfa2V5ICprZXkgPSBOVUxMOwog
+CXN0cnVjdCBqdW1wX2VudHJ5ICppdGVyOwogCkBAIC0yOTIsOSArMjkzLDEwIEBAIHZvaWQgX19p
+bml0IGp1bXBfbGFiZWxfaW5pdCh2b2lkKQogCQlyZXR1cm47CiAKIAlqdW1wX2xhYmVsX2xvY2so
+KTsKLQlqdW1wX2xhYmVsX3NvcnRfZW50cmllcyhpdGVyX3N0YXJ0LCBpdGVyX3N0b3ApOworCWp1
+bXBfbGFiZWxfc29ydF9lbnRyaWVzKExJTlVYX1NFQ1RJT05fU1RBUlQoX19qdW1wX3RhYmxlKSwK
+KwkJCQlMSU5VWF9TRUNUSU9OX0VORChfX2p1bXBfdGFibGUpKTsKCk5vdyBJIHRoaW5rIHRoaXMg
+aXMgYSBmaW5lIGFic3RyYWN0aW9uIHRvIGhhdmUuIEkgdGhpbmsgaXQgd291bGQgbG9vawpldmVu
+IGNsZWFuZXIgaWYgeW91IGhhZDoKCkxJTktUQUJMRV9TVEFSVChfX2p1bXBfdGFibGUpCkxJTktU
+QUJMRV9FTkQoX19qdW1wX3RhYmxlKQoKVGhlbiBkbyB3ZSBuZWVkIHRvIGV2ZW4gaGF2ZSB0aGUg
+TElOVVhfU0VDVElPTiBtaWRkbGUgbWFuIGF0IGFsbD8KClRoYW5rcywKTmljawoKX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcg
+bGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRl
+dmVsCg==
