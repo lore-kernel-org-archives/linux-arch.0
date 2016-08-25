@@ -1,124 +1,68 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 01/19] compat ABI: use non-compat openat and
- open_by_handle_at variants
-Date: Thu, 25 Aug 2016 17:52:11 +0200
-Message-ID: <3771388.9SFlpYVFmp@wuerfel>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <mvmwplbkr8l.fsf@hawking.suse.de> <20160815143028.GA7193@yury-N73SV>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v4 04/16] generic-sections: add section core
+	helpers
+Date: Thu, 25 Aug 2016 19:52:39 +0200
+Message-ID: <20160825175239.GB3296@wotan.suse.de>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
+ <20160823112633.7d482e62@roar.ozlabs.ibm.com>
+ <20160823173306.GA3296@wotan.suse.de>
+ <20160824135141.2c8f06ec@roar.ozlabs.ibm.com>
+ <20160824201253.GS3296@wotan.suse.de>
+ <20160825120633.057b2f6f@roar.ozlabs.ibm.com>
+ <20160825060540.GX3296@wotan.suse.de>
+ <20160825165121.45d26fb0@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20160815143028.GA7193@yury-N73SV>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, Andreas Schwab <schwab@suse.de>, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Disposition: inline
+In-Reply-To: <20160825165121.45d26fb0@roar.ozlabs.ibm.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, david.vrabel@citrix.com, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb
 List-Id: linux-arch.vger.kernel.org
 
-On Monday, August 15, 2016 5:30:28 PM CEST Yury Norov wrote:
-> On Mon, Jun 27, 2016 at 09:47:38AM +0200, Andreas Schwab wrote:
-> > Yury Norov <ynorov@caviumnetworks.com> writes:
-> > 
-> > > The only difference is that non-compat version forces O_LARGEFILE,
-> > > and it should be the default behaviour for all architectures, as
-> > > we don't support 32-bit off_t. The only exception is tile32, that
-> > > continues with compat version of syscalls.
-> > >
-> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > > Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
-> > > ---
-> > >  arch/tile/kernel/compat.c | 3 +++
-> > >  1 file changed, 3 insertions(+)
-> > >
-> > > diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-> > > index 4912084..489ae19 100644
-> > > --- a/arch/tile/kernel/compat.c
-> > > +++ b/arch/tile/kernel/compat.c
-> > > @@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
-> > >  #define compat_sys_readahead sys32_readahead
-> > >  #define sys_llseek compat_sys_llseek
-> > >  
-> > > +#define sys_openat		compat_sys_openat
-> > > +#define sys_open_by_handle_at	compat_sys_open_by_handle_at
-> > > +
-> > >  /* Call the assembly trampolines where necessary. */
-> > >  #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
-> > >  #define sys_clone _sys_clone
-> > 
-> > This is a no-op.  Did you mean to add this?  Without that the testsuite
-> > of tar fails on ILP32.
-> 
-> The change you suggest below is what I originally sent at the end of
-> December, but that chunk was lost after one of numerous rebases probably.
-> 
-> http://lkml.iu.edu/hypermail/linux/kernel/1512.3/00510.html
-> 
-> IIRC, the only difference between this couple of syscalls and their
-> compat versions is that non-compat syscalls set O_LARGEFILE depending
-> on (BITS_PER_LONG != 32). Next patch of this series introduces
-> ARCH_32BIT_OFF_T config option to force O_LARGEFILE for 64-bit arches,
-> and all new 32-bit arches, as ARCH_32BIT_OFF_T is enabled for existing
-> 32-bit arches explicitly.
-> 
-> O_LARGEFILE is controlled like this:
->         -#define force_o_largefile() (BITS_PER_LONG != 32)
->         +#define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
-> 
-> So if I restore original patch, everything will work. But my question
-> is: if ARCH_32BIT_OFF_T disables O_LARGEFILE for tile32 anyway, what
-> for we redirect native syscall handlers to compat ones? They are
-> looking identical...
-
-I've lost context here, but let me try to recall what we had
-discussed in the past:
-
-- native 32-bit architectures are handled using CONFIG_ARCH_32BIT_OFF_T
-- native 64-bit architectures keep setting the flag.
-- compat 32-bit architectures need special cases, but the only one
-  that exists is tile, which has to keep not setting O_LARGEFILE
-  while new compat architectures (ilp32) should set it.
- 
-> If my understanding is correct, we can drop the change in
-> arch/tile/kernel/compat.c and join this patch with next one in this
-> series.
-> 
-> Chris, Arnd?
-
-The change in arch/tile/kernel/compat.c can either come before the
-below change, or in the same patch, but not later.
-
-	Arnd
-
-> > diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> > index a26415b..4dcc38d 100644
-> > --- a/include/uapi/asm-generic/unistd.h
-> > +++ b/include/uapi/asm-generic/unistd.h
-> > @@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
-> >  #define __NR_fchown 55
-> >  __SYSCALL(__NR_fchown, sys_fchown)
-> >  #define __NR_openat 56
-> > -__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
-> > +__SYSCALL(__NR_openat, sys_openat)
-> >  #define __NR_close 57
-> >  __SYSCALL(__NR_close, sys_close)
-> >  #define __NR_vhangup 58
-> > @@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
-> >  #define __NR_name_to_handle_at         264
-> >  __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
-> >  #define __NR_open_by_handle_at         265
-> > -__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
-> > -	  compat_sys_open_by_handle_at)
-> > +__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
-> >  #define __NR_clock_adjtime 266
-> >  __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
-> >  #define __NR_syncfs 267
-> 
+T24gVGh1LCBBdWcgMjUsIDIwMTYgYXQgMDQ6NTE6MjFQTSArMTAwMCwgTmljaG9sYXMgUGlnZ2lu
+IHdyb3RlOgo+IE9uIFRodSwgMjUgQXVnIDIwMTYgMDg6MDU6NDAgKzAyMDAKPiAiTHVpcyBSLiBS
+b2RyaWd1ZXoiIDxtY2dyb2ZAa2VybmVsLm9yZz4gd3JvdGU6Cj4gPiA+IE9oLCB0aGF0IG1ha2Vz
+IG1vcmUgc2Vuc2UuIFRoZSBTRUNUSU9OIHN0dWZmIGFuZCBjdXN0b20gc2VjdGlvbnMgd2FzCj4g
+PiA+IGNvbmZ1c2luZyBtZS4gSSB3b3VsZCBwcmVmZXIganVzdCB0byBkcm9wIGFsbCB0aGUgTElO
+VVhfU0VDVElPTiBuYW1pbmcKPiA+ID4gYW5kIG1ha2UgaXQgbWF0Y2ggdGhlIGZ1bmN0aW9uYWxp
+dHkgeW91J3JlIHVzaW5nLiBGb3IgZXhhbXBsZToKPiA+ID4gCj4gPiA+ICtERUZJTkVfTElOS1RB
+QkxFKHN0cnVjdCBqdW1wX2VudHJ5LCBfX2p1bXBfdGFibGUpOwo+ID4gPiArCj4gPiA+ICAvKiBt
+dXRleCB0byBwcm90ZWN0IGNvbWluZy9nb2luZyBvZiB0aGUgdGhlIGp1bXBfbGFiZWwgdGFibGUg
+Ki8KPiA+ID4gIHN0YXRpYyBERUZJTkVfTVVURVgoanVtcF9sYWJlbF9tdXRleCk7Cj4gPiA+ICAK
+PiA+ID4gQEAgLTI3NCw4ICsyNzcsNiBAQCBzdGF0aWMgdm9pZCBfX2p1bXBfbGFiZWxfdXBkYXRl
+KHN0cnVjdCBzdGF0aWNfa2V5ICprZXksCj4gPiA+ICAKPiA+ID4gIHZvaWQgX19pbml0IGp1bXBf
+bGFiZWxfaW5pdCh2b2lkKQo+ID4gPiAgewo+ID4gPiAtCXN0cnVjdCBqdW1wX2VudHJ5ICppdGVy
+X3N0YXJ0ID0gX19zdGFydF9fX2p1bXBfdGFibGU7Cj4gPiA+IC0Jc3RydWN0IGp1bXBfZW50cnkg
+Kml0ZXJfc3RvcCA9IF9fc3RvcF9fX2p1bXBfdGFibGU7Cj4gPiA+ICAJc3RydWN0IHN0YXRpY19r
+ZXkgKmtleSA9IE5VTEw7Cj4gPiA+ICAJc3RydWN0IGp1bXBfZW50cnkgKml0ZXI7Cj4gPiA+ICAK
+PiA+ID4gQEAgLTI5Miw5ICsyOTMsMTAgQEAgdm9pZCBfX2luaXQganVtcF9sYWJlbF9pbml0KHZv
+aWQpCj4gPiA+ICAJCXJldHVybjsKPiA+ID4gIAo+ID4gPiAgCWp1bXBfbGFiZWxfbG9jaygpOwo+
+ID4gPiAtCWp1bXBfbGFiZWxfc29ydF9lbnRyaWVzKGl0ZXJfc3RhcnQsIGl0ZXJfc3RvcCk7Cj4g
+PiA+ICsJanVtcF9sYWJlbF9zb3J0X2VudHJpZXMoTElOVVhfU0VDVElPTl9TVEFSVChfX2p1bXBf
+dGFibGUpLAo+ID4gPiArCQkJCUxJTlVYX1NFQ1RJT05fRU5EKF9fanVtcF90YWJsZSkpOwo+ID4g
+PiAKPiA+ID4gTm93IEkgdGhpbmsgdGhpcyBpcyBhIGZpbmUgYWJzdHJhY3Rpb24gdG8gaGF2ZS4g
+IAo+ID4gCj4gPiBPSyB3aWxsIGtlZXAgdGhpcyBvbmUuCj4gPiAKPiA+ID4gSSB0aGluayBpdCB3
+b3VsZCBsb29rCj4gPiA+IGV2ZW4gY2xlYW5lciBpZiB5b3UgaGFkOgo+ID4gPiAKPiA+ID4gTElO
+S1RBQkxFX1NUQVJUKF9fanVtcF90YWJsZSkKPiA+ID4gTElOS1RBQkxFX0VORChfX2p1bXBfdGFi
+bGUpCj4gPiA+Cj4gPiA+IFRoZW4gZG8gd2UgbmVlZCB0byBldmVuIGhhdmUgdGhlIExJTlVYX1NF
+Q1RJT04gbWlkZGxlIG1hbiBhdCBhbGw/ICAKPiA+IAo+ID4gQWgsIHRoaW5nIGlzIHdlIHVzZSB0
+aGlzIGZvciBib3RoIGxpbmt0YWJsZXMgYW5kIHNlY3Rpb24gcmFuZ2VzLgo+ID4gT3IgZG8gd2Ug
+d2FudCBtYWNyb3MgZm9yIGJvdGggdGhhdCBkbyB0aGUgc2FtZSB0aGluZyA/Cj4gCj4gSSB0aGlu
+ayBpdCB3b3VsZCBtYWtlIHRoZSBjb2RlIHVzaW5nIGl0IG1vcmUgcmVhZGFibGUuCgpBbHJpZ2h0
+eS4uLiBzbzoKCkxJTktUQUJMRV9TVEFSVCgpCkxJTktUQUJMRV9FTkQoKQoKU0VDVElPTl9SQU5H
+RV9TVEFSVCgpClNFQ1RJT05fUkFOR0VfRU5EKCkKCkFuZCB0aGVzZSBtYWNyb3MgZG8gdGhlIGV4
+YWN0IHNhbWUgdGhpbmcuIEllLCBub3RoaW5nIHNoYXJlZC4gUmlnaHQ/CgogIEx1aXMKCl9fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClhlbi1kZXZlbCBtYWls
+aW5nIGxpc3QKWGVuLWRldmVsQGxpc3RzLnhlbi5vcmcKaHR0cHM6Ly9saXN0cy54ZW4ub3JnL3hl
+bi1kZXZlbAo=
