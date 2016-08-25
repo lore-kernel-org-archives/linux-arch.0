@@ -1,43 +1,69 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 02/20] x86: Set the write-protect cache mode for
-	full PAT support
-Date: Thu, 25 Aug 2016 05:58:34 +0200
-Message-ID: <20160825035834.GB31573@nazgul.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-	<20160822223550.29880.39409.stgit@tlendack-t1.amdoffice.net>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 0/3 v3] kbuild changes, thin archives, --gc-sections
+Date: Thu, 25 Aug 2016 12:56:44 +1000
+Message-ID: <20160825125644.37cf118f@roar.ozlabs.ibm.com>
+References: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
+        <12110.1472048481@warthog.procyon.org.uk>
+        <alpine.LFD.2.20.1608241114430.17623@knanqh.ubzr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20160822223550.29880.39409.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <alpine.LFD.2.20.1608241114430.17623@knanqh.ubzr>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: David Howells <dhowells@redhat.com>, Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 22, 2016 at 05:35:50PM -0500, Tom Lendacky wrote:
-> For processors that support PAT, set the write-protect cache mode
-> (_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+On Wed, 24 Aug 2016 11:21:33 -0400 (EDT)
+Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
+
+> On Wed, 24 Aug 2016, David Howells wrote:
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/mm/pat.c |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+> > Out of interest, does using LTO also fix the problem?  
+> 
+> With those patches in place, that would be the next thing to try.
+> Reducing our reliance on 'ld -r' will greatly help promoting LTO for the
+> kernel.
+> 
+> Personally I'd like to have the choice between LTO and -gc-sections at 
+> configure time.  They both have advantages of their own.
 
-Acked-by: Borislav Petkov <bp-l3A5Bk7waGM@public.gmane.org>
 
--- 
-Regards/Gruss,
-    Boris.
+We discussed this in previous rounds of patches, but to just
+expand on Nicolas' answer with some overview:
 
-ECO tip #101: Trim your mails when you reply.
---
+- Thin archives are needed for linking large kernels of some ISAs.
+  I believe the linker becomes constrained in where it can use
+  branch stubs when linking large inputs, but haven't looked into
+  the internals exactly. There are a number of other ways proposed
+  to solve it, but archives are well understood by toolchain and
+  look like quite an elegant solution (with other benefits such as
+  build output size and helping to enable LTO).
+
+- gc-sections patch is mainly to address some small regressions
+  in binary size with the first patch, but I think the results
+  make it stand on its own. It's very fast, mature, does not
+  transform code, and gives surprisingly good size saving without
+  much enablement work. The work that is required (e.g., to
+  annotate entry points) is mostly shared with LTO if we add that
+  in future, so it's not dead-end cruft.
+
+- LTO: Nicolas has posted far more significant size improvements
+  with his more advanced work with reference annotatation and LTO.
+  I'm surprised there has not been more interest, but I hope if
+  we get this merged, it might give him motivation to look at it
+  again. Discussion seemed to die down last time with people
+  saying we should look at gc-sections first. 
+
+I see this as enabler to LTO rather than a replacement. LTO is
+bigger change to build and less mature, but long term it is the
+right way to go IMO. When we iron out toolchains, perhaps have
+LTO option for just static elimination rather than transformations
+for high speed / low optimization builds, etc., then gc-sections
+would be completely supplanted could be removed. Using sections
+for dce is a nice linker hack, but real LTO information seems
+cleaner in the end (and of course allows more optimization).
+
+Thanks,
+Nick
