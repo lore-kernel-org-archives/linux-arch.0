@@ -1,74 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:34820 "EHLO
-        mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751606AbcHYEtc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 Aug 2016 00:49:32 -0400
-Date: Thu, 25 Aug 2016 12:56:44 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 0/3 v3] kbuild changes, thin archives, --gc-sections
-Message-ID: <20160825125644.37cf118f@roar.ozlabs.ibm.com>
-In-Reply-To: <alpine.LFD.2.20.1608241114430.17623@knanqh.ubzr>
-References: <1472041761-14414-1-git-send-email-npiggin@gmail.com>
-        <12110.1472048481@warthog.procyon.org.uk>
-        <alpine.LFD.2.20.1608241114430.17623@knanqh.ubzr>
+Received: from mail.skyhub.de ([78.46.96.112]:40325 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754433AbcHYF4S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 25 Aug 2016 01:56:18 -0400
+Date: Thu, 25 Aug 2016 05:58:34 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v2 02/20] x86: Set the write-protect cache mode for
+ full PAT support
+Message-ID: <20160825035834.GB31573@nazgul.tnic>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223550.29880.39409.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20160822223550.29880.39409.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nicolas.pitre@linaro.org>
-Cc: David Howells <dhowells@redhat.com>, Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20160825025644.WsaDOUH-Ah0_b0W8sZWAgu8AsmCdK1aJuRzOUnMiPVM@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160825035834.xB6tdFaKOTiV_0YuRD9NWDYQNsHJ5KedJd8EXM30Vuc@z>
 
-On Wed, 24 Aug 2016 11:21:33 -0400 (EDT)
-Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
-
-> On Wed, 24 Aug 2016, David Howells wrote:
+On Mon, Aug 22, 2016 at 05:35:50PM -0500, Tom Lendacky wrote:
+> For processors that support PAT, set the write-protect cache mode
+> (_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
 > 
-> > Out of interest, does using LTO also fix the problem?  
-> 
-> With those patches in place, that would be the next thing to try.
-> Reducing our reliance on 'ld -r' will greatly help promoting LTO for the
-> kernel.
-> 
-> Personally I'd like to have the choice between LTO and -gc-sections at 
-> configure time.  They both have advantages of their own.
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/mm/pat.c |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 
+Acked-by: Borislav Petkov <bp@suse.de>
 
-We discussed this in previous rounds of patches, but to just
-expand on Nicolas' answer with some overview:
+-- 
+Regards/Gruss,
+    Boris.
 
-- Thin archives are needed for linking large kernels of some ISAs.
-  I believe the linker becomes constrained in where it can use
-  branch stubs when linking large inputs, but haven't looked into
-  the internals exactly. There are a number of other ways proposed
-  to solve it, but archives are well understood by toolchain and
-  look like quite an elegant solution (with other benefits such as
-  build output size and helping to enable LTO).
-
-- gc-sections patch is mainly to address some small regressions
-  in binary size with the first patch, but I think the results
-  make it stand on its own. It's very fast, mature, does not
-  transform code, and gives surprisingly good size saving without
-  much enablement work. The work that is required (e.g., to
-  annotate entry points) is mostly shared with LTO if we add that
-  in future, so it's not dead-end cruft.
-
-- LTO: Nicolas has posted far more significant size improvements
-  with his more advanced work with reference annotatation and LTO.
-  I'm surprised there has not been more interest, but I hope if
-  we get this merged, it might give him motivation to look at it
-  again. Discussion seemed to die down last time with people
-  saying we should look at gc-sections first. 
-
-I see this as enabler to LTO rather than a replacement. LTO is
-bigger change to build and less mature, but long term it is the
-right way to go IMO. When we iron out toolchains, perhaps have
-LTO option for just static elimination rather than transformations
-for high speed / low optimization builds, etc., then gc-sections
-would be completely supplanted could be removed. Using sections
-for dce is a nice linker hack, but real LTO information seems
-cleaner in the end (and of course allows more optimization).
-
-Thanks,
-Nick
+ECO tip #101: Trim your mails when you reply.
+--
