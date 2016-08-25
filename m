@@ -1,99 +1,142 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 04/16] generic-sections: add section core
-	helpers
-Date: Thu, 25 Aug 2016 08:05:40 +0200
-Message-ID: <20160825060540.GX3296@wotan.suse.de>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH v4 04/16] generic-sections: add section core helpers
+Date: Thu, 25 Aug 2016 16:51:21 +1000
+Message-ID: <20160825165121.45d26fb0@roar.ozlabs.ibm.com>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
- <20160823112633.7d482e62@roar.ozlabs.ibm.com>
- <20160823173306.GA3296@wotan.suse.de>
- <20160824135141.2c8f06ec@roar.ozlabs.ibm.com>
- <20160824201253.GS3296@wotan.suse.de>
- <20160825120633.057b2f6f@roar.ozlabs.ibm.com>
+        <1471642454-5679-5-git-send-email-mcgrof@kernel.org>
+        <20160823112633.7d482e62@roar.ozlabs.ibm.com>
+        <20160823173306.GA3296@wotan.suse.de>
+        <20160824135141.2c8f06ec@roar.ozlabs.ibm.com>
+        <20160824201253.GS3296@wotan.suse.de>
+        <20160825120633.057b2f6f@roar.ozlabs.ibm.com>
+        <20160825060540.GX3296@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <20160825120633.057b2f6f@roar.ozlabs.ibm.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, david.vrabel@citrix.com, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20160825060540.GX3296@wotan.suse.de>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBBdWcgMjUsIDIwMTYgYXQgMTI6MDY6MzNQTSArMTAwMCwgTmljaG9sYXMgUGlnZ2lu
-IHdyb3RlOgo+IE9uIFdlZCwgMjQgQXVnIDIwMTYgMjI6MTI6NTMgKzAyMDAKPiAiTHVpcyBSLiBS
-b2RyaWd1ZXoiIDxtY2dyb2ZAa2VybmVsLm9yZz4gd3JvdGU6Cj4gPiBCdXQ6Cj4gPiAKPiA+IGdp
-dCBncmVwIFNFQ1RJT05fVEVYVCB3b3JrcyBhcyBleHBlY3RlZCBpbW1lZGlhdGVseS4KPiA+IAo+
-ID4gSSBndWVzcyBpdHMgYSBtYXR0ZXIgb2YgcGVyc3BlY3RpdmUuCj4gPiAKPiA+ID4gVGhleSBh
-cmUgYWxzbwo+ID4gPiB0aGUgbmFtZXMgeW91J2xsIGJlIGdyZXBwaW5nIGZvciB3aGVuIHlvdSBs
-b29rIGF0IGRpc2Fzc2VtYmx5LiAgCj4gPiAKPiA+IFN1cmUgYnV0IGlmIHlvdSdyZSBncmVwcGlu
-ZyBhc20sIHlvdSB2ZXJ5IGxpa2VseSBrbm93IHdoYXQgdG8gbG9vayBmb3IuCj4gCj4gQWZ0ZXIg
-eW91IGhhdmUgZ29uZSB0aHJvdWdoIHRoZSBleHRyYSBsYXllciBvZiBuYW1pbmcgaW5kaXJlY3Rp
-b24KPiB0byB3b3JrIG91dCB3aGF0IGl0IGlzLiBJJ20gc3RpbGwgbm90IHNvbGQgb24gdGhlIG5h
-bWUgaW5kaXJlY3Rpb24KPiBhbmQgaGlkaW5nIHdpbGRjYXJkcy4gTm90IGp1c3QgZm9yIGFzbSBn
-cmVwcGluZywgYnV0IEkgZG9uJ3QgdGhpbmsKPiBpdCdzIGEgbmVnYXRpdmUgdGhpbmcgZm9yIGRl
-dnMgd29ya2luZyBvbiB0aGUgbGlua2VyIHRvIGtub3cgd2hhdAo+IGFjdHVhbCBzZWN0aW9uIG5h
-bWVzIGFuZCBjb21tYW5kcyBhcmUgYmVpbmcgdXNlZCwgYXMgbXVjaCBhcyBwb3NzaWJsZS4KCk9L
-IGxldHMgc2VlIHdoYXQgaXQgbG9va3MgbGlrZSBhZnRlciBkcm9wcGluZyB0aGVtLiBXaWxsIHRy
-eSB0aGF0LgoKPiA+IFRoZSBpZGVhIHdhcyB0byBhZGQgaGVscGVycyB0byBkbyB0aGUgZ2xvYmJp
-bmcgbW9yZSBlYXNpbHkuCj4gPiAKPiA+IFRoZSBnbG9iIGZvciBzZWN0aW9ucyBub3cgZG9jdW1l
-bnRlZCAgIGlzIFNFQ1RJT05fQUxMKCkKPiA+IFRoZSBnbG9iIHRoYXQgaXMgcmFuZ2Ugc3BlY2lm
-aWMgICAgICAgIGlzIFNFQ1RJT05fUk5HX0FMTCgpCj4gPiBUaGUgZ2xvYiB0aGF0IGlzIGxpbmtl
-ciB0YWJsZSBzcGVjaWZpYyBpcyBTRUNUSU9OX1RCTF9BTEwoKQo+IAo+IEkgc3RpbGwgZG9uJ3Qg
-c2VlIHRoaXMgaXMgYmV0dGVyIHRoYW4KPiAKPiAudGV4dCoKPiAudGV4dC4qCj4gLnRleHQucmFu
-Z2UuKgo+IC50ZXh0LnRhYmxlLioKPiBldGMuCgpPSyB3aWxsIGRyb3AgaXQuCgo+ID4gSG93IGFi
-b3V0Ogo+ID4gCj4gPiBBdCB0aGUgdG9wIGp1c3QgdXNlICJMaW51eCBzZWN0aW9ucyBoZWxwZXJz
-Igo+ID4gCj4gPiBUaGVuOgo+ID4gCj4gPiAvKioKPiA+ICAqIERPQzogSW50cm9kdWN0aW9uCj4g
-PiAgKgo+ID4gICogV2UgZG9jdW1lbnQgYmVsb3cgYSBkZWRpY2F0ZWQgc2V0IG9mIGhlbHBlcnMg
-dXNlZCBpbiBMaW51eCB0byBtYWtlIHNlY3Rpb25zCj4gPiAgKiBkZWZpbmVkIGluIHRoZSBMaW51
-eCBsaW5rZXIgc2NyaXB0IGFjY2Vzc2libGUgaW4gQyBjb2RlIGluIGEgZ2VuZXJpYyBmb3JtIGFu
-ZCAKPiA+ICAqIGFuZCBwcm92aWRlIGNlcnRhaW4gYXR0cmlidXRlcyBhYm91dCB0aGVtLgo+ID4g
-ICovCj4gPiAKPiA+ID4gSSBqdXN0IGNhbid0IHdvcmsgb3V0IHdoYXQgZXhhY3RseSBpcyBhCj4g
-PiA+ICJjdXN0b20gTGludXggc2VjdGlvbiIsIGFuZCB3aGF0IERFQ0xBUkVfTElOVVhfU0VDVElP
-TigpLCBmb3IgZXhhbXBsZSwgYWN0YXVsbHkKPiA+ID4gZ2l2ZXMgeW91LiAgCj4gPiAKPiA+IEl0
-cyBhIHdheSB0byByZXBsYWNlIHRoZToKPiA+IAo+ID4gZXh0ZXJuIGNoYXIgZm9vW10sIGZvb19f
-ZW5kW107Cj4gPiAKPiA+IFNvIHRoaXMgcHJvdmlkZXMgYSBnZW5lcmFsaXplZCBmb3JtIHRvIHVz
-ZSBkZWNsYXJhdGlvbnMgdXNlZCBpbiBDIGNvZGUgdG8gbWFrZQo+ID4gdGhlIGxpbmtlciBzY3Jp
-cHQgc3RhcnQgYW5kIGVuZCBzeW1ib2xzIGZyb20gZXNjdGlvbnMgYWNjZXNzaWJsZSBpbiBDIGNv
-ZGUuIFNpbmNlCj4gPiBERUZJTkVfU0VDVElPTl9SQU5HRSgpIGFuZCBERUZJTkVfTElOS1RBQkxF
-KCkgbWFjcm9zIHVzZSB0aGlzLCB0aGVuIHRoZQo+ID4gREVDTEFSRV9MSU5VWF9TRUNUSU9OKCkg
-aXMgb25seSBuZWVkZWQgaWYgeW91IG5lZWQgYWNjZXNzIHRvIHRoZXNlIHN5bWJvbHMgaW4gQwo+
-ID4gY29kZSBvdXRzaWRlIG9mIHRoZSBvbmUgdGhhdCBpcyBkZWZpbmluZyBhbmQgbWFpbmx5IGlu
-IGNoYXJnZSBvZiBtYW5hZ2luZyB0aGUKPiA+IHNlY3Rpb24uIFdlIHByb3ZpZGUgREVDTEFSRV8q
-KCkgaGVscGVycyBmb3Igc2VjdGlvbiByYW5nZXMgYW5kIGxpbmtlciB0YWJsZXMKPiA+IHRob3Vn
-aCBzbyB0aG9zZSBjYW4gYmUgdXNlZCBpbnN0ZWFkIHRvIGhlbHAgYW5ub3RhdGUgdGhlIHR5cGUg
-b2YgYSBjdXN0b20KPiA+IHNlY3Rpb24gdGhleSBhcmUuCj4gCj4gT2gsIHRoYXQgbWFrZXMgbW9y
-ZSBzZW5zZS4gVGhlIFNFQ1RJT04gc3R1ZmYgYW5kIGN1c3RvbSBzZWN0aW9ucyB3YXMKPiBjb25m
-dXNpbmcgbWUuIEkgd291bGQgcHJlZmVyIGp1c3QgdG8gZHJvcCBhbGwgdGhlIExJTlVYX1NFQ1RJ
-T04gbmFtaW5nCj4gYW5kIG1ha2UgaXQgbWF0Y2ggdGhlIGZ1bmN0aW9uYWxpdHkgeW91J3JlIHVz
-aW5nLiBGb3IgZXhhbXBsZToKPiAKPiArREVGSU5FX0xJTktUQUJMRShzdHJ1Y3QganVtcF9lbnRy
-eSwgX19qdW1wX3RhYmxlKTsKPiArCj4gIC8qIG11dGV4IHRvIHByb3RlY3QgY29taW5nL2dvaW5n
-IG9mIHRoZSB0aGUganVtcF9sYWJlbCB0YWJsZSAqLwo+ICBzdGF0aWMgREVGSU5FX01VVEVYKGp1
-bXBfbGFiZWxfbXV0ZXgpOwo+ICAKPiBAQCAtMjc0LDggKzI3Nyw2IEBAIHN0YXRpYyB2b2lkIF9f
-anVtcF9sYWJlbF91cGRhdGUoc3RydWN0IHN0YXRpY19rZXkgKmtleSwKPiAgCj4gIHZvaWQgX19p
-bml0IGp1bXBfbGFiZWxfaW5pdCh2b2lkKQo+ICB7Cj4gLQlzdHJ1Y3QganVtcF9lbnRyeSAqaXRl
-cl9zdGFydCA9IF9fc3RhcnRfX19qdW1wX3RhYmxlOwo+IC0Jc3RydWN0IGp1bXBfZW50cnkgKml0
-ZXJfc3RvcCA9IF9fc3RvcF9fX2p1bXBfdGFibGU7Cj4gIAlzdHJ1Y3Qgc3RhdGljX2tleSAqa2V5
-ID0gTlVMTDsKPiAgCXN0cnVjdCBqdW1wX2VudHJ5ICppdGVyOwo+ICAKPiBAQCAtMjkyLDkgKzI5
-MywxMCBAQCB2b2lkIF9faW5pdCBqdW1wX2xhYmVsX2luaXQodm9pZCkKPiAgCQlyZXR1cm47Cj4g
-IAo+ICAJanVtcF9sYWJlbF9sb2NrKCk7Cj4gLQlqdW1wX2xhYmVsX3NvcnRfZW50cmllcyhpdGVy
-X3N0YXJ0LCBpdGVyX3N0b3ApOwo+ICsJanVtcF9sYWJlbF9zb3J0X2VudHJpZXMoTElOVVhfU0VD
-VElPTl9TVEFSVChfX2p1bXBfdGFibGUpLAo+ICsJCQkJTElOVVhfU0VDVElPTl9FTkQoX19qdW1w
-X3RhYmxlKSk7Cj4gCj4gTm93IEkgdGhpbmsgdGhpcyBpcyBhIGZpbmUgYWJzdHJhY3Rpb24gdG8g
-aGF2ZS4KCk9LIHdpbGwga2VlcCB0aGlzIG9uZS4KCj4gSSB0aGluayBpdCB3b3VsZCBsb29rCj4g
-ZXZlbiBjbGVhbmVyIGlmIHlvdSBoYWQ6Cj4gCj4gTElOS1RBQkxFX1NUQVJUKF9fanVtcF90YWJs
-ZSkKPiBMSU5LVEFCTEVfRU5EKF9fanVtcF90YWJsZSkKPgo+IFRoZW4gZG8gd2UgbmVlZCB0byBl
-dmVuIGhhdmUgdGhlIExJTlVYX1NFQ1RJT04gbWlkZGxlIG1hbiBhdCBhbGw/CgpBaCwgdGhpbmcg
-aXMgd2UgdXNlIHRoaXMgZm9yIGJvdGggbGlua3RhYmxlcyBhbmQgc2VjdGlvbiByYW5nZXMuCk9y
-IGRvIHdlIHdhbnQgbWFjcm9zIGZvciBib3RoIHRoYXQgZG8gdGhlIHNhbWUgdGhpbmcgPwoKICBM
-dWlzCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpYZW4t
-ZGV2ZWwgbWFpbGluZyBsaXN0Clhlbi1kZXZlbEBsaXN0cy54ZW4ub3JnCmh0dHBzOi8vbGlzdHMu
-eGVuLm9yZy94ZW4tZGV2ZWwK
+On Thu, 25 Aug 2016 08:05:40 +0200
+"Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
+
+> On Thu, Aug 25, 2016 at 12:06:33PM +1000, Nicholas Piggin wrote:
+> > On Wed, 24 Aug 2016 22:12:53 +0200
+> > "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:  
+> > > But:
+> > > 
+> > > git grep SECTION_TEXT works as expected immediately.
+> > > 
+> > > I guess its a matter of perspective.
+> > >   
+> > > > They are also
+> > > > the names you'll be grepping for when you look at disassembly.    
+> > > 
+> > > Sure but if you're grepping asm, you very likely know what to look for.  
+> > 
+> > After you have gone through the extra layer of naming indirection
+> > to work out what it is. I'm still not sold on the name indirection
+> > and hiding wildcards. Not just for asm grepping, but I don't think
+> > it's a negative thing for devs working on the linker to know what
+> > actual section names and commands are being used, as much as possible.  
+> 
+> OK lets see what it looks like after dropping them. Will try that.
+> 
+> > > The idea was to add helpers to do the globbing more easily.
+> > > 
+> > > The glob for sections now documented   is SECTION_ALL()
+> > > The glob that is range specific        is SECTION_RNG_ALL()
+> > > The glob that is linker table specific is SECTION_TBL_ALL()  
+> > 
+> > I still don't see this is better than
+> > 
+> > .text*
+> > .text.*
+> > .text.range.*
+> > .text.table.*
+> > etc.  
+> 
+> OK will drop it.
+
+Thank you for considering it, I appreciate that.
+
+
+> > > How about:
+> > > 
+> > > At the top just use "Linux sections helpers"
+> > > 
+> > > Then:
+> > > 
+> > > /**
+> > >  * DOC: Introduction
+> > >  *
+> > >  * We document below a dedicated set of helpers used in Linux to make sections
+> > >  * defined in the Linux linker script accessible in C code in a generic form and 
+> > >  * and provide certain attributes about them.
+> > >  */
+> > >   
+> > > > I just can't work out what exactly is a
+> > > > "custom Linux section", and what DECLARE_LINUX_SECTION(), for example, actaully
+> > > > gives you.    
+> > > 
+> > > Its a way to replace the:
+> > > 
+> > > extern char foo[], foo__end[];
+> > > 
+> > > So this provides a generalized form to use declarations used in C code to make
+> > > the linker script start and end symbols from esctions accessible in C code. Since
+> > > DEFINE_SECTION_RANGE() and DEFINE_LINKTABLE() macros use this, then the
+> > > DECLARE_LINUX_SECTION() is only needed if you need access to these symbols in C
+> > > code outside of the one that is defining and mainly in charge of managing the
+> > > section. We provide DECLARE_*() helpers for section ranges and linker tables
+> > > though so those can be used instead to help annotate the type of a custom
+> > > section they are.  
+> > 
+> > Oh, that makes more sense. The SECTION stuff and custom sections was
+> > confusing me. I would prefer just to drop all the LINUX_SECTION naming
+> > and make it match the functionality you're using. For example:
+> > 
+> > +DEFINE_LINKTABLE(struct jump_entry, __jump_table);
+> > +
+> >  /* mutex to protect coming/going of the the jump_label table */
+> >  static DEFINE_MUTEX(jump_label_mutex);
+> >  
+> > @@ -274,8 +277,6 @@ static void __jump_label_update(struct static_key *key,
+> >  
+> >  void __init jump_label_init(void)
+> >  {
+> > -	struct jump_entry *iter_start = __start___jump_table;
+> > -	struct jump_entry *iter_stop = __stop___jump_table;
+> >  	struct static_key *key = NULL;
+> >  	struct jump_entry *iter;
+> >  
+> > @@ -292,9 +293,10 @@ void __init jump_label_init(void)
+> >  		return;
+> >  
+> >  	jump_label_lock();
+> > -	jump_label_sort_entries(iter_start, iter_stop);
+> > +	jump_label_sort_entries(LINUX_SECTION_START(__jump_table),
+> > +				LINUX_SECTION_END(__jump_table));
+> > 
+> > Now I think this is a fine abstraction to have.  
+> 
+> OK will keep this one.
+> 
+> > I think it would look
+> > even cleaner if you had:
+> > 
+> > LINKTABLE_START(__jump_table)
+> > LINKTABLE_END(__jump_table)
+> >
+> > Then do we need to even have the LINUX_SECTION middle man at all?  
+> 
+> Ah, thing is we use this for both linktables and section ranges.
+> Or do we want macros for both that do the same thing ?
+
+I think it would make the code using it more readable.
+
+Thanks,
+Nick
