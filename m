@@ -1,16 +1,16 @@
 From: kbuild test robot <lkp@intel.com>
 Subject: Re: [PATCH] arch: all: include: asm: bitops: Use bool instead of int
  for all bit test functions
-Date: Sun, 28 Aug 2016 15:02:32 +0800
-Message-ID: <201608281530.rm2knhIO%fengguang.wu@intel.com>
+Date: Sun, 28 Aug 2016 15:10:40 +0800
+Message-ID: <201608281537.rfLlXwlL%fengguang.wu@intel.com>
 References: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="ikeVEW9yuYc//A+q"
+Content-Type: multipart/mixed; boundary="G4iJoqBmSsgzjUCe"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:53555 "EHLO mga09.intel.com"
+Received: from mga06.intel.com ([134.134.136.31]:23459 "EHLO mga06.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932249AbcH1G63 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 28 Aug 2016 02:58:29 -0400
+        id S932249AbcH1HHO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 28 Aug 2016 03:07:14 -0400
 Content-Disposition: inline
 In-Reply-To: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
 Sender: linux-arch-owner@vger.kernel.org
@@ -19,14 +19,14 @@ To: chengang@emindsoft.com.cn
 Cc: kbuild-all@01.org, akpm@linux-foundation.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@l
 
 
---ikeVEW9yuYc//A+q
+--G4iJoqBmSsgzjUCe
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 
 Hi Chen,
 
-[auto build test WARNING on linus/master]
-[also build test WARNING on v4.8-rc3 next-20160825]
+[auto build test ERROR on linus/master]
+[also build test ERROR on v4.8-rc3 next-20160825]
 [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
 [Suggest to use git(>=2.9.0) format-patch --base=<commit> (or --base=auto for convenience) to record what (public, well-known) commit your patch series was built on]
 [Check https://git-scm.com/docs/git-format-patch for more information]
@@ -40,98 +40,65 @@ reproduce:
         # save the attached .config to linux build tree
         make.cross ARCH=m68k 
 
-All warnings (new ones prefixed by >>):
+All errors (new ones prefixed by >>):
 
    In file included from include/linux/bitops.h:36:0,
-                    from include/linux/kernel.h:10,
-                    from include/linux/list.h:8,
-                    from include/linux/module.h:9,
-                    from fs/lockd/clntlock.c:9:
-   include/linux/sunrpc/xprt.h: In function 'xprt_set_bound':
->> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
-         bset_mem_test_and_set_bit(nr, vaddr) : \
-                                              ^
->> include/linux/sunrpc/xprt.h:433:2: note: in expansion of macro 'test_and_set_bit'
-     test_and_set_bit(XPRT_BOUND, &xprt->state);
-     ^
---
-   In file included from include/linux/bitops.h:36:0,
-                    from include/linux/kernel.h:10,
-                    from include/linux/list.h:8,
-                    from include/linux/module.h:9,
-                    from lib/lru_cache.c:26:
-   lib/lru_cache.c: In function '__lc_get':
->> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
-         bset_mem_test_and_set_bit(nr, vaddr) : \
-                                              ^
->> lib/lru_cache.c:417:2: note: in expansion of macro 'test_and_set_bit'
-     test_and_set_bit(__LC_DIRTY, &lc->flags);
-     ^
---
-   In file included from include/linux/bitops.h:36:0,
-                    from include/linux/kernel.h:10,
-                    from include/linux/list.h:8,
-                    from include/linux/module.h:9,
-                    from net/sunrpc/auth_gss/auth_gss.c:39:
-   include/linux/sunrpc/xprt.h: In function 'xprt_set_bound':
->> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
-         bset_mem_test_and_set_bit(nr, vaddr) : \
-                                              ^
->> include/linux/sunrpc/xprt.h:433:2: note: in expansion of macro 'test_and_set_bit'
-     test_and_set_bit(XPRT_BOUND, &xprt->state);
-     ^
-   net/sunrpc/auth_gss/auth_gss.c: In function 'gss_match':
-   arch/m68k/include/asm/bitops.h:250:45: warning: value computed is not used [-Wunused-value]
-         bclr_mem_test_and_clear_bit(nr, vaddr) : \
-                                                ^
->> net/sunrpc/auth_gss/auth_gss.c:1469:3: note: in expansion of macro 'test_and_clear_bit'
-      test_and_clear_bit(RPC_CRED_NOTIFY_TIMEOUT, &acred->ac_flags);
-      ^
+                    from include/linux/jhash.h:26,
+                    from net/ipv6/ila/ila_xlat.c:1:
+>> arch/m68k/include/asm/bitops.h:151:15: error: unknown type name 'bool'
+    static inline bool test_bit(int nr, const unsigned long *vaddr)
+                  ^
+   arch/m68k/include/asm/bitops.h:157:15: error: unknown type name 'bool'
+    static inline bool bset_reg_test_and_set_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:170:15: error: unknown type name 'bool'
+    static inline bool bset_mem_test_and_set_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:182:15: error: unknown type name 'bool'
+    static inline bool bfset_mem_test_and_set_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:207:15: error: unknown type name 'bool'
+    static inline bool bclr_reg_test_and_clear_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:220:15: error: unknown type name 'bool'
+    static inline bool bclr_mem_test_and_clear_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:232:15: error: unknown type name 'bool'
+    static inline bool bfclr_mem_test_and_clear_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:257:15: error: unknown type name 'bool'
+    static inline bool bchg_reg_test_and_change_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:270:15: error: unknown type name 'bool'
+    static inline bool bchg_mem_test_and_change_bit(int nr,
+                  ^
+   arch/m68k/include/asm/bitops.h:282:15: error: unknown type name 'bool'
+    static inline bool bfchg_mem_test_and_change_bit(int nr,
+                  ^
 
-vim +200 arch/m68k/include/asm/bitops.h
+vim +/bool +151 arch/m68k/include/asm/bitops.h
 
-171d809d Greg Ungerer 2011-05-17  184  {
-171d809d Greg Ungerer 2011-05-17  185  	char retval;
-171d809d Greg Ungerer 2011-05-17  186  
-171d809d Greg Ungerer 2011-05-17  187  	__asm__ __volatile__ ("bfset %2{%1:#1}; sne %0"
-171d809d Greg Ungerer 2011-05-17  188  		: "=d" (retval)
-171d809d Greg Ungerer 2011-05-17  189  		: "d" (nr ^ 31), "o" (*vaddr)
-171d809d Greg Ungerer 2011-05-17  190  		: "memory");
-171d809d Greg Ungerer 2011-05-17  191  	return retval;
-171d809d Greg Ungerer 2011-05-17  192  }
-171d809d Greg Ungerer 2011-05-17  193  
-171d809d Greg Ungerer 2011-05-17  194  #if defined(CONFIG_COLDFIRE)
-171d809d Greg Ungerer 2011-05-17  195  #define	test_and_set_bit(nr, vaddr)	bset_reg_test_and_set_bit(nr, vaddr)
-171d809d Greg Ungerer 2011-05-17  196  #elif defined(CONFIG_CPU_HAS_NO_BITFIELDS)
-171d809d Greg Ungerer 2011-05-17  197  #define	test_and_set_bit(nr, vaddr)	bset_mem_test_and_set_bit(nr, vaddr)
-171d809d Greg Ungerer 2011-05-17  198  #else
-171d809d Greg Ungerer 2011-05-17  199  #define test_and_set_bit(nr, vaddr)	(__builtin_constant_p(nr) ? \
-171d809d Greg Ungerer 2011-05-17 @200  					bset_mem_test_and_set_bit(nr, vaddr) : \
-171d809d Greg Ungerer 2011-05-17  201  					bfset_mem_test_and_set_bit(nr, vaddr))
-171d809d Greg Ungerer 2011-05-17  202  #endif
-171d809d Greg Ungerer 2011-05-17  203  
-171d809d Greg Ungerer 2011-05-17  204  #define __test_and_set_bit(nr, vaddr)	test_and_set_bit(nr, vaddr)
-171d809d Greg Ungerer 2011-05-17  205  
-171d809d Greg Ungerer 2011-05-17  206  
-f5fbac0b Chen Gang    2016-08-28  207  static inline bool bclr_reg_test_and_clear_bit(int nr,
-171d809d Greg Ungerer 2011-05-17  208  					      volatile unsigned long *vaddr)
-
-:::::: The code at line 200 was first introduced by commit
-:::::: 171d809df1896c1022f9778cd2788be6c255a7dc m68k: merge mmu and non-mmu bitops.h
-
-:::::: TO: Greg Ungerer <gerg@uclinux.org>
-:::::: CC: Greg Ungerer <gerg@uclinux.org>
+   145					bfchg_mem_change_bit(nr, vaddr))
+   146	#endif
+   147	
+   148	#define __change_bit(nr, vaddr)	change_bit(nr, vaddr)
+   149	
+   150	
+ > 151	static inline bool test_bit(int nr, const unsigned long *vaddr)
+   152	{
+   153		return (vaddr[nr >> 5] & (1UL << (nr & 31))) != 0;
+   154	}
 
 ---
 0-DAY kernel test infrastructure                Open Source Technology Center
 https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
---ikeVEW9yuYc//A+q
+--G4iJoqBmSsgzjUCe
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename=".config.gz"
 Content-Transfer-Encoding: base64
 
-H4sICKaLwlcAAy5jb25maWcAlDzbctu4ku/zFarMPsxUnZk4dqLK7JYfIBCUcEQSDADKsl9Y
+H4sICCaNwlcAAy5jb25maWcAlDzbctu4ku/zFarMPsxUnZk4dqLK7JYfIBCUcEQSDADKsl9Y
 iqNMVONL1pLn8vfbDZIiQDaksy+J1d1o3Bp9A5o//vDjhL0enh83h9395uHhn8nv26fty+aw
 /TL5unvY/s8kUZNC2YlIpP0ViLPd0+vfbx+nH/+YvP/1468Xv7zcX02W25en7cOEPz993f3+
 Cq13z08//PgDV0Uq53U+/bi8/qf7pW+MyOu5KISWvDalLDLFPXyHWdwIOV/YMYKzTM40s6JO
@@ -344,4 +311,4 @@ PCsUOCuK1OcMIzLDVOZMsWlEV0E4SUJlzoMfakDcCJ+A7WOmVfopdoSt52GnDxSfeCbMlrBp
 ZQHmVWMU1J8w0QMGyNMOijQPHLstCGgVJs9/iCCXlNI842in0zWYootrOOdwNCs37CxNSsWx
 sjfSAzhpqor003+nyjuEhAy1KMEFKmGN8Ck9KkvTSKXuZhJwQgxUi/0/X2ad6+WwAAA=
 
---ikeVEW9yuYc//A+q--
+--G4iJoqBmSsgzjUCe--
