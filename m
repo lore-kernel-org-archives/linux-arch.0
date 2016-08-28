@@ -1,1448 +1,347 @@
-From: chengang@emindsoft.com.cn
-Subject: [PATCH] arch: all: include: asm: bitops: Use bool instead of int for all bit test functions
-Date: Sun, 28 Aug 2016 13:39:15 +0800
-Message-ID: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH] arch: all: include: asm: bitops: Use bool instead of int
+ for all bit test functions
+Date: Sun, 28 Aug 2016 15:02:32 +0800
+Message-ID: <201608281530.rm2knhIO%fengguang.wu@intel.com>
+References: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="ikeVEW9yuYc//A+q"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out1134-225.mail.aliyun.com ([42.120.134.225]:34149 "EHLO
-        out1134-225.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751220AbcH1FoZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 28 Aug 2016 01:44:25 -0400
+Received: from mga09.intel.com ([134.134.136.24]:53555 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932249AbcH1G63 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 28 Aug 2016 02:58:29 -0400
+Content-Disposition: inline
+In-Reply-To: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellano
+To: chengang@emindsoft.com.cn
+Cc: kbuild-all@01.org, akpm@linux-foundation.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@l
 
-From: Chen Gang <chengang@emindsoft.com.cn>
 
-Also use the same changing to asm-generic, and also use bool variable
-instead of int variable for mips, mn10300, parisc and tile related
-functions, and also avoid checkpatch.pl to report ERROR.
+--ikeVEW9yuYc//A+q
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Originally, except powerpc and xtensa, all another architectures intend
-to return 0 or 1. After this patch, also let powerpc and xtensa return 0
-or 1.
+Hi Chen,
 
-The patch passes cross building for mips and parisc with default config.
-All related contents are found by "grep test_bit, grep test_and" under
-arch sub-directory.
+[auto build test WARNING on linus/master]
+[also build test WARNING on v4.8-rc3 next-20160825]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+[Suggest to use git(>=2.9.0) format-patch --base=<commit> (or --base=auto for convenience) to record what (public, well-known) commit your patch series was built on]
+[Check https://git-scm.com/docs/git-format-patch for more information]
 
-Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+url:    https://github.com/0day-ci/linux/commits/chengang-emindsoft-com-cn/arch-all-include-asm-bitops-Use-bool-instead-of-int-for-all-bit-test-functions/20160828-134633
+config: m68k-sun3_defconfig (attached as .config)
+compiler: m68k-linux-gcc (GCC) 4.9.0
+reproduce:
+        wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # save the attached .config to linux build tree
+        make.cross ARCH=m68k 
+
+All warnings (new ones prefixed by >>):
+
+   In file included from include/linux/bitops.h:36:0,
+                    from include/linux/kernel.h:10,
+                    from include/linux/list.h:8,
+                    from include/linux/module.h:9,
+                    from fs/lockd/clntlock.c:9:
+   include/linux/sunrpc/xprt.h: In function 'xprt_set_bound':
+>> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
+         bset_mem_test_and_set_bit(nr, vaddr) : \
+                                              ^
+>> include/linux/sunrpc/xprt.h:433:2: note: in expansion of macro 'test_and_set_bit'
+     test_and_set_bit(XPRT_BOUND, &xprt->state);
+     ^
+--
+   In file included from include/linux/bitops.h:36:0,
+                    from include/linux/kernel.h:10,
+                    from include/linux/list.h:8,
+                    from include/linux/module.h:9,
+                    from lib/lru_cache.c:26:
+   lib/lru_cache.c: In function '__lc_get':
+>> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
+         bset_mem_test_and_set_bit(nr, vaddr) : \
+                                              ^
+>> lib/lru_cache.c:417:2: note: in expansion of macro 'test_and_set_bit'
+     test_and_set_bit(__LC_DIRTY, &lc->flags);
+     ^
+--
+   In file included from include/linux/bitops.h:36:0,
+                    from include/linux/kernel.h:10,
+                    from include/linux/list.h:8,
+                    from include/linux/module.h:9,
+                    from net/sunrpc/auth_gss/auth_gss.c:39:
+   include/linux/sunrpc/xprt.h: In function 'xprt_set_bound':
+>> arch/m68k/include/asm/bitops.h:200:43: warning: value computed is not used [-Wunused-value]
+         bset_mem_test_and_set_bit(nr, vaddr) : \
+                                              ^
+>> include/linux/sunrpc/xprt.h:433:2: note: in expansion of macro 'test_and_set_bit'
+     test_and_set_bit(XPRT_BOUND, &xprt->state);
+     ^
+   net/sunrpc/auth_gss/auth_gss.c: In function 'gss_match':
+   arch/m68k/include/asm/bitops.h:250:45: warning: value computed is not used [-Wunused-value]
+         bclr_mem_test_and_clear_bit(nr, vaddr) : \
+                                                ^
+>> net/sunrpc/auth_gss/auth_gss.c:1469:3: note: in expansion of macro 'test_and_clear_bit'
+      test_and_clear_bit(RPC_CRED_NOTIFY_TIMEOUT, &acred->ac_flags);
+      ^
+
+vim +200 arch/m68k/include/asm/bitops.h
+
+171d809d Greg Ungerer 2011-05-17  184  {
+171d809d Greg Ungerer 2011-05-17  185  	char retval;
+171d809d Greg Ungerer 2011-05-17  186  
+171d809d Greg Ungerer 2011-05-17  187  	__asm__ __volatile__ ("bfset %2{%1:#1}; sne %0"
+171d809d Greg Ungerer 2011-05-17  188  		: "=d" (retval)
+171d809d Greg Ungerer 2011-05-17  189  		: "d" (nr ^ 31), "o" (*vaddr)
+171d809d Greg Ungerer 2011-05-17  190  		: "memory");
+171d809d Greg Ungerer 2011-05-17  191  	return retval;
+171d809d Greg Ungerer 2011-05-17  192  }
+171d809d Greg Ungerer 2011-05-17  193  
+171d809d Greg Ungerer 2011-05-17  194  #if defined(CONFIG_COLDFIRE)
+171d809d Greg Ungerer 2011-05-17  195  #define	test_and_set_bit(nr, vaddr)	bset_reg_test_and_set_bit(nr, vaddr)
+171d809d Greg Ungerer 2011-05-17  196  #elif defined(CONFIG_CPU_HAS_NO_BITFIELDS)
+171d809d Greg Ungerer 2011-05-17  197  #define	test_and_set_bit(nr, vaddr)	bset_mem_test_and_set_bit(nr, vaddr)
+171d809d Greg Ungerer 2011-05-17  198  #else
+171d809d Greg Ungerer 2011-05-17  199  #define test_and_set_bit(nr, vaddr)	(__builtin_constant_p(nr) ? \
+171d809d Greg Ungerer 2011-05-17 @200  					bset_mem_test_and_set_bit(nr, vaddr) : \
+171d809d Greg Ungerer 2011-05-17  201  					bfset_mem_test_and_set_bit(nr, vaddr))
+171d809d Greg Ungerer 2011-05-17  202  #endif
+171d809d Greg Ungerer 2011-05-17  203  
+171d809d Greg Ungerer 2011-05-17  204  #define __test_and_set_bit(nr, vaddr)	test_and_set_bit(nr, vaddr)
+171d809d Greg Ungerer 2011-05-17  205  
+171d809d Greg Ungerer 2011-05-17  206  
+f5fbac0b Chen Gang    2016-08-28  207  static inline bool bclr_reg_test_and_clear_bit(int nr,
+171d809d Greg Ungerer 2011-05-17  208  					      volatile unsigned long *vaddr)
+
+:::::: The code at line 200 was first introduced by commit
+:::::: 171d809df1896c1022f9778cd2788be6c255a7dc m68k: merge mmu and non-mmu bitops.h
+
+:::::: TO: Greg Ungerer <gerg@uclinux.org>
+:::::: CC: Greg Ungerer <gerg@uclinux.org>
+
 ---
- arch/alpha/include/asm/bitops.h         | 16 ++++++++--------
- arch/arc/include/asm/bitops.h           | 10 +++++-----
- arch/arm/include/asm/bitops.h           | 12 ++++++------
- arch/arm64/include/asm/bitops.h         |  6 +++---
- arch/avr32/include/asm/bitops.h         |  6 +++---
- arch/blackfin/include/asm/bitops.h      | 16 ++++++++--------
- arch/frv/include/asm/bitops.h           | 16 ++++++++--------
- arch/h8300/include/asm/bitops.h         |  4 ++--
- arch/hexagon/include/asm/bitops.h       | 14 +++++++-------
- arch/ia64/include/asm/bitops.h          | 14 +++++++-------
- arch/m32r/include/asm/bitops.h          |  6 +++---
- arch/m68k/include/asm/bitops.h          | 20 ++++++++++----------
- arch/metag/include/asm/bitops.h         |  6 +++---
- arch/mips/include/asm/bitops.h          | 16 ++++++++--------
- arch/mips/lib/bitops.c                  | 16 ++++++++--------
- arch/mn10300/include/asm/bitops.h       |  7 ++++---
- arch/parisc/include/asm/bitops.h        | 16 ++++++++--------
- arch/powerpc/include/asm/bitops.h       | 10 +++++-----
- arch/s390/include/asm/bitops.h          | 18 +++++++++---------
- arch/sh/include/asm/bitops-cas.h        |  6 +++---
- arch/sh/include/asm/bitops-grb.h        |  6 +++---
- arch/sh/include/asm/bitops-llsc.h       |  6 +++---
- arch/sh/include/asm/bitops-op32.h       |  8 ++++----
- arch/sparc/include/asm/bitops_32.h      |  6 +++---
- arch/sparc/include/asm/bitops_64.h      |  6 +++---
- arch/tile/include/asm/bitops_32.h       |  6 +++---
- arch/tile/include/asm/bitops_64.h       | 10 +++++-----
- arch/xtensa/include/asm/bitops.h        |  6 +++---
- include/asm-generic/bitops/atomic.h     |  6 +++---
- include/asm-generic/bitops/le.h         | 10 +++++-----
- include/asm-generic/bitops/non-atomic.h |  8 ++++----
- 31 files changed, 157 insertions(+), 156 deletions(-)
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/arch/alpha/include/asm/bitops.h b/arch/alpha/include/asm/bitops.h
-index 4bdfbd4..92d468f 100644
---- a/arch/alpha/include/asm/bitops.h
-+++ b/arch/alpha/include/asm/bitops.h
-@@ -125,7 +125,7 @@ __change_bit(unsigned long nr, volatile void * addr)
- 	*m ^= 1 << (nr & 31);
- }
- 
--static inline int
-+static inline bool
- test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	unsigned long oldbit;
-@@ -155,7 +155,7 @@ test_and_set_bit(unsigned long nr, volatile void *addr)
- 	return oldbit != 0;
- }
- 
--static inline int
-+static inline bool
- test_and_set_bit_lock(unsigned long nr, volatile void *addr)
- {
- 	unsigned long oldbit;
-@@ -185,7 +185,7 @@ test_and_set_bit_lock(unsigned long nr, volatile void *addr)
- /*
-  * WARNING: non atomic version.
-  */
--static inline int
-+static inline bool
- __test_and_set_bit(unsigned long nr, volatile void * addr)
- {
- 	unsigned long mask = 1 << (nr & 0x1f);
-@@ -196,7 +196,7 @@ __test_and_set_bit(unsigned long nr, volatile void * addr)
- 	return (old & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- test_and_clear_bit(unsigned long nr, volatile void * addr)
- {
- 	unsigned long oldbit;
-@@ -229,7 +229,7 @@ test_and_clear_bit(unsigned long nr, volatile void * addr)
- /*
-  * WARNING: non atomic version.
-  */
--static inline int
-+static inline bool
- __test_and_clear_bit(unsigned long nr, volatile void * addr)
- {
- 	unsigned long mask = 1 << (nr & 0x1f);
-@@ -240,7 +240,7 @@ __test_and_clear_bit(unsigned long nr, volatile void * addr)
- 	return (old & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- test_and_change_bit(unsigned long nr, volatile void * addr)
- {
- 	unsigned long oldbit;
-@@ -271,7 +271,7 @@ test_and_change_bit(unsigned long nr, volatile void * addr)
- /*
-  * WARNING: non atomic version.
-  */
--static __inline__ int
-+static __inline__ bool
- __test_and_change_bit(unsigned long nr, volatile void * addr)
- {
- 	unsigned long mask = 1 << (nr & 0x1f);
-@@ -282,7 +282,7 @@ __test_and_change_bit(unsigned long nr, volatile void * addr)
- 	return (old & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- test_bit(int nr, const volatile void * addr)
- {
- 	return (1UL & (((const int *) addr)[nr >> 5] >> (nr & 31))) != 0UL;
-diff --git a/arch/arc/include/asm/bitops.h b/arch/arc/include/asm/bitops.h
-index 8da87fee..e1976ab 100644
---- a/arch/arc/include/asm/bitops.h
-+++ b/arch/arc/include/asm/bitops.h
-@@ -60,7 +60,7 @@ static inline void op##_bit(unsigned long nr, volatile unsigned long *m)\
-  * and the old value of bit is returned
-  */
- #define TEST_N_BIT_OP(op, c_op, asm_op)					\
--static inline int test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
-+static inline bool test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
- {									\
- 	unsigned long old, temp;					\
- 									\
-@@ -124,7 +124,7 @@ static inline void op##_bit(unsigned long nr, volatile unsigned long *m)\
- }
- 
- #define TEST_N_BIT_OP(op, c_op, asm_op)					\
--static inline int test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
-+static inline bool test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
- {									\
- 	unsigned long old, flags;					\
- 	m += nr >> 5;							\
-@@ -160,7 +160,7 @@ static inline void op##_bit(unsigned long nr, volatile unsigned long *m)\
- }
- 
- #define TEST_N_BIT_OP(op, c_op, asm_op)					\
--static inline int test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
-+static inline bool test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
- {									\
- 	unsigned long old;						\
- 									\
-@@ -204,7 +204,7 @@ static inline void __##op##_bit(unsigned long nr, volatile unsigned long *m)	\
- }
- 
- #define __TEST_N_BIT_OP(op, c_op, asm_op)				\
--static inline int __test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
-+static inline bool __test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
- {									\
- 	unsigned long old;						\
- 	m += nr >> 5;							\
-@@ -242,7 +242,7 @@ BIT_OPS(change, ^, CTOP_INST_AXOR_DI_R2_R2_R3)
- /*
-  * This routine doesn't need to be atomic.
-  */
--static inline int
-+static inline bool
- test_bit(unsigned int nr, const volatile unsigned long *addr)
- {
- 	unsigned long mask;
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index e943e6c..719a598 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -68,7 +68,7 @@ static inline void ____atomic_change_bit(unsigned int bit, volatile unsigned lon
- 	raw_local_irq_restore(flags);
- }
- 
--static inline int
-+static inline bool
- ____atomic_test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long flags;
-@@ -85,7 +85,7 @@ ____atomic_test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- 	return (res & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- ____atomic_test_and_clear_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long flags;
-@@ -102,7 +102,7 @@ ____atomic_test_and_clear_bit(unsigned int bit, volatile unsigned long *p)
- 	return (res & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- ____atomic_test_and_change_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long flags;
-@@ -152,9 +152,9 @@ ____atomic_test_and_change_bit(unsigned int bit, volatile unsigned long *p)
- extern void _set_bit(int nr, volatile unsigned long * p);
- extern void _clear_bit(int nr, volatile unsigned long * p);
- extern void _change_bit(int nr, volatile unsigned long * p);
--extern int _test_and_set_bit(int nr, volatile unsigned long * p);
--extern int _test_and_clear_bit(int nr, volatile unsigned long * p);
--extern int _test_and_change_bit(int nr, volatile unsigned long * p);
-+extern bool _test_and_set_bit(int nr, volatile unsigned long *p);
-+extern bool _test_and_clear_bit(int nr, volatile unsigned long *p);
-+extern bool _test_and_change_bit(int nr, volatile unsigned long *p);
- 
- /*
-  * Little endian assembly bitops.  nr = 0 -> byte 0 bit 0.
-diff --git a/arch/arm64/include/asm/bitops.h b/arch/arm64/include/asm/bitops.h
-index 9c19594..61f9f3c 100644
---- a/arch/arm64/include/asm/bitops.h
-+++ b/arch/arm64/include/asm/bitops.h
-@@ -29,9 +29,9 @@
- extern void set_bit(int nr, volatile unsigned long *p);
- extern void clear_bit(int nr, volatile unsigned long *p);
- extern void change_bit(int nr, volatile unsigned long *p);
--extern int test_and_set_bit(int nr, volatile unsigned long *p);
--extern int test_and_clear_bit(int nr, volatile unsigned long *p);
--extern int test_and_change_bit(int nr, volatile unsigned long *p);
-+extern bool test_and_set_bit(int nr, volatile unsigned long *p);
-+extern bool test_and_clear_bit(int nr, volatile unsigned long *p);
-+extern bool test_and_change_bit(int nr, volatile unsigned long *p);
- 
- #include <asm-generic/bitops/builtin-__ffs.h>
- #include <asm-generic/bitops/builtin-ffs.h>
-diff --git a/arch/avr32/include/asm/bitops.h b/arch/avr32/include/asm/bitops.h
-index 910d537..0e3e08b 100644
---- a/arch/avr32/include/asm/bitops.h
-+++ b/arch/avr32/include/asm/bitops.h
-@@ -128,7 +128,7 @@ static inline void change_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_set_bit(int nr, volatile void * addr)
-+static inline bool test_and_set_bit(int nr, volatile void *addr)
- {
- 	unsigned long *p = ((unsigned long *)addr) + nr / BITS_PER_LONG;
- 	unsigned long mask = 1UL << (nr % BITS_PER_LONG);
-@@ -168,7 +168,7 @@ static inline int test_and_set_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_clear_bit(int nr, volatile void * addr)
-+static inline bool test_and_clear_bit(int nr, volatile void *addr)
- {
- 	unsigned long *p = ((unsigned long *)addr) + nr / BITS_PER_LONG;
- 	unsigned long mask = 1UL << (nr % BITS_PER_LONG);
-@@ -209,7 +209,7 @@ static inline int test_and_clear_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_change_bit(int nr, volatile void * addr)
-+static inline bool test_and_change_bit(int nr, volatile void *addr)
- {
- 	unsigned long *p = ((unsigned long *)addr) + nr / BITS_PER_LONG;
- 	unsigned long mask = 1UL << (nr % BITS_PER_LONG);
-diff --git a/arch/blackfin/include/asm/bitops.h b/arch/blackfin/include/asm/bitops.h
-index b298b65..ff43a11 100644
---- a/arch/blackfin/include/asm/bitops.h
-+++ b/arch/blackfin/include/asm/bitops.h
-@@ -47,13 +47,13 @@ asmlinkage int __raw_bit_clear_asm(volatile unsigned long *addr, int nr);
- 
- asmlinkage int __raw_bit_toggle_asm(volatile unsigned long *addr, int nr);
- 
--asmlinkage int __raw_bit_test_set_asm(volatile unsigned long *addr, int nr);
-+asmlinkage bool __raw_bit_test_set_asm(volatile unsigned long *addr, int nr);
- 
--asmlinkage int __raw_bit_test_clear_asm(volatile unsigned long *addr, int nr);
-+asmlinkage bool __raw_bit_test_clear_asm(volatile unsigned long *addr, int nr);
- 
--asmlinkage int __raw_bit_test_toggle_asm(volatile unsigned long *addr, int nr);
-+asmlinkage bool __raw_bit_test_toggle_asm(volatile unsigned long *addr, int nr);
- 
--asmlinkage int __raw_bit_test_asm(const volatile unsigned long *addr, int nr);
-+asmlinkage bool __raw_bit_test_asm(const volatile unsigned long *addr, int nr);
- 
- static inline void set_bit(int nr, volatile unsigned long *addr)
- {
-@@ -73,25 +73,25 @@ static inline void change_bit(int nr, volatile unsigned long *addr)
- 	__raw_bit_toggle_asm(a, nr & 0x1f);
- }
- 
--static inline int test_bit(int nr, const volatile unsigned long *addr)
-+static inline bool test_bit(int nr, const volatile unsigned long *addr)
- {
- 	volatile const unsigned long *a = addr + (nr >> 5);
- 	return __raw_bit_test_asm(a, nr & 0x1f) != 0;
- }
- 
--static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	volatile unsigned long *a = addr + (nr >> 5);
- 	return __raw_bit_test_set_asm(a, nr & 0x1f);
- }
- 
--static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	volatile unsigned long *a = addr + (nr >> 5);
- 	return __raw_bit_test_clear_asm(a, nr & 0x1f);
- }
- 
--static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_change_bit(int nr, volatile unsigned long *addr)
- {
- 	volatile unsigned long *a = addr + (nr >> 5);
- 	return __raw_bit_test_toggle_asm(a, nr & 0x1f);
-diff --git a/arch/frv/include/asm/bitops.h b/arch/frv/include/asm/bitops.h
-index 0df8e95..c9bf93d 100644
---- a/arch/frv/include/asm/bitops.h
-+++ b/arch/frv/include/asm/bitops.h
-@@ -27,7 +27,7 @@
- 
- #include <asm/atomic.h>
- 
--static inline int test_and_clear_bit(unsigned long nr, volatile void *addr)
-+static inline bool test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	unsigned int *ptr = (void *)addr;
- 	unsigned int mask = 1UL << (nr & 31);
-@@ -35,7 +35,7 @@ static inline int test_and_clear_bit(unsigned long nr, volatile void *addr)
- 	return (__atomic32_fetch_and(~mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_set_bit(unsigned long nr, volatile void *addr)
-+static inline bool test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	unsigned int *ptr = (void *)addr;
- 	unsigned int mask = 1UL << (nr & 31);
-@@ -43,7 +43,7 @@ static inline int test_and_set_bit(unsigned long nr, volatile void *addr)
- 	return (__atomic32_fetch_or(mask, ptr) & mask) != 0;
- }
- 
--static inline int test_and_change_bit(unsigned long nr, volatile void *addr)
-+static inline bool test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	unsigned int *ptr = (void *)addr;
- 	unsigned int mask = 1UL << (nr & 31);
-@@ -96,7 +96,7 @@ static inline void __change_bit(unsigned long nr, volatile void *addr)
- 	*a ^= mask;
- }
- 
--static inline int __test_and_clear_bit(unsigned long nr, volatile void *addr)
-+static inline bool __test_and_clear_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -108,7 +108,7 @@ static inline int __test_and_clear_bit(unsigned long nr, volatile void *addr)
- 	return retval;
- }
- 
--static inline int __test_and_set_bit(unsigned long nr, volatile void *addr)
-+static inline bool __test_and_set_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -120,7 +120,7 @@ static inline int __test_and_set_bit(unsigned long nr, volatile void *addr)
- 	return retval;
- }
- 
--static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
-+static inline bool __test_and_change_bit(unsigned long nr, volatile void *addr)
- {
- 	volatile unsigned long *a = addr;
- 	int mask, retval;
-@@ -135,13 +135,13 @@ static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
- /*
-  * This routine doesn't need to be atomic.
-  */
--static inline int
-+static inline bool
- __constant_test_bit(unsigned long nr, const volatile void *addr)
- {
- 	return ((1UL << (nr & 31)) & (((const volatile unsigned int *) addr)[nr >> 5])) != 0;
- }
- 
--static inline int __test_bit(unsigned long nr, const volatile void *addr)
-+static inline bool __test_bit(unsigned long nr, const volatile void *addr)
- {
- 	int 	* a = (int *) addr;
- 	int	mask;
-diff --git a/arch/h8300/include/asm/bitops.h b/arch/h8300/include/asm/bitops.h
-index 05999ab..8f6dfc6 100644
---- a/arch/h8300/include/asm/bitops.h
-+++ b/arch/h8300/include/asm/bitops.h
-@@ -65,7 +65,7 @@ H8300_GEN_BITOP(change_bit, "bnot")
- 
- #undef H8300_GEN_BITOP
- 
--static inline int test_bit(int nr, const unsigned long *addr)
-+static inline bool test_bit(int nr, const unsigned long *addr)
- {
- 	int ret = 0;
- 	unsigned char *b_addr;
-@@ -91,7 +91,7 @@ static inline int test_bit(int nr, const unsigned long *addr)
- #define __test_bit(nr, addr) test_bit(nr, addr)
- 
- #define H8300_GEN_TEST_BITOP(FNNAME, OP)				\
--static inline int FNNAME(int nr, void *addr)				\
-+static inline bool FNNAME(int nr, void *addr)				\
- {									\
- 	int retval = 0;							\
- 	char ccrsave;							\
-diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
-index 5e4a59b..fa6b32c 100644
---- a/arch/hexagon/include/asm/bitops.h
-+++ b/arch/hexagon/include/asm/bitops.h
-@@ -42,7 +42,7 @@
-  * @nr:  bit number to clear
-  * @addr:  pointer to memory
-  */
--static inline int test_and_clear_bit(int nr, volatile void *addr)
-+static inline bool test_and_clear_bit(int nr, volatile void *addr)
- {
- 	int oldval;
- 
-@@ -66,7 +66,7 @@ static inline int test_and_clear_bit(int nr, volatile void *addr)
-  * @nr:  bit number to set
-  * @addr:  pointer to memory
-  */
--static inline int test_and_set_bit(int nr, volatile void *addr)
-+static inline bool test_and_set_bit(int nr, volatile void *addr)
- {
- 	int oldval;
- 
-@@ -92,7 +92,7 @@ static inline int test_and_set_bit(int nr, volatile void *addr)
-  * @nr:  bit number to set
-  * @addr:  pointer to memory
-  */
--static inline int test_and_change_bit(int nr, volatile void *addr)
-+static inline bool test_and_change_bit(int nr, volatile void *addr)
- {
- 	int oldval;
- 
-@@ -157,22 +157,22 @@ static inline void __change_bit(int nr, volatile unsigned long *addr)
- }
- 
- /*  Apparently, at least some of these are allowed to be non-atomic  */
--static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	return test_and_clear_bit(nr, addr);
- }
- 
--static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	return test_and_set_bit(nr, addr);
- }
- 
--static inline int __test_and_change_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_change_bit(int nr, volatile unsigned long *addr)
- {
- 	return test_and_change_bit(nr, addr);
- }
- 
--static inline int __test_bit(int nr, const volatile unsigned long *addr)
-+static inline bool __test_bit(int nr, const volatile unsigned long *addr)
- {
- 	int retval;
- 
-diff --git a/arch/ia64/include/asm/bitops.h b/arch/ia64/include/asm/bitops.h
-index 71e8145..38edf72 100644
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -196,7 +196,7 @@ __change_bit (int nr, volatile void *addr)
-  * This operation is atomic and cannot be reordered.  
-  * It also implies the acquisition side of the memory barrier.
-  */
--static __inline__ int
-+static __inline__ bool
- test_and_set_bit (int nr, volatile void *addr)
- {
- 	__u32 bit, old, new;
-@@ -231,7 +231,7 @@ test_and_set_bit (int nr, volatile void *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static __inline__ int
-+static __inline__ bool
- __test_and_set_bit (int nr, volatile void *addr)
- {
- 	__u32 *p = (__u32 *) addr + (nr >> 5);
-@@ -250,7 +250,7 @@ __test_and_set_bit (int nr, volatile void *addr)
-  * This operation is atomic and cannot be reordered.  
-  * It also implies the acquisition side of the memory barrier.
-  */
--static __inline__ int
-+static __inline__ bool
- test_and_clear_bit (int nr, volatile void *addr)
- {
- 	__u32 mask, old, new;
-@@ -276,7 +276,7 @@ test_and_clear_bit (int nr, volatile void *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static __inline__ int
-+static __inline__ bool
- __test_and_clear_bit(int nr, volatile void * addr)
- {
- 	__u32 *p = (__u32 *) addr + (nr >> 5);
-@@ -295,7 +295,7 @@ __test_and_clear_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.  
-  * It also implies the acquisition side of the memory barrier.
-  */
--static __inline__ int
-+static __inline__ bool
- test_and_change_bit (int nr, volatile void *addr)
- {
- 	__u32 bit, old, new;
-@@ -319,7 +319,7 @@ test_and_change_bit (int nr, volatile void *addr)
-  *
-  * This operation is non-atomic and can be reordered.
-  */
--static __inline__ int
-+static __inline__ bool
- __test_and_change_bit (int nr, void *addr)
- {
- 	__u32 old, bit = (1 << (nr & 31));
-@@ -330,7 +330,7 @@ __test_and_change_bit (int nr, void *addr)
- 	return (old & bit) != 0;
- }
- 
--static __inline__ int
-+static __inline__ bool
- test_bit (int nr, const volatile void *addr)
- {
- 	return 1 & (((const volatile __u32 *) addr)[nr >> 5] >> (nr & 31));
-diff --git a/arch/m32r/include/asm/bitops.h b/arch/m32r/include/asm/bitops.h
-index 86ba2b4..5f12ceb 100644
---- a/arch/m32r/include/asm/bitops.h
-+++ b/arch/m32r/include/asm/bitops.h
-@@ -147,7 +147,7 @@ static __inline__ void change_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static __inline__ int test_and_set_bit(int nr, volatile void * addr)
-+static __inline__ bool test_and_set_bit(int nr, volatile void *addr)
- {
- 	__u32 mask, oldbit;
- 	volatile __u32 *a = addr;
-@@ -182,7 +182,7 @@ static __inline__ int test_and_set_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static __inline__ int test_and_clear_bit(int nr, volatile void * addr)
-+static __inline__ bool test_and_clear_bit(int nr, volatile void *addr)
- {
- 	__u32 mask, oldbit;
- 	volatile __u32 *a = addr;
-@@ -219,7 +219,7 @@ static __inline__ int test_and_clear_bit(int nr, volatile void * addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static __inline__ int test_and_change_bit(int nr, volatile void * addr)
-+static __inline__ bool test_and_change_bit(int nr, volatile void *addr)
- {
- 	__u32 mask, oldbit;
- 	volatile __u32 *a = addr;
-diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
-index b4a9b0d..9f5835d 100644
---- a/arch/m68k/include/asm/bitops.h
-+++ b/arch/m68k/include/asm/bitops.h
-@@ -148,13 +148,13 @@ static inline void bfchg_mem_change_bit(int nr, volatile unsigned long *vaddr)
- #define __change_bit(nr, vaddr)	change_bit(nr, vaddr)
- 
- 
--static inline int test_bit(int nr, const unsigned long *vaddr)
-+static inline bool test_bit(int nr, const unsigned long *vaddr)
- {
- 	return (vaddr[nr >> 5] & (1UL << (nr & 31))) != 0;
- }
- 
- 
--static inline int bset_reg_test_and_set_bit(int nr,
-+static inline bool bset_reg_test_and_set_bit(int nr,
- 					    volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -167,7 +167,7 @@ static inline int bset_reg_test_and_set_bit(int nr,
- 	return retval;
- }
- 
--static inline int bset_mem_test_and_set_bit(int nr,
-+static inline bool bset_mem_test_and_set_bit(int nr,
- 					    volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -179,7 +179,7 @@ static inline int bset_mem_test_and_set_bit(int nr,
- 	return retval;
- }
- 
--static inline int bfset_mem_test_and_set_bit(int nr,
-+static inline bool bfset_mem_test_and_set_bit(int nr,
- 					     volatile unsigned long *vaddr)
- {
- 	char retval;
-@@ -204,7 +204,7 @@ static inline int bfset_mem_test_and_set_bit(int nr,
- #define __test_and_set_bit(nr, vaddr)	test_and_set_bit(nr, vaddr)
- 
- 
--static inline int bclr_reg_test_and_clear_bit(int nr,
-+static inline bool bclr_reg_test_and_clear_bit(int nr,
- 					      volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -217,7 +217,7 @@ static inline int bclr_reg_test_and_clear_bit(int nr,
- 	return retval;
- }
- 
--static inline int bclr_mem_test_and_clear_bit(int nr,
-+static inline bool bclr_mem_test_and_clear_bit(int nr,
- 					      volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -229,7 +229,7 @@ static inline int bclr_mem_test_and_clear_bit(int nr,
- 	return retval;
- }
- 
--static inline int bfclr_mem_test_and_clear_bit(int nr,
-+static inline bool bfclr_mem_test_and_clear_bit(int nr,
- 					       volatile unsigned long *vaddr)
- {
- 	char retval;
-@@ -254,7 +254,7 @@ static inline int bfclr_mem_test_and_clear_bit(int nr,
- #define __test_and_clear_bit(nr, vaddr)	test_and_clear_bit(nr, vaddr)
- 
- 
--static inline int bchg_reg_test_and_change_bit(int nr,
-+static inline bool bchg_reg_test_and_change_bit(int nr,
- 					       volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -267,7 +267,7 @@ static inline int bchg_reg_test_and_change_bit(int nr,
- 	return retval;
- }
- 
--static inline int bchg_mem_test_and_change_bit(int nr,
-+static inline bool bchg_mem_test_and_change_bit(int nr,
- 					       volatile unsigned long *vaddr)
- {
- 	char *p = (char *)vaddr + (nr ^ 31) / 8;
-@@ -279,7 +279,7 @@ static inline int bchg_mem_test_and_change_bit(int nr,
- 	return retval;
- }
- 
--static inline int bfchg_mem_test_and_change_bit(int nr,
-+static inline bool bfchg_mem_test_and_change_bit(int nr,
- 						volatile unsigned long *vaddr)
- {
- 	char retval;
-diff --git a/arch/metag/include/asm/bitops.h b/arch/metag/include/asm/bitops.h
-index 2671134..11df061 100644
---- a/arch/metag/include/asm/bitops.h
-+++ b/arch/metag/include/asm/bitops.h
-@@ -48,7 +48,7 @@ static inline void change_bit(unsigned int bit, volatile unsigned long *p)
- 	__global_unlock1(flags);
- }
- 
--static inline int test_and_set_bit(unsigned int bit, volatile unsigned long *p)
-+static inline bool test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long flags;
- 	unsigned long old;
-@@ -67,7 +67,7 @@ static inline int test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- 	return (old & mask) != 0;
- }
- 
--static inline int test_and_clear_bit(unsigned int bit,
-+static inline bool test_and_clear_bit(unsigned int bit,
- 				     volatile unsigned long *p)
- {
- 	unsigned long flags;
-@@ -87,7 +87,7 @@ static inline int test_and_clear_bit(unsigned int bit,
- 	return (old & mask) != 0;
- }
- 
--static inline int test_and_change_bit(unsigned int bit,
-+static inline bool test_and_change_bit(unsigned int bit,
- 				      volatile unsigned long *p)
- {
- 	unsigned long flags;
-diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
-index fa57cef..7e53c66 100644
---- a/arch/mips/include/asm/bitops.h
-+++ b/arch/mips/include/asm/bitops.h
-@@ -30,13 +30,13 @@
- void __mips_set_bit(unsigned long nr, volatile unsigned long *addr);
- void __mips_clear_bit(unsigned long nr, volatile unsigned long *addr);
- void __mips_change_bit(unsigned long nr, volatile unsigned long *addr);
--int __mips_test_and_set_bit(unsigned long nr,
-+bool __mips_test_and_set_bit(unsigned long nr,
- 			    volatile unsigned long *addr);
--int __mips_test_and_set_bit_lock(unsigned long nr,
-+bool __mips_test_and_set_bit_lock(unsigned long nr,
- 				 volatile unsigned long *addr);
--int __mips_test_and_clear_bit(unsigned long nr,
-+bool __mips_test_and_clear_bit(unsigned long nr,
- 			      volatile unsigned long *addr);
--int __mips_test_and_change_bit(unsigned long nr,
-+bool __mips_test_and_change_bit(unsigned long nr,
- 			       volatile unsigned long *addr);
- 
- 
-@@ -210,7 +210,7 @@ static inline void change_bit(unsigned long nr, volatile unsigned long *addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_set_bit(unsigned long nr,
-+static inline bool test_and_set_bit(unsigned long nr,
- 	volatile unsigned long *addr)
- {
- 	int bit = nr & SZLONG_MASK;
-@@ -266,7 +266,7 @@ static inline int test_and_set_bit(unsigned long nr,
-  * This operation is atomic and implies acquire ordering semantics
-  * after the memory operation.
-  */
--static inline int test_and_set_bit_lock(unsigned long nr,
-+static inline bool test_and_set_bit_lock(unsigned long nr,
- 	volatile unsigned long *addr)
- {
- 	int bit = nr & SZLONG_MASK;
-@@ -319,7 +319,7 @@ static inline int test_and_set_bit_lock(unsigned long nr,
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_clear_bit(unsigned long nr,
-+static inline bool test_and_clear_bit(unsigned long nr,
- 	volatile unsigned long *addr)
- {
- 	int bit = nr & SZLONG_MASK;
-@@ -393,7 +393,7 @@ static inline int test_and_clear_bit(unsigned long nr,
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_change_bit(unsigned long nr,
-+static inline bool test_and_change_bit(unsigned long nr,
- 	volatile unsigned long *addr)
- {
- 	int bit = nr & SZLONG_MASK;
-diff --git a/arch/mips/lib/bitops.c b/arch/mips/lib/bitops.c
-index 3b2a1e7..8f0ba2a 100644
---- a/arch/mips/lib/bitops.c
-+++ b/arch/mips/lib/bitops.c
-@@ -83,14 +83,14 @@ EXPORT_SYMBOL(__mips_change_bit);
-  * @nr: Bit to set
-  * @addr: Address to count from
-  */
--int __mips_test_and_set_bit(unsigned long nr,
-+bool __mips_test_and_set_bit(unsigned long nr,
- 			    volatile unsigned long *addr)
- {
- 	unsigned long *a = (unsigned long *)addr;
- 	unsigned bit = nr & SZLONG_MASK;
- 	unsigned long mask;
- 	unsigned long flags;
--	int res;
-+	bool res;
- 
- 	a += nr >> SZLONG_LOG;
- 	mask = 1UL << bit;
-@@ -109,14 +109,14 @@ EXPORT_SYMBOL(__mips_test_and_set_bit);
-  * @nr: Bit to set
-  * @addr: Address to count from
-  */
--int __mips_test_and_set_bit_lock(unsigned long nr,
-+bool __mips_test_and_set_bit_lock(unsigned long nr,
- 				 volatile unsigned long *addr)
- {
- 	unsigned long *a = (unsigned long *)addr;
- 	unsigned bit = nr & SZLONG_MASK;
- 	unsigned long mask;
- 	unsigned long flags;
--	int res;
-+	bool res;
- 
- 	a += nr >> SZLONG_LOG;
- 	mask = 1UL << bit;
-@@ -135,13 +135,13 @@ EXPORT_SYMBOL(__mips_test_and_set_bit_lock);
-  * @nr: Bit to clear
-  * @addr: Address to count from
-  */
--int __mips_test_and_clear_bit(unsigned long nr, volatile unsigned long *addr)
-+bool __mips_test_and_clear_bit(unsigned long nr, volatile unsigned long *addr)
- {
- 	unsigned long *a = (unsigned long *)addr;
- 	unsigned bit = nr & SZLONG_MASK;
- 	unsigned long mask;
- 	unsigned long flags;
--	int res;
-+	bool res;
- 
- 	a += nr >> SZLONG_LOG;
- 	mask = 1UL << bit;
-@@ -160,13 +160,13 @@ EXPORT_SYMBOL(__mips_test_and_clear_bit);
-  * @nr: Bit to change
-  * @addr: Address to count from
-  */
--int __mips_test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
-+bool __mips_test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
- {
- 	unsigned long *a = (unsigned long *)addr;
- 	unsigned bit = nr & SZLONG_MASK;
- 	unsigned long mask;
- 	unsigned long flags;
--	int res;
-+	bool res;
- 
- 	a += nr >> SZLONG_LOG;
- 	mask = 1UL << bit;
-diff --git a/arch/mn10300/include/asm/bitops.h b/arch/mn10300/include/asm/bitops.h
-index fe6f8e2..5b00e95 100644
---- a/arch/mn10300/include/asm/bitops.h
-+++ b/arch/mn10300/include/asm/bitops.h
-@@ -68,7 +68,7 @@ static inline void __clear_bit(unsigned long nr, volatile void *addr)
- /*
-  * test bit
-  */
--static inline int test_bit(unsigned long nr, const volatile void *addr)
-+static inline bool test_bit(unsigned long nr, const volatile void *addr)
- {
- 	return 1UL & (((const volatile unsigned int *) addr)[nr >> 5] >> (nr & 31));
- }
-@@ -133,9 +133,10 @@ extern void change_bit(unsigned long nr, volatile void *addr);
- /*
-  * test and change bit
-  */
--static inline int __test_and_change_bit(unsigned long nr, volatile void *addr)
-+static inline bool __test_and_change_bit(unsigned long nr, volatile void *addr)
- {
--	int	mask, retval;
-+	int mask;
-+	bool retval;
- 	unsigned int *a = (unsigned int *)addr;
- 
- 	a += nr >> 5;
-diff --git a/arch/parisc/include/asm/bitops.h b/arch/parisc/include/asm/bitops.h
-index 3f9406d..bac163d 100644
---- a/arch/parisc/include/asm/bitops.h
-+++ b/arch/parisc/include/asm/bitops.h
-@@ -59,17 +59,17 @@ static __inline__ void change_bit(int nr, volatile unsigned long * addr)
- 	_atomic_spin_unlock_irqrestore(addr, flags);
- }
- 
--static __inline__ int test_and_set_bit(int nr, volatile unsigned long * addr)
-+static __inline__ bool test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = 1UL << CHOP_SHIFTCOUNT(nr);
- 	unsigned long old;
- 	unsigned long flags;
--	int set;
-+	bool set;
- 
- 	addr += (nr >> SHIFT_PER_LONG);
- 	_atomic_spin_lock_irqsave(addr, flags);
- 	old = *addr;
--	set = (old & mask) ? 1 : 0;
-+	set = (old & mask) ? true : false;
- 	if (!set)
- 		*addr = old | mask;
- 	_atomic_spin_unlock_irqrestore(addr, flags);
-@@ -77,17 +77,17 @@ static __inline__ int test_and_set_bit(int nr, volatile unsigned long * addr)
- 	return set;
- }
- 
--static __inline__ int test_and_clear_bit(int nr, volatile unsigned long * addr)
-+static __inline__ bool test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = 1UL << CHOP_SHIFTCOUNT(nr);
- 	unsigned long old;
- 	unsigned long flags;
--	int set;
-+	bool set;
- 
- 	addr += (nr >> SHIFT_PER_LONG);
- 	_atomic_spin_lock_irqsave(addr, flags);
- 	old = *addr;
--	set = (old & mask) ? 1 : 0;
-+	set = (old & mask) ? true : false;
- 	if (set)
- 		*addr = old & ~mask;
- 	_atomic_spin_unlock_irqrestore(addr, flags);
-@@ -95,7 +95,7 @@ static __inline__ int test_and_clear_bit(int nr, volatile unsigned long * addr)
- 	return set;
- }
- 
--static __inline__ int test_and_change_bit(int nr, volatile unsigned long * addr)
-+static __inline__ bool test_and_change_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = 1UL << CHOP_SHIFTCOUNT(nr);
- 	unsigned long oldbit;
-@@ -107,7 +107,7 @@ static __inline__ int test_and_change_bit(int nr, volatile unsigned long * addr)
- 	*addr = oldbit ^ mask;
- 	_atomic_spin_unlock_irqrestore(addr, flags);
- 
--	return (oldbit & mask) ? 1 : 0;
-+	return (oldbit & mask) ? true : false;
- }
- 
- #include <asm-generic/bitops/non-atomic.h>
-diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index 59abc62..7838138 100644
---- a/arch/powerpc/include/asm/bitops.h
-+++ b/arch/powerpc/include/asm/bitops.h
-@@ -100,7 +100,7 @@ static __inline__ void change_bit(int nr, volatile unsigned long *addr)
- /* Like DEFINE_BITOP(), with changes to the arguments to 'op' and the output
-  * operands. */
- #define DEFINE_TESTOP(fn, op, prefix, postfix, eh)	\
--static __inline__ unsigned long fn(			\
-+static __inline__ bool fn(				\
- 		unsigned long mask,			\
- 		volatile unsigned long *_p)		\
- {							\
-@@ -129,26 +129,26 @@ DEFINE_TESTOP(test_and_clear_bits, andc, PPC_ATOMIC_ENTRY_BARRIER,
- DEFINE_TESTOP(test_and_change_bits, xor, PPC_ATOMIC_ENTRY_BARRIER,
- 	      PPC_ATOMIC_EXIT_BARRIER, 0)
- 
--static __inline__ int test_and_set_bit(unsigned long nr,
-+static __inline__ bool test_and_set_bit(unsigned long nr,
- 				       volatile unsigned long *addr)
- {
- 	return test_and_set_bits(BIT_MASK(nr), addr + BIT_WORD(nr)) != 0;
- }
- 
--static __inline__ int test_and_set_bit_lock(unsigned long nr,
-+static __inline__ bool test_and_set_bit_lock(unsigned long nr,
- 				       volatile unsigned long *addr)
- {
- 	return test_and_set_bits_lock(BIT_MASK(nr),
- 				addr + BIT_WORD(nr)) != 0;
- }
- 
--static __inline__ int test_and_clear_bit(unsigned long nr,
-+static __inline__ bool test_and_clear_bit(unsigned long nr,
- 					 volatile unsigned long *addr)
- {
- 	return test_and_clear_bits(BIT_MASK(nr), addr + BIT_WORD(nr)) != 0;
- }
- 
--static __inline__ int test_and_change_bit(unsigned long nr,
-+static __inline__ bool test_and_change_bit(unsigned long nr,
- 					  volatile unsigned long *addr)
- {
- 	return test_and_change_bits(BIT_MASK(nr), addr + BIT_WORD(nr)) != 0;
-diff --git a/arch/s390/include/asm/bitops.h b/arch/s390/include/asm/bitops.h
-index 8043f10..71e6202 100644
---- a/arch/s390/include/asm/bitops.h
-+++ b/arch/s390/include/asm/bitops.h
-@@ -173,7 +173,7 @@ static inline void change_bit(unsigned long nr, volatile unsigned long *ptr)
- 	__BITOPS_LOOP(addr, mask, __BITOPS_XOR, __BITOPS_NO_BARRIER);
- }
- 
--static inline int
-+static inline bool
- test_and_set_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned long *addr = __bitops_word(nr, ptr);
-@@ -184,7 +184,7 @@ test_and_set_bit(unsigned long nr, volatile unsigned long *ptr)
- 	return (old & mask) != 0;
- }
- 
--static inline int
-+static inline bool
- test_and_clear_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned long *addr = __bitops_word(nr, ptr);
-@@ -195,7 +195,7 @@ test_and_clear_bit(unsigned long nr, volatile unsigned long *ptr)
- 	return (old & ~mask) != 0;
- }
- 
--static inline int
-+static inline bool
- test_and_change_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned long *addr = __bitops_word(nr, ptr);
-@@ -228,7 +228,7 @@ static inline void __change_bit(unsigned long nr, volatile unsigned long *ptr)
- 	*addr ^= 1 << (nr & 7);
- }
- 
--static inline int
-+static inline bool
- __test_and_set_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned char *addr = __bitops_byte(nr, ptr);
-@@ -239,7 +239,7 @@ __test_and_set_bit(unsigned long nr, volatile unsigned long *ptr)
- 	return (ch >> (nr & 7)) & 1;
- }
- 
--static inline int
-+static inline bool
- __test_and_clear_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned char *addr = __bitops_byte(nr, ptr);
-@@ -250,7 +250,7 @@ __test_and_clear_bit(unsigned long nr, volatile unsigned long *ptr)
- 	return (ch >> (nr & 7)) & 1;
- }
- 
--static inline int
-+static inline bool
- __test_and_change_bit(unsigned long nr, volatile unsigned long *ptr)
- {
- 	unsigned char *addr = __bitops_byte(nr, ptr);
-@@ -261,7 +261,7 @@ __test_and_change_bit(unsigned long nr, volatile unsigned long *ptr)
- 	return (ch >> (nr & 7)) & 1;
- }
- 
--static inline int test_bit(unsigned long nr, const volatile unsigned long *ptr)
-+static inline bool test_bit(unsigned long nr, const volatile unsigned long *ptr)
- {
- 	const volatile unsigned char *addr;
- 
-@@ -270,7 +270,7 @@ static inline int test_bit(unsigned long nr, const volatile unsigned long *ptr)
- 	return (*addr >> (nr & 7)) & 1;
- }
- 
--static inline int test_and_set_bit_lock(unsigned long nr,
-+static inline bool test_and_set_bit_lock(unsigned long nr,
- 					volatile unsigned long *ptr)
- {
- 	if (test_bit(nr, ptr))
-@@ -321,7 +321,7 @@ static inline void __clear_bit_inv(unsigned long nr, volatile unsigned long *ptr
- 	return __clear_bit(nr ^ (BITS_PER_LONG - 1), ptr);
- }
- 
--static inline int test_bit_inv(unsigned long nr,
-+static inline bool test_bit_inv(unsigned long nr,
- 			       const volatile unsigned long *ptr)
- {
- 	return test_bit(nr ^ (BITS_PER_LONG - 1), ptr);
-diff --git a/arch/sh/include/asm/bitops-cas.h b/arch/sh/include/asm/bitops-cas.h
-index 88f793c..c4fde9c 100644
---- a/arch/sh/include/asm/bitops-cas.h
-+++ b/arch/sh/include/asm/bitops-cas.h
-@@ -46,7 +46,7 @@ static inline void change_bit(int nr, volatile void *addr)
- 	while (__bo_cas(a, old, old^mask) != old);
- }
- 
--static inline int test_and_set_bit(int nr, volatile void *addr)
-+static inline bool test_and_set_bit(int nr, volatile void *addr)
- {
- 	unsigned mask, old;
- 	volatile unsigned *a = addr;
-@@ -60,7 +60,7 @@ static inline int test_and_set_bit(int nr, volatile void *addr)
- 	return !!(old & mask);
- }
- 
--static inline int test_and_clear_bit(int nr, volatile void *addr)
-+static inline bool test_and_clear_bit(int nr, volatile void *addr)
- {
- 	unsigned mask, old;
- 	volatile unsigned *a = addr;
-@@ -74,7 +74,7 @@ static inline int test_and_clear_bit(int nr, volatile void *addr)
- 	return !!(old & mask);
- }
- 
--static inline int test_and_change_bit(int nr, volatile void *addr)
-+static inline bool test_and_change_bit(int nr, volatile void *addr)
- {
- 	unsigned mask, old;
- 	volatile unsigned *a = addr;
-diff --git a/arch/sh/include/asm/bitops-grb.h b/arch/sh/include/asm/bitops-grb.h
-index e73af33..866f26a 100644
---- a/arch/sh/include/asm/bitops-grb.h
-+++ b/arch/sh/include/asm/bitops-grb.h
-@@ -71,7 +71,7 @@ static inline void change_bit(int nr, volatile void * addr)
-                 : "memory" , "r0", "r1");
- }
- 
--static inline int test_and_set_bit(int nr, volatile void * addr)
-+static inline bool test_and_set_bit(int nr, volatile void *addr)
- {
-         int     mask, retval;
- 	volatile unsigned int *a = addr;
-@@ -102,7 +102,7 @@ static inline int test_and_set_bit(int nr, volatile void * addr)
-         return retval;
- }
- 
--static inline int test_and_clear_bit(int nr, volatile void * addr)
-+static inline bool test_and_clear_bit(int nr, volatile void *addr)
- {
-         int     mask, retval,not_mask;
-         volatile unsigned int *a = addr;
-@@ -136,7 +136,7 @@ static inline int test_and_clear_bit(int nr, volatile void * addr)
-         return retval;
- }
- 
--static inline int test_and_change_bit(int nr, volatile void * addr)
-+static inline bool test_and_change_bit(int nr, volatile void *addr)
- {
-         int     mask, retval;
-         volatile unsigned int *a = addr;
-diff --git a/arch/sh/include/asm/bitops-llsc.h b/arch/sh/include/asm/bitops-llsc.h
-index d8328be..7dcf5ea 100644
---- a/arch/sh/include/asm/bitops-llsc.h
-+++ b/arch/sh/include/asm/bitops-llsc.h
-@@ -64,7 +64,7 @@ static inline void change_bit(int nr, volatile void *addr)
- 	);
- }
- 
--static inline int test_and_set_bit(int nr, volatile void *addr)
-+static inline bool test_and_set_bit(int nr, volatile void *addr)
- {
- 	int	mask, retval;
- 	volatile unsigned int *a = addr;
-@@ -89,7 +89,7 @@ static inline int test_and_set_bit(int nr, volatile void *addr)
- 	return retval != 0;
- }
- 
--static inline int test_and_clear_bit(int nr, volatile void *addr)
-+static inline bool test_and_clear_bit(int nr, volatile void *addr)
- {
- 	int	mask, retval;
- 	volatile unsigned int *a = addr;
-@@ -115,7 +115,7 @@ static inline int test_and_clear_bit(int nr, volatile void *addr)
- 	return retval != 0;
- }
- 
--static inline int test_and_change_bit(int nr, volatile void *addr)
-+static inline bool test_and_change_bit(int nr, volatile void *addr)
- {
- 	int	mask, retval;
- 	volatile unsigned int *a = addr;
-diff --git a/arch/sh/include/asm/bitops-op32.h b/arch/sh/include/asm/bitops-op32.h
-index f0ae7e9..f677a4e 100644
---- a/arch/sh/include/asm/bitops-op32.h
-+++ b/arch/sh/include/asm/bitops-op32.h
-@@ -88,7 +88,7 @@ static inline void __change_bit(int nr, volatile unsigned long *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -107,7 +107,7 @@ static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -118,7 +118,7 @@ static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
- }
- 
- /* WARNING: non atomic and it can be reordered! */
--static inline int __test_and_change_bit(int nr,
-+static inline bool __test_and_change_bit(int nr,
- 					    volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
-@@ -134,7 +134,7 @@ static inline int __test_and_change_bit(int nr,
-  * @nr: bit number to test
-  * @addr: Address to start counting from
-  */
--static inline int test_bit(int nr, const volatile unsigned long *addr)
-+static inline bool test_bit(int nr, const volatile unsigned long *addr)
- {
- 	return 1UL & (addr[BIT_WORD(nr)] >> (nr & (BITS_PER_LONG-1)));
- }
-diff --git a/arch/sparc/include/asm/bitops_32.h b/arch/sparc/include/asm/bitops_32.h
-index 600ed1d..afe275a 100644
---- a/arch/sparc/include/asm/bitops_32.h
-+++ b/arch/sparc/include/asm/bitops_32.h
-@@ -28,7 +28,7 @@ unsigned long ___change_bit(unsigned long *addr, unsigned long mask);
-  * within the first byte. Sparc is BIG-Endian. Unless noted otherwise
-  * all bit-ops return 0 if bit was previously clear and != 0 otherwise.
-  */
--static inline int test_and_set_bit(unsigned long nr, volatile unsigned long *addr)
-+static inline bool test_and_set_bit(unsigned long nr, volatile unsigned long *addr)
- {
- 	unsigned long *ADDR, mask;
- 
-@@ -48,7 +48,7 @@ static inline void set_bit(unsigned long nr, volatile unsigned long *addr)
- 	(void) ___set_bit(ADDR, mask);
- }
- 
--static inline int test_and_clear_bit(unsigned long nr, volatile unsigned long *addr)
-+static inline bool test_and_clear_bit(unsigned long nr, volatile unsigned long *addr)
- {
- 	unsigned long *ADDR, mask;
- 
-@@ -68,7 +68,7 @@ static inline void clear_bit(unsigned long nr, volatile unsigned long *addr)
- 	(void) ___clear_bit(ADDR, mask);
- }
- 
--static inline int test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
-+static inline bool test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
- {
- 	unsigned long *ADDR, mask;
- 
-diff --git a/arch/sparc/include/asm/bitops_64.h b/arch/sparc/include/asm/bitops_64.h
-index 2d52240..8cbd032 100644
---- a/arch/sparc/include/asm/bitops_64.h
-+++ b/arch/sparc/include/asm/bitops_64.h
-@@ -15,9 +15,9 @@
- #include <asm/byteorder.h>
- #include <asm/barrier.h>
- 
--int test_and_set_bit(unsigned long nr, volatile unsigned long *addr);
--int test_and_clear_bit(unsigned long nr, volatile unsigned long *addr);
--int test_and_change_bit(unsigned long nr, volatile unsigned long *addr);
-+bool test_and_set_bit(unsigned long nr, volatile unsigned long *addr);
-+bool test_and_clear_bit(unsigned long nr, volatile unsigned long *addr);
-+bool test_and_change_bit(unsigned long nr, volatile unsigned long *addr);
- void set_bit(unsigned long nr, volatile unsigned long *addr);
- void clear_bit(unsigned long nr, volatile unsigned long *addr);
- void change_bit(unsigned long nr, volatile unsigned long *addr);
-diff --git a/arch/tile/include/asm/bitops_32.h b/arch/tile/include/asm/bitops_32.h
-index d1406a9..9ef0ba4 100644
---- a/arch/tile/include/asm/bitops_32.h
-+++ b/arch/tile/include/asm/bitops_32.h
-@@ -80,7 +80,7 @@ static inline void change_bit(unsigned nr, volatile unsigned long *addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_set_bit(unsigned nr, volatile unsigned long *addr)
-+static inline bool test_and_set_bit(unsigned nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	addr += BIT_WORD(nr);
-@@ -96,7 +96,7 @@ static inline int test_and_set_bit(unsigned nr, volatile unsigned long *addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
-+static inline bool test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	addr += BIT_WORD(nr);
-@@ -112,7 +112,7 @@ static inline int test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_change_bit(unsigned nr,
-+static inline bool test_and_change_bit(unsigned nr,
- 				      volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
-diff --git a/arch/tile/include/asm/bitops_64.h b/arch/tile/include/asm/bitops_64.h
-index bb1a292..d970306 100644
---- a/arch/tile/include/asm/bitops_64.h
-+++ b/arch/tile/include/asm/bitops_64.h
-@@ -52,9 +52,9 @@ static inline void change_bit(unsigned nr, volatile unsigned long *addr)
-  * barrier(), to block until the atomic op is complete.
-  */
- 
--static inline int test_and_set_bit(unsigned nr, volatile unsigned long *addr)
-+static inline bool test_and_set_bit(unsigned nr, volatile unsigned long *addr)
- {
--	int val;
-+	bool val;
- 	unsigned long mask = (1UL << (nr % BITS_PER_LONG));
- 	smp_mb();  /* barrier for proper semantics */
- 	val = (__insn_fetchor((void *)(addr + nr / BITS_PER_LONG), mask)
-@@ -64,9 +64,9 @@ static inline int test_and_set_bit(unsigned nr, volatile unsigned long *addr)
- }
- 
- 
--static inline int test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
-+static inline bool test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
- {
--	int val;
-+	bool val;
- 	unsigned long mask = (1UL << (nr % BITS_PER_LONG));
- 	smp_mb();  /* barrier for proper semantics */
- 	val = (__insn_fetchand((void *)(addr + nr / BITS_PER_LONG), ~mask)
-@@ -76,7 +76,7 @@ static inline int test_and_clear_bit(unsigned nr, volatile unsigned long *addr)
- }
- 
- 
--static inline int test_and_change_bit(unsigned nr,
-+static inline bool test_and_change_bit(unsigned nr,
- 				      volatile unsigned long *addr)
- {
- 	unsigned long mask = (1UL << (nr % BITS_PER_LONG));
-diff --git a/arch/xtensa/include/asm/bitops.h b/arch/xtensa/include/asm/bitops.h
-index d349018..485d95d 100644
---- a/arch/xtensa/include/asm/bitops.h
-+++ b/arch/xtensa/include/asm/bitops.h
-@@ -154,7 +154,7 @@ static inline void change_bit(unsigned int bit, volatile unsigned long *p)
- 			: "memory");
- }
- 
--static inline int
-+static inline bool
- test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long tmp, value;
-@@ -175,7 +175,7 @@ test_and_set_bit(unsigned int bit, volatile unsigned long *p)
- 	return tmp & mask;
- }
- 
--static inline int
-+static inline bool
- test_and_clear_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long tmp, value;
-@@ -196,7 +196,7 @@ test_and_clear_bit(unsigned int bit, volatile unsigned long *p)
- 	return tmp & mask;
- }
- 
--static inline int
-+static inline bool
- test_and_change_bit(unsigned int bit, volatile unsigned long *p)
- {
- 	unsigned long tmp, value;
-diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
-index 4967351..eb68d8d 100644
---- a/include/asm-generic/bitops/atomic.h
-+++ b/include/asm-generic/bitops/atomic.h
-@@ -124,7 +124,7 @@ static inline void change_bit(int nr, volatile unsigned long *addr)
-  * It may be reordered on other architectures than x86.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -148,7 +148,7 @@ static inline int test_and_set_bit(int nr, volatile unsigned long *addr)
-  * It can be reorderdered on other architectures other than x86.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -171,7 +171,7 @@ static inline int test_and_clear_bit(int nr, volatile unsigned long *addr)
-  * This operation is atomic and cannot be reordered.
-  * It also implies a memory barrier.
-  */
--static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
-+static inline bool test_and_change_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 6173154..c610b99 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -49,7 +49,7 @@ extern unsigned long find_next_bit_le(const void *addr,
- #error "Please fix <asm/byteorder.h>"
- #endif
- 
--static inline int test_bit_le(int nr, const void *addr)
-+static inline bool test_bit_le(int nr, const void *addr)
- {
- 	return test_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
-@@ -74,22 +74,22 @@ static inline void __clear_bit_le(int nr, void *addr)
- 	__clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int test_and_set_bit_le(int nr, void *addr)
-+static inline bool test_and_set_bit_le(int nr, void *addr)
- {
- 	return test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int test_and_clear_bit_le(int nr, void *addr)
-+static inline bool test_and_clear_bit_le(int nr, void *addr)
- {
- 	return test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int __test_and_set_bit_le(int nr, void *addr)
-+static inline bool __test_and_set_bit_le(int nr, void *addr)
- {
- 	return __test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int __test_and_clear_bit_le(int nr, void *addr)
-+static inline bool __test_and_clear_bit_le(int nr, void *addr)
- {
- 	return __test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
-diff --git a/include/asm-generic/bitops/non-atomic.h b/include/asm-generic/bitops/non-atomic.h
-index 697cc2b..fea2b40 100644
---- a/include/asm-generic/bitops/non-atomic.h
-+++ b/include/asm-generic/bitops/non-atomic.h
-@@ -54,7 +54,7 @@ static inline void __change_bit(int nr, volatile unsigned long *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_set_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -73,7 +73,7 @@ static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
-  * If two examples of this operation race, one can appear to succeed
-  * but actually fail.  You must protect multiple accesses with a lock.
-  */
--static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
-+static inline bool __test_and_clear_bit(int nr, volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-@@ -84,7 +84,7 @@ static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
- }
- 
- /* WARNING: non atomic and it can be reordered! */
--static inline int __test_and_change_bit(int nr,
-+static inline bool __test_and_change_bit(int nr,
- 					    volatile unsigned long *addr)
- {
- 	unsigned long mask = BIT_MASK(nr);
-@@ -100,7 +100,7 @@ static inline int __test_and_change_bit(int nr,
-  * @nr: bit number to test
-  * @addr: Address to start counting from
-  */
--static inline int test_bit(int nr, const volatile unsigned long *addr)
-+static inline bool test_bit(int nr, const volatile unsigned long *addr)
- {
- 	return 1UL & (addr[BIT_WORD(nr)] >> (nr & (BITS_PER_LONG-1)));
- }
--- 
-1.9.3
+--ikeVEW9yuYc//A+q
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--ikeVEW9yuYc//A+q--
