@@ -1,42 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f65.google.com ([209.85.214.65]:34378 "EHLO
-        mail-it0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933461AbcH2NyK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2016 09:54:10 -0400
-MIME-Version: 1.0
-In-Reply-To: <20160829134604.GT10153@twins.programming.kicks-ass.net>
-References: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
- <201608291503.41630.arnd@arndb.de> <20160829134604.GT10153@twins.programming.kicks-ass.net>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 29 Aug 2016 15:54:07 +0200
-Message-ID: <CAMuHMdW35Ec8G=jeOBLuHH4fqnFZeNZRFyydJ8NqSYRjPdTc0A@mail.gmail.com>
-Subject: Re: [PATCH] arch: all: include: asm: bitops: Use bool instead of int
- for all bit test functions
-Content-Type: text/plain; charset=UTF-8
+Received: from mail.kernel.org ([198.145.29.136]:35902 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932816AbcH2OEh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Aug 2016 10:04:37 -0400
+Date: Mon, 29 Aug 2016 23:04:18 +0900
+From: Masami Hiramatsu <mhiramat@kernel.org>
+Subject: Re: [PATCH v4 14/16] kprobes: move kprobe declarations to
+ asm-generic/kprobes.h
+Message-ID: <20160829230418.0d1d69ea76810db5148316e5@kernel.org>
+In-Reply-To: <20160823163104.GZ3296@wotan.suse.de>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+        <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
+        <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
+        <20160823163104.GZ3296@wotan.suse.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, chengang@emindsoft.com.cn, Andrew Morton <akpm@linux-foundation.org>, Minchan Kim <minchan@kernel.org>, Vlastimil Babka <vbabka@suse.cz>, gi-oh.kim@profitbricks.com, Joonsoo Kim <iamjoonsoo.kim@lge.com>, hillf.zj@alibaba-inc.com, Mel Gorman <mgorman@techsingularity.net>, Michal Hocko <mhocko@suse.com>, David Rientjes <rientjes@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Noren Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, cmetcalf@mellanox.com, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Noam Camus <noamc@ezchip.com>, brueckner@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>
-Message-ID: <20160829135407.CO362xxkONupyyTHQe3tSWzEsA0zR9OnZoEPW_X7Obs@z>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Cc: hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
+Message-ID: <20160829140418.k9Toazq9xzoOSfkgmeV5XV8rB3yFupezH9eOiQi9H2k@z>
 
-On Mon, Aug 29, 2016 at 3:46 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Mon, Aug 29, 2016 at 03:03:41PM +0200, Arnd Bergmann wrote:
->> - Change the Documentation/atomic_ops.txt file accordingly
->
-> Not sure that really matters; that document is so out of date its nearly
-> useless :-(
->
-> Rewriting it is somewhere on the TODO list...
+On Tue, 23 Aug 2016 18:31:05 +0200
+"Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
 
-Resphinxing?
+> On Tue, Aug 23, 2016 at 12:11:40AM +0900, Masami Hiramatsu wrote:
+> > On Fri, 19 Aug 2016 14:34:12 -0700
+> > mcgrof@kernel.org wrote:
+> > 
+> > > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+> > > 
+> > > Often all is needed is these small helpers, instead of compiler.h
+> > > or a full kprobes.h. This is important for asm helpers, in fact even
+> > > some asm/kprobes.h make use of these helpers... instead just keep a
+> > > generic asm file with helpers useful for asm code with the least amount
+> > > of clutter as possible.
+> > > 
+> > > Likewise we need now to also address what to do about this file for both
+> > > when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
+> > > for when architectures have CONFIG_HAVE_KPROBES but have disabled
+> > > CONFIG_KPROBES.
+> > > 
+> > > Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
+> > > this means most architecture code cannot include asm/kprobes.h safely.
+> > > Correct this and add guards for architectures missing them. Additionally
+> > > provide architectures that not have kprobes support with the default
+> > > asm-generic solution. This lets us force asm/kprobes.h on the header
+> > > include/linux/kprobes.h always, but most importantly we can now safely
+> > > include just asm/kprobes.h on architecture code without bringing
+> > > the full kitchen sink of header files.
+> > > 
+> > > Two architectures already provided a guard against CONFIG_KPROBES on
+> > > its kprobes.h: sh, arch. The rest of the architectures needed gaurds
+> > > added. We avoid including any not-needed headers on asm/kprobes.h
+> > > unless kprobes have been enabled.
+> > > 
+> > > In a subsequent atomic change we can try now to remove compiler.h from
+> > > include/linux/kprobes.h.
+> > 
+> > Hmm, this looks a bit overkill... I rather like move it into linux/table.h.
+> 
+> That's the thing, we can't reasonably expect every table to add an entry into
+> table.h, this should be up to each user. Moving it to tables.h just prolongs
+> what needs to be done. In this case the change is justifiable given kprobe
+> annotations are required for some architectures early in architecture code, and
+> including compiler.h on early architecture code blows up. There is no easy fix
+> to this, and this this was *actually* the cleanest solution I could devise
+> without much changes.
 
-Gr{oetje,eeting}s,
+Aah, I misread your patch, it is asm-generic/kprobes.h, not asm/kprobes.h.
+I think it is OK now.
 
-                        Geert
+Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Thanks!
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> 
+>   Luis
+
+
+-- 
+Masami Hiramatsu <mhiramat@kernel.org>
