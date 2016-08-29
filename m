@@ -1,68 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1134-250.mail.aliyun.com ([42.120.134.250]:24413 "EHLO
-        out1134-250.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1754081AbcH2WCr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Aug 2016 18:02:47 -0400
-Message-ID: <57C4B0C5.4050502@emindsoft.com.cn>
-Date: Tue, 30 Aug 2016 06:01:41 +0800
-From: Chen Gang <chengang@emindsoft.com.cn>
+Received: from mail-he1eur01on0086.outbound.protection.outlook.com ([104.47.0.86]:6276
+        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753429AbcH3BUv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 29 Aug 2016 21:20:51 -0400
+Subject: Re: [PATCH v8 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+References: <1471377024-2244-1-git-send-email-cmetcalf@mellanox.com>
+ <1471377024-2244-5-git-send-email-cmetcalf@mellanox.com>
+ <20160818151211.GN13300@pathway.suse.cz>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <aa556fe4-901c-196b-d3a1-ab92a701cbaa@mellanox.com>
+Date: Mon, 29 Aug 2016 11:46:52 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH] arch: all: include: asm: bitops: Use bool instead of
- int for all bit test functions
-References: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn> <201608291503.41630.arnd@arndb.de>
-In-Reply-To: <201608291503.41630.arnd@arndb.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20160818151211.GN13300@pathway.suse.cz>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: akpm@linux-foundation.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, chris@zankel.net, jcmvbkbc@gmail.com, noamc@ezchip.com, brueckner@linux.vnet.ibm.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
-Message-ID: <20160829220141.ZeSVRgMlO3mOiFeDZqVYCNu_tGi5HQ_vUo7nGRUcotY@z>
+To: Petr Mladek <pmladek@suse.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160829154652.aq23euyV_C875KzzLbUYSk7fBT6UTTj-ABC_MhXNqIw@z>
 
+On 8/18/2016 11:12 AM, Petr Mladek wrote:
+> On Tue 2016-08-16 15:50:24, Chris Metcalf wrote:
+>> [...]
+>> -static inline void native_safe_halt(void)
+>> +static __always_inline void native_safe_halt(void)
+>>   {
+>>   	asm volatile("sti; hlt": : :"memory");
+>>   }
+> Ah, the __always_inline stuff did not helped here. It was
+> not inlined:
+>
+> $> nm -n vmlinux | grep native_safe_halt
+> ffffffff81050bc0 t native_safe_halt
+>
+> The reason seems to be that it is called via
+> PVOP_VCALL0(pv_irq_ops.safe_halt);, see below
+> in the disassembly.
+>
+> I guess that it is because I have
+> CONFIG_PARAVIRT=y
 
-On 8/29/16 21:03, Arnd Bergmann wrote:
-> On Sunday 28 August 2016, chengang@emindsoft.com.cn wrote:
->> From: Chen Gang <chengang@emindsoft.com.cn>
->>
->> Also use the same changing to asm-generic, and also use bool variable
->> instead of int variable for mips, mn10300, parisc and tile related
->> functions, and also avoid checkpatch.pl to report ERROR.
->>
->> Originally, except powerpc and xtensa, all another architectures intend
->> to return 0 or 1. After this patch, also let powerpc and xtensa return 0
->> or 1.
->>
->> The patch passes cross building for mips and parisc with default config.
->> All related contents are found by "grep test_bit, grep test_and" under
->> arch sub-directory.
->>
->> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
-> 
-> This seems like a good idea overall, and I'm fine with the asm-generic
-> contents. If there is consensus on changing this, we probably also want
-> to do some other steps:
-> 
-> - Change the Documentation/atomic_ops.txt file accordingly
-> - split up the series per architecture (I don't think there are any
->   interdependencies)
-> - For the architectures on which the definition changes (at least
->   x86 and ARM), do some more sanity checks and see if there are
->   noticeable changes in object code, and if so whether it looks
->   better or worse (I'm guessing it will be better if anything)
-> - See which architectures can still get converted to using the
->   asm-generic headers instead of providing their own, I think at
->   least for the nonatomic ones, there are a couple.
-> 
+I fixed this by reverting to using __cpuidle instead of __always_inline.
+As you discovered, we can't use <linux/cpu.h> here, but I chose to
+just duplicate the #define of __cpuidle in <asm/irqflags.h> instead
+since I think that's cleaner.
 
-Thank you for your ideas, suggestions, and completions.
-
-And I guess, at least for arc, I or another related members will try to
-check the object code.
-
-
-Thanks.
 -- 
-Chen Gang (陈刚)
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
 
-Managing Natural Environments is the Duty of Human Beings.
