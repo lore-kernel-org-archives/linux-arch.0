@@ -1,129 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0085.outbound.protection.outlook.com ([104.47.36.85]:5477
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1756632AbcH2JAC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 29 Aug 2016 05:00:02 -0400
-Date: Mon, 29 Aug 2016 11:43:49 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 01/19] compat ABI: use non-compat openat and
- open_by_handle_at variants
-Message-ID: <20160829084349.GB9482@yury-N73SV>
-References: <1466207668-10549-1-git-send-email-ynorov@caviumnetworks.com>
- <mvmwplbkr8l.fsf@hawking.suse.de>
- <20160815143028.GA7193@yury-N73SV>
- <3771388.9SFlpYVFmp@wuerfel>
+Received: from mout.kundenserver.de ([217.72.192.75]:51053 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932715AbcH2NTV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2016 09:19:21 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] arch: all: include: asm: bitops: Use bool instead of int for all bit test functions
+Date: Mon, 29 Aug 2016 15:03:41 +0200
+References: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
+In-Reply-To: <1472362755-26776-1-git-send-email-chengang@emindsoft.com.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <3771388.9SFlpYVFmp@wuerfel>
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201608291503.41630.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andreas Schwab <schwab@suse.de>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net
-Message-ID: <20160829084349.WCxtapn2aTJIzYvfyj_FeTQbXPhSx6cb_RHSeYPwXh8@z>
+To: chengang@emindsoft.com.cn
+Cc: akpm@linux-foundation.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, chris@zankel.net, jcmvbkbc@gmail.com, noamc@ezchip.com, brueckner@linux.vnet.ibm.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
+Message-ID: <20160829130341.FWTmwGyQ2cQDvRTlunPyxwpMSKeFfiUPhM4PEj8GmnQ@z>
 
-On Thu, Aug 25, 2016 at 05:52:11PM +0200, Arnd Bergmann wrote:
-> On Monday, August 15, 2016 5:30:28 PM CEST Yury Norov wrote:
-> > On Mon, Jun 27, 2016 at 09:47:38AM +0200, Andreas Schwab wrote:
-> > > Yury Norov <ynorov@caviumnetworks.com> writes:
-> > > 
-> > > > The only difference is that non-compat version forces O_LARGEFILE,
-> > > > and it should be the default behaviour for all architectures, as
-> > > > we don't support 32-bit off_t. The only exception is tile32, that
-> > > > continues with compat version of syscalls.
-> > > >
-> > > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> > > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > > > Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
-> > > > ---
-> > > >  arch/tile/kernel/compat.c | 3 +++
-> > > >  1 file changed, 3 insertions(+)
-> > > >
-> > > > diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-> > > > index 4912084..489ae19 100644
-> > > > --- a/arch/tile/kernel/compat.c
-> > > > +++ b/arch/tile/kernel/compat.c
-> > > > @@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
-> > > >  #define compat_sys_readahead sys32_readahead
-> > > >  #define sys_llseek compat_sys_llseek
-> > > >  
-> > > > +#define sys_openat		compat_sys_openat
-> > > > +#define sys_open_by_handle_at	compat_sys_open_by_handle_at
-> > > > +
-> > > >  /* Call the assembly trampolines where necessary. */
-> > > >  #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
-> > > >  #define sys_clone _sys_clone
-> > > 
-> > > This is a no-op.  Did you mean to add this?  Without that the testsuite
-> > > of tar fails on ILP32.
-> > 
-> > The change you suggest below is what I originally sent at the end of
-> > December, but that chunk was lost after one of numerous rebases probably.
-> > 
-> > http://lkml.iu.edu/hypermail/linux/kernel/1512.3/00510.html
-> > 
-> > IIRC, the only difference between this couple of syscalls and their
-> > compat versions is that non-compat syscalls set O_LARGEFILE depending
-> > on (BITS_PER_LONG != 32). Next patch of this series introduces
-> > ARCH_32BIT_OFF_T config option to force O_LARGEFILE for 64-bit arches,
-> > and all new 32-bit arches, as ARCH_32BIT_OFF_T is enabled for existing
-> > 32-bit arches explicitly.
-> > 
-> > O_LARGEFILE is controlled like this:
-> >         -#define force_o_largefile() (BITS_PER_LONG != 32)
-> >         +#define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
-> > 
-> > So if I restore original patch, everything will work. But my question
-> > is: if ARCH_32BIT_OFF_T disables O_LARGEFILE for tile32 anyway, what
-> > for we redirect native syscall handlers to compat ones? They are
-> > looking identical...
+On Sunday 28 August 2016, chengang@emindsoft.com.cn wrote:
+> From: Chen Gang <chengang@emindsoft.com.cn>
 > 
-> I've lost context here, but let me try to recall what we had
-> discussed in the past:
+> Also use the same changing to asm-generic, and also use bool variable
+> instead of int variable for mips, mn10300, parisc and tile related
+> functions, and also avoid checkpatch.pl to report ERROR.
 > 
-> - native 32-bit architectures are handled using CONFIG_ARCH_32BIT_OFF_T
-> - native 64-bit architectures keep setting the flag.
-> - compat 32-bit architectures need special cases, but the only one
->   that exists is tile, which has to keep not setting O_LARGEFILE
->   while new compat architectures (ilp32) should set it.
->  
-> > If my understanding is correct, we can drop the change in
-> > arch/tile/kernel/compat.c and join this patch with next one in this
-> > series.
-> > 
-> > Chris, Arnd?
+> Originally, except powerpc and xtensa, all another architectures intend
+> to return 0 or 1. After this patch, also let powerpc and xtensa return 0
+> or 1.
 > 
-> The change in arch/tile/kernel/compat.c can either come before the
-> below change, or in the same patch, but not later.
+> The patch passes cross building for mips and parisc with default config.
+> All related contents are found by "grep test_bit, grep test_and" under
+> arch sub-directory.
 > 
-> 	Arnd
+> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
 
-Correct, I'll add it to this patch
+This seems like a good idea overall, and I'm fine with the asm-generic
+contents. If there is consensus on changing this, we probably also want
+to do some other steps:
 
-> 
-> > > diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> > > index a26415b..4dcc38d 100644
-> > > --- a/include/uapi/asm-generic/unistd.h
-> > > +++ b/include/uapi/asm-generic/unistd.h
-> > > @@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
-> > >  #define __NR_fchown 55
-> > >  __SYSCALL(__NR_fchown, sys_fchown)
-> > >  #define __NR_openat 56
-> > > -__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
-> > > +__SYSCALL(__NR_openat, sys_openat)
-> > >  #define __NR_close 57
-> > >  __SYSCALL(__NR_close, sys_close)
-> > >  #define __NR_vhangup 58
-> > > @@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
-> > >  #define __NR_name_to_handle_at         264
-> > >  __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
-> > >  #define __NR_open_by_handle_at         265
-> > > -__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
-> > > -	  compat_sys_open_by_handle_at)
-> > > +__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
-> > >  #define __NR_clock_adjtime 266
-> > >  __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
-> > >  #define __NR_syncfs 267
-> > 
-> 
+- Change the Documentation/atomic_ops.txt file accordingly
+- split up the series per architecture (I don't think there are any
+  interdependencies)
+- For the architectures on which the definition changes (at least
+  x86 and ARM), do some more sanity checks and see if there are
+  noticeable changes in object code, and if so whether it looks
+  better or worse (I'm guessing it will be better if anything)
+- See which architectures can still get converted to using the
+  asm-generic headers instead of providing their own, I think at
+  least for the nonatomic ones, there are a couple.
+
+	Arnd
