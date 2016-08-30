@@ -1,38 +1,46 @@
-From: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 04/20] x86: Secure Memory Encryption (SME) support
-Date: Tue, 30 Aug 2016 07:57:25 -0700
-Message-ID: <CALCETrVoiM3bskfWrg4c8ttHr467Us9xdXuxw=T6Dkr0PFo18g@mail.gmail.com>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
- <20160822223610.29880.21739.stgit@tlendack-t1.amdoffice.net>
- <alpine.DEB.2.20.1608251503340.5714@nanos> <e296f12d-7c76-4690-17bd-0f721d739f07@amd.com>
+From: Petr Mladek <pmladek@suse.com>
+Subject: Re: [PATCH v9 4/4] nmi_backtrace: generate one-line reports for idle
+ cpus
+Date: Tue, 30 Aug 2016 17:46:41 +0200
+Message-ID: <20160830154641.GD4554@pathway.suse.cz>
+References: <1472487169-14923-1-git-send-email-cmetcalf@mellanox.com>
+ <1472487169-14923-5-git-send-email-cmetcalf@mellanox.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <e296f12d-7c76-4690-17bd-0f721d739f07-5C7GfCeVMHo@public.gmane.org>
-Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: kasan-dev <kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>, "linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Joerg
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:36032 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754042AbcH3Pqu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 30 Aug 2016 11:46:50 -0400
+Content-Disposition: inline
+In-Reply-To: <1472487169-14923-5-git-send-email-cmetcalf@mellanox.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Aaron Tomlin <atomlin@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@osdl.org>, Daniel Thompson <daniel.thompson@linaro.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Aug 30, 2016 6:34 AM, "Tom Lendacky" <thomas.lendacky-5C7GfCeVMHo@public.gmane.org> wrote:
->
-> On 08/25/2016 08:04 AM, Thomas Gleixner wrote:
-> > On Mon, 22 Aug 2016, Tom Lendacky wrote:
-> >
-> >> Provide support for Secure Memory Encryption (SME). This initial support
-> >> defines the memory encryption mask as a variable for quick access and an
-> >> accessor for retrieving the number of physical addressing bits lost if
-> >> SME is enabled.
-> >
-> > What is the reason that this needs to live in assembly code?
->
-> In later patches this code is expanded and deals with a lot of page
-> table manipulation, cpuid/rdmsr instructions, etc. and so I thought it
-> was best to do it this way.
+On Mon 2016-08-29 12:12:49, Chris Metcalf wrote:
+> When doing an nmi backtrace of many cores, most of which are idle,
+> the output is a little overwhelming and very uninformative.  Suppress
+> messages for cpus that are idling when they are interrupted and just
+> emit one line, "NMI backtrace for N skipped: idling at pc 0xNNN".
+> 
+> We do this by grouping all the cpuidle code together into a new
+> .cpuidle.text section, and then checking the address of the
+> interrupted PC to see if it lies within that section.
+> 
+> This commit suitably tags x86 and tile idle routines, and only
+> adds in the minimal framework for other architectures.
+> 
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Tested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Tested-by: Daniel Thompson <daniel.thompson@linaro.org> [arm]
+> Signed-off-by: Chris Metcalf <cmetcalf@mellanox.com>
 
-None of that sounds like it needs to be in asm, though.
+This version works even with my configuration. Feel free to
+add
 
-I, at least, have a strong preference for minimizing the amount of asm
-in the low-level arch code.
+Tested-by: Petr Mladek <pmladek@suse.com>
 
---Andy
+Best Regards,
+Petr
