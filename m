@@ -1,78 +1,54 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 14/16] kprobes: move kprobe declarations to
- asm-generic/kprobes.h
-Date: Tue, 30 Aug 2016 22:07:49 +0200
-Message-ID: <20160830200749.GW3296@wotan.suse.de>
-References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
- <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
- <20160823163104.GZ3296@wotan.suse.de>
- <20160829230418.0d1d69ea76810db5148316e5@kernel.org>
+Subject: Re: [PATCH v4 08/16] kbuild: enable option to force
+ compile force-obj-y and force-lib-y
+Date: Tue, 30 Aug 2016 22:15:57 +0200
+Message-ID: <20160830201557.GY3296@wotan.suse.de>
+References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
+ <1471642385-5629-9-git-send-email-mcgrof@kernel.org>
+ <CAGXu5jKhopn4swNvNJ4EKXh0-gKrKFfbR-9n_W6bFdgujgBr+w@mail.gmail.com>
+ <20160822235910.GW3296@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <platform-driver-x86-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
 Content-Disposition: inline
-In-Reply-To: <20160829230418.0d1d69ea76810db5148316e5@kernel.org>
-Sender: platform-driver-x86-owner@vger.kernel.org
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.coma
+In-Reply-To: <20160822235910.GW3296@wotan.suse.de>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Michal Marek <mmarek@suse.com>
+Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 29, 2016 at 11:04:18PM +0900, Masami Hiramatsu wrote:
-> On Tue, 23 Aug 2016 18:31:05 +0200
-> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
-> 
-> > On Tue, Aug 23, 2016 at 12:11:40AM +0900, Masami Hiramatsu wrote:
-> > > On Fri, 19 Aug 2016 14:34:12 -0700
-> > > mcgrof@kernel.org wrote:
-> > > 
-> > > > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-> > > > 
-> > > > Often all is needed is these small helpers, instead of compiler.h
-> > > > or a full kprobes.h. This is important for asm helpers, in fact even
-> > > > some asm/kprobes.h make use of these helpers... instead just keep a
-> > > > generic asm file with helpers useful for asm code with the least amount
-> > > > of clutter as possible.
-> > > > 
-> > > > Likewise we need now to also address what to do about this file for both
-> > > > when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
-> > > > for when architectures have CONFIG_HAVE_KPROBES but have disabled
-> > > > CONFIG_KPROBES.
-> > > > 
-> > > > Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
-> > > > this means most architecture code cannot include asm/kprobes.h safely.
-> > > > Correct this and add guards for architectures missing them. Additionally
-> > > > provide architectures that not have kprobes support with the default
-> > > > asm-generic solution. This lets us force asm/kprobes.h on the header
-> > > > include/linux/kprobes.h always, but most importantly we can now safely
-> > > > include just asm/kprobes.h on architecture code without bringing
-> > > > the full kitchen sink of header files.
-> > > > 
-> > > > Two architectures already provided a guard against CONFIG_KPROBES on
-> > > > its kprobes.h: sh, arch. The rest of the architectures needed gaurds
-> > > > added. We avoid including any not-needed headers on asm/kprobes.h
-> > > > unless kprobes have been enabled.
-> > > > 
-> > > > In a subsequent atomic change we can try now to remove compiler.h from
-> > > > include/linux/kprobes.h.
-> > > 
-> > > Hmm, this looks a bit overkill... I rather like move it into linux/table.h.
-> > 
-> > That's the thing, we can't reasonably expect every table to add an entry into
-> > table.h, this should be up to each user. Moving it to tables.h just prolongs
-> > what needs to be done. In this case the change is justifiable given kprobe
-> > annotations are required for some architectures early in architecture code, and
-> > including compiler.h on early architecture code blows up. There is no easy fix
-> > to this, and this this was *actually* the cleanest solution I could devise
-> > without much changes.
-> 
-> Aah, I misread your patch, it is asm-generic/kprobes.h, not asm/kprobes.h.
-> I think it is OK now.
-> 
-> Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
-
-Thanks! Can you also review: patch 15:
-
-kprobes: port .kprobes.text to section range
-
-  Luis
+T24gVHVlLCBBdWcgMjMsIDIwMTYgYXQgMDE6NTk6MTBBTSArMDIwMCwgTHVpcyBSLiBSb2RyaWd1
+ZXogd3JvdGU6Cj4gT24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDM6MTA6MzNQTSAtMDcwMCwgS2Vl
+cyBDb29rIHdyb3RlOgo+ID4gT24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMjozMiBQTSwgIDxtY2dy
+b2ZAa2VybmVsLm9yZz4gd3JvdGU6Cj4gPiA+IGRpZmYgLS1naXQgYS9pbml0L0tjb25maWcgYi9p
+bml0L0tjb25maWcKPiA+ID4gaW5kZXggY2FjM2YwOTYwNTBkLi5lZjA5ZTgzYjkxOTYgMTAwNjQ0
+Cj4gPiA+IC0tLSBhL2luaXQvS2NvbmZpZwo+ID4gPiArKysgYi9pbml0L0tjb25maWcKPiA+ID4g
+QEAgLTUzLDYgKzUzLDI4IEBAIGNvbmZpZyBDUk9TU19DT01QSUxFCj4gPiA+ICAgICAgICAgICBu
+ZWVkIHRvIHNldCB0aGlzIHVubGVzcyB5b3Ugd2FudCB0aGUgY29uZmlndXJlZCBrZXJuZWwgYnVp
+bGQKPiA+ID4gICAgICAgICAgIGRpcmVjdG9yeSB0byBzZWxlY3QgdGhlIGNyb3NzLWNvbXBpbGVy
+IGF1dG9tYXRpY2FsbHkuCj4gPiA+Cj4gPiA+ICtjb25maWcgQlVJTERfQVZPSURfQklUUk9UCj4g
+PiA+ICsgICAgICAgYm9vbCAiRW5hYmxlIGZvcmNlIGJ1aWxkaW5nIG9mIGZvcmNlLW9iai15IGFu
+ZCBmb3JjZS1saWIteSIKPiA+IAo+ID4gU29ycnkgdG8gY29udGludWUgdGhlIGJpa2VzaGVkZGlu
+ZyBvbiB0aGlzLCBidXQgaWYgSSBlbmNvdW50ZXIKPiA+IHNvbWV0aGluZyBpbiBhIE1ha2VmaWxl
+IG5hbWVkICJmb3JjZS1vYmoteSIgSSB3b3VsZCBleHBlY3QgaXQgdG8KPiA+IGFsd2F5cyBiZSBi
+dWlsdCwgbm8gbWF0dGVyIHdoYXQuIEJ1dCB0aGlzIGlzIG5vdCB0aGUgY2FzZTogdGhlCj4gPiAi
+Zm9yY2UtIiBwcmVmaXggaXMgdGllZCB0byB0aGlzIENPTkZJR19CVUlMRF9BVk9JRF9CSVRST1Qu
+IFRoaXMgdmVyYgo+ID4gdXNhZ2UgaXMgd2VpcmQsIGFzIEknZCBleHBlY3QgYW4gYWRqZWN0aXZl
+LCBsaWtlICJmb3JjZWFibGUtb2JqLXkiIG9yCj4gPiBzb21ldGhpbmcgdGhhdCBkZXNjcmliZXMg
+dGhhdCBpdCBDQU4gYmUgYnVpbHQgZXZlbiB3aXRoIHRoZSBDT05GSUcgZm9yCj4gPiBpdCBpcyBt
+aXNzaW5nLCBldGMuCj4gPiAKPiA+IFJlZ2FyZGxlc3MsIEkgZGVmZXIgdG8gTWljaGFsIG9uIHRo
+aXMsIGJ1dCBJJ20gbm90IGEgZmFuIG9mICJmb3JjZSIKPiA+IGJlaW5nIHVzZWQgd2hlbiBpdCdz
+IGFuIG9wdGlvbmFsIGFjdGlvbi4gOikKPiAKPiBTdXJlLCBNaWNoYWwgbGV0IG1lIGtub3cgaWYg
+Zm9yY2VhYmxlLW9iai15IGFuZCBmb3JjZWFibGUtbGliLXkgaXMgdGhlCj4gd2F5IHRvIGdvLgoK
+TWljaGFsPyBBbnkgcHJlZmVyZW5jZSA/IE9yIGhvdyBhYm91dCBvcHQtZm9yY2Utb2JqID8KCiAg
+THVpcwoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVu
+LWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3Rz
+Lnhlbi5vcmcveGVuLWRldmVsCg==
