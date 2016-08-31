@@ -1,54 +1,49 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v4 08/16] kbuild: enable option to force
- compile force-obj-y and force-lib-y
-Date: Tue, 30 Aug 2016 22:15:57 +0200
-Message-ID: <20160830201557.GY3296@wotan.suse.de>
-References: <1471642385-5629-1-git-send-email-mcgrof@kernel.org>
- <1471642385-5629-9-git-send-email-mcgrof@kernel.org>
- <CAGXu5jKhopn4swNvNJ4EKXh0-gKrKFfbR-9n_W6bFdgujgBr+w@mail.gmail.com>
- <20160822235910.GW3296@wotan.suse.de>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v2 04/20] x86: Secure Memory Encryption (SME) support
+Date: Wed, 31 Aug 2016 08:26:01 -0500
+Message-ID: <386eadac-b6eb-747e-65e7-1ffa4cfd7210@amd.com>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223610.29880.21739.stgit@tlendack-t1.amdoffice.net>
+ <alpine.DEB.2.20.1608251503340.5714@nanos>
+ <e296f12d-7c76-4690-17bd-0f721d739f07@amd.com>
+ <CALCETrVoiM3bskfWrg4c8ttHr467Us9xdXuxw=T6Dkr0PFo18g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <20160822235910.GW3296@wotan.suse.de>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, Michal Marek <mmarek@suse.com>
-Cc: "gnomes@lxorguk.ukuu.org.uk" <gnomes@lxorguk.ukuu.org.uk>, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Ming Lei <ming.lei@canonical.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, platform-driver-x86@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, linux-arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux <sparclinux@vger.kernel.org>, "xen-devel@lists.xensource.com" <xen-devel@lists.xensource.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-sh <linux-sh@vger.kernel.org>, Will Deacon <will>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALCETrVoiM3bskfWrg4c8ttHr467Us9xdXuxw=T6Dkr0PFo18g@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: kasan-dev <kasan-dev@googlegroups.com>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, iommu@lists.linux-foundation.org, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Matt Fleming <matt@codeblueprint.co.uk>, Alexander Potapenko <glider@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Arnd Bergmann <arnd@arndb.de>, Joerg
 List-Id: linux-arch.vger.kernel.org
 
-T24gVHVlLCBBdWcgMjMsIDIwMTYgYXQgMDE6NTk6MTBBTSArMDIwMCwgTHVpcyBSLiBSb2RyaWd1
-ZXogd3JvdGU6Cj4gT24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMDM6MTA6MzNQTSAtMDcwMCwgS2Vl
-cyBDb29rIHdyb3RlOgo+ID4gT24gRnJpLCBBdWcgMTksIDIwMTYgYXQgMjozMiBQTSwgIDxtY2dy
-b2ZAa2VybmVsLm9yZz4gd3JvdGU6Cj4gPiA+IGRpZmYgLS1naXQgYS9pbml0L0tjb25maWcgYi9p
-bml0L0tjb25maWcKPiA+ID4gaW5kZXggY2FjM2YwOTYwNTBkLi5lZjA5ZTgzYjkxOTYgMTAwNjQ0
-Cj4gPiA+IC0tLSBhL2luaXQvS2NvbmZpZwo+ID4gPiArKysgYi9pbml0L0tjb25maWcKPiA+ID4g
-QEAgLTUzLDYgKzUzLDI4IEBAIGNvbmZpZyBDUk9TU19DT01QSUxFCj4gPiA+ICAgICAgICAgICBu
-ZWVkIHRvIHNldCB0aGlzIHVubGVzcyB5b3Ugd2FudCB0aGUgY29uZmlndXJlZCBrZXJuZWwgYnVp
-bGQKPiA+ID4gICAgICAgICAgIGRpcmVjdG9yeSB0byBzZWxlY3QgdGhlIGNyb3NzLWNvbXBpbGVy
-IGF1dG9tYXRpY2FsbHkuCj4gPiA+Cj4gPiA+ICtjb25maWcgQlVJTERfQVZPSURfQklUUk9UCj4g
-PiA+ICsgICAgICAgYm9vbCAiRW5hYmxlIGZvcmNlIGJ1aWxkaW5nIG9mIGZvcmNlLW9iai15IGFu
-ZCBmb3JjZS1saWIteSIKPiA+IAo+ID4gU29ycnkgdG8gY29udGludWUgdGhlIGJpa2VzaGVkZGlu
-ZyBvbiB0aGlzLCBidXQgaWYgSSBlbmNvdW50ZXIKPiA+IHNvbWV0aGluZyBpbiBhIE1ha2VmaWxl
-IG5hbWVkICJmb3JjZS1vYmoteSIgSSB3b3VsZCBleHBlY3QgaXQgdG8KPiA+IGFsd2F5cyBiZSBi
-dWlsdCwgbm8gbWF0dGVyIHdoYXQuIEJ1dCB0aGlzIGlzIG5vdCB0aGUgY2FzZTogdGhlCj4gPiAi
-Zm9yY2UtIiBwcmVmaXggaXMgdGllZCB0byB0aGlzIENPTkZJR19CVUlMRF9BVk9JRF9CSVRST1Qu
-IFRoaXMgdmVyYgo+ID4gdXNhZ2UgaXMgd2VpcmQsIGFzIEknZCBleHBlY3QgYW4gYWRqZWN0aXZl
-LCBsaWtlICJmb3JjZWFibGUtb2JqLXkiIG9yCj4gPiBzb21ldGhpbmcgdGhhdCBkZXNjcmliZXMg
-dGhhdCBpdCBDQU4gYmUgYnVpbHQgZXZlbiB3aXRoIHRoZSBDT05GSUcgZm9yCj4gPiBpdCBpcyBt
-aXNzaW5nLCBldGMuCj4gPiAKPiA+IFJlZ2FyZGxlc3MsIEkgZGVmZXIgdG8gTWljaGFsIG9uIHRo
-aXMsIGJ1dCBJJ20gbm90IGEgZmFuIG9mICJmb3JjZSIKPiA+IGJlaW5nIHVzZWQgd2hlbiBpdCdz
-IGFuIG9wdGlvbmFsIGFjdGlvbi4gOikKPiAKPiBTdXJlLCBNaWNoYWwgbGV0IG1lIGtub3cgaWYg
-Zm9yY2VhYmxlLW9iai15IGFuZCBmb3JjZWFibGUtbGliLXkgaXMgdGhlCj4gd2F5IHRvIGdvLgoK
-TWljaGFsPyBBbnkgcHJlZmVyZW5jZSA/IE9yIGhvdyBhYm91dCBvcHQtZm9yY2Utb2JqID8KCiAg
-THVpcwoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVu
-LWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3Rz
-Lnhlbi5vcmcveGVuLWRldmVsCg==
+On 08/30/2016 09:57 AM, Andy Lutomirski wrote:
+> On Aug 30, 2016 6:34 AM, "Tom Lendacky" <thomas.lendacky@amd.com> wrote:
+>>
+>> On 08/25/2016 08:04 AM, Thomas Gleixner wrote:
+>>> On Mon, 22 Aug 2016, Tom Lendacky wrote:
+>>>
+>>>> Provide support for Secure Memory Encryption (SME). This initial support
+>>>> defines the memory encryption mask as a variable for quick access and an
+>>>> accessor for retrieving the number of physical addressing bits lost if
+>>>> SME is enabled.
+>>>
+>>> What is the reason that this needs to live in assembly code?
+>>
+>> In later patches this code is expanded and deals with a lot of page
+>> table manipulation, cpuid/rdmsr instructions, etc. and so I thought it
+>> was best to do it this way.
+> 
+> None of that sounds like it needs to be in asm, though.
+> 
+> I, at least, have a strong preference for minimizing the amount of asm
+> in the low-level arch code.
+
+I can take a look at converting it over to C code.
+
+Thanks,
+Tom
+
+> 
+> --Andy
+> 
