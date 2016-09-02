@@ -1,64 +1,49 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 03/20] x86: Secure Memory Encryption (SME) build
-	enablement
-Date: Fri, 2 Sep 2016 13:03:51 +0200
-Message-ID: <20160902110351.GA22559@nazgul.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-	<20160822223559.29880.1502.stgit@tlendack-t1.amdoffice.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 12/18] arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
+Date: Fri, 02 Sep 2016 14:55:34 +0200
+Message-ID: <6815916.BISHOLF1Ut@wuerfel>
+References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com> <1471434403-25291-13-git-send-email-ynorov@caviumnetworks.com> <57C9587B.9080006@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20160822223559.29880.1502.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <57C9587B.9080006@huawei.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: libc-alpha@sourceware.org
+Cc: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 22, 2016 at 05:35:59PM -0500, Tom Lendacky wrote:
-> Provide the Kconfig support to build the SME support in the kernel.
+On Friday, September 2, 2016 6:46:19 PM CEST Bamvor Jian Zhang wrote:
+> diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+> index 043d17a..78bea1d 100644
+> --- a/arch/arm64/include/uapi/asm/unistd.h
+> +++ b/arch/arm64/include/uapi/asm/unistd.h
+> @@ -16,4 +16,9 @@
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/Kconfig |    9 +++++++++
->  1 file changed, 9 insertions(+)
+>  #define __ARCH_WANT_RENAMEAT
 > 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index c580d8c..131f329 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1357,6 +1357,15 @@ config X86_DIRECT_GBPAGES
->  	  supports them), so don't confuse the user by printing
->  	  that we have them enabled.
->  
-> +config AMD_MEM_ENCRYPT
-> +	bool "Secure Memory Encryption support for AMD"
-
-	     "AMD Secure Memory Encryption support"
-
-> +	depends on X86_64 && CPU_SUP_AMD
-> +	---help---
-> +	  Say yes to enable the encryption of system memory. This requires
-> +	  an AMD processor that supports Secure Memory Encryption (SME).
-> +	  The encryption of system memory is disabled by default but can be
-> +	  enabled with the mem_encrypt=on command line option.
+> +/* We need to make sure it works for both userspace and kernel(sys_ilp32.c) */
+> +#if defined(__ILP32__) || defined(__SYSCALL_COMPAT)
+> +#define __ARCH_WANT_SYNC_FILE_RANGE2
+> +#endif
 > +
->  # Common NUMA Features
->  config NUMA
->  	bool "Numa Memory Allocation and Scheduler Support"
+>  #include <asm-generic/unistd.h>
+> diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
+> index 10fc0ca..13c9c9d 100644
+> --- a/arch/arm64/kernel/sys_ilp32.c
+> +++ b/arch/arm64/kernel/sys_ilp32.c
+> @@ -42,7 +42,7 @@
+>  #define compat_sys_pwrite64            compat_sys_pwrite64_wrapper
+>  #define compat_sys_readahead           compat_sys_readahead_wrapper
+>  #define compat_sys_shmat               sys_shmat
+> -#define compat_sys_sync_file_range     compat_sys_sync_file_range2_wrapper
+> +#define compat_sys_sync_file_range2    compat_sys_sync_file_range2_wrapper
+>  #define compat_sys_truncate64          compat_sys_truncate64_wrapper
+>  #define sys_mmap2                      compat_sys_mmap2_wrapper
+>  #define sys_ptrace                     compat_sys_ptrace
+> 
 
--- 
-Regards/Gruss,
-    Boris.
+Looks good to me.
 
-ECO tip #101: Trim your mails when you reply.
---
+	Arnd
+
