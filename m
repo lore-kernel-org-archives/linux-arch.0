@@ -1,54 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:51024 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753160AbcIBM4j (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Sep 2016 08:56:39 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 12/18] arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Fri, 02 Sep 2016 14:55:34 +0200
-Message-ID: <6815916.BISHOLF1Ut@wuerfel>
-In-Reply-To: <57C9587B.9080006@huawei.com>
-References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com> <1471434403-25291-13-git-send-email-ynorov@caviumnetworks.com> <57C9587B.9080006@huawei.com>
+Received: from mail-bl2nam02on0047.outbound.protection.outlook.com ([104.47.38.47]:20061
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751055AbcIBNUF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 2 Sep 2016 09:20:05 -0400
+Date: Fri, 2 Sep 2016 16:04:53 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 12/18] arm64: ilp32: add sys_ilp32.c and a separate table
+ (in entry.S) to use it
+Message-ID: <20160902130453.GA14229@yury-N73SV>
+References: <1471434403-25291-1-git-send-email-ynorov@caviumnetworks.com>
+ <1471434403-25291-13-git-send-email-ynorov@caviumnetworks.com>
+ <57C9587B.9080006@huawei.com>
+ <6815916.BISHOLF1Ut@wuerfel>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <6815916.BISHOLF1Ut@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: libc-alpha@sourceware.org
-Cc: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, chenjianguo 00365834 <chenjianguo3@huawei.com>, jijun 00321192 <jijun2@huawei.com>
-Message-ID: <20160902125534.Z7bU2hzOcxzcwclgLn9F0RgXHzAWgqPxHQIDqDYL3IA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: libc-alpha@sourceware.org, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Hanjun Guo <guohanjun@huawei.com>, chenjianguo 00365834 <chenjianguo3@huawei.com>, jijun 00321192 <jijun2@huawei.com>
+Message-ID: <20160902130453.wY5AtI3YZrZlNqIclnkshrIIy-XJ9wFgSEd-chhC0r0@z>
 
-On Friday, September 2, 2016 6:46:19 PM CEST Bamvor Jian Zhang wrote:
-> diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-> index 043d17a..78bea1d 100644
-> --- a/arch/arm64/include/uapi/asm/unistd.h
-> +++ b/arch/arm64/include/uapi/asm/unistd.h
-> @@ -16,4 +16,9 @@
+On Fri, Sep 02, 2016 at 02:55:34PM +0200, Arnd Bergmann wrote:
+> On Friday, September 2, 2016 6:46:19 PM CEST Bamvor Jian Zhang wrote:
+> > diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+> > index 043d17a..78bea1d 100644
+> > --- a/arch/arm64/include/uapi/asm/unistd.h
+> > +++ b/arch/arm64/include/uapi/asm/unistd.h
+> > @@ -16,4 +16,9 @@
+> > 
+> >  #define __ARCH_WANT_RENAMEAT
+> > 
+> > +/* We need to make sure it works for both userspace and kernel(sys_ilp32.c) */
+> > +#if defined(__ILP32__) || defined(__SYSCALL_COMPAT)
+> > +#define __ARCH_WANT_SYNC_FILE_RANGE2
+> > +#endif
+> > +
+> >  #include <asm-generic/unistd.h>
+> > diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
+> > index 10fc0ca..13c9c9d 100644
+> > --- a/arch/arm64/kernel/sys_ilp32.c
+> > +++ b/arch/arm64/kernel/sys_ilp32.c
+> > @@ -42,7 +42,7 @@
+> >  #define compat_sys_pwrite64            compat_sys_pwrite64_wrapper
+> >  #define compat_sys_readahead           compat_sys_readahead_wrapper
+> >  #define compat_sys_shmat               sys_shmat
+> > -#define compat_sys_sync_file_range     compat_sys_sync_file_range2_wrapper
+> > +#define compat_sys_sync_file_range2    compat_sys_sync_file_range2_wrapper
+> >  #define compat_sys_truncate64          compat_sys_truncate64_wrapper
+> >  #define sys_mmap2                      compat_sys_mmap2_wrapper
+> >  #define sys_ptrace                     compat_sys_ptrace
+> > 
 > 
->  #define __ARCH_WANT_RENAMEAT
+> Looks good to me.
 > 
-> +/* We need to make sure it works for both userspace and kernel(sys_ilp32.c) */
-> +#if defined(__ILP32__) || defined(__SYSCALL_COMPAT)
-> +#define __ARCH_WANT_SYNC_FILE_RANGE2
-> +#endif
-> +
->  #include <asm-generic/unistd.h>
-> diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
-> index 10fc0ca..13c9c9d 100644
-> --- a/arch/arm64/kernel/sys_ilp32.c
-> +++ b/arch/arm64/kernel/sys_ilp32.c
-> @@ -42,7 +42,7 @@
->  #define compat_sys_pwrite64            compat_sys_pwrite64_wrapper
->  #define compat_sys_readahead           compat_sys_readahead_wrapper
->  #define compat_sys_shmat               sys_shmat
-> -#define compat_sys_sync_file_range     compat_sys_sync_file_range2_wrapper
-> +#define compat_sys_sync_file_range2    compat_sys_sync_file_range2_wrapper
->  #define compat_sys_truncate64          compat_sys_truncate64_wrapper
->  #define sys_mmap2                      compat_sys_mmap2_wrapper
->  #define sys_ptrace                     compat_sys_ptrace
-> 
+> 	Arnd
 
-Looks good to me.
+Thank you. I'll take it.
 
-	Arnd
-
+Yury.
