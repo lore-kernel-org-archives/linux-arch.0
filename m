@@ -1,123 +1,61 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 09/20] x86: Add support for early
-	encryption/decryption of memory
-Date: Tue, 6 Sep 2016 18:12:49 +0200
-Message-ID: <20160906161249.3ckotvocwuukhjws@pd.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-	<20160822223710.29880.23936.stgit@tlendack-t1.amdoffice.net>
+From: Jann Horn <jann@thejh.net>
+Subject: Re: [PATCH v3 00/13] Virtually mapped stacks with guard pages (x86,
+ core)
+Date: Tue, 6 Sep 2016 18:19:21 +0200
+Message-ID: <20160906161921.GB31384@pc.thejh.net>
+References: <cover.1466466093.git.luto@kernel.org>
+ <CA+55aFyahpuy94qqECj0ZA6oD3Vy0r=gY2cH8_dB1a-4XURV2Q@mail.gmail.com>
+ <CALCETrUuG0-tGNQ5iAEO2_gaK1eUq7AoALoBeQKcOP8cvxr=eA@mail.gmail.com>
+ <CA+55aFx480bxx7VAmFqdsVGHjoSav4eCvVpcx5ZSpBQuq+=1Mw@mail.gmail.com>
+ <20160623143126.GA16664@redhat.com>
+ <CA+55aFwBL5ArLXZ0+YggTbp6Qon+OM+Foihe0yrQOmRRvu96VQ@mail.gmail.com>
+ <CALCETrU2B0QYBgTTSAFiK026Bx96+Bk=k64bhrDT+TiXsV7D4A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="uQr8t48UFsdbeI+V"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from thejh.net ([37.221.195.125]:36851 "EHLO thejh.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932874AbcIFQTZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Sep 2016 12:19:25 -0400
 Content-Disposition: inline
-In-Reply-To: <20160822223710.29880.23936.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CALCETrU2B0QYBgTTSAFiK026Bx96+Bk=k64bhrDT+TiXsV7D4A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>, Nadav Amit <nadav.amit@gmail.com>, Kees Cook <keescook@chromium.org>, Brian Gerst <brgerst@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Josh Poimboeuf <jpoimboe@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Mon, Aug 22, 2016 at 05:37:10PM -0500, Tom Lendacky wrote:
-> This adds support to be able to either encrypt or decrypt data during
-> the early stages of booting the kernel. This does not change the memory
-> encryption attribute - it is used for ensuring that data present in
-> either an encrypted or un-encrypted memory area is in the proper state
-> (for example the initrd will have been loaded by the boot loader and
-> will not be encrypted, but the memory that it resides in is marked as
-> encrypted).
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
 
-...
+--uQr8t48UFsdbeI+V
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index 00eb705..f35a646 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -14,6 +14,107 @@
->  #include <linux/mm.h>
->  
->  #include <asm/mem_encrypt.h>
-> +#include <asm/tlbflush.h>
-> +#include <asm/fixmap.h>
-> +
-> +/* Buffer used for early in-place encryption by BSP, no locking needed */
-> +static char me_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-> +
-> +/*
-> + * This routine does not change the underlying encryption setting of the
-> + * page(s) that map this memory. It assumes that eventually the memory is
-> + * meant to be accessed as encrypted but the contents are currently not
-> + * encyrpted.
+On Thu, Jun 23, 2016 at 09:41:11AM -0700, Andy Lutomirski wrote:
+> 3. Free stacks immediately and cache them (really easy).
 
-s/encyrpted/encrypted/
+Random note: task_current_syscall() (via /proc/$pid/syscall) will probably need additional
+locking when the stack is freed before the task.
 
-Ditto below.
+--uQr8t48UFsdbeI+V
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-> + */
-> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-> +{
-> +	void *src, *dst;
-> +	size_t len;
-> +
-> +	if (!sme_me_mask)
-> +		return;
-> +
-> +	local_flush_tlb();
-> +	wbinvd();
-> +
-> +	/*
-> +	 * There are limited number of early mapping slots, so map (at most)
-> +	 * one page at time.
-> +	 */
-> +	while (size) {
-> +		len = min_t(size_t, sizeof(me_early_buffer), size);
-> +
-> +		/* Create a mapping for non-encrypted write-protected memory */
-> +		src = early_memremap_dec_wp(paddr, len);
-> +
-> +		/* Create a mapping for encrypted memory */
-> +		dst = early_memremap_enc(paddr, len);
-> +
-> +		/*
-> +		 * If a mapping can't be obtained to perform the encryption,
-> +		 * then encrypted access to that area will end up causing
-> +		 * a crash.
-> +		 */
-> +		BUG_ON(!src || !dst);
-> +
-> +		memcpy(me_early_buffer, src, len);
-> +		memcpy(dst, me_early_buffer, len);
-> +
-> +		early_memunmap(dst, len);
-> +		early_memunmap(src, len);
-> +
-> +		paddr += len;
-> +		size -= len;
-> +	}
-> +}
-> +
-> +/*
-> + * This routine does not change the underlying encryption setting of the
-> + * page(s) that map this memory. It assumes that eventually the memory is
-> + * meant to be accessed as not encrypted but the contents are currently
-> + * encyrpted.
-> + */
-> +void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-> +{
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
 
-...
+iQIcBAEBAgAGBQJXzuyJAAoJED4KNFJOeCOoA8AQAN8Hyj3k+FZaBTAr4+q175lV
+oJBc+5VcV3JdenMRaVkSPEyOb40bo5TKuPV7gOpSajbOAxO95Y4UEu1iPvLFnm1D
+Z2bz1k8vk7JseGooHlkPDDLYlQNH0ilbSEhh4ysj0F/1TrT+Wrf7pFum/F7uGZgl
+zjnZ6qf+MjZbvBSsYAftXHwLHANGkR6fTOl4UaZUgZm7vtshLcSp/pSoL00m5UN5
+i54k26Ccs9RH8zO42lUiiDm3MeXRmzZ3E9akdsLgumZinui36nZqoEExEbE+U+Y+
+PAnHGwu2gsniNn/dPtfAsalPC4Z5wRgyB0S9aiW6ehchXXnNJhETX6QbvQfJ2MJ/
+RoWWvcr/lIWinc842M2elQjPRBpg5O1ObwdytbGR42uII9vtG4zSC4ZnbFANXWPp
+jvFWnbjZu1nG1qd2lz+msLdtYO+d8v6W9exijz5TkelXwXYu5fu3OfoX1+ZDUzfv
+XjYX4mzBJMZzLrN2KE851RjpDyhCaJrVi+jjD5uapRl1GnugK/8nivv1cDZDJcEJ
+YOh+AOLQYttcYq2amGJSGg5kZNor8qxtB7O0bfB4IexUHgJpbt7/7Bct97O7S6qw
+0wmOMMrQhXDsgPSd47FHSMI/i+5gTcQZVwxJwoVuy3jeXAcdQiyuDXsoKwa1hkpu
+oVHyNbgpw3OdXCCPKdAC
+=GyiT
+-----END PGP SIGNATURE-----
 
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+--uQr8t48UFsdbeI+V--
