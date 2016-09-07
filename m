@@ -1,92 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out1134-202.mail.aliyun.com ([42.120.134.202]:33688 "EHLO
-        out1134-202.mail.aliyun.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1757267AbcIGPi0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Sep 2016 11:38:26 -0400
-Message-ID: <57D0349F.1080706@emindsoft.com.cn>
-Date: Wed, 07 Sep 2016 23:39:11 +0800
-From: Chen Gang <chengang@emindsoft.com.cn>
+Received: from mail.skyhub.de ([78.46.96.112]:55337 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751219AbcIGPzj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Sep 2016 11:55:39 -0400
+Date: Wed, 7 Sep 2016 17:55:35 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v2 07/20] x86: Provide general kernel support for
+ memory encryption
+Message-ID: <20160907155535.i7wh46uxxa2bj3ik@pd.tnic>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223646.29880.28794.stgit@tlendack-t1.amdoffice.net>
+ <20160906093113.GA18319@pd.tnic>
+ <f4125cae-63af-f8c7-086f-e297ce480a07@amd.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2] arch: all: include: asm: bitops: Use bool instead
- of int for all bit test functions
-References: <1472396129-28665-1-git-send-email-chengang@emindsoft.com.cn> <201609040802.ueL85Ttu%fengguang.wu@intel.com> <20160906122732.2086f1bcb1c3daa378e21d3b@linux-foundation.org> <20160907015219.4bk5ptcfyrosowwi@wfg-t540p.sh.intel.com>
-In-Reply-To: <20160907015219.4bk5ptcfyrosowwi@wfg-t540p.sh.intel.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <f4125cae-63af-f8c7-086f-e297ce480a07@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Fengguang Wu <lkp@intel.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: chengang@emindsoft.com.cn, kbuild-all@01.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, chris@zankel.net, jcmvbkbc@gmail.com, arnd@arndb.de, noamc@ezchip.com, brueckner@linux.vnet.ibm.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20160907153911.n02fVy46TayUjwTOLv2_PK6Ek5KQ7vKcKmbU06nWN8c@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160907155535.mClMIxGASrcrfGekjHYFH4pD9rJLb40Z0zH1UMabHBg@z>
 
+On Wed, Sep 07, 2016 at 09:30:54AM -0500, Tom Lendacky wrote:
+> _PAGE_ENC is #defined as sme_me_mask and sme_me_mask has already been
+> set (or not set) at this point - so it will be the mask if SME is
+> active or 0 if SME is not active.
 
-Thank you all for your work. Commonly, I should send patch v3 for it.
+Yeah, I remember :-)
 
-And very sorry for replying too late. During these days I have no
-enough time on it (working, buying house, and catching a cold, but I am
-lucky enough that my father's health is OK).
+> sme_early_init() is merely propagating the mask to other structures.
+> Since early_pmd_flags is mainly used in this file (one line in
+> head_64.S is the other place) I felt it best to modify it here. But it
+> can always be moved if you feel that is best.
 
-Thanks.
+Hmm, so would it work then if you stick it in early_pmd_flags'
+definition like you do with the other masks? I.e.,
 
-On 9/7/16 09:52, Fengguang Wu wrote:
-> Hi Andrew,
-> 
-> On Tue, Sep 06, 2016 at 12:27:32PM -0700, Andrew Morton wrote:
->> On Sun, 4 Sep 2016 08:27:36 +0800 kbuild test robot <lkp@intel.com> wrote:
->>
->>> [auto build test ERROR on linus/master]
->>> [also build test ERROR on v4.8-rc4 next-20160825]
->>> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->>> [Suggest to use git(>=2.9.0) format-patch --base=<commit> (or --base=auto for convenience) to record what (public, well-known) commit your patch series was built on]
->>> [Check https://git-scm.com/docs/git-format-patch for more information]
->>>
->>> url:    https://github.com/0day-ci/linux/commits/chengang-emindsoft-com-cn/arch-all-include-asm-bitops-Use-bool-instead-of-int-for-all-bit-test-functions/20160828-230301
->>> config: s390-default_defconfig (attached as .config)
->>> compiler: s390x-linux-gnu-gcc (Debian 5.4.0-6) 5.4.0 20160609
->>> reproduce:
->>>         wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
->>>         chmod +x ~/bin/make.cross
->>>         # save the attached .config to linux build tree
->>>         make.cross ARCH=s390
->>>
->>> All errors (new ones prefixed by >>):
->>>
->>>    In file included from include/linux/bitops.h:36:0,
->>>                     from fs/btrfs/extent_io.c:1:
->>> >> arch/s390/include/asm/bitops.h:176:15: error: unknown type name 'bool'
->>>     static inline bool
->>>                   ^
->>>    arch/s390/include/asm/bitops.h:187:15: error: unknown type name 'bool'
->>>     static inline bool
->>
->> My s390 cross compiler doesn't like that config.  Can someone test this?
-> 
-> Tested-by: Fengguang Wu <fengguang.wu@intel.com>
-> 
-> It works fine with Debian's gcc-6-s390x-linux-gnu and crosstool gcc:
-> 
-> https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/x86_64-gcc-4.9.0-nolibc_s390x-linux.tar.xz
-> 
->> --- a/arch/s390/include/asm/bitops.h~a
->> +++ a/arch/s390/include/asm/bitops.h
->> @@ -40,6 +40,7 @@
->> #error only <linux/bitops.h> can be included directly
->> #endif
->>
->> +#include <linux/types.h>
->> #include <linux/typecheck.h>
->> #include <linux/compiler.h>
->> #include <asm/barrier.h>
-> 
-> Regards,
-> Fengguang
+pmdval_t early_pmd_flags = __PAGE_KERNEL_LARGE | _PAGE_ENC & ~(_PAGE_GLOBAL | _PAGE_NX);
 
 -- 
-Chen Gang (陈刚)
+Regards/Gruss,
+    Boris.
 
-Managing Natural Environments is the Duty of Human Beings.
-
--- 
-Chen Gang (陈刚)
-
-Managing Natural Environments is the Duty of Human Beings.
+ECO tip #101: Trim your mails when you reply.
