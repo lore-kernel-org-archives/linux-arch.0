@@ -1,74 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:6885 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755253AbcIGBwi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Sep 2016 21:52:38 -0400
-Date: Wed, 7 Sep 2016 09:52:19 +0800
-From: Fengguang Wu <lkp@intel.com>
-Subject: Re: [PATCH v2] arch: all: include: asm: bitops: Use bool instead of
- int for all bit test functions
-Message-ID: <20160907015219.4bk5ptcfyrosowwi@wfg-t540p.sh.intel.com>
-References: <1472396129-28665-1-git-send-email-chengang@emindsoft.com.cn>
- <201609040802.ueL85Ttu%fengguang.wu@intel.com>
- <20160906122732.2086f1bcb1c3daa378e21d3b@linux-foundation.org>
+Received: from mail-by2nam01on0048.outbound.protection.outlook.com ([104.47.34.48]:48544
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1756625AbcIGOEC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 7 Sep 2016 10:04:02 -0400
+Subject: Re: [RFC PATCH v2 03/20] x86: Secure Memory Encryption (SME) build
+ enablement
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223559.29880.1502.stgit@tlendack-t1.amdoffice.net>
+ <20160902110351.GA22559@nazgul.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <5a8e2455-ef08-9e3f-2847-082fd3e01e67@amd.com>
+Date: Wed, 7 Sep 2016 09:03:46 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Content-Disposition: inline
-In-Reply-To: <20160906122732.2086f1bcb1c3daa378e21d3b@linux-foundation.org>
+In-Reply-To: <20160902110351.GA22559@nazgul.tnic>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: chengang@emindsoft.com.cn, kbuild-all@01.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@libc.org, davem@davemloft.net, cmetcalf@mellanox.com, chris@zankel.net, jcmvbkbc@gmail.com, arnd@arndb.de, noamc@ezchip.com, brueckner@linux.vnet.ibm.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
-Message-ID: <20160907015219.v9NKWvaP5WVVrgwohR4kyWrgS5vmgF9WyS4I5SlG-WY@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160907140346.k5byFfcR57veTL3rGD-SHEOi6ORnBWI0lhHk-rlqF_A@z>
 
-Hi Andrew,
-
-On Tue, Sep 06, 2016 at 12:27:32PM -0700, Andrew Morton wrote:
->On Sun, 4 Sep 2016 08:27:36 +0800 kbuild test robot <lkp@intel.com> wrote:
->
->> [auto build test ERROR on linus/master]
->> [also build test ERROR on v4.8-rc4 next-20160825]
->> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->> [Suggest to use git(>=2.9.0) format-patch --base=<commit> (or --base=auto for convenience) to record what (public, well-known) commit your patch series was built on]
->> [Check https://git-scm.com/docs/git-format-patch for more information]
+On 09/02/2016 06:03 AM, Borislav Petkov wrote:
+> On Mon, Aug 22, 2016 at 05:35:59PM -0500, Tom Lendacky wrote:
+>> Provide the Kconfig support to build the SME support in the kernel.
 >>
->> url:    https://github.com/0day-ci/linux/commits/chengang-emindsoft-com-cn/arch-all-include-asm-bitops-Use-bool-instead-of-int-for-all-bit-test-functions/20160828-230301
->> config: s390-default_defconfig (attached as .config)
->> compiler: s390x-linux-gnu-gcc (Debian 5.4.0-6) 5.4.0 20160609
->> reproduce:
->>         wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
->>         chmod +x ~/bin/make.cross
->>         # save the attached .config to linux build tree
->>         make.cross ARCH=s390
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/Kconfig |    9 +++++++++
+>>  1 file changed, 9 insertions(+)
 >>
->> All errors (new ones prefixed by >>):
->>
->>    In file included from include/linux/bitops.h:36:0,
->>                     from fs/btrfs/extent_io.c:1:
->> >> arch/s390/include/asm/bitops.h:176:15: error: unknown type name 'bool'
->>     static inline bool
->>                   ^
->>    arch/s390/include/asm/bitops.h:187:15: error: unknown type name 'bool'
->>     static inline bool
->
->My s390 cross compiler doesn't like that config.  Can someone test this?
+>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>> index c580d8c..131f329 100644
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -1357,6 +1357,15 @@ config X86_DIRECT_GBPAGES
+>>  	  supports them), so don't confuse the user by printing
+>>  	  that we have them enabled.
+>>  
+>> +config AMD_MEM_ENCRYPT
+>> +	bool "Secure Memory Encryption support for AMD"
+> 
+> 	     "AMD Secure Memory Encryption support"
 
-Tested-by: Fengguang Wu <fengguang.wu@intel.com>
+Ok.
 
-It works fine with Debian's gcc-6-s390x-linux-gnu and crosstool gcc:
+Thanks,
+Tom
 
-https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/x86_64-gcc-4.9.0-nolibc_s390x-linux.tar.xz
-
->--- a/arch/s390/include/asm/bitops.h~a
->+++ a/arch/s390/include/asm/bitops.h
->@@ -40,6 +40,7 @@
-> #error only <linux/bitops.h> can be included directly
-> #endif
->
->+#include <linux/types.h>
-> #include <linux/typecheck.h>
-> #include <linux/compiler.h>
-> #include <asm/barrier.h>
-
-Regards,
-Fengguang
+> 
+>> +	depends on X86_64 && CPU_SUP_AMD
+>> +	---help---
+>> +	  Say yes to enable the encryption of system memory. This requires
+>> +	  an AMD processor that supports Secure Memory Encryption (SME).
+>> +	  The encryption of system memory is disabled by default but can be
+>> +	  enabled with the mem_encrypt=on command line option.
+>> +
+>>  # Common NUMA Features
+>>  config NUMA
+>>  	bool "Numa Memory Allocation and Scheduler Support"
+> 
