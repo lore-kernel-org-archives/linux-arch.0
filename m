@@ -1,73 +1,94 @@
-From: Fengguang Wu <lkp@intel.com>
-Subject: Re: [PATCH v2] arch: all: include: asm: bitops: Use bool instead of
- int for all bit test functions
-Date: Wed, 7 Sep 2016 09:52:19 +0800
-Message-ID: <20160907015219.4bk5ptcfyrosowwi@wfg-t540p.sh.intel.com>
-References: <1472396129-28665-1-git-send-email-chengang@emindsoft.com.cn>
- <201609040802.ueL85Ttu%fengguang.wu@intel.com>
- <20160906122732.2086f1bcb1c3daa378e21d3b@linux-foundation.org>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v2 01/20] x86: Documentation for AMD Secure Memory
+ Encryption (SME)
+Date: Wed, 7 Sep 2016 09:02:38 -0500
+Message-ID: <3fbb0763-5f9f-6ff7-2266-7478fb12642e@amd.com>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223539.29880.96739.stgit@tlendack-t1.amdoffice.net>
+ <20160902085045.GG17338@nazgul.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:6885 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755253AbcIGBwi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Sep 2016 21:52:38 -0400
-Content-Disposition: inline
-In-Reply-To: <20160906122732.2086f1bcb1c3daa378e21d3b@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: chengang@emindsoft.com.cn, kbuild-all@01.org, minchan@kernel.org, vbabka@suse.cz, gi-oh.kim@profitbricks.com, iamjoonsoo.kim@lge.com, hillf.zj@alibaba-inc.com, mgorman@techsingularity.net, mhocko@suse.com, rientjes@google.com, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@armlinux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, ysato@users.sourceforge.jp, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, dhowells@redhat.com, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, dalias@l
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20160902085045.GG17338@nazgul.tnic>
+Sender: linux-doc-owner@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dm
+List-Id: linux-arch.vger.kernel.org
 
-Hi Andrew,
-
-On Tue, Sep 06, 2016 at 12:27:32PM -0700, Andrew Morton wrote:
->On Sun, 4 Sep 2016 08:27:36 +0800 kbuild test robot <lkp@intel.com> wrote:
->
->> [auto build test ERROR on linus/master]
->> [also build test ERROR on v4.8-rc4 next-20160825]
->> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
->> [Suggest to use git(>=2.9.0) format-patch --base=<commit> (or --base=auto for convenience) to record what (public, well-known) commit your patch series was built on]
->> [Check https://git-scm.com/docs/git-format-patch for more information]
+On 09/02/2016 03:50 AM, Borislav Petkov wrote:
+> On Mon, Aug 22, 2016 at 05:35:39PM -0500, Tom Lendacky wrote:
+>> This patch adds a Documenation entry to decribe the AMD Secure Memory
+>> Encryption (SME) feature.
 >>
->> url:    https://github.com/0day-ci/linux/commits/chengang-emindsoft-com-cn/arch-all-include-asm-bitops-Use-bool-instead-of-int-for-all-bit-test-functions/20160828-230301
->> config: s390-default_defconfig (attached as .config)
->> compiler: s390x-linux-gnu-gcc (Debian 5.4.0-6) 5.4.0 20160609
->> reproduce:
->>         wget https://git.kernel.org/cgit/linux/kernel/git/wfg/lkp-tests.git/plain/sbin/make.cross -O ~/bin/make.cross
->>         chmod +x ~/bin/make.cross
->>         # save the attached .config to linux build tree
->>         make.cross ARCH=s390
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  Documentation/x86/amd-memory-encryption.txt |   35 +++++++++++++++++++++++++++
+>>  1 file changed, 35 insertions(+)
+>>  create mode 100644 Documentation/x86/amd-memory-encryption.txt
 >>
->> All errors (new ones prefixed by >>):
->>
->>    In file included from include/linux/bitops.h:36:0,
->>                     from fs/btrfs/extent_io.c:1:
->> >> arch/s390/include/asm/bitops.h:176:15: error: unknown type name 'bool'
->>     static inline bool
->>                   ^
->>    arch/s390/include/asm/bitops.h:187:15: error: unknown type name 'bool'
->>     static inline bool
->
->My s390 cross compiler doesn't like that config.  Can someone test this?
+>> diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
+>> new file mode 100644
+>> index 0000000..f19c555
+>> --- /dev/null
+>> +++ b/Documentation/x86/amd-memory-encryption.txt
+>> @@ -0,0 +1,35 @@
+>> +Secure Memory Encryption (SME) is a feature found on AMD processors.
+>> +
+>> +SME provides the ability to mark individual pages of memory as encrypted using
+>> +the standard x86 page tables.  A page that is marked encrpyted will be
+> 
+> s/encrpyted/encrypted/
 
-Tested-by: Fengguang Wu <fengguang.wu@intel.com>
+Ugh..  I thought I caught all of these.  Obviously not.  I'll go through
+all the patches on this.
 
-It works fine with Debian's gcc-6-s390x-linux-gnu and crosstool gcc:
+> 
+>> +automatically decrypted when read from DRAM and encrypted when written to
+>> +DRAM.  SME can therefore be used to protect the contents of DRAM from physical
+>> +attacks on the system.
+>> +
+>> +Support for SME can be determined through the CPUID instruction. The CPUID
+>> +function 0x8000001f reports information related to SME:
+>> +
+>> +	0x8000001f[eax]:
+>> +		Bit[0] indicates support for SME
+>> +	0x8000001f[ebx]:
+>> +		Bit[5:0]  pagetable bit number used to enable memory encryption
+>> +		Bit[11:6] reduction in physical address space, in bits, when
+>> +			  memory encryption is enabled (this only affects system
+>> +			  physical addresses, not guest physical addresses)
+>> +
+>> +If support for SME is present, MSR 0xc00100010 (SYS_CFG) can be used to
+>> +determine if SME is enabled and/or to enable memory encryption:
+>> +
+>> +	0xc0010010:
+>> +		Bit[23]   0 = memory encryption features are disabled
+>> +			  1 = memory encryption features are enabled
+>> +
+>> +Linux relies on BIOS to set this bit if BIOS has determined that the reduction
+>> +in the physical address space as a result of enabling memory encryption (see
+>> +CPUID information above) will not conflict with the address space resource
+>> +requirements for the system.  If this bit is not set upon Linux startup then
+>> +Linux itself will not set it and memory encryption will not be possible.
+>> +
+>> +SME support is configurable in the kernel through the AMD_MEM_ENCRYPT config
+>> +option.
+> 
+> " ... is configurable through CONFIG_AMD_MEM_ENCRYPT."
 
-https://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/4.9.0/x86_64-gcc-4.9.0-nolibc_s390x-linux.tar.xz
+Ok.
 
->--- a/arch/s390/include/asm/bitops.h~a
->+++ a/arch/s390/include/asm/bitops.h
->@@ -40,6 +40,7 @@
-> #error only <linux/bitops.h> can be included directly
-> #endif
->
->+#include <linux/types.h>
-> #include <linux/typecheck.h>
-> #include <linux/compiler.h>
-> #include <asm/barrier.h>
+> 
+>> Additionally, the mem_encrypt=on command line parameter is required
+>> +to activate memory encryption.
+> 
+> I think you want to rewrite the logic here to say that people should use
+> the BIOS option and if none is present for whatever reason, resort to
+> the alternative "mem_encrypt=on" kernel command line option, no?
 
-Regards,
-Fengguang
+Yes, I'll work on rewording this section.
+
+Thanks,
+Tom
+> 
