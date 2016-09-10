@@ -1,69 +1,41 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 13/20] x86: Decrypt trampoline area if memory
-	encryption is active
-Date: Fri, 9 Sep 2016 19:34:42 +0200
-Message-ID: <20160909173442.wypsprnzb5ax6xqb@pd.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-	<20160822223757.29880.24107.stgit@tlendack-t1.amdoffice.net>
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [PATCH 0/3 v3] kbuild changes, thin archives, --gc-sections
+Date: Sat, 10 Sep 2016 00:05:00 -0400 (EDT)
+Message-ID: <alpine.LFD.2.20.1609100004350.14769@knanqh.ubzr>
+References: <1472041761-14414-1-git-send-email-npiggin@gmail.com> <alpine.LFD.2.20.1609082016180.14769@knanqh.ubzr> <57D2962F.5090200@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20160822223757.29880.24107.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f176.google.com ([209.85.220.176]:34734 "EHLO
+        mail-qk0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750760AbcIJEFD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 10 Sep 2016 00:05:03 -0400
+Received: by mail-qk0-f176.google.com with SMTP id h8so9243699qka.1
+        for <linux-arch@vger.kernel.org>; Fri, 09 Sep 2016 21:05:02 -0700 (PDT)
+In-Reply-To: <57D2962F.5090200@suse.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Arnd Bergmann <arnd@arndb.de>, Segher Boessenkool <segher@kernel.crashing.org>, Alan Modra <amodra@gmail.com>
 
-On Mon, Aug 22, 2016 at 05:37:57PM -0500, Tom Lendacky wrote:
-> When Secure Memory Encryption is enabled, the trampoline area must not
-> be encrypted. A cpu running in real mode will not be able to decrypt
+On Fri, 9 Sep 2016, Michal Marek wrote:
 
-s/cpu/CPU/... always :-)
-
-> memory that has been encrypted because it will not be able to use addresses
-> with the memory encryption mask.
+> Dne 9.9.2016 v 02:23 Nicolas Pitre napsal(a):
+> > On Wed, 24 Aug 2016, Nicholas Piggin wrote:
+> > 
+> >> Hi Michal,
+> >>
+> >> I ended up deciding to do a v3, because I had several changes
+> >> accumulated, as described in patches.
+> > 
+> > What is the prospect of those patches going upstream?
+> > 
+> > I ask because I didn't see them in the kbuild repo yet, nor in next for 
+> > that matter.
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/realmode/init.c |    9 +++++++++
->  1 file changed, 9 insertions(+)
-> 
-> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-> index 5db706f1..f74925f 100644
-> --- a/arch/x86/realmode/init.c
-> +++ b/arch/x86/realmode/init.c
-> @@ -6,6 +6,7 @@
->  #include <asm/pgtable.h>
->  #include <asm/realmode.h>
->  #include <asm/tlbflush.h>
-> +#include <asm/mem_encrypt.h>
->  
->  struct real_mode_header *real_mode_header;
->  u32 *trampoline_cr4_features;
-> @@ -130,6 +131,14 @@ static void __init set_real_mode_permissions(void)
->  	unsigned long text_start =
->  		(unsigned long) __va(real_mode_header->text_start);
->  
-> +	/*
-> +	 * If memory encryption is active, the trampoline area will need to
-> +	 * be in non-encrypted memory in order to bring up other processors
+> I merged the patches into the kbuild.git repository now.
 
-Let's stick with either "unencrypted" - I'd prefer that one - or
-"non-encrypted" nomenclature so that there's no distraction. I see both
-versions in the patchset.
+Excellent, thanks.
 
--- 
-Regards/Gruss,
-    Boris.
 
-ECO tip #101: Trim your mails when you reply.
+Nicolas
