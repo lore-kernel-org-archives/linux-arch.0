@@ -1,21 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:37185 "EHLO
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:47530 "EHLO
         smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752335AbcILRsC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Sep 2016 13:48:02 -0400
+        with ESMTP id S1754434AbcILR6s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Sep 2016 13:58:48 -0400
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 2/2] atomic64: No need for CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-Date: Mon, 12 Sep 2016 10:47:12 -0700
-Message-ID: <1473702432-8116-3-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1473702432-8116-1-git-send-email-vgupta@synopsys.com>
-References: <1473702432-8116-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 2/2] atomic64: No need for CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+Date: Mon, 12 Sep 2016 10:58:03 -0700
+Message-ID: <1473703083-8625-3-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1473703083-8625-1-git-send-email-vgupta@synopsys.com>
+References: <201609111259.q67d9T4B%fengguang.wu@intel.com>
+ <1473703083-8625-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>, Zhaoxiu Zeng <zhaoxiu.zeng@gmail.com>, Linus Walleij <linus.walleij@linaro.org>, Matthew Wilcox <willy@linux.intel.com>, Alexander Potapenko <glider@google.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Herbert Xu <herbert@gondor.apana.org.au>, Ming Lin <ming.l@ssi.samsung.com>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Borislav Petkov <bp@suse.de>, Andi Kleen <ak@linux.intel.com>, Boqun Feng <boqun.feng@gmail.com>, linux-alpha@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20160912174712.XUx5zfeQFj3Jg9nWhIsNkAKjvLw8kvWFIeRBhCtw6GM@z>
+Message-ID: <20160912175803.QlcNowxICiXxM5q_ADyihzODUXNpqBQDYRIDMcRjqDg@z>
 
 This came to light when implementing native 64-bit atomics for ARCv2.
 
@@ -89,13 +90,13 @@ Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
  arch/mips/Kconfig    | 1 -
  arch/parisc/Kconfig  | 1 -
  arch/powerpc/Kconfig | 1 -
- arch/s390/Kconfig    | 2 +-
+ arch/s390/Kconfig    | 1 -
  arch/sparc/Kconfig   | 1 -
- arch/tile/Kconfig    | 2 +-
- arch/x86/Kconfig     | 2 +-
+ arch/tile/Kconfig    | 1 -
+ arch/x86/Kconfig     | 1 -
  lib/Kconfig          | 3 ---
  lib/atomic64_test.c  | 4 ----
- 12 files changed, 3 insertions(+), 17 deletions(-)
+ 12 files changed, 17 deletions(-)
 
 diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
 index 7f312d80b43b..0e49d39ea74a 100644
@@ -170,15 +171,14 @@ index 927d2ab2ce08..18d1b42cf545 100644
  	select HAVE_PERF_REGS
  	select HAVE_PERF_USER_STACK_DUMP
 diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index c109f073d454..af52b07efde2 100644
+index c109f073d454..d89d97ac83c4 100644
 --- a/arch/s390/Kconfig
 +++ b/arch/s390/Kconfig
-@@ -67,7 +67,7 @@ config DEBUG_RODATA
+@@ -67,7 +67,6 @@ config DEBUG_RODATA
  
  config S390
  	def_bool y
 -	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-+	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
  	select ARCH_HAS_DEVMEM_IS_ALLOWED
  	select ARCH_HAS_ELF_RANDOMIZE
  	select ARCH_HAS_GCOV_PROFILE_ALL
@@ -195,28 +195,26 @@ index 59b09600dd32..bfedbe0cb7b2 100644
  	select RTC_DRV_M48T59
  	select RTC_SYSTOHC
 diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 78da75b670bc..12eda5440c93 100644
+index 78da75b670bc..4583c0320059 100644
 --- a/arch/tile/Kconfig
 +++ b/arch/tile/Kconfig
-@@ -3,7 +3,7 @@
+@@ -3,7 +3,6 @@
  
  config TILE
  	def_bool y
 -	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-+	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
  	select ARCH_HAS_DEVMEM_IS_ALLOWED
  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
  	select ARCH_WANT_FRAME_POINTERS
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 2a1f0ce7c59a..0cf609998550 100644
+index 2a1f0ce7c59a..018076fcffcf 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
-@@ -23,7 +23,7 @@ config X86
+@@ -23,7 +23,6 @@ config X86
  	select ARCH_CLOCKSOURCE_DATA
  	select ARCH_DISCARD_MEMBLOCK
  	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
 -	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-+	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
  	select ARCH_HAS_DEVMEM_IS_ALLOWED
  	select ARCH_HAS_ELF_RANDOMIZE
  	select ARCH_HAS_FAST_MULTIPLIER
