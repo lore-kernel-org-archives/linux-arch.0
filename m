@@ -1,54 +1,186 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f52.google.com ([209.85.214.52]:35947 "EHLO
-        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756954AbcILR3T (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Sep 2016 13:29:19 -0400
-Received: by mail-it0-f52.google.com with SMTP id o3so17941251ita.1
-        for <linux-arch@vger.kernel.org>; Mon, 12 Sep 2016 10:29:18 -0700 (PDT)
+Received: from mail.skyhub.de ([78.46.96.112]:34980 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755290AbcILRJB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Sep 2016 13:09:01 -0400
+Date: Mon, 12 Sep 2016 19:08:56 +0200
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v2 20/20] x86: Add support to make use of Secure
+ Memory Encryption
+Message-ID: <20160912170856.2uklaoc4vxmkgnkq@pd.tnic>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223908.29880.50365.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20160912133536.1bdb57a9@roar.ozlabs.ibm.com>
-References: <147361509579.17004.5258725187329709824.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20160912133536.1bdb57a9@roar.ozlabs.ibm.com>
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Mon, 12 Sep 2016 10:29:17 -0700
-Message-ID: <CAPcyv4hS7i1DApKPDB5PkfBNZVbk321FgP94kUDjmuyGXDidZg@mail.gmail.com>
-Subject: Re: [RFC PATCH 1/2] mm, mincore2(): retrieve dax and tlb-size
- attributes of an address range
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20160822223908.29880.50365.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linux MM <linux-mm@kvack.org>, Andrea Arcangeli <aarcange@redhat.com>, Xiao Guangrong <guangrong.xiao@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, linux-api@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20160912172917.zcV41ENqkgFwfA8dCyqc5q7jvja0fgL-r7fyV5e723I@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160912170856.Ss8VPyb5ydybgmACWPAFItoBeyDxQkAF1KqprSIiOt8@z>
 
-On Sun, Sep 11, 2016 at 8:35 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
-> On Sun, 11 Sep 2016 10:31:35 -0700
-> Dan Williams <dan.j.williams@intel.com> wrote:
->
->> As evidenced by this bug report [1], userspace libraries are interested
->> in whether a mapping is DAX mapped, i.e. no intervening page cache.
->> Rather than using the ambiguous VM_MIXEDMAP flag in smaps, provide an
->> explicit "is dax" indication as a new flag in the page vector populated
->> by mincore.
->
-> Can you cc linux-arch when adding new syscalls (or other such things that
-> need arch enablement).
->
-> I wonder if the changelog for a new syscall should have a bit more grandeur.
-> Without seeing patch 2, you might not know this was a new syscall just by
-> reading the subject and changelog.
+On Mon, Aug 22, 2016 at 05:39:08PM -0500, Tom Lendacky wrote:
+> This patch adds the support to check if SME has been enabled and if the
+> mem_encrypt=on command line option is set. If both of these conditions
+> are true, then the encryption mask is set and the kernel is encrypted
+> "in place."
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  Documentation/kernel-parameters.txt |    3 
+>  arch/x86/kernel/asm-offsets.c       |    2 
+>  arch/x86/kernel/mem_encrypt.S       |  302 +++++++++++++++++++++++++++++++++++
+>  arch/x86/mm/mem_encrypt.c           |    2 
+>  4 files changed, 309 insertions(+)
+> 
+> diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+> index 46c030a..a1986c8 100644
+> --- a/Documentation/kernel-parameters.txt
+> +++ b/Documentation/kernel-parameters.txt
+> @@ -2268,6 +2268,9 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+>  			memory contents and reserves bad memory
+>  			regions that are detected.
+>  
+> +	mem_encrypt=on	[X86_64] Enable memory encryption on processors
+> +			that support this feature.
+> +
+>  	meye.*=		[HW] Set MotionEye Camera parameters
+>  			See Documentation/video4linux/meye.txt.
+>  
+> diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
+> index 2bd5c6f..e485ada 100644
+> --- a/arch/x86/kernel/asm-offsets.c
+> +++ b/arch/x86/kernel/asm-offsets.c
+> @@ -85,6 +85,8 @@ void common(void) {
+>  	OFFSET(BP_init_size, boot_params, hdr.init_size);
+>  	OFFSET(BP_pref_address, boot_params, hdr.pref_address);
+>  	OFFSET(BP_code32_start, boot_params, hdr.code32_start);
+> +	OFFSET(BP_cmd_line_ptr, boot_params, hdr.cmd_line_ptr);
+> +	OFFSET(BP_ext_cmd_line_ptr, boot_params, ext_cmd_line_ptr);
+>  
+>  	BLANK();
+>  	DEFINE(PTREGS_SIZE, sizeof(struct pt_regs));
+> diff --git a/arch/x86/kernel/mem_encrypt.S b/arch/x86/kernel/mem_encrypt.S
+> index f2e0536..bf9f6a9 100644
+> --- a/arch/x86/kernel/mem_encrypt.S
+> +++ b/arch/x86/kernel/mem_encrypt.S
+> @@ -12,13 +12,230 @@
+>  
+>  #include <linux/linkage.h>
+>  
+> +#include <asm/processor-flags.h>
+> +#include <asm/pgtable.h>
+> +#include <asm/page.h>
+> +#include <asm/msr.h>
+> +#include <asm/asm-offsets.h>
+> +
+>  	.text
+>  	.code64
+>  ENTRY(sme_enable)
+> +#ifdef CONFIG_AMD_MEM_ENCRYPT
+> +	/* Check for AMD processor */
+> +	xorl	%eax, %eax
+> +	cpuid
+> +	cmpl    $0x68747541, %ebx	# AuthenticAMD
+> +	jne     .Lmem_encrypt_exit
+> +	cmpl    $0x69746e65, %edx
+> +	jne     .Lmem_encrypt_exit
+> +	cmpl    $0x444d4163, %ecx
+> +	jne     .Lmem_encrypt_exit
+> +
+> +	/* Check for memory encryption leaf */
+> +	movl	$0x80000000, %eax
+> +	cpuid
+> +	cmpl	$0x8000001f, %eax
+> +	jb	.Lmem_encrypt_exit
+> +
+> +	/*
+> +	 * Check for memory encryption feature:
+> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
+> +	 *     Secure Memory Encryption support
+> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
+> +	 *     Pagetable bit position used to indicate encryption
+> +	 *   CPUID Fn8000_001F[EBX] - Bits 11:6
+> +	 *     Reduction in physical address space (in bits) when enabled
+> +	 */
+> +	movl	$0x8000001f, %eax
+> +	cpuid
+> +	bt	$0, %eax
+> +	jnc	.Lmem_encrypt_exit
+> +
+> +	/* Check if BIOS/UEFI has allowed memory encryption */
+> +	movl	$MSR_K8_SYSCFG, %ecx
+> +	rdmsr
+> +	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
+> +	jnc	.Lmem_encrypt_exit
 
-Fair point, I'll beef up the documentation if this moves past an RFC.
+Like other people suggested, it would be great if this were in C. Should be
+actually readable :)
 
-> mincore() defines other bits to be reserved, but I guess it probably breaks
-> things if you suddenly started using them.
+> +
+> +	/* Check for the mem_encrypt=on command line option */
+> +	push	%rsi			/* Save RSI (real_mode_data) */
+> +	push	%rbx			/* Save CPUID information */
+> +	movl	BP_ext_cmd_line_ptr(%rsi), %ecx
+> +	shlq	$32, %rcx
+> +	movl	BP_cmd_line_ptr(%rsi), %edi
+> +	addq	%rcx, %rdi
+> +	leaq	mem_encrypt_enable_option(%rip), %rsi
+> +	call	cmdline_find_option_bool
+> +	pop	%rbx			/* Restore CPUID information */
+> +	pop	%rsi			/* Restore RSI (real_mode_data) */
+> +	testl	%eax, %eax
+> +	jz	.Lno_mem_encrypt
 
-The new bits are left as zero unless an application explicitly asks
-for them, so an existing mincore() user shouldn't break.
+This too.
 
-> It's a bit sad to introduce a new syscall for this and immediately use up
-> all bits that can be returned. Would it be a serious problem to return a
-> larger mask per page?
+> +
+> +	/* Set memory encryption mask */
+> +	movl	%ebx, %ecx
+> +	andl	$0x3f, %ecx
+> +	bts	%ecx, sme_me_mask(%rip)
+> +
+> +.Lno_mem_encrypt:
+> +	/*
+> +	 * BIOS/UEFI has allowed memory encryption so we need to set
+> +	 * the amount of physical address space reduction even if
+> +	 * the user decides not to use memory encryption.
+> +	 */
+> +	movl	%ebx, %ecx
+> +	shrl	$6, %ecx
+> +	andl	$0x3f, %ecx
+> +	movb	%cl, sme_me_loss(%rip)
+> +
+> +.Lmem_encrypt_exit:
+> +#endif	/* CONFIG_AMD_MEM_ENCRYPT */
+> +
+>  	ret
+>  ENDPROC(sme_enable)
+>  
+>  ENTRY(sme_encrypt_kernel)
 
-Certainly one of the new request flags can indicate that the vector is
-made up of larger entries.
+This should be doable too but I guess you'll have to try it to see.
+
+...
+
+> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+> index 2f28d87..1154353 100644
+> --- a/arch/x86/mm/mem_encrypt.c
+> +++ b/arch/x86/mm/mem_encrypt.c
+> @@ -183,6 +183,8 @@ void __init mem_encrypt_init(void)
+>  
+>  	/* Make SWIOTLB use an unencrypted DMA area */
+>  	swiotlb_clear_encryption();
+> +
+> +	pr_info("memory encryption active\n");
+
+Let's make it more official with nice caps and so on...
+
+	pr_info("AMD Secure Memory Encryption active.\n");
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
