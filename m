@@ -1,46 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:34350 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756080AbcILDfq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Sep 2016 23:35:46 -0400
-Date: Mon, 12 Sep 2016 13:35:36 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [RFC PATCH 1/2] mm, mincore2(): retrieve dax and tlb-size
- attributes of an address range
-Message-ID: <20160912133536.1bdb57a9@roar.ozlabs.ibm.com>
-In-Reply-To: <147361509579.17004.5258725187329709824.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <147361509579.17004.5258725187329709824.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mx2.suse.de ([195.135.220.15]:42200 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751449AbcILJDL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Sep 2016 05:03:11 -0400
+Subject: Re: linux-next: manual merge of the kbuild tree with Linus' tree
+References: <20160912113224.792b24f0@canb.auug.org.au>
+ <20160912125341.0596ed9f@roar.ozlabs.ibm.com>
+From: Michal Marek <mmarek@suse.cz>
+Message-ID: <e1cd32fd-6db2-0dc7-43c4-f678582326ad@suse.cz>
+Date: Mon, 12 Sep 2016 11:03:08 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <20160912125341.0596ed9f@roar.ozlabs.ibm.com>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>, Xiao Guangrong <guangrong.xiao@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-api@vger.kernel.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-arch@vger.kernel.org
-Message-ID: <20160912033536.6e2cQTRViylX5fxwQ6bi8-laKsIlNaZIffKjASD9CzA@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org
+Message-ID: <20160912090308.E7TYax6__nicSclgjA01G24Q3U9RBzdJCajG-CK5z88@z>
 
-On Sun, 11 Sep 2016 10:31:35 -0700
-Dan Williams <dan.j.williams@intel.com> wrote:
+On 2016-09-12 04:53, Nicholas Piggin wrote:
+> Question, what is the best way to merge dependent patches? Considering
+> they will need a good amount of architecture testing, I think they will
+> have to go via arch trees. But it also does not make sense to merge these
+> kbuild changes upstream first, without having tested them.
 
-> As evidenced by this bug report [1], userspace libraries are interested
-> in whether a mapping is DAX mapped, i.e. no intervening page cache.
-> Rather than using the ambiguous VM_MIXEDMAP flag in smaps, provide an
-> explicit "is dax" indication as a new flag in the page vector populated
-> by mincore.
+I think it makes sense to merge the kbuild changes via kbuild.git, even
+if they are unused and untested. Any follow-up fixes required to enable
+the first architecture can go through the respective architecture tree.
+Does that sound OK?
 
-Can you cc linux-arch when adding new syscalls (or other such things that
-need arch enablement).
-
-I wonder if the changelog for a new syscall should have a bit more grandeur.
-Without seeing patch 2, you might not know this was a new syscall just by
-reading the subject and changelog.
-
-mincore() defines other bits to be reserved, but I guess it probably breaks
-things if you suddenly started using them.
-
-It's a bit sad to introduce a new syscall for this and immediately use up
-all bits that can be returned. Would it be a serious problem to return a
-larger mask per page?
-
-Thanks,
-Nick
+Michal
