@@ -1,73 +1,69 @@
-From: Baoyou Xie <baoyou.xie@linaro.org>
-Subject: [PATCH] mm: move phys_mem_access_prot_allowed() declaration to pgtable.h
-Date: Mon, 12 Sep 2016 20:35:03 +0800
-Message-ID: <1473683703-15727-1-git-send-email-baoyou.xie@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f171.google.com ([209.85.192.171]:35715 "EHLO
-        mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758271AbcILMfn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Sep 2016 08:35:43 -0400
-Received: by mail-pf0-f171.google.com with SMTP id i75so11983601pfa.2
-        for <linux-arch@vger.kernel.org>; Mon, 12 Sep 2016 05:35:42 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, akpm@linux-foundation.org, paul.burton@imgtec.com, chenhc@lemote.com, david.daney@cavium.com, kumba@gentoo.org, yamada.masahiro@socionext.com, kirill.shutemov@linux.intel.com, dave.hansen@linux.intel.com, toshi.kani@hpe.com, JBeulich@suse.com, dan.j.williams@intel.com
-Cc: linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, baoyou.xie@linaro.org, xie.baoyou@zte.com.cn
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v2 07/20] x86: Provide general kernel support for
+ memory encryption
+Date: Mon, 12 Sep 2016 08:43:14 -0500
+Message-ID: <e92f1f20-a847-acb3-51ef-ced0329ccbd1@amd.com>
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223646.29880.28794.stgit@tlendack-t1.amdoffice.net>
+ <20160906093113.GA18319@pd.tnic>
+ <f4125cae-63af-f8c7-086f-e297ce480a07@amd.com>
+ <20160907155535.i7wh46uxxa2bj3ik@pd.tnic>
+ <bc8f22db-b6f9-951f-145c-fed919098cbe@amd.com>
+ <20160908135551.3gtbwezbb7xpyud2@pd.tnic>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160908135551.3gtbwezbb7xpyud2@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
+ Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-We get 1 warning when building kernel with W=1:
-drivers/char/mem.c:220:12: warning: no previous prototype for 'phys_mem_access_prot_allowed' [-Wmissing-prototypes]
- int __weak phys_mem_access_prot_allowed(struct file *file,
+On 09/08/2016 08:55 AM, Borislav Petkov wrote:
+> On Thu, Sep 08, 2016 at 08:26:27AM -0500, Tom Lendacky wrote:
+>> When does this value get initialized?  Since _PAGE_ENC is #defined to
+>> sme_me_mask, which is not set until the boot process begins, I'm afraid
+>> we'd end up using the initial value of sme_me_mask, which is zero.  Do
+>> I have that right?
+> 
+> Hmm, but then that would hold true for all the other defines where you
+> OR-in _PAGE_ENC, no?
 
-In fact, its declaration is spreading to several header files
-in different architecture, but need to be declare in common
-header file.
+As long as the #define is not a global variable like this one it's ok.
 
-So this patch moves phys_mem_access_prot_allowed() to pgtable.h.
+> 
+> In any case, the preprocessed source looks like this:
+> 
+> pmdval_t early_pmd_flags = (((((((pteval_t)(1)) << 0) | (((pteval_t)(1)) << 1) | (((pteval_t)(1)) << 6) | (((pteval_t)(1)) << 5) | (((pteval_t)(1)) << 8)) | (((pteval_t)(1)) << 63)) | (((pteval_t)(1)) << 7)) | sme_me_mask) & ~((((pteval_t)(1)) << 8) | (((pteval_t)(1)) << 63));
+> 
+> but the problem is later, when building:
+> 
+> arch/x86/kernel/head64.c:39:28: error: initializer element is not constant
+>  pmdval_t early_pmd_flags = (__PAGE_KERNEL_LARGE | _PAGE_ENC) & ~(_PAGE_GLOBAL | _PAGE_NX);
+>                             ^
+> scripts/Makefile.build:153: recipe for target 'arch/x86/kernel/head64.s' failed
+> 
+> so I guess not. :-\
+> 
+> Ok, then at least please put the early_pmd_flags init after
+> sme_early_init() along with a small comment explaning what happens.
 
-Signed-off-by: Baoyou Xie <baoyou.xie@linaro.org>
----
- arch/mips/include/asm/pgtable.h      | 2 --
- arch/x86/include/asm/pgtable_types.h | 2 --
- include/asm-generic/pgtable.h        | 3 +++
- 3 files changed, 3 insertions(+), 4 deletions(-)
+Let me verify that we won't possibly take any kind of page fault during
+sme_early_init() and cause a page to be not be marked encrypted. Or... I
+can add a comment indicating I need to set this as early as possible to
+cover any page faults that might occur.
 
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index 70128d3..9e9e944 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -673,8 +673,6 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
- struct file;
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
- 		unsigned long size, pgprot_t vma_prot);
--int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
--		unsigned long size, pgprot_t *vma_prot);
- #endif
- 
- /*
-diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
-index f1218f5..8b4de22 100644
---- a/arch/x86/include/asm/pgtable_types.h
-+++ b/arch/x86/include/asm/pgtable_types.h
-@@ -439,8 +439,6 @@ extern pgprot_t pgprot_writethrough(pgprot_t prot);
- struct file;
- pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
-                               unsigned long size, pgprot_t vma_prot);
--int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
--                              unsigned long size, pgprot_t *vma_prot);
- 
- /* Install a pte for a particular vaddr in kernel space. */
- void set_pte_vaddr(unsigned long vaddr, pte_t pte);
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index d4458b6..ad625dd 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -814,4 +814,7 @@ static inline int pmd_clear_huge(pmd_t *pmd)
- #endif
- #endif
- 
-+struct file;
-+int phys_mem_access_prot_allowed(struct file *file, unsigned long pfn,
-+			unsigned long size, pgprot_t *vma_prot);
- #endif /* _ASM_GENERIC_PGTABLE_H */
--- 
-2.7.4
+Thanks,
+Tom
+
+> 
+> Thanks.
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
