@@ -1,30 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:27107 "EHLO mga04.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:49189 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750832AbcILUe4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Sep 2016 16:34:56 -0400
-Subject: Re: Build failures in -next: sys_pkey_mprotect etc. undefined
-References: <9d74497b-1522-b350-42fa-49df2df48c4a@roeck-us.net>
- <57D70B6D.6010208@linux.intel.com> <3540553.8BkpiafJJ2@wuerfel>
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Message-ID: <57D7116E.4050708@linux.intel.com>
-Date: Mon, 12 Sep 2016 13:34:54 -0700
-MIME-Version: 1.0
-In-Reply-To: <3540553.8BkpiafJJ2@wuerfel>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+        id S1752859AbcILUi7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Sep 2016 16:38:59 -0400
+Subject: [PATCH] x86/pkeys: fix pkeys build breakage for some non-x86 arches
+From: Dave Hansen <dave@sr71.net>
+Date: Mon, 12 Sep 2016 13:38:42 -0700
+Message-ID: <20160912203842.48E7AC50@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Guenter Roeck <linux@roeck-us.net>, Thomas Gleixner <tglx@linutronix.de>, "open list:ABI/API" <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org
-Message-ID: <20160912203454.PahYrCA14CcUmZ9Q0bD3P8dhgGDXj0D1U2ohzRKEiYY@z>
+To: linux-kernel@vger.kernel.org
+Cc: x86@kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@intel.com, arnd@arndb.de, tglx@linutronix.de, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160912203842.JZEwLTpGeTp9KStrDKavV01aIBwiDRqR6aQV0ZI8wVM@z>
 
-On 09/12/2016 01:28 PM, Arnd Bergmann wrote:
-> FWIW, you should be able to test this with an arm64 cross-compiler
-> too, many distros ship one.
 
-arm64 build fine for me with and without the patch.  There must be
-something else specific to h8300 and the other broken architectures.
+From: Dave Hansen <dave.hansen@intel.com>
 
-Is there some other part of the configuration that could be hiding the
-issue in my arm64 build?
+Guenter Roeck reported [1] breakage on the h8300 and c6x
+architectures (among others) caused by the new memory protection
+keys syscalls.  This patch does what Arnd suggested and adds them
+to kernel/sys_ni.c.
+
+1. http://marc.info/?l=linux-kernel&m=147369214820072&w=2
+
+Signed-off-by: Dave Hansen <dave.hansen@intel.com>
+Tested-by: Guenter Roeck <linux@roeck-us.net>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "open list:ABI/API" <linux-api@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org
+---
+
+ b/kernel/sys_ni.c |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff -puN kernel/sys_ni.c~fix-pkeys-arch-breakage kernel/sys_ni.c
+--- a/kernel/sys_ni.c~fix-pkeys-arch-breakage	2016-09-12 13:35:17.449066541 -0700
++++ b/kernel/sys_ni.c	2016-09-12 13:35:17.452066676 -0700
+@@ -250,3 +250,8 @@ cond_syscall(sys_execveat);
+ 
+ /* membarrier */
+ cond_syscall(sys_membarrier);
++
++/* memory protection keys */
++cond_syscall(sys_pkey_mprotect);
++cond_syscall(sys_pkey_alloc);
++cond_syscall(sys_pkey_free);
+_
