@@ -1,44 +1,45 @@
-From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
-Subject: [PATCH] x86/pkeys: fix pkeys build breakage for some non-x86 arches
-Date: Mon, 12 Sep 2016 13:38:42 -0700
-Message-ID: <20160912203842.48E7AC50@viggo.jf.intel.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>, dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: linux-next: manual merge of the kbuild tree with Linus' tree
+Date: Tue, 13 Sep 2016 09:39:45 +1000
+Message-ID: <20160913093945.521a28b4@canb.auug.org.au>
+References: <20160912113224.792b24f0@canb.auug.org.au>
+        <20160912125341.0596ed9f@roar.ozlabs.ibm.com>
+        <e1cd32fd-6db2-0dc7-43c4-f678582326ad@suse.cz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:44186 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750747AbcILXjt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Sep 2016 19:39:49 -0400
+In-Reply-To: <e1cd32fd-6db2-0dc7-43c4-f678582326ad@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org
 
+Hi Michal,
 
-From: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+On Mon, 12 Sep 2016 11:03:08 +0200 Michal Marek <mmarek@suse.cz> wrote:
+>
+> On 2016-09-12 04:53, Nicholas Piggin wrote:
+> > Question, what is the best way to merge dependent patches? Considering
+> > they will need a good amount of architecture testing, I think they will
+> > have to go via arch trees. But it also does not make sense to merge these
+> > kbuild changes upstream first, without having tested them.  
+> 
+> I think it makes sense to merge the kbuild changes via kbuild.git, even
+> if they are unused and untested. Any follow-up fixes required to enable
+> the first architecture can go through the respective architecture tree.
+> Does that sound OK?
 
-Guenter Roeck reported [1] breakage on the h8300 and c6x
-architectures (among others) caused by the new memory protection
-keys syscalls.  This patch does what Arnd suggested and adds them
-to kernel/sys_ni.c.
+And if you guarantee not to rebase the kbuild tree (or at least the
+subset containing these patches), then each of the architecture trees
+can just merge your tree (or a tag?) and then implement any necessary
+arch dependent changes.  I fixes are necessary, they can also be merged
+into the architecture trees.
 
-1. http://marc.info/?l=linux-kernel&m=147369214820072&w=2
-
-Signed-off-by: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Tested-by: Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>
-Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Cc: "open list:ABI/API" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
----
-
- b/kernel/sys_ni.c |    5 +++++
- 1 file changed, 5 insertions(+)
-
-diff -puN kernel/sys_ni.c~fix-pkeys-arch-breakage kernel/sys_ni.c
---- a/kernel/sys_ni.c~fix-pkeys-arch-breakage	2016-09-12 13:35:17.449066541 -0700
-+++ b/kernel/sys_ni.c	2016-09-12 13:35:17.452066676 -0700
-@@ -250,3 +250,8 @@ cond_syscall(sys_execveat);
- 
- /* membarrier */
- cond_syscall(sys_membarrier);
-+
-+/* memory protection keys */
-+cond_syscall(sys_pkey_mprotect);
-+cond_syscall(sys_pkey_alloc);
-+cond_syscall(sys_pkey_free);
-_
+-- 
+Cheers,
+Stephen Rothwell
