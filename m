@@ -1,44 +1,55 @@
-From: Dan Williams <dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [RFC PATCH 1/2] mm, mincore2(): retrieve dax and tlb-size
- attributes of an address range
-Date: Mon, 12 Sep 2016 20:49:43 -0700
-Message-ID: <CAPcyv4hSs2M3LYscsepYat+FN9e3aUxSY3kGMFD6M9-9BCR5HQ@mail.gmail.com>
-References: <147361509579.17004.5258725187329709824.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20160912133536.1bdb57a9@roar.ozlabs.ibm.com>
- <CAPcyv4hS7i1DApKPDB5PkfBNZVbk321FgP94kUDjmuyGXDidZg@mail.gmail.com>
- <20160913121645.652e6512@roar.ozlabs.ibm.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: linux-next: manual merge of the kbuild tree with Linus' tree
+Date: Tue, 13 Sep 2016 14:02:57 +1000
+Message-ID: <20160913140257.6d2de178@canb.auug.org.au>
+References: <20160912113224.792b24f0@canb.auug.org.au>
+        <20160912125341.0596ed9f@roar.ozlabs.ibm.com>
+        <e1cd32fd-6db2-0dc7-43c4-f678582326ad@suse.cz>
+        <20160913093945.521a28b4@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-nvdimm-bounces-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org>
-In-Reply-To: <20160913121645.652e6512-a5aMA/AkCkgK5Ils6ZIQy0EOCMrvLtNR@public.gmane.org>
-List-Unsubscribe: <https://lists.01.org/mailman/options/linux-nvdimm>,
- <mailto:linux-nvdimm-request-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.01.org/pipermail/linux-nvdimm/>
-List-Post: <mailto:linux-nvdimm-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org>
-List-Help: <mailto:linux-nvdimm-request-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.01.org/mailman/listinfo/linux-nvdimm>,
- <mailto:linux-nvdimm-request-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org?subject=subscribe>
-Errors-To: linux-nvdimm-bounces-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org
-Sender: "Linux-nvdimm" <linux-nvdimm-bounces-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org>
-To: Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Andrea Arcangeli <aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Xiao Guangrong <guangrong.xiao-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "linux-nvdimm-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org" <linux-nvdimm-hn68Rpc1hR1g9hUCZPvPmw@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Hansen <dave.hansen-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux MM <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "Kirill A. Shutemov" <kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:56832 "EHLO ozlabs.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750712AbcIMEDB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Sep 2016 00:03:01 -0400
+In-Reply-To: <20160913093945.521a28b4@canb.auug.org.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Michael Ellerman <mpe@ellerman.id.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, PowerPC <linuxppc-dev@lists.ozlabs.org>
 
-On Mon, Sep 12, 2016 at 7:16 PM, Nicholas Piggin <npiggin-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> On Mon, 12 Sep 2016 10:29:17 -0700
-[..]
->> Certainly one of the new request flags can indicate that the vector is
->> made up of larger entries.
+Hi Michal,
+
+[For the new cc's, we are discussing the "thin archives" and "link dead
+code/data elimination" patches in the kbuild tree.]
+
+On Tue, 13 Sep 2016 09:39:45 +1000 Stephen Rothwell <sfr@canb.auug.org.au> wrote:
 >
-> Hmm. Changing prototype depending on flags. I thought I was having
-> a nightmare about ioctls for a minute there :)
+> On Mon, 12 Sep 2016 11:03:08 +0200 Michal Marek <mmarek@suse.cz> wrote:
+> >
+> > On 2016-09-12 04:53, Nicholas Piggin wrote:  
+> > > Question, what is the best way to merge dependent patches? Considering
+> > > they will need a good amount of architecture testing, I think they will
+> > > have to go via arch trees. But it also does not make sense to merge these
+> > > kbuild changes upstream first, without having tested them.    
+> > 
+> > I think it makes sense to merge the kbuild changes via kbuild.git, even
+> > if they are unused and untested. Any follow-up fixes required to enable
+> > the first architecture can go through the respective architecture tree.
+> > Does that sound OK?  
+> 
+> And if you guarantee not to rebase the kbuild tree (or at least the
+> subset containing these patches), then each of the architecture trees
+> can just merge your tree (or a tag?) and then implement any necessary
+> arch dependent changes.  I fixes are necessary, they can also be merged
+> into the architecture trees.
 
-Heh :)
+Except, of course, the kbuild tree still has the asm EXPORT_SYMBOL
+patches that produce warnings on PowerPC :-( (And I am still reverting
+the PowerPC specific one of those patches).
 
-> In general, is this what we want for a new API? Should we be thinking
-> about an extent API?
-
-This probably fits better with the use cases I know that want to
-consume this information, something like fiemap (mextmap, maybe?) for
-memory.
+-- 
+Cheers,
+Stephen Rothwell
