@@ -1,202 +1,207 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:34168 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751625AbcIMJMy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 13 Sep 2016 05:12:54 -0400
-Date: Tue, 13 Sep 2016 19:12:44 +1000
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: linux-next: manual merge of the kbuild tree with Linus' tree
-Message-ID: <20160913191244.117b544f@roar.ozlabs.ibm.com>
-In-Reply-To: <14221699.K7eb6JGeeL@wuerfel>
-References: <20160912113224.792b24f0@canb.auug.org.au>
-        <20160913093945.521a28b4@canb.auug.org.au>
-        <20160913140257.6d2de178@canb.auug.org.au>
-        <14221699.K7eb6JGeeL@wuerfel>
+Received: from mail-cys01nam02on0060.outbound.protection.outlook.com ([104.47.37.60]:62880
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1753254AbcINNgq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Sep 2016 09:36:46 -0400
+Subject: Re: [RFC PATCH v2 14/20] x86: DMA support for memory encryption
+References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
+ <20160822223807.29880.69294.stgit@tlendack-t1.amdoffice.net>
+ <20160912105815.3z5bvzbcfjcj4ku7@pd.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <cb3e6b91-44f7-ee01-6da1-82eb32243b85@amd.com>
+Date: Wed, 14 Sep 2016 08:36:30 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <20160912105815.3z5bvzbcfjcj4ku7@pd.tnic>
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linuxppc-dev@lists.ozlabs.org, Stephen Rothwell <sfr@canb.auug.org.au>, Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20160913091244.lU86ACIaDdKDIKKSb4rz6dam2qSzzMYT3Vw9VWwcNQ0@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20160914133630.Y5skr2bYfAvuQqxfv9WAxqDaf22IfuJ6Gfxe2I9u6Ho@z>
 
-On Tue, 13 Sep 2016 09:48:03 +0200
-Arnd Bergmann <arnd@arndb.de> wrote:
-
-> On Tuesday, September 13, 2016 2:02:57 PM CEST Stephen Rothwell wrote:
-> > [For the new cc's, we are discussing the "thin archives" and "link dead
-> > code/data elimination" patches in the kbuild tree.]
-> > 
-> > On Tue, 13 Sep 2016 09:39:45 +1000 Stephen Rothwell <sfr@canb.auug.org.au> wrote:  
-> > >
-> > > On Mon, 12 Sep 2016 11:03:08 +0200 Michal Marek <mmarek@suse.cz> wrote:  
-> > > >
-> > > > On 2016-09-12 04:53, Nicholas Piggin wrote:    
-> > > > > Question, what is the best way to merge dependent patches? Considering
-> > > > > they will need a good amount of architecture testing, I think they will
-> > > > > have to go via arch trees. But it also does not make sense to merge these
-> > > > > kbuild changes upstream first, without having tested them.      
-> > > > 
-> > > > I think it makes sense to merge the kbuild changes via kbuild.git, even
-> > > > if they are unused and untested. Any follow-up fixes required to enable
-> > > > the first architecture can go through the respective architecture tree.
-> > > > Does that sound OK?    
-> > > 
-> > > And if you guarantee not to rebase the kbuild tree (or at least the
-> > > subset containing these patches), then each of the architecture trees
-> > > can just merge your tree (or a tag?) and then implement any necessary
-> > > arch dependent changes.  I fixes are necessary, they can also be merged
-> > > into the architecture trees.  
-> > 
-> > Except, of course, the kbuild tree still has the asm EXPORT_SYMBOL
-> > patches that produce warnings on PowerPC  (And I am still reverting
-> > the PowerPC specific one of those patches).  
+On 09/12/2016 05:58 AM, Borislav Petkov wrote:
+> On Mon, Aug 22, 2016 at 05:38:07PM -0500, Tom Lendacky wrote:
+>> Since DMA addresses will effectively look like 48-bit addresses when the
+>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+>> device performing the DMA does not support 48-bits. SWIOTLB will be
+>> initialized to create un-encrypted bounce buffers for use by these devices.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/dma-mapping.h |    5 ++-
+>>  arch/x86/include/asm/mem_encrypt.h |    6 +++
+>>  arch/x86/kernel/pci-dma.c          |   11 ++++--
+>>  arch/x86/kernel/pci-nommu.c        |    2 +
+>>  arch/x86/kernel/pci-swiotlb.c      |    8 +++--
+>>  arch/x86/mm/mem_encrypt.c          |   22 ++++++++++++
+>>  include/linux/swiotlb.h            |    1 +
+>>  init/main.c                        |   13 +++++++
+>>  lib/swiotlb.c                      |   64 ++++++++++++++++++++++++++++++++----
+>>  9 files changed, 115 insertions(+), 17 deletions(-)
 > 
-> Is that really powerpc specific? I have the same problem on ARM
-> and I don't see how any architecture would not have it.
+> ...
 > 
-> I prototyped the patch below, which fixes it for me, but I have
-> not dared submit that workaround because it's butt ugly.
+>> @@ -172,3 +174,23 @@ void __init sme_early_init(void)
+>>  	for (i = 0; i < ARRAY_SIZE(protection_map); i++)
+>>  		protection_map[i] = __pgprot(pgprot_val(protection_map[i]) | sme_me_mask);
+>>  }
+>> +
+>> +/* Architecture __weak replacement functions */
+>> +void __init mem_encrypt_init(void)
+>> +{
+>> +	if (!sme_me_mask)
+>> +		return;
+>> +
+>> +	/* Make SWIOTLB use an unencrypted DMA area */
+>> +	swiotlb_clear_encryption();
+>> +}
+>> +
+>> +unsigned long swiotlb_get_me_mask(void)
+> 
+> This could just as well be named to something more generic:
+> 
+> swiotlb_get_clear_dma_mask() or so which basically means the mask of
+> bits which get cleared before returning DMA addresses...
 
-No it's not powerpc specific, it's just that powerpc build dies
-if there are unresolved relocations.
+Ok.
 
-Interesting approach. I have something different that may rival
-yours for ugliness, but maybe keeps the muck a bit more contained.
-I was just about to submit it, but now I'll wait to see if there is
-a preference between the approaches:
+> 
+>> +{
+>> +	return sme_me_mask;
+>> +}
+>> +
+>> +void swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+>> +{
+>> +	sme_set_mem_dec(vaddr, size);
+>> +}
+>> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
+>> index 5f81f8a..5c909fc 100644
+>> --- a/include/linux/swiotlb.h
+>> +++ b/include/linux/swiotlb.h
+>> @@ -29,6 +29,7 @@ int swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose);
+>>  extern unsigned long swiotlb_nr_tbl(void);
+>>  unsigned long swiotlb_size_or_default(void);
+>>  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
+>> +extern void __init swiotlb_clear_encryption(void);
+>>  
+>>  /*
+>>   * Enumeration for sync targets
+>> diff --git a/init/main.c b/init/main.c
+>> index a8a58e2..82c7cd9 100644
+>> --- a/init/main.c
+>> +++ b/init/main.c
+>> @@ -458,6 +458,10 @@ void __init __weak thread_stack_cache_init(void)
+>>  }
+>>  #endif
+>>  
+>> +void __init __weak mem_encrypt_init(void)
+>> +{
+>> +}
+>> +
+>>  /*
+>>   * Set up kernel memory allocators
+>>   */
+>> @@ -598,6 +602,15 @@ asmlinkage __visible void __init start_kernel(void)
+>>  	 */
+>>  	locking_selftest();
+>>  
+>> +	/*
+>> +	 * This needs to be called before any devices perform DMA
+>> +	 * operations that might use the swiotlb bounce buffers.
+>> +	 * This call will mark the bounce buffers as un-encrypted so
+>> +	 * that the usage of them will not cause "plain-text" data
+> 
+> 	...that their usage will not cause ...
 
-(Note this patch alone does not resolve all export symbols, each
-arch next needs to add C prototypes for their .S exports)
+Ok.
 
- scripts/Makefile.build | 71 +++++++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 65 insertions(+), 6 deletions(-)
+> 
+>> +	 * to be decrypted when accessed.
+>> +	 */
+>> +	mem_encrypt_init();
+>> +
+>>  #ifdef CONFIG_BLK_DEV_INITRD
+>>  	if (initrd_start && !initrd_below_start_ok &&
+>>  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
+>> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+>> index 22e13a0..15d5741 100644
+>> --- a/lib/swiotlb.c
+>> +++ b/lib/swiotlb.c
+>> @@ -131,6 +131,26 @@ unsigned long swiotlb_size_or_default(void)
+>>  	return size ? size : (IO_TLB_DEFAULT_SIZE);
+>>  }
+>>  
+>> +/*
+>> + * Support for memory encryption. If memory encryption is supported, then an
+>> + * override to these functions will be provided.
+>> + */
+> 
+> No need for that comment.
 
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 11602e5..1e89908 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -158,7 +158,8 @@ cmd_cpp_i_c       = $(CPP) $(c_flags) -o $@ $<
- $(obj)/%.i: $(src)/%.c FORCE
- 	$(call if_changed_dep,cpp_i_c)
- 
--cmd_gensymtypes =                                                           \
-+# These mirror gensymtypes_S and co below, keep them in synch.
-+cmd_gensymtypes_c =                                                         \
-     $(CPP) -D__GENKSYMS__ $(c_flags) $< |                                   \
-     $(GENKSYMS) $(if $(1), -T $(2))                                         \
-      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
-@@ -168,7 +169,7 @@ cmd_gensymtypes =                                                           \
- quiet_cmd_cc_symtypes_c = SYM $(quiet_modtag) $@
- cmd_cc_symtypes_c =                                                         \
-     set -e;                                                                 \
--    $(call cmd_gensymtypes,true,$@) >/dev/null;                             \
-+    $(call cmd_gensymtypes_c,true,$@) >/dev/null;                           \
-     test -s $@ || rm -f $@
- 
- $(obj)/%.symtypes : $(src)/%.c FORCE
-@@ -197,9 +198,10 @@ else
- #   the actual value of the checksum generated by genksyms
- 
- cmd_cc_o_c = $(CC) $(c_flags) -c -o $(@D)/.tmp_$(@F) $<
--cmd_modversions =								\
-+
-+cmd_modversions_c =								\
- 	if $(OBJDUMP) -h $(@D)/.tmp_$(@F) | grep -q __ksymtab; then		\
--		$(call cmd_gensymtypes,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
-+		$(call cmd_gensymtypes_c,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
- 		    > $(@D)/.tmp_$(@F:.o=.ver);					\
- 										\
- 		$(LD) $(LDFLAGS) -r -o $@ $(@D)/.tmp_$(@F) 			\
-@@ -267,13 +269,14 @@ endif # CONFIG_STACK_VALIDATION
- define rule_cc_o_c
- 	$(call echo-cmd,checksrc) $(cmd_checksrc)			  \
- 	$(call cmd_and_fixdep,cc_o_c)					  \
--	$(cmd_modversions)						  \
-+	$(cmd_modversions_c)						  \
- 	$(cmd_objtool)						          \
- 	$(call echo-cmd,record_mcount) $(cmd_record_mcount)
- endef
- 
- define rule_as_o_S
- 	$(call cmd_and_fixdep,as_o_S)					  \
-+	$(cmd_modversions_S)						  \
- 	$(cmd_objtool)
- endef
- 
-@@ -313,6 +316,32 @@ modkern_aflags := $(KBUILD_AFLAGS_KERNEL) $(AFLAGS_KERNEL)
- $(real-objs-m)      : modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
- $(real-objs-m:.o=.s): modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
- 
-+# .S file exports must have their C prototypes defined in asm/asm-prototypes.h
-+# or a file that it includes, in order to get versioned symbols. We build a
-+# dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
-+# the .S file (with trailing ';'), and run genksyms on that, to extract vers.
-+#
-+# These mirror gensymtypes_c and co above, keep them in synch.
-+cmd_gensymtypes_S =                                                         \
-+    (echo "\#include <linux/kernel.h>" ;                                    \
-+     echo "\#include <asm/asm-prototypes.h>" ;                              \
-+     grep EXPORT_SYMBOL $< | sed 's/$$/;/' ) |                              \
-+    $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
-+    $(GENKSYMS) $(if $(1), -T $(2))                                         \
-+     $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
-+     $(if $(KBUILD_PRESERVE),-p)                                            \
-+     -r $(firstword $(wildcard $(2:.symtypes=.symref) /dev/null))
-+
-+quiet_cmd_cc_symtypes_S = SYM $(quiet_modtag) $@
-+cmd_cc_symtypes_S =                                                         \
-+    set -e;                                                                 \
-+    $(call cmd_gensymtypes_S,true,$@) >/dev/null;                           \
-+    test -s $@ || rm -f $@
-+
-+$(obj)/%.symtypes : $(src)/%.S FORCE
-+	$(call cmd,cc_symtypes_S)
-+
-+
- quiet_cmd_cpp_s_S = CPP $(quiet_modtag) $@
- cmd_cpp_s_S       = $(CPP) $(a_flags) -o $@ $<
- 
-@@ -320,7 +349,37 @@ $(obj)/%.s: $(src)/%.S FORCE
- 	$(call if_changed_dep,cpp_s_S)
- 
- quiet_cmd_as_o_S = AS $(quiet_modtag)  $@
--cmd_as_o_S       = $(CC) $(a_flags) -c -o $@ $<
-+
-+ifndef CONFIG_MODVERSIONS
-+cmd_as_o_S = $(CC) $(a_flags) -c -o $@ $<
-+
-+else
-+
-+ASM_PROTOTYPES := $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/asm-prototypes.h)
-+
-+ifeq ($(ASM_PROTOTYPES),)
-+cmd_as_o_S = $(CC) $(a_flags) -c -o $@ $<
-+
-+else
-+
-+# versioning matches the C process described above, with difference that
-+# we parse asm-prototypes.h C header to get function definitions.
-+
-+cmd_as_o_S = $(CC) $(a_flags) -c -o $(@D)/.tmp_$(@F) $<
-+
-+cmd_modversions_S =								\
-+	if $(OBJDUMP) -h $(@D)/.tmp_$(@F) | grep -q __ksymtab; then		\
-+		$(call cmd_gensymtypes_S,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
-+		    > $(@D)/.tmp_$(@F:.o=.ver);					\
-+										\
-+		$(LD) $(LDFLAGS) -r -o $@ $(@D)/.tmp_$(@F) 			\
-+			-T $(@D)/.tmp_$(@F:.o=.ver);				\
-+		rm -f $(@D)/.tmp_$(@F) $(@D)/.tmp_$(@F:.o=.ver);		\
-+	else									\
-+		mv -f $(@D)/.tmp_$(@F) $@;					\
-+	fi;
-+endif
-+endif
- 
- $(obj)/%.o: $(src)/%.S $(objtool_obj) FORCE
- 	$(call if_changed_rule,as_o_S)
--- 
-2.9.3
+Ok.
 
+> 
+>> +unsigned long __weak swiotlb_get_me_mask(void)
+>> +{
+>> +	return 0;
+>> +}
+>> +
+>> +void __weak swiotlb_set_mem_dec(void *vaddr, unsigned long size)
+>> +{
+>> +}
+>> +
+>> +/* For swiotlb, clear memory encryption mask from dma addresses */
+>> +static dma_addr_t swiotlb_phys_to_dma(struct device *hwdev,
+>> +				      phys_addr_t address)
+>> +{
+>> +	return phys_to_dma(hwdev, address) & ~swiotlb_get_me_mask();
+>> +}
+>> +
+>>  /* Note that this doesn't work with highmem page */
+>>  static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
+>>  				      volatile void *address)
+>> @@ -159,6 +179,30 @@ void swiotlb_print_info(void)
+>>  	       bytes >> 20, vstart, vend - 1);
+>>  }
+>>  
+>> +/*
+>> + * If memory encryption is active, the DMA address for an encrypted page may
+>> + * be beyond the range of the device. If bounce buffers are required be sure
+>> + * that they are not on an encrypted page. This should be called before the
+>> + * iotlb area is used.
+>> + */
+>> +void __init swiotlb_clear_encryption(void)
+>> +{
+>> +	void *vaddr;
+>> +	unsigned long bytes;
+>> +
+>> +	if (no_iotlb_memory || !io_tlb_start || late_alloc)
+>> +		return;
+>> +
+>> +	vaddr = phys_to_virt(io_tlb_start);
+>> +	bytes = PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT);
+>> +	swiotlb_set_mem_dec(vaddr, bytes);
+>> +	memset(vaddr, 0, bytes);
+> 
+> io_tlb_start is cleared...
+> 
+>> +
+>> +	vaddr = phys_to_virt(io_tlb_overflow_buffer);
+>> +	bytes = PAGE_ALIGN(io_tlb_overflow);
+>> +	swiotlb_set_mem_dec(vaddr, bytes);
+> 
+> ... but io_tlb_overflow_buffer isn't? I don't see the difference here.
+
+Yup, I missed that one.  Will memset this as well.
+
+Thanks,
+Tom
+
+> 
+>> +}
+>> +
+>>  int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
+>>  {
+>>  	void *v_overflow_buffer;
