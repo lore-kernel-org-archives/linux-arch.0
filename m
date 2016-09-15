@@ -1,40 +1,67 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v2 19/20] x86: Access the setup data through debugfs
- un-encrypted
-Date: Wed, 14 Sep 2016 16:51:01 +0200
-Message-ID: <20160914145101.GB9295@nazgul.tnic>
+From: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
+Subject: Re: [RFC PATCH v2 11/20] mm: Access BOOT related data in the clear
+Date: Thu, 15 Sep 2016 10:57:09 +0100
+Message-ID: <20160915095709.GB16797@codeblueprint.co.uk>
 References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
- <20160822223859.29880.60652.stgit@tlendack-t1.amdoffice.net>
- <20160912165944.rpqbwxz2biathnt3@pd.tnic>
- <4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
+	<20160822223738.29880.6909.stgit@tlendack-t1.amdoffice.net>
+	<CALCETrUk2kRSzKfwhio6KV3iuYaSV2uxybd-e95kK3vY=yTSfg@mail.gmail.com>
+	<e30ddb53-df6c-28ee-54fe-f3e52e515acb@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.>
+In-Reply-To: <e30ddb53-df6c-28ee-54fe-f3e52e515acb-5C7GfCeVMHo@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: "linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, kvm list <kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, kasan-dev <kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 14, 2016 at 09:29:41AM -0500, Tom Lendacky wrote:
-> This is still required because just using the __va() would still cause
-> the mapping created to have the encryption bit set. The ioremap call
-> will result in the mapping not having the encryption bit set.
+On Wed, 14 Sep, at 09:20:44AM, Tom Lendacky wrote:
+> On 09/12/2016 11:55 AM, Andy Lutomirski wrote:
+> > On Aug 22, 2016 6:53 PM, "Tom Lendacky" <thomas.lendacky-5C7GfCeVMHo@public.gmane.org> wrote:
+> >>
+> >> BOOT data (such as EFI related data) is not encyrpted when the system is
+> >> booted and needs to be accessed as non-encrypted.  Add support to the
+> >> early_memremap API to identify the type of data being accessed so that
+> >> the proper encryption attribute can be applied.  Currently, two types
+> >> of data are defined, KERNEL_DATA and BOOT_DATA.
+> > 
+> > What happens when you memremap boot services data outside of early
+> > boot?  Matt just added code that does this.
+> > 
+> > IMO this API is not so great.  It scatters a specialized consideration
+> > all over the place.  Could early_memremap not look up the PA to figure
+> > out what to do?
+> 
+> Yes, I could see if the PA falls outside of the kernel usable area and,
+> if so, remove the memory encryption attribute from the mapping (for both
+> early_memremap and memremap).
+> 
+> Let me look into that, I would prefer something along that line over
+> this change.
 
-I meant this: https://lkml.kernel.org/r/20160902181447.GA25328@nazgul.tnic
+So, the last time we talked about using the address to figure out
+whether to encrypt/decrypt you said,
 
-Wouldn't simply clearing the SME mask work?
+ "I looked into this and this would be a large change also to parse
+  tables and build lists."
 
-#define __va(x)			((void *)(((unsigned long)(x)+PAGE_OFFSET) & ~sme_me_mask))
+Has something changed that makes this approach easier?
 
-Or are you saying, one needs the whole noodling through ioremap_cache()
-because the data is already encrypted and accessing it with sme_me_mask
-cleared would simply give you the encrypted garbage?
+And again, you need to be careful with the EFI kexec code paths, since
+you've got a mixture of boot and kernel data being passed. In
+particular the EFI memory map is allocated by the firmware on first
+boot (BOOT_DATA) but by the kernel on kexec (KERNEL_DATA).
 
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
---
+That's one of the reasons I suggested requiring the caller to decide
+on BOOT_DATA vs KERNEL_DATA - when you start looking at kexec the
+distinction isn't easily made.
