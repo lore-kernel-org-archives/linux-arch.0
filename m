@@ -1,45 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:50036 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933143AbcINOvF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Sep 2016 10:51:05 -0400
-Date: Wed, 14 Sep 2016 16:51:01 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v2 19/20] x86: Access the setup data through debugfs
- un-encrypted
-Message-ID: <20160914145101.GB9295@nazgul.tnic>
+Received: from mail-wm0-f46.google.com ([74.125.82.46]:38579 "EHLO
+        mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752008AbcIOJ5N (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Sep 2016 05:57:13 -0400
+Received: by mail-wm0-f46.google.com with SMTP id 1so82278182wmz.1
+        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2016 02:57:12 -0700 (PDT)
+Date: Thu, 15 Sep 2016 10:57:09 +0100
+From: Matt Fleming <matt@codeblueprint.co.uk>
+Subject: Re: [RFC PATCH v2 11/20] mm: Access BOOT related data in the clear
+Message-ID: <20160915095709.GB16797@codeblueprint.co.uk>
 References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
- <20160822223859.29880.60652.stgit@tlendack-t1.amdoffice.net>
- <20160912165944.rpqbwxz2biathnt3@pd.tnic>
- <4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
+ <20160822223738.29880.6909.stgit@tlendack-t1.amdoffice.net>
+ <CALCETrUk2kRSzKfwhio6KV3iuYaSV2uxybd-e95kK3vY=yTSfg@mail.gmail.com>
+ <e30ddb53-df6c-28ee-54fe-f3e52e515acb@amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
+In-Reply-To: <e30ddb53-df6c-28ee-54fe-f3e52e515acb@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160914145101.p6AT9SfJBdlhLZto6rEqZkey9dtVI-gmLw1RRAsfXLg@z>
+Cc: Andy Lutomirski <luto@amacapital.net>, kasan-dev <kasan-dev@googlegroups.com>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, iommu@lists.linux-foundation.org, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Alexander Potapenko <glider@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dmitry Vyukov <dvyukov@google.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Andrey Ryabinin <aryabinin@virtuozzo.com>, "H. Peter Anvin" <hpa@zytor.com>, X86 ML <x86@kernel.org>, kvm list <kvm@vger.kernel.org>, Dave Young <dyoung@redhat.com>
+Message-ID: <20160915095709.PC7O1toGGVlv4T0VajGYLfIfZOnSdkayGNvG4zd_mXs@z>
 
-On Wed, Sep 14, 2016 at 09:29:41AM -0500, Tom Lendacky wrote:
-> This is still required because just using the __va() would still cause
-> the mapping created to have the encryption bit set. The ioremap call
-> will result in the mapping not having the encryption bit set.
+On Wed, 14 Sep, at 09:20:44AM, Tom Lendacky wrote:
+> On 09/12/2016 11:55 AM, Andy Lutomirski wrote:
+> > On Aug 22, 2016 6:53 PM, "Tom Lendacky" <thomas.lendacky@amd.com> wrote:
+> >>
+> >> BOOT data (such as EFI related data) is not encyrpted when the system is
+> >> booted and needs to be accessed as non-encrypted.  Add support to the
+> >> early_memremap API to identify the type of data being accessed so that
+> >> the proper encryption attribute can be applied.  Currently, two types
+> >> of data are defined, KERNEL_DATA and BOOT_DATA.
+> > 
+> > What happens when you memremap boot services data outside of early
+> > boot?  Matt just added code that does this.
+> > 
+> > IMO this API is not so great.  It scatters a specialized consideration
+> > all over the place.  Could early_memremap not look up the PA to figure
+> > out what to do?
+> 
+> Yes, I could see if the PA falls outside of the kernel usable area and,
+> if so, remove the memory encryption attribute from the mapping (for both
+> early_memremap and memremap).
+> 
+> Let me look into that, I would prefer something along that line over
+> this change.
 
-I meant this: https://lkml.kernel.org/r/20160902181447.GA25328@nazgul.tnic
+So, the last time we talked about using the address to figure out
+whether to encrypt/decrypt you said,
 
-Wouldn't simply clearing the SME mask work?
+ "I looked into this and this would be a large change also to parse
+  tables and build lists."
 
-#define __va(x)			((void *)(((unsigned long)(x)+PAGE_OFFSET) & ~sme_me_mask))
+Has something changed that makes this approach easier?
 
-Or are you saying, one needs the whole noodling through ioremap_cache()
-because the data is already encrypted and accessing it with sme_me_mask
-cleared would simply give you the encrypted garbage?
+And again, you need to be careful with the EFI kexec code paths, since
+you've got a mixture of boot and kernel data being passed. In
+particular the EFI memory map is allocated by the firmware on first
+boot (BOOT_DATA) but by the kernel on kexec (KERNEL_DATA).
 
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
---
+That's one of the reasons I suggested requiring the caller to decide
+on BOOT_DATA vs KERNEL_DATA - when you start looking at kexec the
+distinction isn't easily made.
