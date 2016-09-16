@@ -1,48 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:45575 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755380AbcIPHMC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Sep 2016 03:12:02 -0400
-Date: Fri, 16 Sep 2016 09:11:47 +0200
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v2 19/20] x86: Access the setup data through debugfs
- un-encrypted
-Message-ID: <20160916071147.GB23229@nazgul.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
- <20160822223859.29880.60652.stgit@tlendack-t1.amdoffice.net>
- <20160912165944.rpqbwxz2biathnt3@pd.tnic>
- <4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
- <20160914145101.GB9295@nazgul.tnic>
- <b734c2da-fee4-efae-fda2-bbcd74abbb33@amd.com>
+Received: from smtp-out6.electric.net ([192.162.217.192]:51927 "EHLO
+        smtp-out6.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934982AbcIPMUL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2016 08:20:11 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH][RFC] Implement arch primitives for busywait loops
+Date: Fri, 16 Sep 2016 11:57:37 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6DB00FF831@AcuExch.aculab.com>
+References: <20160916085736.7857-1-npiggin@gmail.com>
+        <063D6719AE5E284EB5DD2968C1650D6DB00FF7D8@AcuExch.aculab.com>
+ <20160916215200.2775f252@roar.ozlabs.ibm.com>
+In-Reply-To: <20160916215200.2775f252@roar.ozlabs.ibm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <b734c2da-fee4-efae-fda2-bbcd74abbb33@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Paolo Bonzini <pbonzini@redhat.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20160916071147.ZHqQL01DW1m55mX5Jn2gZZPO87cVSJD2wgxLFO_aCPs@z>
+To: 'Nicholas Piggin' <npiggin@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20160916115737.x_Oun4qtFpYjeB7DEkrn85w6kN6CgsOGKrKEaLoovSY@z>
 
-On Thu, Sep 15, 2016 at 12:08:04PM -0500, Tom Lendacky wrote:
-> The problem is that this physical address does not contain the
-> encryption bit, and even if it did, it wouldn't matter.  The __va()
-> define creates a virtual address that will be mapped as encrypted given
-> the current approach (which is how I found this).  It's only ioremap()
-> that would create a mapping without the encryption attribute and since
-> this is unencrypted data it needs to be access accordingly.
+From: Nicholas Piggin
+> Sent: 16 September 2016 12:52
+> On Fri, 16 Sep 2016 11:30:58 +0000
+> David Laight <David.Laight@ACULAB.COM> wrote:
+> 
+> > From: Nicholas Piggin
+> > > Sent: 16 September 2016 09:58
+> > > Implementing busy wait loops with cpu_relax() in callers poses
+> > > some difficulties for powerpc.
+> > >
+> > > First, we want to put our SMT thread into a low priority mode for the
+> > > duration of the loop, but then return to normal priority after exiting
+> > > the loop.  Dependong on the CPU design, 'HMT_low() ; HMT_medium();' as
+> > > cpu_relax() does may have HMT_medium take effect before HMT_low made
+> > > any (or much) difference.
+> > >
+> > > Second, it can be beneficial for some implementations to spin on the
+> > > exit condition with a statically predicted-not-taken branch (i.e.,
+> > > always predict the loop will exit).
+> > >
+> > > This is a quick RFC with a couple of users converted to see what
+> > > people think. I don't use a C branch with hints, because we don't want
+> > > the compiler moving the loop body out of line, which makes it a bit
+> > > messy unfortunately. If there's a better way to do it, I'm all ears.
+> >
+> > I think it will still all go wrong if the conditional isn't trivial.
+> > In particular if the condition contains || or && it is likely to
+> > have a branch - which could invert the loop.
+> 
+> I don't know that it will.
+> 
+> Yes, if we have exit condition that requires more branches in order to
+> be computed then we lose our nice property of never taking a branch
+> miss on loop exit. But we still avoid *this* branch miss, and still
+> prevent multiple iterations of the wait loop being speculatively
+> executed concurrently when there's no work to be done.
+> 
+> And C doesn't know about the loop, so it can't do any transformation
+> except to compute the final condition.
+> 
+> Or have I missed something?
 
-I see. So since this is not obvious, please add this explanation to maybe
+Try putting the code inside a conditional or at the bottom of a loop.
+gcc can replicate code to remove a branch.
 
-Documentation/x86/amd-memory-encryption.txt
+So:
+	for (;;) {
+		a;
+		if (b)
+			c;
+		d;
+	}
 
-and point in there to an example or so so.
+can become:
+   x1:
+	a;
+	if (b) to x2;
+	d;
+	goto x1;
 
-Thanks.
+    x2:
+	c;
+	d;
+	goto x1;
 
--- 
-Regards/Gruss,
-    Boris.
+Which won't work.
 
-ECO tip #101: Trim your mails when you reply.
---
+	David
+
