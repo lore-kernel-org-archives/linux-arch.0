@@ -1,52 +1,68 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v2 19/20] x86: Access the setup data through debugfs
-	un-encrypted
-Date: Fri, 16 Sep 2016 09:11:47 +0200
-Message-ID: <20160916071147.GB23229@nazgul.tnic>
-References: <20160822223529.29880.50884.stgit@tlendack-t1.amdoffice.net>
-	<20160822223859.29880.60652.stgit@tlendack-t1.amdoffice.net>
-	<20160912165944.rpqbwxz2biathnt3@pd.tnic>
-	<4a357b9b-7d53-5bd6-81db-9d8cc63a6c72@amd.com>
-	<20160914145101.GB9295@nazgul.tnic>
-	<b734c2da-fee4-efae-fda2-bbcd74abbb33@amd.com>
+From: Chunyan Zhang <zhang.chunyan@linaro.org>
+Subject: Re: [PATCH] percpu: make this_cpu_generic_read notrace
+Date: Fri, 16 Sep 2016 16:42:44 +0800
+Message-ID: <CAG2=9p-v53OJovx4f=YsHD71vNz4EksJ_7tKfzMZeaK3qYxuog@mail.gmail.com>
+References: <1473497134-27807-1-git-send-email-zhang.chunyan@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <b734c2da-fee4-efae-fda2-bbcd74abbb33-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:34992 "EHLO
+        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751083AbcIPImq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2016 04:42:46 -0400
+Received: by mail-wm0-f48.google.com with SMTP id l132so24862892wmf.0
+        for <linux-arch@vger.kernel.org>; Fri, 16 Sep 2016 01:42:45 -0700 (PDT)
+In-Reply-To: <1473497134-27807-1-git-send-email-zhang.chunyan@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lyra Zhang <zhang.lyra@gmail.com>
 
-On Thu, Sep 15, 2016 at 12:08:04PM -0500, Tom Lendacky wrote:
-> The problem is that this physical address does not contain the
-> encryption bit, and even if it did, it wouldn't matter.  The __va()
-> define creates a virtual address that will be mapped as encrypted given
-> the current approach (which is how I found this).  It's only ioremap()
-> that would create a mapping without the encryption attribute and since
-> this is unencrypted data it needs to be access accordingly.
+Hi Will and Steven,
 
-I see. So since this is not obvious, please add this explanation to maybe
+May I have a review or an acked-by from you on this patch so that Arnd
+can pick it up.
 
-Documentation/x86/amd-memory-encryption.txt
+I have tested this patch on arm qemu, I'm sure it can solve the
+problem described in commit message.
 
-and point in there to an example or so so.
 
-Thanks.
+Thanks,
+Chunyan
 
--- 
-Regards/Gruss,
-    Boris.
 
-ECO tip #101: Trim your mails when you reply.
---
+On 10 September 2016 at 16:45, Chunyan Zhang <zhang.chunyan@linaro.org> wrote:
+> When debug preempt or preempt tracer is enabled, preempt_count_add/sub()
+> can be traced by function and function graph tracing, and
+> preempt_disable/enable() would call preempt_count_add/sub(), so
+> we should use preempt_disable/enable_notrace in Ftrace subsystem.
+>
+> The function this_cpu_read() started being used by function graph tracing
+> after the commit 345ddcc882d8 ("ftrace: Have set_ftrace_pid use the
+> bitmap like events do"), so it has to use preempt_disable/enable_notrace
+> instead now.
+>
+> Signed-off-by: Chunyan Zhang <zhang.chunyan@linaro.org>
+> ---
+>  include/asm-generic/percpu.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+> index 4d9f233..70fefec 100644
+> --- a/include/asm-generic/percpu.h
+> +++ b/include/asm-generic/percpu.h
+> @@ -108,9 +108,9 @@ do {                                                                        \
+>  #define this_cpu_generic_read(pcp)                                     \
+>  ({                                                                     \
+>         typeof(pcp) __ret;                                              \
+> -       preempt_disable();                                              \
+> +       preempt_disable_notrace();                                      \
+>         __ret = *this_cpu_ptr(&(pcp));                                  \
+> -       preempt_enable();                                               \
+> +       preempt_enable_notrace();                                       \
+>         __ret;                                                          \
+>  })
+>
+> --
+> 2.7.4
+>
