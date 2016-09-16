@@ -1,42 +1,41 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] percpu: make this_cpu_generic_read notrace
-Date: Fri, 16 Sep 2016 09:19:49 -0400
-Message-ID: <20160916091949.3b8c0e52@gandalf.local.home>
-References: <1473497134-27807-1-git-send-email-zhang.chunyan@linaro.org>
-        <CAG2=9p-v53OJovx4f=YsHD71vNz4EksJ_7tKfzMZeaK3qYxuog@mail.gmail.com>
-        <20160916095309.GM3380@arm.com>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH v2] mm: move phys_mem_access_prot_allowed() declaration
+ to pgtable.h
+Date: Fri, 16 Sep 2016 15:55:37 +0200
+Message-ID: <20160916135537.GA22042@linux-mips.org>
+References: <1473751597-12139-1-git-send-email-baoyou.xie@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0230.hostedemail.com ([216.40.44.230]:40788 "EHLO
-        smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1752881AbcIPNTx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 16 Sep 2016 09:19:53 -0400
-In-Reply-To: <20160916095309.GM3380@arm.com>
+Received: from eddie.linux-mips.org ([148.251.95.138]:51100 "EHLO
+        cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1756478AbcIPN4K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2016 09:56:10 -0400
+Received: from localhost.localdomain ([127.0.0.1]:55874 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S23992155AbcIPN4HvwEln (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Fri, 16 Sep 2016 15:56:07 +0200
+Content-Disposition: inline
+In-Reply-To: <1473751597-12139-1-git-send-email-baoyou.xie@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Chunyan Zhang <zhang.chunyan@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lyra Zhang <zhang.lyra@gmail.com>
+To: Baoyou Xie <baoyou.xie@linaro.org>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, akpm@linux-foundation.org, paul.burton@imgtec.com, chenhc@lemote.com, david.daney@cavium.com, kumba@gentoo.org, yamada.masahiro@socionext.com, kirill.shutemov@linux.intel.com, dave.hansen@linux.intel.com, toshi.kani@hpe.com, dan.j.williams@intel.com, luto@kernel.org, JBeulich@suse.com, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, xie.baoyou@zte.com.cn
 
-On Fri, 16 Sep 2016 10:53:09 +0100
-Will Deacon <will.deacon@arm.com> wrote:
+On Tue, Sep 13, 2016 at 03:26:37PM +0800, Baoyou Xie wrote:
 
-> On Fri, Sep 16, 2016 at 04:42:44PM +0800, Chunyan Zhang wrote:
-> > Hi Will and Steven,
-> > 
-> > May I have a review or an acked-by from you on this patch so that Arnd
-> > can pick it up.
-> > 
-> > I have tested this patch on arm qemu, I'm sure it can solve the
-> > problem described in commit message.  
+> We get 1 warning when building kernel with W=1:
+> drivers/char/mem.c:220:12: warning: no previous prototype for 'phys_mem_access_prot_allowed' [-Wmissing-prototypes]
+>  int __weak phys_mem_access_prot_allowed(struct file *file,
 > 
-> It looks fine to me; we took your equivalent patch for arm64 already, so:
+> In fact, its declaration is spreading to several header files
+> in different architecture, but need to be declare in common
+> header file.
 > 
+> So this patch moves phys_mem_access_prot_allowed() to pgtable.h.
+> 
+> Signed-off-by: Baoyou Xie <baoyou.xie@linaro.org>
 
-Looks good to me too.
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
 
-Acked-by: Steven Rostedt <rostedt@goodmis.org>
-
--- Steve
+  Ralf
