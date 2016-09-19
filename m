@@ -1,52 +1,105 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+From: Balbir Singh <bsingharora@gmail.com>
 Subject: Re: [PATCH][RFC] Implement arch primitives for busywait loops
-Date: Mon, 19 Sep 2016 10:35:37 +0530
-Message-ID: <87vaxsxyvy.fsf@linux.vnet.ibm.com>
+Date: Mon, 19 Sep 2016 17:45:52 +1000
+Message-ID: <77737e9a-e8d7-0f2d-2303-8fdbaf45b8bb@gmail.com>
 References: <20160916085736.7857-1-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:48716 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1750786AbcISFFp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 19 Sep 2016 01:05:45 -0400
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u8J52on9103359
-        for <linux-arch@vger.kernel.org>; Mon, 19 Sep 2016 01:05:44 -0400
-Received: from e18.ny.us.ibm.com (e18.ny.us.ibm.com [129.33.205.208])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 25gxqhvbbc-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Mon, 19 Sep 2016 01:05:44 -0400
-Received: from localhost
-        by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-        Mon, 19 Sep 2016 01:05:43 -0400
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:35743 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751316AbcISHpk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2016 03:45:40 -0400
+Received: by mail-pf0-f194.google.com with SMTP id 6so3910600pfl.2
+        for <linux-arch@vger.kernel.org>; Mon, 19 Sep 2016 00:45:39 -0700 (PDT)
 In-Reply-To: <20160916085736.7857-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org, Nicholas Piggin <npiggin@gmail.com>
+To: Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
 
 
-> diff --git a/include/linux/bit_spinlock.h b/include/linux/bit_spinlock.h
-> index 3b5bafc..695743c 100644
-> --- a/include/linux/bit_spinlock.h
-> +++ b/include/linux/bit_spinlock.h
-> @@ -25,9 +25,8 @@ static inline void bit_spin_lock(int bitnum, unsigned long *addr)
->  #if defined(CONFIG_SMP) || defined(CONFIG_DEBUG_SPINLOCK)
->  	while (unlikely(test_and_set_bit_lock(bitnum, addr))) {
->  		preempt_enable();
-> -		do {
-> -			cpu_relax();
-> -		} while (test_bit(bitnum, addr));
-> +		spin_do {
-> +		} spin_while (test_bit(bitnum, addr));
->  		preempt_disable();
->  	}
->  #endif
 
-That usage is strange, with nothing in the do{ }while loop. May be add a
-macro for usages like this ?
+On 16/09/16 18:57, Nicholas Piggin wrote:
+> Implementing busy wait loops with cpu_relax() in callers poses
+> some difficulties for powerpc.
+> 
+> First, we want to put our SMT thread into a low priority mode for the
+> duration of the loop, but then return to normal priority after exiting
+> the loop.  Dependong on the CPU design, 'HMT_low() ; HMT_medium();' as
+> cpu_relax() does may have HMT_medium take effect before HMT_low made
+> any (or much) difference.
+> 
+> Second, it can be beneficial for some implementations to spin on the
+> exit condition with a statically predicted-not-taken branch (i.e.,
+> always predict the loop will exit).
+> 
 
--aneesh
+IIUC, what you are proposing is that cpu_relax() be split such 
+that on entry we do HMT_low() and on exit do HMT_medium(). I think
+that makes a lot of sense, in that it allows the required transition
+time from low to medium
+
+> This is a quick RFC with a couple of users converted to see what
+> people think. I don't use a C branch with hints, because we don't want
+> the compiler moving the loop body out of line, which makes it a bit
+> messy unfortunately. If there's a better way to do it, I'm all ears.
+> 
+> I would not propose to switch all callers immediately, just some
+> core synchronisation primitives.
+> 
+> ---
+>  arch/powerpc/include/asm/processor.h | 22 ++++++++++++++++++++++
+>  include/asm-generic/barrier.h        |  7 ++-----
+>  include/linux/bit_spinlock.h         |  5 ++---
+>  include/linux/cgroup.h               |  7 ++-----
+>  include/linux/seqlock.h              | 10 ++++------
+>  5 files changed, 32 insertions(+), 19 deletions(-)
+> 
+> diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+> index 68e3bf5..e10aee2 100644
+> --- a/arch/powerpc/include/asm/processor.h
+> +++ b/arch/powerpc/include/asm/processor.h
+> @@ -402,6 +402,28 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
+>  
+>  #ifdef CONFIG_PPC64
+>  #define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
+> +
+> +#define spin_do						\
+
+How about cpu_relax_begin()?
+
+> +do {							\
+> +	HMT_low();					\
+> +	__asm__ __volatile__ (	"1010:");
+> +
+> +#define spin_while(cond)				\
+
+cpu_relax_while()
+> +	barrier();					\
+> +	__asm__ __volatile__ (	"cmpdi	%0,0	\n\t"	\
+> +				"beq-	1010b	\n\t"	\
+> +				: : "r" (cond));	\
+> +	HMT_medium();					\
+> +} while (0)
+> +
+
+
+> +#define spin_until(cond)				\
+
+This is just spin_while(!cond) from an implementation perspective right?
+
+cpu_relax_until()
+
+> +	barrier();					\
+> +	__asm__ __volatile__ (	"cmpdi	%0,0	\n\t"	\
+> +				"bne-	1010b	\n\t"	\
+> +				: : "r" (cond));	\
+> +	HMT_medium();					\
+> +} while (0)
+> +
+
+Then add cpu_relax_end() that does HMT_medium()
+
+Balbir Singh.
