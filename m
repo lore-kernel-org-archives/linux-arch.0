@@ -1,91 +1,182 @@
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH][RFC] Implement arch primitives for busywait loops
-Date: Tue, 20 Sep 2016 22:46:39 +1000
-Message-ID: <20160920224639.1800def7@roar.ozlabs.ibm.com>
-References: <20160916085736.7857-1-npiggin@gmail.com>
-        <60adab94-f32e-2287-4821-81a88fa366d4@de.ibm.com>
-        <20160920222732.12301963@roar.ozlabs.ibm.com>
-        <c24828e0-9c67-aa48-e62a-f68496c4d8ad@de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f180.google.com ([209.85.192.180]:34986 "EHLO
-        mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752028AbcITMqs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2016 08:46:48 -0400
-In-Reply-To: <c24828e0-9c67-aa48-e62a-f68496c4d8ad@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390 <linux-s390@vger.kernel.org>
+Subject: [PATCH] percpu: improve generic percpu modify-return implementation
+Date: Wed, 21 Sep 2016 18:51:37 +1000
+Message-ID: <20160921085137.862-1-npiggin@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 20 Sep 2016 14:35:45 +0200
-Christian Borntraeger <borntraeger@de.ibm.com> wrote:
+Some architectures require an additional load to find the address of
+percpu pointers. In some implemenatations, the C aliasing rules do not
+allow the result of that load to be kept over the store that modifies
+the percpu variable, which causes additional loads.
 
-> On 09/20/2016 02:27 PM, Nicholas Piggin wrote:
-> > On Tue, 20 Sep 2016 13:19:30 +0200
-> > Christian Borntraeger <borntraeger@de.ibm.com> wrote:
-> >   
-> >> On 09/16/2016 10:57 AM, Nicholas Piggin wrote:  
-> >>> Implementing busy wait loops with cpu_relax() in callers poses
-> >>> some difficulties for powerpc.
-> >>>
-> >>> First, we want to put our SMT thread into a low priority mode for the
-> >>> duration of the loop, but then return to normal priority after exiting
-> >>> the loop.  Dependong on the CPU design, 'HMT_low() ; HMT_medium();' as
-> >>> cpu_relax() does may have HMT_medium take effect before HMT_low made
-> >>> any (or much) difference.
-> >>>
-> >>> Second, it can be beneficial for some implementations to spin on the
-> >>> exit condition with a statically predicted-not-taken branch (i.e.,
-> >>> always predict the loop will exit).
-> >>>
-> >>> This is a quick RFC with a couple of users converted to see what
-> >>> people think. I don't use a C branch with hints, because we don't want
-> >>> the compiler moving the loop body out of line, which makes it a bit
-> >>> messy unfortunately. If there's a better way to do it, I'm all ears.
-> >>>
-> >>> I would not propose to switch all callers immediately, just some
-> >>> core synchronisation primitives.    
-> >> Just a FYA,
-> >>
-> >> On s390 we have a private version of cpu_relax that yields the cpu
-> >> time slice back to the hypervisor via a hypercall.  
-> > 
-> > The powerpc guest also wants to yield to hypervisor in some busywait
-> > situations.
-> >   
-> >> As this turned out
-> >> to be problematic in some cases there is also now a cpu_relax_lowlatency.
-> >>
-> >> Now, this seems still problematic as there are too many places still 
-> >> using cpu_relax instead of cpu_relax_lowlatency. So my plan is to do 
-> >> a change of that, make cpu_relax just be a barrier and add a new 
-> >> cpu_relax_yield that gives up the time slice. (so that s390 cpu_relax
-> >> is just like any other cpu_relax)
-> >>
-> >> As far as I can tell the only place where I want to change cpu_relax
-> >> to cpu_relax_lowlatency after that change is the stop machine run 
-> >> code, so I hope to have no conflicts with your changes.  
-> > 
-> > I don't think there should be any conflicts, but it would be good to
-> > make sure busy wait primitives can be usable by s390. So I can add
-> > _yield variants that can do the right thing for s390.  
-> 
-> I was distracted by "more important work" (TM) but I will put you on
-> CC when ready.
-> > 
-> > I need to think more about virtualization, so I'm glad you commented.
-> > Powerpc would like to be told when a busywait loop knows the CPU it is
-> > waiting for. So perhaps also a _yield_to_cpu variant as well.  
-> 
-> Yes, we also have 2 hypercalls: one that yields somehow and one that yields
-> to a specific CPU. The latter is strongly preferred.
+Work around this by finding the pointer first, then operating on that.
 
-Okay, sounds good. I'll send out some updated patches soon too, so I'll
-cc you on those. It would be good to come up with some basic guidelines
-for when to use each variant too.
+It's also possible to mark things as restrict and those kind of games,
+but that can require larger and arch specific changes.
 
-Thanks,
-Nick
+On powerpc, __this_cpu_inc_return compiles to:
+
+        ld 10,48(13)
+        ldx 9,3,10
+        addi 9,9,1
+        stdx 9,3,10
+        ld 9,48(13)
+        ldx 3,9,3
+
+With this patch it saves 2 loads:
+
+        ld 10,48(13)
+        ldx 9,3,10
+        addi 9,9,1
+        stdx 9,3,10
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ include/asm-generic/percpu.h | 54 +++++++++++++++++++++++++-------------------
+ 1 file changed, 31 insertions(+), 23 deletions(-)
+
+diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+index 4d9f233..3fe18fe 100644
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -65,6 +65,11 @@ extern void setup_per_cpu_areas(void);
+ #define PER_CPU_DEF_ATTRIBUTES
+ #endif
+ 
++#define raw_cpu_generic_read(pcp)					\
++({									\
++	*raw_cpu_ptr(&(pcp));						\
++})
++
+ #define raw_cpu_generic_to_op(pcp, val, op)				\
+ do {									\
+ 	*raw_cpu_ptr(&(pcp)) op val;					\
+@@ -72,34 +77,39 @@ do {									\
+ 
+ #define raw_cpu_generic_add_return(pcp, val)				\
+ ({									\
+-	raw_cpu_add(pcp, val);						\
+-	raw_cpu_read(pcp);						\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
++									\
++	*__p += val;							\
++	*__p;								\
+ })
+ 
+ #define raw_cpu_generic_xchg(pcp, nval)					\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+-	__ret = raw_cpu_read(pcp);					\
+-	raw_cpu_write(pcp, nval);					\
++	__ret = *__p;							\
++	*__p = nval;							\
+ 	__ret;								\
+ })
+ 
+ #define raw_cpu_generic_cmpxchg(pcp, oval, nval)			\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+-	__ret = raw_cpu_read(pcp);					\
++	__ret = *__p;							\
+ 	if (__ret == (oval))						\
+-		raw_cpu_write(pcp, nval);				\
++		*__p = nval;						\
+ 	__ret;								\
+ })
+ 
+ #define raw_cpu_generic_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2) \
+ ({									\
++	typeof(&(pcp1)) __p1 = raw_cpu_ptr(&(pcp1));			\
++	typeof(&(pcp2)) __p2 = raw_cpu_ptr(&(pcp2));			\
+ 	int __ret = 0;							\
+-	if (raw_cpu_read(pcp1) == (oval1) &&				\
+-			 raw_cpu_read(pcp2)  == (oval2)) {		\
+-		raw_cpu_write(pcp1, nval1);				\
+-		raw_cpu_write(pcp2, nval2);				\
++	if (*__p1 == (oval1) && *__p2  == (oval2)) {			\
++		*__p1 = nval1;						\
++		*__p2 = nval2;						\
+ 		__ret = 1;						\
+ 	}								\
+ 	(__ret);							\
+@@ -109,7 +119,7 @@ do {									\
+ ({									\
+ 	typeof(pcp) __ret;						\
+ 	preempt_disable();						\
+-	__ret = *this_cpu_ptr(&(pcp));					\
++	__ret = raw_cpu_generic_read(pcp);				\
+ 	preempt_enable();						\
+ 	__ret;								\
+ })
+@@ -118,17 +128,18 @@ do {									\
+ do {									\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	*raw_cpu_ptr(&(pcp)) op val;					\
++	raw_cpu_generic_to_op(pcp, val, op);				\
+ 	raw_local_irq_restore(__flags);					\
+ } while (0)
+ 
++
+ #define this_cpu_generic_add_return(pcp, val)				\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	raw_cpu_add(pcp, val);						\
+-	__ret = raw_cpu_read(pcp);					\
++	__ret = raw_cpu_generic_add_return(pcp, val);			\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -138,8 +149,7 @@ do {									\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	__ret = raw_cpu_read(pcp);					\
+-	raw_cpu_write(pcp, nval);					\
++	__ret = raw_cpu_generic_xchg(pcp);				\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -149,9 +159,7 @@ do {									\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	__ret = raw_cpu_read(pcp);					\
+-	if (__ret == (oval))						\
+-		raw_cpu_write(pcp, nval);				\
++	__ret = raw_cpu_generic_cmpxchg(pcp, oval, nval);		\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -168,16 +176,16 @@ do {									\
+ })
+ 
+ #ifndef raw_cpu_read_1
+-#define raw_cpu_read_1(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_1(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_2
+-#define raw_cpu_read_2(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_2(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_4
+-#define raw_cpu_read_4(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_4(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_8
+-#define raw_cpu_read_8(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_8(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ 
+ #ifndef raw_cpu_write_1
+-- 
+2.9.3
