@@ -1,117 +1,188 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:36821 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756827AbcISIs1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2016 04:48:27 -0400
-Received: by mail-pf0-f195.google.com with SMTP id n24so6948208pfb.3
-        for <linux-arch@vger.kernel.org>; Mon, 19 Sep 2016 01:48:27 -0700 (PDT)
-Date: Mon, 19 Sep 2016 18:48:16 +1000
+Received: from mail-pa0-f66.google.com ([209.85.220.66]:33785 "EHLO
+        mail-pa0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753281AbcIUIvs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2016 04:51:48 -0400
 From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH][RFC] Implement arch primitives for busywait loops
-Message-ID: <20160919184816.26a3e3e9@roar.ozlabs.ibm.com>
-In-Reply-To: <77737e9a-e8d7-0f2d-2303-8fdbaf45b8bb@gmail.com>
-References: <20160916085736.7857-1-npiggin@gmail.com>
-        <77737e9a-e8d7-0f2d-2303-8fdbaf45b8bb@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH] percpu: improve generic percpu modify-return implementation
+Date: Wed, 21 Sep 2016 18:51:37 +1000
+Message-ID: <20160921085137.862-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Balbir Singh <bsingharora@gmail.com>
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20160919084816.C1lBrWru_CMpD47BCmRQg9uPuZFsBO58zXvyI_WYx_Q@z>
+To: Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20160921085137.c8vpW5uTrRcjMnpDn0_HOljhTBTIDLd9RdSxrzNE9eE@z>
 
-On Mon, 19 Sep 2016 17:45:52 +1000
-Balbir Singh <bsingharora@gmail.com> wrote:
+Some architectures require an additional load to find the address of
+percpu pointers. In some implemenatations, the C aliasing rules do not
+allow the result of that load to be kept over the store that modifies
+the percpu variable, which causes additional loads.
 
-> On 16/09/16 18:57, Nicholas Piggin wrote:
-> > Implementing busy wait loops with cpu_relax() in callers poses
-> > some difficulties for powerpc.
-> > 
-> > First, we want to put our SMT thread into a low priority mode for the
-> > duration of the loop, but then return to normal priority after exiting
-> > the loop.  Dependong on the CPU design, 'HMT_low() ; HMT_medium();' as
-> > cpu_relax() does may have HMT_medium take effect before HMT_low made
-> > any (or much) difference.
-> > 
-> > Second, it can be beneficial for some implementations to spin on the
-> > exit condition with a statically predicted-not-taken branch (i.e.,
-> > always predict the loop will exit).
-> >   
-> 
-> IIUC, what you are proposing is that cpu_relax() be split such 
-> that on entry we do HMT_low() and on exit do HMT_medium(). I think
-> that makes a lot of sense, in that it allows the required transition
-> time from low to medium
+Work around this by finding the pointer first, then operating on that.
 
-Basically yes, although also allowing the loop exit branch to be
-overridden by the arch code too. That can possibly benefit some
-microarchitectures -- e.g., you want loop exit to not take a branch
-miss if possible but it may be acceptable to branch miss for every
-other iteration. I'm doing some testing of it now (previous patch
-was garbage btw, don't try to use it!)
+It's also possible to mark things as restrict and those kind of games,
+but that can require larger and arch specific changes.
 
+On powerpc, __this_cpu_inc_return compiles to:
 
-> > diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
-> > index 68e3bf5..e10aee2 100644
-> > --- a/arch/powerpc/include/asm/processor.h
-> > +++ b/arch/powerpc/include/asm/processor.h
-> > @@ -402,6 +402,28 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
-> >  
-> >  #ifdef CONFIG_PPC64
-> >  #define cpu_relax()	do { HMT_low(); HMT_medium(); barrier(); } while (0)
-> > +
-> > +#define spin_do						\  
-> 
-> How about cpu_relax_begin()?
-> 
-> > +do {							\
-> > +	HMT_low();					\
-> > +	__asm__ __volatile__ (	"1010:");
-> > +
-> > +#define spin_while(cond)				\  
-> 
-> cpu_relax_while()
-> > +	barrier();					\
-> > +	__asm__ __volatile__ (	"cmpdi	%0,0	\n\t"	\
-> > +				"beq-	1010b	\n\t"	\
-> > +				: : "r" (cond));	\
-> > +	HMT_medium();					\
-> > +} while (0)
-> > +  
-> 
-> 
-> > +#define spin_until(cond)				\  
-> 
-> This is just spin_while(!cond) from an implementation perspective right?
+        ld 10,48(13)
+        ldx 9,3,10
+        addi 9,9,1
+        stdx 9,3,10
+        ld 9,48(13)
+        ldx 3,9,3
 
-Yes, the only reason I put it in was because such spin loops often
-read a bit better the other way from normal loops (you are interested
-in the exit condition rather than the loop-again condition).
+With this patch it saves 2 loads:
 
-> 
-> cpu_relax_until()
-> 
-> > +	barrier();					\
-> > +	__asm__ __volatile__ (	"cmpdi	%0,0	\n\t"	\
-> > +				"bne-	1010b	\n\t"	\
-> > +				: : "r" (cond));	\
-> > +	HMT_medium();					\
-> > +} while (0)
-> > +  
-> 
-> Then add cpu_relax_end() that does HMT_medium()
+        ld 10,48(13)
+        ldx 9,3,10
+        addi 9,9,1
+        stdx 9,3,10
 
-Hmm. I see what you mean, but I don't know if we should trust open
-coded callers to get this right. It could cause weird problems and
-isn't easily caught. If we can get something that breaks build,
-perhaps. OTOH, I prefer all the logic including SMT priority to be
-in the spin loop primitive directly because it's pretty subtle and
-might need to be runtime patched.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ include/asm-generic/percpu.h | 54 +++++++++++++++++++++++++-------------------
+ 1 file changed, 31 insertions(+), 23 deletions(-)
 
-We could *also* have a cpu_relax_begin/cpu_relax_end pair, although
-I'd like to first see callers that don't suit spin_ primitives and
-see what should be done.
+diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
+index 4d9f233..3fe18fe 100644
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -65,6 +65,11 @@ extern void setup_per_cpu_areas(void);
+ #define PER_CPU_DEF_ATTRIBUTES
+ #endif
+ 
++#define raw_cpu_generic_read(pcp)					\
++({									\
++	*raw_cpu_ptr(&(pcp));						\
++})
++
+ #define raw_cpu_generic_to_op(pcp, val, op)				\
+ do {									\
+ 	*raw_cpu_ptr(&(pcp)) op val;					\
+@@ -72,34 +77,39 @@ do {									\
+ 
+ #define raw_cpu_generic_add_return(pcp, val)				\
+ ({									\
+-	raw_cpu_add(pcp, val);						\
+-	raw_cpu_read(pcp);						\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
++									\
++	*__p += val;							\
++	*__p;								\
+ })
+ 
+ #define raw_cpu_generic_xchg(pcp, nval)					\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+-	__ret = raw_cpu_read(pcp);					\
+-	raw_cpu_write(pcp, nval);					\
++	__ret = *__p;							\
++	*__p = nval;							\
+ 	__ret;								\
+ })
+ 
+ #define raw_cpu_generic_cmpxchg(pcp, oval, nval)			\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+-	__ret = raw_cpu_read(pcp);					\
++	__ret = *__p;							\
+ 	if (__ret == (oval))						\
+-		raw_cpu_write(pcp, nval);				\
++		*__p = nval;						\
+ 	__ret;								\
+ })
+ 
+ #define raw_cpu_generic_cmpxchg_double(pcp1, pcp2, oval1, oval2, nval1, nval2) \
+ ({									\
++	typeof(&(pcp1)) __p1 = raw_cpu_ptr(&(pcp1));			\
++	typeof(&(pcp2)) __p2 = raw_cpu_ptr(&(pcp2));			\
+ 	int __ret = 0;							\
+-	if (raw_cpu_read(pcp1) == (oval1) &&				\
+-			 raw_cpu_read(pcp2)  == (oval2)) {		\
+-		raw_cpu_write(pcp1, nval1);				\
+-		raw_cpu_write(pcp2, nval2);				\
++	if (*__p1 == (oval1) && *__p2  == (oval2)) {			\
++		*__p1 = nval1;						\
++		*__p2 = nval2;						\
+ 		__ret = 1;						\
+ 	}								\
+ 	(__ret);							\
+@@ -109,7 +119,7 @@ do {									\
+ ({									\
+ 	typeof(pcp) __ret;						\
+ 	preempt_disable();						\
+-	__ret = *this_cpu_ptr(&(pcp));					\
++	__ret = raw_cpu_generic_read(pcp);				\
+ 	preempt_enable();						\
+ 	__ret;								\
+ })
+@@ -118,17 +128,18 @@ do {									\
+ do {									\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	*raw_cpu_ptr(&(pcp)) op val;					\
++	raw_cpu_generic_to_op(pcp, val, op);				\
+ 	raw_local_irq_restore(__flags);					\
+ } while (0)
+ 
++
+ #define this_cpu_generic_add_return(pcp, val)				\
+ ({									\
++	typeof(&(pcp)) __p = raw_cpu_ptr(&(pcp));			\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	raw_cpu_add(pcp, val);						\
+-	__ret = raw_cpu_read(pcp);					\
++	__ret = raw_cpu_generic_add_return(pcp, val);			\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -138,8 +149,7 @@ do {									\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	__ret = raw_cpu_read(pcp);					\
+-	raw_cpu_write(pcp, nval);					\
++	__ret = raw_cpu_generic_xchg(pcp);				\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -149,9 +159,7 @@ do {									\
+ 	typeof(pcp) __ret;						\
+ 	unsigned long __flags;						\
+ 	raw_local_irq_save(__flags);					\
+-	__ret = raw_cpu_read(pcp);					\
+-	if (__ret == (oval))						\
+-		raw_cpu_write(pcp, nval);				\
++	__ret = raw_cpu_generic_cmpxchg(pcp, oval, nval);		\
+ 	raw_local_irq_restore(__flags);					\
+ 	__ret;								\
+ })
+@@ -168,16 +176,16 @@ do {									\
+ })
+ 
+ #ifndef raw_cpu_read_1
+-#define raw_cpu_read_1(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_1(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_2
+-#define raw_cpu_read_2(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_2(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_4
+-#define raw_cpu_read_4(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_4(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ #ifndef raw_cpu_read_8
+-#define raw_cpu_read_8(pcp)		(*raw_cpu_ptr(&(pcp)))
++#define raw_cpu_read_8(pcp)		raw_cpu_generic_read(pcp)
+ #endif
+ 
+ #ifndef raw_cpu_write_1
+-- 
+2.9.3
 
-Thanks,
-Nick
