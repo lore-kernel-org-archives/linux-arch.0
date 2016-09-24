@@ -1,58 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yb0-f179.google.com ([209.85.213.179]:33473 "EHLO
-        mail-yb0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755506AbcIVQHv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2016 12:07:51 -0400
-Date: Thu, 22 Sep 2016 12:07:49 -0400
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH] percpu: improve generic percpu modify-return
- implementation
-Message-ID: <20160922160749.GD1892@htj.duckdns.org>
-References: <20160921085137.862-1-npiggin@gmail.com>
- <20160921205711.4e804777@roar.ozlabs.ibm.com>
- <20160921142343.GA10734@htj.duckdns.org>
- <20160922143500.21809b98@roar.ozlabs.ibm.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:58135 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759608AbcIXJTE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Sep 2016 05:19:04 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] percpu: make this_cpu_generic_read notrace
+Date: Sat, 24 Sep 2016 11:18:53 +0200
+Message-ID: <4886672.oUR9U4H6le@wuerfel>
+In-Reply-To: <20160916095309.GM3380@arm.com>
+References: <1473497134-27807-1-git-send-email-zhang.chunyan@linaro.org> <CAG2=9p-v53OJovx4f=YsHD71vNz4EksJ_7tKfzMZeaK3qYxuog@mail.gmail.com> <20160916095309.GM3380@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160922143500.21809b98@roar.ozlabs.ibm.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Christoph Lameter <cl@linux.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20160922160749.CWALP51otMGSWySL-6esTTBr0xvy1UvG6QnWY3hkYf8@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Chunyan Zhang <zhang.chunyan@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lyra Zhang <zhang.lyra@gmail.com>
+Message-ID: <20160924091853.NQXpcL2vHk024zORtdAouARoXGOPAycIYzfS6_vRyDQ@z>
 
-Hello,
-
-On Thu, Sep 22, 2016 at 02:35:00PM +1000, Nicholas Piggin wrote:
-> Well thank you, how about you?
-
-Heh, can't complain.  Hope to see you around sometime.  It's been
-forever.
-
-> Trying a new mail client, sorry. It *seems* to be working now, how's
-> this?
-
-Hmm... Still encoded.
-
-> From d0cb9052d6f4c31d24f999b7b0cecb34681eee9b Mon Sep 17 00:00:00 2001
-> From: Nicholas Piggin <npiggin@gmail.com>
-> Date: Wed, 21 Sep 2016 18:23:43 +1000
-> Subject: [PATCH] percpu: improve generic percpu modify-return implementations
+On Friday, September 16, 2016 10:53:09 AM CEST Will Deacon wrote:
+> On Fri, Sep 16, 2016 at 04:42:44PM +0800, Chunyan Zhang wrote:
+> > Hi Will and Steven,
+> > 
+> > May I have a review or an acked-by from you on this patch so that Arnd
+> > can pick it up.
+> > 
+> > I have tested this patch on arm qemu, I'm sure it can solve the
+> > problem described in commit message.
 > 
-> Some architectures require an additional load to find the address of
-> percpu pointers. In some implemenatations, the C aliasing rules do not
-> allow the result of that load to be kept over the store that modifies
-> the percpu variable, which causes additional loads.
+> It looks fine to me; we took your equivalent patch for arm64 already, so:
 > 
-> Work around this by finding the pointer first, then operating on that.
+> Acked-by: Will Deacon <will.deacon@arm.com>
 > 
-> It's also possible to mark things as restrict and those kind of games,
-> but that can require larger and arch specific changes.
 
-QP-decoded and applied to percpu/for-4.9.
+Applied to my asm-generic tree now, sorry for the delay,
 
-Thanks.
+	Arnd
 
--- 
-tejun
