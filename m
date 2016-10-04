@@ -1,39 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:58135 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759608AbcIXJTE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Sep 2016 05:19:04 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] percpu: make this_cpu_generic_read notrace
-Date: Sat, 24 Sep 2016 11:18:53 +0200
-Message-ID: <4886672.oUR9U4H6le@wuerfel>
-In-Reply-To: <20160916095309.GM3380@arm.com>
-References: <1473497134-27807-1-git-send-email-zhang.chunyan@linaro.org> <CAG2=9p-v53OJovx4f=YsHD71vNz4EksJ_7tKfzMZeaK3qYxuog@mail.gmail.com> <20160916095309.GM3380@arm.com>
+Received: from mx2.suse.de ([195.135.220.15]:58313 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753303AbcJDTGW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 4 Oct 2016 15:06:22 -0400
+Date: Tue, 4 Oct 2016 12:06:01 -0700
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [RFC PATCH-tip v4 01/10] locking/osq: Make lock/unlock proper
+ acquire/release barrier
+Message-ID: <20161004190601.GD24086@linux-80c1.suse>
+References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
+ <1471554672-38662-2-git-send-email-Waiman.Long@hpe.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Disposition: inline
+In-Reply-To: <1471554672-38662-2-git-send-email-Waiman.Long@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Chunyan Zhang <zhang.chunyan@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lyra Zhang <zhang.lyra@gmail.com>
-Message-ID: <20160924091853.NQXpcL2vHk024zORtdAouARoXGOPAycIYzfS6_vRyDQ@z>
+To: Waiman Long <Waiman.Long@hpe.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Jason Low <jason.low2@hp.com>, Dave Chinner <david@fromorbit.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+Message-ID: <20161004190601.EpBvhagwJf061hISZjJFu_kNEhUPL3U4DAHyWVPIWts@z>
 
-On Friday, September 16, 2016 10:53:09 AM CEST Will Deacon wrote:
-> On Fri, Sep 16, 2016 at 04:42:44PM +0800, Chunyan Zhang wrote:
-> > Hi Will and Steven,
-> > 
-> > May I have a review or an acked-by from you on this patch so that Arnd
-> > can pick it up.
-> > 
-> > I have tested this patch on arm qemu, I'm sure it can solve the
-> > problem described in commit message.
-> 
-> It looks fine to me; we took your equivalent patch for arm64 already, so:
-> 
-> Acked-by: Will Deacon <will.deacon@arm.com>
-> 
+On Thu, 18 Aug 2016, Waiman Long wrote:
 
-Applied to my asm-generic tree now, sorry for the delay,
+>The osq_lock() and osq_unlock() function may not provide the necessary
+>acquire and release barrier in some cases. This patch makes sure
+>that the proper barriers are provided when osq_lock() is successful
+>or when osq_unlock() is called.
 
-	Arnd
+But why do we need these guarantees given that osq is only used internally
+for lock owner spinning situations? Leaking out of the critical region will
+obviously be bad if using it as a full lock, but, as is, this can only hurt
+performance of two of the most popular locks in the kernel -- although yes,
+using smp_acquire__after_ctrl_dep is nicer for polling.
 
+If you need tighter osq for rwsems, could it be refactored such that mutexes
+do not take a hit?
+
+>
+>Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>Signed-off-by: Waiman Long <Waiman.Long@hpe.com>
+>---
+> kernel/locking/osq_lock.c |   24 ++++++++++++++++++------
+> 1 files changed, 18 insertions(+), 6 deletions(-)
+>
+>diff --git a/kernel/locking/osq_lock.c b/kernel/locking/osq_lock.c
+>index 05a3785..3da0b97 100644
+>--- a/kernel/locking/osq_lock.c
+>+++ b/kernel/locking/osq_lock.c
+>@@ -124,6 +124,11 @@ bool osq_lock(struct optimistic_spin_queue *lock)
+>
+> 		cpu_relax_lowlatency();
+> 	}
+>+	/*
+>+	 * Add an acquire memory barrier for pairing with the release barrier
+>+	 * in unlock.
+>+	 */
+>+	smp_acquire__after_ctrl_dep();
+> 	return true;
+>
+> unqueue:
+>@@ -198,13 +203,20 @@ void osq_unlock(struct optimistic_spin_queue *lock)
+> 	 * Second most likely case.
+> 	 */
+> 	node = this_cpu_ptr(&osq_node);
+>-	next = xchg(&node->next, NULL);
+>-	if (next) {
+>-		WRITE_ONCE(next->locked, 1);
+>+	next = xchg_relaxed(&node->next, NULL);
+>+	if (next)
+>+		goto unlock;
+>+
+>+	next = osq_wait_next(lock, node, NULL);
+>+	if (unlikely(!next)) {
+>+		/*
+>+		 * In the unlikely event that the OSQ is empty, we need to
+>+		 * provide a proper release barrier.
+>+		 */
+>+		smp_mb();
+> 		return;
+> 	}
+>
+>-	next = osq_wait_next(lock, node, NULL);
+>-	if (next)
+>-		WRITE_ONCE(next->locked, 1);
+>+unlock:
+>+	smp_store_release(&next->locked, 1);
+> }
+
+As well as for the smp_acquire__after_ctrl_dep comment you have above, this also
+obviously pairs with the osq_lock's smp_load_acquire while backing out (unqueueing,
+step A). Given the above, for this case we might also just rely on READ_ONCE(node->locked),
+if we get the conditional wrong and miss the node becoming locked, all we do is another
+iteration, and while there is a cmpxchg() there, it is mitigated with the ccas thingy.
+
+Thanks,
+Davidlohr
