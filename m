@@ -1,251 +1,175 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 6.mo6.mail-out.ovh.net ([87.98.177.69]:49976 "EHLO
-        6.mo6.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750971AbcJJAK0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Oct 2016 20:10:26 -0400
+Received: from 17.mo6.mail-out.ovh.net ([46.105.36.150]:60029 "EHLO
+        17.mo6.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750786AbcJJAk0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 9 Oct 2016 20:40:26 -0400
 Received: from player735.ha.ovh.net (b9.ovh.net [213.186.33.59])
-        by mo6.mail-out.ovh.net (Postfix) with ESMTP id 64FE43A642
-        for <linux-arch@vger.kernel.org>; Mon, 10 Oct 2016 02:04:16 +0200 (CEST)
+        by mo6.mail-out.ovh.net (Postfix) with ESMTP id 7BBD43AF23
+        for <linux-arch@vger.kernel.org>; Mon, 10 Oct 2016 02:04:35 +0200 (CEST)
 From: Joel Porquet <joel@porquet.org>
-Subject: [PATCH 1/2] asm-generic/futex.h: code refactoring
-Date: Sun,  9 Oct 2016 17:03:07 -0700
-Message-ID: <20161010000308.13212-2-joel@porquet.org>
+Subject: [PATCH 2/2] arm: futex: Use asm-generic/futex.h instead of redefining the entire header
+Date: Sun,  9 Oct 2016 17:03:08 -0700
+Message-ID: <20161010000308.13212-3-joel@porquet.org>
 In-Reply-To: <20161010000308.13212-1-joel@porquet.org>
 References: <20161010000308.13212-1-joel@porquet.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, linux@armlinux.org.uk
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Joel Porquet <joel@porquet.org>
-Message-ID: <20161010000307.CKcAChTNqUJgQ--H1l2mUKQXVB09ZtCnrRpcrjLAZXI@z>
+Message-ID: <20161010000308.SLiKpJZzyYfIV78NFy8iuhtOtq2ghEodKSKJCQY-lzk@z>
 
-The generic header "asm-generic/futex.h" defines the implementations of
-atomic functions "futex_atomic_op_inuser()" and
-"futex_atomic_cmpxchg_inatomic()". Currently, each of these functions is
-actually defined twice: once for uniprocessor machines and once for
-multiprocessor machines.
+"asm-generic/futex.h" was refactored and now allows arch ports to only
+define arch-specific macros instead of redefining the entire header
+file.
 
-However, these {smp,!smp} implementations, especially for
-"futex_atomic_op_inuser()", have some code in common that could be
-refactored. Furthermore, most the arch ports usually redefine their own
-"asm/futex.h" header completely, instead of using the generic header
-even though a good chunk of the code is shared (once again, especially
-for 'futex_atomic_op_inuser()').
+This patch adapts "asm/futex.h" for ARM by only defining the macros
+required by the generic header (ie __futex_atomic_op_inuser() and
+__futex_atomic_cmpxchg_inatomic()).
 
-This patch refactors the uniprocessor and multiprocessor implementations
-of both functions into a single implementation, making the
-machine-specific part a customizable macro.
-
-As a (hopefully good) side-effect, this makes it possible for arch ports
-to start including this generic header, instead of redefining it
-completely, and only overload the macros with arch-specific routines.
+Compiled (SMP and !SMP) and booted on QEMU with a minimal busybox-based
+system.
 
 Signed-off-by: Joel Porquet <joel@porquet.org>
 ---
- include/asm-generic/futex.h | 219 ++++++++++++++++++++++----------------------
- 1 file changed, 112 insertions(+), 107 deletions(-)
+ arch/arm/include/asm/futex.h | 203 ++++++++++++++++++-------------------------
+ 1 file changed, 84 insertions(+), 119 deletions(-)
 
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index bf2d34c..a72b36b 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -6,12 +6,114 @@
- #include <asm/errno.h>
+diff --git a/arch/arm/include/asm/futex.h b/arch/arm/include/asm/futex.h
+index 6795368..d3db562 100644
+--- a/arch/arm/include/asm/futex.h
++++ b/arch/arm/include/asm/futex.h
+@@ -39,41 +39,30 @@
+ 	: "r" (uaddr), "r" (oparg), "Ir" (-EFAULT)		\
+ 	: "cc", "memory");					\
+ 	uaccess_restore(__ua_flags);				\
++	smp_mb();						\
+ })
  
- #ifndef CONFIG_SMP
-+
- /*
-- * The following implementation only for uniprocessor machines.
-- * It relies on preempt_disable() ensuring mutual exclusion.
-- *
-+ * The following implementations are for uniprocessor machines.
-+ * They rely on preempt_disable() to ensure mutual exclusion.
-  */
- 
-+#ifndef __futex_atomic_op_inuser
-+#define __futex_atomic_op_inuser(op, oldval, uaddr, oparg)	\
-+({								\
-+	int __ret;						\
-+	u32 tmp;						\
-+								\
-+	preempt_disable();					\
-+	pagefault_disable();					\
-+								\
-+	__ret = -EFAULT;					\
-+	if (unlikely(get_user(oldval, uaddr) != 0))		\
-+		goto out_pagefault_enable;			\
-+								\
-+	__ret = 0;						\
-+	tmp = oldval;						\
-+								\
-+	switch (op) {						\
-+	case FUTEX_OP_SET:					\
-+		tmp = oparg;					\
-+		break;						\
-+	case FUTEX_OP_ADD:					\
-+		tmp += oparg;					\
-+		break;						\
-+	case FUTEX_OP_OR:					\
-+		tmp |= oparg;					\
-+		break;						\
-+	case FUTEX_OP_ANDN:					\
-+		tmp &= ~oparg;					\
-+		break;						\
-+	case FUTEX_OP_XOR:					\
-+		tmp ^= oparg;					\
-+		break;						\
-+	default:						\
-+		__ret = -ENOSYS;				\
-+	}							\
-+								\
-+	if (__ret == 0 && unlikely(put_user(tmp, uaddr) != 0))	\
-+		__ret = -EFAULT;				\
-+								\
-+out_pagefault_enable:						\
-+	pagefault_enable();					\
-+	preempt_enable();					\
-+								\
-+	__ret;							\
-+})
-+#endif
-+
-+#ifndef __futex_atomic_cmpxchg_inatomic
-+#define __futex_atomic_cmpxchg_inatomic(uval, uaddr, oldval, newval)	\
-+({									\
-+	int __ret = 0;							\
-+	u32 tmp;							\
-+									\
-+	preempt_disable();						\
-+	if (unlikely(get_user(tmp, uaddr) != 0))			\
-+		__ret = -EFAULT;					\
-+									\
-+	if (__ret == 0 && tmp == oldval &&				\
-+			unlikely(put_user(newval, uaddr) != 0))		\
-+		__ret = -EFAULT;					\
-+									\
-+	*uval = tmp;							\
-+	preempt_enable();						\
-+									\
-+	__ret;								\
-+})
-+#endif
-+
-+#else
-+
-+/*
-+ * For multiprocessor machines, these macro should be overloaded with
-+ * implementations based on arch-specific atomic instructions to ensure proper
-+ * mutual exclusion
-+ */
-+#ifndef __futex_atomic_op_inuser
-+#define __futex_atomic_op_inuser(op, oldval, uaddr, oparg)	\
-+({								\
-+	int __ret;						\
-+	switch (op) {						\
-+	case FUTEX_OP_SET:					\
-+	case FUTEX_OP_ADD:					\
-+	case FUTEX_OP_OR:					\
-+	case FUTEX_OP_ANDN:					\
-+	case FUTEX_OP_XOR:					\
-+	default:						\
-+		__ret = -ENOSYS;				\
-+	}							\
-+	__ret;							\
-+})
-+#endif
-+
-+#ifndef __futex_atomic_cmpxchg_inatomic
-+#define __futex_atomic_cmpxchg_inatomic(uval, uaddr, oldval, newval)	\
-+({									\
-+	int __ret = -ENOSYS;						\
-+	__ret;								\
-+})
-+#endif
-+
-+#endif
-+
- /**
-  * futex_atomic_op_inuser() - Atomic arithmetic operation with constant
-  *			  argument and comparison of the previous
-@@ -31,48 +133,15 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
- 	int cmp = (encoded_op >> 24) & 15;
- 	int oparg = (encoded_op << 8) >> 20;
- 	int cmparg = (encoded_op << 20) >> 20;
--	int oldval, ret;
--	u32 tmp;
-+	int oldval = 0, ret;
- 
- 	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
- 		oparg = 1 << oparg;
- 
--	preempt_disable();
--	pagefault_disable();
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+		return -EFAULT;
- 
--	ret = -EFAULT;
--	if (unlikely(get_user(oldval, uaddr) != 0))
--		goto out_pagefault_enable;
--
--	ret = 0;
--	tmp = oldval;
--
--	switch (op) {
--	case FUTEX_OP_SET:
--		tmp = oparg;
--		break;
--	case FUTEX_OP_ADD:
--		tmp += oparg;
--		break;
--	case FUTEX_OP_OR:
--		tmp |= oparg;
--		break;
--	case FUTEX_OP_ANDN:
--		tmp &= ~oparg;
--		break;
--	case FUTEX_OP_XOR:
--		tmp ^= oparg;
--		break;
--	default:
--		ret = -ENOSYS;
--	}
--
--	if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
--		ret = -EFAULT;
--
--out_pagefault_enable:
--	pagefault_enable();
--	preempt_enable();
-+	ret = __futex_atomic_op_inuser(op, oldval, uaddr, oparg);
- 
- 	if (ret == 0) {
- 		switch (cmp) {
-@@ -103,76 +172,12 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
-  */
- static inline int
- futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+-static inline int
+-futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
 -			      u32 oldval, u32 newval)
-+		u32 oldval, u32 newval)
- {
+-{
+-	unsigned int __ua_flags;
+-	int ret;
 -	u32 val;
 -
--	preempt_disable();
--	if (unlikely(get_user(val, uaddr) != 0)) {
--		preempt_enable();
+-	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
 -		return -EFAULT;
--	}
 -
--	if (val == oldval && unlikely(put_user(newval, uaddr) != 0)) {
--		preempt_enable();
+-	smp_mb();
+-	/* Prefetching cannot fault */
+-	prefetchw(uaddr);
+-	__ua_flags = uaccess_save_and_enable();
+-	__asm__ __volatile__("@futex_atomic_cmpxchg_inatomic\n"
+-	"1:	ldrex	%1, [%4]\n"
+-	"	teq	%1, %2\n"
+-	"	ite	eq	@ explicit IT needed for the 2b label\n"
+-	"2:	strexeq	%0, %3, [%4]\n"
+-	"	movne	%0, #0\n"
+-	"	teq	%0, #0\n"
+-	"	bne	1b\n"
+-	__futex_atomic_ex_table("%5")
+-	: "=&r" (ret), "=&r" (val)
+-	: "r" (oldval), "r" (newval), "r" (uaddr), "Ir" (-EFAULT)
+-	: "cc", "memory");
+-	uaccess_restore(__ua_flags);
+-	smp_mb();
+-
+-	*uval = val;
+-	return ret;
+-}
++#define __futex_atomic_cmpxchg_op(ret, val, uaddr, oldval, newval)		\
++({										\
++	unsigned int __ua_flags;						\
++	smp_mb();								\
++	prefetchw(uaddr);							\
++	__ua_flags = uaccess_save_and_enable();					\
++	__asm__ __volatile__(							\
++	"1:	ldrex	%1, [%4]\n"						\
++	"	teq	%1, %2\n"						\
++	"	ite	eq	@ explicit IT needed for the 2b label\n"	\
++	"2:	strexeq	%0, %3, [%4]\n"						\
++	"	movne	%0, #0\n"						\
++	"	teq	%0, #0\n"						\
++	"	bne	1b\n"							\
++	__futex_atomic_ex_table("%5")						\
++	: "=&r" (ret), "=&r" (val)						\
++	: "r" (oldval), "r" (newval), "r" (uaddr), "Ir" (-EFAULT)		\
++	: "cc", "memory");							\
++	uaccess_restore(__ua_flags);						\
++	smp_mb();								\
++})
+ 
+ #else /* !SMP, we can work around lack of atomic ops by disabling preemption */
+ 
+@@ -82,7 +71,9 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+ 
+ #define __futex_atomic_op(insn, ret, oldval, tmp, uaddr, oparg)	\
+ ({								\
+-	unsigned int __ua_flags = uaccess_save_and_enable();	\
++	unsigned int __ua_flags;				\
++	preempt_disable();					\
++	__ua_flags = uaccess_save_and_enable();			\
+ 	__asm__ __volatile__(					\
+ 	"1:	" TUSER(ldr) "	%1, [%3]\n"			\
+ 	"	" insn "\n"					\
+@@ -93,98 +84,72 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+ 	: "r" (uaddr), "r" (oparg), "Ir" (-EFAULT)		\
+ 	: "cc", "memory");					\
+ 	uaccess_restore(__ua_flags);				\
++	preempt_disable();					\
+ })
+ 
+-static inline int
+-futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+-			      u32 oldval, u32 newval)
+-{
+-	unsigned int __ua_flags;
+-	int ret = 0;
+-	u32 val;
+-
+-	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
 -		return -EFAULT;
--	}
+-
+-	preempt_disable();
+-	__ua_flags = uaccess_save_and_enable();
+-	__asm__ __volatile__("@futex_atomic_cmpxchg_inatomic\n"
+-	"1:	" TUSER(ldr) "	%1, [%4]\n"
+-	"	teq	%1, %2\n"
+-	"	it	eq	@ explicit IT needed for the 2b label\n"
+-	"2:	" TUSER(streq) "	%3, [%4]\n"
+-	__futex_atomic_ex_table("%5")
+-	: "+r" (ret), "=&r" (val)
+-	: "r" (oldval), "r" (newval), "r" (uaddr), "Ir" (-EFAULT)
+-	: "cc", "memory");
+-	uaccess_restore(__ua_flags);
 -
 -	*uval = val;
 -	preempt_enable();
 -
--	return 0;
+-	return ret;
 -}
--
--#else
++#define __futex_atomic_cmpxchg_op(ret, val, uaddr, oldval, newval)		\
++({										\
++	unsigned int __ua_flags;						\
++	preempt_disable();							\
++	__ua_flags = uaccess_save_and_enable();					\
++	__asm__ __volatile__(							\
++	"@futex_atomic_cmpxchg_inatomic\n"					\
++	"1:	" TUSER(ldr) "	%1, [%4]\n"					\
++	"	teq	%1, %2\n"						\
++	"	it	eq	@ explicit IT needed for the 2b label\n"	\
++	"2:	" TUSER(streq) "	%3, [%4]\n"				\
++	__futex_atomic_ex_table("%5")						\
++	: "+r" (ret), "=&r" (val)						\
++	: "r" (oldval), "r" (newval), "r" (uaddr), "Ir" (-EFAULT)		\
++	: "cc", "memory");							\
++	uaccess_restore(__ua_flags);						\
++	preempt_enable();							\
++})
+ 
+ #endif /* !SMP */
+ 
 -static inline int
 -futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
 -{
@@ -253,27 +177,82 @@ index bf2d34c..a72b36b 100644
 -	int cmp = (encoded_op >> 24) & 15;
 -	int oparg = (encoded_op << 8) >> 20;
 -	int cmparg = (encoded_op << 20) >> 20;
--	int oldval = 0, ret;
+-	int oldval = 0, ret, tmp;
++#define __futex_atomic_op_inuser(op, oldval, uaddr, oparg)		\
++({									\
++	int __ret, tmp;							\
++	pagefault_disable();						\
++	switch (op) {							\
++	case FUTEX_OP_SET:						\
++		__futex_atomic_op("mov	%0, %4",			\
++				__ret, oldval, tmp, uaddr, oparg);	\
++		break;							\
++	case FUTEX_OP_ADD:						\
++		__futex_atomic_op("add	%0, %1, %4",			\
++				__ret, oldval, tmp, uaddr, oparg);	\
++		break;							\
++	case FUTEX_OP_OR:						\
++		__futex_atomic_op("orr	%0, %1, %4",			\
++				__ret, oldval, tmp, uaddr, oparg);	\
++		break;							\
++	case FUTEX_OP_ANDN:						\
++		__futex_atomic_op("and	%0, %1, %4",			\
++				__ret, oldval, tmp, uaddr, ~oparg);	\
++		break;							\
++	case FUTEX_OP_XOR:						\
++		__futex_atomic_op("eor	%0, %1, %4",			\
++				__ret, oldval, tmp, uaddr, oparg);	\
++		break;							\
++	default:							\
++		ret = -ENOSYS;						\
++	}								\
++	pagefault_enable();						\
++	__ret;								\
++})
+ 
 -	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
 -		oparg = 1 << oparg;
--
--	if (! access_ok (VERIFY_WRITE, uaddr, sizeof(u32)))
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
- 		return -EFAULT;
++#define __futex_atomic_cmpxchg_inatomic(uval, uaddr, oldval, newval)	\
++({									\
++	int __ret;							\
++	u32 val;							\
++	__futex_atomic_cmpxchg_op(__ret, val, uaddr, oldval, newval);	\
++	*uval = val;							\
++	__ret;								\
++})
  
+-	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
+-		return -EFAULT;
+-
+-#ifndef CONFIG_SMP
+-	preempt_disable();
+-#endif
 -	pagefault_disable();
 -
 -	switch (op) {
 -	case FUTEX_OP_SET:
+-		__futex_atomic_op("mov	%0, %4", ret, oldval, tmp, uaddr, oparg);
+-		break;
 -	case FUTEX_OP_ADD:
+-		__futex_atomic_op("add	%0, %1, %4", ret, oldval, tmp, uaddr, oparg);
+-		break;
 -	case FUTEX_OP_OR:
+-		__futex_atomic_op("orr	%0, %1, %4", ret, oldval, tmp, uaddr, oparg);
+-		break;
 -	case FUTEX_OP_ANDN:
+-		__futex_atomic_op("and	%0, %1, %4", ret, oldval, tmp, uaddr, ~oparg);
+-		break;
 -	case FUTEX_OP_XOR:
+-		__futex_atomic_op("eor	%0, %1, %4", ret, oldval, tmp, uaddr, oparg);
+-		break;
 -	default:
 -		ret = -ENOSYS;
 -	}
 -
 -	pagefault_enable();
+-#ifndef CONFIG_SMP
+-	preempt_enable();
+-#endif
 -
 -	if (!ret) {
 -		switch (cmp) {
@@ -288,17 +267,10 @@ index bf2d34c..a72b36b 100644
 -	}
 -	return ret;
 -}
--
--static inline int
--futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
--			      u32 oldval, u32 newval)
--{
--	return -ENOSYS;
-+	return __futex_atomic_cmpxchg_inatomic(uval, uaddr, oldval, newval);
- }
++#include <asm-generic/futex.h>
  
--#endif /* CONFIG_SMP */
- #endif
+ #endif /* __KERNEL__ */
+ #endif /* _ASM_ARM_FUTEX_H */
 -- 
 2.10.0
 
