@@ -1,14 +1,16 @@
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCH 0/3] THREAD_INFO_IN_TASK_STRUCT vs generic preemption code
-Date: Thu, 13 Oct 2016 13:57:09 +0200
-Message-ID: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
+Subject: [PATCH 1/3] sched/core,x86: make struct thread_info arch specific again
+Date: Thu, 13 Oct 2016 13:57:10 +0200
+Message-ID: <20161013115712.29517-2-heiko.carstens@de.ibm.com>
+References: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>
 Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Commit c65eacbe290b ("sched/core: Allow putting thread_info into
+commit c65eacbe290b ("sched/core: Allow putting thread_info into
 task_struct") made struct thread_info a generic struct with only a
 single flags member if THREAD_INFO_IN_TASK_STRUCT is selected.
 
@@ -31,27 +33,53 @@ needed to access members of the thread_struct (with task_struct as
 base) are too large for various asm instructions.  This is not a
 problem when keeping these members within thread_info.
 
-The above is actually the same as the description of the first
-patch. The second patch is a simple compile fix and the third one the
-s390 conversion to THREAD_INFO_IN_TASK_STRUCT.
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ arch/x86/include/asm/thread_info.h |  9 +++++++++
+ include/linux/thread_info.h        | 11 -----------
+ 2 files changed, 9 insertions(+), 11 deletions(-)
 
-Heiko Carstens (3):
-  sched/core,x86: make struct thread_info arch specific again
-  sched/preempt: include asm/current.h
-  s390: move thread_info into task_struct
-
- arch/s390/Kconfig                   |  1 +
- arch/s390/include/asm/lowcore.h     |  2 +-
- arch/s390/include/asm/thread_info.h | 11 --------
- arch/s390/kernel/asm-offsets.c      | 17 +++++--------
- arch/s390/kernel/entry.S            | 51 ++++++++++++++++++-------------------
- arch/s390/kernel/head64.S           |  5 ++--
- arch/s390/kernel/setup.c            |  3 +--
- arch/s390/kernel/smp.c              |  1 -
- arch/x86/include/asm/thread_info.h  |  9 +++++++
- include/asm-generic/preempt.h       |  1 +
- include/linux/thread_info.h         | 11 --------
- 11 files changed, 47 insertions(+), 65 deletions(-)
-
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index 2aaca53c0974..ad6f5eb07a95 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -52,6 +52,15 @@ struct task_struct;
+ #include <asm/cpufeature.h>
+ #include <linux/atomic.h>
+ 
++struct thread_info {
++	unsigned long		flags;		/* low level flags */
++};
++
++#define INIT_THREAD_INFO(tsk)			\
++{						\
++	.flags		= 0,			\
++}
++
+ #define init_stack		(init_thread_union.stack)
+ 
+ #else /* !__ASSEMBLY__ */
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index 45f004e9cc59..2873baf5372a 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -14,17 +14,6 @@ struct timespec;
+ struct compat_timespec;
+ 
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
+-struct thread_info {
+-	unsigned long		flags;		/* low level flags */
+-};
+-
+-#define INIT_THREAD_INFO(tsk)			\
+-{						\
+-	.flags		= 0,			\
+-}
+-#endif
+-
+-#ifdef CONFIG_THREAD_INFO_IN_TASK
+ #define current_thread_info() ((struct thread_info *)current)
+ #endif
+ 
 -- 
 2.8.4
