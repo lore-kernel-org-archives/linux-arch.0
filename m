@@ -1,69 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:23698 "EHLO
-        ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752605AbcJKVJL (ORCPT
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33328 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1755372AbcJMRDY (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 11 Oct 2016 17:09:11 -0400
-Date: Wed, 12 Oct 2016 08:06:40 +1100
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC PATCH-tip v4 02/10] locking/rwsem: Stop active read lock
- ASAP
-Message-ID: <20161011210640.GB27872@dastard>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
- <1471554672-38662-3-git-send-email-Waiman.Long@hpe.com>
- <20161006181718.GA14967@linux-80c1.suse>
- <20161006214751.GU27872@dastard>
- <20161009151748.GA29102@infradead.org>
- <20161010060745.GA27872@dastard>
- <20161010093434.GA18024@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161010093434.GA18024@infradead.org>
+        Thu, 13 Oct 2016 13:03:24 -0400
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9DBrlU1016077
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2016 07:57:20 -0400
+Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 2625efdb9v-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2016 07:57:19 -0400
+Received: from localhost
+        by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Thu, 13 Oct 2016 12:57:17 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [PATCH 0/3] THREAD_INFO_IN_TASK_STRUCT vs generic preemption code
+Date: Thu, 13 Oct 2016 13:57:09 +0200
+Message-ID: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <Waiman.Long@hpe.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Jason Low <jason.low2@hp.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-Message-ID: <20161011210640.bX2T3tWyEFu_mme-iIRf49h-ghjpJ5-vr4UEl4O0tiE@z>
+To: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20161013115709.xO2pultVGEzLWVayEmVCawGI73gEqdJ7yx-QrZXXONs@z>
 
-On Mon, Oct 10, 2016 at 02:34:34AM -0700, Christoph Hellwig wrote:
-> On Mon, Oct 10, 2016 at 05:07:45PM +1100, Dave Chinner wrote:
-> > > > *However*, the DAX IO path locking in XFS  has changed in 4.9-rc1 to
-> > > > match the buffered IO single writer POSIX semantics - the test is a
-> > > > bad test based on the fact it exercised a path that is under heavy
-> > > > development and so can't be used as a regression test across
-> > > > multiple kernels.
-> > > 
-> > > That being said - I wonder if we should allow the shared lock on DAX
-> > > files IFF the user is specifying O_DIRECT in the open mode..
-> > 
-> > It should do - if it doesn't then we screwed up the IO path
-> > selection logic in XFS and we'll need to fix it.
-> 
-> Depends on your defintion of "we".  The DAX code has always abused the
-> direct I/O path, and that abuse is ingrained in the VFS path in a way that
-> we can't easily undo it in XFS, e.g. take a look at io_is_direct and
-> iocb_flags in include/linux/fs.h, which ensure that DAX I/O will always
-> appear as IOCB_DIRECT to the fs. 
+Commit c65eacbe290b ("sched/core: Allow putting thread_info into
+task_struct") made struct thread_info a generic struct with only a
+single flags member if THREAD_INFO_IN_TASK_STRUCT is selected.
 
-Um, I seem to have completely missed that change - when did that
-happen and why?
+This change however seems to be quite x86 centric, since at least the
+generic preemption code (asm-generic/preempt.h) assumes that struct
+thread_info also has a preempt_count member, which apparently was not
+true for x86.
 
-Oh, it was part of the misguided "enable DAX on block devices"
-changes - it was supposed to fix a problem with block device access
-using buffered IO instead of DAX (commit 65f87ee71852 "fs, block:
-force direct-I/O for dax-enabled block devices")).  The original
-block device DAX code was reverted soon after this because it was
-badly flawed, but this change was not removed at the same time
-(probably because it was forgotton about).
+We could add a bit more ifdefs to solve this problem too, but it seems
+to be much simpler to make struct thread_info arch specific
+again. This also makes the conversion to THREAD_INFO_IN_TASK_STRUCT a
+bit easier for architectures that have a couple of arch specific stuff
+in their thread_info definition.
 
-Hence I'd suggest that DAX check in io_is_direct() should be removed
-ASAP; the filesystems don't need it as they check the inode DAX
-state directly, and the code it "fixed" is no longer in the tree.
+The arch specific stuff _could_ be moved to thread_struct. However
+keeping them in thread_info makes it easier: accessing thread_info
+members is simple, since it is at the beginning of the task_struct,
+while the thread_struct is at the end. At least on s390 the offsets
+needed to access members of the thread_struct (with task_struct as
+base) are too large for various asm instructions.  This is not a
+problem when keeping these members within thread_info.
 
-Cheers,
+The above is actually the same as the description of the first
+patch. The second patch is a simple compile fix and the third one the
+s390 conversion to THREAD_INFO_IN_TASK_STRUCT.
 
-Dave.
+Heiko Carstens (3):
+  sched/core,x86: make struct thread_info arch specific again
+  sched/preempt: include asm/current.h
+  s390: move thread_info into task_struct
+
+ arch/s390/Kconfig                   |  1 +
+ arch/s390/include/asm/lowcore.h     |  2 +-
+ arch/s390/include/asm/thread_info.h | 11 --------
+ arch/s390/kernel/asm-offsets.c      | 17 +++++--------
+ arch/s390/kernel/entry.S            | 51 ++++++++++++++++++-------------------
+ arch/s390/kernel/head64.S           |  5 ++--
+ arch/s390/kernel/setup.c            |  3 +--
+ arch/s390/kernel/smp.c              |  1 -
+ arch/x86/include/asm/thread_info.h  |  9 +++++++
+ include/asm-generic/preempt.h       |  1 +
+ include/linux/thread_info.h         | 11 --------
+ 11 files changed, 47 insertions(+), 65 deletions(-)
+
 -- 
-Dave Chinner
-david@fromorbit.com
+2.8.4
+
