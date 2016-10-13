@@ -1,63 +1,54 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC PATCH-tip v4 02/10] locking/rwsem: Stop active read lock
- ASAP
-Date: Wed, 12 Oct 2016 08:06:40 +1100
-Message-ID: <20161011210640.GB27872@dastard>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
- <1471554672-38662-3-git-send-email-Waiman.Long@hpe.com>
- <20161006181718.GA14967@linux-80c1.suse>
- <20161006214751.GU27872@dastard>
- <20161009151748.GA29102@infradead.org>
- <20161010060745.GA27872@dastard>
- <20161010093434.GA18024@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20161010093434.GA18024@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <Waiman.Long@hpe.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Jason Low <jason.low2@hp.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
-List-Id: linux-arch.vger.kernel.org
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [PATCH 2/3] sched/preempt: include asm/current.h
+Date: Thu, 13 Oct 2016 13:57:11 +0200
+Message-ID: <20161013115712.29517-3-heiko.carstens@de.ibm.com>
+References: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:42410 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753978AbcJMMRP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 13 Oct 2016 08:17:15 -0400
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9DBrmEC018985
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2016 07:57:21 -0400
+Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 26244a7r52-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2016 07:57:20 -0400
+Received: from localhost
+        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Thu, 13 Oct 2016 12:57:19 +0100
+In-Reply-To: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-On Mon, Oct 10, 2016 at 02:34:34AM -0700, Christoph Hellwig wrote:
-> On Mon, Oct 10, 2016 at 05:07:45PM +1100, Dave Chinner wrote:
-> > > > *However*, the DAX IO path locking in XFS  has changed in 4.9-rc1 to
-> > > > match the buffered IO single writer POSIX semantics - the test is a
-> > > > bad test based on the fact it exercised a path that is under heavy
-> > > > development and so can't be used as a regression test across
-> > > > multiple kernels.
-> > > 
-> > > That being said - I wonder if we should allow the shared lock on DAX
-> > > files IFF the user is specifying O_DIRECT in the open mode..
-> > 
-> > It should do - if it doesn't then we screwed up the IO path
-> > selection logic in XFS and we'll need to fix it.
-> 
-> Depends on your defintion of "we".  The DAX code has always abused the
-> direct I/O path, and that abuse is ingrained in the VFS path in a way that
-> we can't easily undo it in XFS, e.g. take a look at io_is_direct and
-> iocb_flags in include/linux/fs.h, which ensure that DAX I/O will always
-> appear as IOCB_DIRECT to the fs. 
+The generic preempt code needs to include <asm/current.h>. Otherwise
+compilation fails if THREAD_INFO_IN_TASK is selected and the generic
+preempt code is used:
 
-Um, I seem to have completely missed that change - when did that
-happen and why?
+./include/linux/thread_info.h:17:54: error: 'current' undeclared (first use in this function)
+ #define current_thread_info() ((struct thread_info *)current)
 
-Oh, it was part of the misguided "enable DAX on block devices"
-changes - it was supposed to fix a problem with block device access
-using buffered IO instead of DAX (commit 65f87ee71852 "fs, block:
-force direct-I/O for dax-enabled block devices")).  The original
-block device DAX code was reverted soon after this because it was
-badly flawed, but this change was not removed at the same time
-(probably because it was forgotton about).
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ include/asm-generic/preempt.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-Hence I'd suggest that DAX check in io_is_direct() should be removed
-ASAP; the filesystems don't need it as they check the inode DAX
-state directly, and the code it "fixed" is no longer in the tree.
-
-Cheers,
-
-Dave.
+diff --git a/include/asm-generic/preempt.h b/include/asm-generic/preempt.h
+index c1cde3577551..66fcd6cd7fc6 100644
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -2,6 +2,7 @@
+ #define __ASM_PREEMPT_H
+ 
+ #include <linux/thread_info.h>
++#include <asm/current.h>
+ 
+ #define PREEMPT_ENABLED	(0)
+ 
 -- 
-Dave Chinner
-david@fromorbit.com
+2.8.4
