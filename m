@@ -1,54 +1,39 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH] thread_info: include <current.h> for THREAD_INFO_IN_TASK (WAS: [PATCH 2/3] sched/preempt: include asm/current.h)
-Date: Fri, 14 Oct 2016 11:42:25 +0100
-Message-ID: <1476441745-10765-1-git-send-email-mark.rutland@arm.com>
-References: <20161014081638.GA4047@osiris>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34376 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752378AbcJNKm4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Oct 2016 06:42:56 -0400
-In-Reply-To: <20161014081638.GA4047@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Mark Rutland <mark.rutland@arm.com>
+From: Dave Jones <davej@codemonkey.org.uk>
+Subject: pkeys: Remove easily triggered WARN
+Date: Fri, 14 Oct 2016 14:26:24 -0400
+Message-ID: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-arch@vger.kernel.org, Dave Hansen <dave@sr71.net>, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
-macro relies on current having been defined prior to its use. However,
-not all users of current_thread_info() include <asm/current.h>, and thus
-current is not guaranteed to be defined.
+This easy-to-trigger warning shows up instantly when running
+Trinity on a kernel with CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS disabled.
 
-When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
-get_current() / current are based upon current_thread_info(), and
-<asm/current.h> includes <asm/thread_info.h>. Thus always including
-<asm/current.h> would result in circular dependences on some platforms.
+At most this should have been a printk, but the -EINVAL alone should be more
+than adequate indicator that something isn't available.
 
-To ensure both cases work, this patch includes <asm/current.h>, but only
-when CONFIG_THREAD_INFO_IN_TASK is selected.
+Signed-off-by: Dave Jones <davej@codemonkey.org.uk>
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
----
- include/linux/thread_info.h | 1 +
- 1 file changed, 1 insertion(+)
-
-As discussed, it would be great if this could go in along with the patch to
-make thread_info arch-specific again, to make merging the arch-specific parts
-easier (for arm64 and s390).
-
-Mark.
-
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 45f004e..521f84b 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -25,6 +25,7 @@ struct thread_info {
- #endif
+diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
+index e4c08c1ff0c5..a1bacf1150b2 100644
+--- a/include/linux/pkeys.h
++++ b/include/linux/pkeys.h
+@@ -25,7 +25,6 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
  
- #ifdef CONFIG_THREAD_INFO_IN_TASK
-+#include <asm/current.h>
- #define current_thread_info() ((struct thread_info *)current)
- #endif
+ static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+ {
+-	WARN_ONCE(1, "free of protection key when disabled");
+ 	return -EINVAL;
+ }
  
--- 
-1.9.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
