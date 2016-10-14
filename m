@@ -1,36 +1,28 @@
-From: Dave Jones <davej@codemonkey.org.uk>
-Subject: pkeys: Remove easily triggered WARN
-Date: Fri, 14 Oct 2016 14:26:24 -0400
-Message-ID: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
+From: Dave Hansen <dave.hansen@intel.com>
+Subject: Re: pkeys: Remove easily triggered WARN
+Date: Fri, 14 Oct 2016 12:16:57 -0700
+Message-ID: <58012F29.8040307@intel.com>
+References: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
+In-Reply-To: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
 Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-arch@vger.kernel.org, Dave Hansen <dave@sr71.net>, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+To: Dave Jones <davej@codemonkey.org.uk>
+Cc: linux-arch@vger.kernel.org, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-This easy-to-trigger warning shows up instantly when running
-Trinity on a kernel with CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS disabled.
+On 10/14/2016 11:26 AM, Dave Jones wrote:
+> This easy-to-trigger warning shows up instantly when running
+> Trinity on a kernel with CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS disabled.
+> 
+> At most this should have been a printk, but the -EINVAL alone should be more
+> than adequate indicator that something isn't available.
 
-At most this should have been a printk, but the -EINVAL alone should be more
-than adequate indicator that something isn't available.
+Urg, thanks for the patch.  It's obviously correct, of course.
 
-Signed-off-by: Dave Jones <davej@codemonkey.org.uk>
-
-diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
-index e4c08c1ff0c5..a1bacf1150b2 100644
---- a/include/linux/pkeys.h
-+++ b/include/linux/pkeys.h
-@@ -25,7 +25,6 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
- 
- static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
- {
--	WARN_ONCE(1, "free of protection key when disabled");
- 	return -EINVAL;
- }
- 
+Acked-by: Dave Hansen <dave.hansen@intel.com>
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
