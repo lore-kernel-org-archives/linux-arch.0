@@ -1,61 +1,54 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 2/3] sched/preempt: include asm/current.h
-Date: Fri, 14 Oct 2016 10:16:38 +0200
-Message-ID: <20161014081638.GA4047@osiris>
-References: <20161013115712.29517-1-heiko.carstens@de.ibm.com>
- <20161013115712.29517-3-heiko.carstens@de.ibm.com>
- <20161013232556.GA24167@remoulade>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH] thread_info: include <current.h> for THREAD_INFO_IN_TASK (WAS: [PATCH 2/3] sched/preempt: include asm/current.h)
+Date: Fri, 14 Oct 2016 11:42:25 +0100
+Message-ID: <1476441745-10765-1-git-send-email-mark.rutland@arm.com>
+References: <20161014081638.GA4047@osiris>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:43926 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1754344AbcJNIQq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Oct 2016 04:16:46 -0400
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9E8EPVE109676
-        for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2016 04:16:46 -0400
-Received: from e06smtp11.uk.ibm.com (e06smtp11.uk.ibm.com [195.75.94.107])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 262rva864e-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2016 04:16:45 -0400
-Received: from localhost
-        by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Fri, 14 Oct 2016 09:16:43 +0100
-Content-Disposition: inline
-In-Reply-To: <20161013232556.GA24167@remoulade>
+Received: from foss.arm.com ([217.140.101.70]:34376 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752378AbcJNKm4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 14 Oct 2016 06:42:56 -0400
+In-Reply-To: <20161014081638.GA4047@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Mark Rutland <mark.rutland@arm.com>
 
-On Fri, Oct 14, 2016 at 12:25:56AM +0100, Mark Rutland wrote:
-> Hi,
-> 
-> On Thu, Oct 13, 2016 at 01:57:11PM +0200, Heiko Carstens wrote:
-> > The generic preempt code needs to include <asm/current.h>. Otherwise
-> > compilation fails if THREAD_INFO_IN_TASK is selected and the generic
-> > preempt code is used:
-> > 
-> > ./include/linux/thread_info.h:17:54: error: 'current' undeclared (first use in this function)
-> >  #define current_thread_info() ((struct thread_info *)current)
-> 
-> I don't think this is the right fix. Users of current_thread_info() should only
-> have to include <linux/thread_info.h>, as <asm-generic/preempt.h> already does.
-> 
-> I have a patch [1] which has <linux/thread_info.h> include <asm/current.h> the
-> THREAD_INFO_IN_TASK case (while avoiding circular includes over <asm/current.h>
-> and <asm/thread_info.h> in the !THREAD_INFO_IN_TASK case).
+When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
+macro relies on current having been defined prior to its use. However,
+not all users of current_thread_info() include <asm/current.h>, and thus
+current is not guaranteed to be defined.
 
-I added that include initially to <linux/thread_info.h> too, but was afraid
-of include dependency hell. So I tried the minimal version, and it worked.
+When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
+get_current() / current are based upon current_thread_info(), and
+<asm/current.h> includes <asm/thread_info.h>. Thus always including
+<asm/current.h> would result in circular dependences on some platforms.
 
-However with the ifdef within your patch you make sure that nothing breaks
-by accident; so I think your version is better.
+To ensure both cases work, this patch includes <asm/current.h>, but only
+when CONFIG_THREAD_INFO_IN_TASK is selected.
 
-> I was planning on posting an updated series with that come -rc1.
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+---
+ include/linux/thread_info.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-That could/should also go into 4.9, so architectures could independently
-convert to THREAD_INFO_IN_TASK for the next merge window.
+As discussed, it would be great if this could go in along with the patch to
+make thread_info arch-specific again, to make merging the arch-specific parts
+easier (for arm64 and s390).
+
+Mark.
+
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index 45f004e..521f84b 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -25,6 +25,7 @@ struct thread_info {
+ #endif
+ 
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
++#include <asm/current.h>
+ #define current_thread_info() ((struct thread_info *)current)
+ #endif
+ 
+-- 
+1.9.1
