@@ -1,30 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:13910 "EHLO mga11.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1756304AbcJNTRC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 14 Oct 2016 15:17:02 -0400
-Subject: Re: pkeys: Remove easily triggered WARN
-References: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <58012F29.8040307@intel.com>
-Date: Fri, 14 Oct 2016 12:16:57 -0700
-MIME-Version: 1.0
-In-Reply-To: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Received: from mail-pa0-f68.google.com ([209.85.220.68]:36216 "EHLO
+        mail-pa0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752917AbcJOMoU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 15 Oct 2016 08:44:20 -0400
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH 1/2] kbuild: modpost warn if export version crc is missing
+Date: Sat, 15 Oct 2016 23:43:51 +1100
+Message-ID: <20161015124352.10795-2-npiggin@gmail.com>
+In-Reply-To: <20161015124352.10795-1-npiggin@gmail.com>
+References: <20161015124352.10795-1-npiggin@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Jones <davej@codemonkey.org.uk>
-Cc: linux-arch@vger.kernel.org, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
-Message-ID: <20161014191657.n3V_uwqvBpENloQ1sTjgie9PkBuwiAjWoK8eoeH5UZo@z>
+To: Michal Marek <mmarek@suse.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20161015124351.NK0h-tS57H5TKGCpNQcb6Jb1NTvuN8HJAc0kqU972hE@z>
 
-On 10/14/2016 11:26 AM, Dave Jones wrote:
-> This easy-to-trigger warning shows up instantly when running
-> Trinity on a kernel with CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS disabled.
-> 
-> At most this should have been a printk, but the -EINVAL alone should be more
-> than adequate indicator that something isn't available.
+This catches the failing ceph CRC on with:
 
-Urg, thanks for the patch.  It's obviously correct, of course.
+    LD      vmlinux.o
+    MODPOST vmlinux.o
+  WARNING: EXPORT symbol "ceph_monc_do_statfs" [vmlinux] version
+  generation failed, symbol will not be versioned.
 
-Acked-by: Dave Hansen <dave.hansen@intel.com>
+When the modules referring to exported symbols are built, there is an
+existing warning for missing CRC, but it's not always the case such
+any such module will be built, and in any case it is useful to get a
+warning at the source.
+
+This gets a little verbose with CONFIG_DEBUG_SECTION_MISMATCH,
+producing a warning with each object linked, but I didn't think
+that warranted extra complexity to avoid.
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ scripts/mod/modpost.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index bd83497..08f62a1 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -609,6 +609,7 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
+ {
+ 	unsigned int crc;
+ 	enum export export;
++	bool is_crc = false;
+ 
+ 	if ((!is_vmlinux(mod->name) || mod->is_dot_o) &&
+ 	    strncmp(symname, "__ksymtab", 9) == 0)
+@@ -618,6 +619,7 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
+ 
+ 	/* CRC'd symbol */
+ 	if (strncmp(symname, CRC_PFX, strlen(CRC_PFX)) == 0) {
++		is_crc = true;
+ 		crc = (unsigned int) sym->st_value;
+ 		sym_update_crc(symname + strlen(CRC_PFX), mod, crc,
+ 				export);
+@@ -663,6 +665,10 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
+ 		else
+ 			symname++;
+ #endif
++		if (is_crc) {
++			const char *e = is_vmlinux(mod->name) ?"":".ko";
++			warn("EXPORT symbol \"%s\" [%s%s] version generation failed, symbol will not be versioned.\n", symname + strlen(CRC_PFX), mod->name, e);
++		}
+ 		mod->unres = alloc_symbol(symname,
+ 					  ELF_ST_BIND(sym->st_info) == STB_WEAK,
+ 					  mod->unres);
+-- 
+2.9.3
+
