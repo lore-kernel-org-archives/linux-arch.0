@@ -1,47 +1,103 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [RFC PATCH-tip v4 02/10] locking/rwsem: Stop active read lock
- ASAP
-Date: Sat, 15 Oct 2016 22:57:31 -0700
-Message-ID: <20161016055731.GA21379@infradead.org>
-References: <1471554672-38662-1-git-send-email-Waiman.Long@hpe.com>
- <1471554672-38662-3-git-send-email-Waiman.Long@hpe.com>
- <20161006181718.GA14967@linux-80c1.suse>
- <20161006214751.GU27872@dastard>
- <20161009151748.GA29102@infradead.org>
- <20161010060745.GA27872@dastard>
- <20161010093434.GA18024@infradead.org>
- <20161011210640.GB27872@dastard>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20161011210640.GB27872@dastard>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Dave Chinner <david@fromorbit.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>, Waiman Long <Waiman.Long@hpe.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Jason Low <jason.low2@hp.com>, Jonathan Corbet <corbet@lwn.net>, Scott J Norton <scott.norton@hpe.com>, Douglas Hatch <doug.hatch@hpe.com>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: [PATCH] kconfig.h: remove config_enabled() macro
+Date: Sun, 16 Oct 2016 20:07:58 +0900
+Message-ID: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 12, 2016 at 08:06:40AM +1100, Dave Chinner wrote:
-> Um, I seem to have completely missed that change - when did that
-> happen and why?
-> 
-> Oh, it was part of the misguided "enable DAX on block devices"
-> changes -
+The use of config_enabled() is ambiguous.  For config options,
+IS_ENABLED(), IS_REACHABLE(), etc. will make intention clearer.
+Sometimes config_enabled() has been used for non-config options
+because it is useful to check whether the given symbol is defined
+or not.
 
-o, that commit just switched it to use ->f_mapping:
+I have been tackling on deprecating config_enabled(), and now is the
+time to finish this work.
 
--       return (filp->f_flags & O_DIRECT) || IS_DAX(file_inode(filp));
-+       return (filp->f_flags & O_DIRECT) || IS_DAX(filp->f_mapping->host);
+Some new users have appeared for v4.9-rc1, but it is trivial to
+replace them:
 
-The original version of it goes all the way back to introducing the
-current-day DAX code in d475c6346 ("dax,ext2: replace XIP read and write
-with DAX I/O");
+ - arch/x86/mm/kaslr.c
+  replace config_enabled() with IS_ENABLED() because
+  CONFIG_X86_ESPFIX64 and CONFIG_EFI are boolean.
 
-> Hence I'd suggest that DAX check in io_is_direct() should be removed
-> ASAP; the filesystems don't need it as they check the inode DAX
-> state directly, and the code it "fixed" is no longer in the tree.
+ - include/asm-generic/export.h
+  replace config_enabled() with __is_defined().
 
-As long as ext4 still uses the overloaded direct_IO we need the
-checks for DAX in the filemap.c generic read/write code.  It seems
-like that's only two spots anyway, but I'd feel much safer once ext4
-is switched over to the iomap version of the dax code.
+Then, config_enabled() can be removed now.
+
+Going forward, please use IS_ENABLED(), IS_REACHABLE(), etc. for
+config options, and __is_defined() for non-config symbols.
+
+Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
+---
+
+ arch/x86/mm/kaslr.c          | 6 +++---
+ include/asm-generic/export.h | 2 +-
+ include/linux/kconfig.h      | 5 ++---
+ 3 files changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
+index ddd2661..887e571 100644
+--- a/arch/x86/mm/kaslr.c
++++ b/arch/x86/mm/kaslr.c
+@@ -104,10 +104,10 @@ void __init kernel_randomize_memory(void)
+ 	 * consistent with the vaddr_start/vaddr_end variables.
+ 	 */
+ 	BUILD_BUG_ON(vaddr_start >= vaddr_end);
+-	BUILD_BUG_ON(config_enabled(CONFIG_X86_ESPFIX64) &&
++	BUILD_BUG_ON(IS_ENABLED(CONFIG_X86_ESPFIX64) &&
+ 		     vaddr_end >= EFI_VA_START);
+-	BUILD_BUG_ON((config_enabled(CONFIG_X86_ESPFIX64) ||
+-		      config_enabled(CONFIG_EFI)) &&
++	BUILD_BUG_ON((IS_ENABLED(CONFIG_X86_ESPFIX64) ||
++		      IS_ENABLED(CONFIG_EFI)) &&
+ 		     vaddr_end >= __START_KERNEL_map);
+ 	BUILD_BUG_ON(vaddr_end > __START_KERNEL_map);
+ 
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 43199a0..63554e9 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -70,7 +70,7 @@
+ #include <generated/autoksyms.h>
+ 
+ #define __EXPORT_SYMBOL(sym, val, sec)				\
+-	__cond_export_sym(sym, val, sec, config_enabled(__KSYM_##sym))
++	__cond_export_sym(sym, val, sec, __is_defined(__KSYM_##sym))
+ #define __cond_export_sym(sym, val, sec, conf)			\
+ 	___cond_export_sym(sym, val, sec, conf)
+ #define ___cond_export_sym(sym, val, sec, enabled)		\
+diff --git a/include/linux/kconfig.h b/include/linux/kconfig.h
+index 15ec117..8f2e059 100644
+--- a/include/linux/kconfig.h
++++ b/include/linux/kconfig.h
+@@ -31,7 +31,6 @@
+  * When CONFIG_BOOGER is not defined, we generate a (... 1, 0) pair, and when
+  * the last step cherry picks the 2nd arg, we get a zero.
+  */
+-#define config_enabled(cfg)		___is_defined(cfg)
+ #define __is_defined(x)			___is_defined(x)
+ #define ___is_defined(val)		____is_defined(__ARG_PLACEHOLDER_##val)
+ #define ____is_defined(arg1_or_junk)	__take_second_arg(arg1_or_junk 1, 0)
+@@ -41,13 +40,13 @@
+  * otherwise. For boolean options, this is equivalent to
+  * IS_ENABLED(CONFIG_FOO).
+  */
+-#define IS_BUILTIN(option) config_enabled(option)
++#define IS_BUILTIN(option) __is_defined(option)
+ 
+ /*
+  * IS_MODULE(CONFIG_FOO) evaluates to 1 if CONFIG_FOO is set to 'm', 0
+  * otherwise.
+  */
+-#define IS_MODULE(option) config_enabled(option##_MODULE)
++#define IS_MODULE(option) __is_defined(option##_MODULE)
+ 
+ /*
+  * IS_REACHABLE(CONFIG_FOO) evaluates to 1 if the currently compiled
+-- 
+1.9.1
