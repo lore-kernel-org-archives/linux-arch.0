@@ -1,208 +1,105 @@
-From: David Singleton <davsingl@cisco.com>
-Subject: [PATCH] pcie: aer: aerdrv: PCIe AER workaround and handling for ASR1K platforms.
-Date: Mon, 17 Oct 2016 09:51:06 -0700
-Message-ID: <20161017165108.29718-3-davsingl@cisco.com>
-Return-path: <linux-pci-owner@vger.kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: Steve Shih <sshih@cisco.com>, xe-kernel@external.cisco.com, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH RESEND] h8300: fix syscall restarting
+Date: Mon, 17 Oct 2016 10:04:32 -0700
+Message-ID: <CALCETrX82Jdu+bqg70S4x-bzXrSW+u1jMbQmpviMdTU=6y2uTA@mail.gmail.com>
+References: <1476714934-11635-1-git-send-email-mark.rutland@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vk0-f46.google.com ([209.85.213.46]:34421 "EHLO
+        mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755102AbcJQRE4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Oct 2016 13:04:56 -0400
+Received: by mail-vk0-f46.google.com with SMTP id b186so184559328vkb.1
+        for <linux-arch@vger.kernel.org>; Mon, 17 Oct 2016 10:04:53 -0700 (PDT)
+In-Reply-To: <1476714934-11635-1-git-send-email-mark.rutland@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, uclinux-h8-devel@lists.sourceforge.jp
 
-From: Steve Shih <sshih@cisco.com>
+On Mon, Oct 17, 2016 at 7:35 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> Back in commit f56141e3e2d9aabf ("all arches, signal: move restart_block
+> to struct task_struct"), all architectures and core code were changed to
+> use task_struct::restart_block. However, when h8300 support was
+> subsequently restored in v4.2, it was not updated to account for this,
+> and maintains thread_info::restart_block, which is not kept in sync.
+>
+> This patch drops the redundant restart_block from thread_info, and moves
+> h8300 to the common one in task_struct, ensuring that syscall restarting
+> always works as expected.
 
-ASR1K FPGAs and ASICs are configured to raise SERR/PERR through PCIe AER.
-When an error is raised, it is detected at the root complex, but it is not
-detected by the AER driver. If the root complex bridge control register is
-configured to forward secondary bus errors to the primary bus (which is not
-the case by default), then the aerdrv.c:aer_irq() is invoked, but the id read
-from the PCI_ERR_ROOT_COR_SRC register is 0. When aer_isr_one_error()
-processes the work posted by aer_irq(), it subsequently complains that
-"aer_isr_one_err->can't find device of ID0000".
+This is Obviously Correct (tm).  Should it have a cc: stable?
 
-Modifications need to be made such that PCIe AER are propagated through the
-root complex detected by the AER driver and delivered to the ASR1K PCI error
-handler.
+--Andy
 
-In additions, MCH5100 and 3500/5500 JF send broadcast EOI to subordinate
-devices. However, the Cisco FPGAs and ASICs don't handle the vendor (Intel)
-specific messages properly and rases Uncorrectable and Unsupported Request
-errors. Thus, need to disable EOI Broadcast.
+>
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Andy Lutomirski <luto@amacapital.net>
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: linux-arch@vger.kernel.org
+> Cc: stable@vger.kernel.org # v4.2+
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> ---
+>  arch/h8300/include/asm/thread_info.h | 4 ----
+>  arch/h8300/kernel/signal.c           | 2 +-
+>  2 files changed, 1 insertion(+), 5 deletions(-)
+>
+> This was previously sent as a reply to another patch [1], and then subsequently
+> on its own [2], but I haven't heard anything for about three weeks since the
+> last posting.
+>
+> This happens to get in the way of moving thread_info into task_struct on some
+> architectures as it implicitly relies on include ordering in a core header. I
+> have a workaround for that, but this does seem like a major bug regardless...
+>
+> Mark.
+>
+> [1] http://lkml.kernel.org/r/20160919104254.GA12473@leverpostej
+> [2] http://lkml.kernel.org/r/1474918434-3870-1-git-send-email-mark.rutland@arm.com
+>
+> diff --git a/arch/h8300/include/asm/thread_info.h b/arch/h8300/include/asm/thread_info.h
+> index b408fe6..3cef068 100644
+> --- a/arch/h8300/include/asm/thread_info.h
+> +++ b/arch/h8300/include/asm/thread_info.h
+> @@ -31,7 +31,6 @@ struct thread_info {
+>         int                cpu;                 /* cpu we're on */
+>         int                preempt_count;       /* 0 => preemptable, <0 => BUG */
+>         mm_segment_t            addr_limit;
+> -       struct restart_block restart_block;
+>  };
+>
+>  /*
+> @@ -44,9 +43,6 @@ struct thread_info {
+>         .cpu =          0,                      \
+>         .preempt_count = INIT_PREEMPT_COUNT,    \
+>         .addr_limit     = KERNEL_DS,            \
+> -       .restart_block  = {                     \
+> -               .fn = do_no_restart_syscall,    \
+> -       },                                      \
+>  }
+>
+>  #define init_thread_info       (init_thread_union.thread_info)
+> diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+> index ad1f81f..7138303 100644
+> --- a/arch/h8300/kernel/signal.c
+> +++ b/arch/h8300/kernel/signal.c
+> @@ -79,7 +79,7 @@ struct rt_sigframe {
+>         unsigned int er0;
+>
+>         /* Always make any pending restarted system calls return -EINTR */
+> -       current_thread_info()->restart_block.fn = do_no_restart_syscall;
+> +       current->restart_block.fn = do_no_restart_syscall;
+>
+>         /* restore passed registers */
+>  #define COPY(r)  do { err |= get_user(regs->r, &usc->sc_##r); } while (0)
+> --
+> 1.9.1
+>
 
-This change is needed to support 1RU, FP40, Kingpin, FP80, and FP160.
 
-Cc: xe-kernel@external.cisco.com
-Signed-off-by: Steve Shih <sshih@cisco.com>
-Signed-off-by: David Singleton <davsingl@cisco.com>
----
- arch/x86/Kconfig                  |  9 +++++++++
- arch/x86/platform/Makefile        |  1 +
- drivers/pci/pcie/aer/aerdrv.c     | 13 +++++++++++++
- drivers/pci/pcie/aer/aerdrv.h     |  5 +++++
- drivers/pci/quirks.c              |  7 +++++++
- include/asm-generic/vmlinux.lds.h |  3 +++
- include/linux/pci.h               |  5 +++++
- 7 files changed, 43 insertions(+)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index bada636..11bdcb2 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -449,6 +449,15 @@ config X86_EXTENDED_PLATFORM
- endif
- # This is an alphabetically sorted list of 64 bit extended platforms
- # Please maintain the alphabetic order if and when there are additions
-+
-+config X86_ASR1K
-+	bool "Cisco ASR1K"
-+	depends on X86_64
-+	depends on X86_EXTENDED_PLATFORM
-+	---help---
-+	  This option is needed in order to support Cisco ASR1K platforms.
-+	  If you don't have one of these, you should say N here.
-+
- config X86_NUMACHIP
- 	bool "Numascale NumaChip"
- 	depends on X86_64
-diff --git a/arch/x86/platform/Makefile b/arch/x86/platform/Makefile
-index 3c3c19e..cbae8c2 100644
---- a/arch/x86/platform/Makefile
-+++ b/arch/x86/platform/Makefile
-@@ -1,5 +1,6 @@
- # Platform specific code goes here
- obj-y	+= atom/
-+obj-$(X86_ASR1K)	+= asr1k/
- obj-y	+= ce4100/
- obj-y	+= efi/
- obj-y	+= geode/
-diff --git a/drivers/pci/pcie/aer/aerdrv.c b/drivers/pci/pcie/aer/aerdrv.c
-index 139150b..836e0cb 100644
---- a/drivers/pci/pcie/aer/aerdrv.c
-+++ b/drivers/pci/pcie/aer/aerdrv.c
-@@ -62,6 +62,8 @@ static struct pcie_port_service_driver aerdriver = {
- 	.reset_link	= aer_root_reset,
- };
- 
-+static struct pci_aer_callbacks callbacks;
-+
- static int pcie_aer_disable;
- 
- void pci_no_aer(void)
-@@ -74,6 +76,11 @@ bool pci_aer_available(void)
- 	return !pcie_aer_disable && pci_msi_enabled();
- }
- 
-+void pci_aer_set_callbacks(struct pci_aer_callbacks *cb)
-+{
-+	memcpy(&callbacks, cb, sizeof(*cb));
-+}
-+
- static int set_device_error_reporting(struct pci_dev *dev, void *data)
- {
- 	bool enable = *((bool *)data);
-@@ -149,6 +156,8 @@ static void aer_enable_rootport(struct aer_rpc *rpc)
- 	pci_read_config_dword(pdev, aer_pos + PCI_ERR_ROOT_COMMAND, &reg32);
- 	reg32 |= ROOT_PORT_INTR_ON_MESG_MASK;
- 	pci_write_config_dword(pdev, aer_pos + PCI_ERR_ROOT_COMMAND, reg32);
-+
-+	pci_fixup_device(pci_fixup_aer_enable, pdev);
- }
- 
- /**
-@@ -212,6 +221,10 @@ irqreturn_t aer_irq(int irq, void *context)
- 
- 	/* Read error source and clear error status */
- 	pci_read_config_dword(pdev->port, pos + PCI_ERR_ROOT_ERR_SRC, &id);
-+
-+	if (callbacks.error_source)
-+		callbacks.error_source(pdev->port, &id);
-+
- 	pci_write_config_dword(pdev->port, pos + PCI_ERR_ROOT_STATUS, status);
- 
- 	/* Store error source for later DPC handler */
-diff --git a/drivers/pci/pcie/aer/aerdrv.h b/drivers/pci/pcie/aer/aerdrv.h
-index d51e4a5..79ac642 100644
---- a/drivers/pci/pcie/aer/aerdrv.h
-+++ b/drivers/pci/pcie/aer/aerdrv.h
-@@ -80,6 +80,10 @@ struct aer_broadcast_data {
- 	enum pci_ers_result result;
- };
- 
-+struct pci_aer_callbacks {
-+	int (*error_source)(struct pci_dev *dev, unsigned int *id);
-+};
-+
- static inline pci_ers_result_t merge_result(enum pci_ers_result orig,
- 		enum pci_ers_result new)
- {
-@@ -110,6 +114,7 @@ void aer_isr(struct work_struct *work);
- void aer_print_error(struct pci_dev *dev, struct aer_err_info *info);
- void aer_print_port_info(struct pci_dev *dev, struct aer_err_info *info);
- irqreturn_t aer_irq(int irq, void *context);
-+void pci_aer_set_callbacks(struct pci_aer_callbacks *cb);
- 
- #ifdef CONFIG_ACPI_APEI
- int pcie_aer_get_firmware_first(struct pci_dev *pci_dev);
-diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
-index c232729..63b33ff 100644
---- a/drivers/pci/quirks.c
-+++ b/drivers/pci/quirks.c
-@@ -3397,6 +3397,8 @@ extern struct pci_fixup __start_pci_fixups_suspend[];
- extern struct pci_fixup __end_pci_fixups_suspend[];
- extern struct pci_fixup __start_pci_fixups_suspend_late[];
- extern struct pci_fixup __end_pci_fixups_suspend_late[];
-+extern struct pci_fixup __start_pci_fixups_aer_enable[];
-+extern struct pci_fixup __end_pci_fixups_aer_enable[];
- 
- static bool pci_apply_fixup_final_quirks;
- 
-@@ -3447,6 +3449,11 @@ void pci_fixup_device(enum pci_fixup_pass pass, struct pci_dev *dev)
- 		end = __end_pci_fixups_suspend_late;
- 		break;
- 
-+	case pci_fixup_aer_enable:
-+		start = __start_pci_fixups_aer_enable;
-+		end = __end_pci_fixups_aer_enable;
-+		break;
-+
- 	default:
- 		/* stupid compiler warning, you would think with an enum... */
- 		return;
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 3e42bcd..4155e8c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -306,6 +306,9 @@
- 		VMLINUX_SYMBOL(__start_pci_fixups_suspend_late) = .;	\
- 		*(.pci_fixup_suspend_late)				\
- 		VMLINUX_SYMBOL(__end_pci_fixups_suspend_late) = .;	\
-+		VMLINUX_SYMBOL(__start_pci_fixups_aer_enable) = .;      \
-+		*(.pci_fixup_aer_enable)                                \
-+		VMLINUX_SYMBOL(__end_pci_fixups_aer_enable) = .;	\
- 	}								\
- 									\
- 	/* Built-in firmware blobs */					\
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 0e49f70..9a9119c 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1689,6 +1689,7 @@ enum pci_fixup_pass {
- 	pci_fixup_suspend,	/* pci_device_suspend() */
- 	pci_fixup_resume_early, /* pci_device_resume_early() */
- 	pci_fixup_suspend_late,	/* pci_device_suspend_late() */
-+	pci_fixup_aer_enable,   /* pci_device_aer_enable() */
- };
- 
- /* Anonymous variables would be nice... */
-@@ -1763,6 +1764,10 @@ enum pci_fixup_pass {
- 	DECLARE_PCI_FIXUP_SECTION(.pci_fixup_suspend_late,		\
- 		suspend_late##hook, vendor, device,	\
- 		PCI_ANY_ID, 0, hook)
-+#define DECLARE_PCI_FIXUP_AER_ENABLE(vendor, device, hook)		\
-+	DECLARE_PCI_FIXUP_SECTION(.pci_fixup_aer_enable,		\
-+		aer_enable##vendor##device##hook, vendor, device,	\
-+		PCI_ANY_ID, 0, hook)
- 
- #ifdef CONFIG_PCI_QUIRKS
- void pci_fixup_device(enum pci_fixup_pass pass, struct pci_dev *dev);
 -- 
-2.9.3
+Andy Lutomirski
+AMA Capital Management, LLC
