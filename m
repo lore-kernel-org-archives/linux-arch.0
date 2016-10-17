@@ -1,67 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:36858 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750752AbcJQG77 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Oct 2016 02:59:59 -0400
-Date: Mon, 17 Oct 2016 17:59:51 +1100
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Message-ID: <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
-In-Reply-To: <20161017065131.GA27863@angband.pl>
-References: <20161017065131.GA27863@angband.pl>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:42117 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1757534AbcJQHQ4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Oct 2016 03:16:56 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9H7EB97063184
+        for <linux-arch@vger.kernel.org>; Mon, 17 Oct 2016 03:16:56 -0400
+Received: from e06smtp13.uk.ibm.com (e06smtp13.uk.ibm.com [195.75.94.109])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 264gyjv3hq-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 17 Oct 2016 03:16:55 -0400
+Received: from localhost
+        by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Mon, 17 Oct 2016 08:16:53 +0100
+Date: Mon, 17 Oct 2016 09:16:48 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: pkeys: Remove easily triggered WARN
+References: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161014182624.4yzw36n4hd7x56wi@codemonkey.org.uk>
+Message-ID: <20161017071648.GA3511@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adam Borowski <kilobyte@angband.pl>
-Cc: Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20161017065951.ftDlRlSKHcF5XUoPbXxuLzHrCB-jsJWthWbf-Xz6GZA@z>
+To: Dave Jones <davej@codemonkey.org.uk>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, linux-arch@vger.kernel.org, Dave Hansen <dave@sr71.net>, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+Message-ID: <20161017071648.E2mdPzLacNEVav5YtFrMVJ8_F1h8R3R36S-iqeJbnbc@z>
 
-On Mon, 17 Oct 2016 08:51:31 +0200
-Adam Borowski <kilobyte@angband.pl> wrote:
-
-> On Mon, Oct 17, 2016 at 02:57:09PM +1100, Nicholas Piggin wrote:
-> > On Sat, 15 Oct 2016 17:22:05 -0700 Omar Sandoval <osandov@osandov.com> wrote:  
-> > > On Fri, Oct 14, 2016 at 10:12:46PM +0200, Michal Marek wrote:  
-> > > > please pull these kbuild changes for v4.9-rc1:
-> > > > 
-> > > > - EXPORT_SYMBOL for asm source by Al Viro. This does bring a regression,
-> > > >   because genksyms no longer generates checksums for these symbols
-> > > >   (CONFIG_MODVERSIONS). Nick Piggin is working on a patch to fix this.
-> > > >   Plus, we are talking about functions like strcpy(), which rarely
-> > > >   change prototypes.    
-> > > 
-> > > So this has broken all module loading for me. I get the following dmesg
-> > > spew:
-> > > ...
-> > > [    4.586914] scsi_mod: no symbol version for memset
-> > > [    4.587920] scsi_mod: Unknown symbol memset (err -22)
-> > > [    4.588443] scsi_mod: no symbol version for ___preempt_schedule
-> > > [    4.589026] scsi_mod: Unknown symbol ___preempt_schedule (err -22)
-> > > ...
-> > > 
-> > > Reverting 784d5699eddc ("x86: move exports to actual definitions") fixes
-> > > it for me. This is with GCC 6.2.1, binutils 2.27, attached config.  
-> > 
-> > Thanks for the report. Could you try this patch and see if it helps?  
-> [patch snipped]
+On Fri, Oct 14, 2016 at 02:26:24PM -0400, Dave Jones wrote:
+> This easy-to-trigger warning shows up instantly when running
+> Trinity on a kernel with CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS disabled.
 > 
-> Omar probably won't wake up in quite a while, so I've tested the patch.
-> Alas, doesn't help.  Similar spew (for the few modules I don't have =y),
-> while reverting 784d5699eddc fixes it for me too.
+> At most this should have been a printk, but the -EINVAL alone should be more
+> than adequate indicator that something isn't available.
 > 
-> Debian sid toolchain: gcc 6.2.0-6, binutils 2.27-8, config at
-> https://angband.pl/tmp/config-4.9.0-rc1-debug+.gz
+> Signed-off-by: Dave Jones <davej@codemonkey.org.uk>
+> 
+> diff --git a/include/linux/pkeys.h b/include/linux/pkeys.h
+> index e4c08c1ff0c5..a1bacf1150b2 100644
+> --- a/include/linux/pkeys.h
+> +++ b/include/linux/pkeys.h
+> @@ -25,7 +25,6 @@ static inline int mm_pkey_alloc(struct mm_struct *mm)
+>  
+>  static inline int mm_pkey_free(struct mm_struct *mm, int pkey)
+>  {
+> -	WARN_ONCE(1, "free of protection key when disabled");
+>  	return -EINVAL;
+>  }
 
-Forgot to engage my brain before posting.
+FWIW, are all architectures supposed to wire these new system calls up?
 
-Architectures will need to have an include/asm/asm-prototypes.h that
-defines or #include<>s C-style prototypes for exported asm functions.
-We can do an asm-generic version for the common ones like memset so
-there's not a lot of pointless duplication there.
+I decided to ignore these on s390 since we can't make any sane use of
+them. However mips has them already wired up.
 
-Care to do a patch for x86?
+The only difference on s390 (and any other architecture without memory
+protection keys with x86 like semantics) would be that pkey_alloc/pkey_free
+will return -EINVAL instead of -ENOSYS and that we have a new mprotect
+wrapper called pkey_mprotect, if being called with a pkey parameter of -1.
 
-Thanks,
-Nick
