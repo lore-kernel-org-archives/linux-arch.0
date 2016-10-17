@@ -1,76 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f68.google.com ([209.85.215.68]:35242 "EHLO
-        mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933887AbcJQLc5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Oct 2016 07:32:57 -0400
+Received: from mout.kundenserver.de ([212.227.126.135]:59933 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754595AbcJQPhy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Oct 2016 11:37:54 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] generic syscalls: kill cruft from removed pkey syscalls
+Date: Mon, 17 Oct 2016 17:37:29 +0200
+Message-ID: <5993847.hpzj164ak1@wuerfel>
+In-Reply-To: <20161017151814.1CE8B6C3@viggo.jf.intel.com>
+References: <20161017151814.1CE8B6C3@viggo.jf.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdXxZ+jVt-ev5zJ7VhhC7viyEfZzW+d3NyCgq02vpZg0ew@mail.gmail.com>
-References: <20161017065131.GA27863@angband.pl> <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
- <20161017100130.GA16013@angband.pl> <CACVxJT88NHrm56XyvYgaYqW1zDjoxdPWQmMzHZ7g2MDRQSSkaQ@mail.gmail.com>
- <CAMuHMdXxZ+jVt-ev5zJ7VhhC7viyEfZzW+d3NyCgq02vpZg0ew@mail.gmail.com>
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Date: Mon, 17 Oct 2016 14:32:54 +0300
-Message-ID: <CACVxJT9PR2ReWtE6-ndbxHfR-tTwmZdDSbwugsTxs+ZwvRG4Pw@mail.gmail.com>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, linux-kbuild <linux-kbuild@vger.kernel.org>, Linux Kernel <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20161017113254.n-_bRjOvG5A1o2Lb5iy6SdINm_QX45HyqzN7_DpPIfY@z>
+To: Dave Hansen <dave@sr71.net>
+Cc: linux-kernel@vger.kernel.org, dave.hansen@linux.intel.com, tglx@linutronix.de, x86@kernel.org, linux-arch@vger.kernel.org, mgorman@techsingularity.net, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+Message-ID: <20161017153729.Uxftl8nHMcURLhPaSSnCjd_u8sAF6WmpkZ34wdAUa78@z>
 
-On Mon, Oct 17, 2016 at 2:17 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Hi Alexey,
->
-> On Mon, Oct 17, 2016 at 1:12 PM, Alexey Dobriyan <adobriyan@gmail.com> wrote:
->> On Mon, Oct 17, 2016 at 1:01 PM, Adam Borowski <kilobyte@angband.pl> wrote:
->>> On Mon, Oct 17, 2016 at 05:59:51PM +1100, Nicholas Piggin wrote:
->>>> On Mon, 17 Oct 2016 08:51:31 +0200
->>>> Adam Borowski <kilobyte@angband.pl> wrote:
->>
->>> --- /dev/null
->>> +++ b/include/asm-generic/asm-prototypes.h
->>> @@ -0,0 +1,7 @@
->>> +#include <linux/bitops.h>
->>> +extern void *__memset(void *, int, __kernel_size_t);
->>> +extern void *__memcpy(void *, const void *, __kernel_size_t);
->>> +extern void *__memmove(void *, const void *, __kernel_size_t);
->>> +extern void *memset(void *, int, __kernel_size_t);
->>> +extern void *memcpy(void *, const void *, __kernel_size_t);
->>> +extern void *memmove(void *, const void *, __kernel_size_t);
->>
->> Before too late, those extern keywords aren't needed and
->> only slowdown compilation.
->
-> Do you have any profiling data backing this?
+On Monday, October 17, 2016 8:18:15 AM CEST Dave Hansen wrote:
+> 
+> pkey_set() and pkey_get() were syscalls present in older versions
+> of the protection keys patches.  They were fully excised from the
+> x86 code, but some cruft was left in the generic syscall code.  The
+> C++ comments were intended to help to make it more glaring to me to
+> fix them before actually submitting them.  That technique worked,
+> but later than I would have liked.
+> 
+> I test-compiled this for arm64.
+> 
+> Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: x86@kernel.org
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arch@vger.kernel.org
+> Cc: mgorman@techsingularity.net
+> Cc: linux-api@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Cc: luto@kernel.org
+> Cc: akpm@linux-foundation.org
+> Cc: torvalds@linux-foundation.org
+> Fixes: a60f7b69d92c0 ("generic syscalls: Wire up memory protection keys syscalls")
 
-It is easy to obtain. Here is top 10 with runtime bigger than 0.50%:
-
-_int_malloc
-ht_lookup_with_hash
-_cpp_lex_direct
-cpp_get_token_1
-ggc_internal_alloc_statm
-_int_free
-malloc_consolidate
-lex_identifier
-enter_macro_context
-c_lex_with_flags
-bitmap_set_bit
-malloc
-grokdeclarator
-htab_find_slot_with_hash
-c_lex_one_token
-_cpp_lex_token
-pop_scopev
-c_parser_declspecs
-
-Imagine you're a compiler. Those extern's are tokens. They need to be parsed
-(byte-by-byte), allocated, and, in case of "extern" with prototype, thrown away.
-They make line longer forcing people to dance around with splitting
-per 80 characters
-and generally making everything somewhat slower. Might as well don't new ones.
-
-bitops.h is wrong header as well.
-Why do you need bitops for bunch of function prototypes?
+Acked-by: Arnd Bergmann <arnd@arndb.de>
