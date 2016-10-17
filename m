@@ -1,86 +1,73 @@
 From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH RESEND] h8300: fix syscall restarting
-Date: Mon, 17 Oct 2016 15:35:32 +0100
-Message-ID: <1476714934-11635-1-git-send-email-mark.rutland@arm.com>
+Subject: Re: [PATCH] thread_info: include <current.h> for THREAD_INFO_IN_TASK
+ (WAS: [PATCH 2/3] sched/preempt: include asm/current.h)
+Date: Mon, 17 Oct 2016 15:48:13 +0100
+Message-ID: <20161017144700.GA11204@leverpostej>
+References: <20161014081638.GA4047@osiris>
+ <1476441745-10765-1-git-send-email-mark.rutland@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35176 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:35360 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932863AbcJQOgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Oct 2016 10:36:12 -0400
+        id S933390AbcJQOsp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 17 Oct 2016 10:48:45 -0400
+Content-Disposition: inline
+In-Reply-To: <1476441745-10765-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ysato@users.sourceforge.jp
-Cc: Mark Rutland <mark.rutland@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Back in commit f56141e3e2d9aabf ("all arches, signal: move restart_block
-to struct task_struct"), all architectures and core code were changed to
-use task_struct::restart_block. However, when h8300 support was
-subsequently restored in v4.2, it was not updated to account for this,
-and maintains thread_info::restart_block, which is not kept in sync.
+On Fri, Oct 14, 2016 at 11:42:25AM +0100, Mark Rutland wrote:
+> When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
+> macro relies on current having been defined prior to its use. However,
+> not all users of current_thread_info() include <asm/current.h>, and thus
+> current is not guaranteed to be defined.
+> 
+> When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
+> get_current() / current are based upon current_thread_info(), and
+> <asm/current.h> includes <asm/thread_info.h>. Thus always including
+> <asm/current.h> would result in circular dependences on some platforms.
+> 
+> To ensure both cases work, this patch includes <asm/current.h>, but only
+> when CONFIG_THREAD_INFO_IN_TASK is selected.
+> 
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> ---
+>  include/linux/thread_info.h | 1 +
+>  1 file changed, 1 insertion(+)
+> 
+> As discussed, it would be great if this could go in along with the patch to
+> make thread_info arch-specific again, to make merging the arch-specific parts
+> easier (for arm64 and s390).
 
-This patch drops the redundant restart_block from thread_info, and moves
-h8300 to the common one in task_struct, ensuring that syscall restarting
-always works as expected.
+Urrgh; I've just recalled that this patch alone is insufficient. The
+h8300 arch code has an unfixed bug [1], and relies on some implicit
+definition ordering that will be broken by this patch.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@amacapital.net>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org # v4.2+
-Cc: uclinux-h8-devel@lists.sourceforge.jp
----
- arch/h8300/include/asm/thread_info.h | 4 ----
- arch/h8300/kernel/signal.c           | 2 +-
- 2 files changed, 1 insertion(+), 5 deletions(-)
+I have a workaround/cleanup for core code that I'll send with an updated
+version of my arm64 series shortly.
 
-This was previously sent as a reply to another patch [1], and then subsequently
-on its own [2], but I haven't heard anything for about three weeks since the
-last posting.
-
-This happens to get in the way of moving thread_info into task_struct on some
-architectures as it implicitly relies on include ordering in a core header. I
-have a workaround for that, but this does seem like a major bug regardless...
-
+Thanks,
 Mark.
 
-[1] http://lkml.kernel.org/r/20160919104254.GA12473@leverpostej
-[2] http://lkml.kernel.org/r/1474918434-3870-1-git-send-email-mark.rutland@arm.com
+[1] http://lkml.kernel.org/r/<1476714934-11635-1-git-send-email-mark.rutland@arm.com
 
-diff --git a/arch/h8300/include/asm/thread_info.h b/arch/h8300/include/asm/thread_info.h
-index b408fe6..3cef068 100644
---- a/arch/h8300/include/asm/thread_info.h
-+++ b/arch/h8300/include/asm/thread_info.h
-@@ -31,7 +31,6 @@ struct thread_info {
- 	int		   cpu;			/* cpu we're on */
- 	int		   preempt_count;	/* 0 => preemptable, <0 => BUG */
- 	mm_segment_t		addr_limit;
--	struct restart_block restart_block;
- };
- 
- /*
-@@ -44,9 +43,6 @@ struct thread_info {
- 	.cpu =		0,			\
- 	.preempt_count = INIT_PREEMPT_COUNT,	\
- 	.addr_limit	= KERNEL_DS,		\
--	.restart_block	= {			\
--		.fn = do_no_restart_syscall,	\
--	},					\
- }
- 
- #define init_thread_info	(init_thread_union.thread_info)
-diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
-index ad1f81f..7138303 100644
---- a/arch/h8300/kernel/signal.c
-+++ b/arch/h8300/kernel/signal.c
-@@ -79,7 +79,7 @@ struct rt_sigframe {
- 	unsigned int er0;
- 
- 	/* Always make any pending restarted system calls return -EINTR */
--	current_thread_info()->restart_block.fn = do_no_restart_syscall;
-+	current->restart_block.fn = do_no_restart_syscall;
- 
- 	/* restore passed registers */
- #define COPY(r)  do { err |= get_user(regs->r, &usc->sc_##r); } while (0)
--- 
-1.9.1
+> Mark.
+> 
+> diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+> index 45f004e..521f84b 100644
+> --- a/include/linux/thread_info.h
+> +++ b/include/linux/thread_info.h
+> @@ -25,6 +25,7 @@ struct thread_info {
+>  #endif
+>  
+>  #ifdef CONFIG_THREAD_INFO_IN_TASK
+> +#include <asm/current.h>
+>  #define current_thread_info() ((struct thread_info *)current)
+>  #endif
+>  
+> -- 
+> 1.9.1
+> 
