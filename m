@@ -1,66 +1,60 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH] x86, pkeys: remove cruft from never-merged syscalls
-Date: Mon, 17 Oct 2016 13:57:09 -0700
-Message-ID: <20161017205709.FC7C0C1D@viggo.jf.intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:63151 "EHLO mga02.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932626AbcJQU5K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 17 Oct 2016 16:57:10 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, tglx@linutronix.de, linux-arch@vger.kernel.org, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+From: Adam Borowski <kilobyte@angband.pl>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Date: Tue, 18 Oct 2016 02:16:26 +0200
+Message-ID: <20161018001626.GA5976@angband.pl>
+References: <20161017100130.GA16013@angband.pl>
+ <871szfb1x1.fsf@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <871szfb1x1.fsf@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mathieu OTHACEHE <m.othacehe@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
+
+On Mon, Oct 17, 2016 at 02:22:34PM +0200, Mathieu OTHACEHE wrote:
+> > +#include <asm/uaccess.h>
+> > +#include <asm/uaccess.h>
+> 
+> Included twice.
+
+D'oh!
+
+> > +#include <asm/string.h>
+> > +#include <asm/page.h>
+> > +#include <asm/checksum.h>
+> > +
+> > +#include <asm-generic/asm-prototypes.h>
+> > +
+> > +#include <asm/page.h>
+> > +#include <asm/pgtable.h>
+> > +#include <asm/special_insns.h>
+> > +#include <asm/preempt.h>
+> 
+> No <asm/arch_hweight.h> for __sw_hweight32 and __sw_hweight64 ? 
+
+diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
+new file mode 100644
+index 0000000..df13637
+--- /dev/null
++++ b/include/asm-generic/asm-prototypes.h
+@@ -0,0 +1,7 @@
++#include <linux/bitops.h>
+
+... which has these.
+
+Alexey Dobriyan <adobriyan@gmail.com> wrote:
+} bitops.h is wrong header as well.
+} Why do you need bitops for bunch of function prototypes?
+
+Unless you guys prefer using low-level headers only, that is.
 
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
-
-pkey_set() and pkey_get() were syscalls present in older versions
-of the protection keys patches.  The syscall number definitions
-were inadvertently left in place.  This patch removes them.
-
-I did a git grep and verified that these are the last places in
-the tree that these appear, save for the protection_keys.c tests
-and Documentation.  Those spots talk about functions called
-pkey_get/set() which are wrappers for the direct PKRU
-instructions, not the syscalls.
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org
-Cc: mgorman@techsingularity.net
-Cc: arnd@arndb.de
-Cc: linux-api@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: luto@kernel.org
-Cc: akpm@linux-foundation.org
-Cc: torvalds@linux-foundation.org
-Fixes: f9afc6197e9bb ("x86: Wire up protection keys system calls")
----
-
- b/arch/x86/entry/syscalls/syscall_32.tbl |    2 --
- b/arch/x86/entry/syscalls/syscall_64.tbl |    2 --
- 2 files changed, 4 deletions(-)
-
-diff -puN arch/x86/entry/syscalls/syscall_32.tbl~kill-x86-pkey-syscall-nr-cruft arch/x86/entry/syscalls/syscall_32.tbl
---- a/arch/x86/entry/syscalls/syscall_32.tbl~kill-x86-pkey-syscall-nr-cruft	2016-10-17 13:00:11.607811388 -0700
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl	2016-10-17 13:00:14.216930557 -0700
-@@ -389,5 +389,3 @@
- 380	i386	pkey_mprotect		sys_pkey_mprotect
- 381	i386	pkey_alloc		sys_pkey_alloc
- 382	i386	pkey_free		sys_pkey_free
--#383	i386	pkey_get		sys_pkey_get
--#384	i386	pkey_set		sys_pkey_set
-diff -puN arch/x86/entry/syscalls/syscall_64.tbl~kill-x86-pkey-syscall-nr-cruft arch/x86/entry/syscalls/syscall_64.tbl
---- a/arch/x86/entry/syscalls/syscall_64.tbl~kill-x86-pkey-syscall-nr-cruft	2016-10-17 13:00:11.609811480 -0700
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl	2016-10-17 13:00:21.896281301 -0700
-@@ -338,8 +338,6 @@
- 329	common	pkey_mprotect		sys_pkey_mprotect
- 330	common	pkey_alloc		sys_pkey_alloc
- 331	common	pkey_free		sys_pkey_free
--#332	common	pkey_get		sys_pkey_get
--#333	common	pkey_set		sys_pkey_set
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-_
+Meow!
+-- 
+A MAP07 (Dead Simple) raspberry tincture recipe: 0.5l 95% alcohol, 1kg
+raspberries, 0.4kg sugar; put into a big jar for 1 month.  Filter out and
+throw away the fruits (can dump them into a cake, etc), let the drink age
+at least 3-6 months.
