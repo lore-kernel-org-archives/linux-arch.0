@@ -1,81 +1,68 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH] thread_info: include <current.h> for THREAD_INFO_IN_TASK
- (WAS: [PATCH 2/3] sched/preempt: include asm/current.h)
-Date: Tue, 18 Oct 2016 12:34:40 +0200
-Message-ID: <20161018103440.GA4061@osiris>
-References: <20161014081638.GA4047@osiris>
- <1476441745-10765-1-git-send-email-mark.rutland@arm.com>
- <20161017144700.GA11204@leverpostej>
- <20161017173315.GB23170@leverpostej>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46865 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S933906AbcJRKeu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 18 Oct 2016 06:34:50 -0400
-Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9IAYPux035370
-        for <linux-arch@vger.kernel.org>; Tue, 18 Oct 2016 06:34:49 -0400
-Received: from e06smtp06.uk.ibm.com (e06smtp06.uk.ibm.com [195.75.94.102])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 265hpt14r6-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 18 Oct 2016 06:34:49 -0400
-Received: from localhost
-        by e06smtp06.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Tue, 18 Oct 2016 11:34:46 +0100
-Content-Disposition: inline
-In-Reply-To: <20161017173315.GB23170@leverpostej>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+From: Dave Hansen <dave@sr71.net>
+Subject: [PATCH] x86, pkeys: remove cruft from never-merged syscalls
+Date: Tue, 18 Oct 2016 08:18:01 -0700
+Message-ID: <20161018151801.9C33BCC7@viggo.jf.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, tglx@linutronix.de, linux-arch@vger.kernel.org, mgorman@techsingularity.net, arnd@arndb.de, linux-api@vger.kernel.org, linux-mm@kvack.org, luto@kernel.org, akpm@linux-foundation.org, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 17, 2016 at 06:33:15PM +0100, Mark Rutland wrote:
-> On Mon, Oct 17, 2016 at 03:48:13PM +0100, Mark Rutland wrote:
-> > On Fri, Oct 14, 2016 at 11:42:25AM +0100, Mark Rutland wrote:
-> > > When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
-> > > macro relies on current having been defined prior to its use. However,
-> > > not all users of current_thread_info() include <asm/current.h>, and thus
-> > > current is not guaranteed to be defined.
-> > > 
-> > > When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
-> > > get_current() / current are based upon current_thread_info(), and
-> > > <asm/current.h> includes <asm/thread_info.h>. Thus always including
-> > > <asm/current.h> would result in circular dependences on some platforms.
-> > > 
-> > > To ensure both cases work, this patch includes <asm/current.h>, but only
-> > > when CONFIG_THREAD_INFO_IN_TASK is selected.
-> > > 
-> > > Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> > > ---
-> > >  include/linux/thread_info.h | 1 +
-> > >  1 file changed, 1 insertion(+)
-> > > 
-> > > As discussed, it would be great if this could go in along with the patch to
-> > > make thread_info arch-specific again, to make merging the arch-specific parts
-> > > easier (for arm64 and s390).
-> > 
-> > Urrgh; I've just recalled that this patch alone is insufficient. The
-> > h8300 arch code has an unfixed bug [1], and relies on some implicit
-> > definition ordering that will be broken by this patch.
-> > 
-> > I have a workaround/cleanup for core code that I'll send with an updated
-> > version of my arm64 series shortly.
-> 
-> Looks like I spoke too soon. I have another circular include issue with
-> raw_smp_processor_id() and task_struct::cpu to solve -- it looks like
-> s390 doesn't suffer from that per my reading of your headers.
 
-That's correct.
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-> In the mean time, I've pushed out a branch [2] with the common patches,
-> atop of v4.9-rc1.
+pkey_set() and pkey_get() were syscalls present in older versions
+of the protection keys patches.  The syscall number definitions
+were inadvertently left in place.  This patch removes them.
 
-I just verified that your branch works fine for s390 (with and without the
-THREAD_INFO_IN_TASK conversion).
+I did a git grep and verified that these are the last places in
+the tree that these appear, save for the protection_keys.c tests
+and Documentation.  Those spots talk about functions called
+pkey_get/set() which are wrappers for the direct PKRU
+instructions, not the syscalls.
 
-Thanks,
-Heiko
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: mgorman@techsingularity.net
+Cc: arnd@arndb.de
+Cc: linux-api@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: luto@kernel.org
+Cc: akpm@linux-foundation.org
+Cc: torvalds@linux-foundation.org
+Fixes: f9afc6197e9bb ("x86: Wire up protection keys system calls")
+---
+
+ b/arch/x86/entry/syscalls/syscall_32.tbl |    2 --
+ b/arch/x86/entry/syscalls/syscall_64.tbl |    2 --
+ 2 files changed, 4 deletions(-)
+
+diff -puN arch/x86/entry/syscalls/syscall_32.tbl~kill-x86-pkey-syscall-nr-cruft arch/x86/entry/syscalls/syscall_32.tbl
+--- a/arch/x86/entry/syscalls/syscall_32.tbl~kill-x86-pkey-syscall-nr-cruft	2016-10-17 13:00:11.607811388 -0700
++++ b/arch/x86/entry/syscalls/syscall_32.tbl	2016-10-17 13:00:14.216930557 -0700
+@@ -389,5 +389,3 @@
+ 380	i386	pkey_mprotect		sys_pkey_mprotect
+ 381	i386	pkey_alloc		sys_pkey_alloc
+ 382	i386	pkey_free		sys_pkey_free
+-#383	i386	pkey_get		sys_pkey_get
+-#384	i386	pkey_set		sys_pkey_set
+diff -puN arch/x86/entry/syscalls/syscall_64.tbl~kill-x86-pkey-syscall-nr-cruft arch/x86/entry/syscalls/syscall_64.tbl
+--- a/arch/x86/entry/syscalls/syscall_64.tbl~kill-x86-pkey-syscall-nr-cruft	2016-10-17 13:00:11.609811480 -0700
++++ b/arch/x86/entry/syscalls/syscall_64.tbl	2016-10-17 13:00:21.896281301 -0700
+@@ -338,8 +338,6 @@
+ 329	common	pkey_mprotect		sys_pkey_mprotect
+ 330	common	pkey_alloc		sys_pkey_alloc
+ 331	common	pkey_free		sys_pkey_free
+-#332	common	pkey_get		sys_pkey_get
+-#333	common	pkey_set		sys_pkey_set
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+_
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
