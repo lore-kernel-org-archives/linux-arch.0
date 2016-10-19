@@ -1,43 +1,47 @@
 From: Michal Marek <mmarek@suse.com>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Wed, 19 Oct 2016 16:52:06 +0200
-Message-ID: <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
-References: <20161017065131.GA27863@angband.pl>
- <20161017175951.31d8f4b7@roar.ozlabs.ibm.com> <6556201.qTG4Pa4aHk@wuerfel>
+Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
+Date: Wed, 19 Oct 2016 16:50:26 +0200
+Message-ID: <24ebaba8-d20c-bc2e-8430-599cab2dbb33@suse.com>
+References: <20161015124352.10795-1-npiggin@gmail.com>
+ <20161015124352.10795-3-npiggin@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset=iso-8859-2
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <6556201.qTG4Pa4aHk@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:43753 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S942319AbcJSOu3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Oct 2016 10:50:29 -0400
+In-Reply-To: <20161015124352.10795-3-npiggin@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
 
-Dne 17.10.2016 v 14:26 Arnd Bergmann napsal(a):
-> This adds an asm/asm-prototypes.h header for ARM to fix the
-> broken symbol versioning for symbols exported from assembler
-> files.
-> 
-> In addition to the header, we have to do these other small
-> changes:
-> 
-> - move the 'extern' declarations out of memset_io/memcpy_io
->   to make them visible to the symbol version generator
-> - move the exports from bitops.h to {change,clear,set,...}bit.S
-> - move the exports from csumpartialgeneric.S into the files
->   including it
-> 
-> I couldn't find the correct prototypes for the compiler builtins,
-> so I went with the fake 'void f(void)' prototypes that we had
-> before.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Hi Nick,
 
-Hi Arnd,
+sorry for the late feedback.
 
-just to make sure I'm looking at the right code - is this based on the
-patch by Nick here: https://patchwork.kernel.org/patch/9377783/?
+Dne 15.10.2016 v 14:43 Nicholas Piggin napsal(a):
+> +# .S file exports must have their C prototypes defined in asm/asm-prototypes.h
+> +# or a file that it includes, in order to get versioned symbols. We build a
+> +# dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
+> +# the .S file (with trailing ';'), and run genksyms on that, to extract vers.
+> +#
+> +# These mirror gensymtypes_c and co above, keep them in synch.
+> +cmd_gensymtypes_S =                                                         \
+> +    (echo "\#include <linux/kernel.h>" ;                                    \
+> +     echo "\#include <asm/asm-prototypes.h>" ;                              \
+> +     grep EXPORT_SYMBOL $< | sed 's/$$/;/' ) |                              \
+> +    $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
+> +    $(GENKSYMS) $(if $(1), -T $(2))                                         \
+> +     $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
+> +     $(if $(KBUILD_PRESERVE),-p)                                            \
+> +     -r $(firstword $(wildcard $(2:.symtypes=.symref) /dev/null))
 
-Thanks,
+I think it would be cleaner to add the #include to the .S files
+themselves and grep for both EXPORT_SYMBOL and #include here. The reason
+is that some files might need additional #includes to allow genksyms to
+properly expand some function prototypes.
+
 Michal
