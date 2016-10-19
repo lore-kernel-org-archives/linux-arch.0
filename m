@@ -1,102 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:37398 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S938798AbcJSPcS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2016 11:32:18 -0400
-Date: Wed, 19 Oct 2016 16:32:00 +0100
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
-Message-ID: <20161019153159.GQ1041@n2100.armlinux.org.uk>
-References: <20161017065131.GA27863@angband.pl>
- <6556201.qTG4Pa4aHk@wuerfel>
- <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
- <3114442.xCAy34UQCk@wuerfel>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <3114442.xCAy34UQCk@wuerfel>
+Received: from foss.arm.com ([217.140.101.70]:59826 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1758418AbcJSS3B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 19 Oct 2016 14:29:01 -0400
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH 3/3] thread_info: include <current.h> for THREAD_INFO_IN_TASK
+Date: Wed, 19 Oct 2016 19:28:13 +0100
+Message-ID: <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
+In-Reply-To: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Michal Marek <mmarek@suse.com>, Nicholas Piggin <npiggin@gmail.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20161019153200.dlK0MuAkA0WoAGiQUDBuMIgK95sX5j8oKZcY_SQNAJ4@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mark.rutland@arm.com, mingo@redhat.com, tglx@linutronix.de
+Message-ID: <20161019182813.7TjmtZ6u2IYrVy5H0xZyR-ifE7sW7K862sVy3xI6eDA@z>
 
-On Wed, Oct 19, 2016 at 05:02:55PM +0200, Arnd Bergmann wrote:
-> On Wednesday, October 19, 2016 4:52:06 PM CEST Michal Marek wrote:
-> > Dne 17.10.2016 v 14:26 Arnd Bergmann napsal(a):
-> > > This adds an asm/asm-prototypes.h header for ARM to fix the
-> > > broken symbol versioning for symbols exported from assembler
-> > > files.
-> > > 
-> > > In addition to the header, we have to do these other small
-> > > changes:
-> > > 
-> > > - move the 'extern' declarations out of memset_io/memcpy_io
-> > >   to make them visible to the symbol version generator
-> > > - move the exports from bitops.h to {change,clear,set,...}bit.S
-> > > - move the exports from csumpartialgeneric.S into the files
-> > >   including it
-> > > 
-> > > I couldn't find the correct prototypes for the compiler builtins,
-> > > so I went with the fake 'void f(void)' prototypes that we had
-> > > before.
-> > > 
-> > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> > 
-> > Hi Arnd,
-> > 
-> > just to make sure I'm looking at the right code - is this based on the
-> > patch by Nick here: https://patchwork.kernel.org/patch/9377783/?
-> > 
-> 
-> (adding Russell to Cc, I missed him during my earlier mail, which
-> is now archived at https://lkml.org/lkml/2016/10/17/356)
+When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
+macro relies on current having been defined prior to its use. However,
+not all users of current_thread_info() include <asm/current.h>, and thus
+current is not guaranteed to be defined.
 
-I'm not in favour of this.
+When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
+get_current() / current are based upon current_thread_info(), and
+<asm/current.h> includes <asm/thread_info.h>. Thus always including
+<asm/current.h> would result in circular dependences on some platforms.
 
-   +extern void mmioset(void *, unsigned int, size_t);
-   +extern void mmiocpy(void *, const void *, size_t);
-   +
-    #ifndef __ARMBE__
-    static inline void memset_io(volatile void __iomem *dst, unsigned c,
-           size_t count)
-    {
-   -       extern void mmioset(void *, unsigned int, size_t);
-           mmioset((void __force *)dst, c, count);
-    }
+To ensure both cases work, this patch includes <asm/current.h>, but only
+when CONFIG_THREAD_INFO_IN_TASK is selected.
 
-The reason they're declared _within_ memset_io() is to prevent people
-from using them by hiding their declaration.  Moving them outside is
-an open invitation to stupid people starting to use them as an "oh it
-must be an official API".
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Kees Cook <keescook@chromium.org> 
+---
+ include/linux/thread_info.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-We know this happens, there's been a long history of this kind of stupid
-in the ARM community, not only with cache flushing APIs, but also the
-DMA APIs.
-
-The way the existing code is written is a completely valid way to hide
-declarations from outside the intended caller's scope.
-
-We've been here many times, we've had many people doing this crap, so
-I'm now at the point of NAKing changes which result in an increased
-visibility to the rest of the kernel of symbols that should not be
-used by stupid driver authors.
-
-Now, why do we have these extra functions when they're just aliased to
-memset()/memcpy() - to avoid GCC optimising them because it thinks that
-they're standard memset()/memcpy().
-
-So overall this gets a NAK from me.
-
-Now, it would have _ALSO_ been nice to have been at least COPIED on the
-original set of changes that caused the need for this change.  I wasn't.
-So I want to see the original set of changes reverted, because they're
-clearly causing breakage.  Let's revert them and then go through the
-proper process of maintainer review, rather than bypassing maintainers
-and screwing up architectures in the process.  There really is no
-excuse for this crap.
-
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index c75c6ab..ef1f4b0 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -12,6 +12,7 @@
+ #include <linux/restart_block.h>
+ 
+ #ifdef CONFIG_THREAD_INFO_IN_TASK
++#include <asm/current.h>
+ #define current_thread_info() ((struct thread_info *)current)
+ #endif
+ 
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+1.9.1
+
