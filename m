@@ -1,65 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:36267 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752505AbcJTIYA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 04:24:00 -0400
+Received: from conssluserg-03.nifty.com ([210.131.2.82]:34120 "EHLO
+        conssluserg-03.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750820AbcJTMHI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 08:07:08 -0400
 MIME-Version: 1.0
-In-Reply-To: <20161020082004.GU1041@n2100.armlinux.org.uk>
-References: <20161017065131.GA27863@angband.pl> <6556201.qTG4Pa4aHk@wuerfel>
- <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com> <3114442.xCAy34UQCk@wuerfel>
- <20161019153159.GQ1041@n2100.armlinux.org.uk> <CAMuHMdXUJ2QcspSQrnWuCzQG7oJ6sCuAuHV0+ftB0oVTL3zeQA@mail.gmail.com>
- <20161020082004.GU1041@n2100.armlinux.org.uk>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Thu, 20 Oct 2016 10:23:58 +0200
-Message-ID: <CAMuHMdUb+WKhYj7rB_4rut1Mi4ctLG+9ocjnYuv0c25uc75TqA@mail.gmail.com>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
+In-Reply-To: <1476957892.28989.24.camel@tiscali.nl>
+References: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com> <1476957892.28989.24.camel@tiscali.nl>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Date: Thu, 20 Oct 2016 21:06:49 +0900
+Message-ID: <CAK7LNATp2vta0_Qzcs-TuXAX8jQejZyLXiqKKvfi8M=NLtxgAA@mail.gmail.com>
+Subject: Re: [PATCH] kconfig.h: remove config_enabled() macro
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Nicholas Piggin <npiggin@gmail.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20161020082358.97L7pWaMrFQ7ta5umzpTlnn4kYYi7j45Weu403y-vrE@z>
+To: Paul Bolle <pebolle@tiscali.nl>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
+Message-ID: <20161020120649.SsC8Pgh-0KNQ2eXsA6pMuTmEQQpxI42Ppp1T_wk9GE4@z>
 
-Hi Russell,
+Hi Paul,
 
-On Thu, Oct 20, 2016 at 10:20 AM, Russell King - ARM Linux
-<linux@armlinux.org.uk> wrote:
-> On Thu, Oct 20, 2016 at 09:37:30AM +0200, Geert Uytterhoeven wrote:
->> On Wed, Oct 19, 2016 at 5:32 PM, Russell King - ARM Linux
->> <linux@armlinux.org.uk> wrote:
->> > I'm not in favour of this.
->> >
->> >    +extern void mmioset(void *, unsigned int, size_t);
->> >    +extern void mmiocpy(void *, const void *, size_t);
->> >    +
->> >     #ifndef __ARMBE__
->> >     static inline void memset_io(volatile void __iomem *dst, unsigned c,
->> >            size_t count)
->> >     {
->> >    -       extern void mmioset(void *, unsigned int, size_t);
->> >            mmioset((void __force *)dst, c, count);
->> >     }
->> >
->> > The reason they're declared _within_ memset_io() is to prevent people
->> > from using them by hiding their declaration.  Moving them outside is
->> > an open invitation to stupid people starting to use them as an "oh it
->> > must be an official API".
->>
->> If they're not intended for public use, they should (also) be prefixed
->> with "__" or even "____" to make this clear.
+
+
+2016-10-20 19:04 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
+> Masahiro,
 >
-> Tried that with the __cpuc_* cache flushing interfaces.  It doesn't
-> have any effect what so ever.
+> A few comments regarding, I guess, future work.
+>
+> On Sun, 2016-10-16 at 20:07 +0900, Masahiro Yamada wrote:
+>> The use of config_enabled() is ambiguous.  For config options,
+>> IS_ENABLED(), IS_REACHABLE(), etc. will make intention clearer.
+>> Sometimes config_enabled() has been used for non-config options
+>> because it is useful to check whether the given symbol is defined
+>> or not.
+>>
+>> I have been tackling on deprecating config_enabled(), and now is the
+>> time to finish this work.
+>>
+>> Some new users have appeared for v4.9-rc1, but it is trivial to
+>> replace them:
+>>
+>>  - arch/x86/mm/kaslr.c
+>>   replace config_enabled() with IS_ENABLED() because
+>>   CONFIG_X86_ESPFIX64 and CONFIG_EFI are boolean.
+>>
+>>  - include/asm-generic/export.h
+>>   replace config_enabled() with __is_defined().
+>>
+>> Then, config_enabled() can be removed now.
+>>
+>> Going forward, please use IS_ENABLED(), IS_REACHABLE(), etc. for
+>> config options, and __is_defined() for non-config symbols.
+>
+> There are about a dozen instances of IS_ENABLED() that target something
+> other than a kconfig macros. Are you planning to convert those to
+> __is_defined() too?
 
-it may not stop the deliberate abuser, but it hints the casual reviewer.
+I did not notice that, but looks like there are some to be checked.
 
-Gr{oetje,eeting}s,
 
-                        Geert
+$ git grep '[^A-Za-z0-9_]IS_ENABLED([^C]'
+arch/arc/include/asm/setup.h:#define IS_USED_CFG(cfg)
+IS_USED_RUN(IS_ENABLED(cfg))
+arch/arm64/include/asm/alternative.h:   __ALTERNATIVE_CFG(oldinstr,
+newinstr, feature, IS_ENABLED(cfg))
+arch/arm64/include/asm/alternative.h:   alternative_insn insn1, insn2,
+cap, IS_ENABLED(cfg)
+drivers/crypto/sahara.c:        if (!IS_ENABLED(DEBUG))
+drivers/crypto/sahara.c:        if (!IS_ENABLED(DEBUG))
+drivers/crypto/sahara.c:        if (!IS_ENABLED(DEBUG))
+drivers/gpu/drm/exynos/exynos_drm_drv.c:#define DRV_PTR(drv, cond)
+(IS_ENABLED(cond) ? &drv : NULL)
+include/asm-generic/vmlinux.lds.h:#define OF_TABLE(cfg, name)
+__OF_TABLE(IS_ENABLED(cfg), name)
+include/linux/init.h:   int var = IS_ENABLED(config);
+                 \
+include/linux/kconfig.h: * This is similar to IS_ENABLED(), but
+returns false when invoked from
+include/linux/kconfig.h:#define IS_ENABLED(option)
+__or(IS_BUILTIN(option), IS_MODULE(option))
+kernel/locking/locktorture.c:int torture_runnable = IS_ENABLED(MODULE);
+kernel/rcu/rcuperf.c:static int perf_runnable = IS_ENABLED(MODULE);
+kernel/rcu/rcutorture.c:static int torture_runnable = IS_ENABLED(MODULE);
+scripts/checkpatch.pl:                           "Prefer
+IS_ENABLED(<FOO>) to CONFIG_<FOO> || CONFIG_<FOO>_MODULE\n"
+scripts/checkpatch.pl:                          $fixed[$fixlinenr] =
+"\+#if IS_ENABLED($config)";
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+
+
+
+>> --- a/include/linux/kconfig.h
+>> +++ b/include/linux/kconfig.h
+>> @@ -31,7 +31,6 @@
+>>   * When CONFIG_BOOGER is not defined, we generate a (... 1, 0) pair, and when
+>>   * the last step cherry picks the 2nd arg, we get a zero.
+>>   */
+>> -#define config_enabled(cfg)          ___is_defined(cfg)
+>
+> Is there a reason to keep using the double underscore prefix?
+
+
+
+I followed the suggestion in the following message:
+
+https://lkml.org/lkml/2016/6/6/944
+
+
+
+>>  #define __is_defined(x)                      ___is_defined(x)
+>>  #define ___is_defined(val)           ____is_defined(__ARG_PLACEHOLDER_##val)
+>>  #define ____is_defined(arg1_or_junk) __take_second_arg(arg1_or_junk 1, 0)
+>
+> __is_defined() is now meant to be used generally, and not just on
+> kconfig macros. Can it be moved into another header?
+
+
+
+Currently, __is_defined() is only used in two places:
+
+include/linux/export.h
+include/asm-generic/export.h
+
+Even if we fix something like IS_ENABLED(DEBUG),
+we do not have many for now,
+but perhaps will it be used more widely in the future?
+
+
+If so, do we need to add  IS_DEFINED() or is_defined()?
+
+in include/linux/kconfig.h ?  or include/linux/kernel.h ?
+
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
