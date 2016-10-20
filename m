@@ -1,63 +1,52 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 1/3] sched/core,x86: make struct thread_info arch
- specific again
-Date: Thu, 20 Oct 2016 08:40:45 +0200
-Message-ID: <20161020064045.GA29032@gmail.com>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
- <1476901693-8492-2-git-send-email-mark.rutland@arm.com>
- <CALCETrUG06KGckAqr-nkPTsRnowJFJ6JxuYyg3o48t4_MRQang@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
+Date: Thu, 20 Oct 2016 09:37:30 +0200
+Message-ID: <CAMuHMdXUJ2QcspSQrnWuCzQG7oJ6sCuAuHV0+ftB0oVTL3zeQA@mail.gmail.com>
+References: <20161017065131.GA27863@angband.pl> <6556201.qTG4Pa4aHk@wuerfel>
+ <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com> <3114442.xCAy34UQCk@wuerfel> <20161019153159.GQ1041@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f68.google.com ([209.85.215.68]:34585 "EHLO
-        mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754058AbcJTGkv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 02:40:51 -0400
-Content-Disposition: inline
-In-Reply-To: <CALCETrUG06KGckAqr-nkPTsRnowJFJ6JxuYyg3o48t4_MRQang@mail.gmail.com>
+Received: from mail-it0-f66.google.com ([209.85.214.66]:33004 "EHLO
+        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932622AbcJTHhb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 03:37:31 -0400
+In-Reply-To: <20161019153159.GQ1041@n2100.armlinux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Nicholas Piggin <npiggin@gmail.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
+On Wed, Oct 19, 2016 at 5:32 PM, Russell King - ARM Linux
+<linux@armlinux.org.uk> wrote:
+> I'm not in favour of this.
+>
+>    +extern void mmioset(void *, unsigned int, size_t);
+>    +extern void mmiocpy(void *, const void *, size_t);
+>    +
+>     #ifndef __ARMBE__
+>     static inline void memset_io(volatile void __iomem *dst, unsigned c,
+>            size_t count)
+>     {
+>    -       extern void mmioset(void *, unsigned int, size_t);
+>            mmioset((void __force *)dst, c, count);
+>     }
+>
+> The reason they're declared _within_ memset_io() is to prevent people
+> from using them by hiding their declaration.  Moving them outside is
+> an open invitation to stupid people starting to use them as an "oh it
+> must be an official API".
 
-* Andy Lutomirski <luto@amacapital.net> wrote:
+If they're not intended for public use, they should (also) be prefixed
+with "__" or even "____" to make this clear.
 
-> On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > From: Heiko Carstens <heiko.carstens@de.ibm.com>
-> >
-> > commit c65eacbe290b ("sched/core: Allow putting thread_info into
-> > task_struct") made struct thread_info a generic struct with only a
-> > single flags member if THREAD_INFO_IN_TASK_STRUCT is selected.
-> >
-> > This change however seems to be quite x86 centric, since at least the
-> > generic preemption code (asm-generic/preempt.h) assumes that struct
-> > thread_info also has a preempt_count member, which apparently was not
-> > true for x86.
-> >
-> > We could add a bit more ifdefs to solve this problem too, but it seems
-> > to be much simpler to make struct thread_info arch specific
-> > again. This also makes the conversion to THREAD_INFO_IN_TASK_STRUCT a
-> > bit easier for architectures that have a couple of arch specific stuff
-> > in their thread_info definition.
-> >
-> > The arch specific stuff _could_ be moved to thread_struct. However
-> > keeping them in thread_info makes it easier: accessing thread_info
-> > members is simple, since it is at the beginning of the task_struct,
-> > while the thread_struct is at the end. At least on s390 the offsets
-> > needed to access members of the thread_struct (with task_struct as
-> > base) are too large for various asm instructions.  This is not a
-> > problem when keeping these members within thread_info.
-> 
-> Acked-by: Andy Lutomirski <luto@kernel.org>
-> 
-> Ingo, there's a (somewhat weak) argument for sending this via
-> tip/urgent: it doesn't change generated code at all, and I think it
-> will avoid a silly depedency or possible conflict for the next merge
-> window, since both arm64 and s390 are going to need it.
+Gr{oetje,eeting}s,
 
-Can certainly do it if this is the final version of the patch. Mark?
+                        Geert
 
-Thanks,
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-	Ingo
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
