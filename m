@@ -1,116 +1,63 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Thu, 20 Oct 2016 15:08:14 +1100
-Message-ID: <20161020150814.42951f61@roar.ozlabs.ibm.com>
-References: <20161017065131.GA27863@angband.pl>
-        <6556201.qTG4Pa4aHk@wuerfel>
-        <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
-        <3114442.xCAy34UQCk@wuerfel>
-        <20161019153159.GQ1041@n2100.armlinux.org.uk>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 1/3] sched/core,x86: make struct thread_info arch
+ specific again
+Date: Thu, 20 Oct 2016 08:40:45 +0200
+Message-ID: <20161020064045.GA29032@gmail.com>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+ <1476901693-8492-2-git-send-email-mark.rutland@arm.com>
+ <CALCETrUG06KGckAqr-nkPTsRnowJFJ6JxuYyg3o48t4_MRQang@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:35870 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753007AbcJTEIW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 00:08:22 -0400
-In-Reply-To: <20161019153159.GQ1041@n2100.armlinux.org.uk>
+Received: from mail-lf0-f68.google.com ([209.85.215.68]:34585 "EHLO
+        mail-lf0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1754058AbcJTGkv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 02:40:51 -0400
+Content-Disposition: inline
+In-Reply-To: <CALCETrUG06KGckAqr-nkPTsRnowJFJ6JxuYyg3o48t4_MRQang@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-
-On Wed, 19 Oct 2016 16:32:00 +0100
-Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
-
-> On Wed, Oct 19, 2016 at 05:02:55PM +0200, Arnd Bergmann wrote:
-> > On Wednesday, October 19, 2016 4:52:06 PM CEST Michal Marek wrote:  
-> > > Dne 17.10.2016 v 14:26 Arnd Bergmann napsal(a):  
-> > > > This adds an asm/asm-prototypes.h header for ARM to fix the
-> > > > broken symbol versioning for symbols exported from assembler
-> > > > files.
-> > > > 
-> > > > In addition to the header, we have to do these other small
-> > > > changes:
-> > > > 
-> > > > - move the 'extern' declarations out of memset_io/memcpy_io
-> > > >   to make them visible to the symbol version generator
-> > > > - move the exports from bitops.h to {change,clear,set,...}bit.S
-> > > > - move the exports from csumpartialgeneric.S into the files
-> > > >   including it
-> > > > 
-> > > > I couldn't find the correct prototypes for the compiler builtins,
-> > > > so I went with the fake 'void f(void)' prototypes that we had
-> > > > before.
-> > > > 
-> > > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>  
-> > > 
-> > > Hi Arnd,
-> > > 
-> > > just to make sure I'm looking at the right code - is this based on the
-> > > patch by Nick here: https://patchwork.kernel.org/patch/9377783/?
-> > >   
-> > 
-> > (adding Russell to Cc, I missed him during my earlier mail, which
-> > is now archived at https://lkml.org/lkml/2016/10/17/356)  
-> 
-> I'm not in favour of this.
-> 
->    +extern void mmioset(void *, unsigned int, size_t);
->    +extern void mmiocpy(void *, const void *, size_t);
->    +
->     #ifndef __ARMBE__
->     static inline void memset_io(volatile void __iomem *dst, unsigned c,
->            size_t count)
->     {
->    -       extern void mmioset(void *, unsigned int, size_t);
->            mmioset((void __force *)dst, c, count);
->     }
-> 
-> The reason they're declared _within_ memset_io() is to prevent people
-> from using them by hiding their declaration.  Moving them outside is
-> an open invitation to stupid people starting to use them as an "oh it
-> must be an official API".
-> 
-> We know this happens, there's been a long history of this kind of stupid
-> in the ARM community, not only with cache flushing APIs, but also the
-> DMA APIs.
-> 
-> The way the existing code is written is a completely valid way to hide
-> declarations from outside the intended caller's scope.
-> 
-> We've been here many times, we've had many people doing this crap, so
-> I'm now at the point of NAKing changes which result in an increased
-> visibility to the rest of the kernel of symbols that should not be
-> used by stupid driver authors.
-> 
-> Now, why do we have these extra functions when they're just aliased to
-> memset()/memcpy() - to avoid GCC optimising them because it thinks that
-> they're standard memset()/memcpy().
-> 
-> So overall this gets a NAK from me.
-
-Fair point, what about leaving those as they are, and also adding
-them to asm-prototypes.h protected with GENKSYMS ifdef? It's not
-beautiful, but still better than armksyms.c before Al's patches (or
-at least no worse).
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
 
 
-> Now, it would have _ALSO_ been nice to have been at least COPIED on the
-> original set of changes that caused the need for this change.  I wasn't.
-> So I want to see the original set of changes reverted, because they're
-> clearly causing breakage.  Let's revert them and then go through the
-> proper process of maintainer review, rather than bypassing maintainers
-> and screwing up architectures in the process.  There really is no
-> excuse for this crap.
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
-You may have a point about improvement of the process. I wasn't
-involved in the original patches, but we did cc linux-arch when the
-.S CRC issue became known.
+> On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> > From: Heiko Carstens <heiko.carstens@de.ibm.com>
+> >
+> > commit c65eacbe290b ("sched/core: Allow putting thread_info into
+> > task_struct") made struct thread_info a generic struct with only a
+> > single flags member if THREAD_INFO_IN_TASK_STRUCT is selected.
+> >
+> > This change however seems to be quite x86 centric, since at least the
+> > generic preemption code (asm-generic/preempt.h) assumes that struct
+> > thread_info also has a preempt_count member, which apparently was not
+> > true for x86.
+> >
+> > We could add a bit more ifdefs to solve this problem too, but it seems
+> > to be much simpler to make struct thread_info arch specific
+> > again. This also makes the conversion to THREAD_INFO_IN_TASK_STRUCT a
+> > bit easier for architectures that have a couple of arch specific stuff
+> > in their thread_info definition.
+> >
+> > The arch specific stuff _could_ be moved to thread_struct. However
+> > keeping them in thread_info makes it easier: accessing thread_info
+> > members is simple, since it is at the beginning of the task_struct,
+> > while the thread_struct is at the end. At least on s390 the offsets
+> > needed to access members of the thread_struct (with task_struct as
+> > base) are too large for various asm instructions.  This is not a
+> > problem when keeping these members within thread_info.
+> 
+> Acked-by: Andy Lutomirski <luto@kernel.org>
+> 
+> Ingo, there's a (somewhat weak) argument for sending this via
+> tip/urgent: it doesn't change generated code at all, and I think it
+> will avoid a silly depedency or possible conflict for the next merge
+> window, since both arm64 and s390 are going to need it.
 
-However let's work on the assumption that they won't be reverted at this
-stage, and try to come up with something to fix it that you're happy with.
+Can certainly do it if this is the final version of the patch. Mark?
 
 Thanks,
-Nick
+
+	Ingo
