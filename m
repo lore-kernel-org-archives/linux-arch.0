@@ -1,74 +1,70 @@
-From: Paul Bolle <pebolle@tiscali.nl>
-Subject: Re: [PATCH] kconfig.h: remove config_enabled() macro
-Date: Thu, 20 Oct 2016 12:04:52 +0200
-Message-ID: <1476957892.28989.24.camel@tiscali.nl>
-References: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 3/3] thread_info: include <current.h> for
+ THREAD_INFO_IN_TASK
+Date: Thu, 20 Oct 2016 12:29:26 +0200
+Message-ID: <20161020102925.GA3529@osiris>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+ <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lb1-smtp-cloud3.xs4all.net ([194.109.24.22]:33417 "EHLO
-        lb1-smtp-cloud3.xs4all.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1750953AbcJTKFA (ORCPT
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:41506 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1754041AbcJTK3i (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 20 Oct 2016 06:05:00 -0400
-In-Reply-To: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com>
+        Thu, 20 Oct 2016 06:29:38 -0400
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9KASkn2126892
+        for <linux-arch@vger.kernel.org>; Thu, 20 Oct 2016 06:29:37 -0400
+Received: from e06smtp14.uk.ibm.com (e06smtp14.uk.ibm.com [195.75.94.110])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 266c36tn7n-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Thu, 20 Oct 2016 06:29:37 -0400
+Received: from localhost
+        by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Thu, 20 Oct 2016 11:29:32 +0100
+Content-Disposition: inline
+In-Reply-To: <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mingo@redhat.com, tglx@linutronix.de
 
-Masahiro,
-
-A few comments regarding, I guess, future work.
-
-On Sun, 2016-10-16 at 20:07 +0900, Masahiro Yamada wrote:
-> The use of config_enabled() is ambiguous.  For config options,
-> IS_ENABLED(), IS_REACHABLE(), etc. will make intention clearer.
-> Sometimes config_enabled() has been used for non-config options
-> because it is useful to check whether the given symbol is defined
-> or not.
+On Wed, Oct 19, 2016 at 07:28:13PM +0100, Mark Rutland wrote:
+> When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
+> macro relies on current having been defined prior to its use. However,
+> not all users of current_thread_info() include <asm/current.h>, and thus
+> current is not guaranteed to be defined.
 > 
-> I have been tackling on deprecating config_enabled(), and now is the
-> time to finish this work.
+> When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
+> get_current() / current are based upon current_thread_info(), and
+> <asm/current.h> includes <asm/thread_info.h>. Thus always including
+> <asm/current.h> would result in circular dependences on some platforms.
 > 
-> Some new users have appeared for v4.9-rc1, but it is trivial to
-> replace them:
+> To ensure both cases work, this patch includes <asm/current.h>, but only
+> when CONFIG_THREAD_INFO_IN_TASK is selected.
 > 
->  - arch/x86/mm/kaslr.c
->   replace config_enabled() with IS_ENABLED() because
->   CONFIG_X86_ESPFIX64 and CONFIG_EFI are boolean.
+> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Andy Lutomirski <luto@kernel.org>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Kees Cook <keescook@chromium.org> 
+> ---
+>  include/linux/thread_info.h | 1 +
+>  1 file changed, 1 insertion(+)
 > 
->  - include/asm-generic/export.h
->   replace config_enabled() with __is_defined().
-> 
-> Then, config_enabled() can be removed now.
-> 
-> Going forward, please use IS_ENABLED(), IS_REACHABLE(), etc. for
-> config options, and __is_defined() for non-config symbols.
+> diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+> index c75c6ab..ef1f4b0 100644
+> --- a/include/linux/thread_info.h
+> +++ b/include/linux/thread_info.h
+> @@ -12,6 +12,7 @@
+>  #include <linux/restart_block.h>
+>  
+>  #ifdef CONFIG_THREAD_INFO_IN_TASK
+> +#include <asm/current.h>
+>  #define current_thread_info() ((struct thread_info *)current)
+>  #endif
 
-There are about a dozen instances of IS_ENABLED() that target something
-other than a kconfig macros. Are you planning to convert those to
-__is_defined() too? 
-
-> Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
-
-> --- a/include/linux/kconfig.h
-> +++ b/include/linux/kconfig.h
-> @@ -31,7 +31,6 @@
->   * When CONFIG_BOOGER is not defined, we generate a (... 1, 0) pair, and when
->   * the last step cherry picks the 2nd arg, we get a zero.
->   */
-> -#define config_enabled(cfg)		___is_defined(cfg)
-
-Is there a reason to keep using the double underscore prefix?
-
->  #define __is_defined(x)			___is_defined(x)
->  #define ___is_defined(val)		____is_defined(__ARG_PLACEHOLDER_##val)
->  #define ____is_defined(arg1_or_junk)	__take_second_arg(arg1_or_junk 1, 0)
-
-__is_defined() is now meant to be used generally, and not just on
-kconfig macros. Can it be moved into another header?
-
-
-Paul Bolle
+FWIW:
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
