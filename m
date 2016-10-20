@@ -1,34 +1,111 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH] kconfig.h: remove config_enabled() macro
-Date: Thu, 20 Oct 2016 09:25:27 -0400 (EDT)
-Message-ID: <alpine.LFD.2.20.1610200920140.25105@knanqh.ubzr>
-References: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com> <1476957892.28989.24.camel@tiscali.nl> <CAK7LNATp2vta0_Qzcs-TuXAX8jQejZyLXiqKKvfi8M=NLtxgAA@mail.gmail.com> <1476967442.28989.38.camel@tiscali.nl>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
+Date: Fri, 21 Oct 2016 01:20:17 +1100
+Message-ID: <20161021012017.67b75a90@roar.ozlabs.ibm.com>
+References: <20161017065131.GA27863@angband.pl>
+        <6556201.qTG4Pa4aHk@wuerfel>
+        <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
+        <3114442.xCAy34UQCk@wuerfel>
+        <20161019153159.GQ1041@n2100.armlinux.org.uk>
+        <20161020150814.42951f61@roar.ozlabs.ibm.com>
+        <20161020131702.GX1041@n2100.armlinux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1476967442.28989.38.camel@tiscali.nl>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: Masahiro Yamada <yamada.masahiro@socionext.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20161020131702.GX1041@n2100.armlinux.org.uk>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 20 Oct 2016, Paul Bolle wrote:
+On Thu, 20 Oct 2016 14:17:02 +0100
+Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
 
-> [Added Nicolas.]
+> On Thu, Oct 20, 2016 at 03:08:14PM +1100, Nicholas Piggin wrote:
+> > Fair point, what about leaving those as they are, and also adding
+> > them to asm-prototypes.h protected with GENKSYMS ifdef? It's not
+> > beautiful, but still better than armksyms.c before Al's patches (or
+> > at least no worse).  
 > 
-> On Thu, 2016-10-20 at 21:06 +0900, Masahiro Yamada wrote:
-> > 2016-10-20 19:04 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
-> > > Is there a reason to keep using the double underscore prefix?
-> > 
-> > I followed the suggestion in the following message:
-> > 
-> > https://lkml.org/lkml/2016/6/6/944
+> I disagree (also see below).  The armksyms way was understandable.
+> The new way... I've no idea yet, because I wasn't even copied on
+
+New way is you put the EXPORT_SYMBOL in the .S file, and give it a C
+style prototype in asm-prototypes.h, and that's it. The build system
+will do the rest. Either way you require some file of C prototypes,
+but after Al's patches, at least the EXPORT goes with its definition.
+
+As far as rebuilding too often, that sounds like a bug, more below.
+
+
+> any of the patches.  I've no idea how the exports are now handled.
+> I'm in a black hole with respect to that, and that's now a problem.
 > 
-> Nicolas: was there any specific reason to suggest __is_defined() and
-> not, say, is_defined()?
+> > > Now, it would have _ALSO_ been nice to have been at least COPIED on the
+> > > original set of changes that caused the need for this change.  I wasn't.
+> > > So I want to see the original set of changes reverted, because they're
+> > > clearly causing breakage.  Let's revert them and then go through the
+> > > proper process of maintainer review, rather than bypassing maintainers
+> > > and screwing up architectures in the process.  There really is no
+> > > excuse for this crap.  
+> > 
+> > You may have a point about improvement of the process. I wasn't
+> > involved in the original patches, but we did cc linux-arch when the
+> > .S CRC issue became known.  
+> 
+> Yes, but I'm not on linux-kernel-v2, and I've no desire to end up with
+> another list I've no hope of keeping up with to my mailbox - I'll just
+> ignore it.  99% of the messages on it at the time when vger kicked me
+> off the list was x86 related discussion, and not really cross-arch
+> issues.  As I say, it just became another linux-kernel list.
 
-Not really, except maybe to keep more distance from the defined() 
-preprocessor macro. But I don't have a strong opinion either ways.
+For the patches that touched arm code, I'd agree you should have been cc'ed.
+
+Not to dismiss that concern at all, but for issues of interest to arch code
+but not specific to any (such as discovery that the asm exports change would
+require this change to restore CRC generation), I was just saying linux-arch
+is most appropriate for better or worse. Ccing 30 arch lists is not workable.
+
+And again not to dismiss your concern, I'm just here trying to come up with
+a workable fix for the non-revert scenario. Revert is no less valid an
+option, it's just not one I'm in favour of myself.
 
 
-Nicolas
+> > However let's work on the assumption that they won't be reverted at this
+> > stage, and try to come up with something to fix it that you're happy with.  
+> 
+> Well, there's more problems with this new KSYMS approach than just the
+> CRCs.  It forces a rebuild of the ksyms files every single time, which
+> then causes a relink of the kernel:
+
+Good catch, I'm surprised you're the first one who reported it. This patch
+seems to do the trick for me:
+
+From: Nicholas Piggin <npiggin@gmail.com>
+Date: Fri, 21 Oct 2016 01:13:33 +1100
+Subject: [PATCH] kbuild: prevent lib-ksyms.o rebuilds
+
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+
+---
+ scripts/Makefile.build | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index de46ab0..e1f25d6 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -430,6 +430,9 @@ cmd_export_list = $(OBJDUMP) -h $< | \
+ 
+ $(obj)/lib-ksyms.o: $(lib-target) FORCE
+ 	$(call if_changed,export_list)
++
++targets += $(obj)/lib-ksyms.o
++
+ endif
+ 
+ #
+-- 
+2.9.3
+
