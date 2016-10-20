@@ -1,99 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59784 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754699AbcJSS25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 19 Oct 2016 14:28:57 -0400
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH 1/3] sched/core,x86: make struct thread_info arch specific again
-Date: Wed, 19 Oct 2016 19:28:11 +0100
-Message-ID: <1476901693-8492-2-git-send-email-mark.rutland@arm.com>
-In-Reply-To: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:33727 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750763AbcJTDwM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2016 23:52:12 -0400
+Date: Thu, 20 Oct 2016 14:52:04 +1100
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Message-ID: <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
+In-Reply-To: <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
+References: <20161017100130.GA16013@angband.pl>
+        <871szfb1x1.fsf@gmail.com>
+        <20161018001626.GA5976@angband.pl>
+        <20161018123418.6121175b@roar.ozlabs.ibm.com>
+        <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mark.rutland@arm.com, mingo@redhat.com, tglx@linutronix.de
-Message-ID: <20161019182811.6AyHXgQYW8mkGSMdA07TmEMJHT3zneCxIppXN0VYPRc@z>
+To: Michal Marek <mmarek@suse.com>
+Cc: Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20161020035204.8yebFjchCdKcMV7onioc9JMKIyjLzDMqfhWLHTDDH1I@z>
 
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
+On Wed, 19 Oct 2016 16:38:14 +0200
+Michal Marek <mmarek@suse.com> wrote:
 
-commit c65eacbe290b ("sched/core: Allow putting thread_info into
-task_struct") made struct thread_info a generic struct with only a
-single flags member if THREAD_INFO_IN_TASK_STRUCT is selected.
+> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):
+> > We should probably just bring all these arch patches through the
+> > kbuild tree.
+> > 
+> > I'm sorry for the breakage: I didn't realize it broke the build with
+> > some configs, otherwise I would have given Michal a heads up before
+> > his pull request, and worked to get this stuff in first.  
+> 
+> It breaks with some binutils versions only (and only with
+> CONFIG_MODVERSIONS=y, of course).
 
-This change however seems to be quite x86 centric, since at least the
-generic preemption code (asm-generic/preempt.h) assumes that struct
-thread_info also has a preempt_count member, which apparently was not
-true for x86.
+Yeah this seems to be the issue, it apparently slipped past all the
+automated builds. It seems like the existing CRC warnings in the tree
+only trigger in rare circumstances too, so something could be a bit
+fragile there.
 
-We could add a bit more ifdefs to solve this problem too, but it seems
-to be much simpler to make struct thread_info arch specific
-again. This also makes the conversion to THREAD_INFO_IN_TASK_STRUCT a
-bit easier for architectures that have a couple of arch specific stuff
-in their thread_info definition.
-
-The arch specific stuff _could_ be moved to thread_struct. However
-keeping them in thread_info makes it easier: accessing thread_info
-members is simple, since it is at the beginning of the task_struct,
-while the thread_struct is at the end. At least on s390 the offsets
-needed to access members of the thread_struct (with task_struct as
-base) are too large for various asm instructions.  This is not a
-problem when keeping these members within thread_info.
-
-Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
----
- arch/x86/include/asm/thread_info.h |  9 +++++++++
- include/linux/thread_info.h        | 11 -----------
- 2 files changed, 9 insertions(+), 11 deletions(-)
-
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index 2aaca53..ad6f5eb0 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -52,6 +52,15 @@
- #include <asm/cpufeature.h>
- #include <linux/atomic.h>
- 
-+struct thread_info {
-+	unsigned long		flags;		/* low level flags */
-+};
-+
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.flags		= 0,			\
-+}
-+
- #define init_stack		(init_thread_union.stack)
- 
- #else /* !__ASSEMBLY__ */
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index 45f004e..2873baf 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -14,17 +14,6 @@
- struct compat_timespec;
- 
- #ifdef CONFIG_THREAD_INFO_IN_TASK
--struct thread_info {
--	unsigned long		flags;		/* low level flags */
--};
--
--#define INIT_THREAD_INFO(tsk)			\
--{						\
--	.flags		= 0,			\
--}
--#endif
--
--#ifdef CONFIG_THREAD_INFO_IN_TASK
- #define current_thread_info() ((struct thread_info *)current)
- #endif
- 
--- 
-1.9.1
-
+Thanks,
+Nick
