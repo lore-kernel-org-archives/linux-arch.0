@@ -1,48 +1,44 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Fri, 21 Oct 2016 01:51:35 +1100
-Message-ID: <20161021015135.48a893bf@roar.ozlabs.ibm.com>
-References: <20161017065131.GA27863@angband.pl>
-        <6556201.qTG4Pa4aHk@wuerfel>
-        <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
-        <3114442.xCAy34UQCk@wuerfel>
-        <20161019153159.GQ1041@n2100.armlinux.org.uk>
-        <20161020150814.42951f61@roar.ozlabs.ibm.com>
-        <20161020131702.GX1041@n2100.armlinux.org.uk>
-        <20161021012017.67b75a90@roar.ozlabs.ibm.com>
-        <20161020143327.GY1041@n2100.armlinux.org.uk>
+From: Masahiro Yamada <yamada.masahiro@socionext.com>
+Subject: Re: [PATCH] kconfig.h: remove config_enabled() macro
+Date: Fri, 21 Oct 2016 00:02:01 +0900
+Message-ID: <CAK7LNASAJt33-cKxOTqCWXb2A6Ky3rhE0ZOMSone4-JUAxO9OQ@mail.gmail.com>
+References: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com>
+ <1476957892.28989.24.camel@tiscali.nl> <CAK7LNATp2vta0_Qzcs-TuXAX8jQejZyLXiqKKvfi8M=NLtxgAA@mail.gmail.com>
+ <1476967442.28989.38.camel@tiscali.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161020143327.GY1041@n2100.armlinux.org.uk>
+In-Reply-To: <1476967442.28989.38.camel@tiscali.nl>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Paul Bolle <pebolle@tiscali.nl>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 20 Oct 2016 15:33:27 +0100
-Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
+Hi Paul,
 
-> On Fri, Oct 21, 2016 at 01:20:17AM +1100, Nicholas Piggin wrote:
-> > Good catch, I'm surprised you're the first one who reported it. This patch
-> > seems to do the trick for me:  
-> 
-> And me, thanks, so...
-> 
-> > 
-> > From: Nicholas Piggin <npiggin@gmail.com>
-> > Date: Fri, 21 Oct 2016 01:13:33 +1100
-> > Subject: [PATCH] kbuild: prevent lib-ksyms.o rebuilds
-> > 
-> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>  
-> 
-> Reported-by: Russell King <rmk+kernel@armlinux.org.uk>
-> Tested-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-Thanks for testing it.
+2016-10-20 21:44 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
+> [Added Nicolas.]
+>
+> On Thu, 2016-10-20 at 21:06 +0900, Masahiro Yamada wrote:
+>> 2016-10-20 19:04 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
+>> > On Sun, 2016-10-16 at 20:07 +0900, Masahiro Yamada wrote:
+>> > There are about a dozen instances of IS_ENABLED() that target something
+>> > other than a kconfig macros. Are you planning to convert those to
+>> > __is_defined() too?
+>>
+>> I did not notice that, but looks like there are some to be checked.
+>
+> Are you willing to do that or should I give it a try (after this patch
+> has landed, of course)?
 
-Hopefully if Arnd is able to respin the ARM patch to something a bit more
-to your liking that doesn't expose prototypes, and no other problems arise,
-we can avoid reverting. You had a poor first impression, but we may yet win
-you over.
+
+If you volunteer to do it,
+that'll be appreciated.
+
+If you CC me, I am happy to review the patches.
+
+
+-- 
+Best Regards
+Masahiro Yamada
