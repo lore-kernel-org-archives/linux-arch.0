@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0057.outbound.protection.outlook.com ([104.47.34.57]:30240
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-bl2nam02on0087.outbound.protection.outlook.com ([104.47.38.87]:18978
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S934892AbcJUVIJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Oct 2016 17:08:09 -0400
+        id S933451AbcJUVJb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 17:09:31 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 15/18] arm64: ilp32: introduce ilp32-specific handlers for sigframe and ucontext
-Date: Fri, 21 Oct 2016 23:33:14 +0300
-Message-ID: <1477081997-4770-16-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 09/18] arm64: introduce binfmt_elf32.c
+Date: Fri, 21 Oct 2016 23:33:08 +0300
+Message-ID: <1477081997-4770-10-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,315 +15,97 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
-Message-ID: <20161021203314.0W_mgseKjgA2qSsLyKkWHhYV6nkjGRb0Scpt2WsWKEQ@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+Message-ID: <20161021203308.Rbuk-C7AUp_GW1Ih5Ry28mG1kbxDsAQUZ3mamf0UkvA@z>
 
-From: Andrew Pinski <apinski@cavium.com>
+As we support more than one compat formats, it looks more reasonable
+to not use fs/compat_binfmt.c. Custom binfmt_elf32.c allows to move aarch32
+specific definitions there and make code more maintainable and readable.
 
-ILP32 uses AARCH32 compat structures and syscall handlers for signals.
-But ILP32 struct rt_sigframe  and ucontext differs from both LP64 and
-AARCH32. So some specific mechanism is needed to take care of it.
-
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 ---
- arch/arm64/include/asm/signal_ilp32.h |  38 ++++++++
- arch/arm64/kernel/Makefile            |   3 +-
- arch/arm64/kernel/entry_ilp32.S       |  22 +++++
- arch/arm64/kernel/signal.c            |   3 +
- arch/arm64/kernel/signal_ilp32.c      | 174 ++++++++++++++++++++++++++++++++++
- 5 files changed, 239 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/signal_ilp32.h
- create mode 100644 arch/arm64/kernel/entry_ilp32.S
- create mode 100644 arch/arm64/kernel/signal_ilp32.c
+ arch/arm64/Kconfig               |  1 -
+ arch/arm64/include/asm/hwcap.h   |  2 --
+ arch/arm64/kernel/Makefile       |  2 +-
+ arch/arm64/kernel/binfmt_elf32.c | 31 +++++++++++++++++++++++++++++++
+ 4 files changed, 32 insertions(+), 4 deletions(-)
+ create mode 100644 arch/arm64/kernel/binfmt_elf32.c
 
-diff --git a/arch/arm64/include/asm/signal_ilp32.h b/arch/arm64/include/asm/signal_ilp32.h
-new file mode 100644
-index 0000000..d3210d8
---- /dev/null
-+++ b/arch/arm64/include/asm/signal_ilp32.h
-@@ -0,0 +1,38 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <asm/signal32_common.h>
-+#include <asm/signal_common.h>
-+
-+#ifndef __ASM_SIGNAL_ILP32_H
-+#define __ASM_SIGNAL_ILP32_H
-+
-+#ifdef CONFIG_ARM64_ILP32
-+
-+#include <linux/compat.h>
-+
-+int ilp32_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs);
-+
-+#else
-+
-+static inline int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
-+					sigset_t *set, struct pt_regs *regs)
-+{
-+	return -ENOSYS;
-+}
-+
-+#endif /* CONFIG_ARM64_ILP32 */
-+
-+#endif /* __ASM_SIGNAL_ILP32_H */
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 0cd786e..9efa86a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1003,7 +1003,6 @@ config AARCH32_EL0
+ 	def_bool y
+ 	depends on ARM64_4K_PAGES || EXPERT
+ 	select COMPAT
+-	select COMPAT_BINFMT_ELF
+ 	select HAVE_UID16
+ 	select OLD_SIGSUSPEND3
+ 	select COMPAT_OLD_SIGACTION
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
+index 2c7fc5d..99dfd92 100644
+--- a/arch/arm64/include/asm/hwcap.h
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -47,8 +47,6 @@
+ #define ELF_HWCAP		(elf_hwcap)
+ 
+ #ifdef CONFIG_AARCH32_EL0
+-#define COMPAT_ELF_HWCAP	(compat_elf_hwcap)
+-#define COMPAT_ELF_HWCAP2	(compat_elf_hwcap2)
+ extern unsigned int compat_elf_hwcap, compat_elf_hwcap2;
+ #endif
+ 
 diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index fdc0052..af400fb 100644
+index 8a19fda..abe5040 100644
 --- a/arch/arm64/kernel/Makefile
 +++ b/arch/arm64/kernel/Makefile
-@@ -29,7 +29,8 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 	$(call if_changed,objcopy)
  
  arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
--arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o 		\
-+					   signal_ilp32.o entry_ilp32.o
- arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
+-					   sys_compat.o entry32.o
++					   sys_compat.o entry32.o binfmt_elf32.o
  arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
  arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
-diff --git a/arch/arm64/kernel/entry_ilp32.S b/arch/arm64/kernel/entry_ilp32.S
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/binfmt_elf32.c b/arch/arm64/kernel/binfmt_elf32.c
 new file mode 100644
-index 0000000..a8bb94b
+index 0000000..aec1c8a
 --- /dev/null
-+++ b/arch/arm64/kernel/entry_ilp32.S
-@@ -0,0 +1,22 @@
++++ b/arch/arm64/kernel/binfmt_elf32.c
+@@ -0,0 +1,31 @@
 +/*
-+ * ILP32 system call wrappers
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * Support for AArch32 Linux ELF binaries.
 + */
 +
-+#include <linux/linkage.h>
++/* AArch32 EABI. */
++#define EF_ARM_EABI_MASK		0xff000000
 +
-+ENTRY(ilp32_sys_rt_sigreturn_wrapper)
-+	mov	x0, sp
-+	b	ilp32_sys_rt_sigreturn
-+ENDPROC(ilp32_sys_rt_sigreturn_wrapper)
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 478d6c5..1b130f4 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -35,6 +35,7 @@
- #include <asm/signal32.h>
- #include <asm/vdso.h>
- #include <asm/signal_common.h>
-+#include <asm/signal_ilp32.h>
- 
- #define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig)	\
- 			+ offsetof(struct sigframe, fp))
-@@ -325,6 +326,8 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- 			ret = compat_setup_rt_frame(usig, ksig, oldset, regs);
- 		else
- 			ret = compat_setup_frame(usig, ksig, oldset, regs);
-+	} else if (is_ilp32_compat_task()) {
-+		ret = ilp32_setup_rt_frame(usig, ksig, oldset, regs);
- 	} else {
- 		ret = setup_rt_frame(usig, ksig, oldset, regs);
- 	}
-diff --git a/arch/arm64/kernel/signal_ilp32.c b/arch/arm64/kernel/signal_ilp32.c
-new file mode 100644
-index 0000000..6f9b7aa
---- /dev/null
-+++ b/arch/arm64/kernel/signal_ilp32.c
-@@ -0,0 +1,174 @@
-+/*
-+ * Based on arch/arm/kernel/signal.c
-+ *
-+ * Copyright (C) 1995-2009 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Copyright (C) 2016 Cavium Networks.
-+ * Yury Norov <ynorov@caviumnetworks.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
++#define compat_start_thread		compat_start_thread
++#define COMPAT_SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	set_thread_flag(TIF_32BIT);		\
++} while (0)
 +
-+#include <linux/compat.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
-+#include <linux/ratelimit.h>
++#define COMPAT_ARCH_DLINFO
++#define COMPAT_ELF_HWCAP		(compat_elf_hwcap)
++#define COMPAT_ELF_HWCAP2		(compat_elf_hwcap2)
 +
-+#include <asm/esr.h>
-+#include <asm/fpsimd.h>
-+#include <asm/signal_ilp32.h>
-+#include <asm/uaccess.h>
-+#include <asm/unistd.h>
-+#include <asm/ucontext.h>
++#ifdef __AARCH64EB__
++#define COMPAT_ELF_PLATFORM		("v8b")
++#else
++#define COMPAT_ELF_PLATFORM		("v8l")
++#endif
 +
++#define compat_arch_setup_additional_pages \
++					aarch32_setup_vectors_page
++struct linux_binprm;
++extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
++				      int uses_interp);
 +
-+#define ILP32_RT_SIGFRAME_FP_POS (offsetof(struct ilp32_rt_sigframe, sig)	\
-+			+ offsetof(struct ilp32_sigframe, fp))
-+
-+struct ilp32_ucontext {
-+	u32		uc_flags;
-+	u32		uc_link;
-+	compat_stack_t  uc_stack;
-+	compat_sigset_t uc_sigmask;
-+	/* glibc uses a 1024-bit sigset_t */
-+	__u8		unused[1024 / 8 - sizeof(compat_sigset_t)];
-+	/* last for future expansion */
-+	struct sigcontext uc_mcontext;
-+};
-+
-+struct ilp32_sigframe {
-+	struct ilp32_ucontext uc;
-+	u64 fp;
-+	u64 lr;
-+};
-+
-+struct ilp32_rt_sigframe {
-+	struct compat_siginfo info;
-+	struct ilp32_sigframe sig;
-+};
-+
-+static int restore_ilp32_sigframe(struct pt_regs *regs,
-+			struct ilp32_sigframe __user *sf)
-+{
-+	int err;
-+	sigset_t set;
-+
-+	err = get_sigset_t(&set, &sf->uc.uc_sigmask);
-+	if (err == 0)
-+		set_current_blocked(&set);
-+	err |= restore_sigcontext(regs, &sf->uc.uc_mcontext);
-+	return err;
-+}
-+
-+static int setup_ilp32_sigframe(struct ilp32_sigframe __user *sf,
-+				struct pt_regs *regs, sigset_t *set)
-+{
-+	int err = 0;
-+
-+	/* set up the stack frame for unwinding */
-+	__put_user_error(regs->regs[29], &sf->fp, err);
-+	__put_user_error(regs->regs[30], &sf->lr, err);
-+
-+	err |= put_sigset_t(&sf->uc.uc_sigmask, set);
-+	err |= setup_sigcontext(&sf->uc.uc_mcontext, regs);
-+	return err;
-+}
-+
-+asmlinkage long ilp32_sys_rt_sigreturn(struct pt_regs *regs)
-+{
-+	struct ilp32_rt_sigframe __user *frame;
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current->restart_block.fn = do_no_restart_syscall;
-+
-+	/*
-+	 * Since we stacked the signal on a 128-bit boundary,
-+	 * then 'sp' should be word aligned here.  If it's
-+	 * not, then the user is trying to mess with us.
-+	 */
-+	if (regs->sp & 15)
-+		goto badframe;
-+
-+	frame = (struct ilp32_rt_sigframe __user *) regs->sp;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+
-+	if (restore_ilp32_sigframe(regs, &frame->sig))
-+		goto badframe;
-+
-+	if (compat_restore_altstack(&frame->sig.uc.uc_stack))
-+		goto badframe;
-+
-+	return regs->regs[0];
-+
-+badframe:
-+	if (show_unhandled_signals)
-+		pr_info_ratelimited("%s[%d]: bad frame in %s: pc=%08llx sp=%08llx\n",
-+				    current->comm, task_pid_nr(current),
-+				    __func__, regs->pc, regs->sp);
-+	force_sig(SIGSEGV, current);
-+
-+	return 0;
-+}
-+
-+static struct ilp32_rt_sigframe __user *ilp32_get_sigframe(struct ksignal *ksig,
-+						struct pt_regs *regs)
-+{
-+	unsigned long sp, sp_top;
-+	struct ilp32_rt_sigframe __user *frame;
-+
-+	sp = sp_top = sigsp(regs->sp, ksig);
-+
-+	sp = (sp - sizeof(struct ilp32_rt_sigframe)) & ~15;
-+	frame = (struct ilp32_rt_sigframe __user *)sp;
-+
-+	/*
-+	 * Check that we can actually write to the signal frame.
-+	 */
-+	if (!access_ok(VERIFY_WRITE, frame, sp_top - sp))
-+		frame = NULL;
-+
-+	return frame;
-+}
-+
-+/*
-+ * ILP32 signal handling routines called from signal.c
-+ */
-+int ilp32_setup_rt_frame(int usig, struct ksignal *ksig,
-+			  sigset_t *set, struct pt_regs *regs)
-+{
-+	struct ilp32_rt_sigframe __user *frame;
-+	int err = 0;
-+
-+	frame = ilp32_get_sigframe(ksig, regs);
-+
-+	if (!frame)
-+		return 1;
-+
-+	err |= copy_siginfo_to_user32(&frame->info, &ksig->info);
-+
-+	__put_user_error(0, &frame->sig.uc.uc_flags, err);
-+	__put_user_error(0, &frame->sig.uc.uc_link, err);
-+
-+	err |= __compat_save_altstack(&frame->sig.uc.uc_stack, regs->sp);
-+	err |= setup_ilp32_sigframe(&frame->sig, regs, set);
-+	if (err == 0) {
-+		setup_return(regs, &ksig->ka,
-+				frame, ILP32_RT_SIGFRAME_FP_POS, usig);
-+		regs->regs[1] = (unsigned long)&frame->info;
-+		regs->regs[2] = (unsigned long)&frame->sig.uc;
-+	}
-+
-+	return err;
-+}
++#include "../../../fs/compat_binfmt_elf.c"
 -- 
 2.7.4
 
