@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0070.outbound.protection.outlook.com ([104.47.33.70]:35674
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam03on0046.outbound.protection.outlook.com ([104.47.42.46]:41497
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932967AbcJUUuF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Oct 2016 16:50:05 -0400
+        id S932739AbcJUUta (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 16:49:30 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 12/18] arm64: ilp32: add sys_ilp32.c and a separate table (in entry.S) to use it
-Date: Fri, 21 Oct 2016 23:33:11 +0300
-Message-ID: <1477081997-4770-13-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 01/18] 32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+Date: Fri, 21 Oct 2016 23:33:00 +0300
+Message-ID: <1477081997-4770-2-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,252 +15,423 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Andrew Pinski <apinski@cavium.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
-Message-ID: <20161021203311.kGe2hKsmgV6Glo2jWryJjDuq-yZRrWuSQ60dMQgM3IY@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+Message-ID: <20161021203300.S6PVTibFAK8RQ8zJ_yGZPeYXX_34LfNIT7d8r1OG3QM@z>
 
-From: Andrew Pinski <apinski@cavium.com>
+All new 32-bit architectures should have 64-bit off_t type, but existing
+architectures has 32-bit ones.
 
-Add a separate syscall-table for ILP32, which dispatches either to native
-LP64 system call implementation or to compat-syscalls, as appropriate.
+To handle it, new config option is added to arch/Kconfig that defaults
+ARCH_32BIT_OFF_T to be disabled for non-64 bit architectures. All existing
+32-bit architectures enable it explicitly here.
 
-Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+New option affects force_o_largefile() behaviour. Namely, if off_t is
+64-bits long, we have no reason to reject user to open big files.
+
+For syscalls sys_openat() and sys_open_by_handle_at() force_o_largefile()
+is called, to set O_LARGEFILE flag, and this is the only difference
+comparing to compat versions. All compat ABIs are already turned to use
+64-bit off_t, except tile. So, compat versions for this syscalls are not
+needed anymore. Tile is handled explicitly.
+
+Note that even if architectures has only 64-bit off_t in the kernel
+(arc, c6x, h8300, hexagon, metag, nios2, openrisc, tile32 and unicore32),
+a libc may use 32-bit off_t, and therefore want to limit the file size
+to 4GB unless specified differently in the open flags.
+
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
 ---
- arch/arm64/include/asm/unistd.h      |   8 ++-
- arch/arm64/include/uapi/asm/unistd.h |  12 +++++
- arch/arm64/kernel/Makefile           |   2 +-
- arch/arm64/kernel/entry.S            |  28 +++++++++-
- arch/arm64/kernel/sys_ilp32.c        | 100 +++++++++++++++++++++++++++++++++++
- 5 files changed, 145 insertions(+), 5 deletions(-)
- create mode 100644 arch/arm64/kernel/sys_ilp32.c
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 2 +-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 29 files changed, 35 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unistd.h
-index fe9d6c1..851cc8a 100644
---- a/arch/arm64/include/asm/unistd.h
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -13,13 +13,17 @@
-  * You should have received a copy of the GNU General Public License
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
-+
-+#ifdef CONFIG_COMPAT
-+#define __ARCH_WANT_COMPAT_STAT64
-+#define __ARCH_WANT_SYS_LLSEEK
-+#endif
-+
- #ifdef CONFIG_AARCH32_EL0
- #define __ARCH_WANT_COMPAT_SYS_GETDENTS64
--#define __ARCH_WANT_COMPAT_STAT64
- #define __ARCH_WANT_SYS_GETHOSTNAME
- #define __ARCH_WANT_SYS_PAUSE
- #define __ARCH_WANT_SYS_GETPGRP
--#define __ARCH_WANT_SYS_LLSEEK
- #define __ARCH_WANT_SYS_NICE
- #define __ARCH_WANT_SYS_SIGPENDING
- #define __ARCH_WANT_SYS_SIGPROCMASK
-diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
-index 043d17a..b4cd688 100644
---- a/arch/arm64/include/uapi/asm/unistd.h
-+++ b/arch/arm64/include/uapi/asm/unistd.h
-@@ -14,6 +14,18 @@
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 659bdd0..ec06a71 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -234,6 +234,10 @@ config ARCH_THREAD_STACK_ALLOCATOR
+ config ARCH_WANTS_DYNAMIC_TASK_STRUCT
+ 	bool
  
-+/*
-+ * Use AARCH32 interface for sys_sync_file_range() as it passes 64-bit arguments.
-+ */
-+#if defined(__ILP32__) || defined(__SYSCALL_COMPAT)
-+#define __ARCH_WANT_SYNC_FILE_RANGE2
-+#endif
++config ARCH_32BIT_OFF_T
++	bool
++	depends on !64BIT
 +
-+/*
-+ * AARCH64/ILP32 is introduced after renameat() was replaced with renameat2().
-+ */
-+#if !(defined(__ILP32__) || defined(__SYSCALL_COMPAT))
- #define __ARCH_WANT_RENAMEAT
-+#endif
+ config HAVE_REGS_AND_STACK_ACCESS_API
+ 	bool
+ 	help
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index ecd1237..3e8dfd6 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -9,6 +9,7 @@
+ config ARC
+ 	def_bool y
+ 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
++	select ARCH_32BIT_OFF_T
+ 	select BUILDTIME_EXTABLE_SORT
+ 	select CLKSRC_OF
+ 	select CLONE_BACKWARDS
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index b5d529f..ff8b8b2 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1,6 +1,7 @@
+ config ARM
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index 3c1bd64..26418e7 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -12,6 +12,7 @@ config RWSEM_XCHGADD_ALGORITHM
  
- #include <asm-generic/unistd.h>
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 9123bb8..06070f5 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -29,7 +29,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ config BLACKFIN
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_DYNAMIC_FTRACE
+diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
+index 71b758d..8c059f0 100644
+--- a/arch/cris/Kconfig
++++ b/arch/cris/Kconfig
+@@ -50,6 +50,7 @@ config LOCKDEP_SUPPORT
+ config CRIS
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
+diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
+index eefd9a4..2f14904 100644
+--- a/arch/frv/Kconfig
++++ b/arch/frv/Kconfig
+@@ -1,6 +1,7 @@
+ config FRV
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_PERF_EVENTS
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index 3ae8525..29bbcb1 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -1,5 +1,6 @@
+ config H8300
+         def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_UID16
+ 	select VIRT_TO_BUS
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 1941e4b..bbcea8c 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -3,6 +3,7 @@ comment "Linux Kernel Configuration for Hexagon"
  
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
--arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
- arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index b6fb14b..b152aab 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -249,6 +249,23 @@ tsk	.req	x28		// current thread_info
+ config HEXAGON
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_OPROFILE
+ 	# Other pending projects/to-do items.
+ 	# select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 3cc8498..efa10d3 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -1,6 +1,7 @@
+ config M32R
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	select INIT_ALL_POSSIBLE
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index d140206..ed6f90c 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -1,6 +1,7 @@
+ config M68K
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
+ 	select HAVE_IDE
+ 	select HAVE_AOUT if MMU
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index 5b7a45d..c337192 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -1,5 +1,6 @@
+ config METAG
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select EMBEDDED
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 86f6572..3a6146b 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -1,5 +1,6 @@
+ config MICROBLAZE
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index b3c5bde..a01da24 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -1,6 +1,7 @@
+ config MIPS
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select ARCH_SUPPORTS_UPROBES
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index 38e3494..c44c699 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -1,6 +1,7 @@
+ config MN10300
+ 	def_bool y
+ 	select HAVE_EXIT_THREAD
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_OPROFILE
+ 	select HAVE_UID16
+ 	select GENERIC_IRQ_SHOW
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index 51a56c8..f9273c9 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -1,5 +1,6 @@
+ config NIOS2
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select CLKSRC_OF
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index 489e7f9..c4c96c9 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -5,6 +5,7 @@
  
- 	.text
+ config OPENRISC
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select OF
+ 	select OF_EARLY_FLATTREE
+ 	select IRQ_DOMAIN
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 71c4a3a..025ae12 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -1,5 +1,6 @@
+ config PARISC
+ 	def_bool y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 65fba4c..22178eb 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -80,6 +80,7 @@ config ARCH_HAS_DMA_SET_COHERENT_MASK
+ config PPC
+ 	bool
+ 	default y
++	select ARCH_32BIT_OFF_T if PPC32
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select BINFMT_ELF
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index 507d631..0a9484b 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -2,6 +2,7 @@ menu "Machine selection"
  
-+#ifdef CONFIG_ARM64_ILP32
-+/*
-+ * AARCH64/ILP32. Zero top halves of x0-x7
-+ * registers as userspace may put garbage there.
-+ */
-+	.macro	delouse_input_regs
-+	mov w0, w0
-+	mov w1, w1
-+	mov w2, w2
-+	mov w3, w3
-+	mov w4, w4
-+	mov w5, w5
-+	mov w6, w6
-+	mov w7, w7
-+	.endm
-+#endif
-+
- /*
-  * Exception vectors.
-  */
-@@ -517,6 +534,7 @@ el0_svc_compat:
- 	 * AArch32 syscall handling
- 	 */
- 	adrp	stbl, compat_sys_call_table	// load compat syscall table pointer
-+	ldr     x16, [tsk, #TI_FLAGS]
- 	uxtw	scno, w7			// syscall number in w7 (r7)
- 	mov     sc_nr, #__NR_compat_syscalls
- 	b	el0_svc_naked
-@@ -739,15 +757,21 @@ ENDPROC(ret_from_fork)
- 	.align	6
- el0_svc:
- 	adrp	stbl, sys_call_table		// load syscall table pointer
-+	ldr	x16, [tsk, #TI_FLAGS]
- 	uxtw	scno, w8			// syscall number in w8
- 	mov	sc_nr, #__NR_syscalls
-+#ifdef CONFIG_ARM64_ILP32
-+	tst	x16, #_TIF_32BIT_AARCH64
-+	b.eq	el0_svc_naked			// We are using LP64  syscall table
-+	adrp	stbl, sys_call_ilp32_table	// load ilp32 syscall table pointer
-+	delouse_input_regs
-+#endif
- el0_svc_naked:					// compat entry point
- 	stp	x0, scno, [sp, #S_ORIG_X0]	// save the original x0 and syscall number
- 	enable_dbg_and_irq
- 	ct_user_exit 1
+ config SCORE
+        def_bool y
++       select ARCH_32BIT_OFF_T
+        select GENERIC_IRQ_SHOW
+        select GENERIC_IOMAP
+        select GENERIC_ATOMIC64
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index ee08695..1f99eb3 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -56,6 +56,7 @@ config SUPERH
  
--	ldr	x16, [tsk, #TI_FLAGS]		// check for syscall hooks
--	tst	x16, #_TIF_SYSCALL_WORK
-+	tst	x16, #_TIF_SYSCALL_WORK		// check for syscall hooks
- 	b.ne	__sys_trace
- 	cmp     scno, sc_nr                     // check upper syscall limit
- 	b.hs	ni_sys
-diff --git a/arch/arm64/kernel/sys_ilp32.c b/arch/arm64/kernel/sys_ilp32.c
-new file mode 100644
-index 0000000..fbf2f00
---- /dev/null
-+++ b/arch/arm64/kernel/sys_ilp32.c
-@@ -0,0 +1,100 @@
-+/*
-+ * AArch64- ILP32 specific system calls implementation
-+ *
-+ * Copyright (C) 2016 Cavium Inc.
-+ * Author: Andrew Pinski <apinski@cavium.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
+ config SUPERH32
+ 	def_bool ARCH = "sh"
++	select ARCH_32BIT_OFF_T
+ 	select HAVE_KPROBES
+ 	select HAVE_KRETPROBES
+ 	select HAVE_IOREMAP_PROT if MMU && !X2TLB
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index b23c76b..36ef669 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -46,6 +46,7 @@ config SPARC
+ 
+ config SPARC32
+ 	def_bool !64BIT
++	select ARCH_32BIT_OFF_T
+ 	select GENERIC_ATOMIC64
+ 	select CLZ_TAB
+ 	select HAVE_UID16
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 4583c03..845dcbd 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -3,6 +3,7 @@
+ 
+ config TILE
+ 	def_bool y
++	select ARCH_32BIT_OFF_T if !64BIT
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_WANT_FRAME_POINTERS
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index bdaf71d..b38a898 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -103,6 +103,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+ #define compat_sys_readahead sys32_readahead
+ #define sys_llseek compat_sys_llseek
+ 
++#define sys_openat             compat_sys_openat
++#define sys_open_by_handle_at  compat_sys_open_by_handle_at
 +
-+#define __SYSCALL_COMPAT
-+
-+#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/msg.h>
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+#include <linux/compat.h>
-+#include <asm-generic/syscalls.h>
-+
-+/*
-+ * AARCH32 requires 4-page alignment for shared memory,
-+ * but AARCH64 - only 1 page. This is the only difference
-+ * between compat and native sys_shmat(). So ILP32 just pick
-+ * AARCH64 version.
-+ */
-+#define compat_sys_shmat		sys_shmat
-+
-+/*
-+ * ILP32 needs special handling for some ptrace requests.
-+ */
-+#define sys_ptrace			compat_sys_ptrace
-+
-+/*
-+ * Using AARCH32 interface for syscalls that take 64-bit
-+ * parameters in registers.
-+ */
-+#define compat_sys_fadvise64_64		compat_sys_fadvise64_64_wrapper
-+#define compat_sys_fallocate		compat_sys_fallocate_wrapper
-+#define compat_sys_ftruncate64		compat_sys_ftruncate64_wrapper
-+#define compat_sys_pread64		compat_sys_pread64_wrapper
-+#define compat_sys_pwrite64		compat_sys_pwrite64_wrapper
-+#define compat_sys_readahead		compat_sys_readahead_wrapper
-+#define compat_sys_sync_file_range2	compat_sys_sync_file_range2_wrapper
-+#define compat_sys_truncate64		compat_sys_truncate64_wrapper
-+#define sys_mmap2			compat_sys_mmap2_wrapper
-+
-+/*
-+ * Using AARCH32 interface for syscalls that take the size of
-+ * sfruct statfs as an argument, as it's calculated differently
-+ * in kernel and user spaces.
-+ */
-+#define compat_sys_fstatfs64		compat_sys_fstatfs64_wrapper
-+#define compat_sys_statfs64		compat_sys_statfs64_wrapper
-+
-+/*
-+ * Using custom wrapper for rt_sigreturn() to handle custom
-+ * struct rt_sigframe.
-+ */
-+#define compat_sys_rt_sigreturn        ilp32_sys_rt_sigreturn_wrapper
-+
-+asmlinkage long compat_sys_fstatfs64_wrapper(void);
-+asmlinkage long compat_sys_statfs64_wrapper(void);
-+asmlinkage long compat_sys_fadvise64_64_wrapper(void);
-+asmlinkage long compat_sys_fallocate_wrapper(void);
-+asmlinkage long compat_sys_ftruncate64_wrapper(void);
-+asmlinkage long compat_sys_mmap2_wrapper(void);
-+asmlinkage long compat_sys_pread64_wrapper(void);
-+asmlinkage long compat_sys_pwrite64_wrapper(void);
-+asmlinkage long compat_sys_readahead_wrapper(void);
-+asmlinkage long compat_sys_sync_file_range2_wrapper(void);
-+asmlinkage long compat_sys_truncate64_wrapper(void);
-+asmlinkage long ilp32_sys_rt_sigreturn_wrapper(void);
-+
-+#include <asm/syscall.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, sym)	[nr] = sym,
-+
-+/*
-+ * The sys_call_ilp32_table array must be 4K aligned to be accessible from
-+ * kernel/entry.S.
-+ */
-+void *sys_call_ilp32_table[__NR_syscalls] __aligned(4096) = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index 0769066..cc642f9 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -1,6 +1,7 @@
+ config UNICORE32
+ 	def_bool y
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_MEMBLOCK
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bada636..52d19b4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -20,6 +20,7 @@ config X86
+ 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ 	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+ 	select ANON_INODES
++	select ARCH_32BIT_OFF_T			if X86_32
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+diff --git a/arch/x86/um/Kconfig b/arch/x86/um/Kconfig
+index ed56a1c..8436bcd 100644
+--- a/arch/x86/um/Kconfig
++++ b/arch/x86/um/Kconfig
+@@ -21,6 +21,7 @@ config 64BIT
+ config X86_32
+ 	def_bool !64BIT
+ 	select HAVE_AOUT
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select MODULES_USE_ELF_REL
+ 	select CLONE_BACKWARDS
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index f610586..90c062d 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -3,6 +3,7 @@ config ZONE_DMA
+ 
+ config XTENSA
+ 	def_bool y
++	select ARCH_32BIT_OFF_T
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select BUILDTIME_EXTABLE_SORT
+diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+index 76ce329..46960a1 100644
+--- a/include/linux/fcntl.h
++++ b/include/linux/fcntl.h
+@@ -5,7 +5,7 @@
+ 
+ 
+ #ifndef force_o_largefile
+-#define force_o_largefile() (BITS_PER_LONG != 32)
++#define force_o_largefile() (!IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
+ #endif
+ 
+ #if BITS_PER_LONG == 32
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 9b1462e..a6062be 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -178,7 +178,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
+ #define __NR_fchown 55
+ __SYSCALL(__NR_fchown, sys_fchown)
+ #define __NR_openat 56
+-__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
++__SYSCALL(__NR_openat, sys_openat)
+ #define __NR_close 57
+ __SYSCALL(__NR_close, sys_close)
+ #define __NR_vhangup 58
+@@ -676,8 +676,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
+ #define __NR_name_to_handle_at         264
+ __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
+ #define __NR_open_by_handle_at         265
+-__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
+-	  compat_sys_open_by_handle_at)
++__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
+ #define __NR_clock_adjtime 266
+ __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
+ #define __NR_syncfs 267
 -- 
 2.7.4
 
