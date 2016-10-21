@@ -1,7 +1,8 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 13/18] arm64: signal: share lp64 signal routines to ilp32
-Date: Fri, 21 Oct 2016 23:33:12 +0300
-Message-ID: <1477081997-4770-14-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 08/18] arm64: ilp32: add is_ilp32_compat_{task,
+ thread} and TIF_32BIT_AARCH64
+Date: Fri, 21 Oct 2016 23:33:07 +0300
+Message-ID: <1477081997-4770-9-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -18,242 +19,128 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, ynorov@caviumnetworks.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, ynorov@caviumnetworks.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-After that, it will be possible to reuse it in ilp32.
+ILP32 tasks are needed to be distinguished from lp64 and aarch32.
+This patch adds helper functions is_ilp32_compat_{task,thread} and
+thread flag TIF_32BIT_AARCH64 to address it. This is a preparation
+for following patches in ilp32 patchset.
 
+For consistency, SET_PERSONALITY is changed here accordingly.
+
+Signed-off-by: Andrew Pinski <Andrew.Pinski@caviumnetworks.com>
+Signed-off-by: Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
+Signed-off-by: Christoph Muellner <christoph.muellner@theobroma-systems.com>
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Reviewed-by: David Daney <ddaney@caviumnetworks.com>
 ---
- arch/arm64/include/asm/signal_common.h | 33 ++++++++++++
- arch/arm64/kernel/signal.c             | 93 +++++++++++++++++++++-------------
- 2 files changed, 92 insertions(+), 34 deletions(-)
- create mode 100644 arch/arm64/include/asm/signal_common.h
+ arch/arm64/include/asm/elf.h         | 13 +++++++++++--
+ arch/arm64/include/asm/is_compat.h   | 30 ++++++++++++++++++++++++++++--
+ arch/arm64/include/asm/thread_info.h |  2 ++
+ 3 files changed, 41 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/signal_common.h b/arch/arm64/include/asm/signal_common.h
-new file mode 100644
-index 0000000..756ed2c
---- /dev/null
-+++ b/arch/arm64/include/asm/signal_common.h
-@@ -0,0 +1,33 @@
-+/*
-+ * Copyright (C) 1995-2009 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Copyright (C) 2016 Cavium Networks.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __ASM_SIGNAL_COMMON_H
-+#define __ASM_SIGNAL_COMMON_H
-+
-+#include <linux/uaccess.h>
-+#include <asm/ucontext.h>
-+#include <asm/fpsimd.h>
-+
-+int preserve_fpsimd_context(struct fpsimd_context __user *ctx);
-+int restore_fpsimd_context(struct fpsimd_context __user *ctx);
-+int setup_sigcontext(struct sigcontext __user *uc_mcontext, struct pt_regs *regs);
-+int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sf);
-+void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
-+			void __user *frame, off_t sigframe_off, int usig);
-+
-+#endif /* __ASM_SIGNAL_COMMON_H */
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index f90cdf5..478d6c5 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -34,18 +34,26 @@
- #include <asm/fpsimd.h>
- #include <asm/signal32.h>
- #include <asm/vdso.h>
-+#include <asm/signal_common.h>
-+
-+#define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig)	\
-+			+ offsetof(struct sigframe, fp))
-+
-+struct sigframe {
-+	struct ucontext uc;
-+	u64 fp;
-+	u64 lr;
-+};
- 
- /*
-  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index 6a9049b..f259fe8 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -142,7 +142,11 @@ typedef struct user_fpsimd_state elf_fpregset_t;
   */
- struct rt_sigframe {
- 	struct siginfo info;
--	struct ucontext uc;
--	u64 fp;
--	u64 lr;
-+	struct sigframe sig;
- };
+ #define ELF_PLAT_INIT(_r, load_addr)	(_r)->regs[0] = 0
  
--static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
-+int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
- {
- 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
- 	int err;
-@@ -65,7 +73,7 @@ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
- 	return err ? -EFAULT : 0;
- }
+-#define SET_PERSONALITY(ex)		clear_thread_flag(TIF_32BIT);
++#define SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	clear_thread_flag(TIF_32BIT);		\
++} while (0)
  
--static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
-+int restore_fpsimd_context(struct fpsimd_context __user *ctx)
- {
- 	struct fpsimd_state fpsimd;
- 	__u32 magic, size;
-@@ -93,22 +101,30 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
- }
+ /* update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT entries changes */
+ #define ARCH_DLINFO							\
+@@ -183,7 +187,12 @@ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
+ 					 ((x)->e_flags & EF_ARM_EABI_MASK))
  
- static int restore_sigframe(struct pt_regs *regs,
--			    struct rt_sigframe __user *sf)
-+			    struct sigframe __user *sf)
- {
- 	sigset_t set;
--	int i, err;
--	void *aux = sf->uc.uc_mcontext.__reserved;
--
-+	int err;
- 	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
- 	if (err == 0)
- 		set_current_blocked(&set);
+ #define compat_start_thread		compat_start_thread
+-#define COMPAT_SET_PERSONALITY(ex)	set_thread_flag(TIF_32BIT);
++#define COMPAT_SET_PERSONALITY(ex)		\
++do {						\
++	clear_thread_flag(TIF_32BIT_AARCH64);	\
++	set_thread_flag(TIF_32BIT);		\
++} while (0)
++
+ #define COMPAT_ARCH_DLINFO
+ extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
+ 				      int uses_interp);
+diff --git a/arch/arm64/include/asm/is_compat.h b/arch/arm64/include/asm/is_compat.h
+index 8dba5ca..7726beb 100644
+--- a/arch/arm64/include/asm/is_compat.h
++++ b/arch/arm64/include/asm/is_compat.h
+@@ -45,18 +45,44 @@ static inline int is_a32_compat_thread(struct thread_info *thread)
  
-+	err |= restore_sigcontext(regs, &sf->uc.uc_mcontext);
-+	return err;
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
++#ifdef CONFIG_ARM64_ILP32
++
++static inline int is_ilp32_compat_task(void)
++{
++	return test_thread_flag(TIF_32BIT_AARCH64);
 +}
 +
-+
-+int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *uc_mcontext)
++static inline int is_ilp32_compat_thread(struct thread_info *thread)
 +{
-+	int i, err = 0;
-+	void *aux = uc_mcontext->__reserved;
-+
- 	for (i = 0; i < 31; i++)
--		__get_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
-+		__get_user_error(regs->regs[i], &uc_mcontext->regs[i],
- 				 err);
--	__get_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
--	__get_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
--	__get_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
-+	__get_user_error(regs->sp, &uc_mcontext->sp, err);
-+	__get_user_error(regs->pc, &uc_mcontext->pc, err);
-+	__get_user_error(regs->pstate, &uc_mcontext->pstate, err);
- 
- 	/*
- 	 * Avoid sys_rt_sigreturn() restarting.
-@@ -145,10 +161,10 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
- 	if (!access_ok(VERIFY_READ, frame, sizeof (*frame)))
- 		goto badframe;
- 
--	if (restore_sigframe(regs, frame))
-+	if (restore_sigframe(regs, &frame->sig))
- 		goto badframe;
- 
--	if (restore_altstack(&frame->uc.uc_stack))
-+	if (restore_altstack(&frame->sig.uc.uc_stack))
- 		goto badframe;
- 
- 	return regs->regs[0];
-@@ -162,27 +178,36 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
- 	return 0;
- }
- 
--static int setup_sigframe(struct rt_sigframe __user *sf,
-+static int setup_sigframe(struct sigframe __user *sf,
- 			  struct pt_regs *regs, sigset_t *set)
- {
--	int i, err = 0;
--	void *aux = sf->uc.uc_mcontext.__reserved;
--	struct _aarch64_ctx *end;
-+	int err = 0;
- 
- 	/* set up the stack frame for unwinding */
- 	__put_user_error(regs->regs[29], &sf->fp, err);
- 	__put_user_error(regs->regs[30], &sf->lr, err);
-+	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
-+	err |= setup_sigcontext(&sf->uc.uc_mcontext, regs);
-+
-+	return err;
++	return test_ti_thread_flag(thread, TIF_32BIT_AARCH64);
 +}
 +
-+int setup_sigcontext(struct sigcontext __user *uc_mcontext,
-+			struct pt_regs *regs)
++#else
++
++static inline int is_ilp32_compat_task(void)
 +{
-+	void *aux = uc_mcontext->__reserved;
-+	struct _aarch64_ctx *end;
-+	int i, err = 0;
++	return 0;
++}
++
++static inline int is_ilp32_compat_thread(struct thread_info *thread)
++{
++	return 0;
++}
++
++#endif /* CONFIG_ARM64_ILP32 */
++
+ #ifdef CONFIG_COMPAT
  
- 	for (i = 0; i < 31; i++)
--		__put_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
-+		__put_user_error(regs->regs[i], &uc_mcontext->regs[i],
- 				 err);
--	__put_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
--	__put_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
--	__put_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
- 
--	__put_user_error(current->thread.fault_address, &sf->uc.uc_mcontext.fault_address, err);
-+	__put_user_error(regs->sp, &uc_mcontext->sp, err);
-+	__put_user_error(regs->pc, &uc_mcontext->pc, err);
-+	__put_user_error(regs->pstate, &uc_mcontext->pstate, err);
- 
--	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
-+	__put_user_error(current->thread.fault_address, &uc_mcontext->fault_address, err);
- 
- 	if (err == 0) {
- 		struct fpsimd_context *fpsimd_ctx =
-@@ -229,14 +254,14 @@ static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
- 	return frame;
+ static inline int is_compat_task(void)
+ {
+-	return is_a32_compat_task();
++	return is_a32_compat_task() || is_ilp32_compat_task();
  }
  
--static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
--			 void __user *frame, int usig)
-+void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
-+			 void __user *frame, off_t fp_pos, int usig)
+ #endif /* CONFIG_COMPAT */
+ 
+ static inline int is_compat_thread(struct thread_info *thread)
  {
- 	__sigrestore_t sigtramp;
+-	return is_a32_compat_thread(thread);
++	return is_a32_compat_thread(thread) || is_ilp32_compat_thread(thread);
+ }
  
- 	regs->regs[0] = usig;
- 	regs->sp = (unsigned long)frame;
--	regs->regs[29] = regs->sp + offsetof(struct rt_sigframe, fp);
-+	regs->regs[29] = regs->sp + fp_pos;
- 	regs->pc = (unsigned long)ka->sa.sa_handler;
  
- 	if (ka->sa.sa_flags & SA_RESTORER)
-@@ -257,17 +282,17 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 	if (!frame)
- 		return 1;
+diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
+index e12411f..680aca5 100644
+--- a/arch/arm64/include/asm/thread_info.h
++++ b/arch/arm64/include/asm/thread_info.h
+@@ -122,6 +122,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define TIF_RESTORE_SIGMASK	20
+ #define TIF_SINGLESTEP		21
+ #define TIF_32BIT		22	/* AARCH32 process */
++#define TIF_32BIT_AARCH64	23	/* 32 bit process on AArch64(ILP32) */
  
--	__put_user_error(0, &frame->uc.uc_flags, err);
--	__put_user_error(NULL, &frame->uc.uc_link, err);
-+	__put_user_error(0, &frame->sig.uc.uc_flags, err);
-+	__put_user_error(NULL, &frame->sig.uc.uc_link, err);
+ #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+ #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+@@ -133,6 +134,7 @@ static inline struct thread_info *current_thread_info(void)
+ #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
+ #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
+ #define _TIF_32BIT		(1 << TIF_32BIT)
++#define _TIF_32BIT_AARCH64	(1 << TIF_32BIT_AARCH64)
  
--	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
--	err |= setup_sigframe(frame, regs, set);
-+	err |= __save_altstack(&frame->sig.uc.uc_stack, regs->sp);
-+	err |= setup_sigframe(&frame->sig, regs, set);
- 	if (err == 0) {
--		setup_return(regs, &ksig->ka, frame, usig);
-+		setup_return(regs, &ksig->ka, frame, RT_SIGFRAME_FP_POS, usig);
- 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 			regs->regs[1] = (unsigned long)&frame->info;
--			regs->regs[2] = (unsigned long)&frame->uc;
-+			regs->regs[2] = (unsigned long)&frame->sig.uc;
- 		}
- 	}
- 
+ #define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
+ 				 _TIF_NOTIFY_RESUME | _TIF_FOREIGN_FPSTATE)
 -- 
 2.7.4
