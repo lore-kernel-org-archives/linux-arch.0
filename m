@@ -1,163 +1,161 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Fri, 21 Oct 2016 23:33:09 +0300
-Message-ID: <1477081997-4770-11-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 06/18] thread: move thread bits accessors to separated file
+Date: Fri, 21 Oct 2016 23:33:05 +0300
+Message-ID: <1477081997-4770-7-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, ynorov@caviumnetworks.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-binfmt_ilp32.c is needed to handle ILP32 binaries
+They may be accessed from low-level code, so isolating is a measure to
+avoid circular dependencies in header files.
+
+The exact reason for circular dependency is WARN_ON() macro added
+in patch [edd63a27] "set_restore_sigmask() is never called without
+SIGPENDING (and never should be)"
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
 ---
- arch/arm64/include/asm/elf.h     |  6 +++
- arch/arm64/kernel/Makefile       |  1 +
- arch/arm64/kernel/binfmt_ilp32.c | 97 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 104 insertions(+)
- create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ include/linux/thread_bits.h | 54 +++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/thread_info.h | 44 +-----------------------------------
+ 2 files changed, 55 insertions(+), 43 deletions(-)
+ create mode 100644 include/linux/thread_bits.h
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index f259fe8..be29dde 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
- 
- #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
- 
-+#ifndef USE_AARCH64_GREG
- /* AArch32 registers. */
- #define COMPAT_ELF_NGREG		18
- typedef unsigned int			compat_elf_greg_t;
- typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-+#else /* AArch64 registers for AARCH64/ILP32 */
-+#define COMPAT_ELF_NGREG	ELF_NGREG
-+#define compat_elf_greg_t	elf_greg_t
-+#define compat_elf_gregset_t	elf_gregset_t
-+#endif
- 
- /* AArch32 EABI. */
- #define EF_ARM_EABI_MASK		0xff000000
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index abe5040..f661888 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -29,6 +29,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
+diff --git a/include/linux/thread_bits.h b/include/linux/thread_bits.h
 new file mode 100644
-index 0000000..759066e
+index 0000000..ed788b0
 --- /dev/null
-+++ b/arch/arm64/kernel/binfmt_ilp32.c
-@@ -0,0 +1,97 @@
-+/*
-+ * Support for ILP32 Linux/aarch64 ELF binaries.
-+ */
-+#define USE_AARCH64_GREG
++++ b/include/linux/thread_bits.h
+@@ -0,0 +1,54 @@
 +
-+#include <linux/elfcore-compat.h>
-+#include <linux/time.h>
++/* thread_bits.h: common low-level thread bits accessors */
 +
-+#undef	ELF_CLASS
-+#define ELF_CLASS	ELFCLASS32
++#ifndef _LINUX_THREAD_BITS_H
++#define _LINUX_THREAD_BITS_H
 +
-+#undef	elfhdr
-+#undef	elf_phdr
-+#undef	elf_shdr
-+#undef	elf_note
-+#undef	elf_addr_t
-+#define elfhdr		elf32_hdr
-+#define elf_phdr	elf32_phdr
-+#define elf_shdr	elf32_shdr
-+#define elf_note	elf32_note
-+#define elf_addr_t	Elf32_Addr
++#ifndef __ASSEMBLY__
++
++#include <linux/bitops.h>
++#include <asm/thread_info.h>
 +
 +/*
-+ * Some data types as stored in coredump.
++ * flag set/clear/test wrappers
++ * - pass TIF_xxxx constants to these functions
 + */
-+#define user_long_t		compat_long_t
-+#define user_siginfo_t		compat_siginfo_t
-+#define copy_siginfo_to_user	copy_siginfo_to_user32
 +
-+/*
-+ * The machine-dependent core note format types are defined in elfcore-compat.h,
-+ * which requires asm/elf.h to define compat_elf_gregset_t et al.
-+ */
-+#define elf_prstatus	compat_elf_prstatus
-+#define elf_prpsinfo	compat_elf_prpsinfo
-+
-+/*
-+ * Compat version of cputime_to_compat_timeval, perhaps this
-+ * should be an inline in <linux/compat.h>.
-+ */
-+static void cputime_to_compat_timeval(const cputime_t cputime,
-+				      struct compat_timeval *value)
++static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
 +{
-+	struct timeval tv;
-+
-+	cputime_to_timeval(cputime, &tv);
-+	value->tv_sec = tv.tv_sec;
-+	value->tv_usec = tv.tv_usec;
++	set_bit(flag, (unsigned long *)&ti->flags);
 +}
 +
-+#undef cputime_to_timeval
-+#define cputime_to_timeval cputime_to_compat_timeval
++static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	clear_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+/* AARCH64 ILP32 EABI. */
-+#undef elf_check_arch
-+#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
-+					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
++static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+#undef SET_PERSONALITY
-+#define SET_PERSONALITY(ex)						\
-+do {									\
-+	set_thread_flag(TIF_32BIT_AARCH64);				\
-+	clear_thread_flag(TIF_32BIT);					\
-+} while (0)
++static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+#undef ARCH_DLINFO
-+#define ARCH_DLINFO							\
-+do {									\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-+		    (elf_addr_t)(long)current->mm->context.vdso);	\
-+} while (0)
++static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
++{
++	return test_bit(flag, (unsigned long *)&ti->flags);
++}
 +
-+#undef ELF_PLATFORM
-+#ifdef __AARCH64EB__
-+#define ELF_PLATFORM		("aarch64_be:ilp32")
-+#else
-+#define ELF_PLATFORM		("aarch64:ilp32")
-+#endif
++#define set_thread_flag(flag) \
++	set_ti_thread_flag(current_thread_info(), flag)
++#define clear_thread_flag(flag) \
++	clear_ti_thread_flag(current_thread_info(), flag)
++#define test_and_set_thread_flag(flag) \
++	test_and_set_ti_thread_flag(current_thread_info(), flag)
++#define test_and_clear_thread_flag(flag) \
++	test_and_clear_ti_thread_flag(current_thread_info(), flag)
++#define test_thread_flag(flag) \
++	test_ti_thread_flag(current_thread_info(), flag)
 +
-+#undef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
-+
-+#undef ELF_HWCAP
-+#undef ELF_HWCAP2
-+#define ELF_HWCAP			((u32) elf_hwcap)
-+#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
-+
-+/*
-+ * Rename a few of the symbols that binfmt_elf.c will define.
-+ * These are all local so the names don't really matter, but it
-+ * might make some debugging less confusing not to duplicate them.
-+ */
-+#define elf_format		compat_elf_format
-+#define init_elf_binfmt		init_compat_elf_binfmt
-+#define exit_elf_binfmt		exit_compat_elf_binfmt
-+
-+#include "../../../fs/binfmt_elf.c"
++#endif /* !__ASSEMBLY__ */
++#endif /* _LINUX_THREAD_BITS_H */
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index 45f004e..f6e3239 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -65,8 +65,7 @@ struct restart_block {
+ 
+ extern long do_no_restart_syscall(struct restart_block *parm);
+ 
+-#include <linux/bitops.h>
+-#include <asm/thread_info.h>
++#include <linux/thread_bits.h>
+ 
+ #ifdef __KERNEL__
+ 
+@@ -77,47 +76,6 @@ extern long do_no_restart_syscall(struct restart_block *parm);
+ # define THREADINFO_GFP		(GFP_KERNEL_ACCOUNT | __GFP_NOTRACK)
+ #endif
+ 
+-/*
+- * flag set/clear/test wrappers
+- * - pass TIF_xxxx constants to these functions
+- */
+-
+-static inline void set_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	set_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline void clear_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	clear_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_and_set_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_and_set_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_and_clear_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_and_clear_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-static inline int test_ti_thread_flag(struct thread_info *ti, int flag)
+-{
+-	return test_bit(flag, (unsigned long *)&ti->flags);
+-}
+-
+-#define set_thread_flag(flag) \
+-	set_ti_thread_flag(current_thread_info(), flag)
+-#define clear_thread_flag(flag) \
+-	clear_ti_thread_flag(current_thread_info(), flag)
+-#define test_and_set_thread_flag(flag) \
+-	test_and_set_ti_thread_flag(current_thread_info(), flag)
+-#define test_and_clear_thread_flag(flag) \
+-	test_and_clear_ti_thread_flag(current_thread_info(), flag)
+-#define test_thread_flag(flag) \
+-	test_ti_thread_flag(current_thread_info(), flag)
+-
+ #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
+ 
+ #ifndef CONFIG_HAVE_ARCH_WITHIN_STACK_FRAMES
 -- 
 2.7.4
