@@ -1,8 +1,8 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 14/18] arm64: signal32: move ilp32 and aarch32 common code to
- separated file
-Date: Fri, 21 Oct 2016 23:33:13 +0300
-Message-ID: <1477081997-4770-15-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for
+ aarch32 and ilp32
+Date: Fri, 21 Oct 2016 23:33:15 +0300
+Message-ID: <1477081997-4770-17-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,338 +19,238 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, ynorov@caviumnetworks.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, ynorov@caviumnetworks.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
----
- arch/arm64/include/asm/signal32.h        |   3 +
- arch/arm64/include/asm/signal32_common.h |  27 +++++++
- arch/arm64/kernel/Makefile               |   2 +-
- arch/arm64/kernel/signal32.c             | 107 ------------------------
- arch/arm64/kernel/signal32_common.c      | 135 +++++++++++++++++++++++++++++++
- 5 files changed, 166 insertions(+), 108 deletions(-)
- create mode 100644 arch/arm64/include/asm/signal32_common.h
- create mode 100644 arch/arm64/kernel/signal32_common.c
+New aarch32 ptrace syscall handler is introduced to avoid run-time
+detection of the task type.
 
-diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
-index e68fcce..1c4ede7 100644
---- a/arch/arm64/include/asm/signal32.h
-+++ b/arch/arm64/include/asm/signal32.h
-@@ -13,6 +13,9 @@
-  * You should have received a copy of the GNU General Public License
-  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
-+
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Signed-off-by: Chengming Zhou <zhouchengming1@huawei.com>
+---
+ arch/arm64/include/asm/unistd32.h |  2 +-
+ arch/arm64/kernel/ptrace.c        | 91 ++++++++++++++++++++++++++++++++++++++-
+ arch/arm64/kernel/sys32.c         |  1 +
+ include/linux/ptrace.h            |  6 +++
+ kernel/ptrace.c                   | 10 ++---
+ 5 files changed, 103 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index b7e8ef1..6da7cbd 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
+ 			/* 25 was sys_stime */
+ __SYSCALL(25, sys_ni_syscall)
+ #define __NR_ptrace 26
+-__SYSCALL(__NR_ptrace, compat_sys_ptrace)
++__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
+ 			/* 27 was sys_alarm */
+ __SYSCALL(27, sys_ni_syscall)
+ 			/* 28 was sys_fstat */
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 1d075ed..ac542c9 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -29,6 +29,7 @@
+ #include <linux/user.h>
+ #include <linux/seccomp.h>
+ #include <linux/security.h>
++#include <linux/syscalls.h>
+ #include <linux/init.h>
+ #include <linux/signal.h>
+ #include <linux/uaccess.h>
+@@ -40,6 +41,7 @@
+ 
+ #include <asm/debug-monitors.h>
+ #include <asm/pgtable.h>
 +#include <asm/signal32_common.h>
-+
- #ifndef __ASM_SIGNAL32_H
- #define __ASM_SIGNAL32_H
+ #include <asm/syscall.h>
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+@@ -1215,7 +1217,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
+ }
+ #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
  
-diff --git a/arch/arm64/include/asm/signal32_common.h b/arch/arm64/include/asm/signal32_common.h
-new file mode 100644
-index 0000000..36c1ebc
---- /dev/null
-+++ b/arch/arm64/include/asm/signal32_common.h
-@@ -0,0 +1,27 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_SIGNAL32_COMMON_H
-+#define __ASM_SIGNAL32_COMMON_H
-+
-+#ifdef CONFIG_COMPAT
-+
-+int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from);
-+int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from);
-+
-+int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set);
-+int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset);
-+
-+#endif /* CONFIG_COMPAT*/
-+
-+#endif /* __ASM_SIGNAL32_COMMON_H */
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 06070f5..fdc0052 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -30,7 +30,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
- arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o sys_ilp32.o
--arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o
-+arm64-obj-$(CONFIG_COMPAT)		+= entry32_common.o signal32_common.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index b7063de..f2c1a38 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -103,113 +103,6 @@ struct compat_rt_sigframe {
+-long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
+ 			compat_ulong_t caddr, compat_ulong_t cdata)
+ {
+ 	unsigned long addr = caddr;
+@@ -1292,8 +1294,95 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
  
- #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
- 
--static inline int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
--{
--	compat_sigset_t	cset;
--
--	cset.sig[0] = set->sig[0] & 0xffffffffull;
--	cset.sig[1] = set->sig[0] >> 32;
--
--	return copy_to_user(uset, &cset, sizeof(*uset));
--}
--
--static inline int get_sigset_t(sigset_t *set,
--			       const compat_sigset_t __user *uset)
--{
--	compat_sigset_t s32;
--
--	if (copy_from_user(&s32, uset, sizeof(*uset)))
--		return -EFAULT;
--
--	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
--	return 0;
--}
--
--int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
--{
--	int err;
--
--	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
--		return -EFAULT;
--
--	/* If you change siginfo_t structure, please be sure
--	 * this code is fixed accordingly.
--	 * It should never copy any pad contained in the structure
--	 * to avoid security leaks, but must copy the generic
--	 * 3 ints plus the relevant union member.
--	 * This routine must convert siginfo from 64bit to 32bit as well
--	 * at the same time.
--	 */
--	err = __put_user(from->si_signo, &to->si_signo);
--	err |= __put_user(from->si_errno, &to->si_errno);
--	err |= __put_user((short)from->si_code, &to->si_code);
--	if (from->si_code < 0)
--		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
--				      SI_PAD_SIZE);
--	else switch (from->si_code & __SI_MASK) {
--	case __SI_KILL:
--		err |= __put_user(from->si_pid, &to->si_pid);
--		err |= __put_user(from->si_uid, &to->si_uid);
--		break;
--	case __SI_TIMER:
--		 err |= __put_user(from->si_tid, &to->si_tid);
--		 err |= __put_user(from->si_overrun, &to->si_overrun);
--		 err |= __put_user(from->si_int, &to->si_int);
--		break;
--	case __SI_POLL:
--		err |= __put_user(from->si_band, &to->si_band);
--		err |= __put_user(from->si_fd, &to->si_fd);
--		break;
--	case __SI_FAULT:
--		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
--				  &to->si_addr);
--#ifdef BUS_MCEERR_AO
--		/*
--		 * Other callers might not initialize the si_lsb field,
--		 * so check explicitly for the right codes here.
--		 */
--		if (from->si_signo == SIGBUS &&
--		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
--			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
--#endif
--		break;
--	case __SI_CHLD:
--		err |= __put_user(from->si_pid, &to->si_pid);
--		err |= __put_user(from->si_uid, &to->si_uid);
--		err |= __put_user(from->si_status, &to->si_status);
--		err |= __put_user(from->si_utime, &to->si_utime);
--		err |= __put_user(from->si_stime, &to->si_stime);
--		break;
--	case __SI_RT: /* This is not generated by the kernel as of now. */
--	case __SI_MESGQ: /* But this is */
--		err |= __put_user(from->si_pid, &to->si_pid);
--		err |= __put_user(from->si_uid, &to->si_uid);
--		err |= __put_user(from->si_int, &to->si_int);
--		break;
--	case __SI_SYS:
--		err |= __put_user((compat_uptr_t)(unsigned long)
--				from->si_call_addr, &to->si_call_addr);
--		err |= __put_user(from->si_syscall, &to->si_syscall);
--		err |= __put_user(from->si_arch, &to->si_arch);
--		break;
--	default: /* this is just in case for now ... */
--		err |= __put_user(from->si_pid, &to->si_pid);
--		err |= __put_user(from->si_uid, &to->si_uid);
--		break;
--	}
--	return err;
--}
--
--int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
--{
--	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
--	    copy_from_user(to->_sifields._pad,
--			   from->_sifields._pad, SI_PAD_SIZE))
--		return -EFAULT;
--
--	return 0;
--}
--
- /*
-  * VFP save/restore code.
-  *
-diff --git a/arch/arm64/kernel/signal32_common.c b/arch/arm64/kernel/signal32_common.c
-new file mode 100644
-index 0000000..c8cba96
---- /dev/null
-+++ b/arch/arm64/kernel/signal32_common.c
-@@ -0,0 +1,135 @@
-+/*
-+ * Based on arch/arm/kernel/signal.c
-+ *
-+ * Copyright (C) 1995-2009 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Modified by Will Deacon <will.deacon@arm.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
+ 	return ret;
+ }
 +
-+#include <linux/compat.h>
-+#include <linux/signal.h>
-+#include <linux/ratelimit.h>
-+
-+#include <asm/esr.h>
-+#include <asm/fpsimd.h>
-+#include <asm/signal32_common.h>
-+#include <asm/uaccess.h>
-+#include <asm/unistd.h>
-+
-+int put_sigset_t(compat_sigset_t __user *uset, sigset_t *set)
++COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
++		       compat_long_t, addr, compat_long_t, data)
 +{
-+	compat_sigset_t	cset;
++	struct task_struct *child;
++	long ret;
 +
-+	cset.sig[0] = set->sig[0] & 0xffffffffull;
-+	cset.sig[1] = set->sig[0] >> 32;
-+
-+	return copy_to_user(uset, &cset, sizeof(*uset));
-+}
-+
-+int get_sigset_t(sigset_t *set, const compat_sigset_t __user *uset)
-+{
-+	compat_sigset_t s32;
-+
-+	if (copy_from_user(&s32, uset, sizeof(*uset)))
-+		return -EFAULT;
-+
-+	set->sig[0] = s32.sig[0] | (((long)s32.sig[1]) << 32);
-+	return 0;
-+}
-+
-+int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
-+{
-+	int err;
-+
-+	if (!access_ok(VERIFY_WRITE, to, sizeof(*to)))
-+		return -EFAULT;
-+
-+	/* If you change siginfo_t structure, please be sure
-+	 * this code is fixed accordingly.
-+	 * It should never copy any pad contained in the structure
-+	 * to avoid security leaks, but must copy the generic
-+	 * 3 ints plus the relevant union member.
-+	 * This routine must convert siginfo from 64bit to 32bit as well
-+	 * at the same time.
-+	 */
-+	err = __put_user(from->si_signo, &to->si_signo);
-+	err |= __put_user(from->si_errno, &to->si_errno);
-+	err |= __put_user((short)from->si_code, &to->si_code);
-+	if (from->si_code < 0)
-+		err |= __copy_to_user(&to->_sifields._pad, &from->_sifields._pad,
-+				      SI_PAD_SIZE);
-+	else switch (from->si_code & __SI_MASK) {
-+	case __SI_KILL:
-+		err |= __put_user(from->si_pid, &to->si_pid);
-+		err |= __put_user(from->si_uid, &to->si_uid);
-+		break;
-+	case __SI_TIMER:
-+		err |= __put_user(from->si_tid, &to->si_tid);
-+		err |= __put_user(from->si_overrun, &to->si_overrun);
-+		err |= __put_user(from->si_int, &to->si_int);
-+		break;
-+	case __SI_POLL:
-+		err |= __put_user(from->si_band, &to->si_band);
-+		err |= __put_user(from->si_fd, &to->si_fd);
-+		break;
-+	case __SI_FAULT:
-+		err |= __put_user((compat_uptr_t)(unsigned long)from->si_addr,
-+				  &to->si_addr);
-+#ifdef BUS_MCEERR_AO
-+		/*
-+		 * Other callers might not initialize the si_lsb field,
-+		 * so check explicitly for the right codes here.
-+		 */
-+		if (from->si_signo == SIGBUS &&
-+		    (from->si_code == BUS_MCEERR_AR || from->si_code == BUS_MCEERR_AO))
-+			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
-+#endif
-+		break;
-+	case __SI_CHLD:
-+		err |= __put_user(from->si_pid, &to->si_pid);
-+		err |= __put_user(from->si_uid, &to->si_uid);
-+		err |= __put_user(from->si_status, &to->si_status);
-+		err |= __put_user(from->si_utime, &to->si_utime);
-+		err |= __put_user(from->si_stime, &to->si_stime);
-+		break;
-+	case __SI_RT: /* This is not generated by the kernel as of now. */
-+	case __SI_MESGQ: /* But this is */
-+		err |= __put_user(from->si_pid, &to->si_pid);
-+		err |= __put_user(from->si_uid, &to->si_uid);
-+		err |= __put_user(from->si_int, &to->si_int);
-+		break;
-+	case __SI_SYS:
-+		err |= __put_user((compat_uptr_t)(unsigned long)
-+				from->si_call_addr, &to->si_call_addr);
-+		err |= __put_user(from->si_syscall, &to->si_syscall);
-+		err |= __put_user(from->si_arch, &to->si_arch);
-+		break;
-+	default: /* this is just in case for now ... */
-+		err |= __put_user(from->si_pid, &to->si_pid);
-+		err |= __put_user(from->si_uid, &to->si_uid);
-+		break;
++	if (request == PTRACE_TRACEME) {
++		ret = ptrace_traceme();
++		goto out;
 +	}
-+	return err;
++
++	child = ptrace_get_task_struct(pid);
++	if (IS_ERR(child)) {
++		ret = PTR_ERR(child);
++		goto out;
++	}
++
++	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
++		ret = ptrace_attach(child, request, addr, data);
++		goto out_put_task_struct;
++	}
++
++	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
++				  request == PTRACE_INTERRUPT);
++	if (!ret) {
++		ret = compat_a32_ptrace(child, request, addr, data);
++		if (ret || request != PTRACE_DETACH)
++			ptrace_unfreeze_traced(child);
++	}
++
++ out_put_task_struct:
++	put_task_struct(child);
++ out:
++	return ret;
 +}
 +
-+int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
-+{
-+	if (copy_from_user(to, from, __ARCH_SI_PREAMBLE_SIZE) ||
-+	    copy_from_user(to->_sifields._pad,
-+			   from->_sifields._pad, SI_PAD_SIZE))
-+		return -EFAULT;
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
++#ifdef CONFIG_ARM64_ILP32
 +
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++			compat_ulong_t caddr, compat_ulong_t cdata)
++{
++	sigset_t new_set;
++
++	switch (request) {
++	case PTRACE_GETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
++					&child->blocked);
++
++	case PTRACE_SETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
++			return -EFAULT;
++
++		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
++
++		/*
++		 * Every thread does recalc_sigpending() after resume, so
++		 * retarget_shared_pending() and recalc_sigpending() are not
++		 * called here.
++		 */
++		spin_lock_irq(&child->sighand->siglock);
++		child->blocked = new_set;
++		spin_unlock_irq(&child->sighand->siglock);
++
++		return 0;
++
++	default:
++		return compat_ptrace_request(child, request, caddr, cdata);
++	}
++}
++
++#elif defined(CONFIG_COMPAT)
++
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++		compat_ulong_t caddr, compat_ulong_t cdata)
++{
 +	return 0;
 +}
++
++#endif
++
+ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ {
+ #ifdef CONFIG_AARCH32_EL0
+diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
+index a40b134..3752443 100644
+--- a/arch/arm64/kernel/sys32.c
++++ b/arch/arm64/kernel/sys32.c
+@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+ asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+ asmlinkage long compat_sys_fallocate_wrapper(void);
+ asmlinkage long compat_sys_mmap2_wrapper(void);
++asmlinkage long compat_sys_aarch32_ptrace(void);
+ 
+ #undef __SYSCALL
+ #define __SYSCALL(nr, sym)	[nr] = sym,
+diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+index 504c98a..75887a0 100644
+--- a/include/linux/ptrace.h
++++ b/include/linux/ptrace.h
+@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
+ int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
++int ptrace_traceme(void);
++struct task_struct *ptrace_get_task_struct(pid_t pid);
++int ptrace_attach(struct task_struct *task, long request,
++			 unsigned long addr, unsigned long flags);
++int ptrace_check_attach(struct task_struct *child, bool ignore_state);
++void ptrace_unfreeze_traced(struct task_struct *task);
+ 
+ /**
+  * ptrace_parent - return the task that is tracing the given task
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 2a99027..5638880 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -138,7 +138,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
+ 	return ret;
+ }
+ 
+-static void ptrace_unfreeze_traced(struct task_struct *task)
++void ptrace_unfreeze_traced(struct task_struct *task)
+ {
+ 	if (task->state != __TASK_TRACED)
+ 		return;
+@@ -170,7 +170,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+  * RETURNS:
+  * 0 on success, -ESRCH if %child is not ready.
+  */
+-static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
++int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+ {
+ 	int ret = -ESRCH;
+ 
+@@ -294,7 +294,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
+ 	return !err;
+ }
+ 
+-static int ptrace_attach(struct task_struct *task, long request,
++int ptrace_attach(struct task_struct *task, long request,
+ 			 unsigned long addr,
+ 			 unsigned long flags)
+ {
+@@ -408,7 +408,7 @@ static int ptrace_attach(struct task_struct *task, long request,
+  * Performs checks and sets PT_PTRACED.
+  * Should be used by all ptrace implementations for PTRACE_TRACEME.
+  */
+-static int ptrace_traceme(void)
++int ptrace_traceme(void)
+ {
+ 	int ret = -EPERM;
+ 
+@@ -1057,7 +1057,7 @@ int ptrace_request(struct task_struct *child, long request,
+ 	return ret;
+ }
+ 
+-static struct task_struct *ptrace_get_task_struct(pid_t pid)
++struct task_struct *ptrace_get_task_struct(pid_t pid)
+ {
+ 	struct task_struct *child;
+ 
 -- 
 2.7.4
