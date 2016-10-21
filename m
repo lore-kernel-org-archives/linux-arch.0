@@ -2,12 +2,12 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-bl2nam02on0087.outbound.protection.outlook.com ([104.47.38.87]:18978
         "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S933451AbcJUVJb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Oct 2016 17:09:31 -0400
+        id S933451AbcJUVJl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 17:09:41 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 09/18] arm64: introduce binfmt_elf32.c
-Date: Fri, 21 Oct 2016 23:33:08 +0300
-Message-ID: <1477081997-4770-10-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
+Date: Fri, 21 Oct 2016 23:33:15 +0300
+Message-ID: <1477081997-4770-17-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,97 +15,239 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
-Message-ID: <20161021203308.Rbuk-C7AUp_GW1Ih5Ry28mG1kbxDsAQUZ3mamf0UkvA@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Message-ID: <20161021203315.He-QSIHr9WAY6NFzMDw7021gd92ehWLsJgz7ADoVGdU@z>
 
-As we support more than one compat formats, it looks more reasonable
-to not use fs/compat_binfmt.c. Custom binfmt_elf32.c allows to move aarch32
-specific definitions there and make code more maintainable and readable.
+New aarch32 ptrace syscall handler is introduced to avoid run-time
+detection of the task type.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Signed-off-by: Chengming Zhou <zhouchengming1@huawei.com>
 ---
- arch/arm64/Kconfig               |  1 -
- arch/arm64/include/asm/hwcap.h   |  2 --
- arch/arm64/kernel/Makefile       |  2 +-
- arch/arm64/kernel/binfmt_elf32.c | 31 +++++++++++++++++++++++++++++++
- 4 files changed, 32 insertions(+), 4 deletions(-)
- create mode 100644 arch/arm64/kernel/binfmt_elf32.c
+ arch/arm64/include/asm/unistd32.h |  2 +-
+ arch/arm64/kernel/ptrace.c        | 91 ++++++++++++++++++++++++++++++++++++++-
+ arch/arm64/kernel/sys32.c         |  1 +
+ include/linux/ptrace.h            |  6 +++
+ kernel/ptrace.c                   | 10 ++---
+ 5 files changed, 103 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 0cd786e..9efa86a 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -1003,7 +1003,6 @@ config AARCH32_EL0
- 	def_bool y
- 	depends on ARM64_4K_PAGES || EXPERT
- 	select COMPAT
--	select COMPAT_BINFMT_ELF
- 	select HAVE_UID16
- 	select OLD_SIGSUSPEND3
- 	select COMPAT_OLD_SIGACTION
-diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
-index 2c7fc5d..99dfd92 100644
---- a/arch/arm64/include/asm/hwcap.h
-+++ b/arch/arm64/include/asm/hwcap.h
-@@ -47,8 +47,6 @@
- #define ELF_HWCAP		(elf_hwcap)
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index b7e8ef1..6da7cbd 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
+ 			/* 25 was sys_stime */
+ __SYSCALL(25, sys_ni_syscall)
+ #define __NR_ptrace 26
+-__SYSCALL(__NR_ptrace, compat_sys_ptrace)
++__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
+ 			/* 27 was sys_alarm */
+ __SYSCALL(27, sys_ni_syscall)
+ 			/* 28 was sys_fstat */
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 1d075ed..ac542c9 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -29,6 +29,7 @@
+ #include <linux/user.h>
+ #include <linux/seccomp.h>
+ #include <linux/security.h>
++#include <linux/syscalls.h>
+ #include <linux/init.h>
+ #include <linux/signal.h>
+ #include <linux/uaccess.h>
+@@ -40,6 +41,7 @@
  
- #ifdef CONFIG_AARCH32_EL0
--#define COMPAT_ELF_HWCAP	(compat_elf_hwcap)
--#define COMPAT_ELF_HWCAP2	(compat_elf_hwcap2)
- extern unsigned int compat_elf_hwcap, compat_elf_hwcap2;
- #endif
+ #include <asm/debug-monitors.h>
+ #include <asm/pgtable.h>
++#include <asm/signal32_common.h>
+ #include <asm/syscall.h>
+ #include <asm/traps.h>
+ #include <asm/system_misc.h>
+@@ -1215,7 +1217,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
+ }
+ #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
  
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index 8a19fda..abe5040 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -28,7 +28,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,objcopy)
+-long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
+ 			compat_ulong_t caddr, compat_ulong_t cdata)
+ {
+ 	unsigned long addr = caddr;
+@@ -1292,8 +1294,95 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
  
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
--					   sys_compat.o entry32.o
-+					   sys_compat.o entry32.o binfmt_elf32.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/binfmt_elf32.c b/arch/arm64/kernel/binfmt_elf32.c
-new file mode 100644
-index 0000000..aec1c8a
---- /dev/null
-+++ b/arch/arm64/kernel/binfmt_elf32.c
-@@ -0,0 +1,31 @@
-+/*
-+ * Support for AArch32 Linux ELF binaries.
-+ */
+ 	return ret;
+ }
 +
-+/* AArch32 EABI. */
-+#define EF_ARM_EABI_MASK		0xff000000
++COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
++		       compat_long_t, addr, compat_long_t, data)
++{
++	struct task_struct *child;
++	long ret;
 +
-+#define compat_start_thread		compat_start_thread
-+#define COMPAT_SET_PERSONALITY(ex)		\
-+do {						\
-+	clear_thread_flag(TIF_32BIT_AARCH64);	\
-+	set_thread_flag(TIF_32BIT);		\
-+} while (0)
++	if (request == PTRACE_TRACEME) {
++		ret = ptrace_traceme();
++		goto out;
++	}
 +
-+#define COMPAT_ARCH_DLINFO
-+#define COMPAT_ELF_HWCAP		(compat_elf_hwcap)
-+#define COMPAT_ELF_HWCAP2		(compat_elf_hwcap2)
++	child = ptrace_get_task_struct(pid);
++	if (IS_ERR(child)) {
++		ret = PTR_ERR(child);
++		goto out;
++	}
 +
-+#ifdef __AARCH64EB__
-+#define COMPAT_ELF_PLATFORM		("v8b")
-+#else
-+#define COMPAT_ELF_PLATFORM		("v8l")
++	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
++		ret = ptrace_attach(child, request, addr, data);
++		goto out_put_task_struct;
++	}
++
++	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
++				  request == PTRACE_INTERRUPT);
++	if (!ret) {
++		ret = compat_a32_ptrace(child, request, addr, data);
++		if (ret || request != PTRACE_DETACH)
++			ptrace_unfreeze_traced(child);
++	}
++
++ out_put_task_struct:
++	put_task_struct(child);
++ out:
++	return ret;
++}
++
+ #endif /* CONFIG_AARCH32_EL0 */
+ 
++#ifdef CONFIG_ARM64_ILP32
++
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++			compat_ulong_t caddr, compat_ulong_t cdata)
++{
++	sigset_t new_set;
++
++	switch (request) {
++	case PTRACE_GETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
++					&child->blocked);
++
++	case PTRACE_SETSIGMASK:
++		if (caddr != sizeof(compat_sigset_t))
++			return -EINVAL;
++
++		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
++			return -EFAULT;
++
++		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
++
++		/*
++		 * Every thread does recalc_sigpending() after resume, so
++		 * retarget_shared_pending() and recalc_sigpending() are not
++		 * called here.
++		 */
++		spin_lock_irq(&child->sighand->siglock);
++		child->blocked = new_set;
++		spin_unlock_irq(&child->sighand->siglock);
++
++		return 0;
++
++	default:
++		return compat_ptrace_request(child, request, caddr, cdata);
++	}
++}
++
++#elif defined(CONFIG_COMPAT)
++
++long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
++		compat_ulong_t caddr, compat_ulong_t cdata)
++{
++	return 0;
++}
++
 +#endif
 +
-+#define compat_arch_setup_additional_pages \
-+					aarch32_setup_vectors_page
-+struct linux_binprm;
-+extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
-+				      int uses_interp);
-+
-+#include "../../../fs/compat_binfmt_elf.c"
+ const struct user_regset_view *task_user_regset_view(struct task_struct *task)
+ {
+ #ifdef CONFIG_AARCH32_EL0
+diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
+index a40b134..3752443 100644
+--- a/arch/arm64/kernel/sys32.c
++++ b/arch/arm64/kernel/sys32.c
+@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
+ asmlinkage long compat_sys_sync_file_range2_wrapper(void);
+ asmlinkage long compat_sys_fallocate_wrapper(void);
+ asmlinkage long compat_sys_mmap2_wrapper(void);
++asmlinkage long compat_sys_aarch32_ptrace(void);
+ 
+ #undef __SYSCALL
+ #define __SYSCALL(nr, sym)	[nr] = sym,
+diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
+index 504c98a..75887a0 100644
+--- a/include/linux/ptrace.h
++++ b/include/linux/ptrace.h
+@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
+ int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
+ 			    unsigned long data);
++int ptrace_traceme(void);
++struct task_struct *ptrace_get_task_struct(pid_t pid);
++int ptrace_attach(struct task_struct *task, long request,
++			 unsigned long addr, unsigned long flags);
++int ptrace_check_attach(struct task_struct *child, bool ignore_state);
++void ptrace_unfreeze_traced(struct task_struct *task);
+ 
+ /**
+  * ptrace_parent - return the task that is tracing the given task
+diff --git a/kernel/ptrace.c b/kernel/ptrace.c
+index 2a99027..5638880 100644
+--- a/kernel/ptrace.c
++++ b/kernel/ptrace.c
+@@ -138,7 +138,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
+ 	return ret;
+ }
+ 
+-static void ptrace_unfreeze_traced(struct task_struct *task)
++void ptrace_unfreeze_traced(struct task_struct *task)
+ {
+ 	if (task->state != __TASK_TRACED)
+ 		return;
+@@ -170,7 +170,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
+  * RETURNS:
+  * 0 on success, -ESRCH if %child is not ready.
+  */
+-static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
++int ptrace_check_attach(struct task_struct *child, bool ignore_state)
+ {
+ 	int ret = -ESRCH;
+ 
+@@ -294,7 +294,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
+ 	return !err;
+ }
+ 
+-static int ptrace_attach(struct task_struct *task, long request,
++int ptrace_attach(struct task_struct *task, long request,
+ 			 unsigned long addr,
+ 			 unsigned long flags)
+ {
+@@ -408,7 +408,7 @@ static int ptrace_attach(struct task_struct *task, long request,
+  * Performs checks and sets PT_PTRACED.
+  * Should be used by all ptrace implementations for PTRACE_TRACEME.
+  */
+-static int ptrace_traceme(void)
++int ptrace_traceme(void)
+ {
+ 	int ret = -EPERM;
+ 
+@@ -1057,7 +1057,7 @@ int ptrace_request(struct task_struct *child, long request,
+ 	return ret;
+ }
+ 
+-static struct task_struct *ptrace_get_task_struct(pid_t pid)
++struct task_struct *ptrace_get_task_struct(pid_t pid)
+ {
+ 	struct task_struct *child;
+ 
 -- 
 2.7.4
 
