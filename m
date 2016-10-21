@@ -1,43 +1,170 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:44096 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751271AbcJUQ5d (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Oct 2016 12:57:33 -0400
-Date: Fri, 21 Oct 2016 17:57:21 +0100
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
-Message-ID: <20161021165721.GD1041@n2100.armlinux.org.uk>
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
- <3851270.xZRcP9hae0@wuerfel>
- <20161021133708.GA1041@n2100.armlinux.org.uk>
- <4337157.Eff9E2riVH@wuerfel>
- <20161021154856.GC1041@n2100.armlinux.org.uk>
- <alpine.DEB.2.20.1610211641430.27636@digraph.polyomino.org.uk>
+Received: from mail-cys01nam02on0053.outbound.protection.outlook.com ([104.47.37.53]:26688
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S932609AbcJUUfU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 16:35:20 -0400
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
+Date: Fri, 21 Oct 2016 23:33:09 +0300
+Message-ID: <1477081997-4770-11-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1610211641430.27636@digraph.polyomino.org.uk>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joseph Myers <joseph@codesourcery.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-arch <linux-arch@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>
-Message-ID: <20161021165721.Temg0B3Vs1_gTZuoInG7_JRgm90vQsx7Mj8GPLisdtE@z>
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+Message-ID: <20161021203309.pXuAMheAXEmvY5cmjIu80rnP2dp9rk1zx_ViHDHDzlw@z>
 
-On Fri, Oct 21, 2016 at 04:48:36PM +0000, Joseph Myers wrote:
-> On Fri, 21 Oct 2016, Russell King - ARM Linux wrote:
-> 
-> > To stop adding OABI syscalls altogether.  I'm sure that there will
-> > come a point (if it hasn't already) that glibc no longer supports
-> > OABI, and at that point it probably becomes rather silly to keep
-> > adding OABI syscalls.
-> 
-> glibc hasn't supported OABI since 2012 (support removed in version 2.16 
-> released 2012-06-30).  GCC support was also removed in 2012 (removal 
-> released in version 4.8, released 2013-03-22).
+binfmt_ilp32.c is needed to handle ILP32 binaries
 
-Right, so arguably its pointless adding new syscalls to OABI anymore.
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+---
+ arch/arm64/include/asm/elf.h     |  6 +++
+ arch/arm64/kernel/Makefile       |  1 +
+ arch/arm64/kernel/binfmt_ilp32.c | 97 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 104 insertions(+)
+ create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
 
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+index f259fe8..be29dde 100644
+--- a/arch/arm64/include/asm/elf.h
++++ b/arch/arm64/include/asm/elf.h
+@@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+ 
+ #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
+ 
++#ifndef USE_AARCH64_GREG
+ /* AArch32 registers. */
+ #define COMPAT_ELF_NGREG		18
+ typedef unsigned int			compat_elf_greg_t;
+ typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
++#else /* AArch64 registers for AARCH64/ILP32 */
++#define COMPAT_ELF_NGREG	ELF_NGREG
++#define compat_elf_greg_t	elf_greg_t
++#define compat_elf_gregset_t	elf_gregset_t
++#endif
+ 
+ /* AArch32 EABI. */
+ #define EF_ARM_EABI_MASK		0xff000000
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index abe5040..f661888 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -29,6 +29,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ 
+ arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
+ 					   sys_compat.o entry32.o binfmt_elf32.o
++arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
+ arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
+ arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
+ arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
+diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
+new file mode 100644
+index 0000000..759066e
+--- /dev/null
++++ b/arch/arm64/kernel/binfmt_ilp32.c
+@@ -0,0 +1,97 @@
++/*
++ * Support for ILP32 Linux/aarch64 ELF binaries.
++ */
++#define USE_AARCH64_GREG
++
++#include <linux/elfcore-compat.h>
++#include <linux/time.h>
++
++#undef	ELF_CLASS
++#define ELF_CLASS	ELFCLASS32
++
++#undef	elfhdr
++#undef	elf_phdr
++#undef	elf_shdr
++#undef	elf_note
++#undef	elf_addr_t
++#define elfhdr		elf32_hdr
++#define elf_phdr	elf32_phdr
++#define elf_shdr	elf32_shdr
++#define elf_note	elf32_note
++#define elf_addr_t	Elf32_Addr
++
++/*
++ * Some data types as stored in coredump.
++ */
++#define user_long_t		compat_long_t
++#define user_siginfo_t		compat_siginfo_t
++#define copy_siginfo_to_user	copy_siginfo_to_user32
++
++/*
++ * The machine-dependent core note format types are defined in elfcore-compat.h,
++ * which requires asm/elf.h to define compat_elf_gregset_t et al.
++ */
++#define elf_prstatus	compat_elf_prstatus
++#define elf_prpsinfo	compat_elf_prpsinfo
++
++/*
++ * Compat version of cputime_to_compat_timeval, perhaps this
++ * should be an inline in <linux/compat.h>.
++ */
++static void cputime_to_compat_timeval(const cputime_t cputime,
++				      struct compat_timeval *value)
++{
++	struct timeval tv;
++
++	cputime_to_timeval(cputime, &tv);
++	value->tv_sec = tv.tv_sec;
++	value->tv_usec = tv.tv_usec;
++}
++
++#undef cputime_to_timeval
++#define cputime_to_timeval cputime_to_compat_timeval
++
++/* AARCH64 ILP32 EABI. */
++#undef elf_check_arch
++#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
++					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
++
++#undef SET_PERSONALITY
++#define SET_PERSONALITY(ex)						\
++do {									\
++	set_thread_flag(TIF_32BIT_AARCH64);				\
++	clear_thread_flag(TIF_32BIT);					\
++} while (0)
++
++#undef ARCH_DLINFO
++#define ARCH_DLINFO							\
++do {									\
++	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
++		    (elf_addr_t)(long)current->mm->context.vdso);	\
++} while (0)
++
++#undef ELF_PLATFORM
++#ifdef __AARCH64EB__
++#define ELF_PLATFORM		("aarch64_be:ilp32")
++#else
++#define ELF_PLATFORM		("aarch64:ilp32")
++#endif
++
++#undef ELF_ET_DYN_BASE
++#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
++
++#undef ELF_HWCAP
++#undef ELF_HWCAP2
++#define ELF_HWCAP			((u32) elf_hwcap)
++#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
++
++/*
++ * Rename a few of the symbols that binfmt_elf.c will define.
++ * These are all local so the names don't really matter, but it
++ * might make some debugging less confusing not to duplicate them.
++ */
++#define elf_format		compat_elf_format
++#define init_elf_binfmt		init_compat_elf_binfmt
++#define exit_elf_binfmt		exit_compat_elf_binfmt
++
++#include "../../../fs/binfmt_elf.c"
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+2.7.4
+
