@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0053.outbound.protection.outlook.com ([104.47.37.53]:26688
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0058.outbound.protection.outlook.com ([104.47.33.58]:59558
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932609AbcJUUfU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Oct 2016 16:35:20 -0400
+        id S932542AbcJUUsJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 16:48:09 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Fri, 21 Oct 2016 23:33:09 +0300
-Message-ID: <1477081997-4770-11-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 02/18] arm64: ilp32: add documentation on the ILP32 ABI for ARM64
+Date: Fri, 21 Oct 2016 23:33:01 +0300
+Message-ID: <1477081997-4770-3-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -15,156 +15,69 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
-Message-ID: <20161021203309.pXuAMheAXEmvY5cmjIu80rnP2dp9rk1zx_ViHDHDzlw@z>
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+Message-ID: <20161021203301.RVu56gMgYDTRNoQ-05IXy2tQTbNzGAXaSrM3v4wNkBM@z>
 
-binfmt_ilp32.c is needed to handle ILP32 binaries
+Based on Andrew Pinski's patch-series.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
 ---
- arch/arm64/include/asm/elf.h     |  6 +++
- arch/arm64/kernel/Makefile       |  1 +
- arch/arm64/kernel/binfmt_ilp32.c | 97 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 104 insertions(+)
- create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
+ Documentation/arm64/ilp32.txt | 46 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 46 insertions(+)
+ create mode 100644 Documentation/arm64/ilp32.txt
 
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-index f259fe8..be29dde 100644
---- a/arch/arm64/include/asm/elf.h
-+++ b/arch/arm64/include/asm/elf.h
-@@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
- 
- #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
- 
-+#ifndef USE_AARCH64_GREG
- /* AArch32 registers. */
- #define COMPAT_ELF_NGREG		18
- typedef unsigned int			compat_elf_greg_t;
- typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-+#else /* AArch64 registers for AARCH64/ILP32 */
-+#define COMPAT_ELF_NGREG	ELF_NGREG
-+#define compat_elf_greg_t	elf_greg_t
-+#define compat_elf_gregset_t	elf_gregset_t
-+#endif
- 
- /* AArch32 EABI. */
- #define EF_ARM_EABI_MASK		0xff000000
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-index abe5040..f661888 100644
---- a/arch/arm64/kernel/Makefile
-+++ b/arch/arm64/kernel/Makefile
-@@ -29,6 +29,7 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
- 
- arm64-obj-$(CONFIG_AARCH32_EL0)		+= sys32.o kuser32.o signal32.o 	\
- 					   sys_compat.o entry32.o binfmt_elf32.o
-+arm64-obj-$(CONFIG_ARM64_ILP32)		+= binfmt_ilp32.o
- arm64-obj-$(CONFIG_FUNCTION_TRACER)	+= ftrace.o entry-ftrace.o
- arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
- arm64-obj-$(CONFIG_ARM64_MODULE_PLTS)	+= module-plts.o
-diff --git a/arch/arm64/kernel/binfmt_ilp32.c b/arch/arm64/kernel/binfmt_ilp32.c
+diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
 new file mode 100644
-index 0000000..759066e
+index 0000000..b96c18f
 --- /dev/null
-+++ b/arch/arm64/kernel/binfmt_ilp32.c
-@@ -0,0 +1,97 @@
-+/*
-+ * Support for ILP32 Linux/aarch64 ELF binaries.
-+ */
-+#define USE_AARCH64_GREG
++++ b/Documentation/arm64/ilp32.txt
+@@ -0,0 +1,46 @@
++ILP32 AARCH64 SYSCALL ABI
++=========================
 +
-+#include <linux/elfcore-compat.h>
-+#include <linux/time.h>
++This document describes the ILP32 syscall ABI and where it differs
++from the generic compat linux syscall interface.
 +
-+#undef	ELF_CLASS
-+#define ELF_CLASS	ELFCLASS32
++AARCH64/ILP32 userspace can potentially access top halves of registers that
++are passed as syscall arguments, so such registers (w0-w7) are deloused.
 +
-+#undef	elfhdr
-+#undef	elf_phdr
-+#undef	elf_shdr
-+#undef	elf_note
-+#undef	elf_addr_t
-+#define elfhdr		elf32_hdr
-+#define elf_phdr	elf32_phdr
-+#define elf_shdr	elf32_shdr
-+#define elf_note	elf32_note
-+#define elf_addr_t	Elf32_Addr
++AARCH64/ILP32 provides next types turned to 64-bit (comparing to AARCH32):
++ino_t       is u64 type.
++off_t       is s64 type.
++blkcnt_t    is s64 type.
++fsblkcnt_t  is u64 type.
++fsfilcnt_t  is u64 type.
++rlim_t      is u64 type.
 +
-+/*
-+ * Some data types as stored in coredump.
-+ */
-+#define user_long_t		compat_long_t
-+#define user_siginfo_t		compat_siginfo_t
-+#define copy_siginfo_to_user	copy_siginfo_to_user32
++AARCH64/ILP32 ABI uses standard syscall table which can be found at
++include/uapi/asm-generic/unistd.h, with the exceptions listed below.
 +
-+/*
-+ * The machine-dependent core note format types are defined in elfcore-compat.h,
-+ * which requires asm/elf.h to define compat_elf_gregset_t et al.
-+ */
-+#define elf_prstatus	compat_elf_prstatus
-+#define elf_prpsinfo	compat_elf_prpsinfo
++Syscalls which pass 64bit values are handled by the code shared from
++AARCH32 and pass that value as a pair. Next syscalls are affected:
++fadvise64_64()
++fallocate()
++ftruncate64()
++pread64()
++pwrite64()
++readahead()
++sync_file_range()
++truncate64()
++sys_mmap()
 +
-+/*
-+ * Compat version of cputime_to_compat_timeval, perhaps this
-+ * should be an inline in <linux/compat.h>.
-+ */
-+static void cputime_to_compat_timeval(const cputime_t cputime,
-+				      struct compat_timeval *value)
-+{
-+	struct timeval tv;
++ptrace() syscall is handled by compat version.
 +
-+	cputime_to_timeval(cputime, &tv);
-+	value->tv_sec = tv.tv_sec;
-+	value->tv_usec = tv.tv_usec;
-+}
++shmat() syscall is handled by non-compat handler as aarch64/ilp32 has no
++limitation on 4-pages alignment for shared memory.
 +
-+#undef cputime_to_timeval
-+#define cputime_to_timeval cputime_to_compat_timeval
++statfs() and fstatfs() take the size of sfruct statfs as an argument.
++It is calculated differently in kernel and user spaces. So AARCH32 handlers
++are taken to handle it.
 +
-+/* AARCH64 ILP32 EABI. */
-+#undef elf_check_arch
-+#define elf_check_arch(x)		(((x)->e_machine == EM_AARCH64)	\
-+					&& (x)->e_ident[EI_CLASS] == ELFCLASS32)
++struct rt_sigframe is redefined and contains struct compat_siginfo,
++as compat syscalls expects, and struct ilp32_sigframe, to handle
++AARCH64 register set and 32-bit userspace register representation.
 +
-+#undef SET_PERSONALITY
-+#define SET_PERSONALITY(ex)						\
-+do {									\
-+	set_thread_flag(TIF_32BIT_AARCH64);				\
-+	clear_thread_flag(TIF_32BIT);					\
-+} while (0)
-+
-+#undef ARCH_DLINFO
-+#define ARCH_DLINFO							\
-+do {									\
-+	NEW_AUX_ENT(AT_SYSINFO_EHDR,					\
-+		    (elf_addr_t)(long)current->mm->context.vdso);	\
-+} while (0)
-+
-+#undef ELF_PLATFORM
-+#ifdef __AARCH64EB__
-+#define ELF_PLATFORM		("aarch64_be:ilp32")
-+#else
-+#define ELF_PLATFORM		("aarch64:ilp32")
-+#endif
-+
-+#undef ELF_ET_DYN_BASE
-+#define ELF_ET_DYN_BASE COMPAT_ELF_ET_DYN_BASE
-+
-+#undef ELF_HWCAP
-+#undef ELF_HWCAP2
-+#define ELF_HWCAP			((u32) elf_hwcap)
-+#define ELF_HWCAP2			((u32) (elf_hwcap >> 32))
-+
-+/*
-+ * Rename a few of the symbols that binfmt_elf.c will define.
-+ * These are all local so the names don't really matter, but it
-+ * might make some debugging less confusing not to duplicate them.
-+ */
-+#define elf_format		compat_elf_format
-+#define init_elf_binfmt		init_compat_elf_binfmt
-+#define exit_elf_binfmt		exit_compat_elf_binfmt
-+
-+#include "../../../fs/binfmt_elf.c"
++elf_gregset_t is taken from lp64 to handle registers properly.
 -- 
 2.7.4
 
