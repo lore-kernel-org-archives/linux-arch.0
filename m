@@ -1,49 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from conssluserg-01.nifty.com ([210.131.2.80]:61773 "EHLO
-        conssluserg-01.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755543AbcJTPCV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2016 11:02:21 -0400
-MIME-Version: 1.0
-In-Reply-To: <1476967442.28989.38.camel@tiscali.nl>
-References: <1476616078-32252-1-git-send-email-yamada.masahiro@socionext.com>
- <1476957892.28989.24.camel@tiscali.nl> <CAK7LNATp2vta0_Qzcs-TuXAX8jQejZyLXiqKKvfi8M=NLtxgAA@mail.gmail.com>
- <1476967442.28989.38.camel@tiscali.nl>
-From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Date: Fri, 21 Oct 2016 00:02:01 +0900
-Message-ID: <CAK7LNASAJt33-cKxOTqCWXb2A6Ky3rhE0ZOMSone4-JUAxO9OQ@mail.gmail.com>
-Subject: Re: [PATCH] kconfig.h: remove config_enabled() macro
-Content-Type: text/plain; charset=UTF-8
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:59135 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1755311AbcJUL7U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 07:59:20 -0400
+Received: from pps.filterd (m0098413.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9LBwX7Q085177
+        for <linux-arch@vger.kernel.org>; Fri, 21 Oct 2016 07:59:19 -0400
+Received: from e06smtp11.uk.ibm.com (e06smtp11.uk.ibm.com [195.75.94.107])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 267dd3xb2f-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 21 Oct 2016 07:59:19 -0400
+Received: from localhost
+        by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+        Fri, 21 Oct 2016 12:59:18 +0100
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH 3/5] s390: make cpu_relax a barrier again
+Date: Fri, 21 Oct 2016 13:58:56 +0200
+In-Reply-To: <1477051138-1610-1-git-send-email-borntraeger@de.ibm.com>
+References: <1477051138-1610-1-git-send-email-borntraeger@de.ibm.com>
+Message-ID: <1477051138-1610-4-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Peter Oberparleiter <oberpar@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.com>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Thomas Garnier <thgarnie@google.com>
-Message-ID: <20161020150201.su5XeT93NqouSKYBn-wSVM5sXe6dazMnN3bgem7BcAM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Noam Camus <noamc@ezchip.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20161021115856.fJKLRK_13OMXzEawNQaQ7sk3xv0j7th66yLzxw5_m0Q@z>
 
-Hi Paul,
+stop_machine seems to be the only important place for yielding during
+cpu_relax. This was fixed by using cpu_relax_yield. Therefore, we can
+now redefine cpu_relax to be a barrier instead. (With the option to do
+some SMT tuning later on)
 
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/s390/include/asm/processor.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-2016-10-20 21:44 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
-> [Added Nicolas.]
->
-> On Thu, 2016-10-20 at 21:06 +0900, Masahiro Yamada wrote:
->> 2016-10-20 19:04 GMT+09:00 Paul Bolle <pebolle@tiscali.nl>:
->> > On Sun, 2016-10-16 at 20:07 +0900, Masahiro Yamada wrote:
->> > There are about a dozen instances of IS_ENABLED() that target something
->> > other than a kconfig macros. Are you planning to convert those to
->> > __is_defined() too?
->>
->> I did not notice that, but looks like there are some to be checked.
->
-> Are you willing to do that or should I give it a try (after this patch
-> has landed, of course)?
-
-
-If you volunteer to do it,
-that'll be appreciated.
-
-If you CC me, I am happy to review the patches.
-
-
+diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
+index d05965b..5d262cf 100644
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -236,7 +236,7 @@ static inline unsigned short stap(void)
+  */
+ void cpu_relax_yield(void);
+ 
+-#define cpu_relax() cpu_relax_yield()
++#define cpu_relax() barrier()
+ #define cpu_relax_lowlatency()  barrier()
+ 
+ #define ECAG_CACHE_ATTRIBUTE	0
 -- 
-Best Regards
-Masahiro Yamada
+2.5.5
+
