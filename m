@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0087.outbound.protection.outlook.com ([104.47.38.87]:18978
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0084.outbound.protection.outlook.com ([104.47.34.84]:5078
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S933451AbcJUVJl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 21 Oct 2016 17:09:41 -0400
+        id S933451AbcJUVJJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 21 Oct 2016 17:09:09 -0400
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
-Date: Fri, 21 Oct 2016 23:33:15 +0300
-Message-ID: <1477081997-4770-17-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 13/18] arm64: signal: share lp64 signal routines to ilp32
+Date: Fri, 21 Oct 2016 23:33:12 +0300
+Message-ID: <1477081997-4770-14-git-send-email-ynorov@caviumnetworks.com>
 In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
@@ -16,237 +16,241 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, ynorov@caviumnetworks.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
-Message-ID: <20161021203315.He-QSIHr9WAY6NFzMDw7021gd92ehWLsJgz7ADoVGdU@z>
+Message-ID: <20161021203312.qv030CcCTwSVQkQrqipCVmxlMVQKQu1r5qD7q6_1ZAE@z>
 
-New aarch32 ptrace syscall handler is introduced to avoid run-time
-detection of the task type.
+After that, it will be possible to reuse it in ilp32.
 
 Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
 Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
-Signed-off-by: Chengming Zhou <zhouchengming1@huawei.com>
 ---
- arch/arm64/include/asm/unistd32.h |  2 +-
- arch/arm64/kernel/ptrace.c        | 91 ++++++++++++++++++++++++++++++++++++++-
- arch/arm64/kernel/sys32.c         |  1 +
- include/linux/ptrace.h            |  6 +++
- kernel/ptrace.c                   | 10 ++---
- 5 files changed, 103 insertions(+), 7 deletions(-)
+ arch/arm64/include/asm/signal_common.h | 33 ++++++++++++
+ arch/arm64/kernel/signal.c             | 93 +++++++++++++++++++++-------------
+ 2 files changed, 92 insertions(+), 34 deletions(-)
+ create mode 100644 arch/arm64/include/asm/signal_common.h
 
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index b7e8ef1..6da7cbd 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -74,7 +74,7 @@ __SYSCALL(__NR_getuid, sys_getuid16)
- 			/* 25 was sys_stime */
- __SYSCALL(25, sys_ni_syscall)
- #define __NR_ptrace 26
--__SYSCALL(__NR_ptrace, compat_sys_ptrace)
-+__SYSCALL(__NR_ptrace, compat_sys_aarch32_ptrace)
- 			/* 27 was sys_alarm */
- __SYSCALL(27, sys_ni_syscall)
- 			/* 28 was sys_fstat */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index 1d075ed..ac542c9 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -29,6 +29,7 @@
- #include <linux/user.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
-+#include <linux/syscalls.h>
- #include <linux/init.h>
- #include <linux/signal.h>
- #include <linux/uaccess.h>
-@@ -40,6 +41,7 @@
+diff --git a/arch/arm64/include/asm/signal_common.h b/arch/arm64/include/asm/signal_common.h
+new file mode 100644
+index 0000000..756ed2c
+--- /dev/null
++++ b/arch/arm64/include/asm/signal_common.h
+@@ -0,0 +1,33 @@
++/*
++ * Copyright (C) 1995-2009 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ * Copyright (C) 2016 Cavium Networks.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef __ASM_SIGNAL_COMMON_H
++#define __ASM_SIGNAL_COMMON_H
++
++#include <linux/uaccess.h>
++#include <asm/ucontext.h>
++#include <asm/fpsimd.h>
++
++int preserve_fpsimd_context(struct fpsimd_context __user *ctx);
++int restore_fpsimd_context(struct fpsimd_context __user *ctx);
++int setup_sigcontext(struct sigcontext __user *uc_mcontext, struct pt_regs *regs);
++int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *sf);
++void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++			void __user *frame, off_t sigframe_off, int usig);
++
++#endif /* __ASM_SIGNAL_COMMON_H */
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index f90cdf5..478d6c5 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -34,18 +34,26 @@
+ #include <asm/fpsimd.h>
+ #include <asm/signal32.h>
+ #include <asm/vdso.h>
++#include <asm/signal_common.h>
++
++#define RT_SIGFRAME_FP_POS (offsetof(struct rt_sigframe, sig)	\
++			+ offsetof(struct sigframe, fp))
++
++struct sigframe {
++	struct ucontext uc;
++	u64 fp;
++	u64 lr;
++};
  
- #include <asm/debug-monitors.h>
- #include <asm/pgtable.h>
-+#include <asm/signal32_common.h>
- #include <asm/syscall.h>
- #include <asm/traps.h>
- #include <asm/system_misc.h>
-@@ -1215,7 +1217,7 @@ static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t num,
- }
- #endif	/* CONFIG_HAVE_HW_BREAKPOINT */
- 
--long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+static long compat_a32_ptrace(struct task_struct *child, compat_long_t request,
- 			compat_ulong_t caddr, compat_ulong_t cdata)
- {
- 	unsigned long addr = caddr;
-@@ -1292,8 +1294,95 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
- 
- 	return ret;
- }
-+
-+COMPAT_SYSCALL_DEFINE4(aarch32_ptrace, compat_long_t, request, compat_long_t, pid,
-+		       compat_long_t, addr, compat_long_t, data)
-+{
-+	struct task_struct *child;
-+	long ret;
-+
-+	if (request == PTRACE_TRACEME) {
-+		ret = ptrace_traceme();
-+		goto out;
-+	}
-+
-+	child = ptrace_get_task_struct(pid);
-+	if (IS_ERR(child)) {
-+		ret = PTR_ERR(child);
-+		goto out;
-+	}
-+
-+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
-+		ret = ptrace_attach(child, request, addr, data);
-+		goto out_put_task_struct;
-+	}
-+
-+	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
-+				  request == PTRACE_INTERRUPT);
-+	if (!ret) {
-+		ret = compat_a32_ptrace(child, request, addr, data);
-+		if (ret || request != PTRACE_DETACH)
-+			ptrace_unfreeze_traced(child);
-+	}
-+
-+ out_put_task_struct:
-+	put_task_struct(child);
-+ out:
-+	return ret;
-+}
-+
- #endif /* CONFIG_AARCH32_EL0 */
- 
-+#ifdef CONFIG_ARM64_ILP32
-+
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+			compat_ulong_t caddr, compat_ulong_t cdata)
-+{
-+	sigset_t new_set;
-+
-+	switch (request) {
-+	case PTRACE_GETSIGMASK:
-+		if (caddr != sizeof(compat_sigset_t))
-+			return -EINVAL;
-+
-+		return put_sigset_t((compat_sigset_t __user *) (u64) cdata,
-+					&child->blocked);
-+
-+	case PTRACE_SETSIGMASK:
-+		if (caddr != sizeof(compat_sigset_t))
-+			return -EINVAL;
-+
-+		if (get_sigset_t(&new_set, (compat_sigset_t __user *) (u64) cdata))
-+			return -EFAULT;
-+
-+		sigdelsetmask(&new_set, sigmask(SIGKILL)|sigmask(SIGSTOP));
-+
-+		/*
-+		 * Every thread does recalc_sigpending() after resume, so
-+		 * retarget_shared_pending() and recalc_sigpending() are not
-+		 * called here.
-+		 */
-+		spin_lock_irq(&child->sighand->siglock);
-+		child->blocked = new_set;
-+		spin_unlock_irq(&child->sighand->siglock);
-+
-+		return 0;
-+
-+	default:
-+		return compat_ptrace_request(child, request, caddr, cdata);
-+	}
-+}
-+
-+#elif defined(CONFIG_COMPAT)
-+
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+		compat_ulong_t caddr, compat_ulong_t cdata)
-+{
-+	return 0;
-+}
-+
-+#endif
-+
- const struct user_regset_view *task_user_regset_view(struct task_struct *task)
- {
- #ifdef CONFIG_AARCH32_EL0
-diff --git a/arch/arm64/kernel/sys32.c b/arch/arm64/kernel/sys32.c
-index a40b134..3752443 100644
---- a/arch/arm64/kernel/sys32.c
-+++ b/arch/arm64/kernel/sys32.c
-@@ -38,6 +38,7 @@ asmlinkage long compat_sys_fadvise64_64_wrapper(void);
- asmlinkage long compat_sys_sync_file_range2_wrapper(void);
- asmlinkage long compat_sys_fallocate_wrapper(void);
- asmlinkage long compat_sys_mmap2_wrapper(void);
-+asmlinkage long compat_sys_aarch32_ptrace(void);
- 
- #undef __SYSCALL
- #define __SYSCALL(nr, sym)	[nr] = sym,
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index 504c98a..75887a0 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -97,6 +97,12 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
- int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
- 			    unsigned long data);
-+int ptrace_traceme(void);
-+struct task_struct *ptrace_get_task_struct(pid_t pid);
-+int ptrace_attach(struct task_struct *task, long request,
-+			 unsigned long addr, unsigned long flags);
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state);
-+void ptrace_unfreeze_traced(struct task_struct *task);
- 
- /**
-  * ptrace_parent - return the task that is tracing the given task
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 2a99027..5638880 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -138,7 +138,7 @@ static bool ptrace_freeze_traced(struct task_struct *task)
- 	return ret;
- }
- 
--static void ptrace_unfreeze_traced(struct task_struct *task)
-+void ptrace_unfreeze_traced(struct task_struct *task)
- {
- 	if (task->state != __TASK_TRACED)
- 		return;
-@@ -170,7 +170,7 @@ static void ptrace_unfreeze_traced(struct task_struct *task)
-  * RETURNS:
-  * 0 on success, -ESRCH if %child is not ready.
+ /*
+  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
   */
--static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
-+int ptrace_check_attach(struct task_struct *child, bool ignore_state)
- {
- 	int ret = -ESRCH;
+ struct rt_sigframe {
+ 	struct siginfo info;
+-	struct ucontext uc;
+-	u64 fp;
+-	u64 lr;
++	struct sigframe sig;
+ };
  
-@@ -294,7 +294,7 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
- 	return !err;
+-static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
++int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ {
+ 	struct fpsimd_state *fpsimd = &current->thread.fpsimd_state;
+ 	int err;
+@@ -65,7 +73,7 @@ static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
+ 	return err ? -EFAULT : 0;
  }
  
--static int ptrace_attach(struct task_struct *task, long request,
-+int ptrace_attach(struct task_struct *task, long request,
- 			 unsigned long addr,
- 			 unsigned long flags)
+-static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
++int restore_fpsimd_context(struct fpsimd_context __user *ctx)
  {
-@@ -408,7 +408,7 @@ static int ptrace_attach(struct task_struct *task, long request,
-  * Performs checks and sets PT_PTRACED.
-  * Should be used by all ptrace implementations for PTRACE_TRACEME.
-  */
--static int ptrace_traceme(void)
-+int ptrace_traceme(void)
- {
- 	int ret = -EPERM;
- 
-@@ -1057,7 +1057,7 @@ int ptrace_request(struct task_struct *child, long request,
- 	return ret;
+ 	struct fpsimd_state fpsimd;
+ 	__u32 magic, size;
+@@ -93,22 +101,30 @@ static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
  }
  
--static struct task_struct *ptrace_get_task_struct(pid_t pid)
-+struct task_struct *ptrace_get_task_struct(pid_t pid)
+ static int restore_sigframe(struct pt_regs *regs,
+-			    struct rt_sigframe __user *sf)
++			    struct sigframe __user *sf)
  {
- 	struct task_struct *child;
+ 	sigset_t set;
+-	int i, err;
+-	void *aux = sf->uc.uc_mcontext.__reserved;
+-
++	int err;
+ 	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
+ 	if (err == 0)
+ 		set_current_blocked(&set);
+ 
++	err |= restore_sigcontext(regs, &sf->uc.uc_mcontext);
++	return err;
++}
++
++
++int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *uc_mcontext)
++{
++	int i, err = 0;
++	void *aux = uc_mcontext->__reserved;
++
+ 	for (i = 0; i < 31; i++)
+-		__get_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++		__get_user_error(regs->regs[i], &uc_mcontext->regs[i],
+ 				 err);
+-	__get_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
+-	__get_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
+-	__get_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
++	__get_user_error(regs->sp, &uc_mcontext->sp, err);
++	__get_user_error(regs->pc, &uc_mcontext->pc, err);
++	__get_user_error(regs->pstate, &uc_mcontext->pstate, err);
+ 
+ 	/*
+ 	 * Avoid sys_rt_sigreturn() restarting.
+@@ -145,10 +161,10 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	if (!access_ok(VERIFY_READ, frame, sizeof (*frame)))
+ 		goto badframe;
+ 
+-	if (restore_sigframe(regs, frame))
++	if (restore_sigframe(regs, &frame->sig))
+ 		goto badframe;
+ 
+-	if (restore_altstack(&frame->uc.uc_stack))
++	if (restore_altstack(&frame->sig.uc.uc_stack))
+ 		goto badframe;
+ 
+ 	return regs->regs[0];
+@@ -162,27 +178,36 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
+ 	return 0;
+ }
+ 
+-static int setup_sigframe(struct rt_sigframe __user *sf,
++static int setup_sigframe(struct sigframe __user *sf,
+ 			  struct pt_regs *regs, sigset_t *set)
+ {
+-	int i, err = 0;
+-	void *aux = sf->uc.uc_mcontext.__reserved;
+-	struct _aarch64_ctx *end;
++	int err = 0;
+ 
+ 	/* set up the stack frame for unwinding */
+ 	__put_user_error(regs->regs[29], &sf->fp, err);
+ 	__put_user_error(regs->regs[30], &sf->lr, err);
++	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++	err |= setup_sigcontext(&sf->uc.uc_mcontext, regs);
++
++	return err;
++}
++
++int setup_sigcontext(struct sigcontext __user *uc_mcontext,
++			struct pt_regs *regs)
++{
++	void *aux = uc_mcontext->__reserved;
++	struct _aarch64_ctx *end;
++	int i, err = 0;
+ 
+ 	for (i = 0; i < 31; i++)
+-		__put_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++		__put_user_error(regs->regs[i], &uc_mcontext->regs[i],
+ 				 err);
+-	__put_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
+-	__put_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
+-	__put_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
+ 
+-	__put_user_error(current->thread.fault_address, &sf->uc.uc_mcontext.fault_address, err);
++	__put_user_error(regs->sp, &uc_mcontext->sp, err);
++	__put_user_error(regs->pc, &uc_mcontext->pc, err);
++	__put_user_error(regs->pstate, &uc_mcontext->pstate, err);
+ 
+-	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++	__put_user_error(current->thread.fault_address, &uc_mcontext->fault_address, err);
+ 
+ 	if (err == 0) {
+ 		struct fpsimd_context *fpsimd_ctx =
+@@ -229,14 +254,14 @@ static struct rt_sigframe __user *get_sigframe(struct ksignal *ksig,
+ 	return frame;
+ }
+ 
+-static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+-			 void __user *frame, int usig)
++void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++			 void __user *frame, off_t fp_pos, int usig)
+ {
+ 	__sigrestore_t sigtramp;
+ 
+ 	regs->regs[0] = usig;
+ 	regs->sp = (unsigned long)frame;
+-	regs->regs[29] = regs->sp + offsetof(struct rt_sigframe, fp);
++	regs->regs[29] = regs->sp + fp_pos;
+ 	regs->pc = (unsigned long)ka->sa.sa_handler;
+ 
+ 	if (ka->sa.sa_flags & SA_RESTORER)
+@@ -257,17 +282,17 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 	if (!frame)
+ 		return 1;
+ 
+-	__put_user_error(0, &frame->uc.uc_flags, err);
+-	__put_user_error(NULL, &frame->uc.uc_link, err);
++	__put_user_error(0, &frame->sig.uc.uc_flags, err);
++	__put_user_error(NULL, &frame->sig.uc.uc_link, err);
+ 
+-	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+-	err |= setup_sigframe(frame, regs, set);
++	err |= __save_altstack(&frame->sig.uc.uc_stack, regs->sp);
++	err |= setup_sigframe(&frame->sig, regs, set);
+ 	if (err == 0) {
+-		setup_return(regs, &ksig->ka, frame, usig);
++		setup_return(regs, &ksig->ka, frame, RT_SIGFRAME_FP_POS, usig);
+ 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+ 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 			regs->regs[1] = (unsigned long)&frame->info;
+-			regs->regs[2] = (unsigned long)&frame->uc;
++			regs->regs[2] = (unsigned long)&frame->sig.uc;
+ 		}
+ 	}
  
 -- 
 2.7.4
