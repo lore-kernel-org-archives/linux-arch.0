@@ -1,31 +1,47 @@
 From: Michal Marek <mmarek@suse.com>
-Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
-Date: Sat, 22 Oct 2016 17:36:34 +0200
-Message-ID: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
-References: <20161015124352.10795-1-npiggin@gmail.com>
- <7315031.MmlhY1rulM@wuerfel> <20161020145827.453025a6@roar.ozlabs.ibm.com>
- <16513464.3RM484EDf1@wuerfel>
+Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
+Date: Sat, 22 Oct 2016 21:51:17 +0200
+Message-ID: <20161022195117.GA1583@sepie.suse.cz>
+References: <20161017065131.GA27863@angband.pl>
+ <6556201.qTG4Pa4aHk@wuerfel>
+ <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
+ <3114442.xCAy34UQCk@wuerfel>
+ <20161019153159.GQ1041@n2100.armlinux.org.uk>
+ <20161020150814.42951f61@roar.ozlabs.ibm.com>
+ <20161020131702.GX1041@n2100.armlinux.org.uk>
+ <20161021012017.67b75a90@roar.ozlabs.ibm.com>
+ <20161020143327.GY1041@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <16513464.3RM484EDf1@wuerfel>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:46939 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751816AbcJVTvX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 22 Oct 2016 15:51:23 -0400
+Content-Disposition: inline
+In-Reply-To: <20161020143327.GY1041@n2100.armlinux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
-> On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:
->>
->> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
->> but in practice it turned into a mess. If some architectures wanted to start
->> protecting their .h files and including them into .S for the prototypes, we
->> could start parsing those too. Should we do the quick and dirty way for 4.9?
+On Thu, Oct 20, 2016 at 03:33:27PM +0100, Russell King - ARM Linux wrote:
+> On Fri, Oct 21, 2016 at 01:20:17AM +1100, Nicholas Piggin wrote:
+> > Good catch, I'm surprised you're the first one who reported it. This patch
+> > seems to do the trick for me:
 > 
-> Let's stay with your approach for now.
+> And me, thanks, so...
+> 
+> > 
+> > From: Nicholas Piggin <npiggin@gmail.com>
+> > Date: Fri, 21 Oct 2016 01:13:33 +1100
+> > Subject: [PATCH] kbuild: prevent lib-ksyms.o rebuilds
+> > 
+> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+> 
+> Reported-by: Russell King <rmk+kernel@armlinux.org.uk>
+> Tested-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-Agreed.
+Thanks. Added to kbuild.git#rc-fixes.
 
 Michal
-
