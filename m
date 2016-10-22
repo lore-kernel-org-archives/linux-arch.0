@@ -1,36 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:37820 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934425AbcJVPgi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Oct 2016 11:36:38 -0400
-Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
-References: <20161015124352.10795-1-npiggin@gmail.com>
- <7315031.MmlhY1rulM@wuerfel> <20161020145827.453025a6@roar.ozlabs.ibm.com>
- <16513464.3RM484EDf1@wuerfel>
-From: Michal Marek <mmarek@suse.com>
-Message-ID: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
-Date: Sat, 22 Oct 2016 17:36:34 +0200
+Received: from smtp07.smtpout.orange.fr ([80.12.242.129]:23700 "EHLO
+        smtp.smtpout.orange.fr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752134AbcJVUX7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 22 Oct 2016 16:23:59 -0400
+From: Robert Jarzmik <robert.jarzmik@free.fr>
+Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
+References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
+        <4337157.Eff9E2riVH@wuerfel>
+        <20161021154856.GC1041@n2100.armlinux.org.uk>
+        <24632117.YsmPs86ri6@wuerfel>
+Date: Sat, 22 Oct 2016 22:23:54 +0200
+In-Reply-To: <24632117.YsmPs86ri6@wuerfel> (Arnd Bergmann's message of "Fri,
+        21 Oct 2016 22:35:53 +0200")
+Message-ID: <87eg382kv9.fsf@belgarion.home>
 MIME-Version: 1.0
-In-Reply-To: <16513464.3RM484EDf1@wuerfel>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>
-Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20161022153634.vGgPwz9WSMSC53gcMg0t68wasSvewbtRKT79qlpggLs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20161022202354.XQFAXQoYkrLkQhSGoVEUxZYszSVD92P0O_3eXUMEo7o@z>
 
-Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
-> On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:
->>
->> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
->> but in practice it turned into a mess. If some architectures wanted to start
->> protecting their .h files and including them into .S for the prototypes, we
->> could start parsing those too. Should we do the quick and dirty way for 4.9?
-> 
-> Let's stay with your approach for now.
+Arnd Bergmann <arnd@arndb.de> writes:
 
-Agreed.
+> On Friday, October 21, 2016 4:48:56 PM CEST Russell King - ARM Linux wrote:
+>> What's the point of the x32 mode?
+>
+> On x86, the motivation is faster code for most use cases that
+> don't need a lot of memory, as the 64-bit opcodes have 16 registers
+> rather than 8 in 32-bit mode but 32-bit pointers have lower
+> cache footprint than 64-bit pointers.
 
-Michal
+For completness, the second point of x32 AFAIU is the IP-relative addressing
+which is not available in standard 32 bit mode, which improves PIC code. For
+simple not algorithmic code (think Android HAL for example) with many shared
+libraries, it's better in the Hardware Abstraction Layer Libraries, instead of
+the push-to-stack and pop register.
 
+Cheers.
+
+--
+Robert
