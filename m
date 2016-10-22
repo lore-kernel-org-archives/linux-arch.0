@@ -1,47 +1,38 @@
-From: Michal Marek <mmarek@suse.com>
-Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Sat, 22 Oct 2016 21:51:17 +0200
-Message-ID: <20161022195117.GA1583@sepie.suse.cz>
-References: <20161017065131.GA27863@angband.pl>
- <6556201.qTG4Pa4aHk@wuerfel>
- <fafba13a-c64c-2578-534c-c344f18d0fc5@suse.com>
- <3114442.xCAy34UQCk@wuerfel>
- <20161019153159.GQ1041@n2100.armlinux.org.uk>
- <20161020150814.42951f61@roar.ozlabs.ibm.com>
- <20161020131702.GX1041@n2100.armlinux.org.uk>
- <20161021012017.67b75a90@roar.ozlabs.ibm.com>
- <20161020143327.GY1041@n2100.armlinux.org.uk>
+From: Robert Jarzmik <robert.jarzmik-GANU6spQydw@public.gmane.org>
+Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
+Date: Sat, 22 Oct 2016 22:23:54 +0200
+Message-ID: <87eg382kv9.fsf@belgarion.home>
+References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
+        <4337157.Eff9E2riVH@wuerfel>
+        <20161021154856.GC1041@n2100.armlinux.org.uk>
+        <24632117.YsmPs86ri6@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:46939 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751816AbcJVTvX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Oct 2016 15:51:23 -0400
-Content-Disposition: inline
-In-Reply-To: <20161020143327.GY1041@n2100.armlinux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <24632117.YsmPs86ri6@wuerfel> (Arnd Bergmann's message of "Fri,
+        21 Oct 2016 22:35:53 +0200")
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 20, 2016 at 03:33:27PM +0100, Russell King - ARM Linux wrote:
-> On Fri, Oct 21, 2016 at 01:20:17AM +1100, Nicholas Piggin wrote:
-> > Good catch, I'm surprised you're the first one who reported it. This patch
-> > seems to do the trick for me:
-> 
-> And me, thanks, so...
-> 
-> > 
-> > From: Nicholas Piggin <npiggin@gmail.com>
-> > Date: Fri, 21 Oct 2016 01:13:33 +1100
-> > Subject: [PATCH] kbuild: prevent lib-ksyms.o rebuilds
-> > 
-> > Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
-> 
-> Reported-by: Russell King <rmk+kernel@armlinux.org.uk>
-> Tested-by: Russell King <rmk+kernel@armlinux.org.uk>
+Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> writes:
 
-Thanks. Added to kbuild.git#rc-fixes.
+> On Friday, October 21, 2016 4:48:56 PM CEST Russell King - ARM Linux wrote:
+>> What's the point of the x32 mode?
+>
+> On x86, the motivation is faster code for most use cases that
+> don't need a lot of memory, as the 64-bit opcodes have 16 registers
+> rather than 8 in 32-bit mode but 32-bit pointers have lower
+> cache footprint than 64-bit pointers.
 
-Michal
+For completness, the second point of x32 AFAIU is the IP-relative addressing
+which is not available in standard 32 bit mode, which improves PIC code. For
+simple not algorithmic code (think Android HAL for example) with many shared
+libraries, it's better in the Hardware Abstraction Layer Libraries, instead of
+the push-to-stack and pop register.
+
+Cheers.
+
+--
+Robert
