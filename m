@@ -1,68 +1,31 @@
-From: Steven Moore <zgpt66p@cplonetie.me>
-Subject: Get A Part Time Job Today
-Date: Sat, 22 Oct 2016 04:54:36 -0700
-Message-ID: <SN1PR14MB033516BF8F7789EE4FB477B3D6D70@SN1PR14MB0335.namprd14.prod.outlook.com>
-Reply-To: <231101xyz@gmail.com>
+From: Michal Marek <mmarek@suse.com>
+Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
+Date: Sat, 22 Oct 2016 17:36:34 +0200
+Message-ID: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
+References: <20161015124352.10795-1-npiggin@gmail.com>
+ <7315031.MmlhY1rulM@wuerfel> <20161020145827.453025a6@roar.ozlabs.ibm.com>
+ <16513464.3RM484EDf1@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03hn0212.outbound.protection.outlook.com ([104.47.41.212]:61170
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S936453AbcJVMkA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Oct 2016 08:40:00 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <zgpt66p@cplonetie.me>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <16513464.3RM484EDf1@wuerfel>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-Hello
- =
+Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
+> On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:
+>>
+>> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
+>> but in practice it turned into a mess. If some architectures wanted to start
+>> protecting their .h files and including them into .S for the prototypes, we
+>> could start parsing those too. Should we do the quick and dirty way for 4.9?
+> 
+> Let's stay with your approach for now.
 
- =
+Agreed.
 
-My Name is Steven Moore.We seek the service of a Secret Shopper in our apex=
--consult Organization. The assignment will pay  per duty .You can make $200=
- everyday , depends on how fast you able to take up your work. I am sure yo=
-u cannot spend more than 1-2 hours per day on your assignment . No Money or=
- Fee is required to become secret shopper.
- =
+Michal
 
- =
-
- =
-
-KINDLY SEND YOUR INFORMATION BELOW IF INTERESTED:
- =
-
- =
-
- =
-
-Your Name:
-Street Address: ( Not PO. BOX )
-Apartment Number:
-City: State:
-Zip Code:  =
-
-Country:
-Cell/Home phone number:
-Age:
-Present working Status:
- =
-
-You can also vist our website to Regrister online:
- =
-
- =
-
-http://www.apex-consult.net/
- =
-
- =
-
-Regards,
-Steven Moore
-231101xyz@gmail.com
-=20
