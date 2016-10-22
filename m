@@ -1,72 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:35324 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935534AbcJVAHA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Oct 2016 20:07:00 -0400
-Date: Sat, 22 Oct 2016 11:06:36 +1100
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/5] stop_machine: yield CPU during stop machine
-Message-ID: <20161022110636.410f20bd@roar.ozlabs.ibm.com>
-In-Reply-To: <20161021120536.GC3142@twins.programming.kicks-ass.net>
-References: <1477051138-1610-1-git-send-email-borntraeger@de.ibm.com>
-        <1477051138-1610-3-git-send-email-borntraeger@de.ibm.com>
-        <20161021120536.GC3142@twins.programming.kicks-ass.net>
+Received: from mx2.suse.de ([195.135.220.15]:37820 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S934425AbcJVPgi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 22 Oct 2016 11:36:38 -0400
+Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
+References: <20161015124352.10795-1-npiggin@gmail.com>
+ <7315031.MmlhY1rulM@wuerfel> <20161020145827.453025a6@roar.ozlabs.ibm.com>
+ <16513464.3RM484EDf1@wuerfel>
+From: Michal Marek <mmarek@suse.com>
+Message-ID: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
+Date: Sat, 22 Oct 2016 17:36:34 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+In-Reply-To: <16513464.3RM484EDf1@wuerfel>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Noam Camus <noamc@ezchip.com>, virtualization@lists.linux-foundation.org, xen-devel-request@lists.xenproject.org, kvm@vger.kernel.org
-Message-ID: <20161022000636.lVBtOc5EzGF23EHp8ss2EMsJNVLnTdlQHjsp2BsTj-8@z>
+To: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>
+Cc: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20161022153634.vGgPwz9WSMSC53gcMg0t68wasSvewbtRKT79qlpggLs@z>
 
-On Fri, 21 Oct 2016 14:05:36 +0200
-Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Fri, Oct 21, 2016 at 01:58:55PM +0200, Christian Borntraeger wrote:
-> > stop_machine can take a very long time if the hypervisor does
-> > overcommitment for guest CPUs. When waiting for "the one", lets
-> > give up our CPU by using the new cpu_relax_yield.  
+Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
+> On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:
+>>
+>> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
+>> but in practice it turned into a mess. If some architectures wanted to start
+>> protecting their .h files and including them into .S for the prototypes, we
+>> could start parsing those too. Should we do the quick and dirty way for 4.9?
 > 
-> This seems something that would apply to most other virt stuff. Lets Cc
-> a few more lists for that.
-> 
-> > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> > ---
-> >  kernel/stop_machine.c | 2 +-
-> >  1 file changed, 1 insertion(+), 1 deletion(-)
-> > 
-> > diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
-> > index ec9ab2f..1eb8266 100644
-> > --- a/kernel/stop_machine.c
-> > +++ b/kernel/stop_machine.c
-> > @@ -194,7 +194,7 @@ static int multi_cpu_stop(void *data)
-> >  	/* Simple state machine */
-> >  	do {
-> >  		/* Chill out and ensure we re-read multi_stop_state. */
-> > -		cpu_relax();
-> > +		cpu_relax_yield();
-> >  		if (msdata->state != curstate) {
-> >  			curstate = msdata->state;
-> >  			switch (curstate) {
-> > -- 
-> > 2.5.5
-> >   
+> Let's stay with your approach for now.
 
-This is the only caller of cpu_relax_yield()?
+Agreed.
 
-As a step to removing cpu_yield_lowlatency this series is nice so I
-have no objection. But "general" kernel coders still have basically
-no chance of using this properly.
+Michal
 
-I wonder what can be done about that. I've got that spin_do/while
-series I'll rebase on top of this, but a spin_yield variant of them
-is of no more help to the caller.
-
-What makes this unique? Long latency and not performance critical?
-Most places where we spin and maybe yield have been moved to arch
-code, but I wonder whether we can make an easier to use architecture
-independent API?
-
-Thanks,
-Nick
