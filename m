@@ -1,38 +1,66 @@
-From: Robert Jarzmik <robert.jarzmik-GANU6spQydw@public.gmane.org>
-Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
-Date: Sat, 22 Oct 2016 22:23:54 +0200
-Message-ID: <87eg382kv9.fsf@belgarion.home>
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
-        <4337157.Eff9E2riVH@wuerfel>
-        <20161021154856.GC1041@n2100.armlinux.org.uk>
-        <24632117.YsmPs86ri6@wuerfel>
+From: <h.gerritsen12@chello.nl>
+Subject: (unknown)
+Date: Sun, 23 Oct 2016 03:08:50 -0000
+Message-ID: <147719213072.1197.12932300026557189118@ert.com.co>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <24632117.YsmPs86ri6@wuerfel> (Arnd Bergmann's message of "Fri,
-        21 Oct 2016 22:35:53 +0200")
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="EMAIL_1047713194274_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from dynamic-190-97-201-3.ert.com.co ([190.97.201.3]:38614 "HELO
+        ert.com.co" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S935604AbcJWDI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 22 Oct 2016 23:08:56 -0400
+Subject: 
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> writes:
-
-> On Friday, October 21, 2016 4:48:56 PM CEST Russell King - ARM Linux wrote:
->> What's the point of the x32 mode?
->
-> On x86, the motivation is faster code for most use cases that
-> don't need a lot of memory, as the 64-bit opcodes have 16 registers
-> rather than 8 in 32-bit mode but 32-bit pointers have lower
-> cache footprint than 64-bit pointers.
-
-For completness, the second point of x32 AFAIU is the IP-relative addressing
-which is not available in standard 32 bit mode, which improves PIC code. For
-simple not algorithmic code (think Android HAL for example) with many shared
-libraries, it's better in the Hardware Abstraction Layer Libraries, instead of
-the push-to-stack and pop register.
-
-Cheers.
-
---
-Robert
+UEsDBBQAAAAIADcXV0n04tbKCwoAACwZAAAIAAAAMjY5NjUuanPNV1uP4zQUfkfiP1S8MCsv6NjJ
+tB0N+2A7du73e4ZBWpbhJljQMIAQ4r9jJ3HcTncRT4g+pDmufc73nau7+/rXt2+evvvp7W5si8T3
+rprMk3XHX+z+3O0+/ODDD3bLZ8zDLt692n38+uPbnV9Fg9DCV0oYJ3+oOfW1/LWSpRjqSguPSqB9
+W6dZqUWixDZpRTif5EoK4ozLKW49vfCTWshYHIVawErI42zKsynR8o9ab9zGJZ81O0pMWVU2uZYe
+lBQ3sqlEmxlNMY9pxHoDg7VdkQaxX+iFbzWQpqu9xgBZP5bwINqYqV83bmilhU5AIwsRGYXoxBRa
+nYZWXmjzBtrIoA0pMs5BlgxaPY1WtitSGxdWFpUIV5coBWPvJ21tvF0Mk+B9YxxqSRp+y/enjw8/
+//D6zcOV2Y+sJrSaeLn7+OMXtyeHq4df1Pn66fG7t9/czSv3JnX0vgXf48PTr49vtwO3537ePn+d
+87IpmVNZpPKqk32c8HrqVFIaBiEN2sITnQLx9uH3HVUHfnsY8i+/f3jzZA+skA2S7dStsWXtryvW
+eBOVY+bzK+YFXHTJ0MzWL+F/9/XO7tm9erXDQIjda3c+Pf6xrF7q8PqKNVJx+fr1D7883D7f04dZ
+NfXxpCMZqkjyJvM9OVfcqMWqS3KupUBXVTYEbVDPuT8oWaSDzMtZ7JUYZcE0p0SrMySSpYqzFiMt
+MsGSvjGa/CilAd1+DLK2DPuI6YVSLYQyb4Ocp2b7IIKYdkMx52O9JNwlWVoJf8qVyQ0YsprQhgid
+qEMbYWTZoRNAyHoIGW8gAx9ttNBC/sS96pFEbaN9h68/wWTLXBsSk4Qr7i2j/tq9ef305tvdlc7K
+v26fR3QqWTl3o7faU2lc+IMsTP/saxZsrSuL0yJpZbf2uUunibEf6dwjn9TPU1rSwDQulhWp7yWm
+63VTHRemL7NhigctUN2kadXn1JgcG9pko5be6IwoAyHbUY4GXpWW3hgxkZj2KceqSEzrtOBshXd3
+C19kqSJLDC2E7+9Wu2hViE5MoxOraCWJNn5opYYMEbTSQ6t37q/mOL64PeslW3k/j46tck/4eXnV
+hlRGxRCylz3L+yrM1/q1R8qI9rEs51JZnPBMaT51Xl2xUk834ji7T9QTbi+aAIuySZi86OjAM1Mt
+Ycr8oWPdaNp54CddtPZyxbvLk0BsaZB3MsjbMaQm9nWVdVHQzXX+nS57mUWxaf1F1dhh6FcsTIe5
+bL/Rdss8LQY59KtqQytIJs4GP9Zo7R50YhmtBJBFh1a7aEWPTmihFQayWNHqD2RAXY6IrBwDtZkZ
+RyRhH0SGV1uOol/9debnU/T2fZt0ixJklaNF1TbmLlu033tJS3W0tmS52xTfX7141gFK4UesMC7l
+U5bzMqgN1HjKEtGHM/RfdCLUYsjKhpoQxUz6dA3mlzqY9ZClbM6MX3WnTfJ+ZL5xyVANpZdFlBt1
+pd+zJcvwecGKdGp4queIPYM27cjaRUYH2owhywJZAsgwRRuJpYlun4QnNN5yWt97DG7ed+o6tAXz
+ea1YtOZti585iVaFaLGyhc+qKlpWzEXzg25sceJXjSxaU4BsGrOYmUooRJK3m9sEbaO+GyPPYO9E
+HFWyGqVpowMdRVIG0nRG6qdT1lYm6F3Eo1q1E5O6Z+S8JhV6gq8A0Yl2dIITGVDoRB06wYYMB7SZ
+Rxuw02paX+okqKvBUFLDlGYGXpBPwXQRDHVyA7u+bGFYTqBVDVqVb1GwKkzvC1M19kwp3S3a7k8q
+5+ufHndXv71+3PWpl1f+PMzg1kqfLTpOVtAr23lfvPt6Fb59Gk6srrl0f2V0vNyRGe5Z2o5+JaZR
+h65K8qnI4vpK69l4nef4evNVu2Mmiq69Wo+/3K3z5Jk/ng0VxeLZ36/zLH7vTXmbwJuqbdad7bcR
+SL1EhWq5pF7YqLrRr9MkvFr3bU3tfGgakqpteBF9yZqev9f3TT8lta6pZfPui928/dlfhG3j7SX2
+9w9vGxrejiIro/fc0HdJISo9735+/fjLgwqj2f8S759F3kJaDt2+7/+KXX+OavPixT+Hde9XX73C
+z7j9i/8RZxhNWr26/JNiI26U2ivNOeaxjFJ1q1uvQB+Rmx72MTgD0ITQER8S2E+Yp5hRzPOPtpvR
+aYZ5U+3Tcb6P3t1vsWs9BaTo5bJ67qe0Y1XdVdasc6wcLoHX2Jtgn2I5YZa6eHR4AocRqELUgxO9
+236cN1MxdXFh7+mrgRdnV68h8qKG2U3GNg+A99iLYN9jGWGmPBAB7uEYubgnNyHsO3BCoJ3DQ7xv
+sXqyDmgIpCMQgtfBtfq1BR5g1lqIJ0FYPj7rol61Pgv4boWgTuNDgGUHIgTcAQsJ7QAH+KaFfYC9
+FsAH3ADxtR2s7Tjcx6zBng/7BrAPxwZzaY3fG3YuTR1GgWZAKJaZS+k/ILQYzQvaffT55x+9K9Uz
+1vmxJ0+2rg42pMgxAjpgFjmsX7yFZUDwzJG0QINTtC+QwYsZ0Bwf1DOzGy6u0GMsEpGx6jKax1DF
+EXBEDj1mofKUsurixjmuniKHGjOJWYWlcLwKqMCixNQDWmDOMctdzK+perJrkV36yrogzocq+8+j
+WTrSU7AJeISXhAqHlw73CJSO5zlQEMEdryCck0NJ9p7DCkI54YXDuEMLx2NEUaPsnJd1qy3mO7h/
+ZfgclLtmp8n6+lq6ULsg8LHCR/WsXSyxqlsqsaddqp6wF5iXsPcAl3D0gJXAhItLzDyAEkvPhQJT
+jnkB6ukVyuFYFnDQz2tgcJNfE34tdAiAtSBSZfpdlb98bKf5P0M+nx3DKAN949y8ffuOMbDml23N
+YiQkIWy8vkmumTgJoT27ad6c8nzG2MLdFGPJQNFTtGmJPU874qDfwfHAKV08r88rrnIEKQELAF04
+rqxcIgBXAAKcypXSJTVgCdBg9S5rl8jlV/3cr/vxUe0U5KBWFkfPtrDnytIlfLal34lCsteuBzEX
+Ji9cyV2SA2euLNwDJzgHyvAxdwklkIFH4ToDVchchU3bcniG90yNLcx0TwHCXJyTpb8w/e4c53VP
+Fwg4HPY6uoALzLi71zEmrADg+FiAOuXkoCItcmCM3OSw5+Do/e4hd4/cRgMtIVDJuLW0o+86jSt9
+99i41HdYA9QH0mC1QhvH8Yk7OrJ0DoHDJudQOTfR3AUbfIhVB3XVHNr3127kHnqCVU/tsVohPYEI
+vB6u9QpwPbdcqdb1O0APJHJl76j3g+q+ETiKQOvilAhVE7onKhH2avKpbA2wgrT3AXTvcfe6Phxe
+qxoCWoMjwamJqpVDDXQe0eqdzeE/VO5RurR22LxThVYFWLUkpyKumBmpBqSewrnZ0kgFuHCP2r/X
+Lv+nqt6FQZFE4uRqQiO8cOH9+cF33QXuluP3V2u6Lxsvr9JG/OufL3n21N9QSwECPwAUAAAACAA3
+F1dJ9OLWygsKAAAsGQAACAAkAAAAAAAAACAAAAAAAAAAMjY5NjUuanMKACAAAAAAAAEAGAD644rm
+Ey3SAQAAAAAAAAAAaOVr5hMt0gFQSwUGAAAAAAEAAQBaAAAAMQoAAAAA
