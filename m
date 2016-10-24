@@ -1,63 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47768 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750955AbcJXKNP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 24 Oct 2016 06:13:15 -0400
-Date: Mon, 24 Oct 2016 11:12:43 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 0/3] THREAD_INFO_IN_TASK prep work for arm64+s390
-Message-ID: <20161024101242.GC15620@leverpostej>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:61579 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S938729AbcJXPG6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2016 11:06:58 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 2/2, variant B] ARM: move mmiocpy/mmioset exports to io.c
+Date: Mon, 24 Oct 2016 17:06:45 +0200
+Message-ID: <14981419.nRUFpzhctm@wuerfel>
+In-Reply-To: <3446653.W8FbGAKSeQ@wuerfel>
+References: <20161017065131.GA27863@angband.pl> <20161020150814.42951f61@roar.ozlabs.ibm.com> <3446653.W8FbGAKSeQ@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mingo@redhat.com, tglx@linutronix.de
-Message-ID: <20161024101243.WiwX81-AUcRlz06P9NHtxa7C6gpPtnc1nG4ArX_ncB0@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20161024150645.odS-td-IcxGHudfPdYoTbB_4l2vR-NzRT9mO8y-7cj4@z>
 
-Hi Andrew,
+The prototypes for mmioset/mmiocpy are intentionally hidden
+inside of inline functions, which breaks the EXPORT_SYMBOL
+statements when symbol versioning is enabled.
 
-On Wed, Oct 19, 2016 at 07:28:10PM +0100, Mark Rutland wrote:
-> Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
-> respectively, and we're both targetting v4.10.
-> 
-> These are the common core changes which we both require, which happen to
-> touch x86 and some core headers. We'd either need these merged for
-> v4.9-rc*, or placed on a stable branch/tag that we can both base atop
-> of.
-> 
-> I've put together a branch [1,2] based on v4.9-rc1, but the patches themselves
-> are sorely lacking in relevant acks. Are people willing to help change that? ;)
+This moves the two exports from the files that implement the
+code into the kernel/io.c file, adding another local declaration
+there.
 
-Would you be happy to ack patches 2 and 3?
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Ingo took patch 1 for 4.9-rc2, and these are the only core parts s390
-and arm64 need to implement THREAD_INFO_IN_TASK for v4.10.
+diff --git a/arch/arm/kernel/io.c b/arch/arm/kernel/io.c
+index eedefe050022..c74746997626 100644
+--- a/arch/arm/kernel/io.c
++++ b/arch/arm/kernel/io.c
+@@ -82,3 +82,10 @@ void _memset_io(volatile void __iomem *dst, int c, size_t count)
+ 	}
+ }
+ EXPORT_SYMBOL(_memset_io);
++
++/* can't export them from memcpy.S/memset.S because of hidden declaration */
++void mmioset(void __iomem *addr, unsigned int c, size_t n);
++EXPORT_SYMBOL(mmioset);
++
++void mmiocpy(void *dest, const void __iomem *src, size_t n);
++EXPORT_SYMBOL(mmiocpy);
+diff --git a/arch/arm/lib/memcpy.S b/arch/arm/lib/memcpy.S
+index 1be5b6ddf37c..1f822fc52400 100644
+--- a/arch/arm/lib/memcpy.S
++++ b/arch/arm/lib/memcpy.S
+@@ -70,4 +70,3 @@ ENTRY(memcpy)
+ ENDPROC(memcpy)
+ ENDPROC(mmiocpy)
+ EXPORT_SYMBOL(memcpy)
+-EXPORT_SYMBOL(mmiocpy)
+diff --git a/arch/arm/lib/memset.S b/arch/arm/lib/memset.S
+index 7b72044cba62..6f075ca09abc 100644
+--- a/arch/arm/lib/memset.S
++++ b/arch/arm/lib/memset.S
+@@ -137,4 +137,3 @@ UNWIND( .fnend   )
+ ENDPROC(memset)
+ ENDPROC(mmioset)
+ EXPORT_SYMBOL(memset)
+-EXPORT_SYMBOL(mmioset)
 
-I'd like to put them on a stable branch.
-
-Thanks,
-Mark.
-
-> [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core/ti-stack-split
-> [2] https://git.kernel.org/cgit/linux/kernel/git/mark/linux.git/log/?h=core/ti-stack-split
-> 
-> Heiko Carstens (1):
->   sched/core,x86: make struct thread_info arch specific again
-> 
-> Mark Rutland (2):
->   thread_info: factor out restart_block
->   thread_info: include <current.h> for THREAD_INFO_IN_TASK
-> 
->  arch/x86/include/asm/thread_info.h |  9 +++++++
->  include/linux/restart_block.h      | 51 ++++++++++++++++++++++++++++++++++++
->  include/linux/thread_info.h        | 53 ++------------------------------------
->  3 files changed, 62 insertions(+), 51 deletions(-)
->  create mode 100644 include/linux/restart_block.h
-> 
-> -- 
-> 1.9.1
-> 
