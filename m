@@ -1,45 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f195.google.com ([209.85.161.195]:33637 "EHLO
-        mail-yw0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757230AbcJXJ33 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2016 05:29:29 -0400
+Received: from foss.arm.com ([217.140.101.70]:47768 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750955AbcJXKNP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Oct 2016 06:13:15 -0400
+Date: Mon, 24 Oct 2016 11:12:43 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 0/3] THREAD_INFO_IN_TASK prep work for arm64+s390
+Message-ID: <20161024101242.GC15620@leverpostej>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <3851270.xZRcP9hae0@wuerfel>
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk> <13702107.LdHY4HTXyY@wuerfel>
- <20161019155325.GR1041@n2100.armlinux.org.uk> <3851270.xZRcP9hae0@wuerfel>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 24 Oct 2016 11:29:28 +0200
-Message-ID: <CAMuHMdWjBFRm2rvCC8LBVG0CLk7MtmMLZJ7Ca72v6Nm=b5aD9A@mail.gmail.com>
-Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch <linux-arch@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>
-Message-ID: <20161024092928.69ZiaKpA41knxuz-AgUT0ZgI84ux8lqrctdUtTDg5gM@z>
+To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mingo@redhat.com, tglx@linutronix.de
+Message-ID: <20161024101243.WiwX81-AUcRlz06P9NHtxa7C6gpPtnc1nG4ArX_ncB0@z>
 
-Hi Arnd,
+Hi Andrew,
 
-On Fri, Oct 21, 2016 at 3:06 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> - a lot of the less common architectures just don't get updated
->   in time, out of 22 architectures that don't use asm-generic/unistd.h,
->   only 12 have pwritev2 in linux-next, and only three have pkey_mprotect
+On Wed, Oct 19, 2016 at 07:28:10PM +0100, Mark Rutland wrote:
+> Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
+> respectively, and we're both targetting v4.10.
+> 
+> These are the common core changes which we both require, which happen to
+> touch x86 and some core headers. We'd either need these merged for
+> v4.9-rc*, or placed on a stable branch/tag that we can both base atop
+> of.
+> 
+> I've put together a branch [1,2] based on v4.9-rc1, but the patches themselves
+> are sorely lacking in relevant acks. Are people willing to help change that? ;)
 
-Should everybody implement pkey_mprotect?
+Would you be happy to ack patches 2 and 3?
 
-"x86, pkeys: remove cruft from never-merged syscalls" and
+Ingo took patch 1 for 4.9-rc2, and these are the only core parts s390
+and arm64 need to implement THREAD_INFO_IN_TASK for v4.10.
 
-arch/powerpc/include/asm/unistd.h:#define __IGNORE_pkey_mprotect
+I'd like to put them on a stable branch.
 
-aren't that reassuring...
+Thanks,
+Mark.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core/ti-stack-split
+> [2] https://git.kernel.org/cgit/linux/kernel/git/mark/linux.git/log/?h=core/ti-stack-split
+> 
+> Heiko Carstens (1):
+>   sched/core,x86: make struct thread_info arch specific again
+> 
+> Mark Rutland (2):
+>   thread_info: factor out restart_block
+>   thread_info: include <current.h> for THREAD_INFO_IN_TASK
+> 
+>  arch/x86/include/asm/thread_info.h |  9 +++++++
+>  include/linux/restart_block.h      | 51 ++++++++++++++++++++++++++++++++++++
+>  include/linux/thread_info.h        | 53 ++------------------------------------
+>  3 files changed, 62 insertions(+), 51 deletions(-)
+>  create mode 100644 include/linux/restart_block.h
+> 
+> -- 
+> 1.9.1
+> 
