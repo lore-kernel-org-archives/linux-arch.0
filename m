@@ -1,58 +1,53 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 0/3] THREAD_INFO_IN_TASK prep work for arm64+s390
-Date: Mon, 24 Oct 2016 11:12:43 +0100
-Message-ID: <20161024101242.GC15620@leverpostej>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] kbuild: provide include/asm/asm-prototypes.h for ARM
+Date: Mon, 24 Oct 2016 17:04:31 +0200
+Message-ID: <3446653.W8FbGAKSeQ@wuerfel>
+References: <20161017065131.GA27863@angband.pl> <20161019153159.GQ1041@n2100.armlinux.org.uk> <20161020150814.42951f61@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, hpa@zytor.com, keescook@chromium.org, luto@kernel.org, mingo@redhat.com, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:49728 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S941097AbcJXPFt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2016 11:05:49 -0400
+In-Reply-To: <20161020150814.42951f61@roar.ozlabs.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi Andrew,
+On Thursday, October 20, 2016 3:08:14 PM CEST Nicholas Piggin wrote:
+> On Wed, 19 Oct 2016 16:32:00 +0100 Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
+> > I'm not in favour of this.
+> > 
+> >    +extern void mmioset(void *, unsigned int, size_t);
+> >    +extern void mmiocpy(void *, const void *, size_t);
+> >    +
+> >     #ifndef __ARMBE__
+> >     static inline void memset_io(volatile void __iomem *dst, unsigned c,
+> >            size_t count)
+> >     {
+> >    -       extern void mmioset(void *, unsigned int, size_t);
+> >            mmioset((void __force *)dst, c, count);
+> >     }
+> > 
+> > The reason they're declared _within_ memset_io() is to prevent people
+> > from using them by hiding their declaration.  Moving them outside is
+> > an open invitation to stupid people starting to use them as an "oh it
+> > must be an official API".
+> > 
 
-On Wed, Oct 19, 2016 at 07:28:10PM +0100, Mark Rutland wrote:
-> Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
-> respectively, and we're both targetting v4.10.
-> 
-> These are the common core changes which we both require, which happen to
-> touch x86 and some core headers. We'd either need these merged for
-> v4.9-rc*, or placed on a stable branch/tag that we can both base atop
-> of.
-> 
-> I've put together a branch [1,2] based on v4.9-rc1, but the patches themselves
-> are sorely lacking in relevant acks. Are people willing to help change that? ;)
+I've split out that change from the other ones now, and will follow
+up with the patch to address all the other ones first.
 
-Would you be happy to ack patches 2 and 3?
+> Fair point, what about leaving those as they are, and also adding
+> them to asm-prototypes.h protected with GENKSYMS ifdef? It's not
+> beautiful, but still better than armksyms.c before Al's patches (or
+> at least no worse).
 
-Ingo took patch 1 for 4.9-rc2, and these are the only core parts s390
-and arm64 need to implement THREAD_INFO_IN_TASK for v4.10.
+I'm trying this one, and an alternative patch that moves the
+export into arch/arm/kernel/io.h. Let's see if we can agree
+on one of these.
 
-I'd like to put them on a stable branch.
-
-Thanks,
-Mark.
-
-> [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core/ti-stack-split
-> [2] https://git.kernel.org/cgit/linux/kernel/git/mark/linux.git/log/?h=core/ti-stack-split
-> 
-> Heiko Carstens (1):
->   sched/core,x86: make struct thread_info arch specific again
-> 
-> Mark Rutland (2):
->   thread_info: factor out restart_block
->   thread_info: include <current.h> for THREAD_INFO_IN_TASK
-> 
->  arch/x86/include/asm/thread_info.h |  9 +++++++
->  include/linux/restart_block.h      | 51 ++++++++++++++++++++++++++++++++++++
->  include/linux/thread_info.h        | 53 ++------------------------------------
->  3 files changed, 62 insertions(+), 51 deletions(-)
->  create mode 100644 include/linux/restart_block.h
-> 
-> -- 
-> 1.9.1
-> 
+	Arnd
