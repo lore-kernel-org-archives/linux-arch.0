@@ -1,201 +1,59 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Mon, 24 Oct 2016 17:05:26 +0200
-Message-ID: <14534456.e6dv16VA3R@wuerfel>
+Subject: [PATCH 2/2, variant B] ARM: move mmiocpy/mmioset exports to io.c
+Date: Mon, 24 Oct 2016 17:06:45 +0200
+Message-ID: <14981419.nRUFpzhctm@wuerfel>
 References: <20161017065131.GA27863@angband.pl> <20161020150814.42951f61@roar.ozlabs.ibm.com> <3446653.W8FbGAKSeQ@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 In-Reply-To: <3446653.W8FbGAKSeQ@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-kbuild-owner@vger.kernel.org
 To: Nicholas Piggin <npiggin@gmail.com>
 Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This adds an asm/asm-prototypes.h header for ARM to fix the
-broken symbol versioning for symbols exported from assembler
-files.
+The prototypes for mmioset/mmiocpy are intentionally hidden
+inside of inline functions, which breaks the EXPORT_SYMBOL
+statements when symbol versioning is enabled.
 
-In addition to the header, we have to do these other small
-changes:
-
-- move the exports from bitops.h to {change,clear,set,...}bit.S
-- move the exports from csumpartialgeneric.S into the files
-  including it
-
-I couldn't find the correct prototypes for the compiler builtins,
-so I went with the fake 'void f(void)' prototypes that we had
-before.
-
-This leaves the mmioset/mmiocpy function for now, as it's not
-obvious how to best handle them.
+This moves the two exports from the files that implement the
+code into the kernel/io.c file, adding another local declaration
+there.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-diff --git a/arch/arm/include/asm/asm-prototypes.h b/arch/arm/include/asm/asm-prototypes.h
-new file mode 100644
-index 000000000000..04e5616a7b15
---- /dev/null
-+++ b/arch/arm/include/asm/asm-prototypes.h
-@@ -0,0 +1,34 @@
-+#include <linux/arm-smccc.h>
-+#include <linux/bitops.h>
-+#include <linux/ftrace.h>
-+#include <linux/io.h>
-+#include <linux/platform_data/asoc-imx-ssi.h>
-+#include <linux/string.h>
-+#include <linux/uaccess.h>
+diff --git a/arch/arm/kernel/io.c b/arch/arm/kernel/io.c
+index eedefe050022..c74746997626 100644
+--- a/arch/arm/kernel/io.c
++++ b/arch/arm/kernel/io.c
+@@ -82,3 +82,10 @@ void _memset_io(volatile void __iomem *dst, int c, size_t count)
+ 	}
+ }
+ EXPORT_SYMBOL(_memset_io);
 +
-+#include <asm/checksum.h>
-+#include <asm/div64.h>
-+#include <asm/memory.h>
++/* can't export them from memcpy.S/memset.S because of hidden declaration */
++void mmioset(void __iomem *addr, unsigned int c, size_t n);
++EXPORT_SYMBOL(mmioset);
 +
-+extern void __aeabi_idivmod(void);
-+extern void __aeabi_idiv(void);
-+extern void __aeabi_lasr(void);
-+extern void __aeabi_llsl(void);
-+extern void __aeabi_llsr(void);
-+extern void __aeabi_lmul(void);
-+extern void __aeabi_uidivmod(void);
-+extern void __aeabi_uidiv(void);
-+extern void __aeabi_ulcmp(void);
-+
-+extern void __ashldi3(void);
-+extern void __ashrdi3(void);
-+extern void __bswapdi2(void);
-+extern void __bswapsi2(void);
-+extern void __divsi3(void);
-+extern void __do_div64(void);
-+extern void __lshrdi3(void);
-+extern void __modsi3(void);
-+extern void __muldi3(void);
-+extern void __ucmpdi2(void);
-+extern void __udivsi3(void);
-+extern void __umodsi3(void);
-diff --git a/arch/arm/lib/bitops.h b/arch/arm/lib/bitops.h
-index df06638b327c..afaef2a7faec 100644
---- a/arch/arm/lib/bitops.h
-+++ b/arch/arm/lib/bitops.h
-@@ -26,7 +26,6 @@ UNWIND(	.fnstart	)
- 	bx	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- 
- 	.macro	testop, name, instr, store
-@@ -57,7 +56,6 @@ UNWIND(	.fnstart	)
- 2:	bx	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- #else
- 	.macro	bitop, name, instr
-@@ -77,7 +75,6 @@ UNWIND(	.fnstart	)
- 	ret	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- 
- /**
-@@ -106,6 +103,5 @@ UNWIND(	.fnstart	)
- 	ret	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- #endif
-diff --git a/arch/arm/lib/changebit.S b/arch/arm/lib/changebit.S
-index f4027862172f..005fdd18c509 100644
---- a/arch/arm/lib/changebit.S
-+++ b/arch/arm/lib/changebit.S
-@@ -13,3 +13,4 @@
-                 .text
- 
- bitop	_change_bit, eor
-+EXPORT_SYMBOL(_change_bit)
-diff --git a/arch/arm/lib/clearbit.S b/arch/arm/lib/clearbit.S
-index f6b75fb64d30..501eff09968d 100644
---- a/arch/arm/lib/clearbit.S
-+++ b/arch/arm/lib/clearbit.S
-@@ -13,3 +13,4 @@
-                 .text
- 
- bitop	_clear_bit, bic
-+EXPORT_SYMBOL(_clear_bit)
-diff --git a/arch/arm/lib/csumpartialcopy.S b/arch/arm/lib/csumpartialcopy.S
-index 9c3383fed129..bdcc2eea4e5c 100644
---- a/arch/arm/lib/csumpartialcopy.S
-+++ b/arch/arm/lib/csumpartialcopy.S
-@@ -49,6 +49,7 @@
- 
- #define FN_ENTRY	ENTRY(csum_partial_copy_nocheck)
- #define FN_EXIT		ENDPROC(csum_partial_copy_nocheck)
--#define FN_EXPORT	EXPORT_SYMBOL(csum_partial_copy_nocheck)
- 
- #include "csumpartialcopygeneric.S"
-+
-+EXPORT_SYMBOL(csum_partial_copy_nocheck)
-diff --git a/arch/arm/lib/csumpartialcopygeneric.S b/arch/arm/lib/csumpartialcopygeneric.S
-index 8b94d20e51d1..06825566c0f7 100644
---- a/arch/arm/lib/csumpartialcopygeneric.S
-+++ b/arch/arm/lib/csumpartialcopygeneric.S
-@@ -332,4 +332,3 @@ FN_ENTRY
- 		mov	r5, r4, get_byte_1
- 		b	.Lexit
- FN_EXIT
--FN_EXPORT
-diff --git a/arch/arm/lib/csumpartialcopyuser.S b/arch/arm/lib/csumpartialcopyuser.S
-index 5d495edf3d83..d5522c94f58c 100644
---- a/arch/arm/lib/csumpartialcopyuser.S
-+++ b/arch/arm/lib/csumpartialcopyuser.S
-@@ -73,9 +73,9 @@
- 
- #define FN_ENTRY	ENTRY(csum_partial_copy_from_user)
- #define FN_EXIT		ENDPROC(csum_partial_copy_from_user)
--#define FN_EXPORT	EXPORT_SYMBOL(csum_partial_copy_from_user)
- 
- #include "csumpartialcopygeneric.S"
-+EXPORT_SYMBOL(csum_partial_copy_from_user)
- 
- /*
-  * FIXME: minor buglet here
-diff --git a/arch/arm/lib/setbit.S b/arch/arm/lib/setbit.S
-index 618fedae4b37..d748b8d1326f 100644
---- a/arch/arm/lib/setbit.S
-+++ b/arch/arm/lib/setbit.S
-@@ -13,3 +13,4 @@
- 		.text
- 
- bitop	_set_bit, orr
-+EXPORT_SYMBOL(_set_bit)
-diff --git a/arch/arm/lib/testchangebit.S b/arch/arm/lib/testchangebit.S
-index 4becdc3a59cb..4d2dafa9b787 100644
---- a/arch/arm/lib/testchangebit.S
-+++ b/arch/arm/lib/testchangebit.S
-@@ -13,3 +13,4 @@
-                 .text
- 
- testop	_test_and_change_bit, eor, str
-+EXPORT_SYMBOL(_test_and_change_bit)
-diff --git a/arch/arm/lib/testclearbit.S b/arch/arm/lib/testclearbit.S
-index 918841dcce7a..fe5cae2e480a 100644
---- a/arch/arm/lib/testclearbit.S
-+++ b/arch/arm/lib/testclearbit.S
-@@ -13,3 +13,4 @@
-                 .text
- 
- testop	_test_and_clear_bit, bicne, strne
-+EXPORT_SYMBOL(_test_and_clear_bit)
-diff --git a/arch/arm/lib/testsetbit.S b/arch/arm/lib/testsetbit.S
-index 8d1b2fe9e487..25fed837edb3 100644
---- a/arch/arm/lib/testsetbit.S
-+++ b/arch/arm/lib/testsetbit.S
-@@ -13,3 +13,4 @@
-                 .text
- 
- testop	_test_and_set_bit, orreq, streq
-+EXPORT_SYMBOL(_test_and_set_bit)
++void mmiocpy(void *dest, const void __iomem *src, size_t n);
++EXPORT_SYMBOL(mmiocpy);
+diff --git a/arch/arm/lib/memcpy.S b/arch/arm/lib/memcpy.S
+index 1be5b6ddf37c..1f822fc52400 100644
+--- a/arch/arm/lib/memcpy.S
++++ b/arch/arm/lib/memcpy.S
+@@ -70,4 +70,3 @@ ENTRY(memcpy)
+ ENDPROC(memcpy)
+ ENDPROC(mmiocpy)
+ EXPORT_SYMBOL(memcpy)
+-EXPORT_SYMBOL(mmiocpy)
+diff --git a/arch/arm/lib/memset.S b/arch/arm/lib/memset.S
+index 7b72044cba62..6f075ca09abc 100644
+--- a/arch/arm/lib/memset.S
++++ b/arch/arm/lib/memset.S
+@@ -137,4 +137,3 @@ UNWIND( .fnend   )
+ ENDPROC(memset)
+ ENDPROC(mmioset)
+ EXPORT_SYMBOL(memset)
+-EXPORT_SYMBOL(mmioset)
+
