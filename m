@@ -1,40 +1,51 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
-Date: Mon, 24 Oct 2016 11:29:28 +0200
-Message-ID: <CAMuHMdWjBFRm2rvCC8LBVG0CLk7MtmMLZJ7Ca72v6Nm=b5aD9A@mail.gmail.com>
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk> <13702107.LdHY4HTXyY@wuerfel>
- <20161019155325.GR1041@n2100.armlinux.org.uk> <3851270.xZRcP9hae0@wuerfel>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 2/3] thread_info: factor out restart_block
+Date: Mon, 24 Oct 2016 10:45:38 +0100
+Message-ID: <20161024094538.GA15620@leverpostej>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
+ <1476901693-8492-3-git-send-email-mark.rutland@arm.com>
+ <CALCETrX88DxqBd2D0QB4p39cgZLK6PSTj2hLX_fUh0krDee3iw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <3851270.xZRcP9hae0@wuerfel>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:47222 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1755895AbcJXJqN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 24 Oct 2016 05:46:13 -0400
+Content-Disposition: inline
+In-Reply-To: <CALCETrX88DxqBd2D0QB4p39cgZLK6PSTj2hLX_fUh0krDee3iw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
 
-Hi Arnd,
+On Wed, Oct 19, 2016 at 04:31:02PM -0700, Andy Lutomirski wrote:
+> On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> > Since commit f56141e3e2d9aabf ("all arches, signal: move restart_block
+> > to struct task_struct"), thread_info and restart_block have been
+> > logically distinct, yet struct restart_block is still defined in
+> > <linux/thread_info.h>.
+> >
+> > At least one architecture (erroneously) uses restart_block as part of
+> > its thread_info, and thus the definition of restart_block must come
+> > before the include of <asm/thread_info>. Subsequent patches in this
+> > series need to shuffle the order of includes and definitions in
+> > <linux/thread_info.h>, and will make this ordering fragile.
+> >
+> > This patch moves the definition of restart_block out to its own header.
+> > This serves as generic cleanup, logically separating thread_info and
+> > restart_block, and also makes it easier to avoid fragility.
+> 
+> Looks entirely reasonable to me.
+> 
+> Reviewed-by: Andy Lutomirski <luto@kernel.org>
 
-On Fri, Oct 21, 2016 at 3:06 PM, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> wrote:
-> - a lot of the less common architectures just don't get updated
->   in time, out of 22 architectures that don't use asm-generic/unistd.h,
->   only 12 have pwritev2 in linux-next, and only three have pkey_mprotect
+Thanks, that's much appreciated.
 
-Should everybody implement pkey_mprotect?
+Now that Heiko's patch is in -rc2 I'd like to be able to put these two
+patches into a stable branch.
 
-"x86, pkeys: remove cruft from never-merged syscalls" and
+Before I do that, would you also be happy to ack/review patch 3?
 
-arch/powerpc/include/asm/unistd.h:#define __IGNORE_pkey_mprotect
-
-aren't that reassuring...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks,
+Mark.
