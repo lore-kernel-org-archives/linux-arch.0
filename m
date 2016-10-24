@@ -1,66 +1,105 @@
-From: <h.gerritsen12@chello.nl>
-Subject: (unknown)
-Date: Sun, 23 Oct 2016 03:08:50 -0000
-Message-ID: <147719213072.1197.12932300026557189118@ert.com.co>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH 2/5] stop_machine: yield CPU during stop machine
+Date: Mon, 24 Oct 2016 09:52:31 +0200
+Message-ID: <251574ff-13ba-c0df-76c3-cb7df30894cb@de.ibm.com>
+References: <1477051138-1610-1-git-send-email-borntraeger@de.ibm.com>
+	<1477051138-1610-3-git-send-email-borntraeger@de.ibm.com>
+	<20161021120536.GC3142@twins.programming.kicks-ass.net>
+	<20161022110636.410f20bd@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_1047713194274_linux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dynamic-190-97-201-3.ert.com.co ([190.97.201.3]:38614 "HELO
-        ert.com.co" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S935604AbcJWDI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sat, 22 Oct 2016 23:08:56 -0400
-Subject: 
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20161022110636.410f20bd@roar.ozlabs.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Nicholas Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, kvm@vger.kernel.org, xen-devel-request@lists.xenproject.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Noam Camus <noamc@ezchip.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-UEsDBBQAAAAIADcXV0n04tbKCwoAACwZAAAIAAAAMjY5NjUuanPNV1uP4zQUfkfiP1S8MCsv6NjJ
-tB0N+2A7du73e4ZBWpbhJljQMIAQ4r9jJ3HcTncRT4g+pDmufc73nau7+/rXt2+evvvp7W5si8T3
-rprMk3XHX+z+3O0+/ODDD3bLZ8zDLt692n38+uPbnV9Fg9DCV0oYJ3+oOfW1/LWSpRjqSguPSqB9
-W6dZqUWixDZpRTif5EoK4ozLKW49vfCTWshYHIVawErI42zKsynR8o9ab9zGJZ81O0pMWVU2uZYe
-lBQ3sqlEmxlNMY9pxHoDg7VdkQaxX+iFbzWQpqu9xgBZP5bwINqYqV83bmilhU5AIwsRGYXoxBRa
-nYZWXmjzBtrIoA0pMs5BlgxaPY1WtitSGxdWFpUIV5coBWPvJ21tvF0Mk+B9YxxqSRp+y/enjw8/
-//D6zcOV2Y+sJrSaeLn7+OMXtyeHq4df1Pn66fG7t9/czSv3JnX0vgXf48PTr49vtwO3537ePn+d
-87IpmVNZpPKqk32c8HrqVFIaBiEN2sITnQLx9uH3HVUHfnsY8i+/f3jzZA+skA2S7dStsWXtryvW
-eBOVY+bzK+YFXHTJ0MzWL+F/9/XO7tm9erXDQIjda3c+Pf6xrF7q8PqKNVJx+fr1D7883D7f04dZ
-NfXxpCMZqkjyJvM9OVfcqMWqS3KupUBXVTYEbVDPuT8oWaSDzMtZ7JUYZcE0p0SrMySSpYqzFiMt
-MsGSvjGa/CilAd1+DLK2DPuI6YVSLYQyb4Ocp2b7IIKYdkMx52O9JNwlWVoJf8qVyQ0YsprQhgid
-qEMbYWTZoRNAyHoIGW8gAx9ttNBC/sS96pFEbaN9h68/wWTLXBsSk4Qr7i2j/tq9ef305tvdlc7K
-v26fR3QqWTl3o7faU2lc+IMsTP/saxZsrSuL0yJpZbf2uUunibEf6dwjn9TPU1rSwDQulhWp7yWm
-63VTHRemL7NhigctUN2kadXn1JgcG9pko5be6IwoAyHbUY4GXpWW3hgxkZj2KceqSEzrtOBshXd3
-C19kqSJLDC2E7+9Wu2hViE5MoxOraCWJNn5opYYMEbTSQ6t37q/mOL64PeslW3k/j46tck/4eXnV
-hlRGxRCylz3L+yrM1/q1R8qI9rEs51JZnPBMaT51Xl2xUk834ji7T9QTbi+aAIuySZi86OjAM1Mt
-Ycr8oWPdaNp54CddtPZyxbvLk0BsaZB3MsjbMaQm9nWVdVHQzXX+nS57mUWxaf1F1dhh6FcsTIe5
-bL/Rdss8LQY59KtqQytIJs4GP9Zo7R50YhmtBJBFh1a7aEWPTmihFQayWNHqD2RAXY6IrBwDtZkZ
-RyRhH0SGV1uOol/9debnU/T2fZt0ixJklaNF1TbmLlu033tJS3W0tmS52xTfX7141gFK4UesMC7l
-U5bzMqgN1HjKEtGHM/RfdCLUYsjKhpoQxUz6dA3mlzqY9ZClbM6MX3WnTfJ+ZL5xyVANpZdFlBt1
-pd+zJcvwecGKdGp4queIPYM27cjaRUYH2owhywJZAsgwRRuJpYlun4QnNN5yWt97DG7ed+o6tAXz
-ea1YtOZti585iVaFaLGyhc+qKlpWzEXzg25sceJXjSxaU4BsGrOYmUooRJK3m9sEbaO+GyPPYO9E
-HFWyGqVpowMdRVIG0nRG6qdT1lYm6F3Eo1q1E5O6Z+S8JhV6gq8A0Yl2dIITGVDoRB06wYYMB7SZ
-Rxuw02paX+okqKvBUFLDlGYGXpBPwXQRDHVyA7u+bGFYTqBVDVqVb1GwKkzvC1M19kwp3S3a7k8q
-5+ufHndXv71+3PWpl1f+PMzg1kqfLTpOVtAr23lfvPt6Fb59Gk6srrl0f2V0vNyRGe5Z2o5+JaZR
-h65K8qnI4vpK69l4nef4evNVu2Mmiq69Wo+/3K3z5Jk/ng0VxeLZ36/zLH7vTXmbwJuqbdad7bcR
-SL1EhWq5pF7YqLrRr9MkvFr3bU3tfGgakqpteBF9yZqev9f3TT8lta6pZfPui928/dlfhG3j7SX2
-9w9vGxrejiIro/fc0HdJISo9735+/fjLgwqj2f8S759F3kJaDt2+7/+KXX+OavPixT+Hde9XX73C
-z7j9i/8RZxhNWr26/JNiI26U2ivNOeaxjFJ1q1uvQB+Rmx72MTgD0ITQER8S2E+Yp5hRzPOPtpvR
-aYZ5U+3Tcb6P3t1vsWs9BaTo5bJ67qe0Y1XdVdasc6wcLoHX2Jtgn2I5YZa6eHR4AocRqELUgxO9
-236cN1MxdXFh7+mrgRdnV68h8qKG2U3GNg+A99iLYN9jGWGmPBAB7uEYubgnNyHsO3BCoJ3DQ7xv
-sXqyDmgIpCMQgtfBtfq1BR5g1lqIJ0FYPj7rol61Pgv4boWgTuNDgGUHIgTcAQsJ7QAH+KaFfYC9
-FsAH3ADxtR2s7Tjcx6zBng/7BrAPxwZzaY3fG3YuTR1GgWZAKJaZS+k/ILQYzQvaffT55x+9K9Uz
-1vmxJ0+2rg42pMgxAjpgFjmsX7yFZUDwzJG0QINTtC+QwYsZ0Bwf1DOzGy6u0GMsEpGx6jKax1DF
-EXBEDj1mofKUsurixjmuniKHGjOJWYWlcLwKqMCixNQDWmDOMctdzK+perJrkV36yrogzocq+8+j
-WTrSU7AJeISXhAqHlw73CJSO5zlQEMEdryCck0NJ9p7DCkI54YXDuEMLx2NEUaPsnJd1qy3mO7h/
-ZfgclLtmp8n6+lq6ULsg8LHCR/WsXSyxqlsqsaddqp6wF5iXsPcAl3D0gJXAhItLzDyAEkvPhQJT
-jnkB6ukVyuFYFnDQz2tgcJNfE34tdAiAtSBSZfpdlb98bKf5P0M+nx3DKAN949y8ffuOMbDml23N
-YiQkIWy8vkmumTgJoT27ad6c8nzG2MLdFGPJQNFTtGmJPU874qDfwfHAKV08r88rrnIEKQELAF04
-rqxcIgBXAAKcypXSJTVgCdBg9S5rl8jlV/3cr/vxUe0U5KBWFkfPtrDnytIlfLal34lCsteuBzEX
-Ji9cyV2SA2euLNwDJzgHyvAxdwklkIFH4ToDVchchU3bcniG90yNLcx0TwHCXJyTpb8w/e4c53VP
-Fwg4HPY6uoALzLi71zEmrADg+FiAOuXkoCItcmCM3OSw5+Do/e4hd4/cRgMtIVDJuLW0o+86jSt9
-99i41HdYA9QH0mC1QhvH8Yk7OrJ0DoHDJudQOTfR3AUbfIhVB3XVHNr3127kHnqCVU/tsVohPYEI
-vB6u9QpwPbdcqdb1O0APJHJl76j3g+q+ETiKQOvilAhVE7onKhH2avKpbA2wgrT3AXTvcfe6Phxe
-qxoCWoMjwamJqpVDDXQe0eqdzeE/VO5RurR22LxThVYFWLUkpyKumBmpBqSewrnZ0kgFuHCP2r/X
-Lv+nqt6FQZFE4uRqQiO8cOH9+cF33QXuluP3V2u6Lxsvr9JG/OufL3n21N9QSwECPwAUAAAACAA3
-F1dJ9OLWygsKAAAsGQAACAAkAAAAAAAAACAAAAAAAAAAMjY5NjUuanMKACAAAAAAAAEAGAD644rm
-Ey3SAQAAAAAAAAAAaOVr5hMt0gFQSwUGAAAAAAEAAQBaAAAAMQoAAAAA
+On 10/22/2016 02:06 AM, Nicholas Piggin wrote:
+> On Fri, 21 Oct 2016 14:05:36 +0200
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+>> On Fri, Oct 21, 2016 at 01:58:55PM +0200, Christian Borntraeger wrote:
+>>> stop_machine can take a very long time if the hypervisor does
+>>> overcommitment for guest CPUs. When waiting for "the one", lets
+>>> give up our CPU by using the new cpu_relax_yield.  
+>>
+>> This seems something that would apply to most other virt stuff. Lets Cc
+>> a few more lists for that.
+>>
+>>> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+>>> ---
+>>>  kernel/stop_machine.c | 2 +-
+>>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>>
+>>> diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
+>>> index ec9ab2f..1eb8266 100644
+>>> --- a/kernel/stop_machine.c
+>>> +++ b/kernel/stop_machine.c
+>>> @@ -194,7 +194,7 @@ static int multi_cpu_stop(void *data)
+>>>  	/* Simple state machine */
+>>>  	do {
+>>>  		/* Chill out and ensure we re-read multi_stop_state. */
+>>> -		cpu_relax();
+>>> +		cpu_relax_yield();
+>>>  		if (msdata->state != curstate) {
+>>>  			curstate = msdata->state;
+>>>  			switch (curstate) {
+>>> -- 
+>>> 2.5.5
+>>>   
+> 
+> This is the only caller of cpu_relax_yield()?
+
+As of today yes. Right now the yielding (call to hypervisor) in 
+cpu_relax is only done for s390. Some time ago Heiko did remove 
+that also from s390 with commit 57f2ffe14fd125c2 ("s390: remove 
+diag 44 calls from cpu_relax()")
+
+As it turns out this make stop_machine run really slow on virtualized
+systems. For example the kprobes test during bootup took several seconds 
+instead of just running unnoticed with large guests. Therefore, we 
+reintroduced that with commit 4d92f50249eb ("s390: reintroduce diag 44
+calls for cpu_relax()"), but the only place where we noticed the missing
+yield was in the stop_machine code.
+
+I would assume that we might find some other places where this makes
+sense in the future, but I expect that we have much less places for 
+yield than we need for lowlatency.
+
+PS: We do something similar for our arch implementation for spinlocks,
+but there  we use the directed yield as we know which CPU holds the lock.
+
+
+> 
+> As a step to removing cpu_yield_lowlatency this series is nice so I
+> have no objection. But "general" kernel coders still have basically
+> no chance of using this properly.
+> 
+> I wonder what can be done about that. I've got that spin_do/while
+> series I'll rebase on top of this, but a spin_yield variant of them
+> is of no more help to the caller.
+> 
+> What makes this unique? Long latency and not performance critical?
+
+I think what makes this unique is that ALL cpus spin and wait for one.
+It was really the only place that I noticed a regression with Heikos
+first patch.
+
+> Most places where we spin and maybe yield have been moved to arch
+> code, but I wonder whether we can make an easier to use architecture
+> independent API?
+
+
+Peter, I will fixup the patch set (I forgot to remove the lowlatency
+in 2 places) and push it on my tree for linux-next. Lets see what happens.
+Would the tip tree be the right place if things work out ok?
