@@ -1,96 +1,60 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 01/18] 32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-Date: Tue, 25 Oct 2016 00:22:47 +0200
-Message-ID: <22426495.JIjM4XpfGo@wuerfel>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com> <1477081997-4770-2-git-send-email-ynorov@caviumnetworks.com> <7d5ef8e8-38f1-92fe-b584-242cc2924558@mellanox.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
+ ARM
+Date: Tue, 25 Oct 2016 19:32:00 +1100
+Message-ID: <20161025193200.1f4d9e24@roar.ozlabs.ibm.com>
+References: <20161017065131.GA27863@angband.pl>
+        <20161020150814.42951f61@roar.ozlabs.ibm.com>
+        <3446653.W8FbGAKSeQ@wuerfel>
+        <14534456.e6dv16VA3R@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:57489 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S938757AbcJXWYF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2016 18:24:05 -0400
-In-Reply-To: <7d5ef8e8-38f1-92fe-b584-242cc2924558@mellanox.com>
+Received: from mail-pf0-f194.google.com ([209.85.192.194]:36335 "EHLO
+        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758355AbcJYIcN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2016 04:32:13 -0400
+In-Reply-To: <14534456.e6dv16VA3R@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Monday, October 24, 2016 12:30:47 PM CEST Chris Metcalf wrote:
-> On 10/21/2016 4:33 PM, Yury Norov wrote:
-> > All new 32-bit architectures should have 64-bit off_t type, but existing
-> > architectures has 32-bit ones.
-> >
-> > [...]
-> > For syscalls sys_openat() and sys_open_by_handle_at() force_o_largefile()
-> > is called, to set O_LARGEFILE flag, and this is the only difference
-> > comparing to compat versions. All compat ABIs are already turned to use
-> > 64-bit off_t, except tile. So, compat versions for this syscalls are not
-> > needed anymore. Tile is handled explicitly.
-> >
-> > [...]
-> > --- a/arch/tile/kernel/compat.c
-> > +++ b/arch/tile/kernel/compat.c
-> > @@ -103,6 +103,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
-> >   #define compat_sys_readahead sys32_readahead
-> >   #define sys_llseek compat_sys_llseek
-> >   
-> > +#define sys_openat             compat_sys_openat
-> > +#define sys_open_by_handle_at  compat_sys_open_by_handle_at
-> > +
-> >   /* Call the assembly trampolines where necessary. */
-> >   #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
-> >   #define sys_clone _sys_clone
+On Mon, 24 Oct 2016 17:05:26 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
+
+> This adds an asm/asm-prototypes.h header for ARM to fix the
+> broken symbol versioning for symbols exported from assembler
+> files.
 > 
-> This patch accomplishes two goals that could be completely separated.
-> It's confusing to have them mixed in the same patch without any
-> discussion of why they are in the same patch.
+> In addition to the header, we have to do these other small
+> changes:
 > 
-> First, you want to modify the default <asm/unistd.h> behavior for
-> compat syscalls so that the default is sys_openat (etc) rather than
-> the existing compat_sys_openat, and then use that new behavior for
-> arm64 ILP32.  This lets you force O_LARGEFILE for arm64 ILP32 to
-> support having a 64-bit off_t at all times.  To do that, you fix the
-> asm-generic header, and then make tile have a special override.
-> This seems reasonable enough.
+> - move the exports from bitops.h to {change,clear,set,...}bit.S
+> - move the exports from csumpartialgeneric.S into the files
+>   including it
 > 
-> Second, you introduce ARCH_32BIT_OFF_T basically as a synonym for
-> "BITS_PER_WORD == 32", so that new 32-bit architectures can choose not
-> to enable it.  This is fine in the abstract, but I'm a bit troubled by
-> the fact that you are not actually introducing a new 32-bit
-> architecture here (just a new 32-bit mode for the arm 64-bit kernel).
-> Shouldn't this part of the change wait until someone actually has a
-> new 32-bit kernel to drive this forward?
-
-I asked for this specifically because we identified the problem
-during the review of the aarch64 ilp32 code, and it might not
-be noticed in the next architecture submission.
-
-The most important aspect from my perspective is that the new
-ilp32 ABI on aarch64 behaves the same way that any native 32-bit
-architecture does, and when we change the default, it should
-be done for both compat mode and native mode at the same time.
-
-> If you want to push forward the ARCH_32BIT_OFF_T change in the absence
-> of an architecture that supports it, I would think it would be a lot
-> less confusing to have these two in separate patches, and make it
-> clear that the ARCH_32BIT_OFF_T change is just laying groundwork
-> for some hypothetical future architecture.
+> I couldn't find the correct prototypes for the compiler builtins,
+> so I went with the fake 'void f(void)' prototypes that we had
+> before.
 > 
-> The existing commit language itself is also confusing. You write "All
-> compat ABIs are already turned to use 64-bit off_t, except tile."
-> First, I'm not sure what you mean by "turned" here.  And, tile is just
-> one of many compat ABIs that allow O_LARGEFILE not to be part of the
-> open call: see arm64's AArch32 ABI, MIPS o32, s390 31-bit emulation,
-> sparc64's 32-bit mode, and of course x86's 32-bit compat mode.
-> Presumably your point here is that tile is the only pre-existing
-> architecture that #includes <asm/unistd.h> to create its compat
-> syscall table, and so I think "all except tile" here is particularly
-> confusing, since there are no architectures except tile that use the
-> __SYSCALL_COMPAT functionality in the current tree.
+> This leaves the mmioset/mmiocpy function for now, as it's not
+> obvious how to best handle them.
 
-Agreed, this could be made clearer, and splitting the patch up
-in two also seems reasonable, though I didn't see it as important.
 
-	Arnd
+This looks nicer. I like variant B because it keeps the GENKSYMS cruft to
+a single location, but either one isn't too bad.
+
+I'd like to get moving on this, so let's at least get the generic kbuild
+change merged. In the end, the kbuild code does not prevent a maintainer
+from putting their EXPORT_SYMBOL in whatever location they like, so there
+is no reason not to merge it (certainly there will be archs that do use
+it).
+
+Michal, what's your thoughts? If you merge my patch 2/2 and skip 1/2, it
+should not give any new build warnings or errors, so then arch patches can
+go via arch trees. 1/2 could go in after everyone is up to date.
+
+Thanks,
+Nick
