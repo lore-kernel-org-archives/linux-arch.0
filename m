@@ -1,60 +1,61 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
- ARM
-Date: Tue, 25 Oct 2016 19:32:00 +1100
-Message-ID: <20161025193200.1f4d9e24@roar.ozlabs.ibm.com>
-References: <20161017065131.GA27863@angband.pl>
-        <20161020150814.42951f61@roar.ozlabs.ibm.com>
-        <3446653.W8FbGAKSeQ@wuerfel>
-        <14534456.e6dv16VA3R@wuerfel>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [GIT PULL v2 2/5] stop_machine: yield CPU during stop machine
+Date: Tue, 25 Oct 2016 11:03:12 +0200
+Message-ID: <1477386195-32736-3-git-send-email-borntraeger@de.ibm.com>
+References: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f194.google.com ([209.85.192.194]:36335 "EHLO
-        mail-pf0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758355AbcJYIcN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2016 04:32:13 -0400
-In-Reply-To: <14534456.e6dv16VA3R@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@armlinux.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, kvm@vger.kernel.org, Will Deacon <will.deacon@arm.com>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, Russell King <linux@armlinux.org.uk>, sparclinux@vger.kernel.org, Noam Camus <noamc@ezchip.com>, Catalin Marinas <catalin.marinas@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, xen-devel@lists.xenproject.org, virtualization@lists.linux-foundation.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 24 Oct 2016 17:05:26 +0200
-Arnd Bergmann <arnd@arndb.de> wrote:
+Some time ago commit 57f2ffe14fd125c2  ("s390: remove diag 44 calls
+from cpu_relax()") did stop cpu_relax on s390 yielding to the
+hypervisor.
 
-> This adds an asm/asm-prototypes.h header for ARM to fix the
-> broken symbol versioning for symbols exported from assembler
-> files.
-> 
-> In addition to the header, we have to do these other small
-> changes:
-> 
-> - move the exports from bitops.h to {change,clear,set,...}bit.S
-> - move the exports from csumpartialgeneric.S into the files
->   including it
-> 
-> I couldn't find the correct prototypes for the compiler builtins,
-> so I went with the fake 'void f(void)' prototypes that we had
-> before.
-> 
-> This leaves the mmioset/mmiocpy function for now, as it's not
-> obvious how to best handle them.
+As it turns out this made stop_machine run really slow on virtualized
+overcommited systems. For example the kprobes test during bootup took
+several seconds instead of just running unnoticed with large guests.
 
+Therefore, the yielding was reintroduced with commit 4d92f50249eb
+("s390: reintroduce diag 44 calls for cpu_relax()"), but in fact the
+stop machine code seems to be the only place where this yielding
+was really necessary. This place is probably the most important one
+as it makes all but one guest CPUs wait for one guest CPU.
 
-This looks nicer. I like variant B because it keeps the GENKSYMS cruft to
-a single location, but either one isn't too bad.
+As we now have cpu_relax_yield, we can use this in multi_cpu_stop.
+For now lets only add it here. We can add it later in other places
+when necessary.
 
-I'd like to get moving on this, so let's at least get the generic kbuild
-change merged. In the end, the kbuild code does not prevent a maintainer
-from putting their EXPORT_SYMBOL in whatever location they like, so there
-is no reason not to merge it (certainly there will be archs that do use
-it).
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ kernel/stop_machine.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Michal, what's your thoughts? If you merge my patch 2/2 and skip 1/2, it
-should not give any new build warnings or errors, so then arch patches can
-go via arch trees. 1/2 could go in after everyone is up to date.
-
-Thanks,
-Nick
+diff --git a/kernel/stop_machine.c b/kernel/stop_machine.c
+index ec9ab2f..1eb8266 100644
+--- a/kernel/stop_machine.c
++++ b/kernel/stop_machine.c
+@@ -194,7 +194,7 @@ static int multi_cpu_stop(void *data)
+ 	/* Simple state machine */
+ 	do {
+ 		/* Chill out and ensure we re-read multi_stop_state. */
+-		cpu_relax();
++		cpu_relax_yield();
+ 		if (msdata->state != curstate) {
+ 			curstate = msdata->state;
+ 			switch (curstate) {
+-- 
+2.5.5
