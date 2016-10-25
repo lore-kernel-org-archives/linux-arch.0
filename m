@@ -1,127 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:39139 "EHLO
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:58780 "EHLO
         mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1758683AbcJYJD3 (ORCPT
+        by vger.kernel.org with ESMTP id S1758669AbcJYJD2 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 25 Oct 2016 05:03:29 -0400
-Received: from pps.filterd (m0098393.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9P8waNM008589
+        Tue, 25 Oct 2016 05:03:28 -0400
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id u9P8warl119900
         for <linux-arch@vger.kernel.org>; Tue, 25 Oct 2016 05:03:28 -0400
-Received: from e06smtp08.uk.ibm.com (e06smtp08.uk.ibm.com [195.75.94.104])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 269y01y2f8-1
+Received: from e06smtp06.uk.ibm.com (e06smtp06.uk.ibm.com [195.75.94.102])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 269wee27b9-1
         (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
         for <linux-arch@vger.kernel.org>; Tue, 25 Oct 2016 05:03:28 -0400
 Received: from localhost
-        by e06smtp08.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        by e06smtp06.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
         for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Tue, 25 Oct 2016 10:03:24 +0100
+        Tue, 25 Oct 2016 10:03:25 +0100
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [GIT PULL v2 0/5] cpu_relax: drop lowlatency, introduce yield
-Date: Tue, 25 Oct 2016 11:03:10 +0200
-Message-ID: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [GIT PULL v2 3/5] s390: make cpu_relax a barrier again
+Date: Tue, 25 Oct 2016 11:03:13 +0200
+In-Reply-To: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
+References: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
+Message-ID: <1477386195-32736-4-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Noam Camus <noamc@ezchip.com>, sparclinux@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20161025090310.rhfHHQTEgOm3hIOmzLZPY4fAdNyYl7FtdcqKrSwT5tg@z>
+Message-ID: <20161025090313.GiutHKam41ZMFKksidlwlV-8gU2whiXP8bloHK2xJQ0@z>
 
-Peter,
+stop_machine seemed to be the only important place for yielding during
+cpu_relax. This was fixed by using cpu_relax_yield. Therefore, we can
+now redefine cpu_relax to be a barrier instead on s390, making s390
+identical to all other architectures.
 
-here is v2 with some improved patch descriptions and some fixes. The
-previous version has survived one day of linux-next and I only changed
-small parts.
-So unless there is some other issue, feel free to pull (or to apply
-the patches) to tip/locking.
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/s390/include/asm/processor.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-The following changes since commit 07d9a380680d1c0eb51ef87ff2eab5c994949e69:
-
-  Linux 4.9-rc2 (2016-10-23 17:10:14 -0700)
-
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git  tags/cpurelax
-
-for you to fetch changes up to dcc37f9044436438360402714b7544a8e8779b07:
-
-  processor.h: remove cpu_relax_lowlatency (2016-10-25 09:49:57 +0200)
-
-----------------------------------------------------------------
-cpu_relax: drop lowlatency, introduce yield
-
-For spinning loops people do often use barrier() or cpu_relax().
-For most architectures cpu_relax and barrier are the same, but on
-some architectures cpu_relax can add some latency.
-For example on power,sparc64 and arc, cpu_relax can shift the CPU
-towards other hardware threads in an SMT environment.
-On s390 cpu_relax does even more, it uses an hypercall to the
-hypervisor to give up the timeslice.
-In contrast to the SMT yielding this can result in larger latencies.
-In some places this latency is unwanted, so another variant
-"cpu_relax_lowlatency" was introduced. Before this is used in more
-and more places, lets revert the logic and provide a cpu_relax_yield
-that can be called in places where yielding is more important than
-latency. By default this is the same as cpu_relax on all architectures.
-
-So my proposal boils down to:
-- lowest latency: use barrier() or mb() if necessary
-- low latency: use cpu_relax (e.g. might give up some cpu for the other
-  _hardware_ threads)
-- really give up CPU: use  cpu_relax_yield
-
-PS: In the long run I would also try to provide for s390 something
-like cpu_relax_yield_to with a cpu number (or just add that to
-cpu_relax_yield), since a yield_to is always better than a yield as
-long as we know the waiter.
-
-----------------------------------------------------------------
-Christian Borntraeger (5):
-      processor.h: introduce cpu_relax_yield
-      stop_machine: yield CPU during stop machine
-      s390: make cpu_relax a barrier again
-      processor.h: Remove cpu_relax_lowlatency users
-      processor.h: remove cpu_relax_lowlatency
-
- arch/alpha/include/asm/processor.h      | 2 +-
- arch/arc/include/asm/processor.h        | 4 ++--
- arch/arm/include/asm/processor.h        | 2 +-
- arch/arm64/include/asm/processor.h      | 2 +-
- arch/avr32/include/asm/processor.h      | 2 +-
- arch/blackfin/include/asm/processor.h   | 2 +-
- arch/c6x/include/asm/processor.h        | 2 +-
- arch/cris/include/asm/processor.h       | 2 +-
- arch/frv/include/asm/processor.h        | 2 +-
- arch/h8300/include/asm/processor.h      | 2 +-
- arch/hexagon/include/asm/processor.h    | 2 +-
- arch/ia64/include/asm/processor.h       | 2 +-
- arch/m32r/include/asm/processor.h       | 2 +-
- arch/m68k/include/asm/processor.h       | 2 +-
- arch/metag/include/asm/processor.h      | 2 +-
- arch/microblaze/include/asm/processor.h | 2 +-
- arch/mips/include/asm/processor.h       | 2 +-
- arch/mn10300/include/asm/processor.h    | 2 +-
- arch/nios2/include/asm/processor.h      | 2 +-
- arch/openrisc/include/asm/processor.h   | 2 +-
- arch/parisc/include/asm/processor.h     | 2 +-
- arch/powerpc/include/asm/processor.h    | 2 +-
- arch/s390/include/asm/processor.h       | 4 ++--
- arch/s390/kernel/processor.c            | 4 ++--
- arch/score/include/asm/processor.h      | 2 +-
- arch/sh/include/asm/processor.h         | 2 +-
- arch/sparc/include/asm/processor_32.h   | 2 +-
- arch/sparc/include/asm/processor_64.h   | 2 +-
- arch/tile/include/asm/processor.h       | 2 +-
- arch/unicore32/include/asm/processor.h  | 2 +-
- arch/x86/include/asm/processor.h        | 2 +-
- arch/x86/um/asm/processor.h             | 2 +-
- arch/xtensa/include/asm/processor.h     | 2 +-
- drivers/gpu/drm/i915/i915_gem_request.c | 2 +-
- drivers/vhost/net.c                     | 4 ++--
- kernel/locking/mcs_spinlock.h           | 4 ++--
- kernel/locking/mutex.c                  | 4 ++--
- kernel/locking/osq_lock.c               | 6 +++---
- kernel/locking/qrwlock.c                | 6 +++---
- kernel/locking/rwsem-xadd.c             | 4 ++--
- kernel/stop_machine.c                   | 2 +-
- lib/lockref.c                           | 2 +-
- 42 files changed, 53 insertions(+), 53 deletions(-)
+diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
+index d05965b..5d262cf 100644
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -236,7 +236,7 @@ static inline unsigned short stap(void)
+  */
+ void cpu_relax_yield(void);
+ 
+-#define cpu_relax() cpu_relax_yield()
++#define cpu_relax() barrier()
+ #define cpu_relax_lowlatency()  barrier()
+ 
+ #define ECAG_CACHE_ATTRIBUTE	0
+-- 
+2.5.5
 
