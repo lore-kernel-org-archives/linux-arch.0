@@ -1,143 +1,54 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [RFC] dma-mapping: fix dma_common_mmap() for ARC
-Date: Wed, 26 Oct 2016 22:22:44 +0300
-Message-ID: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org
+From: Robert Jarzmik <robert.jarzmik-GANU6spQydw@public.gmane.org>
+Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
+Date: Wed, 26 Oct 2016 22:14:46 +0200
+Message-ID: <87vawe27gp.fsf@belgarion.home>
+References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
+        <4337157.Eff9E2riVH@wuerfel>
+        <20161021154856.GC1041@n2100.armlinux.org.uk>
+        <24632117.YsmPs86ri6@wuerfel> <87eg382kv9.fsf@belgarion.home>
+        <CAMuHMdVy_h6Uss9bwVK5hGD42bXeEBcBsBDwCpx_eYnT9r+=Lw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAMuHMdVy_h6Uss9bwVK5hGD42bXeEBcBsBDwCpx_eYnT9r+=Lw-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+        (Geert Uytterhoeven's message of "Mon, 24 Oct 2016 11:25:03 +0200")
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-ARC CPU with enabled MMU sees entire 32-bit address space divided in 2
-big parts:
- 1) 0 - 0x7fff_ffff (lower 2Gb): translated memory
-    I.e. all reads/writes from/to this region go through MMU and after
-    translation land somewhere in physical memory.
+Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org> writes:
 
- 2) 0x8000_0000 - 0xffff_ffff: untranslated memory
-    ARC CPU in kernel mode accesses this memory directly, i.e. MMU is
-    not used at all.
-    One important note: data accesses in this region go through data
-    cache!
+> On Sat, Oct 22, 2016 at 10:23 PM, Robert Jarzmik <robert.jarzmik-GANU6spQydw@public.gmane.org> wrote:
+>> Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> writes:
+>>
+>>> On Friday, October 21, 2016 4:48:56 PM CEST Russell King - ARM Linux wrote:
+>>>> What's the point of the x32 mode?
+>>>
+>>> On x86, the motivation is faster code for most use cases that
+>>> don't need a lot of memory, as the 64-bit opcodes have 16 registers
+>>> rather than 8 in 32-bit mode but 32-bit pointers have lower
+>>> cache footprint than 64-bit pointers.
+>>
+>> For completness, the second point of x32 AFAIU is the IP-relative addressing
+>> which is not available in standard 32 bit mode, which improves PIC code. For
+>> simple not algorithmic code (think Android HAL for example) with many shared
+>> libraries, it's better in the Hardware Abstraction Layer Libraries, instead of
+>> the push-to-stack and pop register.
+>
+> But that's not an advantage compared to full am64 mode, right?
+Nope, the amd64 (that's what you have in mind with am64, not aarch64 right ?)
+mode has the IP-relative has well, so x32 has no advantage over amd64 in this
+area.
 
-If some peripheral wants to use DMA Linux kernel just allocates data
-buffer in upper 2Gb (i.e. above 0x8000_0000).
-In that case dma_addr = cpu_addr. Everything is simple.
+x32 over amd64 advantage is cache and memory footprint AFAICT, I don't see other
+benefits. There doesn't seem to be any ISA differences, or I didn't really
+notice in my daily system performance analysis job.
 
-But if a driver wants to allocate uncached buffer for DMA (very good
-example and that's how I actually caught the issue is DRM frame-buffer)
-things become a little-bit more complicated.
+There was a nice presentation made by Peter Anvin at a Plumber conference, here
+: http://linuxplumbersconf.org/2011/ocw/sessions/531
 
-Now kernel wants to write data in memory bypassing data cache.
-For that to happen we have to program MMU so that TLB entry gets
-"cached flag" reset for a particular page(s). And keeping in mind
-explanation above the only way to utilize MMU is to access data via
-lower part of address space. In other words we implement page mapping
-similarly to what we do for user-space, see:
------------------------->8-----------------------
-arc_dma_alloc()
-  ioremap_nocache() AKA ioremap()
-    ioremap_prot()
-      get_vm_area() + ioremap_page_range() on obtained vaddr
------------------------->8-----------------------
+Cheers.
 
-As a result we get TLB entry of the following kind:
------------------------->8-----------------------
-    vaddr = 0x7200_0000
-    paddr = 0x8200_0000
-    flags = _uncached_
------------------------->8-----------------------
-
-Kerenl thinks frame buffer is located @ 0x7200_0000 and uses it
-perfectly fine.
-
-But here comes a time for user-space application to request frame buffer
-to be mapped for it. That happens easily with the following call path:
------------------------->8-----------------------
-fb_mmap()
-  drm_fb_cma_mmap()
-    dma_mmap_writecombine() AKA dma_mmap_wc()
-      dma_mmap_attrs()
-        dma_common_mmap() since we don't [yet] have dma_map_ops.mmap()
-                          for ARC
------------------------->8-----------------------
-
-And in dma_common_mmap() we first calculate pfn of what we think is
-"physical page" and then do remap_pfn_range() to that "physical page".
-
-Here we're getting to the interesting thing - how pfn is calculated.
-As of now this is done as simple as:
------------------------->8-----------------------
-    pfn = page_to_pfn(virt_to_page(cpu_addr));
------------------------->8-----------------------
-
-Below is a nice set of defines we need to use to evaluate pfn:
------------------------->8-----------------------
- #define virt_to_pfn(kaddr)      (__pa(kaddr) >> PAGE_SHIFT)
- #define virt_to_page(kaddr)     pfn_to_page(virt_to_pfn(kaddr))
- #define page_to_pfn __page_to_pfn
- #define pfn_to_page __pfn_to_page
- #define __pfn_to_page(pfn)      (mem_map + ((pfn) - ARCH_PFN_OFFSET))
- #define __page_to_pfn(page)     ((unsigned long)((page) - mem_map) + \
-                                   ARCH_PFN_OFFSET)
------------------------->8-----------------------
-
-If we do some obvious calculations we'll get:
------------------------->8-----------------------
-    pfn = cpu_addr >> PAGE_SHIFT;
------------------------->8-----------------------
-
-In our case cpu_addr here is 0x7200_0000 from TLB entry above and this
-what is used to create another TLB entry this time for user-space app.
-We'll get something like this:
------------------------->8-----------------------
-    vaddr = 0x0200_0000
-    paddr = 0x7200_0000
-    flags = _uncached_
------------------------->8-----------------------
-
-This is obviously wrong! We cannot map vaddr to vaddr with MMU.
-
-Simplest fix for ARC is to use dma_addr instead because it matches
-real physical memory address and so mapping for user-space we're
-getting then is this:
------------------------->8-----------------------
-    vaddr = 0x0200_0000
-    paddr = 0x8200_0000
-    flags = _uncached_
------------------------->8-----------------------
-And it works perfectly fine.
-
-But I'm pretty sure that's not the best approach for other
-architectures. Indeed we may create ARC-specific dma_map_ops.mmap()
-which only differs from dma_common_mmap() with addr being used
-but IMHO it's not the best idea to duplicate that much of code
-for such a simple change.
-
-Would be interesting to get more opinions on how to handle that thing in
-the most graceful way.
-
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-arch@vger.kernel.org
----
- drivers/base/dma-mapping.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
-index 8f8b68c80986..16307eed453f 100644
---- a/drivers/base/dma-mapping.c
-+++ b/drivers/base/dma-mapping.c
-@@ -252,7 +252,7 @@ int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
- #if defined(CONFIG_MMU) && !defined(CONFIG_ARCH_NO_COHERENT_DMA_MMAP)
- 	unsigned long user_count = vma_pages(vma);
- 	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
--	unsigned long pfn = page_to_pfn(virt_to_page(cpu_addr));
-+	unsigned long pfn = page_to_pfn(virt_to_page(dma_addr));
- 	unsigned long off = vma->vm_pgoff;
- 
- 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 -- 
-2.7.4
+Robert
