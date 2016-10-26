@@ -1,56 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48634 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933819AbcJZRns (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 26 Oct 2016 13:43:48 -0400
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCHv2 2/2] thread_info: include <current.h> for THREAD_INFO_IN_TASK
-Date: Wed, 26 Oct 2016 18:43:07 +0100
-Message-ID: <1477503787-25537-3-git-send-email-mark.rutland@arm.com>
-In-Reply-To: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
-References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:40271 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933974AbcJZTX1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Oct 2016 15:23:27 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [RFC] dma-mapping: fix dma_common_mmap() for ARC
+Date: Wed, 26 Oct 2016 22:22:44 +0300
+Message-ID: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, keescook@chromium.org, luto@kernel.org, mark.rutland@arm.com
-Message-ID: <20161026174307.R6D1LMUyAZLv6P1-EkQraa5Lq5-gcaXPGt5LCsNMaH0@z>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-snps-arc@lists.infradead.org, linux-arch@vger.kernel.org
+Message-ID: <20161026192244.cWtpp7zdTFqLkEH7RMCQ1oGPQN-zL6qEIoIAT1wsVYw@z>
 
-When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
-macro relies on current having been defined prior to its use. However,
-not all users of current_thread_info() include <asm/current.h>, and thus
-current is not guaranteed to be defined.
+ARC CPU with enabled MMU sees entire 32-bit address space divided in 2
+big parts:
+ 1) 0 - 0x7fff_ffff (lower 2Gb): translated memory
+    I.e. all reads/writes from/to this region go through MMU and after
+    translation land somewhere in physical memory.
 
-When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
-get_current() / current are based upon current_thread_info(), and
-<asm/current.h> includes <asm/thread_info.h>. Thus always including
-<asm/current.h> would result in circular dependences on some platforms.
+ 2) 0x8000_0000 - 0xffff_ffff: untranslated memory
+    ARC CPU in kernel mode accesses this memory directly, i.e. MMU is
+    not used at all.
+    One important note: data accesses in this region go through data
+    cache!
 
-To ensure both cases work, this patch includes <asm/current.h>, but only
-when CONFIG_THREAD_INFO_IN_TASK is selected.
+If some peripheral wants to use DMA Linux kernel just allocates data
+buffer in upper 2Gb (i.e. above 0x8000_0000).
+In that case dma_addr = cpu_addr. Everything is simple.
 
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>
+But if a driver wants to allocate uncached buffer for DMA (very good
+example and that's how I actually caught the issue is DRM frame-buffer)
+things become a little-bit more complicated.
+
+Now kernel wants to write data in memory bypassing data cache.
+For that to happen we have to program MMU so that TLB entry gets
+"cached flag" reset for a particular page(s). And keeping in mind
+explanation above the only way to utilize MMU is to access data via
+lower part of address space. In other words we implement page mapping
+similarly to what we do for user-space, see:
+------------------------>8-----------------------
+arc_dma_alloc()
+  ioremap_nocache() AKA ioremap()
+    ioremap_prot()
+      get_vm_area() + ioremap_page_range() on obtained vaddr
+------------------------>8-----------------------
+
+As a result we get TLB entry of the following kind:
+------------------------>8-----------------------
+    vaddr = 0x7200_0000
+    paddr = 0x8200_0000
+    flags = _uncached_
+------------------------>8-----------------------
+
+Kerenl thinks frame buffer is located @ 0x7200_0000 and uses it
+perfectly fine.
+
+But here comes a time for user-space application to request frame buffer
+to be mapped for it. That happens easily with the following call path:
+------------------------>8-----------------------
+fb_mmap()
+  drm_fb_cma_mmap()
+    dma_mmap_writecombine() AKA dma_mmap_wc()
+      dma_mmap_attrs()
+        dma_common_mmap() since we don't [yet] have dma_map_ops.mmap()
+                          for ARC
+------------------------>8-----------------------
+
+And in dma_common_mmap() we first calculate pfn of what we think is
+"physical page" and then do remap_pfn_range() to that "physical page".
+
+Here we're getting to the interesting thing - how pfn is calculated.
+As of now this is done as simple as:
+------------------------>8-----------------------
+    pfn = page_to_pfn(virt_to_page(cpu_addr));
+------------------------>8-----------------------
+
+Below is a nice set of defines we need to use to evaluate pfn:
+------------------------>8-----------------------
+ #define virt_to_pfn(kaddr)      (__pa(kaddr) >> PAGE_SHIFT)
+ #define virt_to_page(kaddr)     pfn_to_page(virt_to_pfn(kaddr))
+ #define page_to_pfn __page_to_pfn
+ #define pfn_to_page __pfn_to_page
+ #define __pfn_to_page(pfn)      (mem_map + ((pfn) - ARCH_PFN_OFFSET))
+ #define __page_to_pfn(page)     ((unsigned long)((page) - mem_map) + \
+                                   ARCH_PFN_OFFSET)
+------------------------>8-----------------------
+
+If we do some obvious calculations we'll get:
+------------------------>8-----------------------
+    pfn = cpu_addr >> PAGE_SHIFT;
+------------------------>8-----------------------
+
+In our case cpu_addr here is 0x7200_0000 from TLB entry above and this
+what is used to create another TLB entry this time for user-space app.
+We'll get something like this:
+------------------------>8-----------------------
+    vaddr = 0x0200_0000
+    paddr = 0x7200_0000
+    flags = _uncached_
+------------------------>8-----------------------
+
+This is obviously wrong! We cannot map vaddr to vaddr with MMU.
+
+Simplest fix for ARC is to use dma_addr instead because it matches
+real physical memory address and so mapping for user-space we're
+getting then is this:
+------------------------>8-----------------------
+    vaddr = 0x0200_0000
+    paddr = 0x8200_0000
+    flags = _uncached_
+------------------------>8-----------------------
+And it works perfectly fine.
+
+But I'm pretty sure that's not the best approach for other
+architectures. Indeed we may create ARC-specific dma_map_ops.mmap()
+which only differs from dma_common_mmap() with addr being used
+but IMHO it's not the best idea to duplicate that much of code
+for such a simple change.
+
+Would be interesting to get more opinions on how to handle that thing in
+the most graceful way.
+
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-snps-arc@lists.infradead.org
 Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
 ---
- include/linux/thread_info.h | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/base/dma-mapping.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
-index c75c6ab..ef1f4b0 100644
---- a/include/linux/thread_info.h
-+++ b/include/linux/thread_info.h
-@@ -12,6 +12,7 @@
- #include <linux/restart_block.h>
+diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
+index 8f8b68c80986..16307eed453f 100644
+--- a/drivers/base/dma-mapping.c
++++ b/drivers/base/dma-mapping.c
+@@ -252,7 +252,7 @@ int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
+ #if defined(CONFIG_MMU) && !defined(CONFIG_ARCH_NO_COHERENT_DMA_MMAP)
+ 	unsigned long user_count = vma_pages(vma);
+ 	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+-	unsigned long pfn = page_to_pfn(virt_to_page(cpu_addr));
++	unsigned long pfn = page_to_pfn(virt_to_page(dma_addr));
+ 	unsigned long off = vma->vm_pgoff;
  
- #ifdef CONFIG_THREAD_INFO_IN_TASK
-+#include <asm/current.h>
- #define current_thread_info() ((struct thread_info *)current)
- #endif
- 
+ 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 -- 
-1.9.1
+2.7.4
 
