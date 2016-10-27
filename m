@@ -1,99 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f171.google.com ([209.85.192.171]:36110 "EHLO
-        mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1034046AbcJ0Oz6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 10:55:58 -0400
-Date: Thu, 27 Oct 2016 22:15:02 +1100
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Message-ID: <20161027221502.1ae92f16@roar.ozlabs.ibm.com>
-In-Reply-To: <87h97yus9w.fsf@purkki.adurom.net>
-References: <20161017100130.GA16013@angband.pl>
-        <871szfb1x1.fsf@gmail.com>
-        <20161018001626.GA5976@angband.pl>
-        <20161018123418.6121175b@roar.ozlabs.ibm.com>
-        <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
-        <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
-        <87h97yus9w.fsf@purkki.adurom.net>
+Received: from mail-by2nam01on0052.outbound.protection.outlook.com ([104.47.34.52]:60423
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S934564AbcJ0QFr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Oct 2016 12:05:47 -0400
+Date: Thu, 27 Oct 2016 12:29:19 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 01/18] 32-bit ABI: introduce ARCH_32BIT_OFF_T config
+ option
+Message-ID: <20161027092919.GA3666@yury-N73SV>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <1477081997-4770-2-git-send-email-ynorov@caviumnetworks.com>
+ <7d5ef8e8-38f1-92fe-b584-242cc2924558@mellanox.com>
+ <22426495.JIjM4XpfGo@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <22426495.JIjM4XpfGo@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kalle Valo <kvalo@codeaurora.org>
-Cc: Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thorsten Leemhuis <regressions@leemhuis.info>, Steven Rostedt <rostedt@goodmis.org>
-Message-ID: <20161027111502.HG4Mm0EYscNCzk_Ib4qYoC8uuaQAxro61E7_BfIEzSM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com
+Message-ID: <20161027092919.Xm8HHzynK8hCzZtRyftRlv5ZOxFomeK5p2Qd-sXRN3g@z>
 
-On Thu, 27 Oct 2016 11:10:03 +0300
-Kalle Valo <kvalo@codeaurora.org> wrote:
+On Tue, Oct 25, 2016 at 12:22:47AM +0200, Arnd Bergmann wrote:
+> On Monday, October 24, 2016 12:30:47 PM CEST Chris Metcalf wrote:
+> > On 10/21/2016 4:33 PM, Yury Norov wrote:
+> > > All new 32-bit architectures should have 64-bit off_t type, but existing
+> > > architectures has 32-bit ones.
+> > >
+> > > [...]
+> > > For syscalls sys_openat() and sys_open_by_handle_at() force_o_largefile()
+> > > is called, to set O_LARGEFILE flag, and this is the only difference
+> > > comparing to compat versions. All compat ABIs are already turned to use
+> > > 64-bit off_t, except tile. So, compat versions for this syscalls are not
+> > > needed anymore. Tile is handled explicitly.
+> > >
+> > > [...]
+> > > --- a/arch/tile/kernel/compat.c
+> > > +++ b/arch/tile/kernel/compat.c
+> > > @@ -103,6 +103,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+> > >   #define compat_sys_readahead sys32_readahead
+> > >   #define sys_llseek compat_sys_llseek
+> > >   
+> > > +#define sys_openat             compat_sys_openat
+> > > +#define sys_open_by_handle_at  compat_sys_open_by_handle_at
+> > > +
+> > >   /* Call the assembly trampolines where necessary. */
+> > >   #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+> > >   #define sys_clone _sys_clone
+> > 
+> > This patch accomplishes two goals that could be completely separated.
+> > It's confusing to have them mixed in the same patch without any
+> > discussion of why they are in the same patch.
+> > 
+> > First, you want to modify the default <asm/unistd.h> behavior for
+> > compat syscalls so that the default is sys_openat (etc) rather than
+> > the existing compat_sys_openat, and then use that new behavior for
+> > arm64 ILP32.  This lets you force O_LARGEFILE for arm64 ILP32 to
+> > support having a 64-bit off_t at all times.  To do that, you fix the
+> > asm-generic header, and then make tile have a special override.
+> > This seems reasonable enough.
+> > 
+> > Second, you introduce ARCH_32BIT_OFF_T basically as a synonym for
+> > "BITS_PER_WORD == 32", so that new 32-bit architectures can choose not
+> > to enable it.  This is fine in the abstract, but I'm a bit troubled by
+> > the fact that you are not actually introducing a new 32-bit
+> > architecture here (just a new 32-bit mode for the arm 64-bit kernel).
+> > Shouldn't this part of the change wait until someone actually has a
+> > new 32-bit kernel to drive this forward?
+> 
+> I asked for this specifically because we identified the problem
+> during the review of the aarch64 ilp32 code, and it might not
+> be noticed in the next architecture submission.
+> 
+> The most important aspect from my perspective is that the new
+> ilp32 ABI on aarch64 behaves the same way that any native 32-bit
+> architecture does, and when we change the default, it should
+> be done for both compat mode and native mode at the same time.
+> 
+> > If you want to push forward the ARCH_32BIT_OFF_T change in the absence
+> > of an architecture that supports it, I would think it would be a lot
+> > less confusing to have these two in separate patches, and make it
+> > clear that the ARCH_32BIT_OFF_T change is just laying groundwork
+> > for some hypothetical future architecture.
+> > 
+> > The existing commit language itself is also confusing. You write "All
+> > compat ABIs are already turned to use 64-bit off_t, except tile."
+> > First, I'm not sure what you mean by "turned" here.  And, tile is just
+> > one of many compat ABIs that allow O_LARGEFILE not to be part of the
+> > open call: see arm64's AArch32 ABI, MIPS o32, s390 31-bit emulation,
+> > sparc64's 32-bit mode, and of course x86's 32-bit compat mode.
+> > Presumably your point here is that tile is the only pre-existing
+> > architecture that #includes <asm/unistd.h> to create its compat
+> > syscall table, and so I think "all except tile" here is particularly
+> > confusing, since there are no architectures except tile that use the
+> > __SYSCALL_COMPAT functionality in the current tree.
+> 
+> Agreed, this could be made clearer, and splitting the patch up
+> in two also seems reasonable, though I didn't see it as important.
+> 
+> 	Arnd
 
-> (Adding Thorsten because of a serious regression and Steven because he
-> tried to fix something in the same commit)
-> 
-> Nicholas Piggin <npiggin@gmail.com> writes:
-> 
-> > On Wed, 19 Oct 2016 16:38:14 +0200
-> > Michal Marek <mmarek@suse.com> wrote:
-> >  
-> >> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):  
-> >> > We should probably just bring all these arch patches through the
-> >> > kbuild tree.
-> >> > 
-> >> > I'm sorry for the breakage: I didn't realize it broke the build with
-> >> > some configs, otherwise I would have given Michal a heads up before
-> >> > his pull request, and worked to get this stuff in first.    
-> >> 
-> >> It breaks with some binutils versions only (and only with
-> >> CONFIG_MODVERSIONS=y, of course).  
-> >
-> > Yeah this seems to be the issue, it apparently slipped past all the
-> > automated builds. It seems like the existing CRC warnings in the tree
-> > only trigger in rare circumstances too, so something could be a bit
-> > fragile there.  
-> 
-> I upgraded from 4.8 to 4.9-rc2 and noticed that kernel modules fail to
-> load (log below). After investigating for some time I found this thread
-> and apparently this is not still fixed, at least not in Linus' tree.
-> 
-> Reverting 784d5699eddc5 fixed the issue for me. As I don't see any fix
-> available (please correct me if I'm wrong) we should just revert that
-> commit until it's properly fixed.
+In the past it was a separated series of 2 patches, and it was even
+acked by Arnd, but not submitted. 
+http://lists-archives.com/linux-kernel/28471253-32-bit-abi-introduce-arch_32bit_off_t-config-option.html
 
-With these two patches together, does it work for you?
+I can restore that small series in aarch64/ilp32 for next iteration, or resend
+it separately if you think to submit it before aarch64/ilp32 (which is
+better, for me).
 
-http://marc.info/?l=linux-arch&m=147653546809512&w=2
-http://marc.info/?l=linux-kernel&m=147669851906489&w=2
-
-It would be helpful if you could test and let us know, because there seems
-to be a very tiny number of configs and toolchains that causes problems.
-
-> 
-> Also note that there's a related fix from Steven:
-> 
-> [PATCH] x86: Fix export for mcount and __fentry__
-> https://marc.info/?l=linux-kernel&m=147733572502413
-> 
-> For compiling the kernel I'm using Ubuntu 12.04:
-> 
-> ii  binutils             2.22-6ubuntu1.4      GNU assembler, linker and binary utilities
-> ii  gcc                  4:4.6.3-1ubuntu5     GNU C compiler
-> 
-> The kernel is running on a separate machine with Ubuntu 14.04.
-> 
-> [  110.703414] bluetooth: disagrees about version of symbol __get_user_2
-> [  110.703416] bluetooth: Unknown symbol __get_user_2 (err -22)
-> [  110.703429] bluetooth: disagrees about version of symbol __put_user_2
-> [  110.703430] bluetooth: Unknown symbol __put_user_2 (err -22)
-> [  110.703579] bluetooth: disagrees about version of symbol __put_user_4
-> [  110.703580] bluetooth: Unknown symbol __put_user_4 (err -22)
-> [  110.703669] bluetooth: disagrees about version of symbol __put_user_1
-> [  110.703670] bluetooth: Unknown symbol __put_user_1 (err -22)
-> [  110.703688] bluetooth: disagrees about version of symbol mcount
-> [  110.703689] bluetooth: Unknown symbol mcount (err -22)
-> 
-
-I haven't seen that one before. Did you definitely make and install new
-modules?
-
-Thanks,
-Nick
+Yury
