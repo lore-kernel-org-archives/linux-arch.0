@@ -1,93 +1,124 @@
-From: <jacqueline.pike@gmail.com>
-Subject: 531825 linux-arch
-Date: Thu, 27 Oct 2016 14:18:12 -0000
-Message-ID: <147757789210.26039.2232568597298949718@candw.ag>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Date: Fri, 28 Oct 2016 00:25:42 +1100
+Message-ID: <20161028002542.5bf97af2@roar.ozlabs.ibm.com>
+References: <20161017100130.GA16013@angband.pl>
+        <871szfb1x1.fsf@gmail.com>
+        <20161018001626.GA5976@angband.pl>
+        <20161018123418.6121175b@roar.ozlabs.ibm.com>
+        <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
+        <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
+        <87h97yus9w.fsf@purkki.adurom.net>
+        <20161027221502.1ae92f16@roar.ozlabs.ibm.com>
+        <87y41a3pe3.fsf@kamboji.qca.qualcomm.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="fzlinux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from static.vdc.vn ([113.161.32.101]:58453 "HELO candw.ag"
-        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-        id S1034016AbcJ0OST (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Oct 2016 10:18:19 -0400
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <87y41a3pe3.fsf@kamboji.qca.qualcomm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Kalle Valo <kvalo@codeaurora.org>
+Cc: Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thorsten Leemhuis <regressions@leemhuis.info>, Steven Rostedt <rostedt@goodmis.org>
+List-Id: linux-arch.vger.kernel.org
 
-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
-AAA=
+On Thu, 27 Oct 2016 16:14:28 +0300
+Kalle Valo <kvalo@codeaurora.org> wrote:
+
+> Nicholas Piggin <npiggin@gmail.com> writes:
+> 
+> > On Thu, 27 Oct 2016 11:10:03 +0300
+> > Kalle Valo <kvalo@codeaurora.org> wrote:
+> >  
+> >> (Adding Thorsten because of a serious regression and Steven because he
+> >> tried to fix something in the same commit)
+> >> 
+> >> Nicholas Piggin <npiggin@gmail.com> writes:
+> >>   
+> >> > On Wed, 19 Oct 2016 16:38:14 +0200
+> >> > Michal Marek <mmarek@suse.com> wrote:
+> >> >    
+> >> >> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):    
+> >> >> > We should probably just bring all these arch patches through the
+> >> >> > kbuild tree.
+> >> >> > 
+> >> >> > I'm sorry for the breakage: I didn't realize it broke the build with
+> >> >> > some configs, otherwise I would have given Michal a heads up before
+> >> >> > his pull request, and worked to get this stuff in first.      
+> >> >> 
+> >> >> It breaks with some binutils versions only (and only with
+> >> >> CONFIG_MODVERSIONS=y, of course).    
+> >> >
+> >> > Yeah this seems to be the issue, it apparently slipped past all the
+> >> > automated builds. It seems like the existing CRC warnings in the tree
+> >> > only trigger in rare circumstances too, so something could be a bit
+> >> > fragile there.    
+> >> 
+> >> I upgraded from 4.8 to 4.9-rc2 and noticed that kernel modules fail to
+> >> load (log below). After investigating for some time I found this thread
+> >> and apparently this is not still fixed, at least not in Linus' tree.
+> >> 
+> >> Reverting 784d5699eddc5 fixed the issue for me. As I don't see any fix
+> >> available (please correct me if I'm wrong) we should just revert that
+> >> commit until it's properly fixed.  
+> >
+> > With these two patches together, does it work for you?
+> >
+> > http://marc.info/?l=linux-arch&m=147653546809512&w=2
+> > http://marc.info/?l=linux-kernel&m=147669851906489&w=2
+> >
+> > It would be helpful if you could test and let us know, because there seems
+> > to be a very tiny number of configs and toolchains that causes
+> > problems.  
+> 
+> With these two patches (on top of ath-201610251249 from ath.git, in
+> practice 4.9-rc2 + latest wireless patches) module loading works again.
+> If you want you can add my Tested-by:
+> 
+> Tested-by: Kalle Valo <kvalo@codeaurora.org>
+
+Great, thanks for testing it.
+
+> Can we get these patches to Linus' tree soon? It's annoying to revert
+> 784d5699eddc5 everytime I update my tree.
+
+Yes I think it's about ready to merge. Michal is returning from vacation
+next week so we should get some progress soon.
+
+> >> Also note that there's a related fix from Steven:
+> >> 
+> >> [PATCH] x86: Fix export for mcount and __fentry__
+> >> https://marc.info/?l=linux-kernel&m=147733572502413
+> >> 
+> >> For compiling the kernel I'm using Ubuntu 12.04:
+> >> 
+> >> ii  binutils             2.22-6ubuntu1.4      GNU assembler, linker and binary utilities
+> >> ii  gcc                  4:4.6.3-1ubuntu5     GNU C compiler
+> >> 
+> >> The kernel is running on a separate machine with Ubuntu 14.04.
+> >> 
+> >> [  110.703414] bluetooth: disagrees about version of symbol __get_user_2
+> >> [  110.703416] bluetooth: Unknown symbol __get_user_2 (err -22)
+> >> [  110.703429] bluetooth: disagrees about version of symbol __put_user_2
+> >> [  110.703430] bluetooth: Unknown symbol __put_user_2 (err -22)
+> >> [  110.703579] bluetooth: disagrees about version of symbol __put_user_4
+> >> [  110.703580] bluetooth: Unknown symbol __put_user_4 (err -22)
+> >> [  110.703669] bluetooth: disagrees about version of symbol __put_user_1
+> >> [  110.703670] bluetooth: Unknown symbol __put_user_1 (err -22)
+> >> [  110.703688] bluetooth: disagrees about version of symbol mcount
+> >> [  110.703689] bluetooth: Unknown symbol mcount (err -22)
+> >>   
+> >
+> > I haven't seen that one before. Did you definitely make and install new
+> > modules?  
+> 
+> I'm pretty sure modules are correctly installed as I have used the same
+> procedure for years: on my workstation I do 'make bindeb-pkg', copy the
+> .deb to the test laptop and install the deb there. Also once I revert
+> 784d5699eddc5 it starts immeadiately working.
+> 
+
+Sure, I was just checking because I've seen several types of failure but
+not this one before. Thanks for reporting and testing.
+
+Thanks,
+Nick
