@@ -1,113 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0052.outbound.protection.outlook.com ([104.47.34.52]:60423
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S934564AbcJ0QFr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 27 Oct 2016 12:05:47 -0400
-Date: Thu, 27 Oct 2016 12:29:19 +0300
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 01/18] 32-bit ABI: introduce ARCH_32BIT_OFF_T config
- option
-Message-ID: <20161027092919.GA3666@yury-N73SV>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <1477081997-4770-2-git-send-email-ynorov@caviumnetworks.com>
- <7d5ef8e8-38f1-92fe-b584-242cc2924558@mellanox.com>
- <22426495.JIjM4XpfGo@wuerfel>
+Received: from mga09.intel.com ([134.134.136.24]:51304 "EHLO mga09.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S935238AbcJ0R3G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 27 Oct 2016 13:29:06 -0400
+Date: Thu, 27 Oct 2016 20:28:53 +0300
+From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Message-ID: <20161027172852.GE4617@intel.com>
+References: <20160511133406.GC4329@intel.com>
+ <20160516193910.GL4329@intel.com>
+ <573BA5E2.5040506@intel.com>
+ <20160518072424.GU4329@intel.com>
+ <20160526183207.GX4329@intel.com>
+ <CAJZ5v0in8YwMBgLd6=KgGVc-f2yVvutOJG_u05OKLK7_EzN0yQ@mail.gmail.com>
+ <20160531072650.GP4329@intel.com>
+ <20160713145425.GB4329@intel.com>
+ <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
+ <20160809172057.GZ4329@intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <22426495.JIjM4XpfGo@wuerfel>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20160809172057.GZ4329@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com
-Message-ID: <20161027092919.Xm8HHzynK8hCzZtRyftRlv5ZOxFomeK5p2Qd-sXRN3g@z>
+To: Feng Tang <feng.79.tang@gmail.com>
+Cc: feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20161027172853.edue6ki4k76ZZY8OoFyDe7P6d1dhgcKObqo0an6x_fU@z>
 
-On Tue, Oct 25, 2016 at 12:22:47AM +0200, Arnd Bergmann wrote:
-> On Monday, October 24, 2016 12:30:47 PM CEST Chris Metcalf wrote:
-> > On 10/21/2016 4:33 PM, Yury Norov wrote:
-> > > All new 32-bit architectures should have 64-bit off_t type, but existing
-> > > architectures has 32-bit ones.
-> > >
-> > > [...]
-> > > For syscalls sys_openat() and sys_open_by_handle_at() force_o_largefile()
-> > > is called, to set O_LARGEFILE flag, and this is the only difference
-> > > comparing to compat versions. All compat ABIs are already turned to use
-> > > 64-bit off_t, except tile. So, compat versions for this syscalls are not
-> > > needed anymore. Tile is handled explicitly.
-> > >
-> > > [...]
-> > > --- a/arch/tile/kernel/compat.c
-> > > +++ b/arch/tile/kernel/compat.c
-> > > @@ -103,6 +103,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
-> > >   #define compat_sys_readahead sys32_readahead
-> > >   #define sys_llseek compat_sys_llseek
-> > >   
-> > > +#define sys_openat             compat_sys_openat
-> > > +#define sys_open_by_handle_at  compat_sys_open_by_handle_at
-> > > +
-> > >   /* Call the assembly trampolines where necessary. */
-> > >   #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
-> > >   #define sys_clone _sys_clone
+On Tue, Aug 09, 2016 at 08:20:57PM +0300, Ville Syrjälä wrote:
+> On Thu, Jul 14, 2016 at 04:29:42PM +0800, Feng Tang wrote:
+> > if you only want it to work, you can try an old patch
+> > https://bugzilla.kernel.org/attachment.cgi?id=76071 from a similar bug
+> > https://bugzilla.kernel.org/show_bug.cgi?id=41932
 > > 
-> > This patch accomplishes two goals that could be completely separated.
-> > It's confusing to have them mixed in the same patch without any
-> > discussion of why they are in the same patch.
-> > 
-> > First, you want to modify the default <asm/unistd.h> behavior for
-> > compat syscalls so that the default is sys_openat (etc) rather than
-> > the existing compat_sys_openat, and then use that new behavior for
-> > arm64 ILP32.  This lets you force O_LARGEFILE for arm64 ILP32 to
-> > support having a 64-bit off_t at all times.  To do that, you fix the
-> > asm-generic header, and then make tile have a special override.
-> > This seems reasonable enough.
-> > 
-> > Second, you introduce ARCH_32BIT_OFF_T basically as a synonym for
-> > "BITS_PER_WORD == 32", so that new 32-bit architectures can choose not
-> > to enable it.  This is fine in the abstract, but I'm a bit troubled by
-> > the fact that you are not actually introducing a new 32-bit
-> > architecture here (just a new 32-bit mode for the arm 64-bit kernel).
-> > Shouldn't this part of the change wait until someone actually has a
-> > new 32-bit kernel to drive this forward?
+> > Alistair Buxton confirmed it work for 3.18 at least
+> > https://bugzilla.kernel.org/show_bug.cgi?id=107151#c16
 > 
-> I asked for this specifically because we identified the problem
-> during the review of the aarch64 ilp32 code, and it might not
-> be noticed in the next architecture submission.
-> 
-> The most important aspect from my perspective is that the new
-> ilp32 ABI on aarch64 behaves the same way that any native 32-bit
-> architecture does, and when we change the default, it should
-> be done for both compat mode and native mode at the same time.
-> 
-> > If you want to push forward the ARCH_32BIT_OFF_T change in the absence
-> > of an architecture that supports it, I would think it would be a lot
-> > less confusing to have these two in separate patches, and make it
-> > clear that the ARCH_32BIT_OFF_T change is just laying groundwork
-> > for some hypothetical future architecture.
-> > 
-> > The existing commit language itself is also confusing. You write "All
-> > compat ABIs are already turned to use 64-bit off_t, except tile."
-> > First, I'm not sure what you mean by "turned" here.  And, tile is just
-> > one of many compat ABIs that allow O_LARGEFILE not to be part of the
-> > open call: see arm64's AArch32 ABI, MIPS o32, s390 31-bit emulation,
-> > sparc64's 32-bit mode, and of course x86's 32-bit compat mode.
-> > Presumably your point here is that tile is the only pre-existing
-> > architecture that #includes <asm/unistd.h> to create its compat
-> > syscall table, and so I think "all except tile" here is particularly
-> > confusing, since there are no architectures except tile that use the
-> > __SYSCALL_COMPAT functionality in the current tree.
-> 
-> Agreed, this could be made clearer, and splitting the patch up
-> in two also seems reasonable, though I didn't see it as important.
-> 
-> 	Arnd
+> That patch is a bit too ripe by now. Would need a fresh squeezed one.
 
-In the past it was a separated series of 2 patches, and it was even
-acked by Arnd, but not submitted. 
-http://lists-archives.com/linux-kernel/28471253-32-bit-abi-introduce-arch_32bit_off_t-config-option.html
+Since no one else bothered to refresh the patch I did it myself:
 
-I can restore that small series in aarch64/ilp32 for next iteration, or resend
-it separately if you think to submit it before aarch64/ilp32 (which is
-better, for me).
+diff --git a/kernel/time/tick-broadcast.c b/kernel/time/tick-broadcast.c
+index f6aae7977824..d73d094a8972 100644
+--- a/kernel/time/tick-broadcast.c
++++ b/kernel/time/tick-broadcast.c
+@@ -657,8 +657,16 @@ static void tick_handle_oneshot_broadcast(struct clock_event_device *dev)
+ 	 * - There are pending events on sleeping CPUs which were not
+ 	 * in the event mask
+ 	 */
+-	if (next_event.tv64 != KTIME_MAX)
++	if (next_event.tv64 != KTIME_MAX) {
++		s64 delta = next_event.tv64 - now.tv64;
++
++		if (delta >= 10000000000) {
++			printk(KERN_CRIT "%s(): The delta is big: %lld\n", __func__, delta);
++			next_event.tv64 = now.tv64 + 3000000000;
++		}
++
+ 		tick_broadcast_set_event(dev, next_cpu, next_event);
++	}
+ 
+ 	raw_spin_unlock(&tick_broadcast_lock);
 
-Yury
+Unfortunately it doesn't do anything for me.
+
+The fortunate thing is that acpi-idle has magically been fixed in the
+meantime, so I can at least go back to using that one and have working
+S3.
+
+-- 
+Ville Syrjälä
+Intel OTC
