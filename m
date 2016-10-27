@@ -1,59 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp07.smtpout.orange.fr ([80.12.242.129]:52373 "EHLO
-        smtp.smtpout.orange.fr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932987AbcJZUPC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Oct 2016 16:15:02 -0400
-From: Robert Jarzmik <robert.jarzmik@free.fr>
-Subject: Re: [PATCH 2/3] ARM: convert to generated system call tables
-References: <E1bwa6s-0004ZY-4k@rmk-PC.armlinux.org.uk>
-        <4337157.Eff9E2riVH@wuerfel>
-        <20161021154856.GC1041@n2100.armlinux.org.uk>
-        <24632117.YsmPs86ri6@wuerfel> <87eg382kv9.fsf@belgarion.home>
-        <CAMuHMdVy_h6Uss9bwVK5hGD42bXeEBcBsBDwCpx_eYnT9r+=Lw@mail.gmail.com>
-Date: Wed, 26 Oct 2016 22:14:46 +0200
-In-Reply-To: <CAMuHMdVy_h6Uss9bwVK5hGD42bXeEBcBsBDwCpx_eYnT9r+=Lw@mail.gmail.com>
-        (Geert Uytterhoeven's message of "Mon, 24 Oct 2016 11:25:03 +0200")
-Message-ID: <87vawe27gp.fsf@belgarion.home>
+Received: from smtp.codeaurora.org ([198.145.29.96]:44024 "EHLO
+        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S965934AbcJ0OJd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 10:09:33 -0400
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+References: <20161017100130.GA16013@angband.pl> <871szfb1x1.fsf@gmail.com>
+        <20161018001626.GA5976@angband.pl>
+        <20161018123418.6121175b@roar.ozlabs.ibm.com>
+        <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
+        <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
+Date: Thu, 27 Oct 2016 11:10:03 +0300
+In-Reply-To: <20161020145204.77b37e6b@roar.ozlabs.ibm.com> (Nicholas Piggin's
+        message of "Thu, 20 Oct 2016 14:52:04 +1100")
+Message-ID: <87h97yus9w.fsf@purkki.adurom.net>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@armlinux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, linux-api <linux-api@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20161026201446.5PnPVShiyIzQVVio2Q27bRYK-u4a5arhg_ZNWZjJLCc@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thorsten Leemhuis <regressions@leemhuis.info>, Steven Rostedt <rostedt@goodmis.org>
+Message-ID: <20161027081003.Xo3NY49Mj5K3W1j_4-FhVfRItd8b-59dMRKdT_3SlDs@z>
 
-Geert Uytterhoeven <geert@linux-m68k.org> writes:
+(Adding Thorsten because of a serious regression and Steven because he
+tried to fix something in the same commit)
 
-> On Sat, Oct 22, 2016 at 10:23 PM, Robert Jarzmik <robert.jarzmik@free.fr> wrote:
->> Arnd Bergmann <arnd@arndb.de> writes:
->>
->>> On Friday, October 21, 2016 4:48:56 PM CEST Russell King - ARM Linux wrote:
->>>> What's the point of the x32 mode?
->>>
->>> On x86, the motivation is faster code for most use cases that
->>> don't need a lot of memory, as the 64-bit opcodes have 16 registers
->>> rather than 8 in 32-bit mode but 32-bit pointers have lower
->>> cache footprint than 64-bit pointers.
->>
->> For completness, the second point of x32 AFAIU is the IP-relative addressing
->> which is not available in standard 32 bit mode, which improves PIC code. For
->> simple not algorithmic code (think Android HAL for example) with many shared
->> libraries, it's better in the Hardware Abstraction Layer Libraries, instead of
->> the push-to-stack and pop register.
+Nicholas Piggin <npiggin@gmail.com> writes:
+
+> On Wed, 19 Oct 2016 16:38:14 +0200
+> Michal Marek <mmarek@suse.com> wrote:
 >
-> But that's not an advantage compared to full am64 mode, right?
-Nope, the amd64 (that's what you have in mind with am64, not aarch64 right ?)
-mode has the IP-relative has well, so x32 has no advantage over amd64 in this
-area.
+>> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):
+>> > We should probably just bring all these arch patches through the
+>> > kbuild tree.
+>> > 
+>> > I'm sorry for the breakage: I didn't realize it broke the build with
+>> > some configs, otherwise I would have given Michal a heads up before
+>> > his pull request, and worked to get this stuff in first.  
+>> 
+>> It breaks with some binutils versions only (and only with
+>> CONFIG_MODVERSIONS=y, of course).
+>
+> Yeah this seems to be the issue, it apparently slipped past all the
+> automated builds. It seems like the existing CRC warnings in the tree
+> only trigger in rare circumstances too, so something could be a bit
+> fragile there.
 
-x32 over amd64 advantage is cache and memory footprint AFAICT, I don't see other
-benefits. There doesn't seem to be any ISA differences, or I didn't really
-notice in my daily system performance analysis job.
+I upgraded from 4.8 to 4.9-rc2 and noticed that kernel modules fail to
+load (log below). After investigating for some time I found this thread
+and apparently this is not still fixed, at least not in Linus' tree.
 
-There was a nice presentation made by Peter Anvin at a Plumber conference, here
-: http://linuxplumbersconf.org/2011/ocw/sessions/531
+Reverting 784d5699eddc5 fixed the issue for me. As I don't see any fix
+available (please correct me if I'm wrong) we should just revert that
+commit until it's properly fixed.
 
-Cheers.
+Also note that there's a related fix from Steven:
+
+[PATCH] x86: Fix export for mcount and __fentry__
+https://marc.info/?l=linux-kernel&m=147733572502413
+
+For compiling the kernel I'm using Ubuntu 12.04:
+
+ii  binutils             2.22-6ubuntu1.4      GNU assembler, linker and binary utilities
+ii  gcc                  4:4.6.3-1ubuntu5     GNU C compiler
+
+The kernel is running on a separate machine with Ubuntu 14.04.
+
+[  110.703414] bluetooth: disagrees about version of symbol __get_user_2
+[  110.703416] bluetooth: Unknown symbol __get_user_2 (err -22)
+[  110.703429] bluetooth: disagrees about version of symbol __put_user_2
+[  110.703430] bluetooth: Unknown symbol __put_user_2 (err -22)
+[  110.703579] bluetooth: disagrees about version of symbol __put_user_4
+[  110.703580] bluetooth: Unknown symbol __put_user_4 (err -22)
+[  110.703669] bluetooth: disagrees about version of symbol __put_user_1
+[  110.703670] bluetooth: Unknown symbol __put_user_1 (err -22)
+[  110.703688] bluetooth: disagrees about version of symbol mcount
+[  110.703689] bluetooth: Unknown symbol mcount (err -22)
 
 -- 
-Robert
+Kalle Valo
