@@ -1,62 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:44970 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1030256AbcJ0UoT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 16:44:19 -0400
-Date: Thu, 27 Oct 2016 22:41:18 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-In-Reply-To: <20161027203745.GH4617@intel.com>
-Message-ID: <alpine.DEB.2.20.1610272238390.4913@nanos>
-References: <20160526183207.GX4329@intel.com> <CAJZ5v0in8YwMBgLd6=KgGVc-f2yVvutOJG_u05OKLK7_EzN0yQ@mail.gmail.com> <20160531072650.GP4329@intel.com> <20160713145425.GB4329@intel.com> <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
- <20160809172057.GZ4329@intel.com> <20161027172852.GE4617@intel.com> <alpine.DEB.2.20.1610272035180.4913@nanos> <20161027192006.GF4617@intel.com> <alpine.DEB.2.20.1610272122510.4913@nanos> <20161027203745.GH4617@intel.com>
+Received: from mail-vk0-f42.google.com ([209.85.213.42]:35822 "EHLO
+        mail-vk0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1033697AbcJ0XPp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 19:15:45 -0400
+Received: by mail-vk0-f42.google.com with SMTP id q126so41530413vkd.2
+        for <linux-arch@vger.kernel.org>; Thu, 27 Oct 2016 16:14:11 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323329-18361705-1477600880=:4913"
+In-Reply-To: <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
+References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com> <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 27 Oct 2016 16:13:49 -0700
+Message-ID: <CALCETrUqApnWBwFPwkToTp1_Wm68tbPAW=UH+X5mZrNS+3rHjA@mail.gmail.com>
+Subject: Re: [PATCH 3/3] thread_info: include <current.h> for THREAD_INFO_IN_TASK
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?ISO-8859-15?Q?Ville_Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
-Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
-Message-ID: <20161027204118.eVA_GMV-S99069iQBBjrzTTALtFD-P5WzlcKQc6d_AQ@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20161027231349.0KJ-7H8OwgvVKO8ULp6pqMi5O4xsrSVXwvQsr6IWYVI@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
+> When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
+> macro relies on current having been defined prior to its use. However,
+> not all users of current_thread_info() include <asm/current.h>, and thus
+> current is not guaranteed to be defined.
+>
+> When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
+> get_current() / current are based upon current_thread_info(), and
+> <asm/current.h> includes <asm/thread_info.h>. Thus always including
+> <asm/current.h> would result in circular dependences on some platforms.
+>
+> To ensure both cases work, this patch includes <asm/current.h>, but only
+> when CONFIG_THREAD_INFO_IN_TASK is selected.
 
---8323329-18361705-1477600880=:4913
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+Reviewed-by: Andy Lutomirski <luto@kernel.org>
 
-On Thu, 27 Oct 2016, Ville Syrjälä wrote:
-> On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
-> > So it would be interesting whether that hunk in resume_broadcast() is
-> > sufficient.
-> 
-> So far it looks like the answer is yes.
-> 
-> Looks to be about 5 seconds slower than acpi-idle in resuming, but
-> I suppose that's not all that surprising ;)
+although it would be nice if you moved your description of why the
+include is conditional into a comment.
 
-Well, set it to 1msec then. If that works reliably then we really can do
-that unconditionally. There is no harm in firing a useless timer during
-resume once.
-
-> > Does the machine work, when you limit intel idle to C3, which would then
-> > match acpi idle ?
-> 
-> I'm pretty sure I had tested all of these, but I just double checked
-> to make sure. There's no C3 with intel_idle so I limited to C2, but
-> that did not help.
-> 
-> Isn't it possible that ACPI C3 is in fact C4? I thought ACPI C-states
-> are always numbered non-sparsely, and in this case ACPI C3 could be
-> anything from C3 to C11 (if the processor actually supported such
-> states obviously). Actually now that I look at the descriptions for
-> the states in sysfs, it says "MWAIT 0x30" for state3 on both drivers,
-> which I presume means it's in fact C4 for both.
-
-Indeed.
-
-Thanks,
-
-	tglx
---8323329-18361705-1477600880=:4913--
+--Andy
