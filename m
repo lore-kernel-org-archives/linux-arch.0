@@ -1,84 +1,110 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 02/18] arm64: ilp32: add documentation on the ILP32 ABI
- for ARM64
-Date: Thu, 27 Oct 2016 12:40:07 +0300
-Message-ID: <20161027094007.GB3666@yury-N73SV>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <1477081997-4770-3-git-send-email-ynorov@caviumnetworks.com>
- <352ff60e-3975-8421-3274-3a904c0ac642@mellanox.com>
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Date: Thu, 27 Oct 2016 16:14:28 +0300
+Message-ID: <87y41a3pe3.fsf@kamboji.qca.qualcomm.com>
+References: <20161017100130.GA16013@angband.pl> <871szfb1x1.fsf@gmail.com>
+        <20161018001626.GA5976@angband.pl>
+        <20161018123418.6121175b@roar.ozlabs.ibm.com>
+        <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
+        <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
+        <87h97yus9w.fsf@purkki.adurom.net>
+        <20161027221502.1ae92f16@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <352ff60e-3975-8421-3274-3a904c0ac642@mellanox.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20161027221502.1ae92f16@roar.ozlabs.ibm.com> (Nicholas Piggin's
+        message of "Thu, 27 Oct 2016 22:15:02 +1100")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thorsten Leemhuis <regressions@leemhuis.info>, Steven Rostedt <rostedt@goodmis.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Chris,
+Nicholas Piggin <npiggin@gmail.com> writes:
 
-Thank you for comments
+> On Thu, 27 Oct 2016 11:10:03 +0300
+> Kalle Valo <kvalo@codeaurora.org> wrote:
+>
+>> (Adding Thorsten because of a serious regression and Steven because he
+>> tried to fix something in the same commit)
+>> 
+>> Nicholas Piggin <npiggin@gmail.com> writes:
+>> 
+>> > On Wed, 19 Oct 2016 16:38:14 +0200
+>> > Michal Marek <mmarek@suse.com> wrote:
+>> >  
+>> >> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):  
+>> >> > We should probably just bring all these arch patches through the
+>> >> > kbuild tree.
+>> >> > 
+>> >> > I'm sorry for the breakage: I didn't realize it broke the build with
+>> >> > some configs, otherwise I would have given Michal a heads up before
+>> >> > his pull request, and worked to get this stuff in first.    
+>> >> 
+>> >> It breaks with some binutils versions only (and only with
+>> >> CONFIG_MODVERSIONS=y, of course).  
+>> >
+>> > Yeah this seems to be the issue, it apparently slipped past all the
+>> > automated builds. It seems like the existing CRC warnings in the tree
+>> > only trigger in rare circumstances too, so something could be a bit
+>> > fragile there.  
+>> 
+>> I upgraded from 4.8 to 4.9-rc2 and noticed that kernel modules fail to
+>> load (log below). After investigating for some time I found this thread
+>> and apparently this is not still fixed, at least not in Linus' tree.
+>> 
+>> Reverting 784d5699eddc5 fixed the issue for me. As I don't see any fix
+>> available (please correct me if I'm wrong) we should just revert that
+>> commit until it's properly fixed.
+>
+> With these two patches together, does it work for you?
+>
+> http://marc.info/?l=linux-arch&m=147653546809512&w=2
+> http://marc.info/?l=linux-kernel&m=147669851906489&w=2
+>
+> It would be helpful if you could test and let us know, because there seems
+> to be a very tiny number of configs and toolchains that causes
+> problems.
 
-On Mon, Oct 24, 2016 at 12:36:27PM -0400, Chris Metcalf wrote:
-> On 10/21/2016 4:33 PM, Yury Norov wrote:
-> >Based on Andrew Pinski's patch-series.
-> >
-> >Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> >---
-> >  Documentation/arm64/ilp32.txt | 46 +++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 46 insertions(+)
-> >  create mode 100644 Documentation/arm64/ilp32.txt
-> >
-> >diff --git a/Documentation/arm64/ilp32.txt b/Documentation/arm64/ilp32.txt
-> >new file mode 100644
-> >index 0000000..b96c18f
-> >--- /dev/null
-> >+++ b/Documentation/arm64/ilp32.txt
-> >@@ -0,0 +1,46 @@
-> >+ILP32 AARCH64 SYSCALL ABI
-> >+=========================
-> >+
-> >+This document describes the ILP32 syscall ABI and where it differs
-> >+from the generic compat linux syscall interface.
-> >+
-> >+AARCH64/ILP32 userspace can potentially access top halves of registers that
-> >+are passed as syscall arguments, so such registers (w0-w7) are deloused.
-> 
-> I'm not sure what "potentially access" here means: I think what you want to say
-> is that userspace can pass garbage in the top half, but you should be clearer about
-> what you mean here. 
+With these two patches (on top of ath-201610251249 from ath.git, in
+practice 4.9-rc2 + latest wireless patches) module loading works again.
+If you want you can add my Tested-by:
 
-Yes. Will change.
+Tested-by: Kalle Valo <kvalo@codeaurora.org>
 
-> Also, you shouldn't use "deloused" here, since it's not a term
-> that's defined elsewhere in the kernel, even though it's been used colloquially on LKML.
-> Provide an actual implementation definition, like "have their top 32 bits zeroed".
+Can we get these patches to Linus' tree soon? It's annoying to revert
+784d5699eddc5 everytime I update my tree.
 
-Agree.
-In fact 'delouse' is used in the name of corresponding macro in
-include/linux/compat.h:
-29 #ifndef __SC_DELOUSE
-30 #define __SC_DELOUSE(t,v) ((t)(unsigned long)(v))
-31 #endif
+>> Also note that there's a related fix from Steven:
+>> 
+>> [PATCH] x86: Fix export for mcount and __fentry__
+>> https://marc.info/?l=linux-kernel&m=147733572502413
+>> 
+>> For compiling the kernel I'm using Ubuntu 12.04:
+>> 
+>> ii  binutils             2.22-6ubuntu1.4      GNU assembler, linker and binary utilities
+>> ii  gcc                  4:4.6.3-1ubuntu5     GNU C compiler
+>> 
+>> The kernel is running on a separate machine with Ubuntu 14.04.
+>> 
+>> [  110.703414] bluetooth: disagrees about version of symbol __get_user_2
+>> [  110.703416] bluetooth: Unknown symbol __get_user_2 (err -22)
+>> [  110.703429] bluetooth: disagrees about version of symbol __put_user_2
+>> [  110.703430] bluetooth: Unknown symbol __put_user_2 (err -22)
+>> [  110.703579] bluetooth: disagrees about version of symbol __put_user_4
+>> [  110.703580] bluetooth: Unknown symbol __put_user_4 (err -22)
+>> [  110.703669] bluetooth: disagrees about version of symbol __put_user_1
+>> [  110.703670] bluetooth: Unknown symbol __put_user_1 (err -22)
+>> [  110.703688] bluetooth: disagrees about version of symbol mcount
+>> [  110.703689] bluetooth: Unknown symbol mcount (err -22)
+>> 
+>
+> I haven't seen that one before. Did you definitely make and install new
+> modules?
 
-But it's not for documentation.
+I'm pretty sure modules are correctly installed as I have used the same
+procedure for years: on my workstation I do 'make bindeb-pkg', copy the
+.deb to the test laptop and install the deb there. Also once I revert
+784d5699eddc5 it starts immeadiately working.
 
-> 
-> >+AARCH64/ILP32 provides next types turned to 64-bit (comparing to AARCH32):
-> 
-> What does "turned" mean here?  And I "next types" isn't standard English; you want
-> to say something like "the following types".  Likewise later with "next syscalls".
-
-Thanks, will change.
-
-Yury
+-- 
+Kalle Valo
