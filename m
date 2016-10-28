@@ -1,41 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f42.google.com ([209.85.213.42]:35822 "EHLO
-        mail-vk0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1033697AbcJ0XPp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Oct 2016 19:15:45 -0400
-Received: by mail-vk0-f42.google.com with SMTP id q126so41530413vkd.2
-        for <linux-arch@vger.kernel.org>; Thu, 27 Oct 2016 16:14:11 -0700 (PDT)
+Received: from mga11.intel.com ([192.55.52.93]:58530 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1754864AbcJ1P4R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Oct 2016 11:56:17 -0400
+Date: Fri, 28 Oct 2016 18:56:03 +0300
+From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Message-ID: <20161028155603.GI4617@intel.com>
+References: <20160531072650.GP4329@intel.com>
+ <20160713145425.GB4329@intel.com>
+ <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
+ <20160809172057.GZ4329@intel.com>
+ <20161027172852.GE4617@intel.com>
+ <alpine.DEB.2.20.1610272035180.4913@nanos>
+ <20161027192006.GF4617@intel.com>
+ <alpine.DEB.2.20.1610272122510.4913@nanos>
+ <20161027203745.GH4617@intel.com>
+ <alpine.DEB.2.20.1610272238390.4913@nanos>
 MIME-Version: 1.0
-In-Reply-To: <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com> <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Thu, 27 Oct 2016 16:13:49 -0700
-Message-ID: <CALCETrUqApnWBwFPwkToTp1_Wm68tbPAW=UH+X5mZrNS+3rHjA@mail.gmail.com>
-Subject: Re: [PATCH 3/3] thread_info: include <current.h> for THREAD_INFO_IN_TASK
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <alpine.DEB.2.20.1610272238390.4913@nanos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20161027231349.0KJ-7H8OwgvVKO8ULp6pqMi5O4xsrSVXwvQsr6IWYVI@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20161028155603.cLQGIZ5kyXusejOR7p_BSYkLNMXwnrapzwL8jCFDbAM@z>
 
-On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
-> macro relies on current having been defined prior to its use. However,
-> not all users of current_thread_info() include <asm/current.h>, and thus
-> current is not guaranteed to be defined.
->
-> When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
-> get_current() / current are based upon current_thread_info(), and
-> <asm/current.h> includes <asm/thread_info.h>. Thus always including
-> <asm/current.h> would result in circular dependences on some platforms.
->
-> To ensure both cases work, this patch includes <asm/current.h>, but only
-> when CONFIG_THREAD_INFO_IN_TASK is selected.
+On Thu, Oct 27, 2016 at 10:41:18PM +0200, Thomas Gleixner wrote:
+> On Thu, 27 Oct 2016, Ville Syrjälä wrote:
+> > On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
+> > > So it would be interesting whether that hunk in resume_broadcast() is
+> > > sufficient.
+> > 
+> > So far it looks like the answer is yes.
+> > 
+> > Looks to be about 5 seconds slower than acpi-idle in resuming, but
+> > I suppose that's not all that surprising ;)
+> 
+> Well, set it to 1msec then. If that works reliably then we really can do
+> that unconditionally. There is no harm in firing a useless timer during
+> resume once.
 
-Reviewed-by: Andy Lutomirski <luto@kernel.org>
+I narrowed down the required timeout, and looks like 25ms is the
+minimum that works. With 24ms I already started to have failures. So
+maybe just bump it up by an order of magnitude to 250ms for some
+safety margin?
 
-although it would be nice if you moved your description of why the
-include is conditional into a comment.
+In any case I think I'll leave the machine running S3 cycles over the
+weekend with the 25ms timeout just to see if it will eventually fail.
 
---Andy
+-- 
+Ville Syrjälä
+Intel OTC
