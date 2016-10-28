@@ -1,58 +1,531 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 3/3] thread_info: include <current.h> for
- THREAD_INFO_IN_TASK
-Date: Fri, 28 Oct 2016 11:48:06 +0100
-Message-ID: <20161028104806.GF5806@leverpostej>
-References: <1476901693-8492-1-git-send-email-mark.rutland@arm.com>
- <1476901693-8492-4-git-send-email-mark.rutland@arm.com>
- <CALCETrUqApnWBwFPwkToTp1_Wm68tbPAW=UH+X5mZrNS+3rHjA@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: ILP32 for ARM64 - testing with lmbench
+Date: Fri, 28 Oct 2016 15:46:59 +0300
+Message-ID: <20161028124659.GA24131@yury-N73SV>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56604 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750748AbcJ1Ksl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 28 Oct 2016 06:48:41 -0400
+Received: from mail-sn1nam02on0042.outbound.protection.outlook.com ([104.47.36.42]:1484
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752126AbcJ1MrN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 28 Oct 2016 08:47:13 -0400
 Content-Disposition: inline
-In-Reply-To: <CALCETrUqApnWBwFPwkToTp1_Wm68tbPAW=UH+X5mZrNS+3rHjA@mail.gmail.com>
+In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, sellcey@caviumnetworks.com
 
-On Thu, Oct 27, 2016 at 04:13:49PM -0700, Andy Lutomirski wrote:
-> On Wed, Oct 19, 2016 at 11:28 AM, Mark Rutland <mark.rutland@arm.com> wrote:
-> > When CONFIG_THREAD_INFO_IN_TASK is selected, the current_thread_info()
-> > macro relies on current having been defined prior to its use. However,
-> > not all users of current_thread_info() include <asm/current.h>, and thus
-> > current is not guaranteed to be defined.
-> >
-> > When CONFIG_THREAD_INFO_IN_TASK is not selected, it's possible that
-> > get_current() / current are based upon current_thread_info(), and
-> > <asm/current.h> includes <asm/thread_info.h>. Thus always including
-> > <asm/current.h> would result in circular dependences on some platforms.
-> >
-> > To ensure both cases work, this patch includes <asm/current.h>, but only
-> > when CONFIG_THREAD_INFO_IN_TASK is selected.
-> 
-> Reviewed-by: Andy Lutomirski <luto@kernel.org>
+[Add Steve Ellcey, thanks for testing on ThunderX]
 
-Cheers!
+Lmbench-3.0-a9 testing is performed on ThunderX machine to check that
+ILP32 series does not add performance regressions for LP64. Test
+summary is in the table below. Our measurements doesn't show
+significant performance regression of LP64 if ILP32 code is merged,
+both enabled or disabled.
 
-> although it would be nice if you moved your description of why the
-> include is conditional into a comment.
+               ILP32 enabled   ILP32  disabled   Standard Kernel 
+null syscall   0.1066          0.1121            0.1121
+               95.09%          100.00%
 
-Agreed. I've folded in the below:
+stat           1.3947          1.3814            1.3864
+               100.60%         99.64%
 
-#ifdef CONFIG_THREAD_INFO_IN_TASK
-/*
- * For CONFIG_THREAD_INFO_IN_TASK kernels we need <asm/current.h> for the
- * definition of current, but for !CONFIG_THREAD_INFO_IN_TASK kernels,
- * including <asm/current.h> can cause a circular dependency on some platforms.
- */
-#include <asm/current.h>
-#define current_thread_info() ((struct thread_info *)current)
-#endif
+fstat          0.4459          0.4344            0.4524
+               98.56%          96.02%
 
-Thanks,
-Mark.
+open/close     4.0606          4.0411            4.0453
+               100.38%         99.90%
+
+read           0.4819          0.5014            0.5014
+               96.11%          100.00%
+
+Tested with linux 4.8 because 4.9-rc1 is not fixed yet for ThunderX.
+Other system details below.
+
+Yury.
+
+ubuntu@crb6:~$ uname -a
+Linux crb6 4.8.0+ #3 SMP Thu Oct 27 11:01:32 PDT 2016 aarch64 aarch64 aarch64 GNU/Linux
+
+ubuntu@crb6:~$ cat /proc/meminfo
+MemTotal:       132011948 kB
+MemFree:        131442672 kB
+MemAvailable:   130695764 kB
+Buffers:           15696 kB
+Cached:            88088 kB
+SwapCached:            0 kB
+Active:            82760 kB
+Inactive:          41336 kB
+Active(anon):      20880 kB
+Inactive(anon):     8576 kB
+Active(file):      61880 kB
+Inactive(file):    32760 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:      128920572 kB
+SwapFree:       128920572 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:         20544 kB
+Mapped:            19780 kB
+Shmem:              9060 kB
+Slab:              78804 kB
+SReclaimable:      27372 kB
+SUnreclaim:        51432 kB
+KernelStack:        8336 kB
+PageTables:          820 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    194926544 kB
+Committed_AS:     256324 kB
+VmallocTotal:   135290290112 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+
+ubuntu@crb6:~$ cat /proc/cpuinfo
+processor	: 0
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 1
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 2
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 3
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 4
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 5
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 6
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 7
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 8
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 9
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 10
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 11
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 12
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 13
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 14
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 15
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 16
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 17
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 18
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 19
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 20
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 21
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 22
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 23
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 24
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 25
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 26
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 27
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 28
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 29
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 30
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 31
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 32
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 33
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 34
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 35
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 36
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 37
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 38
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 39
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 40
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 41
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 42
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 43
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 44
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 45
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 46
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
+
+processor	: 47
+BogoMIPS	: 200.00
+Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+CPU implementer	: 0x43
+CPU architecture: 8
+CPU variant	: 0x1
+CPU part	: 0x0a1
+CPU revision	: 0
