@@ -1,76 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:48184 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1756557AbcJ1TBq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2016 15:01:46 -0400
-Date: Fri, 28 Oct 2016 20:58:41 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-In-Reply-To: <20161028155603.GI4617@intel.com>
-Message-ID: <alpine.DEB.2.20.1610282049500.5053@nanos>
-References: <20160531072650.GP4329@intel.com> <20160713145425.GB4329@intel.com> <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com> <20160809172057.GZ4329@intel.com> <20161027172852.GE4617@intel.com> <alpine.DEB.2.20.1610272035180.4913@nanos>
- <20161027192006.GF4617@intel.com> <alpine.DEB.2.20.1610272122510.4913@nanos> <20161027203745.GH4617@intel.com> <alpine.DEB.2.20.1610272238390.4913@nanos> <20161028155603.GI4617@intel.com>
+Received: from mout.kundenserver.de ([217.72.192.74]:55826 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751031AbcJ2VE1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 29 Oct 2016 17:04:27 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: Drop getrlimit and setrlimit syscalls from default list
+Date: Sat, 29 Oct 2016 23:02:40 +0200
+Message-ID: <2502005.4risrb1P1I@wuerfel>
+In-Reply-To: <1477138444-14993-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1477138444-14993-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323329-621006073-1477681124=:5053"
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?ISO-8859-15?Q?Ville_Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
-Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, Len Brown <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
-Message-ID: <20161028185841.L5wSROxbl-IwiL536MiVJcBpnLx7qqzVF-IjLfSkTkk@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Richard Kuo <rkuo@codeaurora.org>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@mellanox.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Andrew Pinski <Andrew.Pinski@cavium.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-metag@vger.kernel.org, nios2-dev@lists.rocketboards.org
+Message-ID: <20161029210240.FNSH10p8GlD5QlFRXBKb7bR7kXSA5Xu5L-T5Du_TBd8@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
---8323329-621006073-1477681124=:5053
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
-
-On Fri, 28 Oct 2016, Ville Syrjälä wrote:
-> On Thu, Oct 27, 2016 at 10:41:18PM +0200, Thomas Gleixner wrote:
-> > On Thu, 27 Oct 2016, Ville Syrjälä wrote:
-> > > On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
-> > > > So it would be interesting whether that hunk in resume_broadcast() is
-> > > > sufficient.
-> > > 
-> > > So far it looks like the answer is yes.
-> > > 
-> > > Looks to be about 5 seconds slower than acpi-idle in resuming, but
-> > > I suppose that's not all that surprising ;)
-> > 
-> > Well, set it to 1msec then. If that works reliably then we really can do
-> > that unconditionally. There is no harm in firing a useless timer during
-> > resume once.
+On Saturday, October 22, 2016 3:14:04 PM CEST Yury Norov wrote:
+> The newer prlimit64 syscall provides all the functionality provided by
+> the getrlimit and setrlimit syscalls and adds the pid of target process,
+> so future architectures won't need to include getrlimit and setrlimit.
 > 
-> I narrowed down the required timeout, and looks like 25ms is the
-> minimum that works. With 24ms I already started to have failures. So
-> maybe just bump it up by an order of magnitude to 250ms for some
-> safety margin?
+> Therefore drop getrlimit and setrlimit syscalls from the generic syscall
+> list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
+> unistd.h prior to including asm-generic/unistd.h, and adjust all
+> architectures using the generic syscall list to define it so that no
+> in-tree architectures are affected.
 
-Sure, but what puzzles me is that we need a timeout that big. What happens
-between broadcast_resume() and broadcast_resume() + 25ms?
+The patch looks good, but shouldn't we also hide the actual syscall
+implementation if the symbol is not set? It's just dead code otherwise
+for new architectures.
 
-IOW, what is the event/resume function which we need to bridge. We should
-really try to track than down.
-
-You might try to enable function tracing and do a tracing_off() when that
-25ms timeout fires.
-
-Something like 
-
-	stop_trace = true;
-
-in broadcast_resume() and then in the broadcast timer function:
-
-	if (stop_trace) {
-		stop_trace = false;
-		tracing_off();
-	}
-
-Then when the machine is up read the trace, compress and upload it
-somewhere or send it in private mail if it's not that big.
-
-Thanks,
-
-	tglx
---8323329-621006073-1477681124=:5053--
+	Arnd
