@@ -1,89 +1,99 @@
-From: Thorsten Leemhuis <regressions@leemhuis.info>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Date: Sun, 30 Oct 2016 11:51:02 +0100
-Message-ID: <694a2919-6445-7632-a295-1baa01c82d0d@leemhuis.info>
-References: <20161017100130.GA16013@angband.pl> <871szfb1x1.fsf@gmail.com>
- <20161018001626.GA5976@angband.pl>
- <20161018123418.6121175b@roar.ozlabs.ibm.com>
- <70c4e6bf-1667-326b-8a4d-b0960b55a5e7@suse.com>
- <20161020145204.77b37e6b@roar.ozlabs.ibm.com>
- <87h97yus9w.fsf@purkki.adurom.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC] dma-mapping: fix dma_common_mmap() for ARC
+Date: Sun, 30 Oct 2016 12:14:47 +0000
+Message-ID: <20161030121447.2lku7etlqqbsfr2i@localhost>
+References: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87h97yus9w.fsf@purkki.adurom.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Kalle Valo <kvalo@codeaurora.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 27.10.2016 10:10, Kalle Valo wrote:
-> (Adding Thorsten because of a serious regression and Steven because he
-> tried to fix something in the same commit)
+On Wed, Oct 26, 2016 at 10:22:44PM +0300, Alexey Brodkin wrote:
+> ------------------------>8-----------------------
+> arc_dma_alloc()
+>   ioremap_nocache() AKA ioremap()
+>     ioremap_prot()
+>       get_vm_area() + ioremap_page_range() on obtained vaddr
+> ------------------------>8-----------------------
+> 
+> As a result we get TLB entry of the following kind:
+> ------------------------>8-----------------------
+>     vaddr = 0x7200_0000
+>     paddr = 0x8200_0000
+>     flags = _uncached_
+> ------------------------>8-----------------------
+> 
+> Kerenl thinks frame buffer is located @ 0x7200_0000 and uses it
+> perfectly fine.
+> 
+> But here comes a time for user-space application to request frame buffer
+> to be mapped for it. That happens easily with the following call path:
+> ------------------------>8-----------------------
+> fb_mmap()
+>   drm_fb_cma_mmap()
+>     dma_mmap_writecombine() AKA dma_mmap_wc()
+>       dma_mmap_attrs()
+>         dma_common_mmap() since we don't [yet] have dma_map_ops.mmap()
+>                           for ARC
+> ------------------------>8-----------------------
+> 
+> And in dma_common_mmap() we first calculate pfn of what we think is
+> "physical page" and then do remap_pfn_range() to that "physical page".
+> 
+> Here we're getting to the interesting thing - how pfn is calculated.
+> As of now this is done as simple as:
+> ------------------------>8-----------------------
+>     pfn = page_to_pfn(virt_to_page(cpu_addr));
+> ------------------------>8-----------------------
 
-Many thx.
+The virt_to_page() function here only works for addresses in the kernel
+linear map. In your case, the DMA buffer is mapped out of the ioremap
+space, so the cpu_addr you pass in here would return the incorrect pfn
+(as you've already noticed).
 
-I added this report to the list of regressions for Linux 4.9. I'll
-watch this thread for further updates on this issue to document progress
-in my weekly reports. Please let me know via regressions@leemhuis.info
-in case the discussion moves to a different place (bugzilla or another
-mail thread for example).
+> Simplest fix for ARC is to use dma_addr instead because it matches
+> real physical memory address and so mapping for user-space we're
+> getting then is this:
+> ------------------------>8-----------------------
+>     vaddr = 0x0200_0000
+>     paddr = 0x8200_0000
+>     flags = _uncached_
+> ------------------------>8-----------------------
+> And it works perfectly fine.
 
-Current status (afaics): Fix available, waiting for Michal to get back
-from vacation.
+But it breaks the other architectures where dma_addr is actually closer
+to the phys_addr than the kernel linear map.
 
-tia! Ciao, Thorsten
+> diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
+> index 8f8b68c80986..16307eed453f 100644
+> --- a/drivers/base/dma-mapping.c
+> +++ b/drivers/base/dma-mapping.c
+> @@ -252,7 +252,7 @@ int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
+>  #if defined(CONFIG_MMU) && !defined(CONFIG_ARCH_NO_COHERENT_DMA_MMAP)
+>  	unsigned long user_count = vma_pages(vma);
+>  	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+> -	unsigned long pfn = page_to_pfn(virt_to_page(cpu_addr));
+> +	unsigned long pfn = page_to_pfn(virt_to_page(dma_addr));
 
-> Nicholas Piggin <npiggin@gmail.com> writes:
-> 
->> On Wed, 19 Oct 2016 16:38:14 +0200
->> Michal Marek <mmarek@suse.com> wrote:
->>
->>> Dne 18.10.2016 v 03:34 Nicholas Piggin napsal(a):
->>>> We should probably just bring all these arch patches through the
->>>> kbuild tree.
->>>>
->>>> I'm sorry for the breakage: I didn't realize it broke the build with
->>>> some configs, otherwise I would have given Michal a heads up before
->>>> his pull request, and worked to get this stuff in first.  
->>>
->>> It breaks with some binutils versions only (and only with
->>> CONFIG_MODVERSIONS=y, of course).
->>
->> Yeah this seems to be the issue, it apparently slipped past all the
->> automated builds. It seems like the existing CRC warnings in the tree
->> only trigger in rare circumstances too, so something could be a bit
->> fragile there.
-> 
-> I upgraded from 4.8 to 4.9-rc2 and noticed that kernel modules fail to
-> load (log below). After investigating for some time I found this thread
-> and apparently this is not still fixed, at least not in Linus' tree.
-> 
-> Reverting 784d5699eddc5 fixed the issue for me. As I don't see any fix
-> available (please correct me if I'm wrong) we should just revert that
-> commit until it's properly fixed.
-> 
-> Also note that there's a related fix from Steven:
-> 
-> [PATCH] x86: Fix export for mcount and __fentry__
-> https://marc.info/?l=linux-kernel&m=147733572502413
-> 
-> For compiling the kernel I'm using Ubuntu 12.04:
-> 
-> ii  binutils             2.22-6ubuntu1.4      GNU assembler, linker and binary utilities
-> ii  gcc                  4:4.6.3-1ubuntu5     GNU C compiler
-> 
-> The kernel is running on a separate machine with Ubuntu 14.04.
-> 
-> [  110.703414] bluetooth: disagrees about version of symbol __get_user_2
-> [  110.703416] bluetooth: Unknown symbol __get_user_2 (err -22)
-> [  110.703429] bluetooth: disagrees about version of symbol __put_user_2
-> [  110.703430] bluetooth: Unknown symbol __put_user_2 (err -22)
-> [  110.703579] bluetooth: disagrees about version of symbol __put_user_4
-> [  110.703580] bluetooth: Unknown symbol __put_user_4 (err -22)
-> [  110.703669] bluetooth: disagrees about version of symbol __put_user_1
-> [  110.703670] bluetooth: Unknown symbol __put_user_1 (err -22)
-> [  110.703688] bluetooth: disagrees about version of symbol mcount
-> [  110.703689] bluetooth: Unknown symbol mcount (err -22)
-> 
+As I said above, this is incorrect. I would suggest that you implement
+an arc specific mmap operation. We do this for arm64 using
+remap_pfn_range; see __swiotlb_mmap under arch/arm64/mm/dma-mapping.c
+where the pfn is calculated using an arm64-specific dma_to_phys()
+function.
+
+-- 
+Catalin
