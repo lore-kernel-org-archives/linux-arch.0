@@ -1,99 +1,77 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC] dma-mapping: fix dma_common_mmap() for ARC
-Date: Sun, 30 Oct 2016 12:14:47 +0000
-Message-ID: <20161030121447.2lku7etlqqbsfr2i@localhost>
-References: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
+Date: Mon, 31 Oct 2016 22:14:45 +1100
+Message-ID: <20161031221445.34e50e69@roar.ozlabs.ibm.com>
+References: <20161015124352.10795-1-npiggin@gmail.com>
+        <7315031.MmlhY1rulM@wuerfel>
+        <20161020145827.453025a6@roar.ozlabs.ibm.com>
+        <16513464.3RM484EDf1@wuerfel>
+        <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1477509764-18370-1-git-send-email-abrodkin@synopsys.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f193.google.com ([209.85.192.193]:34611 "EHLO
+        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S936345AbcJaLPM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Oct 2016 07:15:12 -0400
+In-Reply-To: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
 
-On Wed, Oct 26, 2016 at 10:22:44PM +0300, Alexey Brodkin wrote:
-> ------------------------>8-----------------------
-> arc_dma_alloc()
->   ioremap_nocache() AKA ioremap()
->     ioremap_prot()
->       get_vm_area() + ioremap_page_range() on obtained vaddr
-> ------------------------>8-----------------------
+On Sat, 22 Oct 2016 17:36:34 +0200
+Michal Marek <mmarek@suse.com> wrote:
+
+> Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
+> > On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:  
+> >>
+> >> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
+> >> but in practice it turned into a mess. If some architectures wanted to start
+> >> protecting their .h files and including them into .S for the prototypes, we
+> >> could start parsing those too. Should we do the quick and dirty way for 4.9?  
+> > 
+> > Let's stay with your approach for now.  
 > 
-> As a result we get TLB entry of the following kind:
-> ------------------------>8-----------------------
->     vaddr = 0x7200_0000
->     paddr = 0x8200_0000
->     flags = _uncached_
-> ------------------------>8-----------------------
-> 
-> Kerenl thinks frame buffer is located @ 0x7200_0000 and uses it
-> perfectly fine.
-> 
-> But here comes a time for user-space application to request frame buffer
-> to be mapped for it. That happens easily with the following call path:
-> ------------------------>8-----------------------
-> fb_mmap()
->   drm_fb_cma_mmap()
->     dma_mmap_writecombine() AKA dma_mmap_wc()
->       dma_mmap_attrs()
->         dma_common_mmap() since we don't [yet] have dma_map_ops.mmap()
->                           for ARC
-> ------------------------>8-----------------------
-> 
-> And in dma_common_mmap() we first calculate pfn of what we think is
-> "physical page" and then do remap_pfn_range() to that "physical page".
-> 
-> Here we're getting to the interesting thing - how pfn is calculated.
-> As of now this is done as simple as:
-> ------------------------>8-----------------------
->     pfn = page_to_pfn(virt_to_page(cpu_addr));
-> ------------------------>8-----------------------
+> Agreed.
 
-The virt_to_page() function here only works for addresses in the kernel
-linear map. In your case, the DMA buffer is mapped out of the ioremap
-space, so the cpu_addr you pass in here would return the incorrect pfn
-(as you've already noticed).
+My patch 2/2 needs the following incremental patch applied. It is
+to preprocess the .S file properly as asm the same way the kernel
+build does, and then building the dummy C from there.
 
-> Simplest fix for ARC is to use dma_addr instead because it matches
-> real physical memory address and so mapping for user-space we're
-> getting then is this:
-> ------------------------>8-----------------------
->     vaddr = 0x0200_0000
->     paddr = 0x8200_0000
->     flags = _uncached_
-> ------------------------>8-----------------------
-> And it works perfectly fine.
+Without this, we don't necessarily get proper symbol expansion or
+get conditional compilation, etc. With it, genksyms should see what
+the assembler sees.
 
-But it breaks the other architectures where dma_addr is actually closer
-to the phys_addr than the kernel linear map.
+---
+ scripts/Makefile.build | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-> diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
-> index 8f8b68c80986..16307eed453f 100644
-> --- a/drivers/base/dma-mapping.c
-> +++ b/drivers/base/dma-mapping.c
-> @@ -252,7 +252,7 @@ int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
->  #if defined(CONFIG_MMU) && !defined(CONFIG_ARCH_NO_COHERENT_DMA_MMAP)
->  	unsigned long user_count = vma_pages(vma);
->  	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-> -	unsigned long pfn = page_to_pfn(virt_to_page(cpu_addr));
-> +	unsigned long pfn = page_to_pfn(virt_to_page(dma_addr));
-
-As I said above, this is incorrect. I would suggest that you implement
-an arc specific mmap operation. We do this for arm64 using
-remap_pfn_range; see __swiotlb_mmap under arch/arm64/mm/dma-mapping.c
-where the pfn is calculated using an arm64-specific dma_to_phys()
-function.
-
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 2e512a2..6beeb9e 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -321,12 +321,19 @@ $(real-objs-m:.o=.s): modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
+ # or a file that it includes, in order to get versioned symbols. We build a
+ # dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
+ # the .S file (with trailing ';'), and run genksyms on that, to extract vers.
++# 
++# This is convoluted. The .S file must first be preprocessed to run guards and
++# expand names, then the resulting exports must be constructed into plain
++# EXPORT_SYMBOL(symbol); to build our dummy C file, and that gets preprocessed
++# to make the genksyms input.
+ #
+ # These mirror gensymtypes_c and co above, keep them in synch.
+ cmd_gensymtypes_S =                                                         \
+     (echo "\#include <linux/kernel.h>" ;                                    \
+      echo "\#include <asm/asm-prototypes.h>" ;                              \
+-     grep EXPORT_SYMBOL $< | sed 's/$$/;/' ) |                              \
++    $(CPP) $(a_flags) $< |                                                  \
++     grep ^___EXPORT_SYMBOL |                                               \
++     sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
+     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
 -- 
-Catalin
+2.9.3
