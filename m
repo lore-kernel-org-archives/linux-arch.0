@@ -1,21 +1,93 @@
-From: Dmitry Safonov <0x7f454c46@gmail.com>
-Subject: Re: [RFC v2 1/7] mm: Provide generic VDSO unmap and remap functions
-Date: Tue, 1 Nov 2016 20:23:54 +0300
-Message-ID: <CAJwJo6Z9qXbYb3RHL89Z2JPJWc6biOt54sWcHXeNwD5dDxQXjQ@mail.gmail.com>
-References: <20161101171101.24704-1-cov@codeaurora.org>
+From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Date: Tue, 1 Nov 2016 22:47:37 +0200
+Message-ID: <20161101204737.GB4617@intel.com>
+References: <CA++bM2sLMDLdeyLd_gpknTj+Y5xMk261SvivU5YxTnL0jRZovA@mail.gmail.com>
+ <20160809172057.GZ4329@intel.com>
+ <20161027172852.GE4617@intel.com>
+ <alpine.DEB.2.20.1610272035180.4913@nanos>
+ <20161027192006.GF4617@intel.com>
+ <alpine.DEB.2.20.1610272122510.4913@nanos>
+ <20161027203745.GH4617@intel.com>
+ <alpine.DEB.2.20.1610272238390.4913@nanos>
+ <20161028155603.GI4617@intel.com>
+ <alpine.DEB.2.20.1610282049500.5053@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161101171101.24704-1-cov@codeaurora.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christopher Covington <cov@codeaurora.org>
-Cc: crml <criu@openvz.org>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, open list <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-pm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.20.1610282049500.5053@nanos>
+Sender: linux-pm-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Christopher,
+On Fri, Oct 28, 2016 at 08:58:41PM +0200, Thomas Gleixner wrote:
+> On Fri, 28 Oct 2016, Ville Syrjälä wrote:
+> > On Thu, Oct 27, 2016 at 10:41:18PM +0200, Thomas Gleixner wrote:
+> > > On Thu, 27 Oct 2016, Ville Syrjälä wrote:
+> > > > On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
+> > > > > So it would be interesting whether that hunk in resume_broadcast() is
+> > > > > sufficient.
+> > > > 
+> > > > So far it looks like the answer is yes.
+> > > > 
+> > > > Looks to be about 5 seconds slower than acpi-idle in resuming, but
+> > > > I suppose that's not all that surprising ;)
+> > > 
+> > > Well, set it to 1msec then. If that works reliably then we really can do
+> > > that unconditionally. There is no harm in firing a useless timer during
+> > > resume once.
+> > 
+> > I narrowed down the required timeout, and looks like 25ms is the
+> > minimum that works. With 24ms I already started to have failures. So
+> > maybe just bump it up by an order of magnitude to 250ms for some
+> > safety margin?
 
-  by this moment I got another patch for this. I hope, you don't mind
-if I send it concurrently. I haven't sent it yet as I was testing it in qemu.
+I left the thing running for the weekend and it failed 26 out of 16057
+times with the 25ms timeout. Looks like it takes ~5 minutes to resume
+when it fails, but eventually it does come back.
 
-Thanks,
-             Dmitry
+> 
+> Sure, but what puzzles me is that we need a timeout that big. What happens
+> between broadcast_resume() and broadcast_resume() + 25ms?
+> 
+> IOW, what is the event/resume function which we need to bridge. We should
+> really try to track than down.
+
+My hunch would be that SMM trap in the DSDT/SSDT since that's where
+things ended up last time I was tracing these resume problems. Though I
+can't recall if that was just with acpi-idle or if intel_idle landed in
+the same spot as well.
+
+I guess I can try to repeat that test tomorrow, or I'll try your function
+tracer method if the other thing fails.
+
+> 
+> You might try to enable function tracing and do a tracing_off() when that
+> 25ms timeout fires.
+> 
+> Something like 
+> 
+> 	stop_trace = true;
+> 
+> in broadcast_resume() and then in the broadcast timer function:
+> 
+> 	if (stop_trace) {
+> 		stop_trace = false;
+> 		tracing_off();
+> 	}
+> 
+> Then when the machine is up read the trace, compress and upload it
+> somewhere or send it in private mail if it's not that big.
+> 
+> Thanks,
+> 
+> 	tglx
+
+
+-- 
+Ville Syrjälä
+Intel OTC
