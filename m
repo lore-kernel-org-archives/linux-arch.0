@@ -1,77 +1,93 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 2/2] kbuild: modversions for exported asm symbols
-Date: Mon, 31 Oct 2016 22:14:45 +1100
-Message-ID: <20161031221445.34e50e69@roar.ozlabs.ibm.com>
-References: <20161015124352.10795-1-npiggin@gmail.com>
-        <7315031.MmlhY1rulM@wuerfel>
-        <20161020145827.453025a6@roar.ozlabs.ibm.com>
-        <16513464.3RM484EDf1@wuerfel>
-        <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f193.google.com ([209.85.192.193]:34611 "EHLO
-        mail-pf0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S936345AbcJaLPM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Oct 2016 07:15:12 -0400
-In-Reply-To: <c9adb10a-1c5f-1b90-ead3-37c6665a903b@suse.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
+Date: Tue,  1 Nov 2016 00:08:24 +0000
+Message-ID: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Mark Rutland <mark.rutland@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 22 Oct 2016 17:36:34 +0200
-Michal Marek <mmarek@suse.com> wrote:
+When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
+syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
+generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
+perform some work before always failing, in a similar fashion.
 
-> Dne 20.10.2016 v 10:03 Arnd Bergmann napsal(a):
-> > On Thursday, October 20, 2016 2:58:27 PM CEST Nicholas Piggin wrote:  
-> >>
-> >> Yeah, I had the same idea as you and Michal too. It's conceptually nicer,
-> >> but in practice it turned into a mess. If some architectures wanted to start
-> >> protecting their .h files and including them into .S for the prototypes, we
-> >> could start parsing those too. Should we do the quick and dirty way for 4.9?  
-> > 
-> > Let's stay with your approach for now.  
-> 
-> Agreed.
+This implies the absence of keys, but otherwise functional pkey support. This
+is odd, since the architecture provides no such support. Instead, it would be
+preferable to indicate that the syscall is not implemented, since this is
+effectively the case.
 
-My patch 2/2 needs the following incremental patch applied. It is
-to preprocess the .S file properly as asm the same way the kernel
-build does, and then building the dummy C from there.
+This patch updates the pkey_* syscalls to return -ENOSYS on architectures
+without pkey support.
 
-Without this, we don't necessarily get proper symbol expansion or
-get conditional compilation, etc. With it, genksyms should see what
-the assembler sees.
-
+Signed-off-by: Mark Rutland <mark.rutland@arm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Mel Gorman <mgorman@techsingularity.net>
+Cc: Russell King <rmk+kernel@armlinux.org.uk>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: torvalds@linux-foundation.org
 ---
- scripts/Makefile.build | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ mm/mprotect.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 2e512a2..6beeb9e 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -321,12 +321,19 @@ $(real-objs-m:.o=.s): modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
- # or a file that it includes, in order to get versioned symbols. We build a
- # dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
- # the .S file (with trailing ';'), and run genksyms on that, to extract vers.
-+# 
-+# This is convoluted. The .S file must first be preprocessed to run guards and
-+# expand names, then the resulting exports must be constructed into plain
-+# EXPORT_SYMBOL(symbol); to build our dummy C file, and that gets preprocessed
-+# to make the genksyms input.
- #
- # These mirror gensymtypes_c and co above, keep them in synch.
- cmd_gensymtypes_S =                                                         \
-     (echo "\#include <linux/kernel.h>" ;                                    \
-      echo "\#include <asm/asm-prototypes.h>" ;                              \
--     grep EXPORT_SYMBOL $< | sed 's/$$/;/' ) |                              \
-+    $(CPP) $(a_flags) $< |                                                  \
-+     grep ^___EXPORT_SYMBOL |                                               \
-+     sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
-     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
-     $(GENKSYMS) $(if $(1), -T $(2))                                         \
-      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
+Hi,
+
+In eyeballing some recent commits I spotted 6127d124ee4eb9c3 ("ARM: wire up new
+pkey syscalls"), and in looking into that, I realised that the common pkey code
+looks somewhat suspicious.
+
+Many architectures don't have user-modifiable pkey support, and for those, we
+perform some unnecessary work before returning unclear error codes.
+
+As the pkey went in this merge window, there's stil time to tighten that up.
+
+Thanks,
+Mark.
+
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 1193652..cda3abf 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -487,6 +487,9 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
+ SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
+ 		unsigned long, prot, int, pkey)
+ {
++	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
++		return -ENOSYS;
++
+ 	return do_mprotect_pkey(start, len, prot, pkey);
+ }
+ 
+@@ -495,6 +498,9 @@ SYSCALL_DEFINE2(pkey_alloc, unsigned long, flags, unsigned long, init_val)
+ 	int pkey;
+ 	int ret;
+ 
++	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
++		return -ENOSYS;
++
+ 	/* No flags supported yet. */
+ 	if (flags)
+ 		return -EINVAL;
+@@ -524,6 +530,9 @@ SYSCALL_DEFINE1(pkey_free, int, pkey)
+ {
+ 	int ret;
+ 
++	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
++		return -ENOSYS;
++
+ 	down_write(&current->mm->mmap_sem);
+ 	ret = mm_pkey_free(current->mm, pkey);
+ 	up_write(&current->mm->mmap_sem);
 -- 
-2.9.3
+2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
