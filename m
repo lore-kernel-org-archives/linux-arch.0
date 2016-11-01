@@ -1,93 +1,162 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
-Date: Tue,  1 Nov 2016 00:08:24 +0000
-Message-ID: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Mark Rutland <mark.rutland@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@linux.intel.com>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: [PATCH] kbuild: modversions for EXPORT_SYMBOL() for asm
+Date: Tue,  1 Nov 2016 12:46:19 +1100
+Message-ID: <20161101014619.1245-1-npiggin@gmail.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
-syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
-generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
-perform some work before always failing, in a similar fashion.
+Allow architectures to create asm/asm-prototypes.h file that
+provides C prototypes for exported asm functions, which enables
+proper CRC versions to be generated for them.
 
-This implies the absence of keys, but otherwise functional pkey support. This
-is odd, since the architecture provides no such support. Instead, it would be
-preferable to indicate that the syscall is not implemented, since this is
-effectively the case.
-
-This patch updates the pkey_* syscalls to return -ENOSYS on architectures
-without pkey support.
-
-Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: Mel Gorman <mgorman@techsingularity.net>
-Cc: Russell King <rmk+kernel@armlinux.org.uk>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: torvalds@linux-foundation.org
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
 ---
- mm/mprotect.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
 
-Hi,
+Please consider this patch for upstream. Architecture implementation
+patches can go via arch trees. We'll need some time to get architectures
+patched and tested, so I don't see any reason to wait on this any longer.
 
-In eyeballing some recent commits I spotted 6127d124ee4eb9c3 ("ARM: wire up new
-pkey syscalls"), and in looking into that, I realised that the common pkey code
-looks somewhat suspicious.
+Keep in mind, this patch does not impose any new constraints on
+architecures in how they export their asm symbols.
 
-Many architectures don't have user-modifiable pkey support, and for those, we
-perform some unnecessary work before returning unclear error codes.
 
-As the pkey went in this merge window, there's stil time to tighten that up.
+ scripts/Makefile.build | 78 ++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 72 insertions(+), 6 deletions(-)
 
-Thanks,
-Mark.
-
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index 1193652..cda3abf 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -487,6 +487,9 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
- SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
- 		unsigned long, prot, int, pkey)
- {
-+	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
-+		return -ENOSYS;
-+
- 	return do_mprotect_pkey(start, len, prot, pkey);
- }
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index de46ab0..6312e14 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -159,7 +159,8 @@ cmd_cpp_i_c       = $(CPP) $(c_flags) -o $@ $<
+ $(obj)/%.i: $(src)/%.c FORCE
+ 	$(call if_changed_dep,cpp_i_c)
  
-@@ -495,6 +498,9 @@ SYSCALL_DEFINE2(pkey_alloc, unsigned long, flags, unsigned long, init_val)
- 	int pkey;
- 	int ret;
+-cmd_gensymtypes =                                                           \
++# These mirror gensymtypes_S and co below, keep them in synch.
++cmd_gensymtypes_c =                                                         \
+     $(CPP) -D__GENKSYMS__ $(c_flags) $< |                                   \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
+@@ -169,7 +170,7 @@ cmd_gensymtypes =                                                           \
+ quiet_cmd_cc_symtypes_c = SYM $(quiet_modtag) $@
+ cmd_cc_symtypes_c =                                                         \
+     set -e;                                                                 \
+-    $(call cmd_gensymtypes,true,$@) >/dev/null;                             \
++    $(call cmd_gensymtypes_c,true,$@) >/dev/null;                           \
+     test -s $@ || rm -f $@
  
-+	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
-+		return -ENOSYS;
-+
- 	/* No flags supported yet. */
- 	if (flags)
- 		return -EINVAL;
-@@ -524,6 +530,9 @@ SYSCALL_DEFINE1(pkey_free, int, pkey)
- {
- 	int ret;
+ $(obj)/%.symtypes : $(src)/%.c FORCE
+@@ -198,9 +199,10 @@ else
+ #   the actual value of the checksum generated by genksyms
  
-+	if (!IS_ENABLED(CONFIG_ARCH_HAS_PKEYS))
-+		return -ENOSYS;
+ cmd_cc_o_c = $(CC) $(c_flags) -c -o $(@D)/.tmp_$(@F) $<
+-cmd_modversions =								\
 +
- 	down_write(&current->mm->mmap_sem);
- 	ret = mm_pkey_free(current->mm, pkey);
- 	up_write(&current->mm->mmap_sem);
++cmd_modversions_c =								\
+ 	if $(OBJDUMP) -h $(@D)/.tmp_$(@F) | grep -q __ksymtab; then		\
+-		$(call cmd_gensymtypes,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
++		$(call cmd_gensymtypes_c,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
+ 		    > $(@D)/.tmp_$(@F:.o=.ver);					\
+ 										\
+ 		$(LD) $(LDFLAGS) -r -o $@ $(@D)/.tmp_$(@F) 			\
+@@ -268,13 +270,14 @@ endif # CONFIG_STACK_VALIDATION
+ define rule_cc_o_c
+ 	$(call echo-cmd,checksrc) $(cmd_checksrc)			  \
+ 	$(call cmd_and_fixdep,cc_o_c)					  \
+-	$(cmd_modversions)						  \
++	$(cmd_modversions_c)						  \
+ 	$(cmd_objtool)						          \
+ 	$(call echo-cmd,record_mcount) $(cmd_record_mcount)
+ endef
+ 
+ define rule_as_o_S
+ 	$(call cmd_and_fixdep,as_o_S)					  \
++	$(cmd_modversions_S)						  \
+ 	$(cmd_objtool)
+ endef
+ 
+@@ -314,6 +317,39 @@ modkern_aflags := $(KBUILD_AFLAGS_KERNEL) $(AFLAGS_KERNEL)
+ $(real-objs-m)      : modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
+ $(real-objs-m:.o=.s): modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
+ 
++# .S file exports must have their C prototypes defined in asm/asm-prototypes.h
++# or a file that it includes, in order to get versioned symbols. We build a
++# dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
++# the .S file (with trailing ';'), and run genksyms on that, to extract vers.
++#
++# This is convoluted. The .S file must first be preprocessed to run guards and
++# expand names, then the resulting exports must be constructed into plain
++# EXPORT_SYMBOL(symbol); to build our dummy C file, and that gets preprocessed
++# to make the genksyms input.
++#
++# These mirror gensymtypes_c and co above, keep them in synch.
++cmd_gensymtypes_S =                                                         \
++    (echo "\#include <linux/kernel.h>" ;                                    \
++     echo "\#include <asm/asm-prototypes.h>" ;                              \
++    $(CPP) $(a_flags) $< |                                                  \
++     grep ^___EXPORT_SYMBOL |                                               \
++     sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
++    $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
++    $(GENKSYMS) $(if $(1), -T $(2))                                         \
++     $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
++     $(if $(KBUILD_PRESERVE),-p)                                            \
++     -r $(firstword $(wildcard $(2:.symtypes=.symref) /dev/null))
++
++quiet_cmd_cc_symtypes_S = SYM $(quiet_modtag) $@
++cmd_cc_symtypes_S =                                                         \
++    set -e;                                                                 \
++    $(call cmd_gensymtypes_S,true,$@) >/dev/null;                           \
++    test -s $@ || rm -f $@
++
++$(obj)/%.symtypes : $(src)/%.S FORCE
++	$(call cmd,cc_symtypes_S)
++
++
+ quiet_cmd_cpp_s_S = CPP $(quiet_modtag) $@
+ cmd_cpp_s_S       = $(CPP) $(a_flags) -o $@ $<
+ 
+@@ -321,7 +357,37 @@ $(obj)/%.s: $(src)/%.S FORCE
+ 	$(call if_changed_dep,cpp_s_S)
+ 
+ quiet_cmd_as_o_S = AS $(quiet_modtag)  $@
+-cmd_as_o_S       = $(CC) $(a_flags) -c -o $@ $<
++
++ifndef CONFIG_MODVERSIONS
++cmd_as_o_S = $(CC) $(a_flags) -c -o $@ $<
++
++else
++
++ASM_PROTOTYPES := $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/asm-prototypes.h)
++
++ifeq ($(ASM_PROTOTYPES),)
++cmd_as_o_S = $(CC) $(a_flags) -c -o $@ $<
++
++else
++
++# versioning matches the C process described above, with difference that
++# we parse asm-prototypes.h C header to get function definitions.
++
++cmd_as_o_S = $(CC) $(a_flags) -c -o $(@D)/.tmp_$(@F) $<
++
++cmd_modversions_S =								\
++	if $(OBJDUMP) -h $(@D)/.tmp_$(@F) | grep -q __ksymtab; then		\
++		$(call cmd_gensymtypes_S,$(KBUILD_SYMTYPES),$(@:.o=.symtypes))	\
++		    > $(@D)/.tmp_$(@F:.o=.ver);					\
++										\
++		$(LD) $(LDFLAGS) -r -o $@ $(@D)/.tmp_$(@F) 			\
++			-T $(@D)/.tmp_$(@F:.o=.ver);				\
++		rm -f $(@D)/.tmp_$(@F) $(@D)/.tmp_$(@F:.o=.ver);		\
++	else									\
++		mv -f $(@D)/.tmp_$(@F) $@;					\
++	fi;
++endif
++endif
+ 
+ $(obj)/%.o: $(src)/%.S $(objtool_obj) FORCE
+ 	$(call if_changed_rule,as_o_S)
 -- 
-2.7.4
+2.9.3
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
