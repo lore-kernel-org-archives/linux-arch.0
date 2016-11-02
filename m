@@ -1,81 +1,144 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [PATCH] arc: Implement arch-specific dma_map_ops.mmap
-Date: Wed,  2 Nov 2016 15:19:43 +0300
-Message-ID: <1478089183-6458-1-git-send-email-abrodkin@synopsys.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Marek Szyprowski <m.szyprowski@samsung.com>, stable@vger.kernel.org
+From: Laxman Dewangan <ldewangan@nvidia.com>
+Subject: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
+Date: Wed, 2 Nov 2016 17:47:17 +0530
+Message-ID: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+Mime-Version: 1.0
+Content-Type: text/plain
+Return-path: <linux-gpio-owner@vger.kernel.org>
+Sender: linux-gpio-owner@vger.kernel.org
+To: linus.walleij@linaro.org, gnurou@gmail.com, arnd@arndb.de
+Cc: linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Laxman Dewangan <ldewangan@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-We used to use generic implementation of dma_map_ops.mmap which is
-dma_common_mmap() but that only worked for simpler cached mappings when
-vaddr = paddr.
+Many of devices/SoCs supports the GPIO and special IO function
+from their pins. On such cases, there is always configuration
+bits to select the mode of pin as GPIO or as the special IO mode.
+The functional modes are selected by pinmux option.
 
-If a driver requests uncached DMA buffer kernel maps it to virtual
-address so that MMU gets involved and page uncached status takes into
-account. In that case usage of dma_common_mmap() lead to mapping of
-vaddr to vaddr for user-space which is obviously wrong. For more detals
-please refer to verbose explanation here [1].
+When device booted and reach to kernel, it is not possible to get
+the current configuration of pin whether it is in GPIO mode or
+in special IO mode without configurations.
 
-So here we implement our own version of mmap() which always deals
-with dma_addr and maps underlying memory to user-space properly
-(note that DMA buffer mapped to user-space is always uncached
-because there's no way to properly manage cache from user-space).
+Add APIs to return the current mode of pins without requesting it
+as GPIO to find out the current mode.
+This helps on dumping the pin configuration from debug/test utility
+to get the current mode GPIO or functional mode.
 
-[1] https://lkml.org/lkml/2016/10/26/973
+The typical utility looks as:
+pin_dump(pin)
+{
+	if(gpio_is_enabled(pin)) {
+		dump direction using get_direction()
+	} else {
+		dump pinmux option and its configurations.
+	}
+}
 
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: stable@vger.kernel.org
+Signed-off-by: Laxman Dewangan <ldewangan@nvidia.com>
 ---
- arch/arc/mm/dma.c | 26 ++++++++++++++++++++++++++
- 1 file changed, 26 insertions(+)
+ drivers/gpio/gpiolib.c        | 22 ++++++++++++++++++++++
+ include/asm-generic/gpio.h    |  4 ++++
+ include/linux/gpio/consumer.h |  8 ++++++++
+ include/linux/gpio/driver.h   |  5 +++++
+ 4 files changed, 39 insertions(+)
 
-diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-index 20afc65e22dc..034ec6a8a764 100644
---- a/arch/arc/mm/dma.c
-+++ b/arch/arc/mm/dma.c
-@@ -105,6 +105,31 @@ static void arc_dma_free(struct device *dev, size_t size, void *vaddr,
- 	__free_pages(page, get_order(size));
+diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
+index 93ed0e0..4cba61d 100644
+--- a/drivers/gpio/gpiolib.c
++++ b/drivers/gpio/gpiolib.c
+@@ -2356,6 +2356,28 @@ int gpiod_is_active_low(const struct gpio_desc *desc)
  }
+ EXPORT_SYMBOL_GPL(gpiod_is_active_low);
  
-+static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+			void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+			unsigned long attrs)
++/**
++ * gpiod_is_enabled - Finds whether pin is in GPIO mode or in functional mode.
++ * @desc: the gpio descriptor to check.
++ *
++ * Returns 1 if the GPIO mode is enabled of pin, 0 if it is in functional mode
++ * or negative error if any failure.
++ */
++int gpiod_is_enabled(const struct gpio_desc *desc)
 +{
-+	unsigned long user_count = vma_pages(vma);
-+	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-+	unsigned long pfn = __phys_to_pfn(dma_addr);
-+	unsigned long off = vma->vm_pgoff;
-+	int ret = -ENXIO;
++	struct gpio_chip *chip;
 +
-+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-+
-+	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
-+		return ret;
-+
-+	if (off < count && user_count <= (count - off)) {
-+		ret = remap_pfn_range(vma, vma->vm_start,
-+				      pfn + off,
-+				      user_count << PAGE_SHIFT,
-+				      vma->vm_page_prot);
++	VALIDATE_DESC(desc);
++	chip = desc->gdev->chip;
++	if (!chip->is_enabled) {
++		gpiod_dbg(desc, "%s: missing is_enabled() ops\n", __func__);
++		return -ENOTSUPP;
 +	}
 +
-+	return ret;
++	return chip->is_enabled(chip, gpio_chip_hwgpio(desc));
++}
++EXPORT_SYMBOL_GPL(gpiod_is_enabled);
++
+ /* I/O calls are only valid after configuration completed; the relevant
+  * "is this a valid GPIO" error checks should already have been done.
+  *
+diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+index 8ca627d..90d15cb 100644
+--- a/include/asm-generic/gpio.h
++++ b/include/asm-generic/gpio.h
+@@ -89,6 +89,10 @@ static inline void gpio_set_value_cansleep(unsigned gpio, int value)
+ 	return gpiod_set_raw_value_cansleep(gpio_to_desc(gpio), value);
+ }
+ 
++static inline int gpio_is_enabled(unsigned gpio)
++{
++	return gpiod_is_enabled(gpio_to_desc(gpio));
++}
+ 
+ /* A platform's <asm/gpio.h> code may want to inline the I/O calls when
+  * the GPIO is constant and refers to some always-present controller,
+diff --git a/include/linux/gpio/consumer.h b/include/linux/gpio/consumer.h
+index fb0fde6..9f9e1d3 100644
+--- a/include/linux/gpio/consumer.h
++++ b/include/linux/gpio/consumer.h
+@@ -124,6 +124,7 @@ int gpiod_set_debounce(struct gpio_desc *desc, unsigned debounce);
+ 
+ int gpiod_is_active_low(const struct gpio_desc *desc);
+ int gpiod_cansleep(const struct gpio_desc *desc);
++int gpiod_is_enabled(const struct gpio_desc *desc);
+ 
+ int gpiod_to_irq(const struct gpio_desc *desc);
+ 
+@@ -389,6 +390,13 @@ static inline int gpiod_cansleep(const struct gpio_desc *desc)
+ 	return 0;
+ }
+ 
++static inline int gpiod_is_enabled(const struct gpio_desc *desc)
++{
++	/* GPIO can never have been requested */
++	WARN_ON(1);
++	return 0;
 +}
 +
- /*
-  * streaming DMA Mapping API...
-  * CPU accesses page via normal paddr, thus needs to explicitly made
-@@ -193,6 +218,7 @@ static int arc_dma_supported(struct device *dev, u64 dma_mask)
- struct dma_map_ops arc_dma_ops = {
- 	.alloc			= arc_dma_alloc,
- 	.free			= arc_dma_free,
-+	.mmap			= arc_dma_mmap,
- 	.map_page		= arc_dma_map_page,
- 	.map_sg			= arc_dma_map_sg,
- 	.sync_single_for_device	= arc_dma_sync_single_for_device,
+ static inline int gpiod_to_irq(const struct gpio_desc *desc)
+ {
+ 	/* GPIO can never have been requested */
+diff --git a/include/linux/gpio/driver.h b/include/linux/gpio/driver.h
+index 2dfcf25..7b67b06 100644
+--- a/include/linux/gpio/driver.h
++++ b/include/linux/gpio/driver.h
+@@ -60,6 +60,9 @@ enum single_ended_mode {
+  *	with LINE_MODE_OPEN_SOURCE as mode argument.
+  * @to_irq: optional hook supporting non-static gpio_to_irq() mappings;
+  *	implementation may not sleep
++ * @is_enabled: optional hook for finding whether pin is in GPIO mode or in
++ *	functional mode. returns value for pin mode "offset", 0 for functional,
++ *	1 for GPIO mode or negative error.
+  * @dbg_show: optional routine to show contents in debugfs; default code
+  *	will be used when this is omitted, but custom code can show extra
+  *	state (such as pullup/pulldown configuration).
+@@ -159,6 +162,8 @@ struct gpio_chip {
+ 
+ 	int			(*to_irq)(struct gpio_chip *chip,
+ 						unsigned offset);
++	int			(*is_enabled)(struct gpio_chip *chip,
++						unsigned offset);
+ 
+ 	void			(*dbg_show)(struct seq_file *s,
+ 						struct gpio_chip *chip);
 -- 
-2.7.4
+2.1.4
+
