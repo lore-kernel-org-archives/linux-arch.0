@@ -1,39 +1,32 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] arc: Implement arch-specific dma_map_ops.mmap
-Date: Wed, 2 Nov 2016 11:08:06 -0600
-Message-ID: <20161102170806.z3k3nlczspg2ebxb@localhost>
-References: <1478089183-6458-1-git-send-email-abrodkin@synopsys.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
+Date: Wed, 2 Nov 2016 12:15:50 -0700
+Message-ID: <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
+References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1478089183-6458-1-git-send-email-abrodkin@synopsys.com>
+In-Reply-To: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Marek Szyprowski <m.szyprowski@samsung.com>, stable@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 02, 2016 at 03:19:43PM +0300, Alexey Brodkin wrote:
-> diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
-> index 20afc65e22dc..034ec6a8a764 100644
-> --- a/arch/arc/mm/dma.c
-> +++ b/arch/arc/mm/dma.c
-> @@ -105,6 +105,31 @@ static void arc_dma_free(struct device *dev, size_t size, void *vaddr,
->  	__free_pages(page, get_order(size));
->  }
->  
-> +static int arc_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-> +			void *cpu_addr, dma_addr_t dma_addr, size_t size,
-> +			unsigned long attrs)
-> +{
-> +	unsigned long user_count = vma_pages(vma);
-> +	unsigned long count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-> +	unsigned long pfn = __phys_to_pfn(dma_addr);
+On 10/31/2016 05:08 PM, Mark Rutland wrote:
+> When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
+> syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
+> generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
+> perform some work before always failing, in a similar fashion.
+> 
+> This implies the absence of keys, but otherwise functional pkey support. This
+> is odd, since the architecture provides no such support. Instead, it would be
+> preferable to indicate that the syscall is not implemented, since this is
+> effectively the case.
 
-I don't think that's correct in all situations. Better as (for arc):
+This makes the behavior of an x86 cpu without pkeys and an arm cpu
+without pkeys differ.  Is that what we want?  An application that
+_wants_ to use protection keys but can't needs to handle -ENOSPC anyway.
 
-	unsigned long pfn = __phys_to_pfn(plat_dma_to_phys(dma_addr));
-
-Other than that:
-
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+On an architecture that will never support pkeys, it makes sense to do
+-ENOSYS, but that's not the case for arm, right?
