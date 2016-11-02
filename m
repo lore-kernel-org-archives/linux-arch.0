@@ -1,40 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.29.96]:57580 "EHLO
-        smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755071AbcKBAXI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 1 Nov 2016 20:23:08 -0400
-In-Reply-To: <CAJwJo6Z9qXbYb3RHL89Z2JPJWc6biOt54sWcHXeNwD5dDxQXjQ@mail.gmail.com>
-References: <20161101171101.24704-1-cov@codeaurora.org> <CAJwJo6Z9qXbYb3RHL89Z2JPJWc6biOt54sWcHXeNwD5dDxQXjQ@mail.gmail.com>
+Received: from tartarus.angband.pl ([89.206.35.136]:34622 "EHLO
+        tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751284AbcKBMLb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Nov 2016 08:11:31 -0400
+Date: Wed, 2 Nov 2016 13:11:03 +0100
+From: Adam Borowski <kilobyte@angband.pl>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Message-ID: <20161102121103.GA1879@angband.pl>
+References: <20161017100130.GA16013@angband.pl>
+ <871szfb1x1.fsf@gmail.com>
+ <20161018001626.GA5976@angband.pl>
+ <20161018123418.6121175b@roar.ozlabs.ibm.com>
+ <7b7c237c-c779-f695-e320-d9e00e48d1d2@suse.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain;
- charset=UTF-8
-Subject: Re: [RFC v2 1/7] mm: Provide generic VDSO unmap and remap functions
-From: Christopher Covington <cov@codeaurora.org>
-Date: Tue, 01 Nov 2016 18:23:01 -0600
-Message-ID: <B6819DB6-D247-43CC-AB51-D08EC5EEFB5B@codeaurora.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7b7c237c-c779-f695-e320-d9e00e48d1d2@suse.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Safonov <0x7f454c46@gmail.com>
-Cc: crml <criu@openvz.org>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, Laurent Dufour <ldufour@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, open list <linux-kernel@vger.kernel.org>
-Message-ID: <20161102002301.3xg_YIJx0E5AvG9H9Yx_Nabom-1rlfsTl1y2fUA9DNA@z>
+To: Michal Marek <mmarek@suse.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Mathieu OTHACEHE <m.othacehe@gmail.com>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20161102121103.KmP_RdHpWOlqt2CRii6PdHUc2i0ypaneKpyS_u-kcxU@z>
+
+On Tue, Nov 01, 2016 at 04:48:48PM +0100, Michal Marek wrote:
+> > Adam Borowski <kilobyte@angband.pl> wrote:
+> > 
+> >> On Mon, Oct 17, 2016 at 02:22:34PM +0200, Mathieu OTHACEHE wrote:
+> >>>> +#include <asm/uaccess.h>
+> >>>> +#include <asm/uaccess.h>  
+> >>>
+> >>> Included twice.  
+> >>
+> >> D'oh!
+
+This appears to be the only thing to fix, right?
+
+> >>>> +#include <asm/string.h>
+> >>>> +#include <asm/page.h>
+> >>>> +#include <asm/checksum.h>
+> >>>> +
+> >>>> +#include <asm-generic/asm-prototypes.h>
+> >>>> +
+> >>>> +#include <asm/page.h>
+> >>>> +#include <asm/pgtable.h>
+> >>>> +#include <asm/special_insns.h>
+> >>>> +#include <asm/preempt.h>  
+> >>>
+> >>> No <asm/arch_hweight.h> for __sw_hweight32 and __sw_hweight64 ?   
+> >>
+> >> diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
+> >> new file mode 100644
+> >> index 0000000..df13637
+> >> --- /dev/null
+> >> +++ b/include/asm-generic/asm-prototypes.h
+> >> @@ -0,0 +1,7 @@
+> >> +#include <linux/bitops.h>
+> >>
+> >> ... which has these.
+> >>
+> >> Alexey Dobriyan <adobriyan@gmail.com> wrote:
+> >> } bitops.h is wrong header as well.
+> >> } Why do you need bitops for bunch of function prototypes?
+> >>
+> >> Unless you guys prefer using low-level headers only, that is.
+> > 
+> > Well you can't use asm/arch_hweight.h in a generic header of course.
+> > I would suggest just including linux/ variants where practical for
+> > the asm-generic/asm-prototypes.h header.
+> > 
+> > We should probably just bring all these arch patches through the
+> > kbuild tree.
+
+I believe inclusion of <linux/bitops.h> is the right thing to do, but if
+not, the patch would also need:
+
+extern unsigned int __sw_hweight8(unsigned int w);
+extern unsigned int __sw_hweight16(unsigned int w);
+extern unsigned int __sw_hweight32(unsigned int w);
+extern unsigned long __sw_hweight64(__u64 w);
 
 
+There's also the issue of mcount/__fentry__, but that's apparently already
+dealt with in 5de0a8c, already in mainline.
 
-On November 1, 2016 11:23:54 AM MDT, Dmitry Safonov <0x7f454c46@gmail.com> wrote:
->Hi Christopher,
->
->  by this moment I got another patch for this. I hope, you don't mind
->if I send it concurrently. I haven't sent it yet as I was testing it in
-> qemu.
+> are you submitting a new version of your x86 asm-prototypes.h patch?
 
-Please do, that'd be great.
+The update is trivial, but yeah, I can resubmit.  If I'm wrong about where
+__sw_hweight{8,16,32,64} should come from, please say so.
 
-Thanks, 
-Cov
 
+Meow!
 -- 
-Qualcomm Datacenter Technologies, Inc. as an affiliate of Qualcomm Technologies, Inc.
-Qualcomm Technologies, Inc. is a member of the Code Aurora Forum, a Linux Foundation Collaborative Project.
-
-Sent from my Snapdragon powered Android device with K-9 Mail. Please excuse my brevity.
+A MAP07 (Dead Simple) raspberry tincture recipe: 0.5l 95% alcohol, 1kg
+raspberries, 0.4kg sugar; put into a big jar for 1 month.  Filter out and
+throw away the fruits (can dump them into a cake, etc), let the drink age
+at least 3-6 months.
