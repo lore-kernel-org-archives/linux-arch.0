@@ -1,37 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:12644 "EHLO mga09.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752815AbcKBTP4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 2 Nov 2016 15:15:56 -0400
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
-References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
-Message-ID: <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
-Date: Wed, 2 Nov 2016 12:15:50 -0700
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:37267 "EHLO
+        mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759865AbcKCSFZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 3 Nov 2016 14:05:25 -0400
+Received: by mail-wm0-f53.google.com with SMTP id t79so3137755wmt.0
+        for <linux-arch@vger.kernel.org>; Thu, 03 Nov 2016 11:05:24 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20161103175558.GA1177@laptop.thejh.net>
+References: <1478187038-19954-1-git-send-email-wluikil@gmail.com>
+ <1478187038-19954-2-git-send-email-wluikil@gmail.com> <CAGXu5jLZnkwK3NRV7qy=fi51_W4rP4-jGzeYSwceuvSz7_Ht8g@mail.gmail.com>
+ <20161103175558.GA1177@laptop.thejh.net>
+From: Kees Cook <keescook@chromium.org>
+Date: Thu, 3 Nov 2016 12:05:22 -0600
+Message-ID: <CAGXu5j+FBu1mnbiPa=fMB8Hgq0iUCdoWGhJKJcBukE4n-iF1+Q@mail.gmail.com>
+Subject: Re: [PATCH 2/2] procfs/tasks: add a simple per-task procfs hidepid= field
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
-Message-ID: <20161102191550.qGbCLOWPH_YaMU2CSfCsXFkTNtAmTqfTUaU0aUkckt4@z>
+To: Jann Horn <jann@thejh.net>
+Cc: Lafcadio Wluiki <wluikil@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20161103180522.S-x-7sYj1XAZhoKBAc0o-zL_4iw1R36fBAssB8Pv1UY@z>
 
-On 10/31/2016 05:08 PM, Mark Rutland wrote:
-> When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
-> syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
-> generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
-> perform some work before always failing, in a similar fashion.
-> 
-> This implies the absence of keys, but otherwise functional pkey support. This
-> is odd, since the architecture provides no such support. Instead, it would be
-> preferable to indicate that the syscall is not implemented, since this is
-> effectively the case.
+On Thu, Nov 3, 2016 at 11:55 AM, Jann Horn <jann@thejh.net> wrote:
+> On Thu, Nov 03, 2016 at 10:12:55AM -0600, Kees Cook wrote:
+>> On Thu, Nov 3, 2016 at 9:30 AM, Lafcadio Wluiki <wluikil@gmail.com> wrote:
+>> > (Third, rebased submission, since first two submissions yielded no replies.)
+>> >
+>> > This adds a new per-task hidepid= flag that is honored by procfs when
+>> > presenting /proc to the user, in addition to the existing hidepid= mount
+>> > option. So far, hidepid= was exclusively a per-pidns setting. Locking
+>> > down a set of processes so that they cannot see other user's processes
+>> > without affecting the rest of the system thus currently requires
+>> > creation of a private PID namespace, with all the complexity it brings,
+>> > including maintaining a stub init process as PID 1 and losing the
+>> > ability to see processes of the same user on the rest of the system.
+> [...]
+>> Since this adds a new prctl interface, it's best to Cc linux-arch
+>> (which I added now).
+>
+> Please also CC linux-api for the next iteration, since this is a new
+> userspace-facing API.
 
-This makes the behavior of an x86 cpu without pkeys and an arm cpu
-without pkeys differ.  Is that what we want?  An application that
-_wants_ to use protection keys but can't needs to handle -ENOSPC anyway.
+Oops, thank you. I meant linux-api, not linux-arch. :P
 
-On an architecture that will never support pkeys, it makes sense to do
--ENOSYS, but that's not the case for arm, right?
+-Kees
+
+-- 
+Kees Cook
+Nexus Security
