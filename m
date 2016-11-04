@@ -1,43 +1,63 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 2/2] procfs/tasks: add a simple per-task procfs hidepid= field
-Date: Thu, 3 Nov 2016 12:05:22 -0600
-Message-ID: <CAGXu5j+FBu1mnbiPa=fMB8Hgq0iUCdoWGhJKJcBukE4n-iF1+Q@mail.gmail.com>
-References: <1478187038-19954-1-git-send-email-wluikil@gmail.com>
- <1478187038-19954-2-git-send-email-wluikil@gmail.com> <CAGXu5jLZnkwK3NRV7qy=fi51_W4rP4-jGzeYSwceuvSz7_Ht8g@mail.gmail.com>
- <20161103175558.GA1177@laptop.thejh.net>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: RE: [PATCH v2] arc: Implement arch-specific dma_map_ops.mmap
+Date: Fri, 4 Nov 2016 05:33:54 +0000
+Message-ID: <4881796E12491D4BB15146FE0209CE646785A13C@DE02WEMBXB.internal.synopsys.com>
+References: <1478185573-12871-1-git-send-email-abrodkin@synopsys.com>
+ <5fcface9-1402-85b7-2caa-624d650d311e@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161103175558.GA1177@laptop.thejh.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jann Horn <jann@thejh.net>
-Cc: Lafcadio Wluiki <wluikil@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:40532 "EHLO
+        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750933AbcKDFfT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2016 01:35:19 -0400
+In-Reply-To: <5fcface9-1402-85b7-2caa-624d650d311e@synopsys.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Marek Szyprowski <m.szyprowski@samsung.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
 
-On Thu, Nov 3, 2016 at 11:55 AM, Jann Horn <jann@thejh.net> wrote:
-> On Thu, Nov 03, 2016 at 10:12:55AM -0600, Kees Cook wrote:
->> On Thu, Nov 3, 2016 at 9:30 AM, Lafcadio Wluiki <wluikil@gmail.com> wrote:
->> > (Third, rebased submission, since first two submissions yielded no replies.)
->> >
->> > This adds a new per-task hidepid= flag that is honored by procfs when
->> > presenting /proc to the user, in addition to the existing hidepid= mount
->> > option. So far, hidepid= was exclusively a per-pidns setting. Locking
->> > down a set of processes so that they cannot see other user's processes
->> > without affecting the rest of the system thus currently requires
->> > creation of a private PID namespace, with all the complexity it brings,
->> > including maintaining a stub init process as PID 1 and losing the
->> > ability to see processes of the same user on the rest of the system.
-> [...]
->> Since this adds a new prctl interface, it's best to Cc linux-arch
->> (which I added now).
->
-> Please also CC linux-api for the next iteration, since this is a new
-> userspace-facing API.
+Hi Vineet,
 
-Oops, thank you. I meant linux-api, not linux-arch. :P
+> -----Original Message-----
+> From: Vineet Gupta [mailto:vgupta@synopsys.com]
+> Sent: Thursday, November 03, 2016 8:04 PM
+> To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>; linux-snps-arc@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; Vineet Gupta <Vineet.Gupta1@synopsys.com>; Marek Szyprowski
+> <m.szyprowski@samsung.com>; stable@vger.kernel.org
+> Subject: Re: [PATCH v2] arc: Implement arch-specific dma_map_ops.mmap
+> 
+> On 11/03/2016 08:06 AM, Alexey Brodkin wrote:
+> > We used to use generic implementation of dma_map_ops.mmap which is
+> > dma_common_mmap() but that only worked for simpler cached mappings when
+> > vaddr = paddr.
+> >
+> > If a driver requests uncached DMA buffer kernel maps it to virtual
+> > address so that MMU gets involved and page uncached status takes into
+> > account. In that case usage of dma_common_mmap() lead to mapping of
+> > vaddr to vaddr for user-space which is obviously wrong. For more detals
+> > please refer to verbose explanation here [1].
+> >
+> > So here we implement our own version of mmap() which always deals
+> > with dma_addr and maps underlying memory to user-space properly
+> > (note that DMA buffer mapped to user-space is always uncached
+> > because there's no way to properly manage cache from user-space).
+> >
+> > [1] https://lkml.org/lkml/2016/10/26/973
+> >
+> > Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+> > Cc: Vineet Gupta <vgupta@synopsys.com>
+> > Cc: <stable@vger.kernel.org>
+> 
+> I've added a stable 4.5+, since ARC didn't use dma ops until 4.5-rc1.
 
--Kees
+Again I was hitting a strange problem when sending patch via "git send-email" to
+address "<stable@vger.kernel.org> # 3.3.x". Mail server complains on wrong email.
+Thus I settled to just mention stable@vger.kernel.org.
 
--- 
-Kees Cook
-Nexus Security
+Anyways, thanks for doing that!
+
+-Alexey
