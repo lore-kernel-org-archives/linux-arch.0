@@ -1,63 +1,102 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: RE: [PATCH v2] arc: Implement arch-specific dma_map_ops.mmap
-Date: Fri, 4 Nov 2016 05:33:54 +0000
-Message-ID: <4881796E12491D4BB15146FE0209CE646785A13C@DE02WEMBXB.internal.synopsys.com>
-References: <1478185573-12871-1-git-send-email-abrodkin@synopsys.com>
- <5fcface9-1402-85b7-2caa-624d650d311e@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:40532 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750933AbcKDFfT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2016 01:35:19 -0400
-In-Reply-To: <5fcface9-1402-85b7-2caa-624d650d311e@synopsys.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Marek Szyprowski <m.szyprowski@samsung.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+From: Jakub Kicinski <jakub.kicinski@netronome.com>
+Subject: [PATCH] mm: kmemleak: scan .data.ro_after_init
+Date: Fri,  4 Nov 2016 15:42:53 +0000
+Message-ID: <1478274173-15218-1-git-send-email-jakub.kicinski@netronome.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cong Wang <xiyou.wangcong@gmail.com>, Johannes Berg <johannes@sipsolutions.net>, Jakub Kicinski <jakub.kicinski@netronome.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Vineet,
+Limit number of kmemleak's false positives by including
+.data.ro_after_init in memory scanning.  To achieve this we need to add
+symbols for start and end of the section to the linker scripts.
 
-> -----Original Message-----
-> From: Vineet Gupta [mailto:vgupta@synopsys.com]
-> Sent: Thursday, November 03, 2016 8:04 PM
-> To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>; linux-snps-arc@lists.infradead.org
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; Vineet Gupta <Vineet.Gupta1@synopsys.com>; Marek Szyprowski
-> <m.szyprowski@samsung.com>; stable@vger.kernel.org
-> Subject: Re: [PATCH v2] arc: Implement arch-specific dma_map_ops.mmap
-> 
-> On 11/03/2016 08:06 AM, Alexey Brodkin wrote:
-> > We used to use generic implementation of dma_map_ops.mmap which is
-> > dma_common_mmap() but that only worked for simpler cached mappings when
-> > vaddr = paddr.
-> >
-> > If a driver requests uncached DMA buffer kernel maps it to virtual
-> > address so that MMU gets involved and page uncached status takes into
-> > account. In that case usage of dma_common_mmap() lead to mapping of
-> > vaddr to vaddr for user-space which is obviously wrong. For more detals
-> > please refer to verbose explanation here [1].
-> >
-> > So here we implement our own version of mmap() which always deals
-> > with dma_addr and maps underlying memory to user-space properly
-> > (note that DMA buffer mapped to user-space is always uncached
-> > because there's no way to properly manage cache from user-space).
-> >
-> > [1] https://lkml.org/lkml/2016/10/26/973
-> >
-> > Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-> > Cc: Vineet Gupta <vgupta@synopsys.com>
-> > Cc: <stable@vger.kernel.org>
-> 
-> I've added a stable 4.5+, since ARC didn't use dma ops until 4.5-rc1.
+The problem has been uncovered by commit 56989f6d8568 ("genetlink: mark
+families as __ro_after_init").
 
-Again I was hitting a strange problem when sending patch via "git send-email" to
-address "<stable@vger.kernel.org> # 3.3.x". Mail server complains on wrong email.
-Thus I settled to just mention stable@vger.kernel.org.
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+Since the RFC I dropped the use of VMLINUX_SYMBOL().  Please advise if it
+should be added back.
+---
+ arch/s390/kernel/vmlinux.lds.S    | 2 ++
+ include/asm-generic/sections.h    | 3 +++
+ include/asm-generic/vmlinux.lds.h | 5 ++++-
+ mm/kmemleak.c                     | 1 +
+ 4 files changed, 10 insertions(+), 1 deletion(-)
 
-Anyways, thanks for doing that!
+diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
+index 000e6e91f6a0..3667d20e997f 100644
+--- a/arch/s390/kernel/vmlinux.lds.S
++++ b/arch/s390/kernel/vmlinux.lds.S
+@@ -62,9 +62,11 @@ SECTIONS
+ 
+ 	. = ALIGN(PAGE_SIZE);
+ 	__start_ro_after_init = .;
++	__start_data_ro_after_init = .;
+ 	.data..ro_after_init : {
+ 		 *(.data..ro_after_init)
+ 	}
++	__end_data_ro_after_init = .;
+ 	EXCEPTION_TABLE(16)
+ 	. = ALIGN(PAGE_SIZE);
+ 	__end_ro_after_init = .;
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index af0254c09424..4df64a1fc09e 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -14,6 +14,8 @@
+  * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
+  *                   and/or .init.* sections.
+  * [__start_rodata, __end_rodata]: contains .rodata.* sections
++ * [__start_data_ro_after_init, __end_data_ro_after_init]:
++ *		     contains data.ro_after_init section
+  * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
+  *                   may be out of this range on some architectures.
+  * [_sinittext, _einittext]: contains .init.text.* sections
+@@ -31,6 +33,7 @@
+ extern char __bss_start[], __bss_stop[];
+ extern char __init_begin[], __init_end[];
+ extern char _sinittext[], _einittext[];
++extern char __start_data_ro_after_init[], __end_data_ro_after_init[];
+ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 30747960bc54..31e1d639abed 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -259,7 +259,10 @@
+  * own by defining an empty RO_AFTER_INIT_DATA.
+  */
+ #ifndef RO_AFTER_INIT_DATA
+-#define RO_AFTER_INIT_DATA *(.data..ro_after_init)
++#define RO_AFTER_INIT_DATA						\
++	__start_data_ro_after_init = .;					\
++	*(.data..ro_after_init)						\
++	__end_data_ro_after_init = .;
+ #endif
+ 
+ /*
+diff --git a/mm/kmemleak.c b/mm/kmemleak.c
+index e5355a5b423f..d1380ed93fdf 100644
+--- a/mm/kmemleak.c
++++ b/mm/kmemleak.c
+@@ -1414,6 +1414,7 @@ static void kmemleak_scan(void)
+ 	/* data/bss scanning */
+ 	scan_large_block(_sdata, _edata);
+ 	scan_large_block(__bss_start, __bss_stop);
++	scan_large_block(__start_data_ro_after_init, __end_data_ro_after_init);
+ 
+ #ifdef CONFIG_SMP
+ 	/* per-cpu sections scanning */
+-- 
+1.9.1
 
--Alexey
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
