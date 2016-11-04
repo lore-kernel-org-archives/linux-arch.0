@@ -1,104 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f42.google.com ([74.125.82.42]:38096 "EHLO
-        mail-wm0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S935602AbcKDPnO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2016 11:43:14 -0400
-Received: by mail-wm0-f42.google.com with SMTP id n67so57808359wme.1
-        for <linux-arch@vger.kernel.org>; Fri, 04 Nov 2016 08:43:13 -0700 (PDT)
-From: Jakub Kicinski <jakub.kicinski@netronome.com>
-Subject: [PATCH] mm: kmemleak: scan .data.ro_after_init
-Date: Fri,  4 Nov 2016 15:42:53 +0000
-Message-ID: <1478274173-15218-1-git-send-email-jakub.kicinski@netronome.com>
+Received: from mail-qt0-f176.google.com ([209.85.216.176]:34448 "EHLO
+        mail-qt0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752964AbcKDWU0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2016 18:20:26 -0400
+Received: by mail-qt0-f176.google.com with SMTP id n6so57061431qtd.1
+        for <linux-arch@vger.kernel.org>; Fri, 04 Nov 2016 15:20:25 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+References: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Date: Fri, 4 Nov 2016 23:20:24 +0100
+Message-ID: <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com>
+Subject: Re: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Cong Wang <xiyou.wangcong@gmail.com>, Johannes Berg <johannes@sipsolutions.net>, Jakub Kicinski <jakub.kicinski@netronome.com>
-Message-ID: <20161104154253.930Sr3dyHxgF9Za-5UaXmj_ujav8wY0aMUqFettB5Qw@z>
+To: Laxman Dewangan <ldewangan@nvidia.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20161104222024.dCMpT9RpDRB6WHoaai2GDqbQu2hfmkqt9oWaq1vlwFU@z>
 
-Limit number of kmemleak's false positives by including
-.data.ro_after_init in memory scanning.  To achieve this we need to add
-symbols for start and end of the section to the linker scripts.
+On Wed, Nov 2, 2016 at 1:17 PM, Laxman Dewangan <ldewangan@nvidia.com> wrote:
 
-The problem has been uncovered by commit 56989f6d8568 ("genetlink: mark
-families as __ro_after_init").
+> Many of devices/SoCs supports the GPIO and special IO function
+> from their pins. On such cases, there is always configuration
+> bits to select the mode of pin as GPIO or as the special IO mode.
+> The functional modes are selected by pinmux option.
+>
+> When device booted and reach to kernel, it is not possible to get
+> the current configuration of pin whether it is in GPIO mode or
+> in special IO mode without configurations.
+>
+> Add APIs to return the current mode of pins without requesting it
+> as GPIO to find out the current mode.
+> This helps on dumping the pin configuration from debug/test utility
+> to get the current mode GPIO or functional mode.
+>
+> The typical utility looks as:
+> pin_dump(pin)
+> {
+>         if(gpio_is_enabled(pin)) {
+>                 dump direction using get_direction()
+>         } else {
+>                 dump pinmux option and its configurations.
+>         }
+> }
 
-Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
----
-Since the RFC I dropped the use of VMLINUX_SYMBOL().  Please advise if it
-should be added back.
----
- arch/s390/kernel/vmlinux.lds.S    | 2 ++
- include/asm-generic/sections.h    | 3 +++
- include/asm-generic/vmlinux.lds.h | 5 ++++-
- mm/kmemleak.c                     | 1 +
- 4 files changed, 10 insertions(+), 1 deletion(-)
+Yeah but since pinctrl and pinmux has its own debugfs files why is this
+necessary? I understand it is convenient but only for debugging
+right? They the inconvenience of using pinctrls debugfs files should
+be bearable.
 
-diff --git a/arch/s390/kernel/vmlinux.lds.S b/arch/s390/kernel/vmlinux.lds.S
-index 000e6e91f6a0..3667d20e997f 100644
---- a/arch/s390/kernel/vmlinux.lds.S
-+++ b/arch/s390/kernel/vmlinux.lds.S
-@@ -62,9 +62,11 @@ SECTIONS
- 
- 	. = ALIGN(PAGE_SIZE);
- 	__start_ro_after_init = .;
-+	__start_data_ro_after_init = .;
- 	.data..ro_after_init : {
- 		 *(.data..ro_after_init)
- 	}
-+	__end_data_ro_after_init = .;
- 	EXCEPTION_TABLE(16)
- 	. = ALIGN(PAGE_SIZE);
- 	__end_ro_after_init = .;
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index af0254c09424..4df64a1fc09e 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -14,6 +14,8 @@
-  * [_sdata, _edata]: contains .data.* sections, may also contain .rodata.*
-  *                   and/or .init.* sections.
-  * [__start_rodata, __end_rodata]: contains .rodata.* sections
-+ * [__start_data_ro_after_init, __end_data_ro_after_init]:
-+ *		     contains data.ro_after_init section
-  * [__init_begin, __init_end]: contains .init.* sections, but .init.text.*
-  *                   may be out of this range on some architectures.
-  * [_sinittext, _einittext]: contains .init.text.* sections
-@@ -31,6 +33,7 @@
- extern char __bss_start[], __bss_stop[];
- extern char __init_begin[], __init_end[];
- extern char _sinittext[], _einittext[];
-+extern char __start_data_ro_after_init[], __end_data_ro_after_init[];
- extern char _end[];
- extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
- extern char __kprobes_text_start[], __kprobes_text_end[];
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 30747960bc54..31e1d639abed 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -259,7 +259,10 @@
-  * own by defining an empty RO_AFTER_INIT_DATA.
-  */
- #ifndef RO_AFTER_INIT_DATA
--#define RO_AFTER_INIT_DATA *(.data..ro_after_init)
-+#define RO_AFTER_INIT_DATA						\
-+	__start_data_ro_after_init = .;					\
-+	*(.data..ro_after_init)						\
-+	__end_data_ro_after_init = .;
- #endif
- 
- /*
-diff --git a/mm/kmemleak.c b/mm/kmemleak.c
-index e5355a5b423f..d1380ed93fdf 100644
---- a/mm/kmemleak.c
-+++ b/mm/kmemleak.c
-@@ -1414,6 +1414,7 @@ static void kmemleak_scan(void)
- 	/* data/bss scanning */
- 	scan_large_block(_sdata, _edata);
- 	scan_large_block(__bss_start, __bss_stop);
-+	scan_large_block(__start_data_ro_after_init, __end_data_ro_after_init);
- 
- #ifdef CONFIG_SMP
- 	/* per-cpu sections scanning */
--- 
-1.9.1
+Also it is possible for any GPIO chip to implement its own
+debug print if they like, check what we do in
+->dbg_show in drivers/pinctrl/nomadik/pinctrl-nomadik.c
+for example.
 
+If the use is for debug prints, keep it driver-local.
+
+(...)
+> +static inline int gpio_is_enabled(unsigned gpio)
+> +{
+> +       return gpiod_is_enabled(gpio_to_desc(gpio));
+> +}
+
+NAK why would be encourage the non-descriptor interface by
+adding to it? Better only offer this to the descriptor users.
+
+Yours,
+Linus Walleij
