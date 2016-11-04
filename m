@@ -1,83 +1,63 @@
-From: <jacqueline.pike@gmail.com>
-Subject: 4399 linux-arch
-Date: Fri, 04 Nov 2016 19:41:12 -0000
-Message-ID: <147828847242.26883.12775657816612741879@nsk.sibirtelecom.ru>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
+Date: Fri, 4 Nov 2016 23:20:24 +0100
+Message-ID: <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com>
+References: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="EMAIL_592857934_linux-arch.zip"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ws.92.127.219.156.nsk.sibirtelecom.ru ([92.127.219.156]:53933
-        "HELO nsk.sibirtelecom.ru" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with SMTP id S1752965AbcKDTlS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2016 15:41:18 -0400
-Content-Disposition: attachment
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Laxman Dewangan <ldewangan@nvidia.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-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
+On Wed, Nov 2, 2016 at 1:17 PM, Laxman Dewangan <ldewangan@nvidia.com> wrote:
+
+> Many of devices/SoCs supports the GPIO and special IO function
+> from their pins. On such cases, there is always configuration
+> bits to select the mode of pin as GPIO or as the special IO mode.
+> The functional modes are selected by pinmux option.
+>
+> When device booted and reach to kernel, it is not possible to get
+> the current configuration of pin whether it is in GPIO mode or
+> in special IO mode without configurations.
+>
+> Add APIs to return the current mode of pins without requesting it
+> as GPIO to find out the current mode.
+> This helps on dumping the pin configuration from debug/test utility
+> to get the current mode GPIO or functional mode.
+>
+> The typical utility looks as:
+> pin_dump(pin)
+> {
+>         if(gpio_is_enabled(pin)) {
+>                 dump direction using get_direction()
+>         } else {
+>                 dump pinmux option and its configurations.
+>         }
+> }
+
+Yeah but since pinctrl and pinmux has its own debugfs files why is this
+necessary? I understand it is convenient but only for debugging
+right? They the inconvenience of using pinctrls debugfs files should
+be bearable.
+
+Also it is possible for any GPIO chip to implement its own
+debug print if they like, check what we do in
+->dbg_show in drivers/pinctrl/nomadik/pinctrl-nomadik.c
+for example.
+
+If the use is for debug prints, keep it driver-local.
+
+(...)
+> +static inline int gpio_is_enabled(unsigned gpio)
+> +{
+> +       return gpiod_is_enabled(gpio_to_desc(gpio));
+> +}
+
+NAK why would be encourage the non-descriptor interface by
+adding to it? Better only offer this to the descriptor users.
+
+Yours,
+Linus Walleij
