@@ -1,143 +1,74 @@
-From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
-Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
- calls to hotplugged cpu")]
-Date: Mon, 7 Nov 2016 18:45:19 +0200
-Message-ID: <20161107164519.GA4617@intel.com>
-References: <alpine.DEB.2.20.1610272035180.4913@nanos>
- <20161027192006.GF4617@intel.com>
- <alpine.DEB.2.20.1610272122510.4913@nanos>
- <20161027203745.GH4617@intel.com>
- <alpine.DEB.2.20.1610272238390.4913@nanos>
- <20161028155603.GI4617@intel.com>
- <alpine.DEB.2.20.1610282049500.5053@nanos>
- <20161101204737.GB4617@intel.com>
- <20161107114937.GX4617@intel.com>
- <alpine.DEB.2.20.1611071406320.3709@nanos>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-pm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.20.1611071406320.3709@nanos>
-Sender: linux-pm-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Feng Tang <feng.79.tang@gmail.com>, feng.tang@intel.com, "Rafael J. Wysocki" <rafael@kernel.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel>
-List-Id: linux-arch.vger.kernel.org
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [RFC][ATCH 0/3] sycalls: Remove args i and n from syscall_get_arguments()
+Date: Mon, 07 Nov 2016 16:26:34 -0500
+Message-ID: <20161107212634.529267342@goodmis.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:58612 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750926AbcKGVcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 7 Nov 2016 16:32:39 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
 
-On Mon, Nov 07, 2016 at 02:07:43PM +0100, Thomas Gleixner wrote:
-> On Mon, 7 Nov 2016, Ville Syrjälä wrote:
-> > I didn't manage to find a lot of time to play around with this, but it
-> > definitely looks like the SMM trap is the problem here. I repeated my
-> > pm_trace experiemnts and when it gets stuck it is trying to execute the
-> > _WAK ACPI method which is where the SMM trap happens.
-> > 
-> > Maybe the SMM code was written with the expectation of a periodic tick
-> > or something like that?
-> 
-> Can you try the untested hack below, please? It should confirm that.
-> 
-> Thanks,
-> 
-> 	tglx
-> 
-> 8<---------------
-> --- a/drivers/acpi/acpica/hwsleep.c
-> +++ b/drivers/acpi/acpica/hwsleep.c
-> @@ -269,6 +269,17 @@ acpi_status acpi_hw_legacy_wake_prep(u8
->  	return_ACPI_STATUS(status);
->  }
->  
-> +static const ktime_t time10ms = { .tv64 = 10 * NSEC_PER_MSEC };
-> +
-> +static enum hrtimer_restart acpi_hw_legacy_tmr(struct hrtimer *tmr)
-> +{
-> +	hrtimer_forward_now(tmr, time10ms);
-> +
-> +	return HRTIMER_RESTART;
-> +}
-> +
-> +
-> +
->  /*******************************************************************************
->   *
->   * FUNCTION:    acpi_hw_legacy_wake
-> @@ -284,6 +295,7 @@ acpi_status acpi_hw_legacy_wake_prep(u8
->  
->  acpi_status acpi_hw_legacy_wake(u8 sleep_state)
->  {
-> +	struct hrtimer timer;
->  	acpi_status status;
->  
->  	ACPI_FUNCTION_TRACE(hw_legacy_wake);
-> @@ -311,12 +323,18 @@ acpi_status acpi_hw_legacy_wake(u8 sleep
->  		return_ACPI_STATUS(status);
->  	}
->  
-> +	hrtimer_init_on_stack(&timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-> +	timer.function = acpi_hw_legacy_tmr;
-> +	hrtimer_start(&timer, time10ms, HRTIMER_MODE_REL);
-> +
->  	/*
->  	 * Now we can execute _WAK, etc. Some machines require that the GPEs
->  	 * are enabled before the wake methods are executed.
->  	 */
->  	acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
->  
-> +	hrtimer_cancel(&timer);
-> +
->  	/*
->  	 * Some BIOS code assumes that WAK_STS will be cleared on resume
->  	 * and use it to determine whether the system is rebooting or
+At Linux Plumbers, Andy Lutomirski approached me to tell me that the
+syscall_get_arguments() implementation in x86 was horrible and gcc
+certainly gets it wrong. He said that since the tracepoints only pass
+in 0 and 6 for i and n repectively, it should be optimized for that case.
+Inspecting the kernel, I discovered that all users pass in 0 for i and
+only one file passing in something other than 6 for the number of arguments.
+That code happens to be my own code used for the special syscall tracing.
+That can easily be converted to just using 0 and 6 as well, and only copying
+what is needed. Which is probably the faster path anyway for that case.
 
-Doesn't really seem to help. I did get a few random successes, but
-mostly it just fails.
+I haven't run the numbers (I can do that when I get some time), but since
+pretty much all use cases use 0 and 6 and that would allow these functions
+not to need strange logic to handle odd cases, I think this is still a win.
 
-diff --git a/drivers/acpi/acpica/hwsleep.c b/drivers/acpi/acpica/hwsleep.c
-index 3c9c10bd49e9..950319b619f1 100644
---- a/drivers/acpi/acpica/hwsleep.c
-+++ b/drivers/acpi/acpica/hwsleep.c
-@@ -44,6 +44,8 @@
- 
- #include <acpi/acpi.h>
- #include <linux/acpi.h>
-+#include <linux/pm-trace.h>
-+#include <linux/delay.h>
- #include "accommon.h"
- 
- #define _COMPONENT          ACPI_HARDWARE
-@@ -275,6 +277,8 @@ static enum hrtimer_restart acpi_hw_legacy_tmr(struct hrtimer *tmr)
- {
- 	hrtimer_forward_now(tmr, time10ms);
- 
-+	TRACE_RESUME(0);
-+
- 	return HRTIMER_RESTART;
- }
- 
-@@ -327,14 +331,17 @@ acpi_status acpi_hw_legacy_wake(u8 sleep_state)
- 	timer.function = acpi_hw_legacy_tmr;
- 	hrtimer_start(&timer, time10ms, HRTIMER_MODE_REL);
- 
-+	TRACE_RESUME(0);
- 	/*
- 	 * Now we can execute _WAK, etc. Some machines require that the GPEs
- 	 * are enabled before the wake methods are executed.
- 	 */
- 	acpi_hw_execute_sleep_method(METHOD_PATHNAME__WAK, sleep_state);
-+	TRACE_RESUME(0);
- 
- 	hrtimer_cancel(&timer);
- 
-+	TRACE_RESUME(0);
- 	/*
- 	 * Some BIOS code assumes that WAK_STS will be cleared on resume
- 	 * and use it to determine whether the system is rebooting or
+I haven't looked at removing those same parameters from syscall_set_arguments()
+yet.
 
-Tossing that on top shows the trace before the _WAK being the last one
-executed. Adding an msleep() before the _WAK does make the trace from
-the timer handler show up so at least the timer seems to be ticking
-up until some point.
+Thoughts?
 
--- 
-Ville Syrjälä
-Intel OTC
+-- Steve
+
+
+Steven Rostedt (3):
+      ptrace: Remove maxargs from task_current_syscall()
+      tracing/syscalls: Pass in hardcoded '6' into syscall_get_arguments()
+      syscalls: Remove start and number from syscall_get_arguments() args
+
+----
+ arch/arc/include/asm/syscall.h        |  7 ++--
+ arch/arm/include/asm/syscall.h        | 23 ++---------
+ arch/arm64/include/asm/syscall.h      | 22 ++---------
+ arch/blackfin/include/asm/syscall.h   | 22 +++++++----
+ arch/c6x/include/asm/syscall.h        | 41 ++++----------------
+ arch/frv/include/asm/syscall.h        | 26 +++----------
+ arch/h8300/include/asm/syscall.h      | 34 ++++-------------
+ arch/hexagon/include/asm/syscall.h    |  4 +-
+ arch/ia64/include/asm/syscall.h       |  5 +--
+ arch/metag/include/asm/syscall.h      |  4 +-
+ arch/microblaze/include/asm/syscall.h |  4 +-
+ arch/mips/include/asm/syscall.h       |  3 +-
+ arch/mn10300/include/asm/syscall.h    | 32 +++-------------
+ arch/nios2/include/asm/syscall.h      | 42 ++++----------------
+ arch/openrisc/include/asm/syscall.h   |  6 +--
+ arch/parisc/include/asm/syscall.h     | 30 ++++-----------
+ arch/powerpc/include/asm/syscall.h    |  8 ++--
+ arch/s390/include/asm/syscall.h       | 11 +++---
+ arch/sh/include/asm/syscall_32.h      | 26 +++----------
+ arch/sh/include/asm/syscall_64.h      |  4 +-
+ arch/sparc/include/asm/syscall.h      |  4 +-
+ arch/tile/include/asm/syscall.h       |  4 +-
+ arch/um/include/asm/syscall-generic.h | 39 +++----------------
+ arch/x86/include/asm/syscall.h        | 72 ++++++++---------------------------
+ fs/proc/base.c                        |  2 +-
+ include/asm-generic/syscall.h         | 11 ++----
+ include/linux/ptrace.h                |  4 +-
+ include/trace/events/syscalls.h       |  2 +-
+ kernel/seccomp.c                      |  2 +-
+ kernel/trace/trace_syscalls.c         | 10 +++--
+ lib/syscall.c                         | 22 ++++-------
+ 31 files changed, 139 insertions(+), 387 deletions(-)
