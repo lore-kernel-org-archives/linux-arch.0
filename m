@@ -1,34 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vk0-f47.google.com ([209.85.213.47]:36152 "EHLO
-        mail-vk0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752627AbcKGXvy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2016 18:51:54 -0500
-Received: by mail-vk0-f47.google.com with SMTP id p9so135385640vkd.3
-        for <linux-arch@vger.kernel.org>; Mon, 07 Nov 2016 15:51:54 -0800 (PST)
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:33927 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S932821AbcKHJav (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Nov 2016 04:30:51 -0500
+Received: from pps.filterd (m0098409.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uA89Sf5A119733
+        for <linux-arch@vger.kernel.org>; Tue, 8 Nov 2016 04:30:51 -0500
+Received: from e06smtp10.uk.ibm.com (e06smtp10.uk.ibm.com [195.75.94.106])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 26k98d0fka-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Tue, 08 Nov 2016 04:30:51 -0500
+Received: from localhost
+        by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Tue, 8 Nov 2016 09:30:48 -0000
+Date: Tue, 8 Nov 2016 10:30:42 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
+References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
+ <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
+ <20161104234459.GA18760@remoulade>
 MIME-Version: 1.0
-In-Reply-To: <20161107213233.466776454@goodmis.org>
-References: <20161107212634.529267342@goodmis.org> <20161107213233.466776454@goodmis.org>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Mon, 7 Nov 2016 15:51:32 -0800
-Message-ID: <CALCETrVHaxqrZLpKvjzfEo2cUmHoMXMJgYYr_tfxs3kREcREeg@mail.gmail.com>
-Subject: Re: [RFC][ATCH 1/3] ptrace: Remove maxargs from task_current_syscall()
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161104234459.GA18760@remoulade>
+Message-ID: <20161108093042.GC3528@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20161107235132.gS_W19ufyP9tBZ8YU_59qQwWF4cIGLnOKlMs5zopqus@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+Message-ID: <20161108093042.Lcjb0IEpzm8QmaXS4TwQInZbg7e615ZeUxamhEsMWHs@z>
 
-On Mon, Nov 7, 2016 at 1:26 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> From: Steven Rostedt <rostedt@goodmis.org>
->
-> task_current_syscall() has a single user that passes in 6 for maxargs, which
-> is the maximum arguments that can be used to get system calls from
-> syscall_get_arguments(). Instead of passing in a number of arguments to
-> grab, just get 6 arguments. The args argument even specifies that it's an
-> array of 6 items.
->
-> This will also allow changing syscall_get_arguments() to not get a variable
-> number of arguments, but always grab 6.
+On Fri, Nov 04, 2016 at 11:44:59PM +0000, Mark Rutland wrote:
+> On Wed, Nov 02, 2016 at 12:15:50PM -0700, Dave Hansen wrote:
+> > On 10/31/2016 05:08 PM, Mark Rutland wrote:
+> > > When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
+> > > syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
+> > > generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
+> > > perform some work before always failing, in a similar fashion.
+> > > 
+> > > This implies the absence of keys, but otherwise functional pkey support. This
+> > > is odd, since the architecture provides no such support. Instead, it would be
+> > > preferable to indicate that the syscall is not implemented, since this is
+> > > effectively the case.
+> > 
+> > This makes the behavior of an x86 cpu without pkeys and an arm cpu
+> > without pkeys differ.  Is that what we want?
+> 
+> My rationale was that we have no idea whether architectures will have pkey
+> support in future, and if/when they do, we may have to apply additional checks
+> anyhow. i.e. in cases we'd return -ENOSPC today, we might want to return
+> another error code.
+> 
+> Returning -ENOSYS retains the current behaviour, and allows us to handle that
+> ABI issue when we know what architecture support looks like.
+> 
+> Other architectures not using the generic syscalls seem to handle this with
+> -ENOSYS, e.g. parisc with commit 18088db042dd9ae2, so there's differing
+> behaviour regardless of arm specifically.
 
-Reviewed-by: Andy Lutomirski <luto@kernel.org>
+The three system calls won't return -ENOSYS on architectures which decided
+to ignore them (like with with above mentioned commit), since they haven't
+allocated a system call number at all.
+
+Right now we have one architecture where these three system calls work if
+the cpu supports the feature (x86).
+
+Two architectures (arm, mips) have wired them up and thus allocated system
+call numbers, even though they don't have ARCH_HAS_PKEYS set. Which seems a
+bit pointless.
+
+Three architectures (parisc, powerpc, s390) decided to ignore the system
+calls completely, but still have the pkey code linked into the kernel
+image.
+
+imho the generic pkey code should be ifdef'ed with CONFIG_ARCH_HAS_PKEYS.
+Otherwise only dead code will be linked and increase the kernel image size
+for no good reason.
+
