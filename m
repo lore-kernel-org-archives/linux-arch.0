@@ -1,61 +1,68 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
-Date: Tue, 8 Nov 2016 10:41:12 +0000
-Message-ID: <20161108104112.GM1041@n2100.armlinux.org.uk>
-References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
- <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
- <20161104234459.GA18760@remoulade>
- <20161108093042.GC3528@osiris>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [Resend PATCH v2 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
+Date: Tue, 8 Nov 2016 16:02:58 +0530
+Message-ID: <1478601180-20932-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:41612 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752901AbcKHKl1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Nov 2016 05:41:27 -0500
-Content-Disposition: inline
-In-Reply-To: <20161108093042.GC3528@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
+Cc: cmetcalf@ezchip.com, tglx@linutronix.de, Yury Norov <ynorov@caviumnetworks.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 08, 2016 at 10:30:42AM +0100, Heiko Carstens wrote:
-> Two architectures (arm, mips) have wired them up and thus allocated system
-> call numbers, even though they don't have ARCH_HAS_PKEYS set. Which seems a
-> bit pointless.
+32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
+are 64-bit length only. This patchset makes 64-bit length the default
+for off_t, and reverts it for old architectures where needed. It does not
+change the behaviour of existing code.
 
-I don't think it's pointless at all.  First, read the LWN article for
-the userspace side of the interface: https://lwn.net/Articles/689395/
+First patch makes all compat users of generic unistd.h to use non-compat
+versions of openat and open_by_handle_at. Tile that requires old behaviour
+is turned around.
 
-From reading this, it seems (at least to me) that these pkey syscalls
-are going to be the application level API - which means applications
-are probably going to want to make these calls.
+Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
+but enables it explicitly for existing 32-bit architectures.
 
-Sure, they'll have to go through glibc, and glibc can provide stubs,
-but the problem with that is if we do get hardware pkey support (eg,
-due to pressure to increase security) then we're going to end up
-needing both kernel changes and glibc changes to add the calls.
+Original submission:
+http://lists-archives.com/linux-kernel/28471158-abi-handle-32-bit-off_t-for-32-bit-and-compat-abis.html
 
-Since one of the design goals of pkeys is to allow them to work when
-there is no underlying hardware support, I see no reason not to wire
-them up in architecture syscall tables today, so that we have a cross-
-architecture kernel version where the pkey syscalls become available.
-glibc (and other libcs) don't then have to mess around with per-
-architecture recording of which kernel version the pkey syscalls were
-added.
+This is the same series that I sent in Dec 29. In arm64 ilp32 this patches are
+melded, but Chris asked to split it. So I decided to resend old series. Here is
+no changes, it's only rebased on 4.9-rc4.
 
-Not wiring up the syscalls doesn't really gain anything: the code
-present when !ARCH_HAS_PKEYS will still be part of the kernel image,
-it just won't be callable.
+Yury Norov (2):
+  compat ABI: use non-compat openat and open_by_handle_at variants
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
 
-So, on balance, I've decided to wire them up on ARM, even though the
-hardware doesn't support them, to avoid unnecessary pain in userspace
-from the ARM side of things.
-
-Obviously what other architectures do is their own business.
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 2 +-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 29 files changed, 35 insertions(+), 4 deletions(-)
 
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+2.7.4
