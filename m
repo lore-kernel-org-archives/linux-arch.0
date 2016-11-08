@@ -1,35 +1,88 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [RFC][ATCH 3/3] syscalls: Remove start and number from
- syscall_get_arguments() args
-Date: Mon, 7 Nov 2016 15:54:14 -0800
-Message-ID: <CALCETrVt-tPAFOx5wMvA51pjO51VyNwN5cP821WsagDGdjM36Q@mail.gmail.com>
-References: <20161107212634.529267342@goodmis.org> <20161107213233.754809394@goodmis.org>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: 'kbuild' merge before 4.9-rc1 breaks build and boot
+Date: Tue, 8 Nov 2016 12:33:34 +1100
+Message-ID: <20161108123334.3df2dcc9@roar.ozlabs.ibm.com>
+References: <4c04b846-3da8-dc42-4fa6-30f72a5c2437@hartkopp.net>
+        <20161027154202.GE27017@al>
+        <alpine.DEB.2.20.1611071408040.24418@macbook-air>
+        <20161107213907.GB18092@al>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f170.google.com ([209.85.217.170]:33355 "EHLO
-        mail-ua0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752059AbcKGXyg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2016 18:54:36 -0500
-Received: by mail-ua0-f170.google.com with SMTP id 20so133792321uak.0
-        for <linux-arch@vger.kernel.org>; Mon, 07 Nov 2016 15:54:35 -0800 (PST)
-In-Reply-To: <20161107213233.754809394@goodmis.org>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:35826 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751454AbcKHBu1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2016 20:50:27 -0500
+In-Reply-To: <20161107213907.GB18092@al>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Roland McGrath <roland@hack.frob.com>, Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+To: Peter Wu <peter@lekensteyn.nl>
+Cc: Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Nov 7, 2016 at 1:26 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> From: Steven Rostedt <rostedt@goodmis.org>
->
+On Mon, 7 Nov 2016 22:39:07 +0100
+Peter Wu <peter@lekensteyn.nl> wrote:
 
-> diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
-> index e3c95e8e61c5..050891169b51 100644
-> --- a/arch/x86/include/asm/syscall.h
-> +++ b/arch/x86/include/asm/syscall.h
+> On Mon, Nov 07, 2016 at 02:10:12PM -0500, Vince Weaver wrote:
+> > On Thu, 27 Oct 2016, Peter Wu wrote:
+> >   
+> > > I can confirm Olivers issue, the current mainline kernel fails to boot
+> > > on kernels with CONFIG_MODVERSIONS=y. Bisection points to:
+> > > 
+> > >     commit 784d5699eddc55878627da20d3fe0c8542e2f1a2
+> > >     Author: Al Viro <viro@zeniv.linux.org.uk>
+> > >     Date:   Mon Jan 11 11:04:34 2016 -0500  
+> > > > WARNING: "memset" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
+> > > > WARNING: "__fentry__" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
+> > > > WARNING: "memcpy" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
+> > > > WARNING: "__sw_hweight32" [sound/usb/snd-usbmidi-lib.ko] has no CRC!  
+> > 
+> > Has any progress been made with this problem?
+> > 
+> > I'm also encountering it on my debian-unstable box on any kernel more 
+> > recent than 4.9-rc1 (up to and including 4.9-rc4).  I am glad someone 
+> > managed to isolate it as I was unable to get a clean bisect.
+> > 
+> > Vince  
+> 
+> The original kbuild issue went in via
+> merge commit 84d69848c97faab0c25aa2667b273404d2e2a64a which notes:
+> 
+>  - EXPORT_SYMBOL for asm source by Al Viro.
+> 
+>    This does bring a regression, because genksyms no longer generates
+>    checksums for these symbols (CONFIG_MODVERSIONS). Nick Piggin is
+>    working on a patch to fix this.
+> 
+>    Plus, we are talking about functions like strcpy(), which rarely
+>    change prototypes.
+> 
+> Adding Nicholas in the cc, hopefully he can give a status update.
 
-x86 part is:
+I think Michal has everything needed now for the kbuild bits. The arch
+specific patches can go via arch trees quite easily (there is no hard
+dependency either way). This is the kbuild bit:
 
-Reviewed-by: Andy Lutomirski <luto@kernel.org>
+https://git.kernel.org/cgit/linux/kernel/git/mmarek/kbuild.git/commit/?h=rc-fixes&id=4efca4ed05cbdfd13ec3e8cb623fb77d6e4ab187
 
-Although I wonder why this takes a task argument.
+And it also needs this incremental bit not in Michal's tree yet:
+
+---
+ scripts/Makefile.build | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 3e223c2..05c6bb4 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -332,7 +332,7 @@ cmd_gensymtypes_S =                                                         \
+     (echo "\#include <linux/kernel.h>" ;                                    \
+      echo "\#include <asm/asm-prototypes.h>" ;                              \
+     $(CPP) $(a_flags) $< |                                                  \
+-     grep ^___EXPORT_SYMBOL |                                               \
++     grep ___EXPORT_SYMBOL |                                                \
+      sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
+     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+-- 
+2.9.3
