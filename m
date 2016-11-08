@@ -1,88 +1,63 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: 'kbuild' merge before 4.9-rc1 breaks build and boot
-Date: Tue, 8 Nov 2016 12:33:34 +1100
-Message-ID: <20161108123334.3df2dcc9@roar.ozlabs.ibm.com>
-References: <4c04b846-3da8-dc42-4fa6-30f72a5c2437@hartkopp.net>
-        <20161027154202.GE27017@al>
-        <alpine.DEB.2.20.1611071408040.24418@macbook-air>
-        <20161107213907.GB18092@al>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
+Date: Tue, 8 Nov 2016 10:30:42 +0100
+Message-ID: <20161108093042.GC3528@osiris>
+References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
+ <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
+ <20161104234459.GA18760@remoulade>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f195.google.com ([209.85.192.195]:35826 "EHLO
-        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751454AbcKHBu1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2016 20:50:27 -0500
-In-Reply-To: <20161107213907.GB18092@al>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Wu <peter@lekensteyn.nl>
-Cc: Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20161104234459.GA18760@remoulade>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 7 Nov 2016 22:39:07 +0100
-Peter Wu <peter@lekensteyn.nl> wrote:
-
-> On Mon, Nov 07, 2016 at 02:10:12PM -0500, Vince Weaver wrote:
-> > On Thu, 27 Oct 2016, Peter Wu wrote:
-> >   
-> > > I can confirm Olivers issue, the current mainline kernel fails to boot
-> > > on kernels with CONFIG_MODVERSIONS=y. Bisection points to:
+On Fri, Nov 04, 2016 at 11:44:59PM +0000, Mark Rutland wrote:
+> On Wed, Nov 02, 2016 at 12:15:50PM -0700, Dave Hansen wrote:
+> > On 10/31/2016 05:08 PM, Mark Rutland wrote:
+> > > When an architecture does not select CONFIG_ARCH_HAS_PKEYS, the pkey_alloc
+> > > syscall will return -ENOSPC for all (otherwise well-formed) requests, as the
+> > > generic implementation of mm_pkey_alloc() returns -1. The other pkey syscalls
+> > > perform some work before always failing, in a similar fashion.
 > > > 
-> > >     commit 784d5699eddc55878627da20d3fe0c8542e2f1a2
-> > >     Author: Al Viro <viro@zeniv.linux.org.uk>
-> > >     Date:   Mon Jan 11 11:04:34 2016 -0500  
-> > > > WARNING: "memset" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > WARNING: "__fentry__" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > WARNING: "memcpy" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > WARNING: "__sw_hweight32" [sound/usb/snd-usbmidi-lib.ko] has no CRC!  
+> > > This implies the absence of keys, but otherwise functional pkey support. This
+> > > is odd, since the architecture provides no such support. Instead, it would be
+> > > preferable to indicate that the syscall is not implemented, since this is
+> > > effectively the case.
 > > 
-> > Has any progress been made with this problem?
-> > 
-> > I'm also encountering it on my debian-unstable box on any kernel more 
-> > recent than 4.9-rc1 (up to and including 4.9-rc4).  I am glad someone 
-> > managed to isolate it as I was unable to get a clean bisect.
-> > 
-> > Vince  
+> > This makes the behavior of an x86 cpu without pkeys and an arm cpu
+> > without pkeys differ.  Is that what we want?
 > 
-> The original kbuild issue went in via
-> merge commit 84d69848c97faab0c25aa2667b273404d2e2a64a which notes:
+> My rationale was that we have no idea whether architectures will have pkey
+> support in future, and if/when they do, we may have to apply additional checks
+> anyhow. i.e. in cases we'd return -ENOSPC today, we might want to return
+> another error code.
 > 
->  - EXPORT_SYMBOL for asm source by Al Viro.
+> Returning -ENOSYS retains the current behaviour, and allows us to handle that
+> ABI issue when we know what architecture support looks like.
 > 
->    This does bring a regression, because genksyms no longer generates
->    checksums for these symbols (CONFIG_MODVERSIONS). Nick Piggin is
->    working on a patch to fix this.
-> 
->    Plus, we are talking about functions like strcpy(), which rarely
->    change prototypes.
-> 
-> Adding Nicholas in the cc, hopefully he can give a status update.
+> Other architectures not using the generic syscalls seem to handle this with
+> -ENOSYS, e.g. parisc with commit 18088db042dd9ae2, so there's differing
+> behaviour regardless of arm specifically.
 
-I think Michal has everything needed now for the kbuild bits. The arch
-specific patches can go via arch trees quite easily (there is no hard
-dependency either way). This is the kbuild bit:
+The three system calls won't return -ENOSYS on architectures which decided
+to ignore them (like with with above mentioned commit), since they haven't
+allocated a system call number at all.
 
-https://git.kernel.org/cgit/linux/kernel/git/mmarek/kbuild.git/commit/?h=rc-fixes&id=4efca4ed05cbdfd13ec3e8cb623fb77d6e4ab187
+Right now we have one architecture where these three system calls work if
+the cpu supports the feature (x86).
 
-And it also needs this incremental bit not in Michal's tree yet:
+Two architectures (arm, mips) have wired them up and thus allocated system
+call numbers, even though they don't have ARCH_HAS_PKEYS set. Which seems a
+bit pointless.
 
----
- scripts/Makefile.build | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Three architectures (parisc, powerpc, s390) decided to ignore the system
+calls completely, but still have the pkey code linked into the kernel
+image.
 
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 3e223c2..05c6bb4 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -332,7 +332,7 @@ cmd_gensymtypes_S =                                                         \
-     (echo "\#include <linux/kernel.h>" ;                                    \
-      echo "\#include <asm/asm-prototypes.h>" ;                              \
-     $(CPP) $(a_flags) $< |                                                  \
--     grep ^___EXPORT_SYMBOL |                                               \
-+     grep ___EXPORT_SYMBOL |                                                \
-      sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
-     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
-     $(GENKSYMS) $(if $(1), -T $(2))                                         \
--- 
-2.9.3
+imho the generic pkey code should be ifdef'ed with CONFIG_ARCH_HAS_PKEYS.
+Otherwise only dead code will be linked and increase the kernel image size
+for no good reason.
