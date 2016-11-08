@@ -1,75 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0077.outbound.protection.outlook.com ([104.47.42.77]:15515
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S933145AbcKHMJz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Nov 2016 07:09:55 -0500
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [Resend PATCH v2 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
-Date: Tue, 8 Nov 2016 16:02:58 +0530
-Message-ID: <1478601180-20932-1-git-send-email-ynorov@caviumnetworks.com>
+Received: from mga01.intel.com ([192.55.52.88]:31803 "EHLO mga01.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751696AbcKHSjF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Nov 2016 13:39:05 -0500
+Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
+References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
+ <c716d515-409f-4092-73d2-1a81db6c1ba3@linux.intel.com>
+ <20161104234459.GA18760@remoulade> <20161108093042.GC3528@osiris>
+ <20161108104112.GM1041@n2100.armlinux.org.uk> <20161108112400.GE3528@osiris>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <c4d177e7-c707-93aa-20be-5959d5193655@linux.intel.com>
+Date: Tue, 8 Nov 2016 10:39:04 -0800
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20161108112400.GE3528@osiris>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
-Cc: cmetcalf@ezchip.com, tglx@linutronix.de, Yury Norov <ynorov@caviumnetworks.com>
-Message-ID: <20161108103258.7bCXf_o1ptAfTD4l0koRVFjqz42-9BUK3nuYEhK-F3Q@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>, Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
+Message-ID: <20161108183904.yD1U4jFQTzigU0zKK4X60ntJldg0JXdt0zob9SWQ6vk@z>
 
-32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
-are 64-bit length only. This patchset makes 64-bit length the default
-for off_t, and reverts it for old architectures where needed. It does not
-change the behaviour of existing code.
+On 11/08/2016 03:24 AM, Heiko Carstens wrote:
+> Something like this:
+> 
+> diff --git a/mm/mprotect.c b/mm/mprotect.c
+> index 11936526b08b..9fb86b107e49 100644
+> --- a/mm/mprotect.c
+> +++ b/mm/mprotect.c
+> @@ -484,6 +484,8 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
+>  	return do_mprotect_pkey(start, len, prot, -1);
+>  }
+>  
+> +#ifdef CONFIG_ARCH_HAS_PKEYS
+> +
+>  SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
+>  		unsigned long, prot, int, pkey)
+>  {
+> @@ -534,3 +536,4 @@ SYSCALL_DEFINE1(pkey_free, int, pkey)
+>  	 */
+>  	return ret;
+>  }
+> +#endif /* CONFIG_ARCH_HAS_PKEYS */
 
-First patch makes all compat users of generic unistd.h to use non-compat
-versions of openat and open_by_handle_at. Tile that requires old behaviour
-is turned around.
-
-Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
-but enables it explicitly for existing 32-bit architectures.
-
-Original submission:
-http://lists-archives.com/linux-kernel/28471158-abi-handle-32-bit-off_t-for-32-bit-and-compat-abis.html
-
-This is the same series that I sent in Dec 29. In arm64 ilp32 this patches are
-melded, but Chris asked to split it. So I decided to resend old series. Here is
-no changes, it's only rebased on 4.9-rc4.
-
-Yury Norov (2):
-  compat ABI: use non-compat openat and open_by_handle_at variants
-  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-
- arch/Kconfig                      | 4 ++++
- arch/arc/Kconfig                  | 1 +
- arch/arm/Kconfig                  | 1 +
- arch/blackfin/Kconfig             | 1 +
- arch/cris/Kconfig                 | 1 +
- arch/frv/Kconfig                  | 1 +
- arch/h8300/Kconfig                | 1 +
- arch/hexagon/Kconfig              | 1 +
- arch/m32r/Kconfig                 | 1 +
- arch/m68k/Kconfig                 | 1 +
- arch/metag/Kconfig                | 1 +
- arch/microblaze/Kconfig           | 1 +
- arch/mips/Kconfig                 | 1 +
- arch/mn10300/Kconfig              | 1 +
- arch/nios2/Kconfig                | 1 +
- arch/openrisc/Kconfig             | 1 +
- arch/parisc/Kconfig               | 1 +
- arch/powerpc/Kconfig              | 1 +
- arch/score/Kconfig                | 1 +
- arch/sh/Kconfig                   | 1 +
- arch/sparc/Kconfig                | 1 +
- arch/tile/Kconfig                 | 1 +
- arch/tile/kernel/compat.c         | 3 +++
- arch/unicore32/Kconfig            | 1 +
- arch/x86/Kconfig                  | 1 +
- arch/x86/um/Kconfig               | 1 +
- arch/xtensa/Kconfig               | 1 +
- include/linux/fcntl.h             | 2 +-
- include/uapi/asm-generic/unistd.h | 5 ++---
- 29 files changed, 35 insertions(+), 4 deletions(-)
-
--- 
-2.7.4
-
+That's fine with me, fwiw.  It ends up meaning that the config option
+changes whether we get -ENOSPC vs. -ENOSYS, so the x86_32 behavior will
+change, for instance.  But, I _think_ that's OK.
