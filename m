@@ -1,46 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:49357 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751449AbcKHMFu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Nov 2016 07:05:50 -0500
-Received: from pps.filterd (m0098419.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uA8C3we9092971
-        for <linux-arch@vger.kernel.org>; Tue, 8 Nov 2016 07:05:49 -0500
-Received: from e06smtp05.uk.ibm.com (e06smtp05.uk.ibm.com [195.75.94.101])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 26kd9m5nsh-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 08 Nov 2016 07:05:49 -0500
-Received: from localhost
-        by e06smtp05.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Tue, 8 Nov 2016 12:05:48 -0000
-Date: Tue, 8 Nov 2016 13:05:42 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH] mm: only enable sys_pkey* when ARCH_HAS_PKEYS
-References: <1477958904-9903-1-git-send-email-mark.rutland@arm.com>
- <20161104234459.GA18760@remoulade>
- <20161108093042.GC3528@osiris>
- <1596342.1rV5HksyDO@wuerfel>
+Received: from mail-by2nam03on0077.outbound.protection.outlook.com ([104.47.42.77]:15515
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S933145AbcKHMJz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Nov 2016 07:09:55 -0500
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [Resend PATCH v2 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
+Date: Tue, 8 Nov 2016 16:02:58 +0530
+Message-ID: <1478601180-20932-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1596342.1rV5HksyDO@wuerfel>
-Message-ID: <20161108120542.GG3528@osiris>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Rutland <mark.rutland@arm.com>, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@techsingularity.net>, Russell King <rmk+kernel@armlinux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, torvalds@linux-foundation.org
-Message-ID: <20161108120542.Z2QdSXEli2L-nrUEpV9BkmfUHJN4w3ssq564zxxymkw@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
+Cc: cmetcalf@ezchip.com, tglx@linutronix.de, Yury Norov <ynorov@caviumnetworks.com>
+Message-ID: <20161108103258.7bCXf_o1ptAfTD4l0koRVFjqz42-9BUK3nuYEhK-F3Q@z>
 
-On Tue, Nov 08, 2016 at 12:39:28PM +0100, Arnd Bergmann wrote:
-> On Tuesday, November 8, 2016 10:30:42 AM CET Heiko Carstens wrote:
-> > Three architectures (parisc, powerpc, s390) decided to ignore the system
-> > calls completely, but still have the pkey code linked into the kernel
-> > image.
-> 
-> Wouldn't it actually make sense to hook this up to the storage keys
-> in the s390 page tables?
+32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
+are 64-bit length only. This patchset makes 64-bit length the default
+for off_t, and reverts it for old architectures where needed. It does not
+change the behaviour of existing code.
 
-We have storage keys per _physical_ page. Not per page within the the table
-entries. So this doesn't work unfortunately.
+First patch makes all compat users of generic unistd.h to use non-compat
+versions of openat and open_by_handle_at. Tile that requires old behaviour
+is turned around.
+
+Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
+but enables it explicitly for existing 32-bit architectures.
+
+Original submission:
+http://lists-archives.com/linux-kernel/28471158-abi-handle-32-bit-off_t-for-32-bit-and-compat-abis.html
+
+This is the same series that I sent in Dec 29. In arm64 ilp32 this patches are
+melded, but Chris asked to split it. So I decided to resend old series. Here is
+no changes, it's only rebased on 4.9-rc4.
+
+Yury Norov (2):
+  compat ABI: use non-compat openat and open_by_handle_at variants
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 2 +-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 29 files changed, 35 insertions(+), 4 deletions(-)
+
+-- 
+2.7.4
 
