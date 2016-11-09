@@ -1,82 +1,65 @@
-From: <jacqueline.pike@gmail.com>
-Subject: 57913 linux-arch
-Date: Wed, 09 Nov 2016 02:55:42 -0000
-Message-ID: <147866014211.11001.12168042219662587376@wateen.net>
+From: Feng Tang <feng.tang@intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Date: Wed, 9 Nov 2016 11:54:18 +0800
+Message-ID: <20161109035418.GA18246@shbuild888>
+References: <20160809172057.GZ4329@intel.com>
+ <20161027172852.GE4617@intel.com>
+ <alpine.DEB.2.20.1610272035180.4913@nanos>
+ <20161027192006.GF4617@intel.com>
+ <alpine.DEB.2.20.1610272122510.4913@nanos>
+ <20161027203745.GH4617@intel.com>
+ <alpine.DEB.2.20.1610272238390.4913@nanos>
+ <20161028155603.GI4617@intel.com>
+ <alpine.DEB.2.20.1610282049500.5053@nanos>
+ <20161101204737.GB4617@intel.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="MESSAGE_79813630137323_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from WimaxUser3652-137.wateen.net ([110.36.52.138]:56423 "HELO
-        wateen.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-        id S1752564AbcKIC4h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 8 Nov 2016 21:56:37 -0500
-Content-Disposition: attachment
+Received: from mga04.intel.com ([192.55.52.120]:25167 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750953AbcKIDrS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 8 Nov 2016 22:47:18 -0500
+Content-Disposition: inline
+In-Reply-To: <20161101204737.GB4617@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Ville =?utf-8?B?U3lyasOkbMOk?= <ville.syrjala@linux.intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Feng Tang <feng.79.tang@gmail.com>, "Rafael J. Wysocki" <rafael@kernel.org>, "Wysocki, Rafael J" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Paul Turner <pjt@google.com>Linux Kernel Mailing List <linu>
 
-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
-DQAAAAA=
+On Wed, Nov 02, 2016 at 04:47:37AM +0800, Ville Syrjälä wrote:
+> On Fri, Oct 28, 2016 at 08:58:41PM +0200, Thomas Gleixner wrote:
+> > On Fri, 28 Oct 2016, Ville Syrjälä wrote:
+> > > On Thu, Oct 27, 2016 at 10:41:18PM +0200, Thomas Gleixner wrote:
+> > > > On Thu, 27 Oct 2016, Ville Syrjälä wrote:
+> > > > > On Thu, Oct 27, 2016 at 09:25:05PM +0200, Thomas Gleixner wrote:
+> > > > > > So it would be interesting whether that hunk in resume_broadcast() is
+> > > > > > sufficient.
+> > > > > 
+> > > > > So far it looks like the answer is yes.
+> > > > > 
+> > > > > Looks to be about 5 seconds slower than acpi-idle in resuming, but
+> > > > > I suppose that's not all that surprising ;)
+> > > > 
+> > > > Well, set it to 1msec then. If that works reliably then we really can do
+> > > > that unconditionally. There is no harm in firing a useless timer during
+> > > > resume once.
+> > > 
+> > > I narrowed down the required timeout, and looks like 25ms is the
+> > > minimum that works. With 24ms I already started to have failures. So
+> > > maybe just bump it up by an order of magnitude to 250ms for some
+> > > safety margin?
+> 
+> I left the thing running for the weekend and it failed 26 out of 16057
+> times with the 25ms timeout. Looks like it takes ~5 minutes to resume
+> when it fails, but eventually it does come back.
+> 
+
+Just came back from a travel. Yes, the 5 minutes delay may be due to the
+expiration of the HPET timer, counting from 0 to 0xffffffff for a 13M
+frequencey HPET takes about 300 seconds. After resume, it seems nobody
+arms it so my old patch forces to arm one event. 
+
+Thanks,
+Feng
