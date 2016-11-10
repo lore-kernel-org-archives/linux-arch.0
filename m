@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0073.outbound.protection.outlook.com ([104.47.37.73]:25039
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0073.outbound.protection.outlook.com ([104.47.34.73]:5120
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932295AbcKJAvl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:51:41 -0500
+        id S1754509AbcKJAvK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:51:10 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 14/20] iommu/amd: Disable AMD IOMMU if memory
- encryption is active
-Date: Wed, 9 Nov 2016 18:37:32 -0600
-Message-ID: <20161110003731.3280.67205.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 05/20] x86: Add Secure Memory Encryption (SME) support
+Date: Wed, 9 Nov 2016 18:35:25 -0600
+Message-ID: <20161110003524.3280.94337.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,37 +17,151 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003732.c9veQnCYBhUdHIBUGhoWl85plMK9XrujT6k7a5P6DOk@z>
+Message-ID: <20161110003525.qTyQwaLfv3KaAvwj2GcMq1FqWA9Lc8Vyzz5Qfc5MOHk@z>
 
-For now, disable the AMD IOMMU if memory encryption is active. A future
-patch will re-enable the function with full memory encryption support.
+Add support for Secure Memory Encryption (SME). This initial support
+provides a Kconfig entry to build the SME support into the kernel and
+defines the memory encryption mask that will be used in subsequent
+patches to mark pages as encrypted.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- drivers/iommu/amd_iommu_init.c |    5 +++++
- 1 file changed, 5 insertions(+)
+ arch/x86/Kconfig                   |    9 +++++++++
+ arch/x86/include/asm/mem_encrypt.h |   30 ++++++++++++++++++++++++++++++
+ arch/x86/mm/Makefile               |    1 +
+ arch/x86/mm/mem_encrypt.c          |   21 +++++++++++++++++++++
+ include/linux/mem_encrypt.h        |   30 ++++++++++++++++++++++++++++++
+ 5 files changed, 91 insertions(+)
+ create mode 100644 arch/x86/include/asm/mem_encrypt.h
+ create mode 100644 arch/x86/mm/mem_encrypt.c
+ create mode 100644 include/linux/mem_encrypt.h
 
-diff --git a/drivers/iommu/amd_iommu_init.c b/drivers/iommu/amd_iommu_init.c
-index 59741ea..136a24e 100644
---- a/drivers/iommu/amd_iommu_init.c
-+++ b/drivers/iommu/amd_iommu_init.c
-@@ -27,6 +27,7 @@
- #include <linux/amd-iommu.h>
- #include <linux/export.h>
- #include <linux/iommu.h>
-+#include <linux/mem_encrypt.h>
- #include <asm/pci-direct.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
-@@ -2388,6 +2389,10 @@ int __init amd_iommu_detect(void)
- 	if (amd_iommu_disabled)
- 		return -ENODEV;
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 9b2d50a..cc57bc0 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1368,6 +1368,15 @@ config X86_DIRECT_GBPAGES
+ 	  supports them), so don't confuse the user by printing
+ 	  that we have them enabled.
  
-+	/* For now, disable the IOMMU if SME is active */
-+	if (sme_me_mask)
-+		return -ENODEV;
++config AMD_MEM_ENCRYPT
++	bool "AMD Secure Memory Encryption support"
++	depends on X86_64 && CPU_SUP_AMD
++	---help---
++	  Say yes to enable the encryption of system memory. This requires
++	  an AMD processor that supports Secure Memory Encryption (SME).
++	  The encryption of system memory is disabled by default but can be
++	  enabled with the mem_encrypt=on command line option.
 +
- 	ret = iommu_go_to_state(IOMMU_IVRS_DETECTED);
- 	if (ret)
- 		return ret;
+ # Common NUMA Features
+ config NUMA
+ 	bool "Numa Memory Allocation and Scheduler Support"
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+new file mode 100644
+index 0000000..a105796
+--- /dev/null
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -0,0 +1,30 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __X86_MEM_ENCRYPT_H__
++#define __X86_MEM_ENCRYPT_H__
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++
++extern unsigned long sme_me_mask;
++
++#else	/* !CONFIG_AMD_MEM_ENCRYPT */
++
++#define sme_me_mask	0UL
++
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
++#endif	/* __ASSEMBLY__ */
++
++#endif	/* __X86_MEM_ENCRYPT_H__ */
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index 96d2b84..44d4d21 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -39,3 +39,4 @@ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
+ obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
+ obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+ 
++obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+new file mode 100644
+index 0000000..1ed75a4
+--- /dev/null
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -0,0 +1,21 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/linkage.h>
++
++/*
++ * Since sme_me_mask is set early in the boot process it must reside in
++ * the .data section so as not to be zeroed out when the .bss section is
++ * later cleared.
++ */
++unsigned long sme_me_mask __section(.data) = 0;
++EXPORT_SYMBOL_GPL(sme_me_mask);
+diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
+new file mode 100644
+index 0000000..9fed068
+--- /dev/null
++++ b/include/linux/mem_encrypt.h
+@@ -0,0 +1,30 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __MEM_ENCRYPT_H__
++#define __MEM_ENCRYPT_H__
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++
++#include <asm/mem_encrypt.h>
++
++#else	/* !CONFIG_AMD_MEM_ENCRYPT */
++
++#define sme_me_mask	0UL
++
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++
++#endif	/* __ASSEMBLY__ */
++
++#endif	/* __MEM_ENCRYPT_H__ */
 
