@@ -1,59 +1,47 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v3 02/20] x86: Set the write-protect cache mode for
- full PAT support
-Date: Thu, 10 Nov 2016 14:14:00 +0100
-Message-ID: <20161110131400.bmeoojsrin2zi2w2@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003448.3280.27573.stgit@tlendack-t1.amdoffice.net>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 0/2] THREAD_INFO_IN_TASK prep work for arm64+s390
+Date: Thu, 10 Nov 2016 18:13:07 +0000
+Message-ID: <20161110181307.GC10137@leverpostej>
+References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
+ <20161102155020.GA17547@remoulade>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:56360 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751674AbcKJSNp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 10 Nov 2016 13:13:45 -0500
 Content-Disposition: inline
-In-Reply-To: <20161110003448.3280.27573.stgit@tlendack-t1.amdoffice.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>, Toshi Kani <toshi.kani@hpe.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20161102155020.GA17547@remoulade>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: heiko.carstens@de.ibm.com, catalin.marinas@arm.com
+Cc: linux-arch@vger.kernel.org, akpm@linux-foundation.org, keescook@chromium.org, luto@kernel.org, linux-kernel@vger.kernel.org
 
-+ Toshi.
+Hi Heiko,
 
-On Wed, Nov 09, 2016 at 06:34:48PM -0600, Tom Lendacky wrote:
-> For processors that support PAT, set the write-protect cache mode
-> (_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+On Wed, Nov 02, 2016 at 03:56:26PM +0000, Mark Rutland wrote:
+> On Wed, Oct 26, 2016 at 06:43:05PM +0100, Mark Rutland wrote:
+> > Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
+> > respectively, and we're both targetting v4.10.
+> > 
+> > These are the common core changes which we both require. I've put together a
+> > branch [1,2] based on v4.9-rc2. I intend to tag this at some point next week so
+> > that Heiko and I have a stable base.
 > 
-> Acked-by: Borislav Petkov <bp@suse.de>
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/mm/pat.c |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+> As a heads-up, I've collated the tags I've received in the last few days, along
+> with the comment Andy requested in the v1 thread, and tagged this as
+> core-ti-stack-split [1].
 > 
-> diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-> index 170cc4f..87e8952 100644
-> --- a/arch/x86/mm/pat.c
-> +++ b/arch/x86/mm/pat.c
-> @@ -355,7 +355,7 @@ void pat_init(void)
->  		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
->  		 *      011    3    UC : _PAGE_CACHE_MODE_UC
->  		 *      100    4    WB : Reserved
-> -		 *      101    5    WC : Reserved
-> +		 *      101    5    WP : _PAGE_CACHE_MODE_WP
->  		 *      110    6    UC-: Reserved
->  		 *      111    7    WT : _PAGE_CACHE_MODE_WT
->  		 *
-> @@ -363,7 +363,7 @@ void pat_init(void)
->  		 * corresponding types in the presence of PAT errata.
->  		 */
->  		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
-> -		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
-> +		      PAT(4, WB) | PAT(5, WP) | PAT(6, UC_MINUS) | PAT(7, WT);
->  	}
->  
->  	if (!boot_cpu_done) {
+> Thanks,
+> Mark.
 > 
-> 
+> [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core-ti-stack-split
 
--- 
-Regards/Gruss,
-    Boris.
+I believe that Catalin's hoping to take my arm64 patches for v4.10,
+using the above tag as a base.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+What's the plan for s390? Are you happy to do the same?
+
+Thanks,
+Mark.
