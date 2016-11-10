@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0073.outbound.protection.outlook.com ([104.47.34.73]:5120
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-bl2nam02on0059.outbound.protection.outlook.com ([104.47.38.59]:60527
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754509AbcKJAvK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:51:10 -0500
+        id S1752796AbcKJAwc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:52:32 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 05/20] x86: Add Secure Memory Encryption (SME) support
-Date: Wed, 9 Nov 2016 18:35:25 -0600
-Message-ID: <20161110003524.3280.94337.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 17/20] x86/kvm: Enable Secure Memory Encryption of
+ nested page tables
+Date: Wed, 9 Nov 2016 18:38:05 -0600
+Message-ID: <20161110003805.3280.49182.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,151 +18,113 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003525.qTyQwaLfv3KaAvwj2GcMq1FqWA9Lc8Vyzz5Qfc5MOHk@z>
+Message-ID: <20161110003805.uIj0JNjsfdB5XpFjZxwPVUoEJASej80zBiwrjoaE8bs@z>
 
-Add support for Secure Memory Encryption (SME). This initial support
-provides a Kconfig entry to build the SME support into the kernel and
-defines the memory encryption mask that will be used in subsequent
-patches to mark pages as encrypted.
+Update the KVM support to include the memory encryption mask when creating
+and using nested page tables.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/Kconfig                   |    9 +++++++++
- arch/x86/include/asm/mem_encrypt.h |   30 ++++++++++++++++++++++++++++++
- arch/x86/mm/Makefile               |    1 +
- arch/x86/mm/mem_encrypt.c          |   21 +++++++++++++++++++++
- include/linux/mem_encrypt.h        |   30 ++++++++++++++++++++++++++++++
- 5 files changed, 91 insertions(+)
- create mode 100644 arch/x86/include/asm/mem_encrypt.h
- create mode 100644 arch/x86/mm/mem_encrypt.c
- create mode 100644 include/linux/mem_encrypt.h
+ arch/x86/include/asm/kvm_host.h |    3 ++-
+ arch/x86/kvm/mmu.c              |    8 ++++++--
+ arch/x86/kvm/vmx.c              |    3 ++-
+ arch/x86/kvm/x86.c              |    3 ++-
+ 4 files changed, 12 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 9b2d50a..cc57bc0 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1368,6 +1368,15 @@ config X86_DIRECT_GBPAGES
- 	  supports them), so don't confuse the user by printing
- 	  that we have them enabled.
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index 33ae3a4..c51c1cb 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -1039,7 +1039,8 @@ void kvm_mmu_setup(struct kvm_vcpu *vcpu);
+ void kvm_mmu_init_vm(struct kvm *kvm);
+ void kvm_mmu_uninit_vm(struct kvm *kvm);
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+-		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask);
++		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
++		u64 me_mask);
  
-+config AMD_MEM_ENCRYPT
-+	bool "AMD Secure Memory Encryption support"
-+	depends on X86_64 && CPU_SUP_AMD
-+	---help---
-+	  Say yes to enable the encryption of system memory. This requires
-+	  an AMD processor that supports Secure Memory Encryption (SME).
-+	  The encryption of system memory is disabled by default but can be
-+	  enabled with the mem_encrypt=on command line option.
-+
- # Common NUMA Features
- config NUMA
- 	bool "Numa Memory Allocation and Scheduler Support"
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-new file mode 100644
-index 0000000..a105796
---- /dev/null
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -0,0 +1,30 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __X86_MEM_ENCRYPT_H__
-+#define __X86_MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
-+extern unsigned long sme_me_mask;
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#define sme_me_mask	0UL
-+
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
-+#endif	/* __ASSEMBLY__ */
-+
-+#endif	/* __X86_MEM_ENCRYPT_H__ */
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index 96d2b84..44d4d21 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -39,3 +39,4 @@ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
- obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
- obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+ void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
+ void kvm_mmu_slot_remove_write_access(struct kvm *kvm,
+diff --git a/arch/x86/kvm/mmu.c b/arch/x86/kvm/mmu.c
+index 3d4cc8cc..a7040f4 100644
+--- a/arch/x86/kvm/mmu.c
++++ b/arch/x86/kvm/mmu.c
+@@ -122,7 +122,7 @@ module_param(dbg, bool, 0644);
+ 					    * PT32_LEVEL_BITS))) - 1))
  
-+obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-new file mode 100644
-index 0000000..1ed75a4
---- /dev/null
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -0,0 +1,21 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/linkage.h>
-+
-+/*
-+ * Since sme_me_mask is set early in the boot process it must reside in
-+ * the .data section so as not to be zeroed out when the .bss section is
-+ * later cleared.
-+ */
-+unsigned long sme_me_mask __section(.data) = 0;
-+EXPORT_SYMBOL_GPL(sme_me_mask);
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-new file mode 100644
-index 0000000..9fed068
---- /dev/null
-+++ b/include/linux/mem_encrypt.h
-@@ -0,0 +1,30 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __MEM_ENCRYPT_H__
-+#define __MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
+ #define PT64_PERM_MASK (PT_PRESENT_MASK | PT_WRITABLE_MASK | shadow_user_mask \
+-			| shadow_x_mask | shadow_nx_mask)
++			| shadow_x_mask | shadow_nx_mask | shadow_me_mask)
+ 
+ #define ACC_EXEC_MASK    1
+ #define ACC_WRITE_MASK   PT_WRITABLE_MASK
+@@ -177,6 +177,7 @@ static u64 __read_mostly shadow_accessed_mask;
+ static u64 __read_mostly shadow_dirty_mask;
+ static u64 __read_mostly shadow_mmio_mask;
+ static u64 __read_mostly shadow_present_mask;
++static u64 __read_mostly shadow_me_mask;
+ 
+ static void mmu_spte_set(u64 *sptep, u64 spte);
+ static void mmu_free_roots(struct kvm_vcpu *vcpu);
+@@ -284,7 +285,8 @@ static bool check_mmio_spte(struct kvm_vcpu *vcpu, u64 spte)
+ }
+ 
+ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+-		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask)
++		u64 dirty_mask, u64 nx_mask, u64 x_mask, u64 p_mask,
++		u64 me_mask)
+ {
+ 	shadow_user_mask = user_mask;
+ 	shadow_accessed_mask = accessed_mask;
+@@ -292,6 +294,7 @@ void kvm_mmu_set_mask_ptes(u64 user_mask, u64 accessed_mask,
+ 	shadow_nx_mask = nx_mask;
+ 	shadow_x_mask = x_mask;
+ 	shadow_present_mask = p_mask;
++	shadow_me_mask = me_mask;
+ }
+ EXPORT_SYMBOL_GPL(kvm_mmu_set_mask_ptes);
+ 
+@@ -2553,6 +2556,7 @@ static int set_spte(struct kvm_vcpu *vcpu, u64 *sptep,
+ 		pte_access &= ~ACC_WRITE_MASK;
+ 
+ 	spte |= (u64)pfn << PAGE_SHIFT;
++	spte |= shadow_me_mask;
+ 
+ 	if (pte_access & ACC_WRITE_MASK) {
+ 
+diff --git a/arch/x86/kvm/vmx.c b/arch/x86/kvm/vmx.c
+index 121fdf6..1ae30c2 100644
+--- a/arch/x86/kvm/vmx.c
++++ b/arch/x86/kvm/vmx.c
+@@ -6482,7 +6482,8 @@ static __init int hardware_setup(void)
+ 			(enable_ept_ad_bits) ? VMX_EPT_DIRTY_BIT : 0ull,
+ 			0ull, VMX_EPT_EXECUTABLE_MASK,
+ 			cpu_has_vmx_ept_execute_only() ?
+-				      0ull : VMX_EPT_READABLE_MASK);
++				      0ull : VMX_EPT_READABLE_MASK,
++			0ull);
+ 		ept_set_mmio_spte_mask();
+ 		kvm_enable_tdp();
+ 	} else
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 2c7e775..3b4d967 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -65,6 +65,7 @@
+ #include <asm/pvclock.h>
+ #include <asm/div64.h>
+ #include <asm/irq_remapping.h>
 +#include <asm/mem_encrypt.h>
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#define sme_me_mask	0UL
-+
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
-+#endif	/* __ASSEMBLY__ */
-+
-+#endif	/* __MEM_ENCRYPT_H__ */
+ 
+ #define CREATE_TRACE_POINTS
+ #include "trace.h"
+@@ -5875,7 +5876,7 @@ int kvm_arch_init(void *opaque)
+ 
+ 	kvm_mmu_set_mask_ptes(PT_USER_MASK, PT_ACCESSED_MASK,
+ 			PT_DIRTY_MASK, PT64_NX_MASK, 0,
+-			PT_PRESENT_MASK);
++			PT_PRESENT_MASK, sme_me_mask);
+ 	kvm_timer_init();
+ 
+ 	perf_register_guest_info_callbacks(&kvm_guest_cbs);
 
