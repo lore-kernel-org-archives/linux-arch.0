@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0059.outbound.protection.outlook.com ([104.47.34.59]:15946
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0059.outbound.protection.outlook.com ([104.47.32.59]:19616
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754219AbcKJAxM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:53:12 -0500
+        id S932219AbcKJAve (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:51:34 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 15/20] x86: Check for memory encryption on the APs
-Date: Wed, 9 Nov 2016 18:37:40 -0600
-Message-ID: <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 11/20] x86: Add support for changing memory
+ encryption attribute
+Date: Wed, 9 Nov 2016 18:36:55 -0600
+Message-ID: <20161110003655.3280.57333.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,112 +18,214 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003740.aQ5Yozc4szT6bnp_GoOuRHbWdkCdCQjbfsuUnKu1SpA@z>
+Message-ID: <20161110003655.6qi25r8_u3JNlu1BXFLlG8xyDfbXKyOS7sUedLPMOJI@z>
 
-Add support to check if memory encryption is active in the kernel and that
-it has been enabled on the AP. If memory encryption is active in the kernel
-but has not been enabled on the AP then do not allow the AP to continue
-start up.
+This patch adds support to be change the memory encryption attribute for
+one or more memory pages.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/realmode.h      |   12 ++++++++++++
- arch/x86/realmode/init.c             |    4 ++++
- arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
- 3 files changed, 35 insertions(+)
+ arch/x86/include/asm/cacheflush.h  |    3 +
+ arch/x86/include/asm/mem_encrypt.h |   13 ++++++
+ arch/x86/mm/mem_encrypt.c          |   43 +++++++++++++++++++++
+ arch/x86/mm/pageattr.c             |   73 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 132 insertions(+)
 
-diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
-index 230e190..850dbe0 100644
---- a/arch/x86/include/asm/realmode.h
-+++ b/arch/x86/include/asm/realmode.h
-@@ -1,6 +1,15 @@
- #ifndef _ARCH_X86_REALMODE_H
- #define _ARCH_X86_REALMODE_H
+diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
+index 61518cf..bfb08e5 100644
+--- a/arch/x86/include/asm/cacheflush.h
++++ b/arch/x86/include/asm/cacheflush.h
+@@ -13,6 +13,7 @@
+  * Executability : eXeutable, NoteXecutable
+  * Read/Write    : ReadOnly, ReadWrite
+  * Presence      : NotPresent
++ * Encryption    : ENCrypted, DECrypted
+  *
+  * Within a category, the attributes are mutually exclusive.
+  *
+@@ -48,6 +49,8 @@ int set_memory_ro(unsigned long addr, int numpages);
+ int set_memory_rw(unsigned long addr, int numpages);
+ int set_memory_np(unsigned long addr, int numpages);
+ int set_memory_4k(unsigned long addr, int numpages);
++int set_memory_enc(unsigned long addr, int numpages);
++int set_memory_dec(unsigned long addr, int numpages);
  
-+/*
-+ * Flag bit definitions for use with the flags field of the trampoline header
-+ * when configured for X86_64
-+ */
-+#define TH_FLAGS_SME_ENABLE_BIT		0
-+#define TH_FLAGS_SME_ENABLE		BIT_ULL(TH_FLAGS_SME_ENABLE_BIT)
+ int set_memory_array_uc(unsigned long *addr, int addrinarray);
+ int set_memory_array_wc(unsigned long *addr, int addrinarray);
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 0b40f79..d544481 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -21,6 +21,9 @@
+ 
+ extern unsigned long sme_me_mask;
+ 
++int sme_set_mem_enc(void *vaddr, unsigned long size);
++int sme_set_mem_unenc(void *vaddr, unsigned long size);
 +
-+#ifndef __ASSEMBLY__
+ void __init sme_early_mem_enc(resource_size_t paddr,
+ 			      unsigned long size);
+ void __init sme_early_mem_dec(resource_size_t paddr,
+@@ -39,6 +42,16 @@ void __init sme_early_init(void);
+ 
+ #define sme_me_mask	0UL
+ 
++static inline int sme_set_mem_enc(void *vaddr, unsigned long size)
++{
++	return 0;
++}
 +
- #include <linux/types.h>
- #include <asm/io.h>
- 
-@@ -38,6 +47,7 @@ struct trampoline_header {
- 	u64 start;
- 	u64 efer;
- 	u32 cr4;
-+	u32 flags;
- #endif
- };
- 
-@@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
- void set_real_mode_mem(phys_addr_t mem, size_t size);
- void reserve_real_mode(void);
- 
-+#endif /* __ASSEMBLY__ */
++static inline int sme_set_mem_unenc(void *vaddr, unsigned long size)
++{
++	return 0;
++}
 +
- #endif /* _ARCH_X86_REALMODE_H */
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index 44ed32a..a8e7ebe 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
- 	trampoline_cr4_features = &trampoline_header->cr4;
- 	*trampoline_cr4_features = mmu_cr4_features;
+ static inline void __init sme_early_mem_enc(resource_size_t paddr,
+ 					    unsigned long size)
+ {
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index 411210d..41cfdf9 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -18,6 +18,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/setup.h>
+ #include <asm/bootparam.h>
++#include <asm/cacheflush.h>
  
-+	trampoline_header->flags = 0;
-+	if (sme_me_mask)
-+		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
+ extern pmdval_t early_pmd_flags;
+ int __init __early_make_pgtable(unsigned long, pmdval_t);
+@@ -33,6 +34,48 @@ EXPORT_SYMBOL_GPL(sme_me_mask);
+ /* Buffer used for early in-place encryption by BSP, no locking needed */
+ static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
+ 
++int sme_set_mem_enc(void *vaddr, unsigned long size)
++{
++	unsigned long addr, numpages;
 +
- 	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
- 	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
- 	trampoline_pgd[511] = init_level4_pgt[511].pgd;
-diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-index dac7b20..94e29f4 100644
---- a/arch/x86/realmode/rm/trampoline_64.S
-+++ b/arch/x86/realmode/rm/trampoline_64.S
-@@ -30,6 +30,7 @@
- #include <asm/msr.h>
- #include <asm/segment.h>
- #include <asm/processor-flags.h>
-+#include <asm/realmode.h>
- #include "realmode.h"
- 
- 	.text
-@@ -92,6 +93,23 @@ ENTRY(startup_32)
- 	movl	%edx, %fs
- 	movl	%edx, %gs
- 
-+	/* Check for memory encryption support */
-+	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
-+	jnc	.Ldone
-+	movl	$MSR_K8_SYSCFG, %ecx
-+	rdmsr
-+	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-+	jc	.Ldone
++	if (!sme_me_mask)
++		return 0;
++
++	addr = (unsigned long)vaddr & PAGE_MASK;
++	numpages = PAGE_ALIGN(size) >> PAGE_SHIFT;
 +
 +	/*
-+	 * Memory encryption is enabled but the MSR has not been set on this
-+	 * CPU so we can't continue
++	 * The set_memory_xxx functions take an integer for numpages, make
++	 * sure it doesn't exceed that.
 +	 */
-+.Lno_sme:
-+	hlt
-+	jmp	.Lno_sme
-+.Ldone:
++	if (numpages > INT_MAX)
++		return -EINVAL;
 +
- 	movl	pa_tr_cr4, %eax
- 	movl	%eax, %cr4		# Enable PAE mode
++	return set_memory_enc(addr, numpages);
++}
++EXPORT_SYMBOL_GPL(sme_set_mem_enc);
++
++int sme_set_mem_unenc(void *vaddr, unsigned long size)
++{
++	unsigned long addr, numpages;
++
++	if (!sme_me_mask)
++		return 0;
++
++	addr = (unsigned long)vaddr & PAGE_MASK;
++	numpages = PAGE_ALIGN(size) >> PAGE_SHIFT;
++
++	/*
++	 * The set_memory_xxx functions take an integer for numpages, make
++	 * sure it doesn't exceed that.
++	 */
++	if (numpages > INT_MAX)
++		return -EINVAL;
++
++	return set_memory_dec(addr, numpages);
++}
++EXPORT_SYMBOL_GPL(sme_set_mem_unenc);
++
+ /*
+  * This routine does not change the underlying encryption setting of the
+  * page(s) that map this memory. It assumes that eventually the memory is
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index b8e6bb5..babf3a6 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -1729,6 +1729,79 @@ int set_memory_4k(unsigned long addr, int numpages)
+ 					__pgprot(0), 1, 0, NULL);
+ }
  
-@@ -147,6 +165,7 @@ GLOBAL(trampoline_header)
- 	tr_start:		.space	8
- 	GLOBAL(tr_efer)		.space	8
- 	GLOBAL(tr_cr4)		.space	4
-+	GLOBAL(tr_flags)	.space	4
- END(trampoline_header)
- 
- #include "trampoline_common.S"
++static int __set_memory_enc_dec(struct cpa_data *cpa)
++{
++	unsigned long addr;
++	int numpages;
++	int ret;
++
++	/* People should not be passing in unaligned addresses */
++	if (WARN_ONCE(*cpa->vaddr & ~PAGE_MASK,
++		      "misaligned address: %#lx\n", *cpa->vaddr))
++		*cpa->vaddr &= PAGE_MASK;
++
++	addr = *cpa->vaddr;
++	numpages = cpa->numpages;
++
++	/* Must avoid aliasing mappings in the highmem code */
++	kmap_flush_unused();
++	vm_unmap_aliases();
++
++	ret = __change_page_attr_set_clr(cpa, 1);
++
++	/* Check whether we really changed something */
++	if (!(cpa->flags & CPA_FLUSHTLB))
++		goto out;
++
++	/*
++	 * On success we use CLFLUSH, when the CPU supports it to
++	 * avoid the WBINVD.
++	 */
++	if (!ret && static_cpu_has(X86_FEATURE_CLFLUSH))
++		cpa_flush_range(addr, numpages, 1);
++	else
++		cpa_flush_all(1);
++
++out:
++	return ret;
++}
++
++int set_memory_enc(unsigned long addr, int numpages)
++{
++	struct cpa_data cpa;
++
++	if (!sme_me_mask)
++		return 0;
++
++	memset(&cpa, 0, sizeof(cpa));
++	cpa.vaddr = &addr;
++	cpa.numpages = numpages;
++	cpa.mask_set = __pgprot(_PAGE_ENC);
++	cpa.mask_clr = __pgprot(0);
++	cpa.pgd = init_mm.pgd;
++
++	return __set_memory_enc_dec(&cpa);
++}
++EXPORT_SYMBOL(set_memory_enc);
++
++int set_memory_dec(unsigned long addr, int numpages)
++{
++	struct cpa_data cpa;
++
++	if (!sme_me_mask)
++		return 0;
++
++	memset(&cpa, 0, sizeof(cpa));
++	cpa.vaddr = &addr;
++	cpa.numpages = numpages;
++	cpa.mask_set = __pgprot(0);
++	cpa.mask_clr = __pgprot(_PAGE_ENC);
++	cpa.pgd = init_mm.pgd;
++
++	return __set_memory_enc_dec(&cpa);
++}
++EXPORT_SYMBOL(set_memory_dec);
++
+ int set_pages_uc(struct page *page, int numpages)
+ {
+ 	unsigned long addr = (unsigned long)page_address(page);
 
