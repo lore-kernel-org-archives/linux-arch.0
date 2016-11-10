@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0072.outbound.protection.outlook.com ([104.47.38.72]:14424
+Received: from mail-bl2nam02on0048.outbound.protection.outlook.com ([104.47.38.48]:42515
         "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754365AbcKJAtc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:49:32 -0500
+        id S1754500AbcKJAuG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:50:06 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 01/20] x86: Documentation for AMD Secure Memory
- Encryption (SME)
-Date: Wed, 9 Nov 2016 18:34:39 -0600
-Message-ID: <20161110003439.3280.82634.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 06/20] x86: Add support to enable SME during early
+ boot processing
+Date: Wed, 9 Nov 2016 18:35:43 -0600
+Message-ID: <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,78 +18,146 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003439.cnBkGxnQ9u7z5Pt8SkCvVH29r6bwz3Xsbt0D1b4ElMM@z>
+Message-ID: <20161110003543.c4lT_RX3pegG7BlJ6ZrnRXf1uZLwx2wOeVaBLeKDGPc@z>
 
-This patch adds a Documenation entry to decribe the AMD Secure Memory
-Encryption (SME) feature.
+This patch adds support to the early boot code to use Secure Memory
+Encryption (SME).  Support is added to update the early pagetables with
+the memory encryption mask and to encrypt the kernel in place.
+
+The routines to set the encryption mask and perform the encryption are
+stub routines for now with full function to be added in a later patch.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- Documentation/kernel-parameters.txt         |    5 +++
- Documentation/x86/amd-memory-encryption.txt |   40 +++++++++++++++++++++++++++
- 2 files changed, 45 insertions(+)
- create mode 100644 Documentation/x86/amd-memory-encryption.txt
+ arch/x86/kernel/Makefile           |    2 ++
+ arch/x86/kernel/head_64.S          |   35 ++++++++++++++++++++++++++++++++++-
+ arch/x86/kernel/mem_encrypt_init.c |   29 +++++++++++++++++++++++++++++
+ 3 files changed, 65 insertions(+), 1 deletion(-)
+ create mode 100644 arch/x86/kernel/mem_encrypt_init.c
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 030e9e9..4c730b0 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -2282,6 +2282,11 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 			memory contents and reserves bad memory
- 			regions that are detected.
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 45257cf..27e22f4 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -141,4 +141,6 @@ ifeq ($(CONFIG_X86_64),y)
  
-+	mem_encrypt=	[X86-64] Enable AMD Secure Memory Encryption (SME)
-+			Memory encryption is disabled by default, using this
-+			switch, memory encryption can be enabled.
-+			on: enable memory encryption
+ 	obj-$(CONFIG_PCI_MMCONFIG)	+= mmconf-fam10h_64.o
+ 	obj-y				+= vsmp_64.o
 +
- 	meye.*=		[HW] Set MotionEye Camera parameters
- 			See Documentation/video4linux/meye.txt.
++	obj-y				+= mem_encrypt_init.o
+ endif
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index c98a559..9a28aad 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -95,6 +95,17 @@ startup_64:
+ 	jnz	bad_address
  
-diff --git a/Documentation/x86/amd-memory-encryption.txt b/Documentation/x86/amd-memory-encryption.txt
+ 	/*
++	 * Enable Secure Memory Encryption (if available).  Save the mask
++	 * in %r12 for later use and add the memory encryption mask to %rbp
++	 * to include it in the page table fixups.
++	 */
++	push	%rsi
++	call	sme_enable
++	pop	%rsi
++	movq	%rax, %r12
++	addq	%r12, %rbp
++
++	/*
+ 	 * Fixup the physical addresses in the page table
+ 	 */
+ 	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+@@ -117,6 +128,7 @@ startup_64:
+ 	shrq	$PGDIR_SHIFT, %rax
+ 
+ 	leaq	(4096 + _KERNPG_TABLE)(%rbx), %rdx
++	addq	%r12, %rdx
+ 	movq	%rdx, 0(%rbx,%rax,8)
+ 	movq	%rdx, 8(%rbx,%rax,8)
+ 
+@@ -133,6 +145,7 @@ startup_64:
+ 	movq	%rdi, %rax
+ 	shrq	$PMD_SHIFT, %rdi
+ 	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
++	addq	%r12, %rax
+ 	leaq	(_end - 1)(%rip), %rcx
+ 	shrq	$PMD_SHIFT, %rcx
+ 	subq	%rdi, %rcx
+@@ -163,9 +176,21 @@ startup_64:
+ 	cmp	%r8, %rdi
+ 	jne	1b
+ 
+-	/* Fixup phys_base */
++	/*
++	 * Fixup phys_base, remove the memory encryption mask from %rbp
++	 * to obtain the true physical address.
++	 */
++	subq	%r12, %rbp
+ 	addq	%rbp, phys_base(%rip)
+ 
++	/*
++	 * The page tables have been updated with the memory encryption mask,
++	 * so encrypt the kernel if memory encryption is active
++	 */
++	push	%rsi
++	call	sme_encrypt_kernel
++	pop	%rsi
++
+ 	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
+ 	jmp 1f
+ ENTRY(secondary_startup_64)
+@@ -186,9 +211,17 @@ ENTRY(secondary_startup_64)
+ 	/* Sanitize CPU configuration */
+ 	call verify_cpu
+ 
++	push	%rsi
++	call	sme_get_me_mask
++	pop	%rsi
++	movq	%rax, %r12
++
+ 	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
+ 1:
+ 
++	/* Add the memory encryption mask to RAX */
++	addq	%r12, %rax
++
+ 	/* Enable PAE mode and PGE */
+ 	movl	$(X86_CR4_PAE | X86_CR4_PGE), %ecx
+ 	movq	%rcx, %cr4
+diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
 new file mode 100644
-index 0000000..788d871
+index 0000000..388d6fb
 --- /dev/null
-+++ b/Documentation/x86/amd-memory-encryption.txt
-@@ -0,0 +1,40 @@
-+Secure Memory Encryption (SME) is a feature found on AMD processors.
++++ b/arch/x86/kernel/mem_encrypt_init.c
+@@ -0,0 +1,29 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+SME provides the ability to mark individual pages of memory as encrypted using
-+the standard x86 page tables.  A page that is marked encrypted will be
-+automatically decrypted when read from DRAM and encrypted when written to
-+DRAM.  SME can therefore be used to protect the contents of DRAM from physical
-+attacks on the system.
++#include <linux/linkage.h>
++#include <linux/init.h>
++#include <linux/mem_encrypt.h>
 +
-+A page is encrypted when a page table entry has the encryption bit set (see
-+below how to determine the position of the bit).  The encryption bit can be
-+specified in the cr3 register, allowing the PGD table to be encrypted. Each
-+successive level of page tables can also be encrypted.
++void __init sme_encrypt_kernel(void)
++{
++}
 +
-+Support for SME can be determined through the CPUID instruction. The CPUID
-+function 0x8000001f reports information related to SME:
++unsigned long __init sme_get_me_mask(void)
++{
++	return sme_me_mask;
++}
 +
-+	0x8000001f[eax]:
-+		Bit[0] indicates support for SME
-+	0x8000001f[ebx]:
-+		Bit[5:0]  pagetable bit number used to enable memory encryption
-+		Bit[11:6] reduction in physical address space, in bits, when
-+			  memory encryption is enabled (this only affects system
-+			  physical addresses, not guest physical addresses)
-+
-+If support for SME is present, MSR 0xc00100010 (SYS_CFG) can be used to
-+determine if SME is enabled and/or to enable memory encryption:
-+
-+	0xc0010010:
-+		Bit[23]   0 = memory encryption features are disabled
-+			  1 = memory encryption features are enabled
-+
-+Linux relies on BIOS to set this bit if BIOS has determined that the reduction
-+in the physical address space as a result of enabling memory encryption (see
-+CPUID information above) will not conflict with the address space resource
-+requirements for the system.  If this bit is not set upon Linux startup then
-+Linux itself will not set it and memory encryption will not be possible.
-+
-+SME support is configurable through the AMD_MEM_ENCRYPT config option.
-+Additionally, the mem_encrypt=on command line parameter is required to activate
-+memory encryption.
++unsigned long __init sme_enable(void)
++{
++	return sme_me_mask;
++}
 
