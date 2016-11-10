@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0069.outbound.protection.outlook.com ([104.47.37.69]:36634
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0059.outbound.protection.outlook.com ([104.47.34.59]:15946
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752933AbcKJAyG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:54:06 -0500
+        id S1754219AbcKJAxM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:53:12 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 20/20] x86: Add support to make use of Secure Memory
- Encryption
-Date: Wed, 9 Nov 2016 18:38:38 -0600
-Message-ID: <20161110003838.3280.23327.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 15/20] x86: Check for memory encryption on the APs
+Date: Wed, 9 Nov 2016 18:37:40 -0600
+Message-ID: <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,124 +17,112 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003838.HaDL3-w6NzoaOTdPRxsATXFxALIP6O9LZsLfWLhfJ7Y@z>
+Message-ID: <20161110003740.aQ5Yozc4szT6bnp_GoOuRHbWdkCdCQjbfsuUnKu1SpA@z>
 
-This patch adds the support to check if SME has been enabled and if the
-mem_encrypt=on command line option is set. If both of these conditions
-are true, then the encryption mask is set and the kernel is encrypted
-"in place."
+Add support to check if memory encryption is active in the kernel and that
+it has been enabled on the AP. If memory encryption is active in the kernel
+but has not been enabled on the AP then do not allow the AP to continue
+start up.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/kernel/head_64.S          |    1 +
- arch/x86/kernel/mem_encrypt_init.c |   60 +++++++++++++++++++++++++++++++++++-
- arch/x86/mm/mem_encrypt.c          |    2 +
- 3 files changed, 62 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/realmode.h      |   12 ++++++++++++
+ arch/x86/realmode/init.c             |    4 ++++
+ arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
+ 3 files changed, 35 insertions(+)
 
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index e8a7272..c225433 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -100,6 +100,7 @@ startup_64:
- 	 * to include it in the page table fixups.
- 	 */
- 	push	%rsi
-+	movq	%rsi, %rdi
- 	call	sme_enable
- 	pop	%rsi
- 	movq	%rax, %r12
-diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
-index 7bdd159..c94ceb8 100644
---- a/arch/x86/kernel/mem_encrypt_init.c
-+++ b/arch/x86/kernel/mem_encrypt_init.c
-@@ -16,9 +16,14 @@
- #include <linux/mm.h>
+diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+index 230e190..850dbe0 100644
+--- a/arch/x86/include/asm/realmode.h
++++ b/arch/x86/include/asm/realmode.h
+@@ -1,6 +1,15 @@
+ #ifndef _ARCH_X86_REALMODE_H
+ #define _ARCH_X86_REALMODE_H
  
- #include <asm/sections.h>
-+#include <asm/processor-flags.h>
-+#include <asm/msr.h>
-+#include <asm/cmdline.h>
- 
- #ifdef CONFIG_AMD_MEM_ENCRYPT
- 
-+static char sme_cmdline_arg[] __initdata = "mem_encrypt=on";
++/*
++ * Flag bit definitions for use with the flags field of the trampoline header
++ * when configured for X86_64
++ */
++#define TH_FLAGS_SME_ENABLE_BIT		0
++#define TH_FLAGS_SME_ENABLE		BIT_ULL(TH_FLAGS_SME_ENABLE_BIT)
 +
- extern void sme_encrypt_execute(unsigned long, unsigned long, unsigned long,
- 				void *, pgd_t *);
- 
-@@ -219,7 +224,60 @@ unsigned long __init sme_get_me_mask(void)
- 	return sme_me_mask;
- }
- 
--unsigned long __init sme_enable(void)
-+unsigned long __init sme_enable(void *boot_data)
- {
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+	struct boot_params *bp = boot_data;
-+	unsigned int eax, ebx, ecx, edx;
-+	u64 msr;
-+	unsigned long cmdline_ptr;
-+	void *cmdline_arg;
++#ifndef __ASSEMBLY__
 +
-+	/* Check for an AMD processor */
-+	eax = 0;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if ((ebx != 0x68747541) || (edx != 0x69746e65) || (ecx != 0x444d4163))
-+		goto out;
+ #include <linux/types.h>
+ #include <asm/io.h>
+ 
+@@ -38,6 +47,7 @@ struct trampoline_header {
+ 	u64 start;
+ 	u64 efer;
+ 	u32 cr4;
++	u32 flags;
+ #endif
+ };
+ 
+@@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
+ void set_real_mode_mem(phys_addr_t mem, size_t size);
+ void reserve_real_mode(void);
+ 
++#endif /* __ASSEMBLY__ */
 +
-+	/* Check for the SME support leaf */
-+	eax = 0x80000000;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (eax < 0x8000001f)
-+		goto out;
+ #endif /* _ARCH_X86_REALMODE_H */
+diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+index 44ed32a..a8e7ebe 100644
+--- a/arch/x86/realmode/init.c
++++ b/arch/x86/realmode/init.c
+@@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
+ 	trampoline_cr4_features = &trampoline_header->cr4;
+ 	*trampoline_cr4_features = mmu_cr4_features;
+ 
++	trampoline_header->flags = 0;
++	if (sme_me_mask)
++		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
++
+ 	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
+ 	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
+ 	trampoline_pgd[511] = init_level4_pgt[511].pgd;
+diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+index dac7b20..94e29f4 100644
+--- a/arch/x86/realmode/rm/trampoline_64.S
++++ b/arch/x86/realmode/rm/trampoline_64.S
+@@ -30,6 +30,7 @@
+ #include <asm/msr.h>
+ #include <asm/segment.h>
+ #include <asm/processor-flags.h>
++#include <asm/realmode.h>
+ #include "realmode.h"
+ 
+ 	.text
+@@ -92,6 +93,23 @@ ENTRY(startup_32)
+ 	movl	%edx, %fs
+ 	movl	%edx, %gs
+ 
++	/* Check for memory encryption support */
++	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
++	jnc	.Ldone
++	movl	$MSR_K8_SYSCFG, %ecx
++	rdmsr
++	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
++	jc	.Ldone
 +
 +	/*
-+	 * Check for the SME feature:
-+	 *   CPUID Fn8000_001F[EAX] - Bit 0
-+	 *     Secure Memory Encryption support
-+	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-+	 *     Pagetable bit position used to indicate encryption
++	 * Memory encryption is enabled but the MSR has not been set on this
++	 * CPU so we can't continue
 +	 */
-+	eax = 0x8000001f;
-+	ecx = 0;
-+	native_cpuid(&eax, &ebx, &ecx, &edx);
-+	if (!(eax & 1))
-+		goto out;
++.Lno_sme:
++	hlt
++	jmp	.Lno_sme
++.Ldone:
 +
-+	/* Check if SME is enabled */
-+	msr = native_read_msr(MSR_K8_SYSCFG);
-+	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+		goto out;
-+
-+	/*
-+	 * Fixups have not been to applied phys_base yet, so we must obtain
-+	 * the address to the SME command line option in the following way.
-+	 */
-+	asm ("lea sme_cmdline_arg(%%rip), %0"
-+	     : "=r" (cmdline_arg)
-+	     : "p" (sme_cmdline_arg));
-+	cmdline_ptr = bp->hdr.cmd_line_ptr | ((u64)bp->ext_cmd_line_ptr << 32);
-+	if (cmdline_find_option_bool((char *)cmdline_ptr, cmdline_arg))
-+		sme_me_mask = 1UL << (ebx & 0x3f);
-+
-+out:
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
- 	return sme_me_mask;
- }
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index e351003..d0bc3f5 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -251,6 +251,8 @@ void __init mem_encrypt_init(void)
+ 	movl	pa_tr_cr4, %eax
+ 	movl	%eax, %cr4		# Enable PAE mode
  
- 	/* Make SWIOTLB use an unencrypted DMA area */
- 	swiotlb_clear_encryption();
-+
-+	pr_info("AMD Secure Memory Encryption active\n");
- }
+@@ -147,6 +165,7 @@ GLOBAL(trampoline_header)
+ 	tr_start:		.space	8
+ 	GLOBAL(tr_efer)		.space	8
+ 	GLOBAL(tr_cr4)		.space	4
++	GLOBAL(tr_flags)	.space	4
+ END(trampoline_header)
  
- void swiotlb_set_mem_unenc(void *vaddr, unsigned long size)
+ #include "trampoline_common.S"
 
