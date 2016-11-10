@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2nam02on0060.outbound.protection.outlook.com ([104.47.38.60]:24064
-        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0072.outbound.protection.outlook.com ([104.47.34.72]:2368
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751934AbcKJAtQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 9 Nov 2016 19:49:16 -0500
+        id S1754261AbcKJAvA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 9 Nov 2016 19:51:00 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v3 02/20] x86: Set the write-protect cache mode for full
- PAT support
-Date: Wed, 9 Nov 2016 18:34:48 -0600
-Message-ID: <20161110003448.3280.27573.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v3 04/20] x86: Handle reduction in physical address size
+ with SME
+Date: Wed, 9 Nov 2016 18:35:13 -0600
+Message-ID: <20161110003513.3280.12104.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,37 +18,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161110003448.8xpTjhihWhe1EFK4fhqoYyJgoN2fyC9csrHK_Q3GgLE@z>
+Message-ID: <20161110003513.BecEn5v9MNc2Aj0BphCQdM8oFpROqk2rw8i7d70zqVY@z>
 
-For processors that support PAT, set the write-protect cache mode
-(_PAGE_CACHE_MODE_WP) entry to the actual write-protect value (x05).
+When System Memory Encryption (SME) is enabled, the physical address
+space is reduced. Adjust the x86_phys_bits value to reflect this
+reduction.
 
-Acked-by: Borislav Petkov <bp@suse.de>
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/mm/pat.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/msr-index.h |    2 ++
+ arch/x86/kernel/cpu/common.c     |   30 ++++++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+)
 
-diff --git a/arch/x86/mm/pat.c b/arch/x86/mm/pat.c
-index 170cc4f..87e8952 100644
---- a/arch/x86/mm/pat.c
-+++ b/arch/x86/mm/pat.c
-@@ -355,7 +355,7 @@ void pat_init(void)
- 		 *      010    2    UC-: _PAGE_CACHE_MODE_UC_MINUS
- 		 *      011    3    UC : _PAGE_CACHE_MODE_UC
- 		 *      100    4    WB : Reserved
--		 *      101    5    WC : Reserved
-+		 *      101    5    WP : _PAGE_CACHE_MODE_WP
- 		 *      110    6    UC-: Reserved
- 		 *      111    7    WT : _PAGE_CACHE_MODE_WT
- 		 *
-@@ -363,7 +363,7 @@ void pat_init(void)
- 		 * corresponding types in the presence of PAT errata.
- 		 */
- 		pat = PAT(0, WB) | PAT(1, WC) | PAT(2, UC_MINUS) | PAT(3, UC) |
--		      PAT(4, WB) | PAT(5, WC) | PAT(6, UC_MINUS) | PAT(7, WT);
-+		      PAT(4, WB) | PAT(5, WP) | PAT(6, UC_MINUS) | PAT(7, WT);
- 	}
+diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
+index 56f4c66..4949259 100644
+--- a/arch/x86/include/asm/msr-index.h
++++ b/arch/x86/include/asm/msr-index.h
+@@ -336,6 +336,8 @@
+ #define MSR_K8_TOP_MEM1			0xc001001a
+ #define MSR_K8_TOP_MEM2			0xc001001d
+ #define MSR_K8_SYSCFG			0xc0010010
++#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
++#define MSR_K8_SYSCFG_MEM_ENCRYPT	BIT_ULL(MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
+ #define MSR_K8_INT_PENDING_MSG		0xc0010055
+ /* C1E active bits in int pending message */
+ #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 9bd910a..82c64a6 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -604,6 +604,35 @@ out:
+ #endif
+ }
  
- 	if (!boot_cpu_done) {
++/*
++ * AMD Secure Memory Encryption (SME) can reduce the size of the physical
++ * address space if it is enabled, even if memory encryption is not active.
++ * Adjust x86_phys_bits if SME is enabled.
++ */
++static void phys_bits_adjust(struct cpuinfo_x86 *c)
++{
++	u32 eax, ebx, ecx, edx;
++	u64 msr;
++
++	if (c->x86_vendor != X86_VENDOR_AMD)
++		return;
++
++	if (c->extended_cpuid_level < 0x8000001f)
++		return;
++
++	/* Check for SME feature */
++	cpuid(0x8000001f, &eax, &ebx, &ecx, &edx);
++	if (!(eax & 0x01))
++		return;
++
++	/* Check if SME is enabled */
++	rdmsrl(MSR_K8_SYSCFG, msr);
++	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
++		return;
++
++	c->x86_phys_bits -= (ebx >> 6) & 0x3f;
++}
++
+ static void get_cpu_vendor(struct cpuinfo_x86 *c)
+ {
+ 	char *v = c->x86_vendor_id;
+@@ -736,6 +765,7 @@ void get_cpu_cap(struct cpuinfo_x86 *c)
+ 
+ 		c->x86_virt_bits = (eax >> 8) & 0xff;
+ 		c->x86_phys_bits = eax & 0xff;
++		phys_bits_adjust(c);
+ 		c->x86_capability[CPUID_8000_0008_EBX] = ebx;
+ 	}
+ #ifdef CONFIG_X86_32
 
