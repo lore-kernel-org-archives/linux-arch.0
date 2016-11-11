@@ -1,45 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0126.outbound.protection.outlook.com ([104.47.37.126]:38428
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S966091AbcKKC6V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 10 Nov 2016 21:58:21 -0500
-From: "Kani, Toshimitsu" <toshi.kani@hpe.com>
-Subject: Re: [RFC PATCH v3 02/20] x86: Set the write-protect cache mode for
- full PAT support
-Date: Fri, 11 Nov 2016 01:26:48 +0000
-Message-ID: <1478827480.20881.142.camel@hpe.com>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
-         <20161110003448.3280.27573.stgit@tlendack-t1.amdoffice.net>
-         <20161110131400.bmeoojsrin2zi2w2@pd.tnic>
-In-Reply-To: <20161110131400.bmeoojsrin2zi2w2@pd.tnic>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <5A008A45AA7B1344A2346C26C53E4AD3@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:46941 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1755946AbcKKJQc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Nov 2016 04:16:32 -0500
+Received: from pps.filterd (m0098410.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uAB9Dmt3131604
+        for <linux-arch@vger.kernel.org>; Fri, 11 Nov 2016 04:16:31 -0500
+Received: from e06smtp07.uk.ibm.com (e06smtp07.uk.ibm.com [195.75.94.103])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 26na6natd2-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 11 Nov 2016 04:16:31 -0500
+Received: from localhost
+        by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Fri, 11 Nov 2016 09:16:28 -0000
+Date: Fri, 11 Nov 2016 10:16:22 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCHv2 0/2] THREAD_INFO_IN_TASK prep work for arm64+s390
+References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
+ <20161102155020.GA17547@remoulade>
+ <20161110181307.GC10137@leverpostej>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161110181307.GC10137@leverpostej>
+Message-ID: <20161111091622.GA4019@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>, "bp@alien8.de" <bp@alien8.de>
-Cc: "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dvyukov@google.com" <dvyukov@google.com>, "corbet@lwn.net" <corbet@lwn.net>, "arnd@arndb.de" <arnd@arndb.de>, "matt@codeblueprint.co.uk" <matt@codeblueprint.co.uk>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "aryabinin@virtuozzo.com" <aryabinin@virtuozzo.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "x86@kernel.org" <x86@kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "lwoodman@redhat.com" <lwoodman@redhat.com>, "mingo@redhat.com" <mingo@redhat.com>, "joro@8bytes.org" <joro@8bytes.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "luto@kernel.org" <luto@kernel.org>, "glider@google.com" <glider@google.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>
-Message-ID: <20161111012648.tOnCQAIfd8lgMjM3UY9fR26UnugqhGf_Vu9pYYrnOL8@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: catalin.marinas@arm.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, keescook@chromium.org, luto@kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20161111091622.xMzz6xctJd57iXDVcXIYZewDNsStg_8CIKGQnIWz1tM@z>
 
-T24gVGh1LCAyMDE2LTExLTEwIGF0IDE0OjE0ICswMTAwLCBCb3Jpc2xhdiBQZXRrb3Ygd3JvdGU6
-DQo+ICsgVG9zaGkuDQo+IA0KPiBPbiBXZWQsIE5vdiAwOSwgMjAxNiBhdCAwNjozNDo0OFBNIC0w
-NjAwLCBUb20gTGVuZGFja3kgd3JvdGU6DQo+ID4gDQo+ID4gRm9yIHByb2Nlc3NvcnMgdGhhdCBz
-dXBwb3J0IFBBVCwgc2V0IHRoZSB3cml0ZS1wcm90ZWN0IGNhY2hlIG1vZGUNCj4gPiAoX1BBR0Vf
-Q0FDSEVfTU9ERV9XUCkgZW50cnkgdG8gdGhlIGFjdHVhbCB3cml0ZS1wcm90ZWN0IHZhbHVlDQo+
-ID4gKHgwNSkuDQoNClVzaW5nIHNsb3QgNiBtYXkgYmUgbW9yZSBjYXV0aW91cyAoZm9yIHRoZSBz
-YW1lIHJlYXNvbiBzbG90IDcgd2FzIHVzZWQNCmZvciBXVCksIGJ1dCBJIGRvIG5vdCBoYXZlIGEg
-c3Ryb25nIG9waW5pb24gZm9yIGl0Lg0KDQpzZXRfcGFnZV9tZW10eXBlKCkgY2Fubm90IHRyYWNr
-IHRoZSB1c2Ugb2YgV1AgdHlwZSBzaW5jZSB0aGVyZSBpcyBubw0KZXh0cmEtYml0IGF2YWlsYWJs
-ZSBmb3IgV1AsIGJ1dCBXUCBpcyBvbmx5IHN1cHBvcnRlZCBieQ0KZWFybHlfbWVtcmVtYXBfeHgo
-KSBpbnRlcmZhY2VzIGluIHRoaXMgc2VyaWVzLiDCoFNvLCBJIHRoaW5rIHdlIHNob3VsZA0KanVz
-dCBkb2N1bWVudCB0aGF0IFdQIGlzIG9ubHkgaW50ZW5kZWQgZm9yIHRlbXBvcmFyeSBtYXBwaW5n
-cyBhdCBib290LQ0KdGltZSB1bnRpbCB0aGlzIGlzc3VlIGlzIHJlc29sdmVkLiDCoEFsc28sIHdl
-IG5lZWQgdG8gbWFrZSBzdXJlIHRoYXQNCnRoaXMgZWFybHlfbWVtcmVtYXAgZm9yIFdQIGlzIG9u
-bHkgY2FsbGVkIGFmdGVyIHBhdF9pbml0KCkgaXMgZG9uZS4NCg0KQSBuaXQgLSBwbGVhc2UgYWRk
-IFdQIHRvIHRoZSBmdW5jdGlvbiBoZWFkZXIgY29tbWVudCBiZWxvdy4NCiJUaGlzIGZ1bmN0aW9u
-IGluaXRpYWxpemVzIFBBVCBNU1IgYW5kIFBBVCB0YWJsZSB3aXRoIGFuIE9TLWRlZmluZWQNCnZh
-bHVlIHRvIGVuYWJsZSBhZGRpdGlvbmFsIGNhY2hlIGF0dHJpYnV0ZXMsIFdDIGFuZCBXVC4iDQoN
-ClRoYW5rcywNCi1Ub3NoaQ==
+Hi Mark,
+
+> On Wed, Nov 02, 2016 at 03:56:26PM +0000, Mark Rutland wrote:
+> > On Wed, Oct 26, 2016 at 06:43:05PM +0100, Mark Rutland wrote:
+> > > Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
+> > > respectively, and we're both targetting v4.10.
+> > > 
+> > > These are the common core changes which we both require. I've put together a
+> > > branch [1,2] based on v4.9-rc2. I intend to tag this at some point next week so
+> > > that Heiko and I have a stable base.
+> > 
+> > As a heads-up, I've collated the tags I've received in the last few days, along
+> > with the comment Andy requested in the v1 thread, and tagged this as
+> > core-ti-stack-split [1].
+> > 
+> > Thanks,
+> > Mark.
+> > 
+> > [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core-ti-stack-split
+> 
+> I believe that Catalin's hoping to take my arm64 patches for v4.10,
+> using the above tag as a base.
+> 
+> What's the plan for s390? Are you happy to do the same?
+
+We intend to merge the s390 variant also for v4.10. Our approach has
+changed however: we came to the conclusion that having a per-cpu preempt
+count will generate better code on s390; so Martin implemented that.
+
+And while being at it he also moved the rest of the s390 specific stuff out
+of our struct thread_info. The corresponding patches will be pushed to
+
+git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git features
+
+branch soon.
+
+In result we will have a struct thread_info that only contains the flags
+field like x86 does.
+So we don't depend an any other patches anymore...
+
