@@ -1,45 +1,55 @@
-From: "Kani, Toshimitsu" <toshi.kani@hpe.com>
-Subject: Re: [RFC PATCH v3 10/20] Add support to access boot related data in
- the clear
-Date: Fri, 11 Nov 2016 16:17:36 +0000
-Message-ID: <1478880929.20881.148.camel@hpe.com>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
-         <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 0/2] THREAD_INFO_IN_TASK prep work for arm64+s390
+Date: Fri, 11 Nov 2016 16:23:43 +0000
+Message-ID: <20161111162343.GK11945@leverpostej>
+References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
+ <20161102155020.GA17547@remoulade>
+ <20161110181307.GC10137@leverpostej>
+ <20161111091622.GA4019@osiris>
+ <20161111164237.1f381e57@mschwide>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
-Content-Language: en-US
-Content-ID: <BEE02238B3BD834EA32E172A2B7D775A@NAMPRD84.PROD.OUTLOOK.COM>
-Sender: linux-doc-owner@vger.kernel.org
-To: "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "x86@kernel.org" <x86@kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Cc: "matt@codeblueprint.co.uk" <matt@codeblueprint.co.uk>, "corbet@lwn.net" <corbet@lwn.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>, "joro@8bytes.org" <joro@8bytes.org>, "dvyukov@google.com" <dvyukov@google.com>, "aryabinin@virtuozzo.com" <aryabinin@virtuozzo.com>, "riel@redhat.com" <riel@redhat.com>, "lwoodman@redhat.com" <lwoodman@redhat.com>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "luto@kernel.org" <luto@kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "glider@google.com" <glider@google.com>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "arnd@arndb.de" <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:47724 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932532AbcKKQYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 11 Nov 2016 11:24:22 -0500
+Content-Disposition: inline
+In-Reply-To: <20161111164237.1f381e57@mschwide>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, catalin.marinas@arm.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, keescook@chromium.org, luto@kernel.org, linux-kernel@vger.kernel.org
 
-T24gV2VkLCAyMDE2LTExLTA5IGF0IDE4OjM2IC0wNjAwLCBUb20gTGVuZGFja3kgd3JvdGU6DQo+
-IEJvb3QgZGF0YSAoc3VjaCBhcyBFRkkgcmVsYXRlZCBkYXRhKSBpcyBub3QgZW5jcnlwdGVkIHdo
-ZW4gdGhlIHN5c3RlbQ0KPiBpcyBib290ZWQgYW5kIG5lZWRzIHRvIGJlIGFjY2Vzc2VkIHVuZW5j
-cnlwdGVkLsKgwqBBZGQgc3VwcG9ydCB0byBhcHBseQ0KPiB0aGUgcHJvcGVyIGF0dHJpYnV0ZXMg
-dG8gdGhlIEVGSSBwYWdlIHRhYmxlcyBhbmQgdG8gdGhlDQo+IGVhcmx5X21lbXJlbWFwIGFuZCBt
-ZW1yZW1hcCBBUElzIHRvIGlkZW50aWZ5IHRoZSB0eXBlIG9mIGRhdGEgYmVpbmcNCj4gYWNjZXNz
-ZWQgc28gdGhhdCB0aGUgcHJvcGVyIGVuY3J5cHRpb24gYXR0cmlidXRlIGNhbiBiZSBhcHBsaWVk
-Lg0KwqA6DQo+ICtzdGF0aWMgYm9vbCBtZW1yZW1hcF9hcHBseV9lbmNyeXB0aW9uKHJlc291cmNl
-X3NpemVfdCBwaHlzX2FkZHIsDQo+ICsJCQkJwqDCoMKgwqDCoMKgdW5zaWduZWQgbG9uZyBzaXpl
-KQ0KPiArew0KPiArCS8qIFNNRSBpcyBub3QgYWN0aXZlLCBqdXN0IHJldHVybiB0cnVlICovDQo+
-ICsJaWYgKCFzbWVfbWVfbWFzaykNCj4gKwkJcmV0dXJuIHRydWU7DQo+ICsNCj4gKwkvKiBDaGVj
-ayBpZiB0aGUgYWRkcmVzcyBpcyBwYXJ0IG9mIHRoZSBzZXR1cCBkYXRhICovDQo+ICsJaWYgKG1l
-bXJlbWFwX3NldHVwX2RhdGEocGh5c19hZGRyLCBzaXplKSkNCj4gKwkJcmV0dXJuIGZhbHNlOw0K
-PiArDQo+ICsJLyogQ2hlY2sgaWYgdGhlIGFkZHJlc3MgaXMgcGFydCBvZiBFRkkgYm9vdC9ydW50
-aW1lIGRhdGEgKi8NCj4gKwlzd2l0Y2ggKGVmaV9tZW1fdHlwZShwaHlzX2FkZHIpKSB7DQo+ICsJ
-Y2FzZSBFRklfQk9PVF9TRVJWSUNFU19EQVRBOg0KPiArCWNhc2UgRUZJX1JVTlRJTUVfU0VSVklD
-RVNfREFUQToNCj4gKwkJcmV0dXJuIGZhbHNlOw0KPiArCX0NCj4gKw0KPiArCS8qIENoZWNrIGlm
-IHRoZSBhZGRyZXNzIGlzIG91dHNpZGUga2VybmVsIHVzYWJsZSBhcmVhICovDQo+ICsJc3dpdGNo
-IChlODIwX2dldF9lbnRyeV90eXBlKHBoeXNfYWRkciwgcGh5c19hZGRyICsgc2l6ZSAtDQo+IDEp
-KSB7DQo+ICsJY2FzZSBFODIwX1JFU0VSVkVEOg0KPiArCWNhc2UgRTgyMF9BQ1BJOg0KPiArCWNh
-c2UgRTgyMF9OVlM6DQo+ICsJY2FzZSBFODIwX1VOVVNBQkxFOg0KPiArCQlyZXR1cm4gZmFsc2U7
-DQo+ICsJfQ0KPiArDQo+ICsJcmV0dXJuIHRydWU7DQo+ICt9DQoNCkFyZSB5b3Ugc3VwcG9ydGlu
-ZyBlbmNyeXB0aW9uIGZvciBFODIwX1BNRU0gcmFuZ2VzPyDCoElmIHNvLCB0aGlzDQplbmNyeXB0
-aW9uIHdpbGwgcGVyc2lzdCBhY3Jvc3MgYSByZWJvb3QgYW5kIGRvZXMgbm90IG5lZWQgdG8gYmUN
-CmVuY3J5cHRlZCBhZ2FpbiwgcmlnaHQ/IMKgQWxzbywgaG93IGRvIHlvdSBrZWVwIGEgc2FtZSBr
-ZXkgYWNyb3NzIGENCnJlYm9vdD8NCg0KVGhhbmtzLA0KLVRvc2hp
+On Fri, Nov 11, 2016 at 04:42:37PM +0100, Martin Schwidefsky wrote:
+> On Fri, 11 Nov 2016 10:16:22 +0100
+> Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
+> > > On Wed, Nov 02, 2016 at 03:56:26PM +0000, Mark Rutland wrote:
+> > > > On Wed, Oct 26, 2016 at 06:43:05PM +0100, Mark Rutland wrote:
+
+> > > > [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core-ti-stack-split
+> > > 
+> > > I believe that Catalin's hoping to take my arm64 patches for v4.10,
+> > > using the above tag as a base.
+> > > 
+> > > What's the plan for s390? Are you happy to do the same?
+> > 
+> > We intend to merge the s390 variant also for v4.10. Our approach has
+> > changed however: we came to the conclusion that having a per-cpu preempt
+> > count will generate better code on s390; so Martin implemented that.
+> > 
+> > And while being at it he also moved the rest of the s390 specific stuff out
+> > of our struct thread_info. The corresponding patches will be pushed to
+> > 
+> > git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git features
+
+> Just pushed our collected works to the features branch, in case you are
+> interested.
+
+Thanks for the heads-up!
+
+It doesn't look like we can do similar for arm64 (we don't have anything
+akin to the lowcore stuff), but it certainly seems nicer for s390.
+
+Thanks,
+Mark.
