@@ -1,74 +1,69 @@
-From: Laxman Dewangan <ldewangan@nvidia.com>
-Subject: Re: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
-Date: Fri, 11 Nov 2016 17:47:24 +0530
-Message-ID: <5825B6D4.1000600@nvidia.com>
-References: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com> <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCHv2 0/2] THREAD_INFO_IN_TASK prep work for arm64+s390
+Date: Fri, 11 Nov 2016 16:42:37 +0100
+Message-ID: <20161111164237.1f381e57@mschwide>
+References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
+        <20161102155020.GA17547@remoulade>
+        <20161110181307.GC10137@leverpostej>
+        <20161111091622.GA4019@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com>
+In-Reply-To: <20161111091622.GA4019@osiris>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, catalin.marinas@arm.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, keescook@chromium.org, luto@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, 11 Nov 2016 10:16:22 +0100
+Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
 
-On Saturday 05 November 2016 03:50 AM, Linus Walleij wrote:
-> On Wed, Nov 2, 2016 at 1:17 PM, Laxman Dewangan <ldewangan@nvidia.com> wrote:
->
->> Many of devices/SoCs supports the GPIO and special IO function
->> from their pins. On such cases, there is always configuration
->> bits to select the mode of pin as GPIO or as the special IO mode.
->> The functional modes are selected by pinmux option.
->>
->> When device booted and reach to kernel, it is not possible to get
->> the current configuration of pin whether it is in GPIO mode or
->> in special IO mode without configurations.
->>
->> Add APIs to return the current mode of pins without requesting it
->> as GPIO to find out the current mode.
->> This helps on dumping the pin configuration from debug/test utility
->> to get the current mode GPIO or functional mode.
->>
->> The typical utility looks as:
->> pin_dump(pin)
->> {
->>          if(gpio_is_enabled(pin)) {
->>                  dump direction using get_direction()
->>          } else {
->>                  dump pinmux option and its configurations.
->>          }
->> }
-> Yeah but since pinctrl and pinmux has its own debugfs files why is this
-> necessary? I understand it is convenient but only for debugging
-> right? They the inconvenience of using pinctrls debugfs files should
-> be bearable.
+> Hi Mark,
+> 
+> > On Wed, Nov 02, 2016 at 03:56:26PM +0000, Mark Rutland wrote:
+> > > On Wed, Oct 26, 2016 at 06:43:05PM +0100, Mark Rutland wrote:
+> > > > Heiko and I have been working on THREAD_INFO_IN_TASK for s390 and arm64
+> > > > respectively, and we're both targetting v4.10.
+> > > > 
+> > > > These are the common core changes which we both require. I've put together a
+> > > > branch [1,2] based on v4.9-rc2. I intend to tag this at some point next week so
+> > > > that Heiko and I have a stable base.
+> > > 
+> > > As a heads-up, I've collated the tags I've received in the last few days, along
+> > > with the comment Andy requested in the v1 thread, and tagged this as
+> > > core-ti-stack-split [1].
+> > > 
+> > > Thanks,
+> > > Mark.
+> > > 
+> > > [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core-ti-stack-split
+> > 
+> > I believe that Catalin's hoping to take my arm64 patches for v4.10,
+> > using the above tag as a base.
+> > 
+> > What's the plan for s390? Are you happy to do the same?
+> 
+> We intend to merge the s390 variant also for v4.10. Our approach has
+> changed however: we came to the conclusion that having a per-cpu preempt
+> count will generate better code on s390; so Martin implemented that.
+> 
+> And while being at it he also moved the rest of the s390 specific stuff out
+> of our struct thread_info. The corresponding patches will be pushed to
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git features
+> 
+> branch soon.
+> 
+> In result we will have a struct thread_info that only contains the flags
+> field like x86 does.
+> So we don't depend an any other patches anymore...
 
-Yes, it is debugging and capturing all the info at single place. 
-Currently, gpio debugFs shows the gpio related stuff and the pinctrl on 
-pinconfig but there is not any dump which shows the complete pin mapping.
-The effort is to compile all the data in single place with proper 
-message to avoid any manual work for decoding multiple outputs.
+Just pushed our collected works to the features branch, in case you are
+interested.
 
+-- 
+blue skies,
+   Martin.
 
->
-> Also it is possible for any GPIO chip to implement its own
-> debug print if they like, check what we do in
-> ->dbg_show in drivers/pinctrl/nomadik/pinctrl-nomadik.c
-> for example.
->
-> If the use is for debug prints, keep it driver-local.
->
-> (...)
-
-This callback can print the stuff for GPIO related stuff as there is not 
-much info about the pinmux related configuration to gpio driver. For 
-GPIO or functional mode, it can only display gpio or functional mode.
-
-Is there something we can link from gpio driver to pinctrl driver like 
-pinctrl_debug_show()?
-Like in gpio_request(), we say that pinctrl_request(), similary on the 
-GPIO dbg_show(), we can say pinctrl_dbg_show() and get all the info for 
-prints.
-This will also serve the purpose.
+"Reality continues to ruin my life." - Calvin.
