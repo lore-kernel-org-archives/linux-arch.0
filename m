@@ -1,51 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0128.outbound.protection.outlook.com ([104.47.34.128]:23488
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1756737AbcKKQRj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Nov 2016 11:17:39 -0500
-From: "Kani, Toshimitsu" <toshi.kani@hpe.com>
-Subject: Re: [RFC PATCH v3 10/20] Add support to access boot related data in
- the clear
-Date: Fri, 11 Nov 2016 16:17:36 +0000
-Message-ID: <1478880929.20881.148.camel@hpe.com>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
-         <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
-In-Reply-To: <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-ID: <BEE02238B3BD834EA32E172A2B7D775A@NAMPRD84.PROD.OUTLOOK.COM>
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mail-pf0-f196.google.com ([209.85.192.196]:33560 "EHLO
+        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S934919AbcKLAo4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 11 Nov 2016 19:44:56 -0500
+From: Florian Fainelli <f.fainelli@gmail.com>
+Subject: [PATCH RFC] mm: Add debug_virt_to_phys()
+Date: Fri, 11 Nov 2016 16:44:43 -0800
+Message-ID: <20161112004449.30566-1-f.fainelli@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "x86@kernel.org" <x86@kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Cc: "matt@codeblueprint.co.uk" <matt@codeblueprint.co.uk>, "corbet@lwn.net" <corbet@lwn.net>, "tglx@linutronix.de" <tglx@linutronix.de>, "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>, "joro@8bytes.org" <joro@8bytes.org>, "dvyukov@google.com" <dvyukov@google.com>, "aryabinin@virtuozzo.com" <aryabinin@virtuozzo.com>, "riel@redhat.com" <riel@redhat.com>, "lwoodman@redhat.com" <lwoodman@redhat.com>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "luto@kernel.org" <luto@kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "bp@alien8.de" <bp@alien8.de>, "glider@google.com" <glider@google.com>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>, "arnd@arndb.de" <arnd@arndb.de>
-Message-ID: <20161111161736.5yitTY3lPwMe1YIz9oMoUOa-phlQuXH4UhPKcttS1t8@z>
+To: linux-kernel@vger.kernel.org
+Cc: Florian Fainelli <f.fainelli@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Laura Abbott <labbott@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, "moderated list:ARM PORT" <linux-arm-kernel@lists.infradead.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>
+Message-ID: <20161112004443.mYkOdECZtPb4Vt7TqQ5guonXcWyhZ-v37K0E8gDdD7M@z>
 
-T24gV2VkLCAyMDE2LTExLTA5IGF0IDE4OjM2IC0wNjAwLCBUb20gTGVuZGFja3kgd3JvdGU6DQo+
-IEJvb3QgZGF0YSAoc3VjaCBhcyBFRkkgcmVsYXRlZCBkYXRhKSBpcyBub3QgZW5jcnlwdGVkIHdo
-ZW4gdGhlIHN5c3RlbQ0KPiBpcyBib290ZWQgYW5kIG5lZWRzIHRvIGJlIGFjY2Vzc2VkIHVuZW5j
-cnlwdGVkLsKgwqBBZGQgc3VwcG9ydCB0byBhcHBseQ0KPiB0aGUgcHJvcGVyIGF0dHJpYnV0ZXMg
-dG8gdGhlIEVGSSBwYWdlIHRhYmxlcyBhbmQgdG8gdGhlDQo+IGVhcmx5X21lbXJlbWFwIGFuZCBt
-ZW1yZW1hcCBBUElzIHRvIGlkZW50aWZ5IHRoZSB0eXBlIG9mIGRhdGEgYmVpbmcNCj4gYWNjZXNz
-ZWQgc28gdGhhdCB0aGUgcHJvcGVyIGVuY3J5cHRpb24gYXR0cmlidXRlIGNhbiBiZSBhcHBsaWVk
-Lg0KwqA6DQo+ICtzdGF0aWMgYm9vbCBtZW1yZW1hcF9hcHBseV9lbmNyeXB0aW9uKHJlc291cmNl
-X3NpemVfdCBwaHlzX2FkZHIsDQo+ICsJCQkJwqDCoMKgwqDCoMKgdW5zaWduZWQgbG9uZyBzaXpl
-KQ0KPiArew0KPiArCS8qIFNNRSBpcyBub3QgYWN0aXZlLCBqdXN0IHJldHVybiB0cnVlICovDQo+
-ICsJaWYgKCFzbWVfbWVfbWFzaykNCj4gKwkJcmV0dXJuIHRydWU7DQo+ICsNCj4gKwkvKiBDaGVj
-ayBpZiB0aGUgYWRkcmVzcyBpcyBwYXJ0IG9mIHRoZSBzZXR1cCBkYXRhICovDQo+ICsJaWYgKG1l
-bXJlbWFwX3NldHVwX2RhdGEocGh5c19hZGRyLCBzaXplKSkNCj4gKwkJcmV0dXJuIGZhbHNlOw0K
-PiArDQo+ICsJLyogQ2hlY2sgaWYgdGhlIGFkZHJlc3MgaXMgcGFydCBvZiBFRkkgYm9vdC9ydW50
-aW1lIGRhdGEgKi8NCj4gKwlzd2l0Y2ggKGVmaV9tZW1fdHlwZShwaHlzX2FkZHIpKSB7DQo+ICsJ
-Y2FzZSBFRklfQk9PVF9TRVJWSUNFU19EQVRBOg0KPiArCWNhc2UgRUZJX1JVTlRJTUVfU0VSVklD
-RVNfREFUQToNCj4gKwkJcmV0dXJuIGZhbHNlOw0KPiArCX0NCj4gKw0KPiArCS8qIENoZWNrIGlm
-IHRoZSBhZGRyZXNzIGlzIG91dHNpZGUga2VybmVsIHVzYWJsZSBhcmVhICovDQo+ICsJc3dpdGNo
-IChlODIwX2dldF9lbnRyeV90eXBlKHBoeXNfYWRkciwgcGh5c19hZGRyICsgc2l6ZSAtDQo+IDEp
-KSB7DQo+ICsJY2FzZSBFODIwX1JFU0VSVkVEOg0KPiArCWNhc2UgRTgyMF9BQ1BJOg0KPiArCWNh
-c2UgRTgyMF9OVlM6DQo+ICsJY2FzZSBFODIwX1VOVVNBQkxFOg0KPiArCQlyZXR1cm4gZmFsc2U7
-DQo+ICsJfQ0KPiArDQo+ICsJcmV0dXJuIHRydWU7DQo+ICt9DQoNCkFyZSB5b3Ugc3VwcG9ydGlu
-ZyBlbmNyeXB0aW9uIGZvciBFODIwX1BNRU0gcmFuZ2VzPyDCoElmIHNvLCB0aGlzDQplbmNyeXB0
-aW9uIHdpbGwgcGVyc2lzdCBhY3Jvc3MgYSByZWJvb3QgYW5kIGRvZXMgbm90IG5lZWQgdG8gYmUN
-CmVuY3J5cHRlZCBhZ2FpbiwgcmlnaHQ/IMKgQWxzbywgaG93IGRvIHlvdSBrZWVwIGEgc2FtZSBr
-ZXkgYWNyb3NzIGENCnJlYm9vdD8NCg0KVGhhbmtzLA0KLVRvc2hp
+When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
+debug_virt_to_phys() which helps catch vmalloc space addresses being
+passed. This is helpful in debugging bogus drivers that just assume
+linear mappings all over the place.
+
+For ARM, ARM64, Unicore32 and Microblaze, the architectures define
+__virt_to_phys() as being the functional implementation of the address
+translation, so we special case the debug stub to call into
+__virt_to_phys directly.
+
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+---
+ arch/arm/include/asm/memory.h      |  4 ++++
+ arch/arm64/include/asm/memory.h    |  4 ++++
+ include/asm-generic/memory_model.h |  4 ++++
+ mm/debug.c                         | 15 +++++++++++++++
+ 4 files changed, 27 insertions(+)
+
+diff --git a/arch/arm/include/asm/memory.h b/arch/arm/include/asm/memory.h
+index 76cbd9c674df..448dec9b8b00 100644
+--- a/arch/arm/include/asm/memory.h
++++ b/arch/arm/include/asm/memory.h
+@@ -260,11 +260,15 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
+  * translation for translating DMA addresses.  Use the driver
+  * DMA support - see dma-mapping.h.
+  */
++#ifndef CONFIG_DEBUG_VM
+ #define virt_to_phys virt_to_phys
+ static inline phys_addr_t virt_to_phys(const volatile void *x)
+ {
+ 	return __virt_to_phys((unsigned long)(x));
+ }
++#else
++#define virt_to_phys debug_virt_to_phys
++#endif
+ 
+ #define phys_to_virt phys_to_virt
+ static inline void *phys_to_virt(phys_addr_t x)
+diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
+index b71086d25195..c9e436b28523 100644
+--- a/arch/arm64/include/asm/memory.h
++++ b/arch/arm64/include/asm/memory.h
+@@ -186,11 +186,15 @@ extern u64			kimage_voffset;
+  * translation for translating DMA addresses.  Use the driver
+  * DMA support - see dma-mapping.h.
+  */
++#ifndef CONFIG_DEBUG_VM
+ #define virt_to_phys virt_to_phys
+ static inline phys_addr_t virt_to_phys(const volatile void *x)
+ {
+ 	return __virt_to_phys((unsigned long)(x));
+ }
++#else
++#define virt_to_phys debug_virt_to_phys
++#endif
+ 
+ #define phys_to_virt phys_to_virt
+ static inline void *phys_to_virt(phys_addr_t x)
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index 5148150cc80b..426085757258 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -80,6 +80,10 @@
+ #define page_to_pfn __page_to_pfn
+ #define pfn_to_page __pfn_to_page
+ 
++#ifdef CONFIG_DEBUG_VM
++unsigned long debug_virt_to_phys(volatile void *address);
++#endif /* CONFIG_DEBUG_VM */
++
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif
+diff --git a/mm/debug.c b/mm/debug.c
+index 9feb699c5d25..72b2ca9b11f4 100644
+--- a/mm/debug.c
++++ b/mm/debug.c
+@@ -161,4 +161,19 @@ void dump_mm(const struct mm_struct *mm)
+ 	);
+ }
+ 
++#include <asm/memory.h>
++#include <linux/mm.h>
++
++unsigned long debug_virt_to_phys(volatile void *address)
++{
++	BUG_ON(is_vmalloc_addr((const void *)address));
++#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_UNICORE32) || \
++	defined(CONFIG_MICROBLAZE)
++	return __virt_to_phys(address);
++#else
++	return virt_to_phys(address);
++#endif
++}
++EXPORT_SYMBOL(debug_virt_to_phys);
++
+ #endif		/* CONFIG_DEBUG_VM */
+-- 
+2.9.3
+
