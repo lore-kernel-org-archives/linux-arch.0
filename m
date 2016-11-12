@@ -1,55 +1,115 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 0/2] THREAD_INFO_IN_TASK prep work for arm64+s390
-Date: Fri, 11 Nov 2016 16:23:43 +0000
-Message-ID: <20161111162343.GK11945@leverpostej>
-References: <1477503787-25537-1-git-send-email-mark.rutland@arm.com>
- <20161102155020.GA17547@remoulade>
- <20161110181307.GC10137@leverpostej>
- <20161111091622.GA4019@osiris>
- <20161111164237.1f381e57@mschwide>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47724 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932532AbcKKQYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 11 Nov 2016 11:24:22 -0500
-Content-Disposition: inline
-In-Reply-To: <20161111164237.1f381e57@mschwide>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, catalin.marinas@arm.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, keescook@chromium.org, luto@kernel.org, linux-kernel@vger.kernel.org
+From: Florian Fainelli <f.fainelli@gmail.com>
+Subject: [PATCH RFC] mm: Add debug_virt_to_phys()
+Date: Fri, 11 Nov 2016 16:44:43 -0800
+Message-ID: <20161112004449.30566-1-f.fainelli@gmail.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Florian Fainelli <f.fainelli@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Laura Abbott <labbott@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, "moderated list:ARM PORT" <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 11, 2016 at 04:42:37PM +0100, Martin Schwidefsky wrote:
-> On Fri, 11 Nov 2016 10:16:22 +0100
-> Heiko Carstens <heiko.carstens@de.ibm.com> wrote:
-> > > On Wed, Nov 02, 2016 at 03:56:26PM +0000, Mark Rutland wrote:
-> > > > On Wed, Oct 26, 2016 at 06:43:05PM +0100, Mark Rutland wrote:
+When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
+debug_virt_to_phys() which helps catch vmalloc space addresses being
+passed. This is helpful in debugging bogus drivers that just assume
+linear mappings all over the place.
 
-> > > > [1] git://git.kernel.org/pub/scm/linux/kernel/git/mark/linux.git core-ti-stack-split
-> > > 
-> > > I believe that Catalin's hoping to take my arm64 patches for v4.10,
-> > > using the above tag as a base.
-> > > 
-> > > What's the plan for s390? Are you happy to do the same?
-> > 
-> > We intend to merge the s390 variant also for v4.10. Our approach has
-> > changed however: we came to the conclusion that having a per-cpu preempt
-> > count will generate better code on s390; so Martin implemented that.
-> > 
-> > And while being at it he also moved the rest of the s390 specific stuff out
-> > of our struct thread_info. The corresponding patches will be pushed to
-> > 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git features
+For ARM, ARM64, Unicore32 and Microblaze, the architectures define
+__virt_to_phys() as being the functional implementation of the address
+translation, so we special case the debug stub to call into
+__virt_to_phys directly.
 
-> Just pushed our collected works to the features branch, in case you are
-> interested.
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+---
+ arch/arm/include/asm/memory.h      |  4 ++++
+ arch/arm64/include/asm/memory.h    |  4 ++++
+ include/asm-generic/memory_model.h |  4 ++++
+ mm/debug.c                         | 15 +++++++++++++++
+ 4 files changed, 27 insertions(+)
 
-Thanks for the heads-up!
+diff --git a/arch/arm/include/asm/memory.h b/arch/arm/include/asm/memory.h
+index 76cbd9c674df..448dec9b8b00 100644
+--- a/arch/arm/include/asm/memory.h
++++ b/arch/arm/include/asm/memory.h
+@@ -260,11 +260,15 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
+  * translation for translating DMA addresses.  Use the driver
+  * DMA support - see dma-mapping.h.
+  */
++#ifndef CONFIG_DEBUG_VM
+ #define virt_to_phys virt_to_phys
+ static inline phys_addr_t virt_to_phys(const volatile void *x)
+ {
+ 	return __virt_to_phys((unsigned long)(x));
+ }
++#else
++#define virt_to_phys debug_virt_to_phys
++#endif
+ 
+ #define phys_to_virt phys_to_virt
+ static inline void *phys_to_virt(phys_addr_t x)
+diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
+index b71086d25195..c9e436b28523 100644
+--- a/arch/arm64/include/asm/memory.h
++++ b/arch/arm64/include/asm/memory.h
+@@ -186,11 +186,15 @@ extern u64			kimage_voffset;
+  * translation for translating DMA addresses.  Use the driver
+  * DMA support - see dma-mapping.h.
+  */
++#ifndef CONFIG_DEBUG_VM
+ #define virt_to_phys virt_to_phys
+ static inline phys_addr_t virt_to_phys(const volatile void *x)
+ {
+ 	return __virt_to_phys((unsigned long)(x));
+ }
++#else
++#define virt_to_phys debug_virt_to_phys
++#endif
+ 
+ #define phys_to_virt phys_to_virt
+ static inline void *phys_to_virt(phys_addr_t x)
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index 5148150cc80b..426085757258 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -80,6 +80,10 @@
+ #define page_to_pfn __page_to_pfn
+ #define pfn_to_page __pfn_to_page
+ 
++#ifdef CONFIG_DEBUG_VM
++unsigned long debug_virt_to_phys(volatile void *address);
++#endif /* CONFIG_DEBUG_VM */
++
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif
+diff --git a/mm/debug.c b/mm/debug.c
+index 9feb699c5d25..72b2ca9b11f4 100644
+--- a/mm/debug.c
++++ b/mm/debug.c
+@@ -161,4 +161,19 @@ void dump_mm(const struct mm_struct *mm)
+ 	);
+ }
+ 
++#include <asm/memory.h>
++#include <linux/mm.h>
++
++unsigned long debug_virt_to_phys(volatile void *address)
++{
++	BUG_ON(is_vmalloc_addr((const void *)address));
++#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_UNICORE32) || \
++	defined(CONFIG_MICROBLAZE)
++	return __virt_to_phys(address);
++#else
++	return virt_to_phys(address);
++#endif
++}
++EXPORT_SYMBOL(debug_virt_to_phys);
++
+ #endif		/* CONFIG_DEBUG_VM */
+-- 
+2.9.3
 
-It doesn't look like we can do similar for arm64 (we don't have anything
-akin to the lowcore stuff), but it certainly seems nicer for s390.
-
-Thanks,
-Mark.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
