@@ -1,53 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:36294 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966728AbcKLT3n (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Nov 2016 14:29:43 -0500
-Subject: Re: [PATCH RFC] mm: Add debug_virt_to_phys()
-References: <20161112004449.30566-1-f.fainelli@gmail.com>
- <20161112054318.GB24127@arm.com>
-From: Florian Fainelli <f.fainelli@gmail.com>
-Message-ID: <abb97b87-db44-e25a-608e-161b57a0439b@gmail.com>
-Date: Sat, 12 Nov 2016 11:29:38 -0800
+Received: from 8bytes.org ([81.169.241.247]:59379 "EHLO theia.8bytes.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752446AbcKNQcH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 Nov 2016 11:32:07 -0500
+Date: Mon, 14 Nov 2016 17:32:04 +0100
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [RFC PATCH v3 14/20] iommu/amd: Disable AMD IOMMU if memory
+ encryption is active
+Message-ID: <20161114163204.GA2078@8bytes.org>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003731.3280.67205.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20161112054318.GB24127@arm.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161110003731.3280.67205.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Laura Abbott <labbott@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, "moderated list:ARM PORT" <linux-arm-kernel@lists.infradead.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>, "open list:MEMORY MANAGEMENT" <linux-mm@kvack.org>
-Message-ID: <20161112192938.gs6jQcOF21Oc3PSypAUuSjwER89u6DXq-fa1mj1JqgU@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161114163204.tFnzpUN2mrzziSj7JQk_9zR3Sa1jfe2wLWvGrDUw2mk@z>
 
-Le 11/11/2016 à 21:43, Will Deacon a écrit :
-> On Fri, Nov 11, 2016 at 04:44:43PM -0800, Florian Fainelli wrote:
->> When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
->> debug_virt_to_phys() which helps catch vmalloc space addresses being
->> passed. This is helpful in debugging bogus drivers that just assume
->> linear mappings all over the place.
->>
->> For ARM, ARM64, Unicore32 and Microblaze, the architectures define
->> __virt_to_phys() as being the functional implementation of the address
->> translation, so we special case the debug stub to call into
->> __virt_to_phys directly.
->>
->> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
->> ---
->>  arch/arm/include/asm/memory.h      |  4 ++++
->>  arch/arm64/include/asm/memory.h    |  4 ++++
->>  include/asm-generic/memory_model.h |  4 ++++
->>  mm/debug.c                         | 15 +++++++++++++++
->>  4 files changed, 27 insertions(+)
-> 
-> What's the interaction between this and the DEBUG_VIRTUAL patches from Laura?
-> 
-> http://lkml.kernel.org/r/20161102210054.16621-7-labbott@redhat.com
-> 
-> They seem to be tackling the exact same problem afaict.
+On Wed, Nov 09, 2016 at 06:37:32PM -0600, Tom Lendacky wrote:
+> +	/* For now, disable the IOMMU if SME is active */
+> +	if (sme_me_mask)
+> +		return -ENODEV;
+> +
 
-Indeed thanks for pointing that out, I guess I could piggy back on this
-patchset and try to cover ARM.
+Please print a message here telling the user why the IOMMU got disabled.
 
-Thanks!
--- 
-Florian
+
+Thanks,
+
+	Joerg
+
