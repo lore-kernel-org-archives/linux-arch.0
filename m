@@ -1,204 +1,129 @@
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: Re: [RFC PATCH v3 06/20] x86: Add support to enable SME during early
- boot processing
-Date: Mon, 14 Nov 2016 12:18:44 -0600
-Message-ID: <178d7d21-ffbd-1083-9c64-f05378147e27@amd.com>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
- <20161114172930.27z7p2kytmhtcbsb@pd.tnic>
+From: Laura Abbott <labbott@redhat.com>
+Subject: Re: [PATCH RFC] mm: Add debug_virt_to_phys()
+Date: Mon, 14 Nov 2016 10:45:29 -0800
+Message-ID: <aee5072c-4e09-547e-2f58-7b2106bced3c@redhat.com>
+References: <20161112004449.30566-1-f.fainelli@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161114172930.27z7p2kytmhtcbsb@pd.tnic>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f174.google.com ([209.85.220.174]:35865 "EHLO
+        mail-qk0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753954AbcKNSpg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 14 Nov 2016 13:45:36 -0500
+Received: by mail-qk0-f174.google.com with SMTP id n21so106832072qka.3
+        for <linux-arch@vger.kernel.org>; Mon, 14 Nov 2016 10:45:35 -0800 (PST)
+In-Reply-To: <20161112004449.30566-1-f.fainelli@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Florian Fainelli <f.fainelli@gmail.com>, linux-kernel@vger.kernel.org
+Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, "moderated list:ARM PORT" <linux-arm-kernel@>
 
-On 11/14/2016 11:29 AM, Borislav Petkov wrote:
-> On Wed, Nov 09, 2016 at 06:35:43PM -0600, Tom Lendacky wrote:
->> This patch adds support to the early boot code to use Secure Memory
->> Encryption (SME).  Support is added to update the early pagetables with
->> the memory encryption mask and to encrypt the kernel in place.
->>
->> The routines to set the encryption mask and perform the encryption are
->> stub routines for now with full function to be added in a later patch.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>  arch/x86/kernel/Makefile           |    2 ++
->>  arch/x86/kernel/head_64.S          |   35 ++++++++++++++++++++++++++++++++++-
->>  arch/x86/kernel/mem_encrypt_init.c |   29 +++++++++++++++++++++++++++++
->>  3 files changed, 65 insertions(+), 1 deletion(-)
->>  create mode 100644 arch/x86/kernel/mem_encrypt_init.c
->>
->> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
->> index 45257cf..27e22f4 100644
->> --- a/arch/x86/kernel/Makefile
->> +++ b/arch/x86/kernel/Makefile
->> @@ -141,4 +141,6 @@ ifeq ($(CONFIG_X86_64),y)
->>  
->>  	obj-$(CONFIG_PCI_MMCONFIG)	+= mmconf-fam10h_64.o
->>  	obj-y				+= vsmp_64.o
->> +
->> +	obj-y				+= mem_encrypt_init.o
->>  endif
->> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
->> index c98a559..9a28aad 100644
->> --- a/arch/x86/kernel/head_64.S
->> +++ b/arch/x86/kernel/head_64.S
->> @@ -95,6 +95,17 @@ startup_64:
->>  	jnz	bad_address
->>  
->>  	/*
->> +	 * Enable Secure Memory Encryption (if available).  Save the mask
->> +	 * in %r12 for later use and add the memory encryption mask to %rbp
->> +	 * to include it in the page table fixups.
->> +	 */
->> +	push	%rsi
->> +	call	sme_enable
->> +	pop	%rsi
+On 11/11/2016 04:44 PM, Florian Fainelli wrote:
+> When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
+> debug_virt_to_phys() which helps catch vmalloc space addresses being
+> passed. This is helpful in debugging bogus drivers that just assume
+> linear mappings all over the place.
 > 
-> Why %rsi?
+> For ARM, ARM64, Unicore32 and Microblaze, the architectures define
+> __virt_to_phys() as being the functional implementation of the address
+> translation, so we special case the debug stub to call into
+> __virt_to_phys directly.
 > 
-> sme_enable() is void so no args in registers and returns in %rax.
+> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+> ---
+>  arch/arm/include/asm/memory.h      |  4 ++++
+>  arch/arm64/include/asm/memory.h    |  4 ++++
+>  include/asm-generic/memory_model.h |  4 ++++
+>  mm/debug.c                         | 15 +++++++++++++++
+>  4 files changed, 27 insertions(+)
 > 
-> /me is confused.
+> diff --git a/arch/arm/include/asm/memory.h b/arch/arm/include/asm/memory.h
+> index 76cbd9c674df..448dec9b8b00 100644
+> --- a/arch/arm/include/asm/memory.h
+> +++ b/arch/arm/include/asm/memory.h
+> @@ -260,11 +260,15 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
+>   * translation for translating DMA addresses.  Use the driver
+>   * DMA support - see dma-mapping.h.
+>   */
+> +#ifndef CONFIG_DEBUG_VM
+>  #define virt_to_phys virt_to_phys
+>  static inline phys_addr_t virt_to_phys(const volatile void *x)
+>  {
+>  	return __virt_to_phys((unsigned long)(x));
+>  }
+> +#else
+> +#define virt_to_phys debug_virt_to_phys
+> +#endif
+>  
+>  #define phys_to_virt phys_to_virt
+>  static inline void *phys_to_virt(phys_addr_t x)
+> diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
+> index b71086d25195..c9e436b28523 100644
+> --- a/arch/arm64/include/asm/memory.h
+> +++ b/arch/arm64/include/asm/memory.h
+> @@ -186,11 +186,15 @@ extern u64			kimage_voffset;
+>   * translation for translating DMA addresses.  Use the driver
+>   * DMA support - see dma-mapping.h.
+>   */
+> +#ifndef CONFIG_DEBUG_VM
+>  #define virt_to_phys virt_to_phys
+>  static inline phys_addr_t virt_to_phys(const volatile void *x)
+>  {
+>  	return __virt_to_phys((unsigned long)(x));
+>  }
+> +#else
+> +#define virt_to_phys debug_virt_to_phys
+> +#endif
+>  
+>  #define phys_to_virt phys_to_virt
+>  static inline void *phys_to_virt(phys_addr_t x)
+> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+> index 5148150cc80b..426085757258 100644
+> --- a/include/asm-generic/memory_model.h
+> +++ b/include/asm-generic/memory_model.h
+> @@ -80,6 +80,10 @@
+>  #define page_to_pfn __page_to_pfn
+>  #define pfn_to_page __pfn_to_page
+>  
+> +#ifdef CONFIG_DEBUG_VM
+> +unsigned long debug_virt_to_phys(volatile void *address);
+> +#endif /* CONFIG_DEBUG_VM */
+> +
+>  #endif /* __ASSEMBLY__ */
+>  
+>  #endif
+> diff --git a/mm/debug.c b/mm/debug.c
+> index 9feb699c5d25..72b2ca9b11f4 100644
+> --- a/mm/debug.c
+> +++ b/mm/debug.c
+> @@ -161,4 +161,19 @@ void dump_mm(const struct mm_struct *mm)
+>  	);
+>  }
+>  
+> +#include <asm/memory.h>
+> +#include <linux/mm.h>
+> +
+> +unsigned long debug_virt_to_phys(volatile void *address)
+> +{
+> +	BUG_ON(is_vmalloc_addr((const void *)address));
+> +#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_UNICORE32) || \
+> +	defined(CONFIG_MICROBLAZE)
+> +	return __virt_to_phys(address);
+> +#else
+> +	return virt_to_phys(address);
+> +#endif
+> +}
+> +EXPORT_SYMBOL(debug_virt_to_phys);
+> +
+>  #endif		/* CONFIG_DEBUG_VM */
+> 
 
-The %rsi register can be clobbered by the called function so I'm saving
-it since it points to the real mode data.  I might be able to look into
-saving it earlier and restoring it before needed, but I though this
-might be clearer.
-
-> 
->> +	movq	%rax, %r12
->> +	addq	%r12, %rbp
->> +
->> +	/*
->>  	 * Fixup the physical addresses in the page table
->>  	 */
->>  	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
->> @@ -117,6 +128,7 @@ startup_64:
->>  	shrq	$PGDIR_SHIFT, %rax
->>  
->>  	leaq	(4096 + _KERNPG_TABLE)(%rbx), %rdx
->> +	addq	%r12, %rdx
->>  	movq	%rdx, 0(%rbx,%rax,8)
->>  	movq	%rdx, 8(%rbx,%rax,8)
->>  
->> @@ -133,6 +145,7 @@ startup_64:
->>  	movq	%rdi, %rax
->>  	shrq	$PMD_SHIFT, %rdi
->>  	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
->> +	addq	%r12, %rax
->>  	leaq	(_end - 1)(%rip), %rcx
->>  	shrq	$PMD_SHIFT, %rcx
->>  	subq	%rdi, %rcx
->> @@ -163,9 +176,21 @@ startup_64:
->>  	cmp	%r8, %rdi
->>  	jne	1b
->>  
->> -	/* Fixup phys_base */
->> +	/*
->> +	 * Fixup phys_base, remove the memory encryption mask from %rbp
->> +	 * to obtain the true physical address.
->> +	 */
->> +	subq	%r12, %rbp
->>  	addq	%rbp, phys_base(%rip)
->>  
->> +	/*
->> +	 * The page tables have been updated with the memory encryption mask,
->> +	 * so encrypt the kernel if memory encryption is active
->> +	 */
->> +	push	%rsi
->> +	call	sme_encrypt_kernel
->> +	pop	%rsi
-> 
-> Ditto.
-> 
->> +
->>  	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
->>  	jmp 1f
->>  ENTRY(secondary_startup_64)
->> @@ -186,9 +211,17 @@ ENTRY(secondary_startup_64)
->>  	/* Sanitize CPU configuration */
->>  	call verify_cpu
->>  
->> +	push	%rsi
->> +	call	sme_get_me_mask
->> +	pop	%rsi
-> 
-> Ditto.
-> 
->> +	movq	%rax, %r12
->> +
->>  	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
->>  1:
->>  
->> +	/* Add the memory encryption mask to RAX */
-> 
-> I think that should say something like:
-> 
-> 	/*
-> 	 * Add the memory encryption mask to init_level4_pgt's physical address
-> 	 */
-> 
-> or so...
-
-Yup, I'll expand on the comment for this.
-
-> 
->> +	addq	%r12, %rax
->> +
->>  	/* Enable PAE mode and PGE */
->>  	movl	$(X86_CR4_PAE | X86_CR4_PGE), %ecx
->>  	movq	%rcx, %cr4
->> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
->> new file mode 100644
->> index 0000000..388d6fb
->> --- /dev/null
->> +++ b/arch/x86/kernel/mem_encrypt_init.c
-> 
-> So nothing in the commit message explains why we need a separate
-> mem_encrypt_init.c file when we already have arch/x86/mm/mem_encrypt.c
-> for all memory encryption code...
-
-I can expand on the commit message about that.  I was trying to keep the
-early boot-related code separate from the main code in arch/x86/mm dir.
+is_vmalloc_addr is necessary but not sufficient. This misses
+cases like module addresses. The x86 version (CONFIG_DEBUG_VIRTUAL)
+bounds checks against the known linear map to catch all cases.
+I'm for a generic approach to this if it can catch all cases
+that an architecture specific version would catch.
 
 Thanks,
-Tom
-
-> 
->> @@ -0,0 +1,29 @@
->> +/*
->> + * AMD Memory Encryption Support
->> + *
->> + * Copyright (C) 2016 Advanced Micro Devices, Inc.
->> + *
->> + * Author: Tom Lendacky <thomas.lendacky@amd.com>
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + */
->> +
->> +#include <linux/linkage.h>
->> +#include <linux/init.h>
->> +#include <linux/mem_encrypt.h>
->> +
->> +void __init sme_encrypt_kernel(void)
->> +{
->> +}
->> +
->> +unsigned long __init sme_get_me_mask(void)
->> +{
->> +	return sme_me_mask;
->> +}
->> +
->> +unsigned long __init sme_enable(void)
->> +{
->> +	return sme_me_mask;
->> +}
-> 
+Laura
