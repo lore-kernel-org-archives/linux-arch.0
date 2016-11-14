@@ -1,141 +1,44 @@
-From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: Re: [PATCH RFC] mm: Add debug_virt_to_phys()
-Date: Mon, 14 Nov 2016 11:23:27 -0800
-Message-ID: <40e2260c-9b09-0c0e-5b0f-0d61fdb8ba1e@gmail.com>
-References: <20161112004449.30566-1-f.fainelli@gmail.com>
- <aee5072c-4e09-547e-2f58-7b2106bced3c@redhat.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v3 06/20] x86: Add support to enable SME during early
+ boot processing
+Date: Mon, 14 Nov 2016 21:01:32 +0100
+Message-ID: <20161114200132.i54uar3wckqlzsbt@pd.tnic>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
+ <20161114172930.27z7p2kytmhtcbsb@pd.tnic>
+ <178d7d21-ffbd-1083-9c64-f05378147e27@amd.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <aee5072c-4e09-547e-2f58-7b2106bced3c@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Laura Abbott <labbott@redhat.com>, linux-kernel@vger.kernel.org
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, "moderated list:ARM PORT" <linux-arm-kernel@lists.infradead.org>, "open list:GENERIC INCLUDE/ASM HEADER FILES" <linux-arch@vger.kernel.org>
+Return-path: <kvm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <178d7d21-ffbd-1083-9c64-f05378147e27@amd.com>
+Sender: kvm-owner@vger.kernel.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/14/2016 10:45 AM, Laura Abbott wrote:
-> On 11/11/2016 04:44 PM, Florian Fainelli wrote:
->> When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
->> debug_virt_to_phys() which helps catch vmalloc space addresses being
->> passed. This is helpful in debugging bogus drivers that just assume
->> linear mappings all over the place.
->>
->> For ARM, ARM64, Unicore32 and Microblaze, the architectures define
->> __virt_to_phys() as being the functional implementation of the address
->> translation, so we special case the debug stub to call into
->> __virt_to_phys directly.
->>
->> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
->> ---
->>  arch/arm/include/asm/memory.h      |  4 ++++
->>  arch/arm64/include/asm/memory.h    |  4 ++++
->>  include/asm-generic/memory_model.h |  4 ++++
->>  mm/debug.c                         | 15 +++++++++++++++
->>  4 files changed, 27 insertions(+)
->>
->> diff --git a/arch/arm/include/asm/memory.h b/arch/arm/include/asm/memory.h
->> index 76cbd9c674df..448dec9b8b00 100644
->> --- a/arch/arm/include/asm/memory.h
->> +++ b/arch/arm/include/asm/memory.h
->> @@ -260,11 +260,15 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
->>   * translation for translating DMA addresses.  Use the driver
->>   * DMA support - see dma-mapping.h.
->>   */
->> +#ifndef CONFIG_DEBUG_VM
->>  #define virt_to_phys virt_to_phys
->>  static inline phys_addr_t virt_to_phys(const volatile void *x)
->>  {
->>  	return __virt_to_phys((unsigned long)(x));
->>  }
->> +#else
->> +#define virt_to_phys debug_virt_to_phys
->> +#endif
->>  
->>  #define phys_to_virt phys_to_virt
->>  static inline void *phys_to_virt(phys_addr_t x)
->> diff --git a/arch/arm64/include/asm/memory.h b/arch/arm64/include/asm/memory.h
->> index b71086d25195..c9e436b28523 100644
->> --- a/arch/arm64/include/asm/memory.h
->> +++ b/arch/arm64/include/asm/memory.h
->> @@ -186,11 +186,15 @@ extern u64			kimage_voffset;
->>   * translation for translating DMA addresses.  Use the driver
->>   * DMA support - see dma-mapping.h.
->>   */
->> +#ifndef CONFIG_DEBUG_VM
->>  #define virt_to_phys virt_to_phys
->>  static inline phys_addr_t virt_to_phys(const volatile void *x)
->>  {
->>  	return __virt_to_phys((unsigned long)(x));
->>  }
->> +#else
->> +#define virt_to_phys debug_virt_to_phys
->> +#endif
->>  
->>  #define phys_to_virt phys_to_virt
->>  static inline void *phys_to_virt(phys_addr_t x)
->> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
->> index 5148150cc80b..426085757258 100644
->> --- a/include/asm-generic/memory_model.h
->> +++ b/include/asm-generic/memory_model.h
->> @@ -80,6 +80,10 @@
->>  #define page_to_pfn __page_to_pfn
->>  #define pfn_to_page __pfn_to_page
->>  
->> +#ifdef CONFIG_DEBUG_VM
->> +unsigned long debug_virt_to_phys(volatile void *address);
->> +#endif /* CONFIG_DEBUG_VM */
->> +
->>  #endif /* __ASSEMBLY__ */
->>  
->>  #endif
->> diff --git a/mm/debug.c b/mm/debug.c
->> index 9feb699c5d25..72b2ca9b11f4 100644
->> --- a/mm/debug.c
->> +++ b/mm/debug.c
->> @@ -161,4 +161,19 @@ void dump_mm(const struct mm_struct *mm)
->>  	);
->>  }
->>  
->> +#include <asm/memory.h>
->> +#include <linux/mm.h>
->> +
->> +unsigned long debug_virt_to_phys(volatile void *address)
->> +{
->> +	BUG_ON(is_vmalloc_addr((const void *)address));
->> +#if defined(CONFIG_ARM) || defined(CONFIG_ARM64) || defined(CONFIG_UNICORE32) || \
->> +	defined(CONFIG_MICROBLAZE)
->> +	return __virt_to_phys(address);
->> +#else
->> +	return virt_to_phys(address);
->> +#endif
->> +}
->> +EXPORT_SYMBOL(debug_virt_to_phys);
->> +
->>  #endif		/* CONFIG_DEBUG_VM */
->>
-> 
-> is_vmalloc_addr is necessary but not sufficient. This misses
-> cases like module addresses.
+On Mon, Nov 14, 2016 at 12:18:44PM -0600, Tom Lendacky wrote:
+> The %rsi register can be clobbered by the called function so I'm saving
+> it since it points to the real mode data.  I might be able to look into
+> saving it earlier and restoring it before needed, but I though this
+> might be clearer.
 
-Indeed, thanks.
+Ah, that's already in the comment earlier, I missed that.
 
-> The x86 version (CONFIG_DEBUG_VIRTUAL)
-> bounds checks against the known linear map to catch all cases.
-> I'm for a generic approach to this if it can catch all cases
-> that an architecture specific version would catch.
+> I can expand on the commit message about that.  I was trying to keep the
+> early boot-related code separate from the main code in arch/x86/mm dir.
 
-For one, my patch causes an early BUG to occur on ARM64 during
-arch/arm64/kernel/setup.c::setup_arch when we call
-cpu_uninstall_idmap(). I suspect there could be a bunch of little checks
-like these where we'd have to have an architecture specific "is this
-physical/virtual address valid" that may make a generic implementation
-hard to come up with.
+... because?
+
+It all gets linked into one monolithic image anyway and mem_encrypt.c
+is not, like, really huge, right? IOW, I don't see a reason to spread
+the code around the tree. OTOH, having everything in one file is much
+better.
+
+Or am I missing a good reason?
+
 -- 
-Florian
+Regards/Gruss,
+    Boris.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Good mailing practices for 400: avoid top-posting and trim the reply.
