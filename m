@@ -1,52 +1,67 @@
-From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: Re: [PATCH RFC] mm: Add debug_virt_to_phys()
-Date: Sat, 12 Nov 2016 11:29:38 -0800
-Message-ID: <abb97b87-db44-e25a-608e-161b57a0439b@gmail.com>
-References: <20161112004449.30566-1-f.fainelli@gmail.com>
- <20161112054318.GB24127@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: [PATCH] mm/pkeys: generate pkey system call code only if ARCH_HAS_PKEYS is selected
+Date: Mon, 14 Nov 2016 12:12:51 +0100
+Message-ID: <20161114111251.70084-1-heiko.carstens@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:36294 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S966728AbcKLT3n (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 12 Nov 2016 14:29:43 -0500
-In-Reply-To: <20161112054318.GB24127@arm.com>
+Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:57899 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752194AbcKNLM6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 Nov 2016 06:12:58 -0500
+Received: from pps.filterd (m0098399.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uAEB8qHl071380
+        for <linux-arch@vger.kernel.org>; Mon, 14 Nov 2016 06:12:57 -0500
+Received: from e06smtp15.uk.ibm.com (e06smtp15.uk.ibm.com [195.75.94.111])
+        by mx0a-001b2d01.pphosted.com with ESMTP id 26q524tp61-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Mon, 14 Nov 2016 06:12:57 -0500
+Received: from localhost
+        by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Mon, 14 Nov 2016 11:12:55 -0000
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Chris Brandt <chris.brandt@renesas.com>, Pratyush Anand <panand@redhat.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, James Morse <james.morse@arm.com>, Neeraj Upadhyay <neeraju@codeaurora.org>, Laura Abbott <labbott@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jerome Marchand <jmarchan@redhat.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, moderated lis
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Dave Hansen <dave.hansen@linux.intel.com>, Mark Rutland <mark.rutland@arm.com>
 
-Le 11/11/2016 à 21:43, Will Deacon a écrit :
-> On Fri, Nov 11, 2016 at 04:44:43PM -0800, Florian Fainelli wrote:
->> When CONFIG_DEBUG_VM is turned on, virt_to_phys() maps to
->> debug_virt_to_phys() which helps catch vmalloc space addresses being
->> passed. This is helpful in debugging bogus drivers that just assume
->> linear mappings all over the place.
->>
->> For ARM, ARM64, Unicore32 and Microblaze, the architectures define
->> __virt_to_phys() as being the functional implementation of the address
->> translation, so we special case the debug stub to call into
->> __virt_to_phys directly.
->>
->> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
->> ---
->>  arch/arm/include/asm/memory.h      |  4 ++++
->>  arch/arm64/include/asm/memory.h    |  4 ++++
->>  include/asm-generic/memory_model.h |  4 ++++
->>  mm/debug.c                         | 15 +++++++++++++++
->>  4 files changed, 27 insertions(+)
-> 
-> What's the interaction between this and the DEBUG_VIRTUAL patches from Laura?
-> 
-> http://lkml.kernel.org/r/20161102210054.16621-7-labbott@redhat.com
-> 
-> They seem to be tackling the exact same problem afaict.
+Having code for the pkey_mprotect, pkey_alloc and pkey_free system
+calls makes only sense if ARCH_HAS_PKEYS is selected. If not selected
+these system calls will always return -ENOSPC or -EINVAL.
 
-Indeed thanks for pointing that out, I guess I could piggy back on this
-patchset and try to cover ARM.
+To simplify things and have less code generate the pkey system call
+code only if ARCH_HAS_PKEYS is selected.
 
-Thanks!
+For architectures which have already wired up the system calls, but do
+not select ARCH_HAS_PKEYS this will result in less generated code and
+a different return code: the three system calls will now always return
+-ENOSYS, using the cond_syscall mechanism.
+
+For architectures which have not wired up the system calls less
+unreachable code will be generated.
+
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+---
+ mm/mprotect.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/mm/mprotect.c b/mm/mprotect.c
+index 11936526b08b..a06e91c4de29 100644
+--- a/mm/mprotect.c
++++ b/mm/mprotect.c
+@@ -484,6 +484,8 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
+ 	return do_mprotect_pkey(start, len, prot, -1);
+ }
+ 
++#ifdef CONFIG_ARCH_HAS_PKEYS
++
+ SYSCALL_DEFINE4(pkey_mprotect, unsigned long, start, size_t, len,
+ 		unsigned long, prot, int, pkey)
+ {
+@@ -534,3 +536,5 @@ SYSCALL_DEFINE1(pkey_free, int, pkey)
+ 	 */
+ 	return ret;
+ }
++
++#endif /* CONFIG_ARCH_HAS_PKEYS */
 -- 
-Florian
+2.8.4
