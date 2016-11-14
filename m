@@ -1,61 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0063.outbound.protection.outlook.com ([104.47.41.63]:11232
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752781AbcKNR0B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 14 Nov 2016 12:26:01 -0500
-Subject: Re: [RFC PATCH v3 02/20] x86: Set the write-protect cache mode for
- full PAT support
+Received: from mail.skyhub.de ([78.46.96.112]:51729 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932260AbcKNR3f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 14 Nov 2016 12:29:35 -0500
+Date: Mon, 14 Nov 2016 18:29:30 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v3 06/20] x86: Add support to enable SME during early
+ boot processing
+Message-ID: <20161114172930.27z7p2kytmhtcbsb@pd.tnic>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003448.3280.27573.stgit@tlendack-t1.amdoffice.net>
- <20161110131400.bmeoojsrin2zi2w2@pd.tnic>
- <1478827480.20881.142.camel@hpe.com>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <01f705f1-484b-4407-7b7a-e8e69966581f@amd.com>
-Date: Mon, 14 Nov 2016 10:51:27 -0600
+ <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <1478827480.20881.142.camel@hpe.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kani, Toshimitsu" <toshi.kani@hpe.com>, "bp@alien8.de" <bp@alien8.de>
-Cc: "kvm@vger.kernel.org" <kvm@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "dvyukov@google.com" <dvyukov@google.com>, "corbet@lwn.net" <corbet@lwn.net>, "arnd@arndb.de" <arnd@arndb.de>, "matt@codeblueprint.co.uk" <matt@codeblueprint.co.uk>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "aryabinin@virtuozzo.com" <aryabinin@virtuozzo.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "konrad.wilk@oracle.com" <konrad.wilk@oracle.com>, "kasan-dev@googlegroups.com" <kasan-dev@googlegroups.com>, "x86@kernel.org" <x86@kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "lwoodman@redhat.com" <lwoodman@redhat.com>, "mingo@redhat.com" <mingo@redhat.com>, "joro@8bytes.org" <joro@8bytes.org>, "linux-efi@vger.kernel.org" <linux-efi@vger.kernel.org>, "pbonzini@redhat.com" <pbonzini@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "luto@kernel.org" <luto@kernel.org>, "glider@google.com" <glider@google.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "rkrcmar@redhat.com" <rkrcmar@redhat.com>
-Message-ID: <20161114165127.HVvj19pUV61RBPm6TAceI_Ty0IBc6GGmXoc_umr_xGw@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161114172930.gxUGJfxE5Wx5d4h_N6bDQ6K7KNyOFdGqlpzrzXuXka4@z>
 
-On 11/10/2016 07:26 PM, Kani, Toshimitsu wrote:
-> On Thu, 2016-11-10 at 14:14 +0100, Borislav Petkov wrote:
->> + Toshi.
->>
->> On Wed, Nov 09, 2016 at 06:34:48PM -0600, Tom Lendacky wrote:
->>>
->>> For processors that support PAT, set the write-protect cache mode
->>> (_PAGE_CACHE_MODE_WP) entry to the actual write-protect value
->>> (x05).
+On Wed, Nov 09, 2016 at 06:35:43PM -0600, Tom Lendacky wrote:
+> This patch adds support to the early boot code to use Secure Memory
+> Encryption (SME).  Support is added to update the early pagetables with
+> the memory encryption mask and to encrypt the kernel in place.
 > 
-> Using slot 6 may be more cautious (for the same reason slot 7 was used
-> for WT), but I do not have a strong opinion for it.
+> The routines to set the encryption mask and perform the encryption are
+> stub routines for now with full function to be added in a later patch.
 > 
-> set_page_memtype() cannot track the use of WP type since there is no
-> extra-bit available for WP, but WP is only supported by
-> early_memremap_xx() interfaces in this series.  So, I think we should
-> just document that WP is only intended for temporary mappings at boot-
-> time until this issue is resolved.  Also, we need to make sure that
-> this early_memremap for WP is only called after pat_init() is done.
-
-Sounds good, I'll add documentation to cover these points.
-
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/Makefile           |    2 ++
+>  arch/x86/kernel/head_64.S          |   35 ++++++++++++++++++++++++++++++++++-
+>  arch/x86/kernel/mem_encrypt_init.c |   29 +++++++++++++++++++++++++++++
+>  3 files changed, 65 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/x86/kernel/mem_encrypt_init.c
 > 
-> A nit - please add WP to the function header comment below.
-> "This function initializes PAT MSR and PAT table with an OS-defined
-> value to enable additional cache attributes, WC and WT."
+> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+> index 45257cf..27e22f4 100644
+> --- a/arch/x86/kernel/Makefile
+> +++ b/arch/x86/kernel/Makefile
+> @@ -141,4 +141,6 @@ ifeq ($(CONFIG_X86_64),y)
+>  
+>  	obj-$(CONFIG_PCI_MMCONFIG)	+= mmconf-fam10h_64.o
+>  	obj-y				+= vsmp_64.o
+> +
+> +	obj-y				+= mem_encrypt_init.o
+>  endif
+> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+> index c98a559..9a28aad 100644
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -95,6 +95,17 @@ startup_64:
+>  	jnz	bad_address
+>  
+>  	/*
+> +	 * Enable Secure Memory Encryption (if available).  Save the mask
+> +	 * in %r12 for later use and add the memory encryption mask to %rbp
+> +	 * to include it in the page table fixups.
+> +	 */
+> +	push	%rsi
+> +	call	sme_enable
+> +	pop	%rsi
 
-Will do.
+Why %rsi?
 
-Thanks,
-Tom
+sme_enable() is void so no args in registers and returns in %rax.
 
-> 
-> Thanks,
-> -Toshi
-> 
+/me is confused.
+
+> +	movq	%rax, %r12
+> +	addq	%r12, %rbp
+> +
+> +	/*
+>  	 * Fixup the physical addresses in the page table
+>  	 */
+>  	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+> @@ -117,6 +128,7 @@ startup_64:
+>  	shrq	$PGDIR_SHIFT, %rax
+>  
+>  	leaq	(4096 + _KERNPG_TABLE)(%rbx), %rdx
+> +	addq	%r12, %rdx
+>  	movq	%rdx, 0(%rbx,%rax,8)
+>  	movq	%rdx, 8(%rbx,%rax,8)
+>  
+> @@ -133,6 +145,7 @@ startup_64:
+>  	movq	%rdi, %rax
+>  	shrq	$PMD_SHIFT, %rdi
+>  	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
+> +	addq	%r12, %rax
+>  	leaq	(_end - 1)(%rip), %rcx
+>  	shrq	$PMD_SHIFT, %rcx
+>  	subq	%rdi, %rcx
+> @@ -163,9 +176,21 @@ startup_64:
+>  	cmp	%r8, %rdi
+>  	jne	1b
+>  
+> -	/* Fixup phys_base */
+> +	/*
+> +	 * Fixup phys_base, remove the memory encryption mask from %rbp
+> +	 * to obtain the true physical address.
+> +	 */
+> +	subq	%r12, %rbp
+>  	addq	%rbp, phys_base(%rip)
+>  
+> +	/*
+> +	 * The page tables have been updated with the memory encryption mask,
+> +	 * so encrypt the kernel if memory encryption is active
+> +	 */
+> +	push	%rsi
+> +	call	sme_encrypt_kernel
+> +	pop	%rsi
+
+Ditto.
+
+> +
+>  	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
+>  	jmp 1f
+>  ENTRY(secondary_startup_64)
+> @@ -186,9 +211,17 @@ ENTRY(secondary_startup_64)
+>  	/* Sanitize CPU configuration */
+>  	call verify_cpu
+>  
+> +	push	%rsi
+> +	call	sme_get_me_mask
+> +	pop	%rsi
+
+Ditto.
+
+> +	movq	%rax, %r12
+> +
+>  	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
+>  1:
+>  
+> +	/* Add the memory encryption mask to RAX */
+
+I think that should say something like:
+
+	/*
+	 * Add the memory encryption mask to init_level4_pgt's physical address
+	 */
+
+or so...
+
+> +	addq	%r12, %rax
+> +
+>  	/* Enable PAE mode and PGE */
+>  	movl	$(X86_CR4_PAE | X86_CR4_PGE), %ecx
+>  	movq	%rcx, %cr4
+> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
+> new file mode 100644
+> index 0000000..388d6fb
+> --- /dev/null
+> +++ b/arch/x86/kernel/mem_encrypt_init.c
+
+So nothing in the commit message explains why we need a separate
+mem_encrypt_init.c file when we already have arch/x86/mm/mem_encrypt.c
+for all memory encryption code...
+
+> @@ -0,0 +1,29 @@
+> +/*
+> + * AMD Memory Encryption Support
+> + *
+> + * Copyright (C) 2016 Advanced Micro Devices, Inc.
+> + *
+> + * Author: Tom Lendacky <thomas.lendacky@amd.com>
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +
+> +#include <linux/linkage.h>
+> +#include <linux/init.h>
+> +#include <linux/mem_encrypt.h>
+> +
+> +void __init sme_encrypt_kernel(void)
+> +{
+> +}
+> +
+> +unsigned long __init sme_get_me_mask(void)
+> +{
+> +	return sme_me_mask;
+> +}
+> +
+> +unsigned long __init sme_enable(void)
+> +{
+> +	return sme_me_mask;
+> +}
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
