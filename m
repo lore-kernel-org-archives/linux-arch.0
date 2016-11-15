@@ -1,80 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-001b2d01.pphosted.com ([148.163.156.1]:56961 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S936359AbcKONwM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Nov 2016 08:52:12 -0500
-Received: from pps.filterd (m0098394.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uAFDmvZr138633
-        for <linux-arch@vger.kernel.org>; Tue, 15 Nov 2016 08:52:11 -0500
-Received: from e06smtp14.uk.ibm.com (e06smtp14.uk.ibm.com [195.75.94.110])
-        by mx0a-001b2d01.pphosted.com with ESMTP id 26qxr4xqb7-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Tue, 15 Nov 2016 08:52:11 -0500
-Received: from localhost
-        by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-        Tue, 15 Nov 2016 13:52:08 -0000
-Subject: Re: [GIT PULL v2 1/5] processor.h: introduce cpu_relax_yield
-References: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
- <1477386195-32736-2-git-send-email-borntraeger@de.ibm.com>
- <20161115123029.GT1041@n2100.armlinux.org.uk>
- <7f7850e4-c7bb-9cc1-2d65-a1555e97988a@de.ibm.com>
- <20161115133758.GV1041@n2100.armlinux.org.uk>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Date: Tue, 15 Nov 2016 14:52:03 +0100
+Received: from mail-bl2nam02on0042.outbound.protection.outlook.com ([104.47.38.42]:54432
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751633AbcKOOdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Nov 2016 09:33:13 -0500
+Subject: Re: [RFC PATCH v3 04/20] x86: Handle reduction in physical address
+ size with SME
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003513.3280.12104.stgit@tlendack-t1.amdoffice.net>
+ <20161115121035.GD24857@8bytes.org>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <f36306aa-cc28-ae2e-1a7e-a6b69c474daf@amd.com>
+Date: Tue, 15 Nov 2016 08:32:50 -0600
 MIME-Version: 1.0
-In-Reply-To: <20161115133758.GV1041@n2100.armlinux.org.uk>
-Content-Type: text/plain; charset=windows-1252
+In-Reply-To: <20161115121035.GD24857@8bytes.org>
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
-Message-ID: <7ebfbdba-02bb-e837-dbce-6a5acaf3a374@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Noam Camus <noamc@ezchip.com>, sparclinux@vger.kernel.org, x86@kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org
-Message-ID: <20161115135203.ZuIRsddzC8i5bM7Jym4qJIlsC_E-gX7jtF9z_omMJfg@z>
+To: Joerg Roedel <joro@8bytes.org>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161115143250.blF9BMy7O9ac52PFkrzbNzZtcfI61QALSPxWrdJfyOs@z>
 
-On 11/15/2016 02:37 PM, Russell King - ARM Linux wrote:
-> On Tue, Nov 15, 2016 at 02:19:53PM +0100, Christian Borntraeger wrote:
->> On 11/15/2016 01:30 PM, Russell King - ARM Linux wrote:
->>> On Tue, Oct 25, 2016 at 11:03:11AM +0200, Christian Borntraeger wrote:
->>>> For spinning loops people do often use barrier() or cpu_relax().
->>>> For most architectures cpu_relax and barrier are the same, but on
->>>> some architectures cpu_relax can add some latency.
->>>> For example on power,sparc64 and arc, cpu_relax can shift the CPU
->>>> towards other hardware threads in an SMT environment.
->>>> On s390 cpu_relax does even more, it uses an hypercall to the
->>>> hypervisor to give up the timeslice.
->>>> In contrast to the SMT yielding this can result in larger latencies.
->>>> In some places this latency is unwanted, so another variant
->>>> "cpu_relax_lowlatency" was introduced. Before this is used in more
->>>> and more places, lets revert the logic and provide a cpu_relax_yield
->>>> that can be called in places where yielding is more important than
->>>> latency. By default this is the same as cpu_relax on all architectures.
->>>
->>> Rather than having to update all these architectures in this way, can't
->>> we put in some linux/*.h header something like:
->>>
->>> #ifndef cpu_relax_yield
->>> #define cpu_relax_yield() cpu_relax()
->>> #endif
->>>
->>> so only those architectures that need to do something need to be
->>> modified?
->>
->> These patches are part of linux-next since a month or so, changing that 
->> would invalidate all the next testing. If people want that, I can certainly
->> do that, though.
+On 11/15/2016 6:10 AM, Joerg Roedel wrote:
+> On Wed, Nov 09, 2016 at 06:35:13PM -0600, Tom Lendacky wrote:
+>> +/*
+>> + * AMD Secure Memory Encryption (SME) can reduce the size of the physical
+>> + * address space if it is enabled, even if memory encryption is not active.
+>> + * Adjust x86_phys_bits if SME is enabled.
+>> + */
+>> +static void phys_bits_adjust(struct cpuinfo_x86 *c)
+>> +{
 > 
-> It's three weeks since you posted them.  For one of those weeks (the
-> week you posted them) I was away, and missed them while catching up.
-> Sorry, but it sometimes takes a while to spot things amongst the
-> backlog, and normally takes some subsequent activity on the thread to
-> bring it back into view.
+> Better call this function amd_sme_phys_bits_adjust(). This name makes it
+> clear at the call-site why it is there and what it does.
 
-Absolutely no need to apologize. Thank you for doing the review and the proposal. 
-I will do whatever is consensus, but since this looks like tip/locking material
-I will wait for Peter or Ingo to decide about the if and how.
+Will do.
 
-Christian
+> 
+>> +	u32 eax, ebx, ecx, edx;
+>> +	u64 msr;
+>> +
+>> +	if (c->x86_vendor != X86_VENDOR_AMD)
+>> +		return;
+>> +
+>> +	if (c->extended_cpuid_level < 0x8000001f)
+>> +		return;
+>> +
+>> +	/* Check for SME feature */
+>> +	cpuid(0x8000001f, &eax, &ebx, &ecx, &edx);
+>> +	if (!(eax & 0x01))
+>> +		return;
+> 
+> Maybe add a comment here why you can't use cpu_has (yet).
+> 
+
+Ok, will do.
+
+Thanks,
+Tom
 
