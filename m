@@ -1,44 +1,54 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v3 06/20] x86: Add support to enable SME during early
- boot processing
-Date: Mon, 14 Nov 2016 21:01:32 +0100
-Message-ID: <20161114200132.i54uar3wckqlzsbt@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003543.3280.99623.stgit@tlendack-t1.amdoffice.net>
- <20161114172930.27z7p2kytmhtcbsb@pd.tnic>
- <178d7d21-ffbd-1083-9c64-f05378147e27@amd.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
+Date: Tue, 15 Nov 2016 10:03:39 +0100
+Message-ID: <CACRpkdacDcy_Y_5g8739DF+f3fRzzMQ_bkM1TQ+uTtPq1=VmFg@mail.gmail.com>
+References: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+ <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com> <5825B6D4.1000600@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <kvm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <178d7d21-ffbd-1083-9c64-f05378147e27@amd.com>
-Sender: kvm-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qt0-f182.google.com ([209.85.216.182]:33921 "EHLO
+        mail-qt0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S941141AbcKOJDl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 15 Nov 2016 04:03:41 -0500
+Received: by mail-qt0-f182.google.com with SMTP id n6so64342541qtd.1
+        for <linux-arch@vger.kernel.org>; Tue, 15 Nov 2016 01:03:41 -0800 (PST)
+In-Reply-To: <5825B6D4.1000600@nvidia.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Laxman Dewangan <ldewangan@nvidia.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Mon, Nov 14, 2016 at 12:18:44PM -0600, Tom Lendacky wrote:
-> The %rsi register can be clobbered by the called function so I'm saving
-> it since it points to the real mode data.  I might be able to look into
-> saving it earlier and restoring it before needed, but I though this
-> might be clearer.
+On Fri, Nov 11, 2016 at 1:17 PM, Laxman Dewangan <ldewangan@nvidia.com> wrote:
 
-Ah, that's already in the comment earlier, I missed that.
+>> Yeah but since pinctrl and pinmux has its own debugfs files why is this
+>> necessary? I understand it is convenient but only for debugging
+>> right? They the inconvenience of using pinctrls debugfs files should
+>> be bearable.
+>
+> Yes, it is debugging and capturing all the info at single place. Currently,
+> gpio debugFs shows the gpio related stuff and the pinctrl on pinconfig but
+> there is not any dump which shows the complete pin mapping.
+> The effort is to compile all the data in single place with proper message to
+> avoid any manual work for decoding multiple outputs.
 
-> I can expand on the commit message about that.  I was trying to keep the
-> early boot-related code separate from the main code in arch/x86/mm dir.
+I don't know if this is a good idea. I don't want to clutter the
+gpiolib ABI for no good reason.
 
-... because?
+For certain this should only be available for drivers using pin
+control as a back-end for their GPIOs.
 
-It all gets linked into one monolithic image anyway and mem_encrypt.c
-is not, like, really huge, right? IOW, I don't see a reason to spread
-the code around the tree. OTOH, having everything in one file is much
-better.
+For that purpose we have (in <linux/pinctrl/consumer.h>:
 
-Or am I missing a good reason?
+/* External interface to pin control */
+extern int pinctrl_request_gpio(unsigned gpio);
+extern void pinctrl_free_gpio(unsigned gpio);
+extern int pinctrl_gpio_direction_input(unsigned gpio);
+extern int pinctrl_gpio_direction_output(unsigned gpio);
 
--- 
-Regards/Gruss,
-    Boris.
+It would be more natural to add a function pinctrl_is_gpio(unsigned gpio)
+to call back to the pin controller, then that can be called from
+the generic or driver-specific debug print callback.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Yours,
+Linus Walleij
