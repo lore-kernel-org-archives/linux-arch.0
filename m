@@ -1,54 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:50392 "EHLO mail.kapsi.fi"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752513AbcKOTbr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 15 Nov 2016 14:31:47 -0500
-Date: Tue, 15 Nov 2016 21:31:44 +0200
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: Re: [PATCH v05 14/72] include/uapi/asm-generic/ipcbuf.h: include
- linux/posix_types.h
-Message-ID: <20161115193144.GH8342@lakka.kapsi.fi>
-References: <1471890809-4383-1-git-send-email-mikko.rapeli@iki.fi>
- <1471890809-4383-15-git-send-email-mikko.rapeli@iki.fi>
- <11102328.qebiHLmYMG@wuerfel>
+Received: from mail-bl2nam02on0089.outbound.protection.outlook.com ([104.47.38.89]:50519
+        "EHLO NAM02-BL2-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752923AbcKOUdR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 15 Nov 2016 15:33:17 -0500
+Subject: Re: [RFC PATCH v3 13/20] x86: DMA support for memory encryption
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003723.3280.62636.stgit@tlendack-t1.amdoffice.net>
+ <20161115143943.GC2185@potion> <d5ebd13d-1278-8714-3f03-8ee7f04a2b38@amd.com>
+ <20161115181736.GA14060@potion>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <55bba6f6-b134-6c7b-fc20-10d2dbf781f1@amd.com>
+Date: Tue, 15 Nov 2016 14:33:06 -0600
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+In-Reply-To: <20161115181736.GA14060@potion>
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <11102328.qebiHLmYMG@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20161115193144.Hfkc5137U2-Xq1l9zhCcEydRFtdzhezS-OXxwOTJmvM@z>
+To: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161115203306.t6-QZGtotwcnBmQ4I04PNUcka8doo740ZtgqGWRbUbk@z>
 
-On Wed, Aug 24, 2016 at 05:36:22PM +0200, Arnd Bergmann wrote:
-> On Monday, August 22, 2016 8:32:31 PM CEST Mikko Rapeli wrote:
-> > Fixes userspace compilation error:
-> > 
-> > error: unknown type name ‘__kernel_key_t’
-> > 
-> > Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
-> > 
+On 11/15/2016 12:17 PM, Radim Krčmář wrote:
+> 2016-11-15 11:02-0600, Tom Lendacky:
+>> On 11/15/2016 8:39 AM, Radim Krčmář wrote:
+>>> 2016-11-09 18:37-0600, Tom Lendacky:
+>>>> Since DMA addresses will effectively look like 48-bit addresses when the
+>>>> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
+>>>> device performing the DMA does not support 48-bits. SWIOTLB will be
+>>>> initialized to create un-encrypted bounce buffers for use by these devices.
+>>>>
+>>>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>>>> ---
+>>>> diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
+>>>> @@ -64,13 +66,15 @@ static struct dma_map_ops swiotlb_dma_ops = {
+>>>>   * pci_swiotlb_detect_override - set swiotlb to 1 if necessary
+>>>>   *
+>>>>   * This returns non-zero if we are forced to use swiotlb (by the boot
+>>>> - * option).
+>>>> + * option). If memory encryption is enabled then swiotlb will be set
+>>>> + * to 1 so that bounce buffers are allocated and used for devices that
+>>>> + * do not support the addressing range required for the encryption mask.
+>>>>   */
+>>>>  int __init pci_swiotlb_detect_override(void)
+>>>>  {
+>>>>  	int use_swiotlb = swiotlb | swiotlb_force;
+>>>>  
+>>>> -	if (swiotlb_force)
+>>>> +	if (swiotlb_force || sme_me_mask)
+>>>>  		swiotlb = 1;
+>>>>  
+>>>>  	return use_swiotlb;
+>>>
+>>> We want to return 1 even if only sme_me_mask is 1, because the return
+>>> value is used for detection.  The following would be less obscure, IMO:
+>>>
+>>> 	if (swiotlb_force || sme_me_mask)
+>>> 		swiotlb = 1;
+>>>
+>>> 	return swiotlb;
+>>
+>> If we do that then all DMA would go through the swiotlb bounce buffers.
 > 
-> Looks good. I was on Cc for patches 14, 15, 16, 17, 18, 35,
-> 65 and 71. They all seem reasonable to me, the only change
-> I would do is to remove "include/uapi/" from the subject,
-> and instead write it as
+> No, that is decided for example in swiotlb_map_page() and we need to
+> call pci_swiotlb_init() to register that function.
 > 
-> "asm-generic/ipcbuf.h: include linux/posix_types.h"
+>> By setting swiotlb to 1 we indicate that the bounce buffers will be
+>> needed for those devices that can't support the addressing range when
+>> the encryption bit is set (48 bit DMA). But if the device can support
+>> the addressing range we won't use the bounce buffers.
 > 
-> With that changed, please add
+> If we return 0 here, then pci_swiotlb_init() will not be called =>
+> dma_ops won't be set to swiotlb_dma_ops => we won't use bounce buffers.
 > 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Thanks, done.
+Ok, I see why this was working for me...  By setting swiotlb = 1 and
+returning 0 it was continuing to the pci_swiotlb_detect_4gb table which
+would return the current value of swiotlb, which is 1, and so the
+swiotlb ops were setup.
 
-> if you want to keep the entire series together, or resend
-> those patches as a new series to me if you would like me to
-> apply them to the asm-generic git tree instead.
+So the change that you mentioned will work, thanks for pointing that out
+and getting me to dig deeper on it.  I'll update the patch.
 
-I will send a new series after fixing all other review findings and testing
-the changes again.
+>>> We setup encrypted swiotlb and then decrypt it, but sometimes set it up
+>>> decrypted (late_alloc) ... why isn't the swiotlb set up decrypted
+>>> directly?
+>>
+>> When swiotlb is allocated in swiotlb_init(), it is too early to make
+>> use of the api to the change the page attributes. Because of this,
+>> the callback to make those changes is needed.
+> 
+> Thanks. (I don't know page table setup enough to see a lesser evil. :])
+> 
+>>>> @@ -541,7 +583,7 @@ static phys_addr_t
+>>>>  map_single(struct device *hwdev, phys_addr_t phys, size_t size,
+>>>>  	   enum dma_data_direction dir)
+>>>>  {
+>>>> -	dma_addr_t start_dma_addr = phys_to_dma(hwdev, io_tlb_start);
+>>>> +	dma_addr_t start_dma_addr = swiotlb_phys_to_dma(hwdev, io_tlb_start);
+>>>
+>>> We have decrypted io_tlb_start before, so shouldn't its physical address
+>>> be saved without the sme bit?  (Which changes a lot ...)
+>>
+>> I'm not sure what you mean here, can you elaborate a bit more?
+> 
+> The C-bit (sme bit) is a part of the physical address.
 
--Mikko
+The C-bit (sme_me_mask) isn't part of the physical address for
+io_tlb_start, but since the original call was to phys_to_dma(), which
+now will automatically "or" in the C-bit, I needed to adjust that by
+using swiotlb_phys_to_dma() to remove the C-bit.
+
+> If we know that a certain physical page should be accessed as
+> unencrypted (the bounce buffer) then the C-bit is 0.
+> I'm wondering why we save the physical address with the C-bit set when
+> we know that it can't be accessed that way (because we remove it every
+> time).
+
+It's not saved with the C-bit, but the phys_to_dma call will "or" in the
+C-bit automatically.  And since this is common code I need to leave that
+call to phys_to_dma in.
+
+> 
+> The naming is a bit confusing, because physical addresses are actually
+> virtualized by SME -- maybe we should be calling them SME addresses?
+
+Interesting idea...  I'll have to look at how that plays out in the
+patches and documentation.
+
+Thanks,
+Tom
+
+> 
