@@ -1,70 +1,63 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [GIT PULL v2 1/5] processor.h: introduce cpu_relax_yield
-Date: Tue, 15 Nov 2016 14:52:03 +0100
-Message-ID: <7ebfbdba-02bb-e837-dbce-6a5acaf3a374@de.ibm.com>
-References: <1477386195-32736-1-git-send-email-borntraeger@de.ibm.com>
-	<1477386195-32736-2-git-send-email-borntraeger@de.ibm.com>
-	<20161115123029.GT1041@n2100.armlinux.org.uk>
-	<7f7850e4-c7bb-9cc1-2d65-a1555e97988a@de.ibm.com>
-	<20161115133758.GV1041@n2100.armlinux.org.uk>
+From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Subject: Re: [RFC PATCH v3 04/20] x86: Handle reduction in physical address
+	size with SME
+Date: Tue, 15 Nov 2016 08:32:50 -0600
+Message-ID: <f36306aa-cc28-ae2e-1a7e-a6b69c474daf@amd.com>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+	<20161110003513.3280.12104.stgit@tlendack-t1.amdoffice.net>
+	<20161115121035.GD24857@8bytes.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20161115133758.GV1041@n2100.armlinux.org.uk>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, x86@kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>, virtualization@lists.linux-foundation.org, sparclinux@vger.kernel.org, Noam Camus <noamc@ezchip.com>, Catalin Marinas <catalin.marinas@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, xen-devel@lists.xenproject.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20161115121035.GD24857-zLv9SwRftAIdnm+yROfE0A@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Joerg Roedel <joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/15/2016 02:37 PM, Russell King - ARM Linux wrote:
-> On Tue, Nov 15, 2016 at 02:19:53PM +0100, Christian Borntraeger wrote:
->> On 11/15/2016 01:30 PM, Russell King - ARM Linux wrote:
->>> On Tue, Oct 25, 2016 at 11:03:11AM +0200, Christian Borntraeger wrote:
->>>> For spinning loops people do often use barrier() or cpu_relax().
->>>> For most architectures cpu_relax and barrier are the same, but on
->>>> some architectures cpu_relax can add some latency.
->>>> For example on power,sparc64 and arc, cpu_relax can shift the CPU
->>>> towards other hardware threads in an SMT environment.
->>>> On s390 cpu_relax does even more, it uses an hypercall to the
->>>> hypervisor to give up the timeslice.
->>>> In contrast to the SMT yielding this can result in larger latencies.
->>>> In some places this latency is unwanted, so another variant
->>>> "cpu_relax_lowlatency" was introduced. Before this is used in more
->>>> and more places, lets revert the logic and provide a cpu_relax_yield
->>>> that can be called in places where yielding is more important than
->>>> latency. By default this is the same as cpu_relax on all architectures.
->>>
->>> Rather than having to update all these architectures in this way, can't
->>> we put in some linux/*.h header something like:
->>>
->>> #ifndef cpu_relax_yield
->>> #define cpu_relax_yield() cpu_relax()
->>> #endif
->>>
->>> so only those architectures that need to do something need to be
->>> modified?
->>
->> These patches are part of linux-next since a month or so, changing that 
->> would invalidate all the next testing. If people want that, I can certainly
->> do that, though.
+On 11/15/2016 6:10 AM, Joerg Roedel wrote:
+> On Wed, Nov 09, 2016 at 06:35:13PM -0600, Tom Lendacky wrote:
+>> +/*
+>> + * AMD Secure Memory Encryption (SME) can reduce the size of the physical
+>> + * address space if it is enabled, even if memory encryption is not active.
+>> + * Adjust x86_phys_bits if SME is enabled.
+>> + */
+>> +static void phys_bits_adjust(struct cpuinfo_x86 *c)
+>> +{
 > 
-> It's three weeks since you posted them.  For one of those weeks (the
-> week you posted them) I was away, and missed them while catching up.
-> Sorry, but it sometimes takes a while to spot things amongst the
-> backlog, and normally takes some subsequent activity on the thread to
-> bring it back into view.
+> Better call this function amd_sme_phys_bits_adjust(). This name makes it
+> clear at the call-site why it is there and what it does.
 
-Absolutely no need to apologize. Thank you for doing the review and the proposal. 
-I will do whatever is consensus, but since this looks like tip/locking material
-I will wait for Peter or Ingo to decide about the if and how.
+Will do.
 
-Christian
+> 
+>> +	u32 eax, ebx, ecx, edx;
+>> +	u64 msr;
+>> +
+>> +	if (c->x86_vendor != X86_VENDOR_AMD)
+>> +		return;
+>> +
+>> +	if (c->extended_cpuid_level < 0x8000001f)
+>> +		return;
+>> +
+>> +	/* Check for SME feature */
+>> +	cpuid(0x8000001f, &eax, &ebx, &ecx, &edx);
+>> +	if (!(eax & 0x01))
+>> +		return;
+> 
+> Maybe add a comment here why you can't use cpu_has (yet).
+> 
+
+Ok, will do.
+
+Thanks,
+Tom
