@@ -1,329 +1,482 @@
-From: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>
-Subject: Re: ILP32 for ARM64: testing with glibc testsuite
-Date: Wed, 16 Nov 2016 15:22:26 +0400
-Message-ID: <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161107082359.GA19666@yury-N73SV> <20161109095650.GA22804@yury-N73SV>
-Mime-Version: 1.0 (Mac OS X Mail 10.1 \(3251\))
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: quoted-printable
+From: tip-bot for Christian Borntraeger <tipbot@zytor.com>
+Subject: [tip:locking/core] locking/core, arch: Remove
+ cpu_relax_lowlatency()
+Date: Wed, 16 Nov 2016 04:11:04 -0800
+Message-ID: <tip-5bd0b85ba8bb9de6f61f33f3752fc85f4c87fc22@git.kernel.org>
+References: <1477386195-32736-6-git-send-email-borntraeger@de.ibm.com>
+Reply-To: heiko.carstens@de.ibm.com, catalin.marinas@arm.com,
+          will.deacon@arm.com, peterz@infradead.org, noamc@ezchip.com,
+          npiggin@gmail.com, tglx@linutronix.de, borntraeger@de.ibm.com,
+          linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
+          linux-kernel@vger.kernel.org, linux@armlinux.org.uk,
+          hpa@zytor.com, mingo@kernel.org, schwidefsky@de.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qt0-f173.google.com ([209.85.216.173]:33270 "EHLO
-        mail-qt0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752875AbcKPLW6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Nov 2016 06:22:58 -0500
-Received: by mail-qt0-f173.google.com with SMTP id p16so96383092qta.0
-        for <linux-arch@vger.kernel.org>; Wed, 16 Nov 2016 03:22:58 -0800 (PST)
-In-Reply-To: <20161109095650.GA22804@yury-N73SV>
+Received: from terminus.zytor.com ([198.137.202.10]:35318 "EHLO
+        terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752248AbcKPMMo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Nov 2016 07:12:44 -0500
+In-Reply-To: <1477386195-32736-6-git-send-email-borntraeger@de.ibm.com>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68k.org>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zho
+To: linux-tip-commits@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org, linux@armlinux.org.uk, hpa@zytor.com, will.deacon@arm.com, heiko.carstens@de.ibm.com, catalin.marinas@arm.com, linux-arch@vger.kernel.org, tglx@linutronix.de, borntraeger@de.ibm.com, npiggin@gmail.com, noamc@ezchip.com, peterz@infradead.org
 
-> On Nov 9, 2016, at 1:56 PM, Yury Norov <ynorov@caviumnetworks.com> =
-wrote:
->=20
-> On Mon, Nov 07, 2016 at 01:53:59PM +0530, Yury Norov wrote:
->> Hi all,
->>=20
->> [add libc-alpha mail list]
->>=20
->> For libc-alpha: this is the part of LKML submission with latest
->> patches for aarch64/ilp32.
->> https://www.spinics.net/lists/arm-kernel/msg537846.html
->>=20
->> Glibc that I use has also included consolidation patches from =
-Adhemerval
->> Zanella and me that are still not in the glibc master. The full =
-series is:
->> https://github.com/norov/glibc/tree/ilp32-2.24-dev2
->>=20
->> Below is the results of glibc testsuite run for aarch64/lp64
->> in different configurations. Column names meaning:
->> kvgv: kernel is vanilla, glibc is vanilla;
->> kdgv: kernel has ilp32 patches applied, but ilp32 is disabled in =
-config;=20
->>      glibc is vanilla;
->> kegv: kernel has ilp32 patches applied and ilp32 is enabled, glibc is =
-vanilla;
->> kege: kernel patches are applied and enabled, glibc patches are =
-applied.
->>=20
->> Only different lines are shown. Full results are in attached archive.=20=
+Commit-ID:  5bd0b85ba8bb9de6f61f33f3752fc85f4c87fc22
+Gitweb:     http://git.kernel.org/tip/5bd0b85ba8bb9de6f61f33f3752fc85f4c87fc22
+Author:     Christian Borntraeger <borntraeger@de.ibm.com>
+AuthorDate: Tue, 25 Oct 2016 11:03:15 +0200
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Wed, 16 Nov 2016 10:15:11 +0100
 
+locking/core, arch: Remove cpu_relax_lowlatency()
 
-Hi Yury,
+As there are no users left, we can remove cpu_relax_lowlatency()
+implementations from every architecture.
 
-The general requirement merging ILP32 glibc patches is that LP64 does =
-not regress in any reasonable configuration.  This means that there =
-should be 0 regressions between kvgv and kvge -- i.e., glibc in LP64 =
-mode with and without ILP32 patches does not regress on the vanilla =
-kernel.  The kvge configuration is not in your testing matrix, and I =
-suggest you make sure it has no regressions before fixing the more =
-"advanced" configuration of kege.
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Noam Camus <noamc@ezchip.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: virtualization@lists.linux-foundation.org
+Cc: xen-devel@lists.xenproject.org
+Cc: <linux-arch@vger.kernel.org>
+Link: http://lkml.kernel.org/r/1477386195-32736-6-git-send-email-borntraeger@de.ibm.com
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ arch/alpha/include/asm/processor.h      | 1 -
+ arch/arc/include/asm/processor.h        | 2 --
+ arch/arm/include/asm/processor.h        | 1 -
+ arch/arm64/include/asm/processor.h      | 1 -
+ arch/avr32/include/asm/processor.h      | 1 -
+ arch/blackfin/include/asm/processor.h   | 1 -
+ arch/c6x/include/asm/processor.h        | 1 -
+ arch/cris/include/asm/processor.h       | 1 -
+ arch/frv/include/asm/processor.h        | 1 -
+ arch/h8300/include/asm/processor.h      | 1 -
+ arch/hexagon/include/asm/processor.h    | 1 -
+ arch/ia64/include/asm/processor.h       | 1 -
+ arch/m32r/include/asm/processor.h       | 1 -
+ arch/m68k/include/asm/processor.h       | 1 -
+ arch/metag/include/asm/processor.h      | 1 -
+ arch/microblaze/include/asm/processor.h | 1 -
+ arch/mips/include/asm/processor.h       | 1 -
+ arch/mn10300/include/asm/processor.h    | 1 -
+ arch/nios2/include/asm/processor.h      | 1 -
+ arch/openrisc/include/asm/processor.h   | 1 -
+ arch/parisc/include/asm/processor.h     | 1 -
+ arch/powerpc/include/asm/processor.h    | 1 -
+ arch/s390/include/asm/processor.h       | 1 -
+ arch/score/include/asm/processor.h      | 1 -
+ arch/sh/include/asm/processor.h         | 1 -
+ arch/sparc/include/asm/processor_32.h   | 1 -
+ arch/sparc/include/asm/processor_64.h   | 1 -
+ arch/tile/include/asm/processor.h       | 1 -
+ arch/unicore32/include/asm/processor.h  | 1 -
+ arch/x86/include/asm/processor.h        | 1 -
+ arch/x86/um/asm/processor.h             | 1 -
+ arch/xtensa/include/asm/processor.h     | 1 -
+ 32 files changed, 33 deletions(-)
 
-Ideally, there should be no regressions between kvgv and kege =
-configurations, but I don't consider this to a requirement for glibc =
-acceptance of ILP32 patches, since any regressions between kvge and kege =
-configurations are likely to be on the kernel side.
-
-Speculating on the kernel requirements for ILP32 kernel patchset, I =
-think there should be 0 regressions between kvgv and kdgv =
-configurations, where you have only 3 tests to investigate and fix.
-
-[I do appreciate that there are progressions in your results as well, =
-but the glibc policy is that they do not offset regressions.]
-
-The above only concerns LP64 support in kernel and glibc.
-
-Regarding ILP32 runtime, my opinion is that it is acceptable for ILP32 =
-to have extra failures compared to LP64, since these are not =
-regressions, but, rather, failures of a new configuration.  =46rom a =
-superficial glance is seems that ILP32 linknamespace support requires =
-attention, as well as stack unwinding (judging from NPTL failures).
-
-
---
-Maxim Kuvyrkov
-www.linaro.org
-
-
-
->=20
-> The same, plus ILP32 regressions:
->=20
-> Test					kvgv	kdgv	kegv	kege	=
-ilp32
-> conform/ISO/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/ISO11/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/ISO99/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/POSIX/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/POSIX/sys/stat.h/linknamespace	PASS 	PASS 	PASS	=
-FAIL	FAIL
-> conform/UNIX98/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/XOPEN2K/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/XPG3/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> conform/XPG4/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
-FAIL
-> csu/tst-atomic				PASS 	PASS 	PASS	=
-FAIL	PASS
-> elf/check-localplt			PASS 	PASS 	PASS	FAIL	=
-FAIL
-> iconvdata/mtrace-tst-loading		PASS	FAIL	PASS 	PASS	=
-FAIL
-> iconvdata/tst-loading			PASS	FAIL	PASS 	PASS	=
-PASS
-> io/check-installed-headers-c		PASS 	PASS 	PASS	FAIL	=
-FAIL
-> io/check-installed-headers-cxx		PASS 	PASS 	PASS	=
-FAIL	FAIL
-> malloc/tst-malloc-backtrace		FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-malloc-thread-exit		FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-malloc-usable		FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-mallocfork			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-mallocstate			FAIL	PASS	PASS	=
-PASS	PASS
-> malloc/tst-mallopt			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-mcheck			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-memalign			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-obstack			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-posix_memalign		FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-pvalloc			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-realloc			FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-scratch_buffer		FAIL	PASS	PASS	PASS	=
-PASS
-> malloc/tst-trim1			FAIL	PASS	PASS	PASS	=
-PASS
-> nptl/tst-eintr4				PASS 	PASS 	PASS	=
-NA	NA
-> posix/tst-regex2			PASS	FAIL	FAIL	FAIL	=
-FAIL
-> posix/tst-getaddrinfo4			PASS	PASS	FAIL	=
-FAIL	PASS
-> posix/tst-getaddrinfo5			PASS	PASS	FAIL	=
-FAIL	PASS
-> sysvipc/test-sysvmsg			NA	NA	NA	FAIL	=
-PASS
-> sysvipc/test-sysvsem			NA	NA	NA	FAIL	=
-PASS
-> sysvipc/test-sysvshm			NA	NA	NA	FAIL	=
-PASS
->=20
-> c++-types-check				PASS	PASS	PASS	=
-PASS	FAIL
-> debug/tst-backtrace4			PASS	PASS	PASS	PASS	=
-FAIL
-> elf/check-abi-libc			PASS	PASS	PASS	PASS	=
-FAIL
-> elf/tst-tls1				PASS	PASS	PASS	PASS	=
-FAIL
-> elf/tst-tls1-static			PASS	PASS	PASS	PASS	=
-FAIL
-> elf/tst-tls2				PASS	PASS	PASS	PASS	=
-FAIL
-> elf/tst-tls2-static			PASS	PASS	PASS	PASS	=
-FAIL
-> elf/tst-tls3				PASS	PASS	PASS	PASS	=
-FAIL
-> math/check-abi-libm			PASS	PASS	PASS	PASS	=
-FAIL
-> misc/tst-writev				PASS	PASS	PASS	=
-PASS   	NA =20
-> nptl/tst-cancel-self-canceltype		PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-cancel1			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel10			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel11			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel13			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel15			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel16			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel17			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel18			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel2			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel20			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel21			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel24			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel25			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel26			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel27			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel3			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel4			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel5			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel6			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancel7			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx10			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx11			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx13			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx15			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx16			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx17			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx18			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx2			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx20			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx21			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx3			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx4			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx5			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx6			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cancelx7			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cleanup4			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cleanupx4			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cond-except			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-cond7				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-cond8				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-fini1				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-initializers1			PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-initializers1-c11		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-initializers1-c89		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-initializers1-c99		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-initializers1-gnu11		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-initializers1-gnu89		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-initializers1-gnu99		PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-join5				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-key3				PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-mutex8				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-mutexpi8			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-once3				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-once4				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-oncex3				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-oncex4				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-rwlock15			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-rwlock8			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-rwlock9			PASS	PASS	PASS	PASS	=
-FAIL
-> nptl/tst-sem11				PASS	PASS	PASS	=
-PASS	FAIL
-> nptl/tst-sem12				PASS	PASS	PASS	=
-PASS	FAIL
-> posix/bug-regex24			PASS	PASS	PASS	PASS	=
-FAIL
-> rt/tst-mqueue1				PASS	PASS	PASS	=
-PASS	FAIL
-> rt/tst-mqueue2				PASS	PASS	PASS	=
-PASS	FAIL
-> rt/tst-mqueue4				PASS	PASS	PASS	=
-PASS	FAIL
-> rt/tst-mqueue7				PASS	PASS	PASS	=
-PASS	FAIL
-> rt/tst-mqueue8				PASS	PASS	PASS	=
-PASS	FAIL
-> rt/tst-mqueue8x				PASS	PASS	PASS	=
-PASS	FAIL
-> stdlib/tst-makecontext3			PASS	PASS	PASS	=
-PASS	FAIL
+diff --git a/arch/alpha/include/asm/processor.h b/arch/alpha/include/asm/processor.h
+index 0556fda..31e8dbe 100644
+--- a/arch/alpha/include/asm/processor.h
++++ b/arch/alpha/include/asm/processor.h
+@@ -59,7 +59,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ #define ARCH_HAS_PREFETCH
+ #define ARCH_HAS_PREFETCHW
+diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
+index 6c158d5..d102a49 100644
+--- a/arch/arc/include/asm/processor.h
++++ b/arch/arc/include/asm/processor.h
+@@ -61,7 +61,6 @@ struct task_struct;
+ 
+ #define cpu_relax()		barrier()
+ #define cpu_relax_yield()	cpu_relax()
+-#define cpu_relax_lowlatency()	cpu_relax()
+ 
+ #else
+ 
+@@ -69,7 +68,6 @@ struct task_struct;
+ 	__asm__ __volatile__ (".word %0" : : "i"(CTOP_INST_SCHD_RW) : "memory")
+ 
+ #define cpu_relax_yield()	cpu_relax()
+-#define cpu_relax_lowlatency()	barrier()
+ 
+ #endif
+ 
+diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
+index db660e0..9e71c58b 100644
+--- a/arch/arm/include/asm/processor.h
++++ b/arch/arm/include/asm/processor.h
+@@ -83,7 +83,6 @@ unsigned long get_wchan(struct task_struct *p);
+ #endif
+ 
+ #define cpu_relax_yield()  	              cpu_relax()
+-#define cpu_relax_lowlatency()                cpu_relax()
+ 
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index 3f9b0e5..6132f64 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -150,7 +150,6 @@ static inline void cpu_relax(void)
+ }
+ 
+ #define cpu_relax_yield()                     cpu_relax()
+-#define cpu_relax_lowlatency()                cpu_relax()
+ 
+ /* Thread switching */
+ extern struct task_struct *cpu_switch_to(struct task_struct *prev,
+diff --git a/arch/avr32/include/asm/processor.h b/arch/avr32/include/asm/processor.h
+index e412e8b..ee62365 100644
+--- a/arch/avr32/include/asm/processor.h
++++ b/arch/avr32/include/asm/processor.h
+@@ -93,7 +93,6 @@ extern struct avr32_cpuinfo boot_cpu_data;
+ 
+ #define cpu_relax()		barrier()
+ #define cpu_relax_yield()	cpu_relax()
+-#define cpu_relax_lowlatency()        cpu_relax()
+ #define cpu_sync_pipeline()	asm volatile("sub pc, -2" : : : "memory")
+ 
+ struct cpu_context {
+diff --git a/arch/blackfin/include/asm/processor.h b/arch/blackfin/include/asm/processor.h
+index 8b8704a..57acfb1 100644
+--- a/arch/blackfin/include/asm/processor.h
++++ b/arch/blackfin/include/asm/processor.h
+@@ -93,7 +93,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()    	smp_mb()
+ #define cpu_relax_yield()      cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Get the Silicon Revision of the chip */
+ static inline uint32_t __pure bfin_revid(void)
+diff --git a/arch/c6x/include/asm/processor.h b/arch/c6x/include/asm/processor.h
+index 914d730..1fd22e7 100644
+--- a/arch/c6x/include/asm/processor.h
++++ b/arch/c6x/include/asm/processor.h
+@@ -122,7 +122,6 @@ extern unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()		do { } while (0)
+ #define cpu_relax_yield()             cpu_relax()
+-#define cpu_relax_lowlatency()        cpu_relax()
+ 
+ extern const struct seq_operations cpuinfo_op;
+ 
+diff --git a/arch/cris/include/asm/processor.h b/arch/cris/include/asm/processor.h
+index 01dd52e..1a57841 100644
+--- a/arch/cris/include/asm/processor.h
++++ b/arch/cris/include/asm/processor.h
+@@ -64,7 +64,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ 
+ #define cpu_relax()     barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ void default_idle(void);
+ 
+diff --git a/arch/frv/include/asm/processor.h b/arch/frv/include/asm/processor.h
+index 4d00d65..c1e5f2a 100644
+--- a/arch/frv/include/asm/processor.h
++++ b/arch/frv/include/asm/processor.h
+@@ -108,7 +108,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax() barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* data cache prefetch */
+ #define ARCH_HAS_PREFETCH
+diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
+index 683a061..42d6053 100644
+--- a/arch/h8300/include/asm/processor.h
++++ b/arch/h8300/include/asm/processor.h
+@@ -128,7 +128,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()    barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency()	cpu_relax()
+ 
+ #define HARD_RESET_NOW() ({		\
+ 	local_irq_disable();		\
+diff --git a/arch/hexagon/include/asm/processor.h b/arch/hexagon/include/asm/processor.h
+index 1558ddb..5d694cc 100644
+--- a/arch/hexagon/include/asm/processor.h
++++ b/arch/hexagon/include/asm/processor.h
+@@ -57,7 +57,6 @@ struct thread_struct {
+ 
+ #define cpu_relax() __vmyield()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /*
+  * Decides where the kernel will search for a free chunk of vm space during
+diff --git a/arch/ia64/include/asm/processor.h b/arch/ia64/include/asm/processor.h
+index 4654b71..0c2c3b2 100644
+--- a/arch/ia64/include/asm/processor.h
++++ b/arch/ia64/include/asm/processor.h
+@@ -548,7 +548,6 @@ ia64_eoi (void)
+ 
+ #define cpu_relax()	ia64_hint(ia64_hint_pause)
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ static inline int
+ ia64_get_irr(unsigned int vector)
+diff --git a/arch/m32r/include/asm/processor.h b/arch/m32r/include/asm/processor.h
+index b262037..9b83a13 100644
+--- a/arch/m32r/include/asm/processor.h
++++ b/arch/m32r/include/asm/processor.h
+@@ -134,6 +134,5 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ #endif /* _ASM_M32R_PROCESSOR_H */
+diff --git a/arch/m68k/include/asm/processor.h b/arch/m68k/include/asm/processor.h
+index 13e07ae..b0d0442 100644
+--- a/arch/m68k/include/asm/processor.h
++++ b/arch/m68k/include/asm/processor.h
+@@ -157,6 +157,5 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ #endif
+diff --git a/arch/metag/include/asm/processor.h b/arch/metag/include/asm/processor.h
+index 61d6e27..ee302a6 100644
+--- a/arch/metag/include/asm/processor.h
++++ b/arch/metag/include/asm/processor.h
+@@ -153,7 +153,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()     barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency()  cpu_relax()
+ 
+ extern void setup_priv(void);
+ 
+diff --git a/arch/microblaze/include/asm/processor.h b/arch/microblaze/include/asm/processor.h
+index fd7dd11..08ec1f7 100644
+--- a/arch/microblaze/include/asm/processor.h
++++ b/arch/microblaze/include/asm/processor.h
+@@ -23,7 +23,6 @@ extern const struct seq_operations cpuinfo_op;
+ 
+ # define cpu_relax()		barrier()
+ # define cpu_relax_yield() cpu_relax()
+-# define cpu_relax_lowlatency()	cpu_relax()
+ 
+ #define task_pt_regs(tsk) \
+ 		(((struct pt_regs *)(THREAD_SIZE + task_stack_page(tsk))) - 1)
+diff --git a/arch/mips/include/asm/processor.h b/arch/mips/include/asm/processor.h
+index 9a656f6..8ea95e7 100644
+--- a/arch/mips/include/asm/processor.h
++++ b/arch/mips/include/asm/processor.h
+@@ -390,7 +390,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /*
+  * Return_address is a replacement for __builtin_return_address(count)
+diff --git a/arch/mn10300/include/asm/processor.h b/arch/mn10300/include/asm/processor.h
+index 89f63d1..d11397b 100644
+--- a/arch/mn10300/include/asm/processor.h
++++ b/arch/mn10300/include/asm/processor.h
+@@ -70,7 +70,6 @@ extern void dodgy_tsc(void);
+ 
+ #define cpu_relax() barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /*
+  * User space process size: 1.75GB (default).
+diff --git a/arch/nios2/include/asm/processor.h b/arch/nios2/include/asm/processor.h
+index 303e593..d32c176 100644
+--- a/arch/nios2/include/asm/processor.h
++++ b/arch/nios2/include/asm/processor.h
+@@ -89,7 +89,6 @@ extern unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency()  cpu_relax()
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+diff --git a/arch/openrisc/include/asm/processor.h b/arch/openrisc/include/asm/processor.h
+index 6ecfc2a..7f47fc7 100644
+--- a/arch/openrisc/include/asm/processor.h
++++ b/arch/openrisc/include/asm/processor.h
+@@ -93,7 +93,6 @@ extern unsigned long thread_saved_pc(struct task_struct *t);
+ 
+ #define cpu_relax()     barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ #endif /* __ASSEMBLY__ */
+ #endif /* __ASM_OPENRISC_PROCESSOR_H */
+diff --git a/arch/parisc/include/asm/processor.h b/arch/parisc/include/asm/processor.h
+index ea2ff9f..a4a07f4 100644
+--- a/arch/parisc/include/asm/processor.h
++++ b/arch/parisc/include/asm/processor.h
+@@ -310,7 +310,6 @@ extern unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /*
+  * parisc_requires_coherency() is used to identify the combined VIPT/PIPT
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index 908fa7c..5684e68 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -405,7 +405,6 @@ static inline unsigned long __pack_fe01(unsigned int fpmode)
+ #endif
+ 
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Check that a certain kernel stack pointer is valid in task_struct p */
+ int validate_sp(unsigned long sp, struct task_struct *p,
+diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
+index 79343e3..9e32f25 100644
+--- a/arch/s390/include/asm/processor.h
++++ b/arch/s390/include/asm/processor.h
+@@ -237,7 +237,6 @@ static inline unsigned short stap(void)
+ void cpu_relax_yield(void);
+ 
+ #define cpu_relax() barrier()
+-#define cpu_relax_lowlatency()  barrier()
+ 
+ #define ECAG_CACHE_ATTRIBUTE	0
+ #define ECAG_CPU_ATTRIBUTE	1
+diff --git a/arch/score/include/asm/processor.h b/arch/score/include/asm/processor.h
+index e8e87b4..a1e97c0 100644
+--- a/arch/score/include/asm/processor.h
++++ b/arch/score/include/asm/processor.h
+@@ -25,7 +25,6 @@ extern unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()		barrier()
+ #define cpu_relax_yield()	cpu_relax()
+-#define cpu_relax_lowlatency()        cpu_relax()
+ #define release_thread(thread)	do {} while (0)
+ 
+ /*
+diff --git a/arch/sh/include/asm/processor.h b/arch/sh/include/asm/processor.h
+index 099a991..9454ff1 100644
+--- a/arch/sh/include/asm/processor.h
++++ b/arch/sh/include/asm/processor.h
+@@ -98,7 +98,6 @@ extern struct sh_cpuinfo cpu_data[];
+ #define cpu_sleep()	__asm__ __volatile__ ("sleep" : : : "memory")
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ void default_idle(void);
+ void stop_this_cpu(void *);
+diff --git a/arch/sparc/include/asm/processor_32.h b/arch/sparc/include/asm/processor_32.h
+index 50e908a3c..fc32b73 100644
+--- a/arch/sparc/include/asm/processor_32.h
++++ b/arch/sparc/include/asm/processor_32.h
+@@ -120,7 +120,6 @@ int do_mathemu(struct pt_regs *regs, struct task_struct *fpt);
+ 
+ #define cpu_relax()	barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ extern void (*sparc_idle)(void);
+ 
+diff --git a/arch/sparc/include/asm/processor_64.h b/arch/sparc/include/asm/processor_64.h
+index 3e8fac7..12787df 100644
+--- a/arch/sparc/include/asm/processor_64.h
++++ b/arch/sparc/include/asm/processor_64.h
+@@ -217,7 +217,6 @@ unsigned long get_wchan(struct task_struct *task);
+ 				     ".previous"			\
+ 				     ::: "memory")
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Prefetch support.  This is tuned for UltraSPARC-III and later.
+  * UltraSPARC-I will treat these as nops, and UltraSPARC-II has
+diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
+index 91a39a5..c1c228b 100644
+--- a/arch/tile/include/asm/processor.h
++++ b/arch/tile/include/asm/processor.h
+@@ -265,7 +265,6 @@ static inline void cpu_relax(void)
+ }
+ 
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Info on this processor (see fs/proc/cpuinfo.c) */
+ struct seq_operations;
+diff --git a/arch/unicore32/include/asm/processor.h b/arch/unicore32/include/asm/processor.h
+index fc54d5d..eeefe7c 100644
+--- a/arch/unicore32/include/asm/processor.h
++++ b/arch/unicore32/include/asm/processor.h
+@@ -72,7 +72,6 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()			barrier()
+ #define cpu_relax_yield()		cpu_relax()
+-#define cpu_relax_lowlatency()                cpu_relax()
+ 
+ #define task_pt_regs(p) \
+ 	((struct pt_regs *)(THREAD_START_SP + task_stack_page(p)) - 1)
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index 44adada..7513c99 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -589,7 +589,6 @@ static __always_inline void cpu_relax(void)
+ }
+ 
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Stop speculative execution and prefetching of modified code. */
+ static inline void sync_core(void)
+diff --git a/arch/x86/um/asm/processor.h b/arch/x86/um/asm/processor.h
+index 01597af..b4bd63b 100644
+--- a/arch/x86/um/asm/processor.h
++++ b/arch/x86/um/asm/processor.h
+@@ -27,7 +27,6 @@ static inline void rep_nop(void)
+ 
+ #define cpu_relax()		rep_nop()
+ #define cpu_relax_yield()	cpu_relax()
+-#define cpu_relax_lowlatency()	cpu_relax()
+ 
+ #define task_pt_regs(t) (&(t)->thread.regs)
+ 
+diff --git a/arch/xtensa/include/asm/processor.h b/arch/xtensa/include/asm/processor.h
+index fe14dc2..7d8d6be 100644
+--- a/arch/xtensa/include/asm/processor.h
++++ b/arch/xtensa/include/asm/processor.h
+@@ -207,7 +207,6 @@ extern unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()  barrier()
+ #define cpu_relax_yield() cpu_relax()
+-#define cpu_relax_lowlatency() cpu_relax()
+ 
+ /* Special register access. */
+ 
