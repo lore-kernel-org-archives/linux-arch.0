@@ -1,240 +1,46 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [RFC PATCH v3 08/20] x86: Add support for early
-	encryption/decryption of memory
-Date: Wed, 16 Nov 2016 13:22:36 -0600
-Message-ID: <3a9e093a-9e80-8d2b-2615-56675cf6f147@amd.com>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
-	<20161110003610.3280.22043.stgit@tlendack-t1.amdoffice.net>
-	<20161116104656.qz5wp33zzyja373r@pd.tnic>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 1/1] gpio: lib: Add gpio_is_enabled() to get pin mode
+Date: Wed, 16 Nov 2016 20:41:01 +0100
+Message-ID: <CACRpkdYAbkg34fUsBFTm9Ny5HVz=2HpR18cnORyFNH+4R3nJzg@mail.gmail.com>
+References: <1478089037-26441-1-git-send-email-ldewangan@nvidia.com>
+ <CACRpkdYjWiy-PyBhN8gRa5TM5ARXrCZ-KqBXYm-bVeXFY11MQw@mail.gmail.com>
+ <5825B6D4.1000600@nvidia.com> <CACRpkdacDcy_Y_5g8739DF+f3fRzzMQ_bkM1TQ+uTtPq1=VmFg@mail.gmail.com>
+ <582AF350.1000007@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20161116104656.qz5wp33zzyja373r-fF5Pk5pvG8Y@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f181.google.com ([209.85.220.181]:36580 "EHLO
+        mail-qk0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932201AbcKPTlC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Nov 2016 14:41:02 -0500
+Received: by mail-qk0-f181.google.com with SMTP id n21so189612654qka.3
+        for <linux-arch@vger.kernel.org>; Wed, 16 Nov 2016 11:41:02 -0800 (PST)
+In-Reply-To: <582AF350.1000007@nvidia.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Laxman Dewangan <ldewangan@nvidia.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On 11/16/2016 4:46 AM, Borislav Petkov wrote:
-> Btw, for your next submission, this patch can be split in two exactly
-> like the commit message paragraphs are:
+On Tue, Nov 15, 2016 at 12:36 PM, Laxman Dewangan <ldewangan@nvidia.com> wrote:
+> [Me]
+>> It would be more natural to add a function pinctrl_is_gpio(unsigned gpio)
+>> to call back to the pin controller, then that can be called from
+>> the generic or driver-specific debug print callback.
+>
+>
+> We have two type of IPs, GPIO mode is configured in the register which is
+> part of GPIO controller and in other IP, it is configured in register which
+> is in pincontroller registers.
+>
+> Your suggested API pinctrl_is_gpio() will definitely help on second case and
+> I will work on this once we will have the new IP driver in mainline. This
+> will be in coming T186 patches.
 
-I think I originally had it that way, I don't know why I combined them.
-I'll split them out.
+I don't really understand this. In both cases we are dealing with pin muxing
+and that belongs in the pin control subsystem. What register range the stuff
+is in and whether it is called "GPIO block" in the datasheet does not concern
+me, it is a pin controller from the point of the view of the kernel subsystems,
+if it can multiplex pads/pins.
 
-> 
-> On Wed, Nov 09, 2016 at 06:36:10PM -0600, Tom Lendacky wrote:
->> Add support to be able to either encrypt or decrypt data in place during
->> the early stages of booting the kernel. This does not change the memory
->> encryption attribute - it is used for ensuring that data present in either
->> an encrypted or un-encrypted memory area is in the proper state (for
->> example the initrd will have been loaded by the boot loader and will not be
->> encrypted, but the memory that it resides in is marked as encrypted).
-> 
-> Patch 2: users of the new memmap change
-> 
->> The early_memmap support is enhanced to specify encrypted and un-encrypted
->> mappings with and without write-protection. The use of write-protection is
->> necessary when encrypting data "in place". The write-protect attribute is
->> considered cacheable for loads, but not stores. This implies that the
->> hardware will never give the core a dirty line with this memtype.
-> 
-> Patch 1: change memmap
-> 
-> This makes this aspect of the patchset much clearer and is better for
-> bisection.
-> 
->> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
->> ---
->>  arch/x86/include/asm/fixmap.h        |    9 +++
->>  arch/x86/include/asm/mem_encrypt.h   |   15 +++++
->>  arch/x86/include/asm/pgtable_types.h |    8 +++
->>  arch/x86/mm/ioremap.c                |   28 +++++++++
->>  arch/x86/mm/mem_encrypt.c            |  102 ++++++++++++++++++++++++++++++++++
->>  include/asm-generic/early_ioremap.h  |    2 +
->>  mm/early_ioremap.c                   |   15 +++++
->>  7 files changed, 179 insertions(+)
-> 
-> ...
-> 
->> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
->> index d642cc5..06235b4 100644
->> --- a/arch/x86/mm/mem_encrypt.c
->> +++ b/arch/x86/mm/mem_encrypt.c
->> @@ -14,6 +14,9 @@
->>  #include <linux/init.h>
->>  #include <linux/mm.h>
->>  
->> +#include <asm/tlbflush.h>
->> +#include <asm/fixmap.h>
->> +
->>  extern pmdval_t early_pmd_flags;
->>  
->>  /*
->> @@ -24,6 +27,105 @@ extern pmdval_t early_pmd_flags;
->>  unsigned long sme_me_mask __section(.data) = 0;
->>  EXPORT_SYMBOL_GPL(sme_me_mask);
->>  
->> +/* Buffer used for early in-place encryption by BSP, no locking needed */
->> +static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
->> +
->> +/*
->> + * This routine does not change the underlying encryption setting of the
->> + * page(s) that map this memory. It assumes that eventually the memory is
->> + * meant to be accessed as encrypted but the contents are currently not
->> + * encrypted.
->> + */
->> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->> +{
->> +	void *src, *dst;
->> +	size_t len;
->> +
->> +	if (!sme_me_mask)
->> +		return;
->> +
->> +	local_flush_tlb();
->> +	wbinvd();
->> +
->> +	/*
->> +	 * There are limited number of early mapping slots, so map (at most)
->> +	 * one page at time.
->> +	 */
->> +	while (size) {
->> +		len = min_t(size_t, sizeof(sme_early_buffer), size);
->> +
->> +		/* Create a mapping for non-encrypted write-protected memory */
->> +		src = early_memremap_dec_wp(paddr, len);
->> +
->> +		/* Create a mapping for encrypted memory */
->> +		dst = early_memremap_enc(paddr, len);
->> +
->> +		/*
->> +		 * If a mapping can't be obtained to perform the encryption,
->> +		 * then encrypted access to that area will end up causing
->> +		 * a crash.
->> +		 */
->> +		BUG_ON(!src || !dst);
->> +
->> +		memcpy(sme_early_buffer, src, len);
->> +		memcpy(dst, sme_early_buffer, len);
-> 
-> I still am missing the short explanation why we need the temporary buffer.
-
-Ok, I'll add that.
-
-> 
-> 
-> Oh, and we can save us the code duplication a little. Diff ontop of yours:
-
-Yup, makes sense.  I'll incorporate this.
-
-Thanks,
-Tom
-
-> 
-> ---
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index 06235b477d7c..50e2c4fc7338 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -36,7 +36,8 @@ static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
->   * meant to be accessed as encrypted but the contents are currently not
->   * encrypted.
->   */
-> -void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-> +static void __init noinline
-> +__mem_enc_dec(resource_size_t paddr, unsigned long size, bool enc)
->  {
->  	void *src, *dst;
->  	size_t len;
-> @@ -54,15 +55,15 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  	while (size) {
->  		len = min_t(size_t, sizeof(sme_early_buffer), size);
->  
-> -		/* Create a mapping for non-encrypted write-protected memory */
-> -		src = early_memremap_dec_wp(paddr, len);
-> +		src = (enc ? early_memremap_dec_wp(paddr, len)
-> +			   : early_memremap_enc_wp(paddr, len));
->  
-> -		/* Create a mapping for encrypted memory */
-> -		dst = early_memremap_enc(paddr, len);
-> +		dst = (enc ? early_memremap_enc(paddr, len)
-> +			   : early_memremap_dec(paddr, len));
->  
->  		/*
-> -		 * If a mapping can't be obtained to perform the encryption,
-> -		 * then encrypted access to that area will end up causing
-> +		 * If a mapping can't be obtained to perform the dec/encryption,
-> +		 * then (un-)encrypted access to that area will end up causing
->  		 * a crash.
->  		 */
->  		BUG_ON(!src || !dst);
-> @@ -78,52 +79,14 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  	}
->  }
->  
-> -/*
-> - * This routine does not change the underlying encryption setting of the
-> - * page(s) that map this memory. It assumes that eventually the memory is
-> - * meant to be accessed as not encrypted but the contents are currently
-> - * encrypted.
-> - */
-> -void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  {
-> -	void *src, *dst;
-> -	size_t len;
-> -
-> -	if (!sme_me_mask)
-> -		return;
-> -
-> -	local_flush_tlb();
-> -	wbinvd();
-> -
-> -	/*
-> -	 * There are limited number of early mapping slots, so map (at most)
-> -	 * one page at time.
-> -	 */
-> -	while (size) {
-> -		len = min_t(size_t, sizeof(sme_early_buffer), size);
-> -
-> -		/* Create a mapping for encrypted write-protected memory */
-> -		src = early_memremap_enc_wp(paddr, len);
-> -
-> -		/* Create a mapping for non-encrypted memory */
-> -		dst = early_memremap_dec(paddr, len);
-> -
-> -		/*
-> -		 * If a mapping can't be obtained to perform the decryption,
-> -		 * then un-encrypted access to that area will end up causing
-> -		 * a crash.
-> -		 */
-> -		BUG_ON(!src || !dst);
-> -
-> -		memcpy(sme_early_buffer, src, len);
-> -		memcpy(dst, sme_early_buffer, len);
-> -
-> -		early_memunmap(dst, len);
-> -		early_memunmap(src, len);
-> +	return __mem_enc_dec(paddr, size, true);
-> +}
->  
-> -		paddr += len;
-> -		size -= len;
-> -	}
-> +void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-> +{
-> +	return __mem_enc_dec(paddr, size, false);
->  }
->  
->  void __init sme_early_init(void)
-> 
+Yours,
+Linus Walleij
