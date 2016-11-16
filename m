@@ -1,222 +1,329 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v3 08/20] x86: Add support for early
- encryption/decryption of memory
-Date: Wed, 16 Nov 2016 11:46:56 +0100
-Message-ID: <20161116104656.qz5wp33zzyja373r@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003610.3280.22043.stgit@tlendack-t1.amdoffice.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20161110003610.3280.22043.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-Sender: linux-efi-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, Joerg Roedel <joro-zLv9SwRftAIdnm+yROfE0A@public.gmane.org>, Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>
+Subject: Re: ILP32 for ARM64: testing with glibc testsuite
+Date: Wed, 16 Nov 2016 15:22:26 +0400
+Message-ID: <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <20161107082359.GA19666@yury-N73SV> <20161109095650.GA22804@yury-N73SV>
+Mime-Version: 1.0 (Mac OS X Mail 10.1 \(3251\))
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qt0-f173.google.com ([209.85.216.173]:33270 "EHLO
+        mail-qt0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752875AbcKPLW6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Nov 2016 06:22:58 -0500
+Received: by mail-qt0-f173.google.com with SMTP id p16so96383092qta.0
+        for <linux-arch@vger.kernel.org>; Wed, 16 Nov 2016 03:22:58 -0800 (PST)
+In-Reply-To: <20161109095650.GA22804@yury-N73SV>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68k.org>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zho
 
-Btw, for your next submission, this patch can be split in two exactly
-like the commit message paragraphs are:
-
-On Wed, Nov 09, 2016 at 06:36:10PM -0600, Tom Lendacky wrote:
-> Add support to be able to either encrypt or decrypt data in place during
-> the early stages of booting the kernel. This does not change the memory
-> encryption attribute - it is used for ensuring that data present in either
-> an encrypted or un-encrypted memory area is in the proper state (for
-> example the initrd will have been loaded by the boot loader and will not be
-> encrypted, but the memory that it resides in is marked as encrypted).
-
-Patch 2: users of the new memmap change
-
-> The early_memmap support is enhanced to specify encrypted and un-encrypted
-> mappings with and without write-protection. The use of write-protection is
-> necessary when encrypting data "in place". The write-protect attribute is
-> considered cacheable for loads, but not stores. This implies that the
-> hardware will never give the core a dirty line with this memtype.
-
-Patch 1: change memmap
-
-This makes this aspect of the patchset much clearer and is better for
-bisection.
-
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/include/asm/fixmap.h        |    9 +++
->  arch/x86/include/asm/mem_encrypt.h   |   15 +++++
->  arch/x86/include/asm/pgtable_types.h |    8 +++
->  arch/x86/mm/ioremap.c                |   28 +++++++++
->  arch/x86/mm/mem_encrypt.c            |  102 ++++++++++++++++++++++++++++++++++
->  include/asm-generic/early_ioremap.h  |    2 +
->  mm/early_ioremap.c                   |   15 +++++
->  7 files changed, 179 insertions(+)
-
-...
-
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index d642cc5..06235b4 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -14,6 +14,9 @@
->  #include <linux/init.h>
->  #include <linux/mm.h>
->  
-> +#include <asm/tlbflush.h>
-> +#include <asm/fixmap.h>
-> +
->  extern pmdval_t early_pmd_flags;
->  
->  /*
-> @@ -24,6 +27,105 @@ extern pmdval_t early_pmd_flags;
->  unsigned long sme_me_mask __section(.data) = 0;
->  EXPORT_SYMBOL_GPL(sme_me_mask);
->  
-> +/* Buffer used for early in-place encryption by BSP, no locking needed */
-> +static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-> +
-> +/*
-> + * This routine does not change the underlying encryption setting of the
-> + * page(s) that map this memory. It assumes that eventually the memory is
-> + * meant to be accessed as encrypted but the contents are currently not
-> + * encrypted.
-> + */
-> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-> +{
-> +	void *src, *dst;
-> +	size_t len;
-> +
-> +	if (!sme_me_mask)
-> +		return;
-> +
-> +	local_flush_tlb();
-> +	wbinvd();
-> +
-> +	/*
-> +	 * There are limited number of early mapping slots, so map (at most)
-> +	 * one page at time.
-> +	 */
-> +	while (size) {
-> +		len = min_t(size_t, sizeof(sme_early_buffer), size);
-> +
-> +		/* Create a mapping for non-encrypted write-protected memory */
-> +		src = early_memremap_dec_wp(paddr, len);
-> +
-> +		/* Create a mapping for encrypted memory */
-> +		dst = early_memremap_enc(paddr, len);
-> +
-> +		/*
-> +		 * If a mapping can't be obtained to perform the encryption,
-> +		 * then encrypted access to that area will end up causing
-> +		 * a crash.
-> +		 */
-> +		BUG_ON(!src || !dst);
-> +
-> +		memcpy(sme_early_buffer, src, len);
-> +		memcpy(dst, sme_early_buffer, len);
-
-I still am missing the short explanation why we need the temporary buffer.
+> On Nov 9, 2016, at 1:56 PM, Yury Norov <ynorov@caviumnetworks.com> =
+wrote:
+>=20
+> On Mon, Nov 07, 2016 at 01:53:59PM +0530, Yury Norov wrote:
+>> Hi all,
+>>=20
+>> [add libc-alpha mail list]
+>>=20
+>> For libc-alpha: this is the part of LKML submission with latest
+>> patches for aarch64/ilp32.
+>> https://www.spinics.net/lists/arm-kernel/msg537846.html
+>>=20
+>> Glibc that I use has also included consolidation patches from =
+Adhemerval
+>> Zanella and me that are still not in the glibc master. The full =
+series is:
+>> https://github.com/norov/glibc/tree/ilp32-2.24-dev2
+>>=20
+>> Below is the results of glibc testsuite run for aarch64/lp64
+>> in different configurations. Column names meaning:
+>> kvgv: kernel is vanilla, glibc is vanilla;
+>> kdgv: kernel has ilp32 patches applied, but ilp32 is disabled in =
+config;=20
+>>      glibc is vanilla;
+>> kegv: kernel has ilp32 patches applied and ilp32 is enabled, glibc is =
+vanilla;
+>> kege: kernel patches are applied and enabled, glibc patches are =
+applied.
+>>=20
+>> Only different lines are shown. Full results are in attached archive.=20=
 
 
-Oh, and we can save us the code duplication a little. Diff ontop of yours:
+Hi Yury,
 
----
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 06235b477d7c..50e2c4fc7338 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -36,7 +36,8 @@ static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-  * meant to be accessed as encrypted but the contents are currently not
-  * encrypted.
-  */
--void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-+static void __init noinline
-+__mem_enc_dec(resource_size_t paddr, unsigned long size, bool enc)
- {
- 	void *src, *dst;
- 	size_t len;
-@@ -54,15 +55,15 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
- 	while (size) {
- 		len = min_t(size_t, sizeof(sme_early_buffer), size);
- 
--		/* Create a mapping for non-encrypted write-protected memory */
--		src = early_memremap_dec_wp(paddr, len);
-+		src = (enc ? early_memremap_dec_wp(paddr, len)
-+			   : early_memremap_enc_wp(paddr, len));
- 
--		/* Create a mapping for encrypted memory */
--		dst = early_memremap_enc(paddr, len);
-+		dst = (enc ? early_memremap_enc(paddr, len)
-+			   : early_memremap_dec(paddr, len));
- 
- 		/*
--		 * If a mapping can't be obtained to perform the encryption,
--		 * then encrypted access to that area will end up causing
-+		 * If a mapping can't be obtained to perform the dec/encryption,
-+		 * then (un-)encrypted access to that area will end up causing
- 		 * a crash.
- 		 */
- 		BUG_ON(!src || !dst);
-@@ -78,52 +79,14 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
- 	}
- }
- 
--/*
-- * This routine does not change the underlying encryption setting of the
-- * page(s) that map this memory. It assumes that eventually the memory is
-- * meant to be accessed as not encrypted but the contents are currently
-- * encrypted.
-- */
--void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-+void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
- {
--	void *src, *dst;
--	size_t len;
--
--	if (!sme_me_mask)
--		return;
--
--	local_flush_tlb();
--	wbinvd();
--
--	/*
--	 * There are limited number of early mapping slots, so map (at most)
--	 * one page at time.
--	 */
--	while (size) {
--		len = min_t(size_t, sizeof(sme_early_buffer), size);
--
--		/* Create a mapping for encrypted write-protected memory */
--		src = early_memremap_enc_wp(paddr, len);
--
--		/* Create a mapping for non-encrypted memory */
--		dst = early_memremap_dec(paddr, len);
--
--		/*
--		 * If a mapping can't be obtained to perform the decryption,
--		 * then un-encrypted access to that area will end up causing
--		 * a crash.
--		 */
--		BUG_ON(!src || !dst);
--
--		memcpy(sme_early_buffer, src, len);
--		memcpy(dst, sme_early_buffer, len);
--
--		early_memunmap(dst, len);
--		early_memunmap(src, len);
-+	return __mem_enc_dec(paddr, size, true);
-+}
- 
--		paddr += len;
--		size -= len;
--	}
-+void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-+{
-+	return __mem_enc_dec(paddr, size, false);
- }
- 
- void __init sme_early_init(void)
+The general requirement merging ILP32 glibc patches is that LP64 does =
+not regress in any reasonable configuration.  This means that there =
+should be 0 regressions between kvgv and kvge -- i.e., glibc in LP64 =
+mode with and without ILP32 patches does not regress on the vanilla =
+kernel.  The kvge configuration is not in your testing matrix, and I =
+suggest you make sure it has no regressions before fixing the more =
+"advanced" configuration of kege.
 
--- 
-Regards/Gruss,
-    Boris.
+Ideally, there should be no regressions between kvgv and kege =
+configurations, but I don't consider this to a requirement for glibc =
+acceptance of ILP32 patches, since any regressions between kvge and kege =
+configurations are likely to be on the kernel side.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Speculating on the kernel requirements for ILP32 kernel patchset, I =
+think there should be 0 regressions between kvgv and kdgv =
+configurations, where you have only 3 tests to investigate and fix.
+
+[I do appreciate that there are progressions in your results as well, =
+but the glibc policy is that they do not offset regressions.]
+
+The above only concerns LP64 support in kernel and glibc.
+
+Regarding ILP32 runtime, my opinion is that it is acceptable for ILP32 =
+to have extra failures compared to LP64, since these are not =
+regressions, but, rather, failures of a new configuration.  =46rom a =
+superficial glance is seems that ILP32 linknamespace support requires =
+attention, as well as stack unwinding (judging from NPTL failures).
+
+
+--
+Maxim Kuvyrkov
+www.linaro.org
+
+
+
+>=20
+> The same, plus ILP32 regressions:
+>=20
+> Test					kvgv	kdgv	kegv	kege	=
+ilp32
+> conform/ISO/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/ISO11/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/ISO99/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/POSIX/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/POSIX/sys/stat.h/linknamespace	PASS 	PASS 	PASS	=
+FAIL	FAIL
+> conform/UNIX98/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/XOPEN2K/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/XPG3/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> conform/XPG4/stdio.h/linknamespace	PASS 	PASS 	PASS	FAIL	=
+FAIL
+> csu/tst-atomic				PASS 	PASS 	PASS	=
+FAIL	PASS
+> elf/check-localplt			PASS 	PASS 	PASS	FAIL	=
+FAIL
+> iconvdata/mtrace-tst-loading		PASS	FAIL	PASS 	PASS	=
+FAIL
+> iconvdata/tst-loading			PASS	FAIL	PASS 	PASS	=
+PASS
+> io/check-installed-headers-c		PASS 	PASS 	PASS	FAIL	=
+FAIL
+> io/check-installed-headers-cxx		PASS 	PASS 	PASS	=
+FAIL	FAIL
+> malloc/tst-malloc-backtrace		FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-malloc-thread-exit		FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-malloc-usable		FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-mallocfork			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-mallocstate			FAIL	PASS	PASS	=
+PASS	PASS
+> malloc/tst-mallopt			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-mcheck			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-memalign			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-obstack			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-posix_memalign		FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-pvalloc			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-realloc			FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-scratch_buffer		FAIL	PASS	PASS	PASS	=
+PASS
+> malloc/tst-trim1			FAIL	PASS	PASS	PASS	=
+PASS
+> nptl/tst-eintr4				PASS 	PASS 	PASS	=
+NA	NA
+> posix/tst-regex2			PASS	FAIL	FAIL	FAIL	=
+FAIL
+> posix/tst-getaddrinfo4			PASS	PASS	FAIL	=
+FAIL	PASS
+> posix/tst-getaddrinfo5			PASS	PASS	FAIL	=
+FAIL	PASS
+> sysvipc/test-sysvmsg			NA	NA	NA	FAIL	=
+PASS
+> sysvipc/test-sysvsem			NA	NA	NA	FAIL	=
+PASS
+> sysvipc/test-sysvshm			NA	NA	NA	FAIL	=
+PASS
+>=20
+> c++-types-check				PASS	PASS	PASS	=
+PASS	FAIL
+> debug/tst-backtrace4			PASS	PASS	PASS	PASS	=
+FAIL
+> elf/check-abi-libc			PASS	PASS	PASS	PASS	=
+FAIL
+> elf/tst-tls1				PASS	PASS	PASS	PASS	=
+FAIL
+> elf/tst-tls1-static			PASS	PASS	PASS	PASS	=
+FAIL
+> elf/tst-tls2				PASS	PASS	PASS	PASS	=
+FAIL
+> elf/tst-tls2-static			PASS	PASS	PASS	PASS	=
+FAIL
+> elf/tst-tls3				PASS	PASS	PASS	PASS	=
+FAIL
+> math/check-abi-libm			PASS	PASS	PASS	PASS	=
+FAIL
+> misc/tst-writev				PASS	PASS	PASS	=
+PASS   	NA =20
+> nptl/tst-cancel-self-canceltype		PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-cancel1			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel10			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel11			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel13			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel15			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel16			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel17			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel18			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel2			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel20			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel21			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel24			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel25			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel26			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel27			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel3			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel4			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel5			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel6			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancel7			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx10			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx11			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx13			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx15			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx16			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx17			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx18			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx2			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx20			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx21			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx3			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx4			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx5			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx6			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cancelx7			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cleanup4			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cleanupx4			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cond-except			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-cond7				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-cond8				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-fini1				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-initializers1			PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-initializers1-c11		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-initializers1-c89		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-initializers1-c99		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-initializers1-gnu11		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-initializers1-gnu89		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-initializers1-gnu99		PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-join5				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-key3				PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-mutex8				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-mutexpi8			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-once3				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-once4				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-oncex3				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-oncex4				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-rwlock15			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-rwlock8			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-rwlock9			PASS	PASS	PASS	PASS	=
+FAIL
+> nptl/tst-sem11				PASS	PASS	PASS	=
+PASS	FAIL
+> nptl/tst-sem12				PASS	PASS	PASS	=
+PASS	FAIL
+> posix/bug-regex24			PASS	PASS	PASS	PASS	=
+FAIL
+> rt/tst-mqueue1				PASS	PASS	PASS	=
+PASS	FAIL
+> rt/tst-mqueue2				PASS	PASS	PASS	=
+PASS	FAIL
+> rt/tst-mqueue4				PASS	PASS	PASS	=
+PASS	FAIL
+> rt/tst-mqueue7				PASS	PASS	PASS	=
+PASS	FAIL
+> rt/tst-mqueue8				PASS	PASS	PASS	=
+PASS	FAIL
+> rt/tst-mqueue8x				PASS	PASS	PASS	=
+PASS	FAIL
+> stdlib/tst-makecontext3			PASS	PASS	PASS	=
+PASS	FAIL
