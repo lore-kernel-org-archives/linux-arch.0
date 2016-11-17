@@ -1,238 +1,591 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-cys01nam02on0075.outbound.protection.outlook.com ([104.47.37.75]:4976
-        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753187AbcKPTWs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 16 Nov 2016 14:22:48 -0500
-Subject: Re: [RFC PATCH v3 08/20] x86: Add support for early
- encryption/decryption of memory
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003610.3280.22043.stgit@tlendack-t1.amdoffice.net>
- <20161116104656.qz5wp33zzyja373r@pd.tnic>
-From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <3a9e093a-9e80-8d2b-2615-56675cf6f147@amd.com>
-Date: Wed, 16 Nov 2016 13:22:36 -0600
+Received: from szxga04-in.huawei.com ([119.145.14.52]:53020 "EHLO
+        szxga04-in.huawei.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+        with ESMTP id S932423AbcKQDnP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Nov 2016 22:43:15 -0500
+Subject: Re: ILP32 for ARM64 - testing with lmbench
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <20161028124659.GA24131@yury-N73SV>
+From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <cdf5cdf2-43af-6d7f-9e0c-72675fb83224@huawei.com>
+Date: Thu, 17 Nov 2016 11:28:48 +0800
 MIME-Version: 1.0
-In-Reply-To: <20161116104656.qz5wp33zzyja373r@pd.tnic>
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <20161028124659.GA24131@yury-N73SV>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161116192236.IKyEv_EMA_txe51Ij82WyrGtm9C7MrRpe6dmo0-4Dhg@z>
+To: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, sellcey@caviumnetworks.com, hanjun.guo@linaro.org, Ding Tianhong <dingtianhong@huawei.com>, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Message-ID: <20161117032848.hkQgfOd2YkSMjBF19YD1PKKF8-89xhIoOhkaLdwu4c4@z>
 
-On 11/16/2016 4:46 AM, Borislav Petkov wrote:
-> Btw, for your next submission, this patch can be split in two exactly
-> like the commit message paragraphs are:
+Hi, all
 
-I think I originally had it that way, I don't know why I combined them.
-I'll split them out.
+I test specint of aarch64 LP64 when aarch32 el0 disable/enabled respectively
+and compare with ILP32 unmerged kernel(4.8-rc6) in our arm64 board. I found
+that difference(ILP32 disabled/ILP32 unmerged) is bigger when aarch32 el0 is
+enabled, compare with aarch32 el0 disabled kernel. And bzip2, mcg, hmmer,
+libquantum are the top four differences[1]. Note that bigger is better in
+specint test.
 
-> 
-> On Wed, Nov 09, 2016 at 06:36:10PM -0600, Tom Lendacky wrote:
->> Add support to be able to either encrypt or decrypt data in place during
->> the early stages of booting the kernel. This does not change the memory
->> encryption attribute - it is used for ensuring that data present in either
->> an encrypted or un-encrypted memory area is in the proper state (for
->> example the initrd will have been loaded by the boot loader and will not be
->> encrypted, but the memory that it resides in is marked as encrypted).
-> 
-> Patch 2: users of the new memmap change
-> 
->> The early_memmap support is enhanced to specify encrypted and un-encrypted
->> mappings with and without write-protection. The use of write-protection is
->> necessary when encrypting data "in place". The write-protect attribute is
->> considered cacheable for loads, but not stores. This implies that the
->> hardware will never give the core a dirty line with this memtype.
-> 
-> Patch 1: change memmap
-> 
-> This makes this aspect of the patchset much clearer and is better for
-> bisection.
-> 
->> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
->> ---
->>  arch/x86/include/asm/fixmap.h        |    9 +++
->>  arch/x86/include/asm/mem_encrypt.h   |   15 +++++
->>  arch/x86/include/asm/pgtable_types.h |    8 +++
->>  arch/x86/mm/ioremap.c                |   28 +++++++++
->>  arch/x86/mm/mem_encrypt.c            |  102 ++++++++++++++++++++++++++++++++++
->>  include/asm-generic/early_ioremap.h  |    2 +
->>  mm/early_ioremap.c                   |   15 +++++
->>  7 files changed, 179 insertions(+)
-> 
-> ...
-> 
->> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
->> index d642cc5..06235b4 100644
->> --- a/arch/x86/mm/mem_encrypt.c
->> +++ b/arch/x86/mm/mem_encrypt.c
->> @@ -14,6 +14,9 @@
->>  #include <linux/init.h>
->>  #include <linux/mm.h>
->>  
->> +#include <asm/tlbflush.h>
->> +#include <asm/fixmap.h>
->> +
->>  extern pmdval_t early_pmd_flags;
->>  
->>  /*
->> @@ -24,6 +27,105 @@ extern pmdval_t early_pmd_flags;
->>  unsigned long sme_me_mask __section(.data) = 0;
->>  EXPORT_SYMBOL_GPL(sme_me_mask);
->>  
->> +/* Buffer used for early in-place encryption by BSP, no locking needed */
->> +static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
->> +
->> +/*
->> + * This routine does not change the underlying encryption setting of the
->> + * page(s) that map this memory. It assumes that eventually the memory is
->> + * meant to be accessed as encrypted but the contents are currently not
->> + * encrypted.
->> + */
->> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->> +{
->> +	void *src, *dst;
->> +	size_t len;
->> +
->> +	if (!sme_me_mask)
->> +		return;
->> +
->> +	local_flush_tlb();
->> +	wbinvd();
->> +
->> +	/*
->> +	 * There are limited number of early mapping slots, so map (at most)
->> +	 * one page at time.
->> +	 */
->> +	while (size) {
->> +		len = min_t(size_t, sizeof(sme_early_buffer), size);
->> +
->> +		/* Create a mapping for non-encrypted write-protected memory */
->> +		src = early_memremap_dec_wp(paddr, len);
->> +
->> +		/* Create a mapping for encrypted memory */
->> +		dst = early_memremap_enc(paddr, len);
->> +
->> +		/*
->> +		 * If a mapping can't be obtained to perform the encryption,
->> +		 * then encrypted access to that area will end up causing
->> +		 * a crash.
->> +		 */
->> +		BUG_ON(!src || !dst);
->> +
->> +		memcpy(sme_early_buffer, src, len);
->> +		memcpy(dst, sme_early_buffer, len);
-> 
-> I still am missing the short explanation why we need the temporary buffer.
+In order to make sure the above results, I retest these four testcases in
+reportable way(reference the command in the end). The result[2] show that
+libquantum decrease -2.09% after ILP32 enabled and aarch32 on. I think it is in
+significant.
 
-Ok, I'll add that.
+The result of lmbench is not stable in my board. I plan to dig it later.
 
-> 
-> 
-> Oh, and we can save us the code duplication a little. Diff ontop of yours:
+[1] The following test result is tested through --size=ref --iterations=3.
+1.1 Test when aarch32_el0 is enabled.
+                         ILP32 disabled        base line
+       400.perlbench            100.00%             100%
+       401.bzip2                 99.35%             100%
+       403.gcc                  100.26%             100%
+       429.mcf                  102.75%             100%
+       445.gobmk                100.00%             100%
+       456.hmmer                 95.66%             100%
+       458.sjeng                100.00%             100%
+       462.libquantum           100.00%             100%
+       471.omnetpp              100.59%             100%
+       473.astar                 99.66%             100%
+       483.xalancbmk             99.10%             100%
 
-Yup, makes sense.  I'll incorporate this.
+1.2 Test when aarch32_el0 is disabled
+                         ILP32 disabled         base line
+       400.perlbench            100.22%              100%
+       401.bzip2                100.95%              100%
+       403.gcc                  100.20%              100%
+       429.mcf                  100.76%              100%
+       445.gobmk                100.36%              100%
+       456.hmmer                 97.94%              100%
+       458.sjeng                 99.73%              100%
+       462.libquantum            98.72%              100%
+       471.omnetpp              100.86%              100%
+       473.astar                 99.15%              100%
+       483.xalancbmk            100.08%              100%
 
-Thanks,
-Tom
+[2] The following test result is tested through: runspec --config=my.cfg --size=test,train,ref --noreportable --tune=base,peak --iterations=3 bzip2 mcf hmmer libquantum
+2.1 Test when aarch32_el0 is enabled.
+                          ILP32_enabled         base line
+       401.bzip2                100.82%              100%
+       429.mcf                  100.18%              100%
+       456.hmmer                 99.64%              100%
+       462.libquantum            97.91%              100%
 
-> 
-> ---
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index 06235b477d7c..50e2c4fc7338 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -36,7 +36,8 @@ static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
->   * meant to be accessed as encrypted but the contents are currently not
->   * encrypted.
->   */
-> -void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
-> +static void __init noinline
-> +__mem_enc_dec(resource_size_t paddr, unsigned long size, bool enc)
->  {
->  	void *src, *dst;
->  	size_t len;
-> @@ -54,15 +55,15 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  	while (size) {
->  		len = min_t(size_t, sizeof(sme_early_buffer), size);
->  
-> -		/* Create a mapping for non-encrypted write-protected memory */
-> -		src = early_memremap_dec_wp(paddr, len);
-> +		src = (enc ? early_memremap_dec_wp(paddr, len)
-> +			   : early_memremap_enc_wp(paddr, len));
->  
-> -		/* Create a mapping for encrypted memory */
-> -		dst = early_memremap_enc(paddr, len);
-> +		dst = (enc ? early_memremap_enc(paddr, len)
-> +			   : early_memremap_dec(paddr, len));
->  
->  		/*
-> -		 * If a mapping can't be obtained to perform the encryption,
-> -		 * then encrypted access to that area will end up causing
-> +		 * If a mapping can't be obtained to perform the dec/encryption,
-> +		 * then (un-)encrypted access to that area will end up causing
->  		 * a crash.
->  		 */
->  		BUG_ON(!src || !dst);
-> @@ -78,52 +79,14 @@ void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  	}
->  }
->  
-> -/*
-> - * This routine does not change the underlying encryption setting of the
-> - * page(s) that map this memory. It assumes that eventually the memory is
-> - * meant to be accessed as not encrypted but the contents are currently
-> - * encrypted.
-> - */
-> -void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-> +void __init sme_early_mem_enc(resource_size_t paddr, unsigned long size)
->  {
-> -	void *src, *dst;
-> -	size_t len;
-> -
-> -	if (!sme_me_mask)
-> -		return;
-> -
-> -	local_flush_tlb();
-> -	wbinvd();
-> -
-> -	/*
-> -	 * There are limited number of early mapping slots, so map (at most)
-> -	 * one page at time.
-> -	 */
-> -	while (size) {
-> -		len = min_t(size_t, sizeof(sme_early_buffer), size);
-> -
-> -		/* Create a mapping for encrypted write-protected memory */
-> -		src = early_memremap_enc_wp(paddr, len);
-> -
-> -		/* Create a mapping for non-encrypted memory */
-> -		dst = early_memremap_dec(paddr, len);
-> -
-> -		/*
-> -		 * If a mapping can't be obtained to perform the decryption,
-> -		 * then un-encrypted access to that area will end up causing
-> -		 * a crash.
-> -		 */
-> -		BUG_ON(!src || !dst);
-> -
-> -		memcpy(sme_early_buffer, src, len);
-> -		memcpy(dst, sme_early_buffer, len);
-> -
-> -		early_memunmap(dst, len);
-> -		early_memunmap(src, len);
-> +	return __mem_enc_dec(paddr, size, true);
-> +}
->  
-> -		paddr += len;
-> -		size -= len;
-> -	}
-> +void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
-> +{
-> +	return __mem_enc_dec(paddr, size, false);
->  }
->  
->  void __init sme_early_init(void)
-> 
+Regards
+
+Bamvor
+
+On 2016/10/28 20:46, Yury Norov wrote:
+> [Add Steve Ellcey, thanks for testing on ThunderX]
+>
+> Lmbench-3.0-a9 testing is performed on ThunderX machine to check that
+> ILP32 series does not add performance regressions for LP64. Test
+> summary is in the table below. Our measurements doesn't show
+> significant performance regression of LP64 if ILP32 code is merged,
+> both enabled or disabled.
+>
+>                ILP32 enabled   ILP32  disabled   Standard Kernel
+> null syscall   0.1066          0.1121            0.1121
+>                95.09%          100.00%
+>
+> stat           1.3947          1.3814            1.3864
+>                100.60%         99.64%
+>
+> fstat          0.4459          0.4344            0.4524
+>                98.56%          96.02%
+>
+> open/close     4.0606          4.0411            4.0453
+>                100.38%         99.90%
+>
+> read           0.4819          0.5014            0.5014
+>                96.11%          100.00%
+>
+> Tested with linux 4.8 because 4.9-rc1 is not fixed yet for ThunderX.
+> Other system details below.
+>
+> Yury.
+>
+> ubuntu@crb6:~$ uname -a
+> Linux crb6 4.8.0+ #3 SMP Thu Oct 27 11:01:32 PDT 2016 aarch64 aarch64 aarch64 GNU/Linux
+>
+> ubuntu@crb6:~$ cat /proc/meminfo
+> MemTotal:       132011948 kB
+> MemFree:        131442672 kB
+> MemAvailable:   130695764 kB
+> Buffers:           15696 kB
+> Cached:            88088 kB
+> SwapCached:            0 kB
+> Active:            82760 kB
+> Inactive:          41336 kB
+> Active(anon):      20880 kB
+> Inactive(anon):     8576 kB
+> Active(file):      61880 kB
+> Inactive(file):    32760 kB
+> Unevictable:           0 kB
+> Mlocked:               0 kB
+> SwapTotal:      128920572 kB
+> SwapFree:       128920572 kB
+> Dirty:                 0 kB
+> Writeback:             0 kB
+> AnonPages:         20544 kB
+> Mapped:            19780 kB
+> Shmem:              9060 kB
+> Slab:              78804 kB
+> SReclaimable:      27372 kB
+> SUnreclaim:        51432 kB
+> KernelStack:        8336 kB
+> PageTables:          820 kB
+> NFS_Unstable:          0 kB
+> Bounce:                0 kB
+> WritebackTmp:          0 kB
+> CommitLimit:    194926544 kB
+> Committed_AS:     256324 kB
+> VmallocTotal:   135290290112 kB
+> VmallocUsed:           0 kB
+> VmallocChunk:          0 kB
+> AnonHugePages:         0 kB
+> ShmemHugePages:        0 kB
+> ShmemPmdMapped:        0 kB
+> CmaTotal:              0 kB
+> CmaFree:               0 kB
+> HugePages_Total:       0
+> HugePages_Free:        0
+> HugePages_Rsvd:        0
+> HugePages_Surp:        0
+> Hugepagesize:       2048 kB
+>
+> ubuntu@crb6:~$ cat /proc/cpuinfo
+> processor	: 0
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 1
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 2
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 3
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 4
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 5
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 6
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 7
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 8
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 9
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 10
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 11
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 12
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 13
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 14
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 15
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 16
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 17
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 18
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 19
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 20
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 21
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 22
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 23
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 24
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 25
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 26
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 27
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 28
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 29
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 30
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 31
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 32
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 33
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 34
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 35
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 36
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 37
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 38
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 39
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 40
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 41
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 42
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 43
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 44
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 45
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 46
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+> processor	: 47
+> BogoMIPS	: 200.00
+> Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics
+> CPU implementer	: 0x43
+> CPU architecture: 8
+> CPU variant	: 0x1
+> CPU part	: 0x0a1
+> CPU revision	: 0
+>
+
