@@ -1,74 +1,58 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v3 12/20] x86: Decrypt trampoline area if memory
-	encryption is active
-Date: Thu, 17 Nov 2016 19:09:13 +0100
-Message-ID: <20161117180913.ha5h4bfgrr5u6ccg@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
-	<20161110003708.3280.29934.stgit@tlendack-t1.amdoffice.net>
+From: Steve Ellcey <sellcey@caviumnetworks.com>
+Subject: Re: ILP32 for ARM64: testing with glibc testsuite
+Date: Thu, 17 Nov 2016 13:45:36 -0800
+Message-ID: <1479419136.908.90.camel@caviumnetworks.com>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <20161107082359.GA19666@yury-N73SV> <20161109095650.GA22804@yury-N73SV>
+ <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20161110003708.3280.29934.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, agraf@suse.de, Geert Uytterhoeven <geert@linux-m68k.org>, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, GNU C Library <libc-alpha@sourceware.org>, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Adhemerval Zanella <adhemerval.zanella@linaro.org>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 09, 2016 at 06:37:08PM -0600, Tom Lendacky wrote:
-> When Secure Memory Encryption is enabled, the trampoline area must not
-> be encrypted. A CPU running in real mode will not be able to decrypt
-> memory that has been encrypted because it will not be able to use addresses
-> with the memory encryption mask.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/realmode/init.c |    9 +++++++++
->  1 file changed, 9 insertions(+)
-> 
-> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-> index 5db706f1..44ed32a 100644
-> --- a/arch/x86/realmode/init.c
-> +++ b/arch/x86/realmode/init.c
-> @@ -6,6 +6,7 @@
->  #include <asm/pgtable.h>
->  #include <asm/realmode.h>
->  #include <asm/tlbflush.h>
-> +#include <asm/mem_encrypt.h>
->  
->  struct real_mode_header *real_mode_header;
->  u32 *trampoline_cr4_features;
-> @@ -130,6 +131,14 @@ static void __init set_real_mode_permissions(void)
->  	unsigned long text_start =
->  		(unsigned long) __va(real_mode_header->text_start);
->  
-> +	/*
-> +	 * If memory encryption is active, the trampoline area will need to
-> +	 * be in un-encrypted memory in order to bring up other processors
-> +	 * successfully.
-> +	 */
-> +	sme_early_mem_dec(__pa(base), size);
-> +	sme_set_mem_unenc(base, size);
-
-We're still unsure about the non-encrypted state: dec vs unenc. Please
-unify those for ease of use, code reading, etc etc.
-
-	sme_early_decrypt(__pa(base), size);
-	sme_mark_decrypted(base, size);
-
-or similar looks much more readable and understandable to me.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+T24gV2VkLCAyMDE2LTExLTE2IGF0IDE1OjIyICswNDAwLCBNYXhpbSBLdXZ5cmtvdiB3cm90ZToK
+PiA+IAo+ID4gT24gTm92IDksIDIwMTYsIGF0IDE6NTYgUE0sIFl1cnkgTm9yb3YgPHlub3JvdkBj
+YXZpdW1uZXR3b3Jrcy5jb20+Cj4gPiB3cm90ZToKPiA+IAo+ID4gPiAKPiA+ID4gQmVsb3cgaXMg
+dGhlIHJlc3VsdHMgb2YgZ2xpYmMgdGVzdHN1aXRlIHJ1biBmb3IgYWFyY2g2NC9scDY0CgpJIGhh
+dmUgYmVlbiBydW5uaW5nIHRoZSBnbGliYyB0ZXN0c3VpdGUgYXMgd2VsbC4gwqBJIGhhdmUgb25s
+eSBydW4gaXQgb24KYW4gSUxQMzIgZW5hYmxlZCBrZXJuZWwuIMKgVXNpbmcgdGhhdCBrZXJuZWws
+IHRvcC1vZi10cmVlIGdsaWJjLCBhbmQgdGhlCklMUDMyIGdsaWJjIHBhdGNoZXMgSSBoYXZlIG5v
+IExQNjQgcmVncmVzc2lvbnMuIMKgVGhlcmUgYXJlIDUgZmFpbHVyZXMKaW4gTFA2NCBtb2RlIGJ1
+dCBJIGdldCB0aGVtIHdpdGggdmFuaWxsYSB0b3Atb2YtdHJlZSBnbGliYyBzb3VyY2VzIHRvby4K
+VGhleSBhcmU6CglucHRsL2VpbnRyMSAoSSBhY3R1YWxseSBkb24ndCBydW4gdGhpcyBiZWNhdXNl
+IGl0IGtpbGxzIHRoZSAnbWFrZSBjaGVjaycpCglkZWJ1Zy90c3QtYmFja3RyYWNlNQoJZGVidWcv
+dHN0LWJhY2t0cmFjZTYKCW5wdGwvdHN0LXN0YWNrNAoJbnB0bC90c3QtdGhyZWFkX2xvY2FsMQoK
+SW4gSUxQMzIgbW9kZSBJIGdldCAzMyBmYWlsdXJlcywgdGhleSBpbmNsdWRlIHRoZSBhYm92ZSBm
+YWlsdXJlcyAobWludXMKbnB0bC90c3QtdGhyZWFkX2xvY2FsMSkgcGx1czoKCgljKystdHlwZXMt
+Y2hlY2sKCWNvbmZvcm0vSVNPMTEvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3JtL0lTTzExL3N0
+ZGludC5oL2NvbmZvcm0KCWNvbmZvcm0vSVNPOTkvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3Jt
+L0lTTzk5L3N0ZGludC5oL2NvbmZvcm0KCWNvbmZvcm0vUE9TSVgyMDA4L2ludHR5cGVzLmgvY29u
+Zm9ybQoJY29uZm9ybS9QT1NJWDIwMDgvc3RkaW50LmgvY29uZm9ybQoJY29uZm9ybS9YT1BFTjJL
+L2ludHR5cGVzLmgvY29uZm9ybQoJY29uZm9ybS9YT1BFTjJLL3N0ZGludC5oL2NvbmZvcm0KCWNv
+bmZvcm0vWE9QRU4ySzgvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3JtL1hPUEVOMks4L3N0ZGlu
+dC5oL2NvbmZvcm0KCWVsZi90c3QtdGxzMQoJZWxmL3RzdC10bHMxLXN0YXRpYwoJZWxmL3RzdC10
+bHMyCgllbGYvdHN0LXRsczItc3RhdGljCgllbGYvdHN0LXRsczMKCW1hdGgvY2hlY2stYWJpLWxp
+Ym0KCW1hdGgvdGVzdC1kb3VibGUKCW1hdGgvdGVzdC1kb3VibGUtZmluaXRlCgltYXRoL3Rlc3Qt
+ZmxvYXQKCW1hdGgvdGVzdC1mbG9hdC1maW5pdGUKCW1pc2MvdHN0LXN5bmNfZmlsZV9yYW5nZQoJ
+bnB0bC90c3QtY2FuY2VsMjYKCW5wdGwvdHN0LWNhbmNlbDI3CglucHRsL3RzdC1zZW0zCglydC90
+c3QtbXF1ZXVlMQoJcnQvdHN0LW1xdWV1ZTIKCXJ0L3RzdC1tcXVldWU0CglydC90c3QtbXF1ZXVl
+NwoJc3RkbGliL3RzdC1tYWtlY29udGV4dDMKCkkgYW0gY3VycmVudGx5IGxvb2tpbmcgYXQgdGhl
+c2UgSUxQMzIgcmVncmVzc2lvbnMgKHN0YXJ0aW5nIHdpdGggdGhlCnRscyBmYWlsdXJlcykgdG8g
+c2VlIGlmIEkgY2FuIGZpZ3VyZSBvdXQgd2hhdCBpcyBoYXBwZW5pbmcgd2l0aCB0aGVtLgoKU3Rl
+dmUgRWxsY2V5CnNlbGxjZXlAY2F2aXVtbmV0d29ya3MuY29tCgpfX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlz
+dApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJh
+ZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
