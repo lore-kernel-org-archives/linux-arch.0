@@ -1,34 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56322 "EHLO foss.arm.com"
+Received: from mga07.intel.com ([134.134.136.100]:58490 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933482AbcKQRHV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 17 Nov 2016 12:07:21 -0500
-Date: Thu, 17 Nov 2016 08:50:56 -0700
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: ILP32 for ARM64: testing with glibc testsuite
-Message-ID: <20161117155056.6xkldspks6dwoj7z@localhost>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161107082359.GA19666@yury-N73SV>
- <20161109095650.GA22804@yury-N73SV>
- <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+        id S1754264AbcKQRPG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 17 Nov 2016 12:15:06 -0500
+Date: Thu, 17 Nov 2016 19:14:56 +0200
+From: Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <ville.syrjala@linux.intel.com>
+Subject: Re: S3 resume regression [1cf4f629d9d2 ("cpu/hotplug: Move online
+ calls to hotplugged cpu")]
+Message-ID: <20161117171456.GZ31595@intel.com>
+References: <alpine.DEB.2.20.1610272035180.4913@nanos>
+ <20161027192006.GF4617@intel.com>
+ <alpine.DEB.2.20.1610272122510.4913@nanos>
+ <20161027203745.GH4617@intel.com>
+ <alpine.DEB.2.20.1610272238390.4913@nanos>
+ <20161028155603.GI4617@intel.com>
+ <alpine.DEB.2.20.1610282049500.5053@nanos>
+ <20161101204737.GB4617@intel.com>
+ <20161109035418.GA18246@shbuild888>
+ <CA+55aFyOSHrP0--+dNB0qcoCumTP4KUd6g=2Jt3WUw_W6o+aRg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CA+55aFyOSHrP0--+dNB0qcoCumTP4KUd6g=2Jt3WUw_W6o+aRg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68k.org>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com, Adhemerval Zanella <adhemerval.zanella@linaro.org>, Steve Ellcey <sellcey@caviumnetworks.com>
-Message-ID: <20161117155056.VwJgTbIlHFXf13h1xaOjP4-JChaP8lFTCeV-GFh4qw0@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Feng Tang <feng.tang@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Feng Tang <feng.79.tang@gmail.com>, "Rafael J. Wysocki" <rafael@kernel.org>, "Wysocki, Rafael J" <rafael.j.wysocki@intel.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior <bigeasy@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Rik van Riel <riel@redhat.com>, "Srivatsa S. Bhat" <srivatsa@mit.edu>, Peter Zijlstra <peterz@infradead.org>, Arjan van de Ven <arjan@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Oleg Nesterov <oleg@redhat.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Paul Turner <pjt@google.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "Zhang, Rui" <rui.zhang@intel.com>, "Brown, Len" <len.brown@intel.com>, Linux PM <linux-pm@vger.kernel.org>, Linux ACPI <linux-acpi@vger.kernel.org>
+Message-ID: <20161117171456.8P4IMYg7byUgYFL64-pINFJFXdSTbP42JgCi4qIQBJ0@z>
 
-On Wed, Nov 16, 2016 at 03:22:26PM +0400, Maxim Kuvyrkov wrote:
-> Regarding ILP32 runtime, my opinion is that it is acceptable for ILP32
-> to have extra failures compared to LP64, since these are not
-> regressions, but, rather, failures of a new configuration.
+On Tue, Nov 08, 2016 at 10:08:37PM -0800, Linus Torvalds wrote:
+> On Tue, Nov 8, 2016 at 7:54 PM, Feng Tang <feng.tang@intel.com> wrote:
+> > On Wed, Nov 02, 2016 at 04:47:37AM +0800, Ville Syrjälä wrote:
+> >>
+> >> I left the thing running for the weekend and it failed 26 out of 16057
+> >> times with the 25ms timeout. Looks like it takes ~5 minutes to resume
+> >> when it fails, but eventually it does come back.
+> >
+> > Just came back from a travel. Yes, the 5 minutes delay may be due to the
+> > expiration of the HPET timer, counting from 0 to 0xffffffff for a 13M
+> > frequencey HPET takes about 300 seconds. After resume, it seems nobody
+> > arms it so my old patch forces to arm one event.
+> 
+> Ville, what happens if you disable HPET? Can you force the TSC with
+> "clocksource=tsc" or "tsc=reliable". Does resume work reliably then?
+> 
+> Or is this one of the CPU's where tsc just doesn't work?
 
-I disagree with this. We definitely need to understand why they fail,
-otherwise we run the risk of potential glibc or kernel implementation
-bugs becoming ABI.
+tsc=reliable allows use of the tsc it seems. Doesn't seem to help
+with resuming though.
 
 -- 
-Catalin
+Ville Syrjälä
+Intel OTC
