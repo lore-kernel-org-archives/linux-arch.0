@@ -1,58 +1,184 @@
-From: Steve Ellcey <sellcey@caviumnetworks.com>
-Subject: Re: ILP32 for ARM64: testing with glibc testsuite
-Date: Thu, 17 Nov 2016 13:45:36 -0800
-Message-ID: <1479419136.908.90.camel@caviumnetworks.com>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161107082359.GA19666@yury-N73SV> <20161109095650.GA22804@yury-N73SV>
- <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v3 09/20] x86: Insure that boot memory areas are
+ mapped properly
+Date: Sat, 19 Nov 2016 12:12:27 -0600
+Message-ID: <d6e8539a-0e4d-8d16-ffe1-e88595cb7ab3@amd.com>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003620.3280.20613.stgit@tlendack-t1.amdoffice.net>
+ <20161117122015.kxnwjtgyzitxio2p@pd.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, agraf@suse.de, Geert Uytterhoeven <geert@linux-m68k.org>, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, GNU C Library <libc-alpha@sourceware.org>, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, Adhemerval Zanella <adhemerval.zanella@linaro.org>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20161117122015.kxnwjtgyzitxio2p@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gV2VkLCAyMDE2LTExLTE2IGF0IDE1OjIyICswNDAwLCBNYXhpbSBLdXZ5cmtvdiB3cm90ZToK
-PiA+IAo+ID4gT24gTm92IDksIDIwMTYsIGF0IDE6NTYgUE0sIFl1cnkgTm9yb3YgPHlub3JvdkBj
-YXZpdW1uZXR3b3Jrcy5jb20+Cj4gPiB3cm90ZToKPiA+IAo+ID4gPiAKPiA+ID4gQmVsb3cgaXMg
-dGhlIHJlc3VsdHMgb2YgZ2xpYmMgdGVzdHN1aXRlIHJ1biBmb3IgYWFyY2g2NC9scDY0CgpJIGhh
-dmUgYmVlbiBydW5uaW5nIHRoZSBnbGliYyB0ZXN0c3VpdGUgYXMgd2VsbC4gwqBJIGhhdmUgb25s
-eSBydW4gaXQgb24KYW4gSUxQMzIgZW5hYmxlZCBrZXJuZWwuIMKgVXNpbmcgdGhhdCBrZXJuZWws
-IHRvcC1vZi10cmVlIGdsaWJjLCBhbmQgdGhlCklMUDMyIGdsaWJjIHBhdGNoZXMgSSBoYXZlIG5v
-IExQNjQgcmVncmVzc2lvbnMuIMKgVGhlcmUgYXJlIDUgZmFpbHVyZXMKaW4gTFA2NCBtb2RlIGJ1
-dCBJIGdldCB0aGVtIHdpdGggdmFuaWxsYSB0b3Atb2YtdHJlZSBnbGliYyBzb3VyY2VzIHRvby4K
-VGhleSBhcmU6CglucHRsL2VpbnRyMSAoSSBhY3R1YWxseSBkb24ndCBydW4gdGhpcyBiZWNhdXNl
-IGl0IGtpbGxzIHRoZSAnbWFrZSBjaGVjaycpCglkZWJ1Zy90c3QtYmFja3RyYWNlNQoJZGVidWcv
-dHN0LWJhY2t0cmFjZTYKCW5wdGwvdHN0LXN0YWNrNAoJbnB0bC90c3QtdGhyZWFkX2xvY2FsMQoK
-SW4gSUxQMzIgbW9kZSBJIGdldCAzMyBmYWlsdXJlcywgdGhleSBpbmNsdWRlIHRoZSBhYm92ZSBm
-YWlsdXJlcyAobWludXMKbnB0bC90c3QtdGhyZWFkX2xvY2FsMSkgcGx1czoKCgljKystdHlwZXMt
-Y2hlY2sKCWNvbmZvcm0vSVNPMTEvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3JtL0lTTzExL3N0
-ZGludC5oL2NvbmZvcm0KCWNvbmZvcm0vSVNPOTkvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3Jt
-L0lTTzk5L3N0ZGludC5oL2NvbmZvcm0KCWNvbmZvcm0vUE9TSVgyMDA4L2ludHR5cGVzLmgvY29u
-Zm9ybQoJY29uZm9ybS9QT1NJWDIwMDgvc3RkaW50LmgvY29uZm9ybQoJY29uZm9ybS9YT1BFTjJL
-L2ludHR5cGVzLmgvY29uZm9ybQoJY29uZm9ybS9YT1BFTjJLL3N0ZGludC5oL2NvbmZvcm0KCWNv
-bmZvcm0vWE9QRU4ySzgvaW50dHlwZXMuaC9jb25mb3JtCgljb25mb3JtL1hPUEVOMks4L3N0ZGlu
-dC5oL2NvbmZvcm0KCWVsZi90c3QtdGxzMQoJZWxmL3RzdC10bHMxLXN0YXRpYwoJZWxmL3RzdC10
-bHMyCgllbGYvdHN0LXRsczItc3RhdGljCgllbGYvdHN0LXRsczMKCW1hdGgvY2hlY2stYWJpLWxp
-Ym0KCW1hdGgvdGVzdC1kb3VibGUKCW1hdGgvdGVzdC1kb3VibGUtZmluaXRlCgltYXRoL3Rlc3Qt
-ZmxvYXQKCW1hdGgvdGVzdC1mbG9hdC1maW5pdGUKCW1pc2MvdHN0LXN5bmNfZmlsZV9yYW5nZQoJ
-bnB0bC90c3QtY2FuY2VsMjYKCW5wdGwvdHN0LWNhbmNlbDI3CglucHRsL3RzdC1zZW0zCglydC90
-c3QtbXF1ZXVlMQoJcnQvdHN0LW1xdWV1ZTIKCXJ0L3RzdC1tcXVldWU0CglydC90c3QtbXF1ZXVl
-NwoJc3RkbGliL3RzdC1tYWtlY29udGV4dDMKCkkgYW0gY3VycmVudGx5IGxvb2tpbmcgYXQgdGhl
-c2UgSUxQMzIgcmVncmVzc2lvbnMgKHN0YXJ0aW5nIHdpdGggdGhlCnRscyBmYWlsdXJlcykgdG8g
-c2VlIGlmIEkgY2FuIGZpZ3VyZSBvdXQgd2hhdCBpcyBoYXBwZW5pbmcgd2l0aCB0aGVtLgoKU3Rl
-dmUgRWxsY2V5CnNlbGxjZXlAY2F2aXVtbmV0d29ya3MuY29tCgpfX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxpbmcgbGlz
-dApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3RzLmluZnJh
-ZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
+On 11/17/2016 6:20 AM, Borislav Petkov wrote:
+> On Wed, Nov 09, 2016 at 06:36:20PM -0600, Tom Lendacky wrote:
+>> The boot data and command line data are present in memory in an
+>> un-encrypted state and are copied early in the boot process.  The early
+>> page fault support will map these areas as encrypted, so before attempting
+>> to copy them, add unencrypted mappings so the data is accessed properly
+>> when copied.
+>>
+>> For the initrd, encrypt this data in place. Since the future mapping of the
+>> initrd area will be mapped as encrypted the data will be accessed properly.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/mem_encrypt.h |   13 ++++++++
+>>  arch/x86/kernel/head64.c           |   21 ++++++++++++--
+>>  arch/x86/kernel/setup.c            |    9 ++++++
+>>  arch/x86/mm/mem_encrypt.c          |   56 ++++++++++++++++++++++++++++++++++++
+>>  4 files changed, 96 insertions(+), 3 deletions(-)
+> 
+> ...
+> 
+>> @@ -122,6 +131,12 @@ static void __init copy_bootdata(char *real_mode_data)
+>>  	char * command_line;
+>>  	unsigned long cmd_line_ptr;
+>>  
+>> +	/*
+>> +	 * If SME is active, this will create un-encrypted mappings of the
+>> +	 * boot data in advance of the copy operations
+> 						      ^
+> 						      |
+> 					    Fullstop--+
+> 
+>> +	 */
+>> +	sme_map_bootdata(real_mode_data);
+>> +
+>>  	memcpy(&boot_params, real_mode_data, sizeof boot_params);
+>>  	sanitize_boot_params(&boot_params);
+>>  	cmd_line_ptr = get_cmd_line_ptr();
+> 
+> ...
+> 
+>> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+>> index 06235b4..411210d 100644
+>> --- a/arch/x86/mm/mem_encrypt.c
+>> +++ b/arch/x86/mm/mem_encrypt.c
+>> @@ -16,8 +16,11 @@
+>>  
+>>  #include <asm/tlbflush.h>
+>>  #include <asm/fixmap.h>
+>> +#include <asm/setup.h>
+>> +#include <asm/bootparam.h>
+>>  
+>>  extern pmdval_t early_pmd_flags;
+>> +int __init __early_make_pgtable(unsigned long, pmdval_t);
+>>  
+>>  /*
+>>   * Since sme_me_mask is set early in the boot process it must reside in
+>> @@ -126,6 +129,59 @@ void __init sme_early_mem_dec(resource_size_t paddr, unsigned long size)
+>>  	}
+>>  }
+>>  
+>> +static void __init *sme_bootdata_mapping(void *vaddr, unsigned long size)
+> 
+> So this could be called __sme_map_bootdata(). "sme_bootdata_mapping"
+> doesn't tell me what the function does as there's no verb in the name.
+> 
+
+Ok, makes sense.
+
+>> +{
+>> +	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
+>> +	pmdval_t pmd_flags, pmd;
+>> +	void *ret = vaddr;
+> 
+> That *ret --->
+> 
+>> +
+>> +	/* Use early_pmd_flags but remove the encryption mask */
+>> +	pmd_flags = early_pmd_flags & ~sme_me_mask;
+>> +
+>> +	do {
+>> +		pmd = (paddr & PMD_MASK) + pmd_flags;
+>> +		__early_make_pgtable((unsigned long)vaddr, pmd);
+>> +
+>> +		vaddr += PMD_SIZE;
+>> +		paddr += PMD_SIZE;
+>> +		size = (size < PMD_SIZE) ? 0 : size - PMD_SIZE;
+> 
+> 			size <= PMD_SIZE
+> 
+> 				looks more obvious to me...
+
+Ok, will do.
+
+> 
+>> +	} while (size);
+>> +
+>> +	return ret;
+> 
+> ---> is simply passing vaddr out. So the function can be just as well be
+> void and you can do below:
+> 
+> 	__sme_map_bootdata(real_mode_data, sizeof(boot_params));
+> 
+> 	boot_data = (struct boot_params *)real_mode_data;
+> 
+> 	...
+
+Ok, that simplifies the function too.
+
+> 
+>> +void __init sme_map_bootdata(char *real_mode_data)
+>> +{
+>> +	struct boot_params *boot_data;
+>> +	unsigned long cmdline_paddr;
+>> +
+>> +	if (!sme_me_mask)
+>> +		return;
+>> +
+>> +	/*
+>> +	 * The bootdata will not be encrypted, so it needs to be mapped
+>> +	 * as unencrypted data so it can be copied properly.
+>> +	 */
+>> +	boot_data = sme_bootdata_mapping(real_mode_data, sizeof(boot_params));
+>> +
+>> +	/*
+>> +	 * Determine the command line address only after having established
+>> +	 * the unencrypted mapping.
+>> +	 */
+>> +	cmdline_paddr = boot_data->hdr.cmd_line_ptr |
+>> +			((u64)boot_data->ext_cmd_line_ptr << 32);
+> 
+> <---- newline here.
+> 
+>> +	if (cmdline_paddr)
+>> +		sme_bootdata_mapping(__va(cmdline_paddr), COMMAND_LINE_SIZE);
+>> +}
+>> +
+>> +void __init sme_encrypt_ramdisk(resource_size_t paddr, unsigned long size)
+>> +{
+>> +	if (!sme_me_mask)
+>> +		return;
+>> +
+>> +	sme_early_mem_enc(paddr, size);
+>> +}
+> 
+> So this one could simply be called sme_encrypt_area() and be used for
+> other things. There's nothing special about encrypting a ramdisk, by the
+> looks of it.
+
+The sme_early_mem_enc() function is already exposed so I'll use that. I
+originally had it that way but tried to hide any logic associated with
+it by just calling this function.  Any changes in logic in the future
+would be handled within the SME function.  But that can be done in the
+future if needed.
+
+Thanks,
+Tom
+
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
