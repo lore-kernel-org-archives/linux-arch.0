@@ -1,140 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lekensteyn.nl ([178.21.112.251]:49723 "EHLO lekensteyn.nl"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753025AbcKTTIO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 20 Nov 2016 14:08:14 -0500
-Date: Sun, 20 Nov 2016 19:26:23 +0100
-From: Peter Wu <peter@lekensteyn.nl>
-Subject: Re: 'kbuild' merge before 4.9-rc1 breaks build and boot
-Message-ID: <20161120182623.GA1988@al>
-References: <4c04b846-3da8-dc42-4fa6-30f72a5c2437@hartkopp.net>
- <20161027154202.GE27017@al>
- <alpine.DEB.2.20.1611071408040.24418@macbook-air>
- <20161107213907.GB18092@al>
- <20161108123334.3df2dcc9@roar.ozlabs.ibm.com>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:43066 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752857AbcKTTNN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 20 Nov 2016 14:13:13 -0500
+Date: Sun, 20 Nov 2016 19:12:57 +0000
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
+Message-ID: <20161120191257.GX1041@n2100.armlinux.org.uk>
+References: <20161017065131.GA27863@angband.pl>
+ <20161020150814.42951f61@roar.ozlabs.ibm.com>
+ <3446653.W8FbGAKSeQ@wuerfel>
+ <14534456.e6dv16VA3R@wuerfel>
+ <20161025193200.1f4d9e24@roar.ozlabs.ibm.com>
+ <20161120132127.GU1041@n2100.armlinux.org.uk>
+ <CA+55aFxh=F77vDAG0Ta9p7Fxf8-b4nCSv1ewfY6ikx3X42zwkA@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20161108123334.3df2dcc9@roar.ozlabs.ibm.com>
+In-Reply-To: <CA+55aFxh=F77vDAG0Ta9p7Fxf8-b4nCSv1ewfY6ikx3X42zwkA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info
-Message-ID: <20161120182623._8w5DCoyPBnXVQlNiradpkrwDcVICK7Vkau2Mib96x4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20161120191257.MO7LAzAd4GQQX7cV3iKVHVghWfFtsmu7UnXoQSN_W1Y@z>
 
-Hi Nicholas,
+On Sun, Nov 20, 2016 at 10:32:50AM -0800, Linus Torvalds wrote:
+> On Sun, Nov 20, 2016 at 5:21 AM, Russell King - ARM Linux
+> <linux@armlinux.org.uk> wrote:
+> > On Tue, Oct 25, 2016 at 07:32:00PM +1100, Nicholas Piggin wrote:
+> >>
+> >> Michal, what's your thoughts? If you merge my patch 2/2 and skip 1/2, it
+> >> should not give any new build warnings or errors, so then arch patches can
+> >> go via arch trees. 1/2 could go in after everyone is up to date.
+> >
+> > So what's the conclusion on this?  I've just had a failure due to
+> > CONFIG_TRIM_UNUSED_KSYMS reported on ARM, and it looks like (at
+> > least some of) patch 1 could resolve it.
+> 
+> Hmm. I've got
+> 
+>   cc6acc11cad1 kbuild: be more careful about matching preprocessed asm
+> ___EXPORT_SYMBOL
+>   4efca4ed05cb kbuild: modversions for EXPORT_SYMBOL() for asm
+> 
+> in my tree. Is that sufficient, or do we still have issues?
 
-Current git master (v4.9-rc5-364-g77079b1) with the latest kbuild fixes
-is still failing to load modules when built with CONFIG_MODVERSIONS=y on
-x86_64 using GCC 6.2.1.
+Hmm, those seem to have gone in during the last week, so I haven't
+tested it yet (build running, but it'll take a while).  However, I
+don't think they'll solve _this_ problem.
 
-It can still be reproduced with make defconfig, then enabling
-CONFIG_MODVERSIONS=y. The build output contains:
+Some of the issue here is that we use a mixture of assembly macros
+and preprocessor for the ARM bitops - the ARM bitops are created
+with an assembly macro which contains some pre-processor expanded
+macros (eg, EXPORT_SYMBOL()).
 
-    WARNING: "memcpy" [net/netfilter/nf_nat.ko] has no CRC!
-    WARNING: "memmove" [net/netfilter/nf_nat.ko] has no CRC!
-    WARNING: "_copy_to_user" [fs/efivarfs/efivarfs.ko] has no CRC!
-    WARNING: "memcpy" [fs/efivarfs/efivarfs.ko] has no CRC!
-    WARNING: "_copy_from_user" [fs/efivarfs/efivarfs.ko] has no CRC!
+This means that the actual symbol being exported is not known to
+the preprocessor, so doing the "__is_defined(__KSYM_##sym)" inside
+"EXPORT_SYMBOL(\name)" becomes "__is_defined(__KSYM_\name)" to the
+preprocessor.  As "__KSYM_\name" is never defined, it always comes
+out as zero, hence we always use __cond_export_sym_0, which omits
+the symbol export from the assembly macro definition:
 
-    $ grep 000000 Module.symvers
-    0x00000000	phys_base	vmlinux	EXPORT_SYMBOL
-    0x00000000	memmove	vmlinux	EXPORT_SYMBOL
-    0x00000000	__copy_user_nocache	vmlinux	EXPORT_SYMBOL
-    0x00000000	__get_user_4	vmlinux	EXPORT_SYMBOL
-    0x00000000	__put_user_4	vmlinux	EXPORT_SYMBOL
-    0x00000000	__memcpy	vmlinux	EXPORT_SYMBOL
-    0x00000000	memset	vmlinux	EXPORT_SYMBOL
-    0x00000000	__sw_hweight64	vmlinux	EXPORT_SYMBOL
-    0x00000000	__sw_hweight32	vmlinux	EXPORT_SYMBOL
-    0x00000000	memcpy_mcsafe_unrolled	vmlinux	EXPORT_SYMBOL_GPL
-    0x00000000	memcpy	vmlinux	EXPORT_SYMBOL
-    0x00000000	copy_user_enhanced_fast_string	vmlinux	EXPORT_SYMBOL
-    0x00000000	clear_page	vmlinux	EXPORT_SYMBOL
-    0x00000000	__put_user_2	vmlinux	EXPORT_SYMBOL
-    0x00000000	__get_user_2	vmlinux	EXPORT_SYMBOL
-    0x00000000	copy_page	vmlinux	EXPORT_SYMBOL
-    0x00000000	copy_user_generic_string	vmlinux	EXPORT_SYMBOL
-    0x00000000	_copy_to_user	vmlinux	EXPORT_SYMBOL
-    0x00000000	__memmove	vmlinux	EXPORT_SYMBOL
-    0x00000000	empty_zero_page	vmlinux	EXPORT_SYMBOL
-    0x00000000	__get_user_8	vmlinux	EXPORT_SYMBOL
-    0x00000000	__put_user_8	vmlinux	EXPORT_SYMBOL
-    0x00000000	_copy_from_user	vmlinux	EXPORT_SYMBOL
-    0x00000000	native_load_gs_index	vmlinux	EXPORT_SYMBOL
-    0x00000000	__memset	vmlinux	EXPORT_SYMBOL
-    0x00000000	__put_user_1	vmlinux	EXPORT_SYMBOL
-    0x00000000	__get_user_1	vmlinux	EXPORT_SYMBOL
-    0x00000000	copy_user_generic_unrolled	vmlinux	EXPORT_SYMBOL
+ .macro bitop, name, instr
+.globl \name ; .align 0 ; \name:
 
-Kind regards,
-Peter
+...
 
-On Tue, Nov 08, 2016 at 12:33:34PM +1100, Nicholas Piggin wrote:
-> On Mon, 7 Nov 2016 22:39:07 +0100
-> Peter Wu <peter@lekensteyn.nl> wrote:
-> 
-> > On Mon, Nov 07, 2016 at 02:10:12PM -0500, Vince Weaver wrote:
-> > > On Thu, 27 Oct 2016, Peter Wu wrote:
-> > >   
-> > > > I can confirm Olivers issue, the current mainline kernel fails to boot
-> > > > on kernels with CONFIG_MODVERSIONS=y. Bisection points to:
-> > > > 
-> > > >     commit 784d5699eddc55878627da20d3fe0c8542e2f1a2
-> > > >     Author: Al Viro <viro@zeniv.linux.org.uk>
-> > > >     Date:   Mon Jan 11 11:04:34 2016 -0500  
-> > > > > WARNING: "memset" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > > WARNING: "__fentry__" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > > WARNING: "memcpy" [sound/usb/snd-usbmidi-lib.ko] has no CRC!
-> > > > > WARNING: "__sw_hweight32" [sound/usb/snd-usbmidi-lib.ko] has no CRC!  
-> > > 
-> > > Has any progress been made with this problem?
-> > > 
-> > > I'm also encountering it on my debian-unstable box on any kernel more 
-> > > recent than 4.9-rc1 (up to and including 4.9-rc4).  I am glad someone 
-> > > managed to isolate it as I was unable to get a clean bisect.
-> > > 
-> > > Vince  
-> > 
-> > The original kbuild issue went in via
-> > merge commit 84d69848c97faab0c25aa2667b273404d2e2a64a which notes:
-> > 
-> >  - EXPORT_SYMBOL for asm source by Al Viro.
-> > 
-> >    This does bring a regression, because genksyms no longer generates
-> >    checksums for these symbols (CONFIG_MODVERSIONS). Nick Piggin is
-> >    working on a patch to fix this.
-> > 
-> >    Plus, we are talking about functions like strcpy(), which rarely
-> >    change prototypes.
-> > 
-> > Adding Nicholas in the cc, hopefully he can give a status update.
-> 
-> I think Michal has everything needed now for the kbuild bits. The arch
-> specific patches can go via arch trees quite easily (there is no hard
-> dependency either way). This is the kbuild bit:
-> 
-> https://git.kernel.org/cgit/linux/kernel/git/mmarek/kbuild.git/commit/?h=rc-fixes&id=4efca4ed05cbdfd13ec3e8cb623fb77d6e4ab187
-> 
-> And it also needs this incremental bit not in Michal's tree yet:
-> 
-> ---
->  scripts/Makefile.build | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-> index 3e223c2..05c6bb4 100644
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -332,7 +332,7 @@ cmd_gensymtypes_S =                                                         \
->      (echo "\#include <linux/kernel.h>" ;                                    \
->       echo "\#include <asm/asm-prototypes.h>" ;                              \
->      $(CPP) $(a_flags) $< |                                                  \
-> -     grep ^___EXPORT_SYMBOL |                                               \
-> +     grep ___EXPORT_SYMBOL |                                                \
->       sed 's/___EXPORT_SYMBOL \([a-zA-Z0-9_]*\),.*/EXPORT_SYMBOL(\1);/' ) |  \
->      $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
->      $(GENKSYMS) $(if $(1), -T $(2))                                         \
-> -- 
-> 2.9.3
-> 
+.type \name, %function; .size \name, .-\name
+
+ .endm
+
+In other words, using preprocessor macros inside an assembly macro
+may not work as expected, and now leads to config-specific failures.
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
