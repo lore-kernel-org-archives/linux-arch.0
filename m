@@ -1,74 +1,59 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Sun, 20 Nov 2016 19:12:57 +0000
-Message-ID: <20161120191257.GX1041@n2100.armlinux.org.uk>
-References: <20161017065131.GA27863@angband.pl>
- <20161020150814.42951f61@roar.ozlabs.ibm.com>
- <3446653.W8FbGAKSeQ@wuerfel>
- <14534456.e6dv16VA3R@wuerfel>
- <20161025193200.1f4d9e24@roar.ozlabs.ibm.com>
- <20161120132127.GU1041@n2100.armlinux.org.uk>
- <CA+55aFxh=F77vDAG0Ta9p7Fxf8-b4nCSv1ewfY6ikx3X42zwkA@mail.gmail.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v3 10/20] Add support to access boot related data in
+ the clear
+Date: Mon, 21 Nov 2016 00:04:35 +0100
+Message-ID: <20161120230435.gqjp7gboshhqplbf@pd.tnic>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
+ <20161117155543.vg3domfqm3bhp4f7@pd.tnic>
+ <f7bf8301-7d91-dd43-d5f0-05e977c0c5a2@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFxh=F77vDAG0Ta9p7Fxf8-b4nCSv1ewfY6ikx3X42zwkA@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+In-Reply-To: <f7bf8301-7d91-dd43-d5f0-05e977c0c5a2@amd.com>
+Sender: owner-linux-mm@kvack.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Nov 20, 2016 at 10:32:50AM -0800, Linus Torvalds wrote:
-> On Sun, Nov 20, 2016 at 5:21 AM, Russell King - ARM Linux
-> <linux@armlinux.org.uk> wrote:
-> > On Tue, Oct 25, 2016 at 07:32:00PM +1100, Nicholas Piggin wrote:
-> >>
-> >> Michal, what's your thoughts? If you merge my patch 2/2 and skip 1/2, it
-> >> should not give any new build warnings or errors, so then arch patches can
-> >> go via arch trees. 1/2 could go in after everyone is up to date.
-> >
-> > So what's the conclusion on this?  I've just had a failure due to
-> > CONFIG_TRIM_UNUSED_KSYMS reported on ARM, and it looks like (at
-> > least some of) patch 1 could resolve it.
+On Sat, Nov 19, 2016 at 12:33:49PM -0600, Tom Lendacky wrote:
+> >> +{
+> >> +	/* SME is not active, just return true */
+> >> +	if (!sme_me_mask)
+> >> +		return true;
+> > 
+> > I don't understand the logic here: SME is not active -> apply encryption?!
 > 
-> Hmm. I've got
+> It does seem counter-intuitive, but it is mainly because of the memremap
+> vs. early_memremap support. For the early_memremap support, if the
+> sme_me_mask is 0 it doesn't matter whether we return true or false since
+> the mask is zero even if you try to apply it. But for the memremap
+> support, it's used to determine whether to do the ram remap vs an
+> ioremap.
 > 
->   cc6acc11cad1 kbuild: be more careful about matching preprocessed asm
-> ___EXPORT_SYMBOL
->   4efca4ed05cb kbuild: modversions for EXPORT_SYMBOL() for asm
-> 
-> in my tree. Is that sufficient, or do we still have issues?
+> I'll pull the sme_me_mask check out of the function and put it in the
+> individual functions to remove the contradiction and make things
+> clearer.
 
-Hmm, those seem to have gone in during the last week, so I haven't
-tested it yet (build running, but it'll take a while).  However, I
-don't think they'll solve _this_ problem.
+But that would be more code, right?
 
-Some of the issue here is that we use a mixture of assembly macros
-and preprocessor for the ARM bitops - the ARM bitops are created
-with an assembly macro which contains some pre-processor expanded
-macros (eg, EXPORT_SYMBOL()).
+Instead, you could simply explain in a comment above it what do you
+mean exactly. Something along the lines of "if sme_me_mask is not
+set, we should map encrypted because if not set, we can simply remap
+RAM. Otherwise we have to ioremap because we need to access it in the
+clear..."
 
-This means that the actual symbol being exported is not known to
-the preprocessor, so doing the "__is_defined(__KSYM_##sym)" inside
-"EXPORT_SYMBOL(\name)" becomes "__is_defined(__KSYM_\name)" to the
-preprocessor.  As "__KSYM_\name" is never defined, it always comes
-out as zero, hence we always use __cond_export_sym_0, which omits
-the symbol export from the assembly macro definition:
-
- .macro bitop, name, instr
-.globl \name ; .align 0 ; \name:
-
-...
-
-.type \name, %function; .size \name, .-\name
-
- .endm
-
-In other words, using preprocessor macros inside an assembly macro
-may not work as expected, and now leads to config-specific failures.
+I presume - I still don't grok that difference here completely.
 
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
