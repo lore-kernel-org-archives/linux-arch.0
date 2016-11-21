@@ -1,59 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:37427 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752072AbcKUI2A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Nov 2016 03:28:00 -0500
-Date: Mon, 21 Nov 2016 09:27:54 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v3 11/20] x86: Add support for changing memory
- encryption attribute
-Message-ID: <20161121082754.at6lhjhekbzjgyhc@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003655.3280.57333.stgit@tlendack-t1.amdoffice.net>
- <20161117173945.gnar3arpyeeh5xm2@pd.tnic>
- <6f1a16e4-5a84-20c0-4bd3-3be5ed933800@amd.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <6f1a16e4-5a84-20c0-4bd3-3be5ed933800@amd.com>
+Received: from tartarus.angband.pl ([89.206.35.136]:44414 "EHLO
+        tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753857AbcKUOyU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2016 09:54:20 -0500
+From: Adam Borowski <kilobyte@angband.pl>
+Date: Mon, 21 Nov 2016 15:52:20 +0100
+Message-ID: <20161121145220.10430-1-kilobyte@angband.pl>
+In-Reply-To: <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+References: <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+Subject: [PATCH reworded] x86/kbuild: enable modversions for symbols exported from asm
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161121082754.Qwa5tLTgWJ9sjoDO1_g1YVKPcX6cp75Z9GVcyO-nUw0@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>, Peter Wu <peter@lekensteyn.nl>, Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info
+Cc: Adam Borowski <kilobyte@angband.pl>
+Message-ID: <20161121145220.OSyaKZOSmTaCEYqgdHkOFC2H1OjsuH_20pd-xFYLeP0@z>
 
-On Sat, Nov 19, 2016 at 12:48:27PM -0600, Tom Lendacky wrote:
-> Should I move this functionality into the sme_set_mem_* functions or
-> remove the sme_set_mem_* functions and use the set_memory_* functions
-> directly.  The latter means calculating the number of pages, but makes
-> it clear that this works on a page level while the former keeps
-> everything the mem_encrypt.c file (and I can change that to take in a
-> page count so that it is clear about the page boundary usage).
+Commit 4efca4ed ("kbuild: modversions for EXPORT_SYMBOL() for asm") adds
+modversion support for symbols exported from asm files. Architectures
+must include C-style declarations for those symbols in asm/asm-prototypes.h
+in order for them to be versioned.
 
-A user of that interface doesn't care, right?
+Add these declarations for x86, and an architecture-independent file that
+can be used for common symbols.
 
-All she wants to do is pass in an address and size and the code will
-figure out everything. And I think address and size is the simplest two
-args you can pass. numpages can be calculated from it. As you do in
-sme_set_mem_*.
+User impact: kernels may fail to load modules at all when
+CONFIG_MODVERSIONS=y.
 
-And you need to do it all in pageattr.c because it uses the cpa wankery
-in there so you probably want to define
+Signed-off-by: Adam Borowski <kilobyte@angband.pl>
+Tested-by: Kalle Valo <kvalo@codeaurora.org>
+Acked-by: Nicholas Piggin <npiggin@gmail.com>
+Tested-by: Peter Wu <oeter@lekensteyn.nl>
+---
+ arch/x86/include/asm/asm-prototypes.h | 12 ++++++++++++
+ include/asm-generic/asm-prototypes.h  |  7 +++++++
+ 2 files changed, 19 insertions(+)
+ create mode 100644 arch/x86/include/asm/asm-prototypes.h
+ create mode 100644 include/asm-generic/asm-prototypes.h
 
-int set_memory_dec(unsigned long addr, size_t size)
-int set_memory_enc(unsigned long addr, size_t size)
-
-there which both simply call
-
-__set_memory_enc_dec(unsigned long addr, size_t size, bool enc)
-
-and it goes and figures out everything, builds the cpa_data and does the
-mapping.
-
-That looks very simple and clean to me.
-
+diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
+new file mode 100644
+index 0000000..ae87224
+--- /dev/null
++++ b/arch/x86/include/asm/asm-prototypes.h
+@@ -0,0 +1,12 @@
++#include <asm/ftrace.h>
++#include <asm/uaccess.h>
++#include <asm/string.h>
++#include <asm/page.h>
++#include <asm/checksum.h>
++
++#include <asm-generic/asm-prototypes.h>
++
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/special_insns.h>
++#include <asm/preempt.h>
+diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
+new file mode 100644
+index 0000000..df13637
+--- /dev/null
++++ b/include/asm-generic/asm-prototypes.h
+@@ -0,0 +1,7 @@
++#include <linux/bitops.h>
++extern void *__memset(void *, int, __kernel_size_t);
++extern void *__memcpy(void *, const void *, __kernel_size_t);
++extern void *__memmove(void *, const void *, __kernel_size_t);
++extern void *memset(void *, int, __kernel_size_t);
++extern void *memcpy(void *, const void *, __kernel_size_t);
++extern void *memmove(void *, const void *, __kernel_size_t);
 -- 
-Regards/Gruss,
-    Boris.
+2.10.2
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Now with a better description, provided by Nick Piggin (thanks!), and a
+remark about user impact.
+
+This version doesn't split the patch between x86 vs generic parts, would you
+guys prefer that?
