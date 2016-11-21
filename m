@@ -1,90 +1,88 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
- ARM
-Date: Mon, 21 Nov 2016 17:10:57 +1100
-Message-ID: <20161121171057.3ae027a6@roar.ozlabs.ibm.com>
-References: <20161017065131.GA27863@angband.pl>
-        <20161020150814.42951f61@roar.ozlabs.ibm.com>
-        <3446653.W8FbGAKSeQ@wuerfel>
-        <14534456.e6dv16VA3R@wuerfel>
-        <20161025193200.1f4d9e24@roar.ozlabs.ibm.com>
-        <20161120132127.GU1041@n2100.armlinux.org.uk>
-        <CA+55aFxh=F77vDAG0Ta9p7Fxf8-b4nCSv1ewfY6ikx3X42zwkA@mail.gmail.com>
-        <20161120191257.GX1041@n2100.armlinux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20161120191257.GX1041@n2100.armlinux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+From: Adam Borowski <kilobyte@angband.pl>
+Subject: [PATCH resend] kbuild: provide include/asm/asm-prototypes.h for x86
+Date: Mon, 21 Nov 2016 07:39:45 +0100
+Message-ID: <20161121063945.6586-1-kilobyte@angband.pl>
+References: <20161121164940.33b555ea@roar.ozlabs.ibm.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20161121164940.33b555ea@roar.ozlabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicholas Piggin <npiggin@gmail.com>, Peter Wu <peter@lekensteyn.nl>, Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: Adam Borowski <kilobyte@angband.pl>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 20 Nov 2016 19:12:57 +0000
-Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
+Nicholas Piggin wrote:
+> Architectures will need to have an include/asm/asm-prototypes.h that
+> defines or #include<>s C-style prototypes for exported asm functions.
+> We can do an asm-generic version for the common ones like memset so
+> there's not a lot of pointless duplication there.
 
-> On Sun, Nov 20, 2016 at 10:32:50AM -0800, Linus Torvalds wrote:
-> > On Sun, Nov 20, 2016 at 5:21 AM, Russell King - ARM Linux
-> > <linux@armlinux.org.uk> wrote:  
-> > > On Tue, Oct 25, 2016 at 07:32:00PM +1100, Nicholas Piggin wrote:  
-> > >>
-> > >> Michal, what's your thoughts? If you merge my patch 2/2 and skip 1/2, it
-> > >> should not give any new build warnings or errors, so then arch patches can
-> > >> go via arch trees. 1/2 could go in after everyone is up to date.  
-> > >
-> > > So what's the conclusion on this?  I've just had a failure due to
-> > > CONFIG_TRIM_UNUSED_KSYMS reported on ARM, and it looks like (at
-> > > least some of) patch 1 could resolve it.  
-> > 
-> > Hmm. I've got
-> > 
-> >   cc6acc11cad1 kbuild: be more careful about matching preprocessed asm
-> > ___EXPORT_SYMBOL
-> >   4efca4ed05cb kbuild: modversions for EXPORT_SYMBOL() for asm
-> > 
-> > in my tree. Is that sufficient, or do we still have issues?  
-> 
-> Hmm, those seem to have gone in during the last week, so I haven't
-> tested it yet (build running, but it'll take a while).  However, I
-> don't think they'll solve _this_ problem.
-> 
-> Some of the issue here is that we use a mixture of assembly macros
-> and preprocessor for the ARM bitops - the ARM bitops are created
-> with an assembly macro which contains some pre-processor expanded
-> macros (eg, EXPORT_SYMBOL()).
-> 
-> This means that the actual symbol being exported is not known to
-> the preprocessor, so doing the "__is_defined(__KSYM_##sym)" inside
-> "EXPORT_SYMBOL(\name)" becomes "__is_defined(__KSYM_\name)" to the
-> preprocessor.  As "__KSYM_\name" is never defined, it always comes
-> out as zero, hence we always use __cond_export_sym_0, which omits
-> the symbol export from the assembly macro definition:
-> 
->  .macro bitop, name, instr
-> .globl \name ; .align 0 ; \name:
-> 
-> ...
-> 
-> .type \name, %function; .size \name, .-\name
-> 
->  .endm
-> 
-> In other words, using preprocessor macros inside an assembly macro
-> may not work as expected, and now leads to config-specific failures.
-> 
+Signed-off-by: Adam Borowski <kilobyte@angband.pl>
+Tested-by: Kalle Valo <kvalo@codeaurora.org>
+---
+ arch/x86/include/asm/asm-prototypes.h | 12 ++++++++++++
+ include/asm-generic/asm-prototypes.h  |  7 +++++++
+ 2 files changed, 19 insertions(+)
+ create mode 100644 arch/x86/include/asm/asm-prototypes.h
+ create mode 100644 include/asm-generic/asm-prototypes.h
 
-Yes, that's a limitation. cpp expansion we can handle, but not gas macros.
-You will need Arnd's patches for ARM.
+diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
+new file mode 100644
+index 0000000..ae87224
+--- /dev/null
++++ b/arch/x86/include/asm/asm-prototypes.h
+@@ -0,0 +1,12 @@
++#include <asm/ftrace.h>
++#include <asm/uaccess.h>
++#include <asm/string.h>
++#include <asm/page.h>
++#include <asm/checksum.h>
++
++#include <asm-generic/asm-prototypes.h>
++
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/special_insns.h>
++#include <asm/preempt.h>
+diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
+new file mode 100644
+index 0000000..df13637
+--- /dev/null
++++ b/include/asm-generic/asm-prototypes.h
+@@ -0,0 +1,7 @@
++#include <linux/bitops.h>
++extern void *__memset(void *, int, __kernel_size_t);
++extern void *__memcpy(void *, const void *, __kernel_size_t);
++extern void *__memmove(void *, const void *, __kernel_size_t);
++extern void *memset(void *, int, __kernel_size_t);
++extern void *memcpy(void *, const void *, __kernel_size_t);
++extern void *memmove(void *, const void *, __kernel_size_t);
+-- 
+2.10.2
 
-http://marc.info/?l=linux-kbuild&m=147732160529499&w=2
+Nicholas Piggin wrote:
+> On Sun, 20 Nov 2016 19:26:23 +0100 Peter Wu <peter@lekensteyn.nl> wrote:
+>
+>> Current git master (v4.9-rc5-364-g77079b1) with the latest kbuild fixes
+>> is still failing to load modules when built with CONFIG_MODVERSIONS=y on
+>> x86_64 using GCC 6.2.1.
+>>
+>> It can still be reproduced with make defconfig, then enabling
+>> CONFIG_MODVERSIONS=y. The build output contains:
+>>
+>>     WARNING: "memcpy" [net/netfilter/nf_nat.ko] has no CRC!
+>>     WARNING: "memmove" [net/netfilter/nf_nat.ko] has no CRC!
+>>     WARNING: "_copy_to_user" [fs/efivarfs/efivarfs.ko] has no CRC!
+>>     WARNING: "memcpy" [fs/efivarfs/efivarfs.ko] has no CRC!
+>>     WARNING: "_copy_from_user" [fs/efivarfs/efivarfs.ko] has no CRC!
+>
+> Sorry it's taken some time, bear with us. The arch specific patches need
+> to be merged now. Adam, what is the status of your patch? Please submit
+> to x86 maintainers if you haven't already.
 
-If that doesn't fix it for you, send me your .config offline and I'll set
-up a cross compile to work on it.
+I've re-checked against 4.9-rc6.
 
-Again, any arch always has the option of going back to doing asm exports
-in the old style of putting them into a .c file, but hopefully you'll find
-Arnd's reworked patches to be something you're willing to merge.
+It'd probably fit better with kbuild parts, but it's up to you to decide;
+I'm sending to x86 guys as you wish.
 
-Thanks,
-Nick
+
+Meow!
