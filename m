@@ -1,118 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lekensteyn.nl ([178.21.112.251]:45473 "EHLO lekensteyn.nl"
+Received: from mail.skyhub.de ([78.46.96.112]:37427 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750944AbcKUIB3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 21 Nov 2016 03:01:29 -0500
-Date: Mon, 21 Nov 2016 09:00:22 +0100
-From: Peter Wu <peter@lekensteyn.nl>
-Subject: Re: [PATCH resend] kbuild: provide include/asm/asm-prototypes.h for
- x86
-Message-ID: <20161121080022.GA2564@al>
-References: <20161121164940.33b555ea@roar.ozlabs.ibm.com>
- <20161121063945.6586-1-kilobyte@angband.pl>
- <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+        id S1752072AbcKUI2A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 21 Nov 2016 03:28:00 -0500
+Date: Mon, 21 Nov 2016 09:27:54 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v3 11/20] x86: Add support for changing memory
+ encryption attribute
+Message-ID: <20161121082754.at6lhjhekbzjgyhc@pd.tnic>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003655.3280.57333.stgit@tlendack-t1.amdoffice.net>
+ <20161117173945.gnar3arpyeeh5xm2@pd.tnic>
+ <6f1a16e4-5a84-20c0-4bd3-3be5ed933800@amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+In-Reply-To: <6f1a16e4-5a84-20c0-4bd3-3be5ed933800@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Adam Borowski <kilobyte@angband.pl>, Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20161121080022.W277LKVVyEfLPxR3SeKp6dPWGMWYVZUVAORdWBkPWtA@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161121082754.Qwa5tLTgWJ9sjoDO1_g1YVKPcX6cp75Z9GVcyO-nUw0@z>
 
-On Mon, Nov 21, 2016 at 06:27:14PM +1100, Nicholas Piggin wrote:
-> Hi Adam,
-> 
-> Thanks. I'd suggest doing x86: or x86/kbuild: prefix for the patch. Also
-> possibly consider describing what the patch does at a higher level in your
-> subject line, e.g.:
-> 
->   x86/kbuild: enable modversions for symbols exported from asm
-> 
-> Also, it wouldn't hurt to add a little changelog of your own. Describe
-> problem then solution, e.g.,
-> 
->   Commit 4efca4ed ("kbuild: modversions for EXPORT_SYMBOL() for asm") adds
->   modversion support for symbols exported from asm files. Architectures
->   must include C-style declarations for those symbols in asm/asm-prototypes.h
->   in order for them to be versioned.
-> 
->   Add these declarations for x86, and an architecture-independent file that
->   can be used for common symbols.
-> 
-> (if you want to use that as-is or rewrite it, no problem).
-> 
-> You can add Acked-by: Nicholas Piggin <npiggin@gmail.com>
+On Sat, Nov 19, 2016 at 12:48:27PM -0600, Tom Lendacky wrote:
+> Should I move this functionality into the sme_set_mem_* functions or
+> remove the sme_set_mem_* functions and use the set_memory_* functions
+> directly.  The latter means calculating the number of pages, but makes
+> it clear that this works on a page level while the former keeps
+> everything the mem_encrypt.c file (and I can change that to take in a
+> page count so that it is clear about the page boundary usage).
 
-Hi Adam, Nicholas,
+A user of that interface doesn't care, right?
 
-Thanks for the patch! I have confirmed that this fixes the defconfig and
-the normal .config build I use for debugging, so:
+All she wants to do is pass in an address and size and the code will
+figure out everything. And I think address and size is the simplest two
+args you can pass. numpages can be calculated from it. As you do in
+sme_set_mem_*.
 
-Tested-by: Peter Wu <oeter@lekensteyn.nl>
+And you need to do it all in pageattr.c because it uses the cpa wankery
+in there so you probably want to define
 
-It might also be worth to mention in the changelog the user impact,
-namely that kernels may fail to load modules at all when
-CONFIG_MODVERSIONS=y.
+int set_memory_dec(unsigned long addr, size_t size)
+int set_memory_enc(unsigned long addr, size_t size)
 
-Kind regards,
-Peter
+there which both simply call
 
-> Also it's not a big deal, but if you redo the patch, you could consider
-> splitting it into two (first add the generic header, then the x86 header),
-> but both can go via the x86 tree.
-> 
-> Thanks,
-> Nick
-> 
-> On Mon, 21 Nov 2016 07:39:45 +0100
-> Adam Borowski <kilobyte@angband.pl> wrote:
-> 
-> > Nicholas Piggin wrote:
-> > > Architectures will need to have an include/asm/asm-prototypes.h that
-> > > defines or #include<>s C-style prototypes for exported asm functions.
-> > > We can do an asm-generic version for the common ones like memset so
-> > > there's not a lot of pointless duplication there.  
-> > 
-> > Signed-off-by: Adam Borowski <kilobyte@angband.pl>
-> > Tested-by: Kalle Valo <kvalo@codeaurora.org>
-> > ---
-> >  arch/x86/include/asm/asm-prototypes.h | 12 ++++++++++++
-> >  include/asm-generic/asm-prototypes.h  |  7 +++++++
-> >  2 files changed, 19 insertions(+)
-> >  create mode 100644 arch/x86/include/asm/asm-prototypes.h
-> >  create mode 100644 include/asm-generic/asm-prototypes.h
-> > 
-> > diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
-> > new file mode 100644
-> > index 0000000..ae87224
-> > --- /dev/null
-> > +++ b/arch/x86/include/asm/asm-prototypes.h
-> > @@ -0,0 +1,12 @@
-> > +#include <asm/ftrace.h>
-> > +#include <asm/uaccess.h>
-> > +#include <asm/string.h>
-> > +#include <asm/page.h>
-> > +#include <asm/checksum.h>
-> > +
-> > +#include <asm-generic/asm-prototypes.h>
-> > +
-> > +#include <asm/page.h>
-> > +#include <asm/pgtable.h>
-> > +#include <asm/special_insns.h>
-> > +#include <asm/preempt.h>
-> > diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
-> > new file mode 100644
-> > index 0000000..df13637
-> > --- /dev/null
-> > +++ b/include/asm-generic/asm-prototypes.h
-> > @@ -0,0 +1,7 @@
-> > +#include <linux/bitops.h>
-> > +extern void *__memset(void *, int, __kernel_size_t);
-> > +extern void *__memcpy(void *, const void *, __kernel_size_t);
-> > +extern void *__memmove(void *, const void *, __kernel_size_t);
-> > +extern void *memset(void *, int, __kernel_size_t);
-> > +extern void *memcpy(void *, const void *, __kernel_size_t);
-> > +extern void *memmove(void *, const void *, __kernel_size_t);
-> 
+__set_memory_enc_dec(unsigned long addr, size_t size, bool enc)
+
+and it goes and figures out everything, builds the cpa_data and does the
+mapping.
+
+That looks very simple and clean to me.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
