@@ -1,73 +1,102 @@
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: [PATCH reworded] x86/kbuild: enable modversions for symbols exported from asm
-Date: Mon, 21 Nov 2016 15:52:20 +0100
-Message-ID: <20161121145220.10430-1-kilobyte@angband.pl>
+From: Peter Wu <peter@lekensteyn.nl>
+Subject: Re: [PATCH reworded] x86/kbuild: enable modversions for symbols
+ exported from asm
+Date: Mon, 21 Nov 2016 16:04:42 +0100
+Message-ID: <20161121150442.GA963@al>
 References: <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+ <20161121145220.10430-1-kilobyte@angband.pl>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20161121182714.2cd5da75@roar.ozlabs.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <20161121145220.10430-1-kilobyte@angband.pl>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>, Peter Wu <peter@lekensteyn.nl>, Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info
-Cc: Adam Borowski <kilobyte@angband.pl>
+To: Adam Borowski <kilobyte@angband.pl>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>, Vince Weaver <vincent.weaver@maine.edu>, Michal Marek <mmarek@suse.com>, Al Viro <viro@zeniv.linux.org.uk>, Oliver Hartkopp <socketcan@hartkopp.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info
 List-Id: linux-arch.vger.kernel.org
 
-Commit 4efca4ed ("kbuild: modversions for EXPORT_SYMBOL() for asm") adds
-modversion support for symbols exported from asm files. Architectures
-must include C-style declarations for those symbols in asm/asm-prototypes.h
-in order for them to be versioned.
+On Mon, Nov 21, 2016 at 03:52:20PM +0100, Adam Borowski wrote:
+> Commit 4efca4ed ("kbuild: modversions for EXPORT_SYMBOL() for asm") adds
+> modversion support for symbols exported from asm files. Architectures
+> must include C-style declarations for those symbols in asm/asm-prototypes.h
+> in order for them to be versioned.
+> 
+> Add these declarations for x86, and an architecture-independent file that
+> can be used for common symbols.
+> 
+> User impact: kernels may fail to load modules at all when
+> CONFIG_MODVERSIONS=y.
+> 
+> Signed-off-by: Adam Borowski <kilobyte@angband.pl>
+> Tested-by: Kalle Valo <kvalo@codeaurora.org>
+> Acked-by: Nicholas Piggin <npiggin@gmail.com>
+> Tested-by: Peter Wu <oeter@lekensteyn.nl>
 
-Add these declarations for x86, and an architecture-independent file that
-can be used for common symbols.
+Typo: oeter@.. -> peter@..
 
-User impact: kernels may fail to load modules at all when
-CONFIG_MODVERSIONS=y.
+> ---
+>  arch/x86/include/asm/asm-prototypes.h | 12 ++++++++++++
+>  include/asm-generic/asm-prototypes.h  |  7 +++++++
+>  2 files changed, 19 insertions(+)
+>  create mode 100644 arch/x86/include/asm/asm-prototypes.h
+>  create mode 100644 include/asm-generic/asm-prototypes.h
+> 
+> diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
+> new file mode 100644
+> index 0000000..ae87224
+> --- /dev/null
+> +++ b/arch/x86/include/asm/asm-prototypes.h
+> @@ -0,0 +1,12 @@
+> +#include <asm/ftrace.h>
+> +#include <asm/uaccess.h>
+> +#include <asm/string.h>
+> +#include <asm/page.h>
+> +#include <asm/checksum.h>
+> +
+> +#include <asm-generic/asm-prototypes.h>
+> +
+> +#include <asm/page.h>
+> +#include <asm/pgtable.h>
+> +#include <asm/special_insns.h>
+> +#include <asm/preempt.h>
+> diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
+> new file mode 100644
+> index 0000000..df13637
+> --- /dev/null
+> +++ b/include/asm-generic/asm-prototypes.h
+> @@ -0,0 +1,7 @@
+> +#include <linux/bitops.h>
+> +extern void *__memset(void *, int, __kernel_size_t);
+> +extern void *__memcpy(void *, const void *, __kernel_size_t);
+> +extern void *__memmove(void *, const void *, __kernel_size_t);
+> +extern void *memset(void *, int, __kernel_size_t);
+> +extern void *memcpy(void *, const void *, __kernel_size_t);
+> +extern void *memmove(void *, const void *, __kernel_size_t);
+> -- 
+> 2.10.2
+> 
+> Now with a better description, provided by Nick Piggin (thanks!), and a
+> remark about user impact.
+> 
+> This version doesn't split the patch between x86 vs generic parts, would you
+> guys prefer that?
 
-Signed-off-by: Adam Borowski <kilobyte@angband.pl>
-Tested-by: Kalle Valo <kvalo@codeaurora.org>
-Acked-by: Nicholas Piggin <npiggin@gmail.com>
-Tested-by: Peter Wu <oeter@lekensteyn.nl>
----
- arch/x86/include/asm/asm-prototypes.h | 12 ++++++++++++
- include/asm-generic/asm-prototypes.h  |  7 +++++++
- 2 files changed, 19 insertions(+)
- create mode 100644 arch/x86/include/asm/asm-prototypes.h
- create mode 100644 include/asm-generic/asm-prototypes.h
+From an observer POV: based on the git log include/asm-generic/
+arch/x86/include/asm/, a split up seems quite common.
 
-diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
-new file mode 100644
-index 0000000..ae87224
---- /dev/null
-+++ b/arch/x86/include/asm/asm-prototypes.h
-@@ -0,0 +1,12 @@
-+#include <asm/ftrace.h>
-+#include <asm/uaccess.h>
-+#include <asm/string.h>
-+#include <asm/page.h>
-+#include <asm/checksum.h>
-+
-+#include <asm-generic/asm-prototypes.h>
-+
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/special_insns.h>
-+#include <asm/preempt.h>
-diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
-new file mode 100644
-index 0000000..df13637
---- /dev/null
-+++ b/include/asm-generic/asm-prototypes.h
-@@ -0,0 +1,7 @@
-+#include <linux/bitops.h>
-+extern void *__memset(void *, int, __kernel_size_t);
-+extern void *__memcpy(void *, const void *, __kernel_size_t);
-+extern void *__memmove(void *, const void *, __kernel_size_t);
-+extern void *memset(void *, int, __kernel_size_t);
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+extern void *memmove(void *, const void *, __kernel_size_t);
--- 
-2.10.2
+By the way, to make the description and discussion closer, you might
+want to structure your mail like this:
 
-Now with a better description, provided by Nick Piggin (thanks!), and a
-remark about user impact.
+    [patch description]
+    ---
+    [discussion]
+    ---
+    [actual patch]
 
-This version doesn't split the patch between x86 vs generic parts, would you
-guys prefer that?
+When applying the patch, the text after the first "---" is automatically
+dropped.
+
+Thanks!
+
+Kind regards,
+Peter
