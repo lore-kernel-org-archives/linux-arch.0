@@ -1,86 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:59230 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753943AbcKUTOO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2016 14:14:14 -0500
-Date: Mon, 21 Nov 2016 19:13:55 +0000
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
-Message-ID: <20161121191355.GQ1041@n2100.armlinux.org.uk>
-References: <14534456.e6dv16VA3R@wuerfel>
- <20161121184640.gtzvu4pfwy2p5rcb@perseus.defre.kleine-koenig.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20161121184640.gtzvu4pfwy2p5rcb@perseus.defre.kleine-koenig.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:65346 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932771AbcKVLHM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2016 06:07:12 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 2/2] ARM: move mmiocpy/mmioset exports to io.c
+Date: Tue, 22 Nov 2016 12:05:41 +0100
+Message-ID: <20161122110557.1533467-2-arnd@arndb.de>
+In-Reply-To: <20161122110557.1533467-1-arnd@arndb.de>
+References: <20161122110557.1533467-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <uwe@kleine-koenig.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Omar Sandoval <osandov@osandov.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 844530@bugs.debian.org
-Message-ID: <20161121191355.WezPSpteDGvwnP04DPeJszEwtXSm1vz82voTKJOQH8Y@z>
+To: Russell King <linux@armlinux.org.uk>
+Cc: =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= <uwe@kleine-koenig.org>, Nicolas Pitre <nico@linaro.org>, linux-arm-kernel@lists.infradead.org, Nicholas Piggin <npiggin@gmail.com>, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+Message-ID: <20161122110541.zGJVKSHyDh2CGB79xt7m7z8BrRVdmWqGMehJqJB9SbM@z>
 
-On Mon, Nov 21, 2016 at 07:46:44PM +0100, Uwe Kleine-König wrote:
-> Hello,
-> 
-> On Mon, Oct 24, 2016 at 05:05:26PM +0200, Arnd Bergmann wrote:
-> > This adds an asm/asm-prototypes.h header for ARM to fix the
-> > broken symbol versioning for symbols exported from assembler
-> > files.
-> > 
-> > In addition to the header, we have to do these other small
-> > changes:
-> > 
-> > - move the exports from bitops.h to {change,clear,set,...}bit.S
-> > - move the exports from csumpartialgeneric.S into the files
-> >   including it
-> > 
-> > I couldn't find the correct prototypes for the compiler builtins,
-> > so I went with the fake 'void f(void)' prototypes that we had
-> > before.
-> > 
-> > This leaves the mmioset/mmiocpy function for now, as it's not
-> > obvious how to best handle them.
-> > 
-> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> In my test builds of 4.9-rc5 plus
-> 
-> 	4efca4ed05cb ("kbuild: modversions for EXPORT_SYMBOL() for asm")
-> 	cc6acc11cad1 ("kbuild: be more careful about matching preprocessed asm ___EXPORT_SYMBOL")
-> 
-> (which are in -rc6) I got many warnings à la:
-> 
-> 	WARNING: "memset" [drivers/media/usb/airspy/airspy.ko] has no CRC!
-> 
-> and booting the resulting kernel failed with messages of the type:
-> 
-> 	[    3.024126] usbcore: no symbol version for __memzero
-> 	[    3.029107] usbcore: Unknown symbol __memzero (err -22)
-> 
-> so hardly any module could be loaded. modprobe -f works however, but
-> that's not what my initramfs does.
-> 
-> With this patch and https://patchwork.kernel.org/patch/9392291/ ("ARM:
-> move mmiocpy/mmioset exports to io.c") I could compile a kernel without
-> CRC warnings and it boots fine. So it would be great to get these two
-> patches into 4.9.
+The prototypes for mmioset/mmiocpy are intentionally hidden
+inside of inline functions, which breaks the EXPORT_SYMBOL
+statements when symbol versioning is enabled.
 
-Yea, many things would be nice, but I've been unable to track the
-issues here - it really didn't help _not_ being copied on the
-original set of patches which introduced this mess.
+This moves the two exports from the files that implement the
+code into the kernel/io.c file, adding another local declaration
+there.
 
-I've merged Nicolas' patch, so now we need to work out what to do
-with the remaining bits - which I guess are the asm-prototypes.h
-and the mmio* bits.  I'm not aware of what's happening with the
-patches that they depend on (which is why I recently asked the
-question - again, I seem to be completely out of the loop due to
-lack of Cc's).
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/kernel/io.c  | 7 +++++++
+ arch/arm/lib/memcpy.S | 1 -
+ arch/arm/lib/memset.S | 1 -
+ 3 files changed, 7 insertions(+), 2 deletions(-)
 
-So I'm just throwing my hands up and saying "I don't know what to
-do" at this stage.
-
+diff --git a/arch/arm/kernel/io.c b/arch/arm/kernel/io.c
+index eedefe050022..c74746997626 100644
+--- a/arch/arm/kernel/io.c
++++ b/arch/arm/kernel/io.c
+@@ -82,3 +82,10 @@ void _memset_io(volatile void __iomem *dst, int c, size_t count)
+ 	}
+ }
+ EXPORT_SYMBOL(_memset_io);
++
++/* can't export them from memcpy.S/memset.S because of hidden declaration */
++void mmioset(void __iomem *addr, unsigned int c, size_t n);
++EXPORT_SYMBOL(mmioset);
++
++void mmiocpy(void *dest, const void __iomem *src, size_t n);
++EXPORT_SYMBOL(mmiocpy);
+diff --git a/arch/arm/lib/memcpy.S b/arch/arm/lib/memcpy.S
+index 1be5b6ddf37c..1f822fc52400 100644
+--- a/arch/arm/lib/memcpy.S
++++ b/arch/arm/lib/memcpy.S
+@@ -70,4 +70,3 @@ ENTRY(memcpy)
+ ENDPROC(memcpy)
+ ENDPROC(mmiocpy)
+ EXPORT_SYMBOL(memcpy)
+-EXPORT_SYMBOL(mmiocpy)
+diff --git a/arch/arm/lib/memset.S b/arch/arm/lib/memset.S
+index 7b72044cba62..6f075ca09abc 100644
+--- a/arch/arm/lib/memset.S
++++ b/arch/arm/lib/memset.S
+@@ -137,4 +137,3 @@ UNWIND( .fnend   )
+ ENDPROC(memset)
+ ENDPROC(mmioset)
+ EXPORT_SYMBOL(memset)
+-EXPORT_SYMBOL(mmioset)
 -- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+2.9.0
+
