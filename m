@@ -1,134 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:57242 "EHLO mail.skyhub.de"
+Received: from mx1.redhat.com ([209.132.183.28]:56456 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932642AbcKVTZa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Nov 2016 14:25:30 -0500
-Date: Tue, 22 Nov 2016 20:25:26 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v3 15/20] x86: Check for memory encryption on the APs
-Message-ID: <20161122192526.vg63jjhwsbjwex7i@pd.tnic>
+        id S1756115AbcKVUlg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 22 Nov 2016 15:41:36 -0500
+Date: Tue, 22 Nov 2016 22:41:30 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [RFC PATCH v3 13/20] x86: DMA support for memory encryption
+Message-ID: <20161122224005-mutt-send-email-mst@kernel.org>
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
+ <20161110003723.3280.62636.stgit@tlendack-t1.amdoffice.net>
+ <20161115171443-mutt-send-email-mst@kernel.org>
+ <4d97f998-5835-f4e0-9840-7f7979251275@amd.com>
+ <20161122113859.5dtlrfgizwpum6st@pd.tnic>
+ <20161122171455-mutt-send-email-mst@kernel.org>
+ <20161122154137.z5vp3xcl5cpesuiz@pd.tnic>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20161122154137.z5vp3xcl5cpesuiz@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161122192526.j1B-PBeYBGEaLP_uOSj7ke994PszIqTuRlH1vE0Fhnk@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161122204130.zIdmp-9oohP9192BeCsk-lySS-PMEbxWKMVroExEiOU@z>
 
-On Wed, Nov 09, 2016 at 06:37:40PM -0600, Tom Lendacky wrote:
-> Add support to check if memory encryption is active in the kernel and that
-> it has been enabled on the AP. If memory encryption is active in the kernel
-> but has not been enabled on the AP then do not allow the AP to continue
-> start up.
+On Tue, Nov 22, 2016 at 04:41:37PM +0100, Borislav Petkov wrote:
+> On Tue, Nov 22, 2016 at 05:22:38PM +0200, Michael S. Tsirkin wrote:
+> > The issue is it's a (potential) security hole, not a slowdown.
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
->  arch/x86/realmode/init.c             |    4 ++++
->  arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
->  3 files changed, 35 insertions(+)
+> How? Because the bounce buffers will be unencrypted and someone might
+> intercept them?
+
+Or even modify them. Guests generally trust devices since they
+assume they are under their control.
+
+> > To disable unsecure things. If someone enables SEV one might have an
+> > expectation of security.  Might help push vendors to do the right thing
+> > as a side effect.
 > 
-> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
-> index 230e190..850dbe0 100644
-> --- a/arch/x86/include/asm/realmode.h
-> +++ b/arch/x86/include/asm/realmode.h
-> @@ -1,6 +1,15 @@
->  #ifndef _ARCH_X86_REALMODE_H
->  #define _ARCH_X86_REALMODE_H
->  
-> +/*
-> + * Flag bit definitions for use with the flags field of the trampoline header
-> + * when configured for X86_64
-
-Let's use kernel nomenclature: "... of the trampoline header in the
-CONFIG_X86_64 variant."
-
-> + */
-> +#define TH_FLAGS_SME_ENABLE_BIT		0
-> +#define TH_FLAGS_SME_ENABLE		BIT_ULL(TH_FLAGS_SME_ENABLE_BIT)
-
-BIT() is the proper one for u32 flags variable.
-
-> +
-> +#ifndef __ASSEMBLY__
-> +
->  #include <linux/types.h>
->  #include <asm/io.h>
->  
-> @@ -38,6 +47,7 @@ struct trampoline_header {
->  	u64 start;
->  	u64 efer;
->  	u32 cr4;
-> +	u32 flags;
->  #endif
->  };
->  
-> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
->  void set_real_mode_mem(phys_addr_t mem, size_t size);
->  void reserve_real_mode(void);
->  
-> +#endif /* __ASSEMBLY__ */
-> +
->  #endif /* _ARCH_X86_REALMODE_H */
-> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-> index 44ed32a..a8e7ebe 100644
-> --- a/arch/x86/realmode/init.c
-> +++ b/arch/x86/realmode/init.c
-> @@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
->  	trampoline_cr4_features = &trampoline_header->cr4;
->  	*trampoline_cr4_features = mmu_cr4_features;
->  
-> +	trampoline_header->flags = 0;
-> +	if (sme_me_mask)
-> +		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
-> +
->  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
->  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
->  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
-> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-> index dac7b20..94e29f4 100644
-> --- a/arch/x86/realmode/rm/trampoline_64.S
-> +++ b/arch/x86/realmode/rm/trampoline_64.S
-> @@ -30,6 +30,7 @@
->  #include <asm/msr.h>
->  #include <asm/segment.h>
->  #include <asm/processor-flags.h>
-> +#include <asm/realmode.h>
->  #include "realmode.h"
->  
->  	.text
-> @@ -92,6 +93,23 @@ ENTRY(startup_32)
->  	movl	%edx, %fs
->  	movl	%edx, %gs
->  
-> +	/* Check for memory encryption support */
-> +	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
-> +	jnc	.Ldone
-> +	movl	$MSR_K8_SYSCFG, %ecx
-> +	rdmsr
-> +	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-> +	jc	.Ldone
-> +
-> +	/*
-> +	 * Memory encryption is enabled but the MSR has not been set on this
-> +	 * CPU so we can't continue
-
-Can this ever happen?
-
-I mean, we set TH_FLAGS_SME_ENABLE when sme_me_mask is set and this
-would have happened only if the BSP has MSR_K8_SYSCFG[23] set.
-
-How is it possible that that bit won't be set on some of the APs but set
-on the BSP?
-
-I'd assume the BIOS is doing a consistent setting everywhere...
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+> Ok, you're looking at the SEV-cloud-multiple-guests aspect. Right, that
+> makes sense.
+> 
+> I guess for SEV we should even flip the logic: disable such devices by
+> default and an opt-in option to enable them and issue a big fat warning.
+> I'd even want to let the guest users know that they're on a system which
+> cannot give them encrypted DMA to some devices...
+> 
+> -- 
+> Regards/Gruss,
+>     Boris.
+> 
+> Good mailing practices for 400: avoid top-posting and trim the reply.
