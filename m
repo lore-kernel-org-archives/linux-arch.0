@@ -1,91 +1,44 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Tue, 22 Nov 2016 11:34:48 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
-References: <20161122110557.1533467-1-arnd@arndb.de>
+From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Subject: Re: [RFC PATCH v3 20/20] x86: Add support to make use of Secure
+	Memory Encryption
+Date: Tue, 22 Nov 2016 19:58:18 +0100
+Message-ID: <20161122185818.k2znytnjjkh2ygpy@pd.tnic>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+	<20161110003838.3280.23327.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323328-1586173819-1479832489=:1814"
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20161122110557.1533467-1-arnd@arndb.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, =?ISO-8859-15?Q?Uwe_Kleine-K=F6nig?= <uwe@kleine-koenig.org>, linux-kbuild@vger.kernel.org, Russell King <linux@armlinux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, linux-kernel@vger.kernel.org, regressions@leemhuis.info, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20161110003838.3280.23327.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
---8323328-1586173819-1479832489=:1814
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+On Wed, Nov 09, 2016 at 06:38:38PM -0600, Tom Lendacky wrote:
+> This patch adds the support to check if SME has been enabled and if the
+> mem_encrypt=on command line option is set. If both of these conditions
+> are true, then the encryption mask is set and the kernel is encrypted
+> "in place."
 
-On Tue, 22 Nov 2016, Arnd Bergmann wrote:
+Something went wrong here - 19/20 and 20/20 have the same Subject and
+commit message.
 
-> This adds an asm/asm-prototypes.h header for ARM to fix the broken symbol
-> versioning for symbols exported from assembler files.
-> 
-> I couldn't find the correct prototypes for the compiler builtins,
-> so I went with the fake 'void f(void)' prototypes that we had
-> before, restoring the state before they were moved.
-> 
-> Originally I assumed that the problem was just a harmless warning
-> in unusual configurations, but as Uwe found, we actually need this
-> to load most modules when symbol versioning is enabled, as it is
-> in many distro kernels.
-> 
-> Cc: Uwe Kleine-König <uwe@kleine-koenig.org>
-> Fixes: 4dd1837d7589 ("arm: move exports to definitions")
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
-> Compared to the earlier version, I dropped the changes to the
-> csumpartial files, which now get handled correctly by Kbuild
-> even when the export comes from a macro, and I also dropped the
-> changes to the bitops files, which were already fixed in a
-> patch from Nico.
-> 
-> The patch applies cleanly on top of the rmk/fixes tree but has
-> no effect there, as it also needs 4efca4ed05cb ("kbuild: modversions
-> for EXPORT_SYMBOL() for asm") and cc6acc11cad1 ("kbuild: be more
-> careful about matching preprocessed asm ___EXPORT_SYMBOL").
-> 
-> With the combination of rmk/fixes, torvalds/master and these two
-> patches, symbol versioning works again on ARM. As it is still
-> broken on almost all other architectures (powerpc is fixed,
-> x86 has a patch), I wonder if we should make CONFIG_MODVERSIONS
-> as broken for everything else.
+Care to resend only 19 and 20 with the above fixed?
 
-I'm not sure I like this at all.
+Thanks.
 
-The goal for moving EXPORT_SYMBOL() to assembly code where symbols were 
-defined is to make things close together and avoid those centralized 
-list of symbols that you can easily miss when modifying the actual code.
+-- 
+Regards/Gruss,
+    Boris.
 
-This series is therefore bringing back a centralized list of symbols in 
-a slightly different form, nullifying the advantages from having moved 
-EXPORT_SYMBOL() to asm code.  To me this looks like a big step backward.
-
-Why not simply extending the original idea of keeping exports close to 
-the actual code by _also_ having a macro that provides the function 
-prototype alongside the EXPORT_SYMBOL() instance?  That could even be 
-expressed with some EXPORT_SYMBOL_PROTO(ret, sym, arg...) macro that 
-does it all.
-
-
-Nicolas
---8323328-1586173819-1479832489=:1814
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-linux-arm-kernel mailing list
-linux-arm-kernel@lists.infradead.org
-http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-
---8323328-1586173819-1479832489=:1814--
+Good mailing practices for 400: avoid top-posting and trim the reply.
