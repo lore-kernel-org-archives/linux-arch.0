@@ -1,48 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:44345 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755105AbcKVPnh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 22 Nov 2016 10:43:37 -0500
-Date: Tue, 22 Nov 2016 16:41:37 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v3 13/20] x86: DMA support for memory encryption
-Message-ID: <20161122154137.z5vp3xcl5cpesuiz@pd.tnic>
-References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003723.3280.62636.stgit@tlendack-t1.amdoffice.net>
- <20161115171443-mutt-send-email-mst@kernel.org>
- <4d97f998-5835-f4e0-9840-7f7979251275@amd.com>
- <20161122113859.5dtlrfgizwpum6st@pd.tnic>
- <20161122171455-mutt-send-email-mst@kernel.org>
+Received: from mail-qt0-f173.google.com ([209.85.216.173]:33857 "EHLO
+        mail-qt0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752461AbcKVQok (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2016 11:44:40 -0500
+Received: by mail-qt0-f173.google.com with SMTP id n6so15710745qtd.1
+        for <linux-arch@vger.kernel.org>; Tue, 22 Nov 2016 08:43:42 -0800 (PST)
+Date: Tue, 22 Nov 2016 11:34:48 -0500 (EST)
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
+ ARM
+In-Reply-To: <20161122110557.1533467-1-arnd@arndb.de>
+Message-ID: <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
+References: <20161122110557.1533467-1-arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20161122171455-mutt-send-email-mst@kernel.org>
+Content-Type: multipart/mixed; BOUNDARY="8323328-1586173819-1479832489=:1814"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161122154137.D8OJciOJBV30JgBQoPgCGFy0ifp4vf3-3AxeDLmwico@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>, =?ISO-8859-15?Q?Uwe_Kleine-K=F6nig?= <uwe@kleine-koenig.org>, linux-arm-kernel@lists.infradead.org, Nicholas Piggin <npiggin@gmail.com>, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, linux-kernel@vger.kernel.org
+Message-ID: <20161122163448.23-q5XQJrArKQqkMLnRUOyIorAezW2IHfYt7OY1FFCA@z>
 
-On Tue, Nov 22, 2016 at 05:22:38PM +0200, Michael S. Tsirkin wrote:
-> The issue is it's a (potential) security hole, not a slowdown.
+--8323328-1586173819-1479832489=:1814
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 
-How? Because the bounce buffers will be unencrypted and someone might
-intercept them?
+On Tue, 22 Nov 2016, Arnd Bergmann wrote:
 
-> To disable unsecure things. If someone enables SEV one might have an
-> expectation of security.  Might help push vendors to do the right thing
-> as a side effect.
+> This adds an asm/asm-prototypes.h header for ARM to fix the broken symbol
+> versioning for symbols exported from assembler files.
+> 
+> I couldn't find the correct prototypes for the compiler builtins,
+> so I went with the fake 'void f(void)' prototypes that we had
+> before, restoring the state before they were moved.
+> 
+> Originally I assumed that the problem was just a harmless warning
+> in unusual configurations, but as Uwe found, we actually need this
+> to load most modules when symbol versioning is enabled, as it is
+> in many distro kernels.
+> 
+> Cc: Uwe Kleine-König <uwe@kleine-koenig.org>
+> Fixes: 4dd1837d7589 ("arm: move exports to definitions")
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+> Compared to the earlier version, I dropped the changes to the
+> csumpartial files, which now get handled correctly by Kbuild
+> even when the export comes from a macro, and I also dropped the
+> changes to the bitops files, which were already fixed in a
+> patch from Nico.
+> 
+> The patch applies cleanly on top of the rmk/fixes tree but has
+> no effect there, as it also needs 4efca4ed05cb ("kbuild: modversions
+> for EXPORT_SYMBOL() for asm") and cc6acc11cad1 ("kbuild: be more
+> careful about matching preprocessed asm ___EXPORT_SYMBOL").
+> 
+> With the combination of rmk/fixes, torvalds/master and these two
+> patches, symbol versioning works again on ARM. As it is still
+> broken on almost all other architectures (powerpc is fixed,
+> x86 has a patch), I wonder if we should make CONFIG_MODVERSIONS
+> as broken for everything else.
 
-Ok, you're looking at the SEV-cloud-multiple-guests aspect. Right, that
-makes sense.
+I'm not sure I like this at all.
 
-I guess for SEV we should even flip the logic: disable such devices by
-default and an opt-in option to enable them and issue a big fat warning.
-I'd even want to let the guest users know that they're on a system which
-cannot give them encrypted DMA to some devices...
+The goal for moving EXPORT_SYMBOL() to assembly code where symbols were 
+defined is to make things close together and avoid those centralized 
+list of symbols that you can easily miss when modifying the actual code.
 
--- 
-Regards/Gruss,
-    Boris.
+This series is therefore bringing back a centralized list of symbols in 
+a slightly different form, nullifying the advantages from having moved 
+EXPORT_SYMBOL() to asm code.  To me this looks like a big step backward.
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Why not simply extending the original idea of keeping exports close to 
+the actual code by _also_ having a macro that provides the function 
+prototype alongside the EXPORT_SYMBOL() instance?  That could even be 
+expressed with some EXPORT_SYMBOL_PROTO(ret, sym, arg...) macro that 
+does it all.
+
+
+Nicolas
+--8323328-1586173819-1479832489=:1814--
