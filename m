@@ -1,37 +1,30 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
+From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
  ARM
-Date: Tue, 22 Nov 2016 20:35:48 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1611222030050.1814@knanqh.ubzr>
-References: <20161122110557.1533467-1-arnd@arndb.de> <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr> <20161123120436.18dc21e7@roar.ozlabs.ibm.com>
+Date: Wed, 23 Nov 2016 12:40:17 +1100
+Message-ID: <20161123124017.648c44d9@roar.ozlabs.ibm.com>
+References: <20161122110557.1533467-1-arnd@arndb.de>
+        <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
+        <20161123004106.GA14217@n2100.armlinux.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323328-373779880-1479864825=:1814"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f173.google.com ([209.85.220.173]:32846 "EHLO
-        mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752126AbcKWBfv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2016 20:35:51 -0500
-Received: by mail-qk0-f173.google.com with SMTP id x190so49649745qkb.0
-        for <linux-arch@vger.kernel.org>; Tue, 22 Nov 2016 17:35:50 -0800 (PST)
-In-Reply-To: <20161123120436.18dc21e7@roar.ozlabs.ibm.com>
-Content-ID: <alpine.LFD.2.20.1611222034360.1814@knanqh.ubzr>
+Received: from mail-pg0-f67.google.com ([74.125.83.67]:35709 "EHLO
+        mail-pg0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755262AbcKWBkc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2016 20:40:32 -0500
+In-Reply-To: <20161123004106.GA14217@n2100.armlinux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, =?ISO-8859-15?Q?Uwe_Kleine-K=F6nig?= <uwe@kleine-koenig.org>, linux-arm-kernel@lists.infradead.org, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, linux-kernel@vger.kernel.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, viro@zeniv.linux.org.uk, Uwe =?UTF-8?B?S2xlaW5lLUvDtm5pZw==?= <uwe@kleine-koenig.org>, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, linux-kernel@vger.kernel.org
 
---8323328-373779880-1479864825=:1814
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 8BIT
-Content-ID: <alpine.LFD.2.20.1611222034361.1814@knanqh.ubzr>
+On Wed, 23 Nov 2016 00:41:07 +0000
+Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
 
-On Wed, 23 Nov 2016, Nicholas Piggin wrote:
-
-> On Tue, 22 Nov 2016 11:34:48 -0500 (EST)
-> Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
-> 
-> > On Tue, 22 Nov 2016, Arnd Bergmann wrote:
-> > 
+> On Tue, Nov 22, 2016 at 11:34:48AM -0500, Nicolas Pitre wrote:
+> > On Tue, 22 Nov 2016, Arnd Bergmann wrote:  
 > > > This adds an asm/asm-prototypes.h header for ARM to fix the broken symbol
 > > > versioning for symbols exported from assembler files.
 > > > 
@@ -44,7 +37,7 @@ On Wed, 23 Nov 2016, Nicholas Piggin wrote:
 > > > to load most modules when symbol versioning is enabled, as it is
 > > > in many distro kernels.
 > > > 
-> > > Cc: Uwe Kleine-König <uwe@kleine-koenig.org>
+> > > Cc: Uwe Kleine-KÃ¶nig <uwe@kleine-koenig.org>
 > > > Fixes: 4dd1837d7589 ("arm: move exports to definitions")
 > > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 > > > ---
@@ -70,37 +63,54 @@ On Wed, 23 Nov 2016, Nicholas Piggin wrote:
 > > The goal for moving EXPORT_SYMBOL() to assembly code where symbols were 
 > > defined is to make things close together and avoid those centralized 
 > > list of symbols that you can easily miss when modifying the actual code.
-> 
-> Right.
-> 
 > > 
 > > This series is therefore bringing back a centralized list of symbols in 
 > > a slightly different form, nullifying the advantages from having moved 
 > > EXPORT_SYMBOL() to asm code.  To me this looks like a big step backward.
+> > 
+> > Why not simply extending the original idea of keeping exports close to 
+> > the actual code by _also_ having a macro that provides the function 
+> > prototype alongside the EXPORT_SYMBOL() instance?  That could even be 
+> > expressed with some EXPORT_SYMBOL_PROTO(ret, sym, arg...) macro that 
+> > does it all.  
 > 
-> Exported symbols have C declarations in headers already. For the most
-> part, anyway -- these ones Arnd adds are for compiler runtime which is
-> why some architectures haven't had the prototypes.
+> What you're saying is that you don't like the solution that's taken
+> weeks to get merged up to this point, so where do we go from here
+> now?  This crap has been broken since 4.9-rc1, and is a regression.
+> 
+> I think at this point, we just declare that modversions are broken
+> on ARM, and those who created this mess get to explain to people
+> why the fsck they broke the kernel.
 
-Hmmm. That's right.  That makes it much more justifiable.
-My main objection is withdrawn.
+Let's fix it instead :)
 
-However there is a bunch of includes added to asm-prototypes.h:
+Why not merge Arnd's 2 patches? I think he mostly addressed your concerns
+of them. Or...
 
-+#include <linux/arm-smccc.h>
-+#include <linux/bitops.h>
-+#include <linux/ftrace.h>
-+#include <linux/io.h>
-+#include <linux/platform_data/asoc-imx-ssi.h>
-+#include <linux/string.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/checksum.h>
-+#include <asm/div64.h>
-+#include <asm/memory.h>
+> 
+> 4.9 is the next LTS kernel?  ROTFL!
+> 
+> I agree with Nicolas - it seems that the whole EXPORT_SYMBOL() crap
+> has just been a pointless exercise in churn, resulting only in
+> something "different" because it looks "cool" to do it some other
+> way.  There's no real benefit here at all, only harm.
+> 
+> Just revert the damned patches that created this breakage in the
+> first place please.  It's now way too late to be trying to fix it
+> any other way.
+> 
 
-Are those necessary at all?
+4dd1837d7589 diffstat is entirely in arch/arm. I think reverting that
+would fix it (I haven't tested it myself so I would advise testing
+before committing). So the ball is in your court.
 
+As for process concerns, you have made valid points. Sometimes a mistake
+is made or we make an incorrect assumption about how another person works
+or what mailing lists they have read, or do not anticipate the fallout
+from some change.
 
-Nicolas
---8323328-373779880-1479864825=:1814--
+Everyone does it sometimes, so it's never a bad time to reflect on how
+we work with others and try to do better.
+
+Thanks,
+Nick
