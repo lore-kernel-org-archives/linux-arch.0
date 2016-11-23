@@ -1,22 +1,25 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for ARM
-Date: Wed, 23 Nov 2016 00:41:07 +0000
-Message-ID: <20161123004106.GA14217@n2100.armlinux.org.uk>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH 1/2] kbuild: provide include/asm/asm-prototypes.h for
+ ARM
+Date: Wed, 23 Nov 2016 12:04:36 +1100
+Message-ID: <20161123120436.18dc21e7@roar.ozlabs.ibm.com>
 References: <20161122110557.1533467-1-arnd@arndb.de>
- <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
+        <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
 In-Reply-To: <alpine.LFD.2.20.1611221106410.1814@knanqh.ubzr>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Nicholas Piggin <npiggin@gmail.com>, viro@zeniv.linux.org.uk
-Cc: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <uwe@kleine-koenig.org>, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, linux-kernel@vger.kernel.org
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Uwe =?UTF-8?B?S2xlaW5lLUvDtm5pZw==?= <uwe@kleine-koenig.org>, linux-arm-kernel@lists.infradead.org, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, regressions@leemhuis.info, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 22, 2016 at 11:34:48AM -0500, Nicolas Pitre wrote:
+On Tue, 22 Nov 2016 11:34:48 -0500 (EST)
+Nicolas Pitre <nicolas.pitre@linaro.org> wrote:
+
 > On Tue, 22 Nov 2016, Arnd Bergmann wrote:
+> 
 > > This adds an asm/asm-prototypes.h header for ARM to fix the broken symbol
 > > versioning for symbols exported from assembler files.
 > > 
@@ -29,7 +32,7 @@ On Tue, Nov 22, 2016 at 11:34:48AM -0500, Nicolas Pitre wrote:
 > > to load most modules when symbol versioning is enabled, as it is
 > > in many distro kernels.
 > > 
-> > Cc: Uwe Kleine-König <uwe@kleine-koenig.org>
+> > Cc: Uwe Kleine-KÃ¶nig <uwe@kleine-koenig.org>
 > > Fixes: 4dd1837d7589 ("arm: move exports to definitions")
 > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 > > ---
@@ -48,44 +51,38 @@ On Tue, Nov 22, 2016 at 11:34:48AM -0500, Nicolas Pitre wrote:
 > > patches, symbol versioning works again on ARM. As it is still
 > > broken on almost all other architectures (powerpc is fixed,
 > > x86 has a patch), I wonder if we should make CONFIG_MODVERSIONS
-> > as broken for everything else.
+> > as broken for everything else.  
 > 
 > I'm not sure I like this at all.
 > 
 > The goal for moving EXPORT_SYMBOL() to assembly code where symbols were 
 > defined is to make things close together and avoid those centralized 
 > list of symbols that you can easily miss when modifying the actual code.
+
+Right.
+
 > 
 > This series is therefore bringing back a centralized list of symbols in 
 > a slightly different form, nullifying the advantages from having moved 
 > EXPORT_SYMBOL() to asm code.  To me this looks like a big step backward.
-> 
+
+Exported symbols have C declarations in headers already. For the most
+part, anyway -- these ones Arnd adds are for compiler runtime which is
+why some architectures haven't had the prototypes.
+
 > Why not simply extending the original idea of keeping exports close to 
 > the actual code by _also_ having a macro that provides the function 
 > prototype alongside the EXPORT_SYMBOL() instance?  That could even be 
 > expressed with some EXPORT_SYMBOL_PROTO(ret, sym, arg...) macro that 
 > does it all.
 
-What you're saying is that you don't like the solution that's taken
-weeks to get merged up to this point, so where do we go from here
-now?  This crap has been broken since 4.9-rc1, and is a regression.
+Well, the reason is to get 4.9 working, I never thought asm-prototypes.h
+was a beautiful solution or it should not be changed if we can find ways
+to improve it.
 
-I think at this point, we just declare that modversions are broken
-on ARM, and those who created this mess get to explain to people
-why the fsck they broke the kernel.
+EXPORT_SYMBOL_PROTO() for asm code seems possibly a good idea for 4.10.
+Of course your exported symbols will still have their prototypes in
+various headers -- that redundancy is inherent.
 
-4.9 is the next LTS kernel?  ROTFL!
-
-I agree with Nicolas - it seems that the whole EXPORT_SYMBOL() crap
-has just been a pointless exercise in churn, resulting only in
-something "different" because it looks "cool" to do it some other
-way.  There's no real benefit here at all, only harm.
-
-Just revert the damned patches that created this breakage in the
-first place please.  It's now way too late to be trying to fix it
-any other way.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Thanks,
+Nick
