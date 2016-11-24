@@ -1,54 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:36622 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S964829AbcKXJtn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Nov 2016 04:49:43 -0500
-Date: Thu, 24 Nov 2016 10:06:13 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH] pcie: aer: aerdrv: PCIe AER workaround and handling for
- ASR1K platforms.
-In-Reply-To: <20161124041904.17393-1-davsingl@cisco.com>
-Message-ID: <alpine.DEB.2.20.1611240951150.3434@nanos>
-References: <20161124041904.17393-1-davsingl@cisco.com>
+Received: from mail-pf0-f195.google.com ([209.85.192.195]:35224 "EHLO
+        mail-pf0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S938442AbcKXKBW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 24 Nov 2016 05:01:22 -0500
+Date: Thu, 24 Nov 2016 21:01:01 +1100
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
+ from asm
+Message-ID: <20161124210101.76fc21ff@roar.ozlabs.ibm.com>
+In-Reply-To: <2648926.soV2DX4tAK@wuerfel>
+References: <20161123205338.GA12050@angband.pl>
+        <20161124073639.GA12728@kroah.com>
+        <20161124185322.1e2a492c@roar.ozlabs.ibm.com>
+        <2648926.soV2DX4tAK@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Singleton <davsingl@cisco.com>
-Cc: Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Steve Shih <sshih@cisco.com>, xe-kernel@external.cisco.com, LKML <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Darren Hart <dvhart@infradead.org>
-Message-ID: <20161124090613.ynyVab77NLb7jHkyHLxtlYldHNKS2PiZ8TiqW8a8ODo@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Adam Borowski <kilobyte@angband.pl>, Michal Marek <mmarek@suse.com>, Philip Muller <philm@manjaro.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Russell King <rmk+lkml@arm.linux.org.uk>
+Message-ID: <20161124100101.IX4TPt_Be7NMjQzGfiOFHz2tuLtuUM0TrcYB_MXosX0@z>
 
-On Wed, 23 Nov 2016, David Singleton wrote:
-> --- /dev/null
-> +++ b/arch/x86/platform/asr1k/asr1k_aer.c
-> @@ -0,0 +1,165 @@
-> +/*
-> + * Cisco ASR1K platform PCIe AER support
+On Thu, 24 Nov 2016 10:38:04 +0100
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-Please move this into drivers/platform/x86/asrik/ or into a proper space in
-drivers/pci/
+> On Thursday, November 24, 2016 6:53:22 PM CET Nicholas Piggin wrote:
+> > >   
+> > > > Google tells me
+> > > > Linus is not a neutral bystander on the topic of symbol versioning, so I'm
+> > > > bracing for a robust response  (actually I don't much care either way, I'm
+> > > > happy to put a couple of bandaids on it and keep it going)    
+> > > 
+> > > There are tools that people are working on to make it more obvious where
+> > > API breaks happen by looking at the .o debug data instead of our crazy
+> > > current system (which is really better than nothing), perhaps we should
+> > > start using them instead?
+> > > 
+> > > See here for more details about this:
+> > >       https://kernel-recipes.org/en/2016/talks/would-an-abi-changes-visualization-tool-be-useful-to-linux-kernel-maintenance/  
+> > 
+> > Hmm. I guess it's basically similar to modversions, so has downsides of not
+> > detecting a semantic change unless it changes the type. But still, if we could
+> > replace our custom code with a tool like this for modversions functionality,
+> > that alone would be a massive improvement. But requiring debug info might be
+> > a bit of a show stopper. I also don't know if that would handle asm functions.  
+> 
+> It's certainly not an option for v4.9 at this point. There is also no
 
-This is pure driver space and has nothing architecture platform specific in
-it.
+Yeah I wasn't suggesting that for 4.9, or 4.10 even.
 
-Please sort the proper location out with Bjorn (PCI) and Darren (platform/x86)
+> realistic way we can get a correct asm/asm-prototypes.h for all the
+> other architectures in place. At the moment, powerpc is the only
+> one that actually works with modversions.
+> 
+> We can either make CONFIG_MODVERSIONS a per-architecture opt-in
+> and let only the ones that have the header file select that, or
+> revert all of Al's original patches that moved the exports.
 
-> + *
-> + * Copyright (c) 2015 by cisco Systems, Inc.
-> + */
-> +
-> +#include <linux/pci.h>
-> +#include <../../../drivers/pci/pcie/aer/aerdrv.h>
-
-WTF?
-
-If you need to share a header file between files in different directories,
-what's wrong with moving the file to a proper place in include/* ?
-
-Lack of taste and laziness are the only reasons I can come up with,
+alpha, m68k, s390, sparc, ia64 are affected and have no patch (or none
+I've been cc'ed on) for asm-prototypes.h. Doesn't seem infeasible to add
+them before 4.9, considering the fairly low risk of patch. Opt-in would
+be pointless IMO, might as well just revert the arch part of Al's patch
+instead.
 
 Thanks,
-
-	tglx
-
-
+Nick
