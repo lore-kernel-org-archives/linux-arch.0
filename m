@@ -1,63 +1,62 @@
 From: Nicholas Piggin <npiggin@gmail.com>
 Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
  from asm
-Date: Thu, 24 Nov 2016 21:01:01 +1100
-Message-ID: <20161124210101.76fc21ff@roar.ozlabs.ibm.com>
+Date: Thu, 24 Nov 2016 21:03:55 +1100
+Message-ID: <20161124210355.4875c61a@roar.ozlabs.ibm.com>
 References: <20161123205338.GA12050@angband.pl>
+        <20161123210256.31501-1-kilobyte@angband.pl>
+        <20161124044028.GA12704@gmail.com>
+        <20161124162051.5e336127@roar.ozlabs.ibm.com>
+        <20161124060050.GA788@gmail.com>
+        <20161124182026.34e6570b@roar.ozlabs.ibm.com>
         <20161124073639.GA12728@kroah.com>
         <20161124185322.1e2a492c@roar.ozlabs.ibm.com>
-        <2648926.soV2DX4tAK@wuerfel>
+        <250b3310-6e4a-1352-be7a-a5a472829cec@suse.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <2648926.soV2DX4tAK@wuerfel>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Adam Borowski <kilobyte@angband.pl>, Michal Marek <mmarek@suse.com>, Philip Muller <philm@manjaro.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Russell King <rmk+lkml@arm.linux.org.uk>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <250b3310-6e4a-1352-be7a-a5a472829cec@suse.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Adam Borowski <kilobyte@angband.pl>, Philip Muller <philm@manjaro.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 24 Nov 2016 10:38:04 +0100
-Arnd Bergmann <arnd@arndb.de> wrote:
+On Thu, 24 Nov 2016 10:32:12 +0100
+Michal Marek <mmarek@suse.com> wrote:
 
-> On Thursday, November 24, 2016 6:53:22 PM CET Nicholas Piggin wrote:
-> > >   
-> > > > Google tells me
-> > > > Linus is not a neutral bystander on the topic of symbol versioning, so I'm
-> > > > bracing for a robust response  (actually I don't much care either way, I'm
-> > > > happy to put a couple of bandaids on it and keep it going)    
-> > > 
-> > > There are tools that people are working on to make it more obvious where
-> > > API breaks happen by looking at the .o debug data instead of our crazy
-> > > current system (which is really better than nothing), perhaps we should
-> > > start using them instead?
-> > > 
-> > > See here for more details about this:
-> > >       https://kernel-recipes.org/en/2016/talks/would-an-abi-changes-visualization-tool-be-useful-to-linux-kernel-maintenance/  
+> On 2016-11-24 08:53, Nicholas Piggin wrote:
+> > On Thu, 24 Nov 2016 08:36:39 +0100
+> > Greg Kroah-Hartman <gregkh@linuxfoundation.org> wrote:
+> >   
+> >> On Thu, Nov 24, 2016 at 06:20:26PM +1100, Nicholas Piggin wrote:  
+> >>> But still, modversions is pretty complicated for what it gives us. It sends
+> >>> preprocessed C into a C parser that makes CRCs using type definitions of
+> >>> exported symbols, then turns those CRCs into a linker script which which is
+> >>> used to link the .o file with. What we get in return is a quite limited and
+> >>> symbol "versioning" system.
+> >>>
+> >>> What if we ripped all that out and just attached an explicit version to
+> >>> each export, and incompatible changes require an increment?    
+> >>
+> >> How would that work for structures?  Would that be required for every
+> >> EXPORT_SYMBOL* somehow?  
 > > 
-> > Hmm. I guess it's basically similar to modversions, so has downsides of not
-> > detecting a semantic change unless it changes the type. But still, if we could
-> > replace our custom code with a tool like this for modversions functionality,
-> > that alone would be a massive improvement. But requiring debug info might be
-> > a bit of a show stopper. I also don't know if that would handle asm functions.  
+> > Yeah just have EXPORT_SYMBOL take another parameter which attaches a version
+> > number and use that as the value for the __crc_ symbol versions rather than
+> > a calculated CRC.  
 > 
-> It's certainly not an option for v4.9 at this point. There is also no
+> The problem is that with every kernel release, the structures change in
+> a way that you would have to bump the version of virtually every export.
+>
+> At which point, there would be little difference between
+> CONFIG_MODVERSION on and off (without CONFIG_MODVERSION, we compare the
+> kernel version strings when loading modules).
 
-Yeah I wasn't suggesting that for 4.9, or 4.10 even.
 
-> realistic way we can get a correct asm/asm-prototypes.h for all the
-> other architectures in place. At the moment, powerpc is the only
-> one that actually works with modversions.
-> 
-> We can either make CONFIG_MODVERSIONS a per-architecture opt-in
-> and let only the ones that have the header file select that, or
-> revert all of Al's original patches that moved the exports.
-
-alpha, m68k, s390, sparc, ia64 are affected and have no patch (or none
-I've been cc'ed on) for asm-prototypes.h. Doesn't seem infeasible to add
-them before 4.9, considering the fairly low risk of patch. Opt-in would
-be pointless IMO, might as well just revert the arch part of Al's patch
-instead.
+I'm not sure about that. If they are truly incompatible changes and
+MODVERSIONS does not pick up a different CRC, then it's even worse if
+incompatible modules are missed so often.
 
 Thanks,
 Nick
