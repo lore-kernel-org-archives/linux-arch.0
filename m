@@ -1,52 +1,80 @@
-From: <jacqueline.pike@gmail.com>
-Subject: (unknown)
-Date: Fri, 25 Nov 2016 22:48:06 -0000
-Message-ID: <148011408639.17340.12519294424363740759@dclient.hispeed.ch>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
+ from asm
+Date: Sat, 26 Nov 2016 11:37:07 +1100
+Message-ID: <20161126113707.67568704@roar.ozlabs.ibm.com>
+References: <20161123205338.GA12050@angband.pl>
+        <20161123210256.31501-1-kilobyte@angband.pl>
+        <20161124044028.GA12704@gmail.com>
+        <20161124162051.5e336127@roar.ozlabs.ibm.com>
+        <20161124060050.GA788@gmail.com>
+        <20161124182026.34e6570b@roar.ozlabs.ibm.com>
+        <20161124073639.GA12728@kroah.com>
+        <20161124185322.1e2a492c@roar.ozlabs.ibm.com>
+        <20161124095622.GA14390@kroah.com>
+        <20161124213152.30d8d27a@roar.ozlabs.ibm.com>
+        <20161124152410.GC30905@kroah.com>
+        <20161125114018.12421474@roar.ozlabs.ibm.com>
+        <CA+55aFwXqv6uYmW0kC=c+yyumO_T0CJrz6m+MQCQX6bR5gRBQw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: application/zip; name="INFO_454369583_linux-arch.zip"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 84-74-89-31.dclient.hispeed.ch ([84.74.89.31]:36612 "HELO
-        dclient.hispeed.ch" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with SMTP id S1750776AbcKYWsK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Nov 2016 17:48:10 -0500
-Content-Disposition: attachment
-Subject: 
+Received: from mail-pg0-f68.google.com ([74.125.83.68]:33646 "EHLO
+        mail-pg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751271AbcKZA40 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 25 Nov 2016 19:56:26 -0500
+In-Reply-To: <CA+55aFwXqv6uYmW0kC=c+yyumO_T0CJrz6m+MQCQX6bR5gRBQw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Adam Borowski <kilobyte@angband.pl>, Michal Marek <mmarek@suse.com>, Philip Muller <philm@manjaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
 
-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
-AAAAAQcAAAAA
+On Fri, 25 Nov 2016 10:00:46 -0800
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
+
+> On Thu, Nov 24, 2016 at 4:40 PM, Nicholas Piggin <npiggin@gmail.com> wrote:
+> >>
+> >> Yes, manual "marking" is never going to be a viable solution.  
+> >
+> > I guess it really depends on how exactly you want to use it. For distros
+> > that do stable ABI but rarely may have to break something for security
+> > reasons, it should work and give exact control.  
+> 
+> No. Because nobody else will care, so unless it's like a single symbol
+> or something, it will just be a maintenance nightmare.
+
+Yeah that's true, and as I realized a distro can rename a symbol if they
+make incompatible changes which happens very rarely. Avoids having to
+carry some whole infrastructure upstream for it.
+
+> 
+> > What else do people *actually* use it for? Preventing mismatched modules
+> > when .git version is not attached and release version of the kernel has
+> > not been bumped. Is that it?  
+> 
+> It used to be very useful for avoiding loading stale modules and then
+> wasting days on debugging something that wasn't the case when you had
+> forgotten to do "make modules_install". Change some subtle internal
+> ABI issue (add/remove a parameter, whatever) and it would really help.
+> 
+> These days, for me, LOCALVERSION_AUTO and module signing are what I
+> personally tend to use.
+> 
+> The modversions stuff may just be too painful to bother with. Very few
+> people probably use it, and the ones that do likely don't have any
+> overriding reason why.
+> 
+> So I'd personally be ok with just saying "let's disable it for now",
+> and see if anybody even notices and cares, and then has a good enough
+> explanation of why. It's entirely possible that most users are "I
+> enabled it ten years ago, I didn't even realize it was still in my
+> defconfig".
+
+That sounds good. Should we try to get 4.9 working (which we could
+do relatively easily with a few arch reverts), and then disable
+modversions for 4.10? (at which point we can un-revert Al's arch
+patches)
+
+Thanks,
+Nick
