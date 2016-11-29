@@ -1,96 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tartarus.angband.pl ([89.206.35.136]:47565 "EHLO
+Received: from tartarus.angband.pl ([89.206.35.136]:50567 "EHLO
         tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1755083AbcK2Nvb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2016 08:51:31 -0500
+        with ESMTP id S1752844AbcK2RiN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2016 12:38:13 -0500
+Date: Tue, 29 Nov 2016 18:05:22 +0100
 From: Adam Borowski <kilobyte@angband.pl>
-Date: Tue, 29 Nov 2016 14:51:17 +0100
-Message-ID: <20161129135118.24696-1-kilobyte@angband.pl>
-In-Reply-To: <20161129131922.GA31466@angband.pl>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
+ asm
+Message-ID: <20161129170522.GA3441@angband.pl>
 References: <20161129131922.GA31466@angband.pl>
-Subject: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
+ <20161129135118.24696-1-kilobyte@angband.pl>
+ <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Nicholas Piggin <npiggin@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Michal Marek <mmarek@suse.com>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>
-Cc: Adam Borowski <kilobyte@angband.pl>
-Message-ID: <20161129135117.q8n3gFghNlMUe9wj5tVOxtYLv3yduCBx5thaV-cANdo@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161129170522.F7sU-YLqgnyBJtaGZjaRn5lhUoSMJ2gBecaB_ta6DXw@z>
 
-Commit 4efca4ed ("kbuild: modversions for EXPORT_SYMBOL() for asm") adds
-modversion support for symbols exported from asm files. Architectures
-must include C-style declarations for those symbols in asm/asm-prototypes.h
-in order for them to be versioned.
+On Tue, Nov 29, 2016 at 07:27:12AM -0800, Linus Torvalds wrote:
+> On Nov 29, 2016 5:51 AM, "Adam Borowski" <kilobyte@angband.pl> wrote:
+> > >
+> > >  (a) tested
+> >
+> > By many people.
+> 
+> No.
+> 
+> I've tested the build *without* this, and it works fine.
 
-Add these declarations for x86, and an architecture-independent file that
-can be used for common symbols.
+Michal mentioned "why", let's try "where".
 
-User impact: kernels may fail to load modules at all when
-CONFIG_MODVERSIONS=y.
+I have no idea what setup is required to trigger the problem, but here's a
+simple sufficient one:
 
-Signed-off-by: Adam Borowski <kilobyte@angband.pl>
-Tested-by: Kalle Valo <kvalo@codeaurora.org>
-Acked-by: Nicholas Piggin <npiggin@gmail.com>
-Tested-by: Peter Wu <peter@lekensteyn.nl>
-Tested-by: Oliver Hartkopp <socketcan@hartkopp.net>
----
+Current Debian unstable, amd64.
+git reset --hard v4.9-rc7
+git revert cd3caefb
+make defconfig
+CONFIG_MODVERSIONS=y
+(in my case) CONFIG_BTRFS_FS=y (so I can boot)
+enable a module for testing, I used CONFIG_EXT4_FS=m
+make bindeb-pkg
+dpkg -i linux-image_XXXXX.deb
 
-> So somebody send me a minimal patch that is
->
->  (a) tested
+modprobe ext4
+[   63.779490] jbd2: no symbol version for memcpy
+[   63.779492] jbd2: Unknown symbol memcpy (err -22)
+[   63.779550] jbd2: no symbol version for phys_base
+[   63.779551] jbd2: Unknown symbol phys_base (err -22)
+[   63.779561] jbd2: no symbol version for memset
+[   63.779562] jbd2: Unknown symbol memset (err -22)
 
-By many people.
+Not sure which piece of toolchain matters here, someone said binutils.
+In that case, Fedora ships 2.26.1-1.fc25, they were frozen so couldn't
+update.  Debian is at 2.27.51.20161127-1, Gentoo at 2.27, same for Arch,
+OpenSUSE; Ubuntu at 2.27.51.20161124-1.
 
->  (b) explains it
-
-The actual logic is in 4efca4ed0.  It wants C prototypes defined in
-asm/asm-prototypes.h that lists symbols defined in assembly -- genksyms
-knows only how to read C code.
-
->  (c) obvious
-
-To be honest I don't quite understand what's the real gain over code that
-was removed by 784d5699eddc, this mostly brings the symbols back.  But
-that's for people wiser than me to explain.
-
-> and I'll happily re-enable modversions.
-
-
-The powerpc counterpart to this patch is in mainline as 9e5f688, although a
-file by that name already existed.
-
-As for arm, it looks like it was handled the other way by 8478132.
+Thus, if it's indeed binutils, you'll see the breakage as soon as Fedora
+recovers from the freeze.
 
 
-diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
-new file mode 100644
-index 0000000..ae87224
---- /dev/null
-+++ b/arch/x86/include/asm/asm-prototypes.h
-@@ -0,0 +1,12 @@
-+#include <asm/ftrace.h>
-+#include <asm/uaccess.h>
-+#include <asm/string.h>
-+#include <asm/page.h>
-+#include <asm/checksum.h>
-+
-+#include <asm-generic/asm-prototypes.h>
-+
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/special_insns.h>
-+#include <asm/preempt.h>
-diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
-new file mode 100644
-index 0000000..df13637
---- /dev/null
-+++ b/include/asm-generic/asm-prototypes.h
-@@ -0,0 +1,7 @@
-+#include <linux/bitops.h>
-+extern void *__memset(void *, int, __kernel_size_t);
-+extern void *__memcpy(void *, const void *, __kernel_size_t);
-+extern void *__memmove(void *, const void *, __kernel_size_t);
-+extern void *memset(void *, int, __kernel_size_t);
-+extern void *memcpy(void *, const void *, __kernel_size_t);
-+extern void *memmove(void *, const void *, __kernel_size_t);
+Meow!
 -- 
-2.10.2
-
+The bill declaring Jesus as the King of Poland fails to specify whether
+the addition is at the top or end of the list of kings.  What should the
+historians do?
