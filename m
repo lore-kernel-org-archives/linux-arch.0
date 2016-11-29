@@ -1,148 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0081.outbound.protection.outlook.com ([104.47.41.81]:54880
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0076.outbound.protection.outlook.com ([104.47.34.76]:57066
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1754392AbcK2SBI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Nov 2016 13:01:08 -0500
-Subject: Re: [RFC PATCH v3 15/20] x86: Check for memory encryption on the APs
+        id S1751566AbcK2Ss1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Nov 2016 13:48:27 -0500
+Subject: Re: [RFC PATCH v3 20/20] x86: Add support to make use of Secure
+ Memory Encryption
 References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
- <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
- <20161122192526.vg63jjhwsbjwex7i@pd.tnic>
+ <20161110003838.3280.23327.stgit@tlendack-t1.amdoffice.net>
+ <20161126204703.wlcd6cw7dxzvpxyc@pd.tnic>
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <b3b5cc5d-dc1d-187d-d738-ba55798327d2@amd.com>
-Date: Tue, 29 Nov 2016 12:00:56 -0600
+Message-ID: <4cffdd71-dcc6-35e9-2654-e39067a525a8@amd.com>
+Date: Tue, 29 Nov 2016 12:48:17 -0600
 MIME-Version: 1.0
-In-Reply-To: <20161122192526.vg63jjhwsbjwex7i@pd.tnic>
+In-Reply-To: <20161126204703.wlcd6cw7dxzvpxyc@pd.tnic>
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20161129180056.D8cHTV1We-OA3xcqz9WN6O-b1IJ7Jbbwty-CSPrvj4M@z>
+Message-ID: <20161129184817.5RgDoTWER6NBuM5nIexZv8PHraunU4sxOSeVU6bpbko@z>
 
-On 11/22/2016 1:25 PM, Borislav Petkov wrote:
-> On Wed, Nov 09, 2016 at 06:37:40PM -0600, Tom Lendacky wrote:
->> Add support to check if memory encryption is active in the kernel and that
->> it has been enabled on the AP. If memory encryption is active in the kernel
->> but has not been enabled on the AP then do not allow the AP to continue
->> start up.
+On 11/26/2016 2:47 PM, Borislav Petkov wrote:
+> On Wed, Nov 09, 2016 at 06:38:38PM -0600, Tom Lendacky wrote:
+>> This patch adds the support to check if SME has been enabled and if the
+>> mem_encrypt=on command line option is set. If both of these conditions
+>> are true, then the encryption mask is set and the kernel is encrypted
+>> "in place."
 >>
 >> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 >> ---
->>  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
->>  arch/x86/realmode/init.c             |    4 ++++
->>  arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
->>  3 files changed, 35 insertions(+)
+>>  arch/x86/kernel/head_64.S          |    1 +
+>>  arch/x86/kernel/mem_encrypt_init.c |   60 +++++++++++++++++++++++++++++++++++-
+>>  arch/x86/mm/mem_encrypt.c          |    2 +
+>>  3 files changed, 62 insertions(+), 1 deletion(-)
 >>
->> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
->> index 230e190..850dbe0 100644
->> --- a/arch/x86/include/asm/realmode.h
->> +++ b/arch/x86/include/asm/realmode.h
->> @@ -1,6 +1,15 @@
->>  #ifndef _ARCH_X86_REALMODE_H
->>  #define _ARCH_X86_REALMODE_H
+>> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+>> index e8a7272..c225433 100644
+>> --- a/arch/x86/kernel/head_64.S
+>> +++ b/arch/x86/kernel/head_64.S
+>> @@ -100,6 +100,7 @@ startup_64:
+>>  	 * to include it in the page table fixups.
+>>  	 */
+>>  	push	%rsi
+>> +	movq	%rsi, %rdi
+>>  	call	sme_enable
+>>  	pop	%rsi
+>>  	movq	%rax, %r12
+>> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
+>> index 7bdd159..c94ceb8 100644
+>> --- a/arch/x86/kernel/mem_encrypt_init.c
+>> +++ b/arch/x86/kernel/mem_encrypt_init.c
+>> @@ -16,9 +16,14 @@
+>>  #include <linux/mm.h>
 >>  
->> +/*
->> + * Flag bit definitions for use with the flags field of the trampoline header
->> + * when configured for X86_64
+>>  #include <asm/sections.h>
+>> +#include <asm/processor-flags.h>
+>> +#include <asm/msr.h>
+>> +#include <asm/cmdline.h>
+>>  
+>>  #ifdef CONFIG_AMD_MEM_ENCRYPT
+>>  
+>> +static char sme_cmdline_arg[] __initdata = "mem_encrypt=on";
 > 
-> Let's use kernel nomenclature: "... of the trampoline header in the
-> CONFIG_X86_64 variant."
+> One more thing: just like we're adding an =on switch, we'd need an =off
+> switch in case something's wrong with the SME code. IOW, if a user
+> supplies "mem_encrypt=off", we do not encrypt.
 
-Ok.
-
-> 
->> + */
->> +#define TH_FLAGS_SME_ENABLE_BIT		0
->> +#define TH_FLAGS_SME_ENABLE		BIT_ULL(TH_FLAGS_SME_ENABLE_BIT)
-> 
-> BIT() is the proper one for u32 flags variable.
-
-Yup, not sure why I used BIT_ULL...  will fix.
-
-> 
->> +
->> +#ifndef __ASSEMBLY__
->> +
->>  #include <linux/types.h>
->>  #include <asm/io.h>
->>  
->> @@ -38,6 +47,7 @@ struct trampoline_header {
->>  	u64 start;
->>  	u64 efer;
->>  	u32 cr4;
->> +	u32 flags;
->>  #endif
->>  };
->>  
->> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
->>  void set_real_mode_mem(phys_addr_t mem, size_t size);
->>  void reserve_real_mode(void);
->>  
->> +#endif /* __ASSEMBLY__ */
->> +
->>  #endif /* _ARCH_X86_REALMODE_H */
->> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
->> index 44ed32a..a8e7ebe 100644
->> --- a/arch/x86/realmode/init.c
->> +++ b/arch/x86/realmode/init.c
->> @@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
->>  	trampoline_cr4_features = &trampoline_header->cr4;
->>  	*trampoline_cr4_features = mmu_cr4_features;
->>  
->> +	trampoline_header->flags = 0;
->> +	if (sme_me_mask)
->> +		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
->> +
->>  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
->>  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
->>  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
->> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
->> index dac7b20..94e29f4 100644
->> --- a/arch/x86/realmode/rm/trampoline_64.S
->> +++ b/arch/x86/realmode/rm/trampoline_64.S
->> @@ -30,6 +30,7 @@
->>  #include <asm/msr.h>
->>  #include <asm/segment.h>
->>  #include <asm/processor-flags.h>
->> +#include <asm/realmode.h>
->>  #include "realmode.h"
->>  
->>  	.text
->> @@ -92,6 +93,23 @@ ENTRY(startup_32)
->>  	movl	%edx, %fs
->>  	movl	%edx, %gs
->>  
->> +	/* Check for memory encryption support */
->> +	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
->> +	jnc	.Ldone
->> +	movl	$MSR_K8_SYSCFG, %ecx
->> +	rdmsr
->> +	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
->> +	jc	.Ldone
->> +
->> +	/*
->> +	 * Memory encryption is enabled but the MSR has not been set on this
->> +	 * CPU so we can't continue
-> 
-> Can this ever happen?
-> 
-> I mean, we set TH_FLAGS_SME_ENABLE when sme_me_mask is set and this
-> would have happened only if the BSP has MSR_K8_SYSCFG[23] set.
-> 
-> How is it possible that that bit won't be set on some of the APs but set
-> on the BSP?
-> 
-> I'd assume the BIOS is doing a consistent setting everywhere...
-> 
-
-It can happen if BIOS doesn't do something right.  So this is just a
-safety thing.  I thought I had changed this to set the bit if it
-wasn't set, which is safe to do.  I'm not sure what happened to that
-change (based on your previous comment actually!)...  I'll add that
-back so that the AP is useful.
+Well, we can document "off", but if the exact string "mem_encrypt=on"
+isn't specified on the command line then the encryption won't occur.
+The cmdline_find_option_bool() function looks for the exact string and
+isn't interpreting the value on the right side of the equal sign. So
+omitting mem_encrypt=on or using mem_encrypt=off is the same.
 
 Thanks,
 Tom
 
+> 
+> Thanks.
+> 
