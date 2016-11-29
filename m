@@ -1,71 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tartarus.angband.pl ([89.206.35.136]:50567 "EHLO
-        tartarus.angband.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752844AbcK2RiN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2016 12:38:13 -0500
-Date: Tue, 29 Nov 2016 18:05:22 +0100
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Message-ID: <20161129170522.GA3441@angband.pl>
-References: <20161129131922.GA31466@angband.pl>
- <20161129135118.24696-1-kilobyte@angband.pl>
- <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+Received: from mail-dm3nam03on0081.outbound.protection.outlook.com ([104.47.41.81]:54880
+        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1754392AbcK2SBI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 29 Nov 2016 13:01:08 -0500
+Subject: Re: [RFC PATCH v3 15/20] x86: Check for memory encryption on the APs
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003740.3280.57300.stgit@tlendack-t1.amdoffice.net>
+ <20161122192526.vg63jjhwsbjwex7i@pd.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <b3b5cc5d-dc1d-187d-d738-ba55798327d2@amd.com>
+Date: Tue, 29 Nov 2016 12:00:56 -0600
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+In-Reply-To: <20161122192526.vg63jjhwsbjwex7i@pd.tnic>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161129170522.F7sU-YLqgnyBJtaGZjaRn5lhUoSMJ2gBecaB_ta6DXw@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20161129180056.D8cHTV1We-OA3xcqz9WN6O-b1IJ7Jbbwty-CSPrvj4M@z>
 
-On Tue, Nov 29, 2016 at 07:27:12AM -0800, Linus Torvalds wrote:
-> On Nov 29, 2016 5:51 AM, "Adam Borowski" <kilobyte@angband.pl> wrote:
-> > >
-> > >  (a) tested
-> >
-> > By many people.
+On 11/22/2016 1:25 PM, Borislav Petkov wrote:
+> On Wed, Nov 09, 2016 at 06:37:40PM -0600, Tom Lendacky wrote:
+>> Add support to check if memory encryption is active in the kernel and that
+>> it has been enabled on the AP. If memory encryption is active in the kernel
+>> but has not been enabled on the AP then do not allow the AP to continue
+>> start up.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
+>>  arch/x86/realmode/init.c             |    4 ++++
+>>  arch/x86/realmode/rm/trampoline_64.S |   19 +++++++++++++++++++
+>>  3 files changed, 35 insertions(+)
+>>
+>> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+>> index 230e190..850dbe0 100644
+>> --- a/arch/x86/include/asm/realmode.h
+>> +++ b/arch/x86/include/asm/realmode.h
+>> @@ -1,6 +1,15 @@
+>>  #ifndef _ARCH_X86_REALMODE_H
+>>  #define _ARCH_X86_REALMODE_H
+>>  
+>> +/*
+>> + * Flag bit definitions for use with the flags field of the trampoline header
+>> + * when configured for X86_64
 > 
-> No.
+> Let's use kernel nomenclature: "... of the trampoline header in the
+> CONFIG_X86_64 variant."
+
+Ok.
+
 > 
-> I've tested the build *without* this, and it works fine.
+>> + */
+>> +#define TH_FLAGS_SME_ENABLE_BIT		0
+>> +#define TH_FLAGS_SME_ENABLE		BIT_ULL(TH_FLAGS_SME_ENABLE_BIT)
+> 
+> BIT() is the proper one for u32 flags variable.
 
-Michal mentioned "why", let's try "where".
+Yup, not sure why I used BIT_ULL...  will fix.
 
-I have no idea what setup is required to trigger the problem, but here's a
-simple sufficient one:
+> 
+>> +
+>> +#ifndef __ASSEMBLY__
+>> +
+>>  #include <linux/types.h>
+>>  #include <asm/io.h>
+>>  
+>> @@ -38,6 +47,7 @@ struct trampoline_header {
+>>  	u64 start;
+>>  	u64 efer;
+>>  	u32 cr4;
+>> +	u32 flags;
+>>  #endif
+>>  };
+>>  
+>> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
+>>  void set_real_mode_mem(phys_addr_t mem, size_t size);
+>>  void reserve_real_mode(void);
+>>  
+>> +#endif /* __ASSEMBLY__ */
+>> +
+>>  #endif /* _ARCH_X86_REALMODE_H */
+>> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+>> index 44ed32a..a8e7ebe 100644
+>> --- a/arch/x86/realmode/init.c
+>> +++ b/arch/x86/realmode/init.c
+>> @@ -101,6 +101,10 @@ static void __init setup_real_mode(void)
+>>  	trampoline_cr4_features = &trampoline_header->cr4;
+>>  	*trampoline_cr4_features = mmu_cr4_features;
+>>  
+>> +	trampoline_header->flags = 0;
+>> +	if (sme_me_mask)
+>> +		trampoline_header->flags |= TH_FLAGS_SME_ENABLE;
+>> +
+>>  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
+>>  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
+>>  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
+>> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+>> index dac7b20..94e29f4 100644
+>> --- a/arch/x86/realmode/rm/trampoline_64.S
+>> +++ b/arch/x86/realmode/rm/trampoline_64.S
+>> @@ -30,6 +30,7 @@
+>>  #include <asm/msr.h>
+>>  #include <asm/segment.h>
+>>  #include <asm/processor-flags.h>
+>> +#include <asm/realmode.h>
+>>  #include "realmode.h"
+>>  
+>>  	.text
+>> @@ -92,6 +93,23 @@ ENTRY(startup_32)
+>>  	movl	%edx, %fs
+>>  	movl	%edx, %gs
+>>  
+>> +	/* Check for memory encryption support */
+>> +	bt	$TH_FLAGS_SME_ENABLE_BIT, pa_tr_flags
+>> +	jnc	.Ldone
+>> +	movl	$MSR_K8_SYSCFG, %ecx
+>> +	rdmsr
+>> +	bt	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
+>> +	jc	.Ldone
+>> +
+>> +	/*
+>> +	 * Memory encryption is enabled but the MSR has not been set on this
+>> +	 * CPU so we can't continue
+> 
+> Can this ever happen?
+> 
+> I mean, we set TH_FLAGS_SME_ENABLE when sme_me_mask is set and this
+> would have happened only if the BSP has MSR_K8_SYSCFG[23] set.
+> 
+> How is it possible that that bit won't be set on some of the APs but set
+> on the BSP?
+> 
+> I'd assume the BIOS is doing a consistent setting everywhere...
+> 
 
-Current Debian unstable, amd64.
-git reset --hard v4.9-rc7
-git revert cd3caefb
-make defconfig
-CONFIG_MODVERSIONS=y
-(in my case) CONFIG_BTRFS_FS=y (so I can boot)
-enable a module for testing, I used CONFIG_EXT4_FS=m
-make bindeb-pkg
-dpkg -i linux-image_XXXXX.deb
+It can happen if BIOS doesn't do something right.  So this is just a
+safety thing.  I thought I had changed this to set the bit if it
+wasn't set, which is safe to do.  I'm not sure what happened to that
+change (based on your previous comment actually!)...  I'll add that
+back so that the AP is useful.
 
-modprobe ext4
-[   63.779490] jbd2: no symbol version for memcpy
-[   63.779492] jbd2: Unknown symbol memcpy (err -22)
-[   63.779550] jbd2: no symbol version for phys_base
-[   63.779551] jbd2: Unknown symbol phys_base (err -22)
-[   63.779561] jbd2: no symbol version for memset
-[   63.779562] jbd2: Unknown symbol memset (err -22)
+Thanks,
+Tom
 
-Not sure which piece of toolchain matters here, someone said binutils.
-In that case, Fedora ships 2.26.1-1.fc25, they were frozen so couldn't
-update.  Debian is at 2.27.51.20161127-1, Gentoo at 2.27, same for Arch,
-OpenSUSE; Ubuntu at 2.27.51.20161124-1.
-
-Thus, if it's indeed binutils, you'll see the breakage as soon as Fedora
-recovers from the freeze.
-
-
-Meow!
--- 
-The bill declaring Jesus as the King of Poland fails to specify whether
-the addition is at the top or end of the list of kings.  What should the
-historians do?
