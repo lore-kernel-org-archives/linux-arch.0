@@ -1,38 +1,49 @@
-From: Michal Marek <mmarek@suse.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Date: Tue, 29 Nov 2016 22:23:51 +0100
-Message-ID: <04650a4f-8ba7-a44c-6777-68dc413b683d@suse.com>
-References: <20161129131922.GA31466@angband.pl>
- <20161129135118.24696-1-kilobyte@angband.pl>
- <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
- <20161129170522.GA3441@angband.pl>
- <CA+55aFxCKgTrh1gS-cMyhBa0QoLW2DL2+DYxOAcA-Bd15H15vg@mail.gmail.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [RFC3 nowrap: PATCH v7 00/18] ILP32 for ARM64
+Date: Wed, 30 Nov 2016 10:32:09 +0530
+Message-ID: <20161130050209.GB18796@yury-N73SV>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:45033 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751917AbcK2VXy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 29 Nov 2016 16:23:54 -0500
-In-Reply-To: <CA+55aFxCKgTrh1gS-cMyhBa0QoLW2DL2+DYxOAcA-Bd15H15vg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, kilobyte@angband.pl, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+List-Id: linux-arch.vger.kernel.org
 
-Dne 29.11.2016 v 18:10 Linus Torvalds napsal(a):
-> How about this stupid patch? It weakens modversions, but that may be
-> ok for Debian, and a better alternative than just saying "we don't
-> support it at all".
-[...]
-> -	pr_warn("%s: no symbol version for %s\n", mod->name, symname);
-> -	return 0;
-> +	/* Broken toolchain. Warn once, then let it go.. */
-> +	pr_warn_once("%s: no symbol version for %s\n", mod->name, symname);
-> +	return 1;
+On Fri, Oct 21, 2016 at 11:32:59PM +0300, Yury Norov wrote:
+> This series enables aarch64 with ilp32 mode, and as supporting work,
+> introduces ARCH_32BIT_OFF_T configuration option that is enabled for
+> existing 32-bit architectures but disabled for new arches (so 64-bit
+> off_t is is used by new userspace).
+> 
+> This version is based on kernel v4.9-rc1.  It works with glibc-2.24,
+> and tested with LTP.
+> 
+> This version contains ABI changes, and should be used with new glibc
+> version. See links below.
+> 
+> This is RFC because there is still no solid understanding what type
+> of registers top-halves delousing we prefer and it affects ABI. In
+> this patchset, w0-w7 are cleared for each syscall in assembler entry.
+> 
+> The alternative approach is in introducing compat wrappers which is
+> little faster for natively routed syscalls (~2.6% for syscall with
+> no payload) but much more complicated.
 
-Fine with me, if it goes with the revert of the "depends on BROKEN."
+Hi all,
 
-Michal
+Steve Ellcey submitted glibc patches for ILP32:
+https://www.sourceware.org/ml/libc-alpha/2016-11/msg01071.html
+It implicitly assumes that kernel clears top halves of registers for
+all syscalls in assembly entry. That patches are going to be taken.
+It it happens, we will have no choice on kernel side how to clear top
+halves anymore.
+
+For me current version is OK, and I see no problems with it. I just
+write this email to remind that it's still RFC, and this is the last
+chance to get back to wrappers. 
+
+Yury.
