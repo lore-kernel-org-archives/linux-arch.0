@@ -1,58 +1,102 @@
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: Re: [RFC3 nowrap: PATCH v7 00/18] ILP32 for ARM64
-Date: Wed, 30 Nov 2016 07:52:53 +0100
-Message-ID: <20161130065253.GA21237@angband.pl>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161130050209.GB18796@yury-N73SV>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20161130050209.GB18796@yury-N73SV>
-Sender: linux-doc-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, pinskia@gmail.com, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, bamvor.zhangjian@huawei.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, maxim.kuvyrkov@linaro.org, davem@davemloft.net, zhouchengming1@huawei.com, cmetcalf@ezchip.com
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: [PATCH 2/3] kbuild: make modversion for exported asm symbols more convivial
+Date: Wed, 30 Nov 2016 03:50:23 -0500
+Message-ID: <1480495824-4151-3-git-send-email-nicolas.pitre@linaro.org>
+References: <1480495824-4151-1-git-send-email-nicolas.pitre@linaro.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1480495824-4151-1-git-send-email-nicolas.pitre@linaro.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@armlinux.org.uk>, Nicholas Piggin <npiggin@gmail.com>, Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 30, 2016 at 10:32:09AM +0530, Yury Norov wrote:
-> On Fri, Oct 21, 2016 at 11:32:59PM +0300, Yury Norov wrote:
-> > This series enables aarch64 with ilp32 mode, and as supporting work,
-> > introduces ARCH_32BIT_OFF_T configuration option that is enabled for
-> > existing 32-bit architectures but disabled for new arches (so 64-bit
-> > off_t is is used by new userspace).
-> 
-> Hi all,
-> 
-> Steve Ellcey submitted glibc patches for ILP32:
-> https://www.sourceware.org/ml/libc-alpha/2016-11/msg01071.html
-> It implicitly assumes that kernel clears top halves of registers for
-> all syscalls in assembly entry. That patches are going to be taken.
-> It it happens, we will have no choice on kernel side how to clear top
-> halves anymore.
+Rather than having an asm-prototypes.h file where C prototypes for exported
+asm symbols are centralized, let's have some macros that can be used
+directly in the code where those symbols are exported for genksyms
+consumption.  Either the prototype is provided directly if no include
+files has it, or the include file containing it is specified.
 
-Since a while ago, there's a package "arch-test" in Debian that empirically
-enumerates architectures executable by the running kernel (and loaded
-binfmts), by trying small test programs for each.  The list of architectures
-it knows does include arm64ilp32.
+Signed-off-by: Nicolas Pitre <nico@linaro.org>
+---
+ include/asm-generic/export.h | 15 +++++++++++++++
+ scripts/Makefile.build       | 22 +++++++++++++++-------
+ 2 files changed, 30 insertions(+), 7 deletions(-)
 
-For most archs the test is just {write(1, "ok\n"); _exit(0);} unless there's
-some difference from baseline that should be checked for, like dmb (ARMv7)
-on armhf or mtvsrd (POWER8) on ppc64el.  I could scribble in the top half of
-a register to test the delousing, but it's not like alternate versions of
-the ABI are expected in the wild...
-
-
-There's another issue: name.  A stalled request to add it to dpkg's cputable
-(https://bugs.debian.org/824742) uses "arm64ilp32" and "arm64ilp32be" which
-are unwieldy.  Even the discussion uses "ilp32" -- probably too generic. 
-https://wiki.linaro.org/Platform/arm64-ilp32 mentions both.  I've heard
-"a32" somewhere.  I have no stake here (I'm on the CC list as a x32 not arm
-porter...), but if you want to choose a color for this bikeshed, the time
-is now.
-
-
-Meow!
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 39a19dc366..83dda5f840 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -84,11 +84,26 @@ KSYM(__kcrctab_\name):
+ #define __EXPORT_SYMBOL(sym, val, sec) ___EXPORT_SYMBOL sym, val, sec
+ #endif
+ 
++/* in the non genksyms case those are no-ops */
++#define SYMBOL_CPROTO(expr)
++#define SYMBOL_CPROTO_INCLUDE(file)
++
+ #else /* __GENKSYMS__ */
+ 
+ /* create a preprocessor output suitable for cmd_gensymtypes_S */
+ #define __EXPORT_SYMBOL(sym, val, sec) EXPORT_SYMBOL(sym)
+ 
++/*
++ * The cmd_gensymtypes_S kbuild command recognizes the following:
++ *
++ * Provide a C prototype for genksyms: SYMBOL_CPROTO(expr)
++ * example: SYMBOL_CPROTO(void foobar(int x, int y))
++ *
++ * Specify an include file that contains C prototypes for genksyms:
++ * SYMBOL_CPROTO_INCLUDE(quoted_filename)
++ * example: SYMBOL_CPROTO_INCLUDE(<linux/string.h>)
++ */
++
+ #endif /* __GENKSYMS__ */
+ 
+ #define EXPORT_SYMBOL(name)					\
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index ebf6e08ae4..58ebc4b15d 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -317,24 +317,32 @@ modkern_aflags := $(KBUILD_AFLAGS_KERNEL) $(AFLAGS_KERNEL)
+ $(real-objs-m)      : modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
+ $(real-objs-m:.o=.s): modkern_aflags := $(KBUILD_AFLAGS_MODULE) $(AFLAGS_MODULE)
+ 
+-# .S file exports must have their C prototypes defined in asm/asm-prototypes.h
+-# or a file that it includes, in order to get versioned symbols. We build a
+-# dummy C file that includes asm-prototypes and the EXPORT_SYMBOL lines from
+-# the .S file (with trailing ';'), and run genksyms on that, to extract vers.
++# In order to get versioned symbols, .S file exports must have their C prototypes:
++# - defined in asm/asm-prototypes.h or a file that it includes, or
++# - provided in a file specified by SYMBOL_CPROTO_INCLUDE(), or
++# - specified directly by SYMBOL_CPROTO().
++# We build a dummy C file that includes asm-prototypes and the EXPORT_SYMBOL
++# lines from the .S file (with trailing ';'), and run genksyms on that, to
++# extract vers.
+ #
+ # This is convoluted. The .S file must first be preprocessed to run guards and
+ # expand names, then the resulting exports must be constructed into plain
+ # EXPORT_SYMBOL(symbol); to build our dummy C file, and that gets preprocessed
+ # to make the genksyms input. See also include/asm-generic/export.h.
+ #
++# The -Ulinux is necessary otherwise SYMBOL_CPROTO_INCLUDE(<linux/bitops.h>)
++# is turned into #include <1/bitops.h> due to "linux" being defined to 1.
++#
+ # These mirror gensymtypes_c and co above, keep them in synch.
+ cmd_gensymtypes_S =                                                         \
+     ( echo "\#include <linux/kernel.h>" ;                                   \
+       if [ -e $(srctree)/arch/$(SRCARCH)/include/asm/asm-prototypes.h ];    \
+       then echo "\#include <asm/asm-prototypes.h>"; fi;                     \
+-      $(CPP) -D__GENKSYMS__ $(a_flags) $< | tr ";" "\n" |                   \
+-      sed -n -e '/EXPORT_SYMBOL(/s/$$/;/p' ) |                              \
+-    $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
++      $(CPP) -D__GENKSYMS__ $(a_flags) -Ulinux $< | tr ";" "\n" |           \
++      sed -n -e '/EXPORT_SYMBOL(/s/$$/;/p'                                  \
++             -e 's/SYMBOL_CPROTO(\(.*\))/\1;/p'                             \
++             -e 's/SYMBOL_CPROTO_INCLUDE(\(.*\))/\#include \1/p' ) |        \
++    $(CPP) -D__GENKSYMS__ -I$(@D) $(c_flags) -xc - |                        \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
+      $(if $(KBUILD_PRESERVE),-p)                                            \
 -- 
-The bill declaring Jesus as the King of Poland fails to specify whether
-the addition is at the top or end of the list of kings.  What should the
-historians do?
+2.7.4
+
