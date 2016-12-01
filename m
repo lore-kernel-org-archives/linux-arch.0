@@ -1,98 +1,84 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH] proc: mm: export PTE sizes directly in smaps (v3)
-Date: Thu, 1 Dec 2016 13:21:39 +0100
-Message-ID: <3d879b98-1d11-adc1-b417-3faa1dd6d9d8@suse.cz>
-References: <20161129201703.CE9D5054@viggo.jf.intel.com>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
+ from asm
+Date: Thu, 1 Dec 2016 23:39:42 +1100
+Message-ID: <20161201233942.0453b759@roar.ozlabs.ibm.com>
+References: <20161129131922.GA31466@angband.pl>
+        <20161129135118.24696-1-kilobyte@angband.pl>
+        <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+        <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+        <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+        <20161129195721.GI2697@decadent.org.uk>
+        <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+        <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+        <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+        <20161201041325.GX35881@redhat.com>
+        <830d2864-ab52-27c8-8178-ec86f3267079@redhat.com>
+        <20161201220907.60375b4f@roar.ozlabs.ibm.com>
+        <e91d972c-bf6d-8465-50b0-13db4645eed5@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20161129201703.CE9D5054@viggo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
-Cc: hch@lst.de, akpm@linux-foundation.org, dan.j.williams@intel.com, khandual@linux.vnet.ibm.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <e91d972c-bf6d-8465-50b0-13db4645eed5@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stanislav Kozina <skozina@redhat.com>
+Cc: Don Zickus <dzickus@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 11/29/2016 09:17 PM, Dave Hansen wrote:
-> Andrew, you can drop proc-mm-export-pte-sizes-directly-in-smaps-v2.patch,
-> and replace it with this.
->
-> Changes from v2:
->  * Do not assume (wrongly) that smaps_hugetlb_range() always uses
->    PUDs.  (Thanks for pointing this out, Vlastimil).  Also handle
->    hstates that are not exactly at PMD/PUD sizes.
->
-> Changes from v1:
->  * Do one 'Pte' line per pte size instead of mashing on one line
->  * Use PMD_SIZE for pmds instead of PAGE_SIZE, whoops
->  * Wrote some Documentation/
->
-> --
->
-> /proc/$pid/smaps has a number of fields that are intended to imply the
-> kinds of PTEs used to map memory.  "AnonHugePages" obviously tells you
-> how many PMDs are being used.  "MMUPageSize" along with the "Hugetlb"
-> fields tells you how many PTEs you have for a huge page.
->
-> The current mechanisms work fine when we have one or two page sizes.
-> But, they start to get a bit muddled when we mix page sizes inside
-> one VMA.  For instance, the DAX folks were proposing adding a set of
-> fields like:
->
-> 	DevicePages:
-> 	DeviceHugePages:
-> 	DeviceGiganticPages:
-> 	DeviceGinormousPages:
->
-> to unmuddle things when page sizes get mixed.  That's fine, but
-> it does require userspace know the mapping from our various
-> arbitrary names to hardware page sizes on each architecture and
-> kernel configuration.  That seems rather suboptimal.
->
-> What folks really want is to know how much memory is mapped with
-> each page size.  How about we just do *that* instead?
->
-> Patch attached.  Seems harmless enough.  Seems to compile on a
-> bunch of random architectures.  Makes smaps look like this:
->
-> Private_Hugetlb:       0 kB
-> Swap:                  0 kB
-> SwapPss:               0 kB
-> KernelPageSize:        4 kB
-> MMUPageSize:           4 kB
-> Locked:                0 kB
-> Ptes@4kB:	      32 kB
-> Ptes@2MB:	    2048 kB
->
-> The format I used here should be unlikely to break smaps parsers
-> unless they're looking for "kB" and now match the 'Ptes@4kB' instead
-> of the one at the end of the line.
->
-> Note: hugetlbfs PTEs are unusual.  We can have more than one "pte_t"
-> for each hugetlbfs "page".  arm64 has this configuration, and probably
-> others.  The code should now handle when an hstate's size is not equal
-> to one of the page table entry sizes.  For instance, it assumes that
-> hstates between PMD_SIZE and PUD_SIZE are made up of multiple PMDs
-> and prints them as such.
->
-> I've tested this on x86 with normal 4k ptes, anonymous huge pages,
-> 1G hugetlbfs and 2M hugetlbfs pages.
->
-> 1. I'd like to thank Dan Williams for showing me a mirror as I
->    complained about the bozo that introduced 'AnonHugePages'.
->
-> Cc: Christoph Hellwig <hch@lst.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Dan Williams <dan.j.williams@intel.com>
-> Cc: Anshuman Khandual <khandual@linux.vnet.ibm.com>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
+On Thu, 1 Dec 2016 12:33:02 +0100
+Stanislav Kozina <skozina@redhat.com> wrote:
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
+> On 12/01/2016 12:09 PM, Nicholas Piggin wrote:
+> > On Thu, 1 Dec 2016 11:48:09 +0100
+> > Stanislav Kozina <skozina@redhat.com> wrote:
+> >  
+> >> On 12/01/2016 05:13 AM, Don Zickus wrote:
+> >>
+> >> ...
+> >>  
+> >>> I think GregKH pointed to one such tool, libabigail?  We are working on
+> >>> others too.  
+> >> I should mention one of the others here:
+> >> https://github.com/skozina/kabi-dw
+> >>
+> >> It's quite comparable to libabigail in the way it works, the main
+> >> differences are:
+> >>    - written in pure C
+> >>    - depends only on elf-utils and flex/yacc
+> >>    - it's much simpler (4k LOC)
+> >>    - stores the type information in the text files and compares those
+> >> instead of directly comparing two sets of DWARF data  
+> > Now this seems much better for distro ABI checking.
+> >
+> > The next question is, do they need any kernel support for rare cases
+> > where they do have to break the ABI of an export? Simple rename of the
+> > function with a _v2 postfix might be enough. We could retain some per
+> > symbol versioning in the kernel if needed, but how much would it
+> > actually help?  
+> 
+> The biggest pain point AFAICT is to identify what types (functions, 
+> structs, enums, ...) should be considered a part of the stable ABI.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Sure. This is something an automated checker can't solve completely.
+Any changes would have to be considered in terms of their impact to
+the ABI. It's not just data but also instruction changes involved.
+
+This is policy that should not be mandated by the kernel. Which is
+why I'm in favor of using tools like this and just providing mechanism
+so distros can implement their own polices.
+
+> And 
+> the problem with modversions is that it pulls in just everything which 
+> gets (accidentally?) #included in the source file.
+
+I think that's SRCVERSION which is something else. But modversions
+has problems too.
+
+> The actual ABI maintenance is a different problem, but there are many 
+> possible approaches, the _v2 suffix being one of them.
+
+Would be good to get a consensus on that too.
+
+Thanks,
+Nick
