@@ -1,52 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:63954 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759838AbcLAN6n (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2016 08:58:43 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
-Date: Thu, 01 Dec 2016 14:58:17 +0100
-Message-ID: <2899250.iZaPagXLk8@wuerfel>
-In-Reply-To: <CA+55aFw7G1QJ0dwMXJKJqFVhVsWGsAdxZTOsmcCD7POUde2+dA@mail.gmail.com>
-References: <20161129131922.GA31466@angband.pl> <CA+55aFxCKgTrh1gS-cMyhBa0QoLW2DL2+DYxOAcA-Bd15H15vg@mail.gmail.com> <CA+55aFw7G1QJ0dwMXJKJqFVhVsWGsAdxZTOsmcCD7POUde2+dA@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:55108 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1759172AbcLAPUy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 1 Dec 2016 10:20:54 -0500
+Date: Thu, 1 Dec 2016 10:20:39 -0500
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
+ asm
+Message-ID: <20161201152039.GB35881@redhat.com>
+References: <20161129135118.24696-1-kilobyte@angband.pl>
+ <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+ <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+ <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+ <20161129195721.GI2697@decadent.org.uk>
+ <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+ <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+ <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+ <20161201041325.GX35881@redhat.com>
+ <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161201135817.7GOEHB14ur3b1bDIGLjAfpeCG-KijZcPOHYOGeKojjU@z>
+To: Nicholas Piggin <npiggin@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161201152039.IAuiJXI4sHNeze8jPGY-g5lgNSutXr-_XhkFoT5VZBk@z>
 
-On Tuesday, November 29, 2016 9:14:46 AM CET Linus Torvalds wrote:
-> On Tue, Nov 29, 2016 at 9:10 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > So quite frankly, I don't want to make our kernel sources worse due to
-> > broken shit tools getting something wrong that we shouldn't even care
-> > about.
+On Thu, Dec 01, 2016 at 03:32:15PM +1100, Nicholas Piggin wrote:
+> > Anyway, MODVERSIONS is our way of protecting our kabi for the last 10 years.
+> > It isn't perfect and we have fixed the genksyms tool over the years, but so
+> > far it mostly works fine.
 > 
-> And yes, I'm on binutils 2.26 (with no issues), so it could be that
-> it's 2.27 that triggers this.
+> Okay. It would be good to get all the distros in on this.
 > 
-> We could make the pr_warn_once() mention "broken binutils?" so that
-> people know why the warning happens.
+> What I want to do is work out exactly what it is that modversions is
+> giving you.
+> 
+> We know it's fairly nasty code to maintain and it does not detect ABI
+> changes very well. But it's not such a burden that we can't maintain
+> it if there are good reasons to keep it.
 
-I've tried to get to the bottom of this, but couldn't find anything
-related to the toolchain version. I've tried binutils 2.23, 2.24, 2.26
-and 2.27, and also gcc-7.0, gcc-5.4.1 and gcc-4.9.3, but with today's
-linux-next, I always get
+Hi Nick,
 
-WARNING: EXPORT symbol "mcount" [arch/x86/entry/built-in.ko] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "mcount" [arch/x86/built-in.ko] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "cmpxchg8b_emu" [vmlinux] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "empty_zero_page" [vmlinux] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "mcount" [vmlinux] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "cmpxchg8b_emu" [vmlinux] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "empty_zero_page" [vmlinux] version generation failed, symbol will not be versioned.
-WARNING: EXPORT symbol "mcount" [vmlinux] version generation failed, symbol will not be versioned.
+I won't disagree with you there. :-)
 
-Out of 12 randconfig builds that had CONFIG_MODVERSIONS enabled, all 12
-had this problem, though not always with all the symbols.
+modversions is a pretty heavy handed approach that basically says if all the
+symbols and types haven't changed for a given EXPORT_SYMBOL (recursively
+checked), then there is a high degree of confidence the OOT driver will not
+only load, but run correctly.
 
-	Arnd
+The question is how to provide a similar guarantee if a different way?
+
+We have plenty of customers with 10 year old drivers, where the expertise
+has long left the company.  The engineers still around, recompile and make
+tweaks to get things working on the latest RHEL.  Verify it passes testing
+and release it.  Then they hope to not touch it again for a few years until
+the next RHEL comes along.
+
+Scary, huh? :-)
+
+Common examples, filesystems and storage drivers.
+
+
+There is no way that I see to provide a 100% guarantee, but if we do enough
+checks, we should be able to have a high degree of confidence the driver
+won't blow up.
+
+On the flip side, easy things in the kernel to do is:
+
+- provide the memory allocation (instead of having the driver staticly
+  allocate)
+- provide functions to retrieve various internal data (instead of having the
+  driver do direct referencing to deep internal elements)
+- cut down on some static inlines (and use accessory functions instead),
+  etc.
+
+Those types of changes allow the OOT driver to be more ignorant of kernel
+changes and struct modifications.
+
+
+Look to Stanislav's responses for his ideas on new tooling.
+
+Thanks for helping!
+
+Cheers,
+Don
+
+
+> 
+> > I am not sure what 'control vermagic' is, but it sounds like a string check,
+> > which won't protect against the boatload of backports we do to structs,
+> > enums, and functions.
+> 
+> Basically vermagic is the string all modules and the kernel get, which
+> must match in order to load modules. If you have modversions disabled,
+> then vermagic includes the kernel version. If modversions is enabled,
+> then vermagic does not include the kernel version but the CRCs have to
+> also match.
+> 
+> Controlling it explicitly is just a couple of lines where a distro can
+> control it (so they can update their kernel version without breaking).
+> It's not meant to solve everything, just the first one.
+>  
+> > Currently we are exploring various ways to get smarter here.  The genksyms
+> > tool has its limitations and handling kabi hacks in RHEL is getting
+> > tiresome.
+> > 
+> > I think GregKH pointed to one such tool, libabigail?  We are working on
+> > others too.
+> > 
+> > 
+> > Circling back to enabling MODVERSIONS in Fedora, that was to start the
+> > process of syncing Fedora with RHEL stuff in preparation for smarter tools.
+> > 
+> > 
+> > If you take away MODVERSIONS, that would put a damper in our work, but
+> > easily carried privately (much like MODSIGNING for 8 years until it went
+> > upstream :-) ).
+> 
+> I don't think that's necessary. A feature requirement for a distro is just
+> as valid as any other user of upstream. I don't want to hinder any distro,
+> I'm just still not quite seeing the big picture of exactly what functionality
+> you need from the kernel.
+> 
+> Thanks,
+> Nick
