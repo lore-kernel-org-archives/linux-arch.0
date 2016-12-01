@@ -1,10 +1,9 @@
-From: Don Zickus <dzickus@redhat.com>
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
  asm
-Date: Thu, 1 Dec 2016 10:40:59 -0500
-Message-ID: <20161201154059.GC35881@redhat.com>
-References: <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
- <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+Date: Thu, 1 Dec 2016 17:06:11 +0100
+Message-ID: <20161201160611.GA30910@kroah.com>
+References: <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
  <20161129195721.GI2697@decadent.org.uk>
  <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
  <20161201051852.28dc335f@roar.ozlabs.ibm.com>
@@ -13,49 +12,38 @@ References: <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
  <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
  <20161201152039.GB35881@redhat.com>
  <20161201152609.GA21862@infradead.org>
+ <20161201154059.GC35881@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33270 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751423AbcLAPlK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Dec 2016 10:41:10 -0500
+Received: from mail.linuxfoundation.org ([140.211.169.12]:55516 "EHLO
+        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1760444AbcLAQGD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2016 11:06:03 -0500
 Content-Disposition: inline
-In-Reply-To: <20161201152609.GA21862@infradead.org>
+In-Reply-To: <20161201154059.GC35881@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Don Zickus <dzickus@redhat.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Thu, Dec 01, 2016 at 07:26:09AM -0800, Christoph Hellwig wrote:
-> On Thu, Dec 01, 2016 at 10:20:39AM -0500, Don Zickus wrote:
-> > 
-> > - provide the memory allocation (instead of having the driver staticly
-> >   allocate)
-> > - provide functions to retrieve various internal data (instead of having the
-> >   driver do direct referencing to deep internal elements)
-> > - cut down on some static inlines (and use accessory functions instead),
-> >   etc.
-> > 
-> > Those types of changes allow the OOT driver to be more ignorant of kernel
-> > changes and struct modifications.
+On Thu, Dec 01, 2016 at 10:40:59AM -0500, Don Zickus wrote:
+> Unfortunately, there are various drivers that will never go upstream
 > 
-> All that is counter to what we really want to have:  a well integrated
-> kernel that moves forward together so that we can see and improve the
-> whole situation.  No need to make things worse just to help leeches.
-> Get your damn drivers upstream ASAP and let's stop this discussion..
+> - paid storage drivers that provide bells and whistles on top of inbox
+>   driver
 
-I understand and won't disagree with you. :-)
+That's because the developer doesn't want them upstream, that's their
+fault, nothing we can do about them.
 
-Unfortunately, there are various drivers that will never go upstream
+> - old drivers/fs that application has been relying on for a long time but
+>   company doesn't have resources to migrate to current technology.
 
-- paid storage drivers that provide bells and whistles on top of inbox
-  driver
-- old drivers/fs that application has been relying on for a long time but
-  company doesn't have resources to migrate to current technology.
+That's what drivers/staging/ is for, I'll take anything that builds (and
+sometimes stuff that doesn't build) as long as people are actually using
+it.  So send the stuff that is in this category on to me and that will
+reduce your burden a _lot_.
 
-We have been trying over the years to do what we can to move customers in
-the right direction.  It is just a slow process, sadly.
+thanks,
 
-Cheers,
-Don
+greg k-h
