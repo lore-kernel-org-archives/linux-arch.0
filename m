@@ -1,49 +1,66 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+From: Michal Marek <mmarek@suse.com>
 Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
  asm
-Date: Thu, 1 Dec 2016 17:06:11 +0100
-Message-ID: <20161201160611.GA30910@kroah.com>
-References: <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+Date: Thu, 1 Dec 2016 17:12:41 +0100
+Message-ID: <6e8cf20b-2d2f-ba1f-e02c-c757d5a25db7@suse.com>
+References: <20161129131922.GA31466@angband.pl>
+ <20161129135118.24696-1-kilobyte@angband.pl>
+ <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+ <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+ <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
  <20161129195721.GI2697@decadent.org.uk>
  <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
  <20161201051852.28dc335f@roar.ozlabs.ibm.com>
  <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
- <20161201041325.GX35881@redhat.com>
- <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
- <20161201152039.GB35881@redhat.com>
- <20161201152609.GA21862@infradead.org>
- <20161201154059.GC35881@redhat.com>
+ <1480541581.16599.78.camel@decadent.org.uk>
+ <20161201125545.406d092c@roar.ozlabs.ibm.com>
+ <1480559754.16599.92.camel@decadent.org.uk>
+ <20161201143928.07a08348@roar.ozlabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:55516 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760444AbcLAQGD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2016 11:06:03 -0500
-Content-Disposition: inline
-In-Reply-To: <20161201154059.GC35881@redhat.com>
+Received: from mx2.suse.de ([195.135.220.15]:49951 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752008AbcLAQMp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 1 Dec 2016 11:12:45 -0500
+In-Reply-To: <20161201143928.07a08348@roar.ozlabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Don Zickus <dzickus@redhat.com>
-Cc: Christoph Hellwig <hch@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Nicholas Piggin <npiggin@gmail.com>, Ben Hutchings <ben@decadent.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Dodji Seketeli <dodji@seketeli.org>
 
-On Thu, Dec 01, 2016 at 10:40:59AM -0500, Don Zickus wrote:
-> Unfortunately, there are various drivers that will never go upstream
+On 2016-12-01 04:39, Nicholas Piggin wrote:
+> On Thu, 01 Dec 2016 02:35:54 +0000
+> Ben Hutchings <ben@decadent.org.uk> wrote:
+>> As I understand it, genksyms incorporates the definitions of a
+>> function's parameter and return types - not just their names - and all
+>> the types they refer to, recursively.  So a structure size change
+>> should change the version of all functions where the function and its
+>> caller pass that structure between them, however indirectly.  It finds
+>> such indirect ABI breakage for me fairly regularly, though of course I
+>> don't know that it finds everything.
 > 
-> - paid storage drivers that provide bells and whistles on top of inbox
->   driver
+> It is only the type name.
+> 
+> Not only that but even if you did extend it further to structure type
+> arrangement then you still have to deal with other structures followed
+> via pointers. Or (rarer but not unheard of):
+> 
+> - changes to structures without changes of the types of their members
+> - changes to arguments without changes of their type
 
-That's because the developer doesn't want them upstream, that's their
-fault, nothing we can do about them.
+This is already covered by genksyms. Try make V=1 with
+CONFIG_MODVERSIONS=y and add the -D option to one of the genksyms
+command. I wanted to paste the expanded signature for
+register_filesystem() as an example, but vger would probably drop the
+mail for being too big :).
 
-> - old drivers/fs that application has been relying on for a long time but
->   company doesn't have resources to migrate to current technology.
 
-That's what drivers/staging/ is for, I'll take anything that builds (and
-sometimes stuff that doesn't build) as long as people are actually using
-it.  So send the stuff that is in this category on to me and that will
-reduce your burden a _lot_.
+> - changes to semantics of functions
+> - data structures derived in ways other than exported symbols, e.g.,
+>   fixed register for `current` on some archs
 
-thanks,
+Right, this is something that genksyms has no idea about.
 
-greg k-h
+Michal
