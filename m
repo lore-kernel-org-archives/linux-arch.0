@@ -1,129 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55108 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1759172AbcLAPUy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Dec 2016 10:20:54 -0500
-Date: Thu, 1 Dec 2016 10:20:39 -0500
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Message-ID: <20161201152039.GB35881@redhat.com>
-References: <20161129135118.24696-1-kilobyte@angband.pl>
- <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
- <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
- <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
- <20161129195721.GI2697@decadent.org.uk>
- <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
- <20161201051852.28dc335f@roar.ozlabs.ibm.com>
- <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
- <20161201041325.GX35881@redhat.com>
- <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
+Received: from [195.159.176.226] ([195.159.176.226]:54048 "EHLO
+        blaine.gmane.org" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+        with ESMTP id S1756290AbcLAPuN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2016 10:50:13 -0500
+Received: from list by blaine.gmane.org with local (Exim 4.84_2)
+        (envelope-from <glka-linux-arch@m.gmane.org>)
+        id 1cCTca-0004d4-CO
+        for linux-arch@vger.kernel.org; Thu, 01 Dec 2016 16:50:04 +0100
+From: Dodji Seketeli <dodji@seketeli.org>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
+Date: Thu, 01 Dec 2016 16:19:23 +0100
+Message-ID: <86k2bjk77o.fsf@seketeli.org>
+References: <20161129131922.GA31466@angband.pl>
+        <20161129135118.24696-1-kilobyte@angband.pl>
+        <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+        <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+        <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+        <20161129195721.GI2697@decadent.org.uk>
+        <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+        <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+        <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+        <20161201041325.GX35881@redhat.com>
+        <830d2864-ab52-27c8-8178-ec86f3267079@redhat.com>
+        <20161201220907.60375b4f@roar.ozlabs.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161201152039.IAuiJXI4sHNeze8jPGY-g5lgNSutXr-_XhkFoT5VZBk@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kbuild@vger.kernel.org, debian-kernel@lists.debian.org, linux-kernel@vger.kernel.orglinux-kbuild@vger.kernel.orglinux-kernel@vger.kernel.org
+Message-ID: <20161201151923.wl7owtafkFTa0Y_QNdduNLcB86gY0u8beEeEgeWKny8@z>
 
-On Thu, Dec 01, 2016 at 03:32:15PM +1100, Nicholas Piggin wrote:
-> > Anyway, MODVERSIONS is our way of protecting our kabi for the last 10 years.
-> > It isn't perfect and we have fixed the genksyms tool over the years, but so
-> > far it mostly works fine.
-> 
-> Okay. It would be good to get all the distros in on this.
-> 
-> What I want to do is work out exactly what it is that modversions is
-> giving you.
-> 
-> We know it's fairly nasty code to maintain and it does not detect ABI
-> changes very well. But it's not such a burden that we can't maintain
-> it if there are good reasons to keep it.
+Nicholas Piggin <npiggin@gmail.com> a écrit:
 
-Hi Nick,
+[...]
 
-I won't disagree with you there. :-)
+> On Thu, 1 Dec 2016 11:48:09 +0100
+> Stanislav Kozina <skozina@redhat.com> wrote:
+>
+>> On 12/01/2016 05:13 AM, Don Zickus wrote:
+>> 
+>> ...
+>> 
+>> > I think GregKH pointed to one such tool, libabigail?  We are working on
+>> > others too.  
+>> 
+>> I should mention one of the others here:
+>> https://github.com/skozina/kabi-dw
 
-modversions is a pretty heavy handed approach that basically says if all the
-symbols and types haven't changed for a given EXPORT_SYMBOL (recursively
-checked), then there is a high degree of confidence the OOT driver will not
-only load, but run correctly.
+[...]
 
-The question is how to provide a similar guarantee if a different way?
+> Now this seems much better for distro ABI checking.
 
-We have plenty of customers with 10 year old drivers, where the expertise
-has long left the company.  The engineers still around, recompile and make
-tweaks to get things working on the latest RHEL.  Verify it passes testing
-and release it.  Then they hope to not touch it again for a few years until
-the next RHEL comes along.
+Right, Incidentally, Fedora does distro-wide ABI verfication for
+userspace libraries updates in a given stable distribution.  You can
+look at an example of output of the libabigail-based tool that compares
+a new version of an ELF library to it's latest stable version:
 
-Scary, huh? :-)
+https://taskotron.fedoraproject.org/artifacts/all/a55cbac8-ab64-11e6-94e0-525400120b80/task_output/curl-7.51.0-2.fc25.log
 
-Common examples, filesystems and storage drivers.
+The results of those ABI comparison can browsed at https://taskotron.fedoraproject.org/resultsdb/results?testcase_name=dist.abicheck.
 
+Of course, you can run the comparison yourself by using a
+libabigail-based tool like
+https://sourceware.org/libabigail/manual/abipkgdiff.html which takes
+.deb and .rpm packages.
 
-There is no way that I see to provide a 100% guarantee, but if we do enough
-checks, we should be able to have a high degree of confidence the driver
-won't blow up.
+We are currently working on making libabigail-based tools understand
+Linux kernel specifities so that we can run that kind of analysis on
+Kernel updates too.  Ideally, when this is done, you should be able to
+just use abipkgdiff on two Linux Kernel packages and get the same kind
+of output.
 
-On the flip side, easy things in the kernel to do is:
+> The next question is, do they need any kernel support for rare cases
+> where they do have to break the ABI of an export? Simple rename of the
+> function with a _v2 postfix might be enough. We could retain some per
+> symbol versioning in the kernel if needed, but how much would it
+> actually help?
 
-- provide the memory allocation (instead of having the driver staticly
-  allocate)
-- provide functions to retrieve various internal data (instead of having the
-  driver do direct referencing to deep internal elements)
-- cut down on some static inlines (and use accessory functions instead),
-  etc.
+As a reviewer of the ABI change report emitted by the tool, if what you
+want is to say "I reviewed that ABI change and it's OK, so please do not
+show it to me next time", then you can feed the tool with a "suppression
+specification".  It's a text file in the INI syntax in which you can
+specify the kind of change you want the tool to suppress from its
+output: https://sourceware.org/libabigail/manual/libabigail-concepts.html.
 
-Those types of changes allow the OOT driver to be more ignorant of kernel
-changes and struct modifications.
-
-
-Look to Stanislav's responses for his ideas on new tooling.
-
-Thanks for helping!
+So I don't think you need to do anything to the source code of the
+Kernel in the cases where you need to change the ABI.  Just tell the
+tool about that change.
 
 Cheers,
-Don
 
+-- 
+		Dodji
 
-> 
-> > I am not sure what 'control vermagic' is, but it sounds like a string check,
-> > which won't protect against the boatload of backports we do to structs,
-> > enums, and functions.
-> 
-> Basically vermagic is the string all modules and the kernel get, which
-> must match in order to load modules. If you have modversions disabled,
-> then vermagic includes the kernel version. If modversions is enabled,
-> then vermagic does not include the kernel version but the CRCs have to
-> also match.
-> 
-> Controlling it explicitly is just a couple of lines where a distro can
-> control it (so they can update their kernel version without breaking).
-> It's not meant to solve everything, just the first one.
->  
-> > Currently we are exploring various ways to get smarter here.  The genksyms
-> > tool has its limitations and handling kabi hacks in RHEL is getting
-> > tiresome.
-> > 
-> > I think GregKH pointed to one such tool, libabigail?  We are working on
-> > others too.
-> > 
-> > 
-> > Circling back to enabling MODVERSIONS in Fedora, that was to start the
-> > process of syncing Fedora with RHEL stuff in preparation for smarter tools.
-> > 
-> > 
-> > If you take away MODVERSIONS, that would put a damper in our work, but
-> > easily carried privately (much like MODSIGNING for 8 years until it went
-> > upstream :-) ).
-> 
-> I don't think that's necessary. A feature requirement for a distro is just
-> as valid as any other user of upstream. I don't want to hinder any distro,
-> I'm just still not quite seeing the big picture of exactly what functionality
-> you need from the kernel.
-> 
-> Thanks,
-> Nick
