@@ -1,40 +1,50 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
-Date: Thu, 1 Dec 2016 10:26:07 -0800
-Message-ID: <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
-References: <20161129131922.GA31466@angband.pl> <CA+55aFxCKgTrh1gS-cMyhBa0QoLW2DL2+DYxOAcA-Bd15H15vg@mail.gmail.com>
- <CA+55aFw7G1QJ0dwMXJKJqFVhVsWGsAdxZTOsmcCD7POUde2+dA@mail.gmail.com> <2899250.iZaPagXLk8@wuerfel>
+From: Don Zickus <dzickus@redhat.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
+ asm
+Date: Thu, 1 Dec 2016 13:42:54 -0500
+Message-ID: <20161201184254.GE35881@redhat.com>
+References: <20161129195721.GI2697@decadent.org.uk>
+ <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+ <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+ <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+ <20161201041325.GX35881@redhat.com>
+ <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
+ <20161201152039.GB35881@redhat.com>
+ <20161201152609.GA21862@infradead.org>
+ <20161201154059.GC35881@redhat.com>
+ <20161201160611.GA30910@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <2899250.iZaPagXLk8@wuerfel>
+Content-Disposition: inline
+In-Reply-To: <20161201160611.GA30910@kroah.com>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 1, 2016 at 5:58 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> WARNING: EXPORT symbol "mcount" [arch/x86/entry/built-in.ko] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "mcount" [arch/x86/built-in.ko] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "cmpxchg8b_emu" [vmlinux] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "empty_zero_page" [vmlinux] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "mcount" [vmlinux] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "cmpxchg8b_emu" [vmlinux] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "empty_zero_page" [vmlinux] version generation failed, symbol will not be versioned.
-> WARNING: EXPORT symbol "mcount" [vmlinux] version generation failed, symbol will not be versioned.
->
-> Out of 12 randconfig builds that had CONFIG_MODVERSIONS enabled, all 12
-> had this problem, though not always with all the symbols.
+On Thu, Dec 01, 2016 at 05:06:11PM +0100, Greg Kroah-Hartman wrote:
+> On Thu, Dec 01, 2016 at 10:40:59AM -0500, Don Zickus wrote:
+> > Unfortunately, there are various drivers that will never go upstream
+> > 
+> > - paid storage drivers that provide bells and whistles on top of inbox
+> >   driver
+> 
+> That's because the developer doesn't want them upstream, that's their
+> fault, nothing we can do about them.
+> 
+> > - old drivers/fs that application has been relying on for a long time but
+> >   company doesn't have resources to migrate to current technology.
+> 
+> That's what drivers/staging/ is for, I'll take anything that builds (and
+> sometimes stuff that doesn't build) as long as people are actually using
+> it.  So send the stuff that is in this category on to me and that will
+> reduce your burden a _lot_.
 
-Well, the good news is that pretty fundamentally, if it's just the asm
-symbls, those really don't have ABI's that change (or if they change,
-it's such a fundamental change that everything else will likely have
-changed too and we don't need to worry about one asm symbol crc - the
-change will be caught by other symbols).
+Hi Greg,
 
-So I think the whole "we don't really care" approach should work fine.
-The "let's make every symbol always be versioned" may just be too much
-pain for no real gain.
+I will forward this offer to the right folks and see who we can get to bite.
+:-)  Thanks!
 
-            Linus
+Cheers,
+Don
