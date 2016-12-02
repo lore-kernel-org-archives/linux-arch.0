@@ -1,46 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f196.google.com ([209.85.223.196]:32936 "EHLO
-        mail-io0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751845AbcLBRXK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2016 12:23:10 -0500
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:60273 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1753821AbcLBTB3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2016 14:01:29 -0500
+Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uB2GEt8U108104
+        for <linux-arch@vger.kernel.org>; Fri, 2 Dec 2016 11:15:06 -0500
+Received: from e35.co.us.ibm.com (e35.co.us.ibm.com [32.97.110.153])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 2737r2yt64-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 02 Dec 2016 11:15:06 -0500
+Received: from localhost
+        by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+        Fri, 2 Dec 2016 09:15:05 -0700
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH] proc: mm: export PTE sizes directly in smaps (v3)
+In-Reply-To: <20161129201703.CE9D5054@viggo.jf.intel.com>
+References: <20161129201703.CE9D5054@viggo.jf.intel.com>
+Date: Fri, 02 Dec 2016 21:44:57 +0530
 MIME-Version: 1.0
-In-Reply-To: <14455987.OWjnZpEEup@wuerfel>
-References: <20161129131922.GA31466@angband.pl> <2899250.iZaPagXLk8@wuerfel>
- <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com> <14455987.OWjnZpEEup@wuerfel>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 2 Dec 2016 09:04:28 -0800
-Message-ID: <CA+55aFxYYKRsimcZsj7fz4paPag6Uqf1M5_v=W2Yv9sSPeLdig@mail.gmail.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
+Message-ID: <874m2me29q.fsf@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alan Modra <amodra@gmail.com>
-Message-ID: <20161202170428.PjhYuCp7tu-xH-n8YtLSLikHTF0bLkSc9icogGs5lpU@z>
+To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
+Cc: hch@lst.de, akpm@linux-foundation.org, dan.j.williams@intel.com, khandual@linux.vnet.ibm.com, vbabka@suse.cz, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20161202161457.XMgNbAfBSkfg2EPsKIz1tvZMEAEpHPHVSb351Jbje8U@z>
 
-On Fri, Dec 2, 2016 at 2:55 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> Yes, it's always been just the assembly symbols that broke, these were
-> the ones that Al's original patch changed and that ended up with
-> no version information.
+Dave Hansen <dave@sr71.net> writes:
 
-Ok, and the reason is because even if we have a weak symbol from C, it
-would always have a value.
+  
+>  #ifdef CONFIG_HUGETLB_PAGE
+> +/*
+> + * Most architectures have a 1:1 mapping of PTEs to hugetlb page
+> + * sizes, but there are some outliers like arm64 that use
+> + * multiple hardware PTEs to make a hugetlb "page".  Do not
+> + * assume that all 'hpage_size's are not exactly at a page table
+> + * size boundary.  Instead, accept arbitrary 'hpage_size's and
+> + * assume they are made up of the next-smallest size.  We do not
+> + * handle PGD-sized hpages and hugetlb_add_hstate() will WARN()
+> + * if it sees one.
+> + *
+> + * Note also that the page walker code only calls us once per
+> + * huge 'struct page', *not* once per PTE in the page tables.
+> + */
+> +static void smaps_hugetlb_present_hpage(struct mem_size_stats *mss,
+> +					unsigned long hpage_size)
+> +{
+> +	if (hpage_size >= PUD_SIZE)
+> +		mss->rss_pud += hpage_size;
+> +	else if (hpage_size >= PMD_SIZE)
+> +		mss->rss_pmd += hpage_size;
+> +	else
+> +		mss->rss_pte += hpage_size;
+> +}
 
-Good to know what the heck the problem was.
+some powerpc platforms have multiple page table entries mapping the same
+hugepage and on other, we have a page table entry pointing to something
+called hugepaeg directory mapping a set of hugepage. So I am not sure
+the above will work for all those ?
 
-> I have managed to bisect the link failure to a specific binutils
-> commit by Alan Modra now:
+Also do we derive pte@<size value> correctly there ?
 
-Thanks. And I committed your "set to zero" patch, so we can hopefully
-leave this all behind us.
+-aneesh
 
-I marked it for stable (not because older kernels need it, but because
-it's the right thing to do and if we ever backport anything that
-causes this we don't want to forget this).
-
-And I'll keep the workaround in kernel/module.c just because it's
-really late in the rc series, and I'd rather have both belt and
-suspenders for this all right now.
-
-               Linus
