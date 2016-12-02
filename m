@@ -1,55 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39790 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1758018AbcLASnK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 1 Dec 2016 13:43:10 -0500
-Date: Thu, 1 Dec 2016 13:42:54 -0500
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Message-ID: <20161201184254.GE35881@redhat.com>
-References: <20161129195721.GI2697@decadent.org.uk>
- <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
- <20161201051852.28dc335f@roar.ozlabs.ibm.com>
- <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
- <20161201041325.GX35881@redhat.com>
- <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
- <20161201152039.GB35881@redhat.com>
- <20161201152609.GA21862@infradead.org>
- <20161201154059.GC35881@redhat.com>
- <20161201160611.GA30910@kroah.com>
+Received: from mout.kundenserver.de ([212.227.17.13]:64259 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1760445AbcLBMlr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2016 07:41:47 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [RFC, PATCH, v3.9] default exported asm symbols to zero
+Date: Fri, 02 Dec 2016 13:40:27 +0100
+Message-ID: <8452191.39CeLIHTBT@wuerfel>
+In-Reply-To: <14455987.OWjnZpEEup@wuerfel>
+References: <20161129131922.GA31466@angband.pl> <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com> <14455987.OWjnZpEEup@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161201160611.GA30910@kroah.com>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Nicholas Piggin <npiggin@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161201184254.yXlnFyoPXDiCNv226yy2ah1Z-FT1JiM4NFt7-OyRe94@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20161202124027.0d59sMV9zc2pUl0Q5aSYq_oVWkF9mnnKFGAYLKBhNYI@z>
 
-On Thu, Dec 01, 2016 at 05:06:11PM +0100, Greg Kroah-Hartman wrote:
-> On Thu, Dec 01, 2016 at 10:40:59AM -0500, Don Zickus wrote:
-> > Unfortunately, there are various drivers that will never go upstream
-> > 
-> > - paid storage drivers that provide bells and whistles on top of inbox
-> >   driver
-> 
-> That's because the developer doesn't want them upstream, that's their
-> fault, nothing we can do about them.
-> 
-> > - old drivers/fs that application has been relying on for a long time but
-> >   company doesn't have resources to migrate to current technology.
-> 
-> That's what drivers/staging/ is for, I'll take anything that builds (and
-> sometimes stuff that doesn't build) as long as people are actually using
-> it.  So send the stuff that is in this category on to me and that will
-> reduce your burden a _lot_.
+With binutils-2.16 and before, a weak missing symbol was kept during the
+final link, and a missing CRC for an export would lead to that CRC
+being treated as zero implicitly. With binutils-2.17, the crc
+symbol gets dropped, and any module trying to use it will fail to
+load.
 
-Hi Greg,
+This sets the weak CRC symbol to zero explicitly, making it defined
+in vmlinux, which in turn lets us load the modules referring to
+that CRC.
 
-I will forward this offer to the right folks and see who we can get to bite.
-:-)  Thanks!
+The comment above the __CRC_SYMBOL macro suggests that this was
+always the intention, although it also seems that all symbols
+defined in C have a correct CRC these days, and only the exports
+that are now done in assembly need this.
 
-Cheers,
-Don
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+Not sure if this is the correct way of doing it, but this seems trivial
+enough and lets me build the kernel with missing CRCs with any binutils
+version.
+
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 63554e9..59a3b2f 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -54,6 +54,7 @@ KSYM(__kstrtab_\name):
+ KSYM(__kcrctab_\name):
+ 	__put KSYM(__crc_\name)
+ 	.weak KSYM(__crc_\name)
++	.set KSYM(__crc_\name), 0
+ 	.previous
+ #endif
+ #endif
+
