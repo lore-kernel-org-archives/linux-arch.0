@@ -1,56 +1,48 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [PATCH] proc: mm: export PTE sizes directly in smaps (v3)
-Date: Fri, 02 Dec 2016 21:44:57 +0530
-Message-ID: <874m2me29q.fsf@linux.vnet.ibm.com>
-References: <20161129201703.CE9D5054@viggo.jf.intel.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
+Date: Fri, 2 Dec 2016 09:04:28 -0800
+Message-ID: <CA+55aFxYYKRsimcZsj7fz4paPag6Uqf1M5_v=W2Yv9sSPeLdig@mail.gmail.com>
+References: <20161129131922.GA31466@angband.pl> <2899250.iZaPagXLk8@wuerfel>
+ <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com> <14455987.OWjnZpEEup@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20161129201703.CE9D5054@viggo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: Dave Hansen <dave@sr71.net>, hch@lst.de, akpm@linux-foundation.org, dan.j.williams@intel.com, khandual@linux.vnet.ibm.com, vbabka@suse.cz, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <bounce-debian-kernel=glddk-debian-kernel=m.gmane.org@lists.debian.org>
+Sender: linus971@gmail.com
+In-Reply-To: <14455987.OWjnZpEEup@wuerfel>
+Resent-Message-ID: <CgKK_gEINTJ.A.m0B.F2aQYB@bendel>
+List-URL: <https://lists.debian.org/debian-kernel/>
+List-Post: <mailto:debian-kernel@lists.debian.org>
+List-Help: <mailto:debian-kernel-request@lists.debian.org?subject=help>
+List-Subscribe: <mailto:debian-kernel-request@lists.debian.org?subject=subscribe>
+List-Unsubscribe: <mailto:debian-kernel-request@lists.debian.org?subject=unsubscribe>
+List-Archive: https://lists.debian.org/msgid-search/CA+55aFxYYKRsimcZsj7fz4paPag6Uqf1M5_v=W2Yv9sSPeLdig@mail.gmail.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alan Modra <amodra@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Dave Hansen <dave@sr71.net> writes:
+On Fri, Dec 2, 2016 at 2:55 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> Yes, it's always been just the assembly symbols that broke, these were
+> the ones that Al's original patch changed and that ended up with
+> no version information.
 
-  
->  #ifdef CONFIG_HUGETLB_PAGE
-> +/*
-> + * Most architectures have a 1:1 mapping of PTEs to hugetlb page
-> + * sizes, but there are some outliers like arm64 that use
-> + * multiple hardware PTEs to make a hugetlb "page".  Do not
-> + * assume that all 'hpage_size's are not exactly at a page table
-> + * size boundary.  Instead, accept arbitrary 'hpage_size's and
-> + * assume they are made up of the next-smallest size.  We do not
-> + * handle PGD-sized hpages and hugetlb_add_hstate() will WARN()
-> + * if it sees one.
-> + *
-> + * Note also that the page walker code only calls us once per
-> + * huge 'struct page', *not* once per PTE in the page tables.
-> + */
-> +static void smaps_hugetlb_present_hpage(struct mem_size_stats *mss,
-> +					unsigned long hpage_size)
-> +{
-> +	if (hpage_size >= PUD_SIZE)
-> +		mss->rss_pud += hpage_size;
-> +	else if (hpage_size >= PMD_SIZE)
-> +		mss->rss_pmd += hpage_size;
-> +	else
-> +		mss->rss_pte += hpage_size;
-> +}
+Ok, and the reason is because even if we have a weak symbol from C, it
+would always have a value.
 
-some powerpc platforms have multiple page table entries mapping the same
-hugepage and on other, we have a page table entry pointing to something
-called hugepaeg directory mapping a set of hugepage. So I am not sure
-the above will work for all those ?
+Good to know what the heck the problem was.
 
-Also do we derive pte@<size value> correctly there ?
+> I have managed to bisect the link failure to a specific binutils
+> commit by Alan Modra now:
 
--aneesh
+Thanks. And I committed your "set to zero" patch, so we can hopefully
+leave this all behind us.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I marked it for stable (not because older kernels need it, but because
+it's the right thing to do and if we ever backport anything that
+causes this we don't want to forget this).
+
+And I'll keep the workaround in kernel/module.c just because it's
+really late in the rc series, and I'd rather have both belt and
+suspenders for this all right now.
+
+               Linus
