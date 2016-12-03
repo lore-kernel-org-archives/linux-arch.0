@@ -1,67 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:60273 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1753821AbcLBTB3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2016 14:01:29 -0500
-Received: from pps.filterd (m0098416.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.17/8.16.0.17) with SMTP id uB2GEt8U108104
-        for <linux-arch@vger.kernel.org>; Fri, 2 Dec 2016 11:15:06 -0500
-Received: from e35.co.us.ibm.com (e35.co.us.ibm.com [32.97.110.153])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 2737r2yt64-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 02 Dec 2016 11:15:06 -0500
-Received: from localhost
-        by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-        Fri, 2 Dec 2016 09:15:05 -0700
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [PATCH] proc: mm: export PTE sizes directly in smaps (v3)
-In-Reply-To: <20161129201703.CE9D5054@viggo.jf.intel.com>
-References: <20161129201703.CE9D5054@viggo.jf.intel.com>
-Date: Fri, 02 Dec 2016 21:44:57 +0530
-MIME-Version: 1.0
-Content-Type: text/plain
-Message-ID: <874m2me29q.fsf@linux.vnet.ibm.com>
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:48775 "EHLO
+        shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752060AbcLCEg6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2016 23:36:58 -0500
+Message-ID: <1480739797.16599.118.camel@decadent.org.uk>
+Subject: Re: [RFC, PATCH, v3.9] default exported asm symbols to zero
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sat, 03 Dec 2016 04:36:37 +0000
+In-Reply-To: <8452191.39CeLIHTBT@wuerfel>
+References: <20161129131922.GA31466@angband.pl>
+         <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
+         <14455987.OWjnZpEEup@wuerfel> <8452191.39CeLIHTBT@wuerfel>
+Content-Type: multipart/signed; micalg="pgp-sha512";
+        protocol="application/pgp-signature"; boundary="=-jgxpGrB4le5YdtYZKT0O"
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>, linux-kernel@vger.kernel.org
-Cc: hch@lst.de, akpm@linux-foundation.org, dan.j.williams@intel.com, khandual@linux.vnet.ibm.com, vbabka@suse.cz, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20161202161457.XMgNbAfBSkfg2EPsKIz1tvZMEAEpHPHVSb351Jbje8U@z>
+To: Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alan Modra <amodra@gmail.com>
+Message-ID: <20161203043637.fTa3v0nASxV7ULBeQsAcaMrsNA3_-SiXOVbCwHwhmUY@z>
 
-Dave Hansen <dave@sr71.net> writes:
 
-  
->  #ifdef CONFIG_HUGETLB_PAGE
-> +/*
-> + * Most architectures have a 1:1 mapping of PTEs to hugetlb page
-> + * sizes, but there are some outliers like arm64 that use
-> + * multiple hardware PTEs to make a hugetlb "page".  Do not
-> + * assume that all 'hpage_size's are not exactly at a page table
-> + * size boundary.  Instead, accept arbitrary 'hpage_size's and
-> + * assume they are made up of the next-smallest size.  We do not
-> + * handle PGD-sized hpages and hugetlb_add_hstate() will WARN()
-> + * if it sees one.
-> + *
-> + * Note also that the page walker code only calls us once per
-> + * huge 'struct page', *not* once per PTE in the page tables.
-> + */
-> +static void smaps_hugetlb_present_hpage(struct mem_size_stats *mss,
-> +					unsigned long hpage_size)
-> +{
-> +	if (hpage_size >= PUD_SIZE)
-> +		mss->rss_pud += hpage_size;
-> +	else if (hpage_size >= PMD_SIZE)
-> +		mss->rss_pmd += hpage_size;
-> +	else
-> +		mss->rss_pte += hpage_size;
-> +}
+--=-jgxpGrB4le5YdtYZKT0O
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-some powerpc platforms have multiple page table entries mapping the same
-hugepage and on other, we have a page table entry pointing to something
-called hugepaeg directory mapping a set of hugepage. So I am not sure
-the above will work for all those ?
+On Fri, 2016-12-02 at 13:40 +0100, Arnd Bergmann wrote:
+> With binutils-2.16 and before, a weak missing symbol was kept during the
+> final link, and a missing CRC for an export would lead to that CRC
+> being treated as zero implicitly. With binutils-2.17, the crc
+> symbol gets dropped, and any module trying to use it will fail to
+> load.
+>=20
+> This sets the weak CRC symbol to zero explicitly, making it defined
+> in vmlinux, which in turn lets us load the modules referring to
+> that CRC.
+>=20
+> The comment above the __CRC_SYMBOL macro suggests that this was
+> always the intention, although it also seems that all symbols
+> defined in C have a correct CRC these days, and only the exports
+> that are now done in assembly need this.
+>=20
+> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+> Not sure if this is the correct way of doing it, but this seems trivial
+> enough and lets me build the kernel with missing CRCs with any binutils
+> version.
 
-Also do we derive pte@<size value> correctly there ?
+I tried this along with Adam's patch on x86_64, with Debian's binutils
+2.27.51.20161127.  The result was that the kernel's __kcrctab held 0
+for several symbols, even though there was type information in asm-
+prototypes.h and Module.symvers and the modules had a non-zero CRC for
+those symbols.  With just Adam's patch, the kernel and modules agreed.
 
--aneesh
+Ben.
 
+> diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+> index 63554e9..59a3b2f 100644
+> --- a/include/asm-generic/export.h
+> +++ b/include/asm-generic/export.h
+> @@ -54,6 +54,7 @@ KSYM(__kstrtab_\name):
+> =C2=A0KSYM(__kcrctab_\name):
+> > =C2=A0	__put KSYM(__crc_\name)
+> > =C2=A0	.weak KSYM(__crc_\name)
+> > +	.set KSYM(__crc_\name), 0
+> > =C2=A0	.previous
+> =C2=A0#endif
+> =C2=A0#endif
+>=20
+--=20
+Ben Hutchings
+Absolutum obsoletum. (If it works, it's out of date.) - Stafford Beer
+
+--=-jgxpGrB4le5YdtYZKT0O
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCgAdFiEErCspvTSmr92z9o8157/I7JWGEQkFAlhCS9UACgkQ57/I7JWG
+EQn/LA/9Gu6KIOp7WrTbarspgkEtwgTK02mqCOZdtzDpZL1allV3IjjPEt1sXWgV
+ko9iYxSVwBD4WkE5GgBjpsbzaLA8xrHKOMFut4bJheCGXRx8TkFyiaA+EainToZL
+dGB0OFRm6XIMdQsJ26h506HHdQzqb5eqTTRjK+OQXTFsY+hXLQjfQbvaeQsE1xo6
+Wf7ebEfWnZUD78i2UYH66rgVjErGRWNN6wwbV6fxhNlvDGiYiE8GVVV+VyjRIcV1
+XelpnQ20CjQNzshYbFk4AuiTwquMsuvpWUBAZmmUdtuBzIHQH1OVuw6mycdJLYKQ
+/VpyYJRqoussdtPoPeS7tct+/OlgmffX8wdd1uSPXg9yYMz4JSl3jTJFlhqKVVwW
+phLHW4dNHpQjXmLnbWJ5nXhdX7d4ODWOycNB5efIQSz8XT0SfBcgZfFP9e+YAAm+
+VMEOl3Lgs1881fVjhKeapFJD5ggA1ZmEoHEKif6aotSyLjvzGxSI6Hmg3oblXrAQ
+jOQseYNiOS7vDxydePF9dS00wv5GS1XA/q3Aomfen4mmOI4/lyXpYyhQPxQyradb
+W8o+q/TgYBb6TS0UjAl3ooFNQkFu23lQo/f3zBbB2/pcIRi7Ec8CNltYsPwyQJet
+nPySQDk45Vm8JjrnAL2v6NEXlnZvHtLAJptwkBLOq7IkIOgPoi8=
+=6jbi
+-----END PGP SIGNATURE-----
+
+--=-jgxpGrB4le5YdtYZKT0O--
