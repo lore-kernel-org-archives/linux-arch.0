@@ -1,21 +1,27 @@
-From: Jack <monica.fernandes@casacivil.ce.gov.br>
-Subject: Hello Beautiful,
-Date: Sun, 4 Dec 2016 13:27:05 -0300 (BRT)
-Message-ID: <747021088.1062441.1480868825132.JavaMail.zimbra__9886.60254884071$1480872057$gmane$org@casacivil.ce.gov.br>
-Reply-To: Jack <2936410069@qq.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
+Date: Sun, 4 Dec 2016 12:44:41 -0800
+Message-ID: <CA+55aFzsnWi0oHu+0rgShaGWEnURw1fXLaAxLe+gF21GdxMWoA@mail.gmail.com>
+References: <20161129131922.GA31466@angband.pl> <2899250.iZaPagXLk8@wuerfel>
+ <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
+ <14455987.OWjnZpEEup@wuerfel> <20161204074435.GQ4829@bubble.grove.modra.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.casacivil.ce.gov.br ([189.90.171.5]:34478 "EHLO
-        relay1.casacivil.ce.gov.br" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751003AbcLDRUx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 4 Dec 2016 12:20:53 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20161204074435.GQ4829@bubble.grove.modra.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alan Modra <amodra@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Good day dear, i hope this mail meets you well? my name is Jack, from the U.S. I know this may seem inappropriate so i ask for your forgiveness but i wish to get to know you better, if I may be so bold. I consider myself an easy-going man, adventurous, honest and fun loving person but I am currently looking for a relationship in which I will feel loved. I promise to answer any question that you may want to ask me...all i need is just your attention and the chance to know you more.
+On Sat, Dec 3, 2016 at 11:44 PM, Alan Modra <amodra@gmail.com> wrote:
+>
+> As far as reverting the binutils commit goes, I'm quite willing to do
+> that if necessary
 
-Please tell me more about yourself, if you do not mind. Hope to hear back from you soon.
+I think we have the proper fix in the kernel now, witht he "mark weak
+asm symbols with value 0". Or if not "proper", then at least
+acceptable. So I think the ship has sailed on the binutils change, and
+there's no point in reverting it any more.
 
-Jack.
+          Linus
