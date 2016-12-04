@@ -1,54 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f66.google.com ([74.125.83.66]:36849 "EHLO
-        mail-pg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750882AbcLDHol (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 4 Dec 2016 02:44:41 -0500
-Date: Sun, 4 Dec 2016 18:14:35 +1030
-From: Alan Modra <amodra@gmail.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Message-ID: <20161204074435.GQ4829@bubble.grove.modra.org>
-References: <20161129131922.GA31466@angband.pl>
- <2899250.iZaPagXLk8@wuerfel>
- <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
- <14455987.OWjnZpEEup@wuerfel>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:35075 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751070AbcLDUos (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 4 Dec 2016 15:44:48 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <14455987.OWjnZpEEup@wuerfel>
+In-Reply-To: <20161204074435.GQ4829@bubble.grove.modra.org>
+References: <20161129131922.GA31466@angband.pl> <2899250.iZaPagXLk8@wuerfel>
+ <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
+ <14455987.OWjnZpEEup@wuerfel> <20161204074435.GQ4829@bubble.grove.modra.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 4 Dec 2016 12:44:41 -0800
+Message-ID: <CA+55aFzsnWi0oHu+0rgShaGWEnURw1fXLaAxLe+gF21GdxMWoA@mail.gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from asm
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161204074435.uEU5QWy2s3BMTCv_tEVEOVUTpFNwuKCL3wFOlhc2Px8@z>
+To: Alan Modra <amodra@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161204204441.Zjp2WsMZs9RvkVgO2lUmgA-cQ36Nbi2opIKhj82tPq4@z>
 
-On Fri, Dec 02, 2016 at 11:55:58AM +0100, Arnd Bergmann wrote:
-> I have managed to bisect the link failure to a specific binutils
-> commit by Alan Modra now:
-> 
-> d983c8c ("Strip undefined symbols from .symtab")
-> 
-> went into binutils-2_26 and was reverted in 
-> 
-> a82e3ef ("Revert "Strip undefined symbols from .symtab"")
-> 
-> after the release branch for 2.26 was started, so that version
-> ended up being fine. However, the 2.27 version never saw the revert
-> and causes loadable kernel modules to become unusable when they refer
-> to a weak symbol in vmlinux. This works with 2.26 and lower:
+On Sat, Dec 3, 2016 at 11:44 PM, Alan Modra <amodra@gmail.com> wrote:
+>
+> As far as reverting the binutils commit goes, I'm quite willing to do
+> that if necessary
 
-See https://sourceware.org/ml/binutils/2016-01/msg00118.html thread
-for discussion on why the patch was reverted for 2.26.  At the time I
-believed that only the ppc64 kernel was affected, by a weak undefined
-"__crc_TOC." disappearing.  Am I correct in thinking that remained
-true up until Linus' merge commit 84d69848c9 2016-10-14?
+I think we have the proper fix in the kernel now, witht he "mark weak
+asm symbols with value 0". Or if not "proper", then at least
+acceptable. So I think the ship has sailed on the binutils change, and
+there's no point in reverting it any more.
 
-As far as reverting the binutils commit goes, I'm quite willing to do
-that if necessary.  You can see how important I think the fix was by
-viewing https://sourceware.org/bugzilla/show_bug.cgi?id=4317 and
-noticing that the bug was reported in 2007 and didn't see any action
-for 8 years..
-
--- 
-Alan Modra
-Australia Development Lab, IBM
+          Linus
