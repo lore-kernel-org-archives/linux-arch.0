@@ -1,49 +1,49 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC, PATCH, v3.9] default exported asm symbols to zero
-Date: Sat, 03 Dec 2016 11:43:07 +0100
-Message-ID: <55460922.iQ4WX6OtHo@wuerfel>
-References: <20161129131922.GA31466@angband.pl> <8452191.39CeLIHTBT@wuerfel> <1480739797.16599.118.camel@decadent.org.uk>
+From: Alan Modra <amodra@gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
+ asm
+Date: Sun, 4 Dec 2016 18:14:35 +1030
+Message-ID: <20161204074435.GQ4829@bubble.grove.modra.org>
+References: <20161129131922.GA31466@angband.pl>
+ <2899250.iZaPagXLk8@wuerfel>
+ <CA+55aFxg_s8k1LBmsXjpVYw=BKh8sNEuL3n6MhzZGTuUPKMOwg@mail.gmail.com>
+ <14455987.OWjnZpEEup@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1480739797.16599.118.camel@decadent.org.uk>
+Content-Disposition: inline
+In-Reply-To: <14455987.OWjnZpEEup@wuerfel>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Ben Hutchings <ben@decadent.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Alan Modra <amodra@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Nicholas Piggin <npiggin@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Saturday, December 3, 2016 4:36:37 AM CET Ben Hutchings wrote:
-> On Fri, 2016-12-02 at 13:40 +0100, Arnd Bergmann wrote:
-> > With binutils-2.16 and before, a weak missing symbol was kept during the
-> > final link, and a missing CRC for an export would lead to that CRC
-> > being treated as zero implicitly. With binutils-2.17, the crc
-> > symbol gets dropped, and any module trying to use it will fail to
-> > load.
-> > 
-> > This sets the weak CRC symbol to zero explicitly, making it defined
-> > in vmlinux, which in turn lets us load the modules referring to
-> > that CRC.
-> > 
-> > The comment above the __CRC_SYMBOL macro suggests that this was
-> > always the intention, although it also seems that all symbols
-> > defined in C have a correct CRC these days, and only the exports
-> > that are now done in assembly need this.
-> > 
-> > > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> > ---
-> > Not sure if this is the correct way of doing it, but this seems trivial
-> > enough and lets me build the kernel with missing CRCs with any binutils
-> > version.
+On Fri, Dec 02, 2016 at 11:55:58AM +0100, Arnd Bergmann wrote:
+> I have managed to bisect the link failure to a specific binutils
+> commit by Alan Modra now:
 > 
-> I tried this along with Adam's patch on x86_64, with Debian's binutils
-> 2.27.51.20161127.  The result was that the kernel's __kcrctab held 0
-> for several symbols, even though there was type information in asm-
-> prototypes.h and Module.symvers and the modules had a non-zero CRC for
-> those symbols.  With just Adam's patch, the kernel and modules agreed.
+> d983c8c ("Strip undefined symbols from .symtab")
+> 
+> went into binutils-2_26 and was reverted in 
+> 
+> a82e3ef ("Revert "Strip undefined symbols from .symtab"")
+> 
+> after the release branch for 2.26 was started, so that version
+> ended up being fine. However, the 2.27 version never saw the revert
+> and causes loadable kernel modules to become unusable when they refer
+> to a weak symbol in vmlinux. This works with 2.26 and lower:
 
-Can you be more specific? Which symbols are those? I would have expected
-modpost to generate Module.symvers from the vmlinux file, so I wonder
-where that difference comes from.
+See https://sourceware.org/ml/binutils/2016-01/msg00118.html thread
+for discussion on why the patch was reverted for 2.26.  At the time I
+believed that only the ppc64 kernel was affected, by a weak undefined
+"__crc_TOC." disappearing.  Am I correct in thinking that remained
+true up until Linus' merge commit 84d69848c9 2016-10-14?
 
-	Arnd
+As far as reverting the binutils commit goes, I'm quite willing to do
+that if necessary.  You can see how important I think the fix was by
+viewing https://sourceware.org/bugzilla/show_bug.cgi?id=4317 and
+noticing that the bug was reported in 2007 and didn't see any action
+for 8 years..
+
+-- 
+Alan Modra
+Australia Development Lab, IBM
