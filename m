@@ -1,42 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga05-in.huawei.com ([45.249.212.191]:2053 "EHLO
-        dggrg05-dlp.huawei.com" rhost-flags-OK-FAIL-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751244AbcLEKZd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2016 05:25:33 -0500
-Subject: Re: ILP32 for ARM64: testing with glibc testsuite
+Received: from foss.arm.com ([217.140.101.70]:46600 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751086AbcLEONk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 5 Dec 2016 09:13:40 -0500
+Date: Mon, 5 Dec 2016 14:13:12 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: ILP32 for ARM64 - testing with lmbench
+Message-ID: <20161205141312.GC14429@e104818-lin.cambridge.arm.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161107082359.GA19666@yury-N73SV> <20161109095650.GA22804@yury-N73SV>
- <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
- <1479419136.908.90.camel@caviumnetworks.com>
- <ff3b973b-3887-7ae8-5a27-4d1ad115055f@huawei.com>
- <mvmeg1mn0yp.fsf@hawking.suse.de>
-From: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <d4dedc32-b324-107d-7de1-d1e670ffc00a@huawei.com>
-Date: Mon, 5 Dec 2016 18:24:11 +0800
+ <20161028124659.GA24131@yury-N73SV>
+ <cdf5cdf2-43af-6d7f-9e0c-72675fb83224@huawei.com>
+ <266952F2-53F5-4D5E-83F0-6C8203092F67@linaro.org>
+ <120041af-f4e9-5b6f-36dc-7d3535a1f01c@huawei.com>
+ <0adfca97-1624-8eac-8149-da447525ad65@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <mvmeg1mn0yp.fsf@hawking.suse.de>
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0adfca97-1624-8eac-8149-da447525ad65@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@suse.de>
-Cc: Steve Ellcey <sellcey@caviumnetworks.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68k.org>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
-Message-ID: <20161205102411.jn9dLkNpxW3w4wcMADJz-mBIYE52UL23ou5kXv22C7o@z>
+To: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
+Cc: Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, linux-doc@vger.kernel.org, Szabolcs Nagy <szabolcs.nagy@arm.com>, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, Yury Norov <ynorov@caviumnetworks.com>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, matt.spencer@arm.com, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, sellcey@caviumnetworks.com, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, agraf@suse.de, Geert Uytterhoeven <geert@linux-m68k.org>, Ding Tianhong <dingtianhong@huawei.com>, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, linux-arm-kernel@lists.infradead.org, GNU C Library <libc-alpha@sourceware.org>, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, hanjun.guo@linaro.org, schwidefsky@de.ibm.com, David Miller <davem@davemloft.net>, christoph.muellner@theobroma-systems.com
+Message-ID: <20161205141312._Fujn3wxd-JLV_2E257anICDJ7aeKcO0h0r6c2c6HgU@z>
 
+On Mon, Dec 05, 2016 at 06:16:09PM +0800, Zhangjian (Bamvor) wrote:
+> Do you have suggestion of next move of upstreaming ILP32?
 
+I mentioned the steps a few time before. I'm pasting them again here:
 
-On 2016/12/5 18:07, Andreas Schwab wrote:
-> On Dez 05 2016, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com> wrote:
->
->> Is there some progresses on it? We could collabrate to fix those issues.
->
-> All the elf/nptl/rt fails should be fixed by the recent binutils fixes.
-Cool. How about the conform and other failures?
+1. Complete the review of the Linux patches and ABI (no merge yet)
+2. Review the corresponding glibc patches (no merge yet)
+3. Ask (Linaro, Cavium) for toolchain + filesystem (pre-built and more
+   than just busybox) to be able to reproduce the testing in ARM
+4. More testing (LTP, trinity, performance regressions etc.)
+5. Move the ILP32 PCS out of beta (based on the results from 4)
+6. Check the market again to see if anyone still needs ILP32
+7. Based on 6, decide whether to merge the kernel and glibc patches
 
-Regards
+What's not explicitly mentioned in step 4 is glibc testing. Point 5 is
+ARM's responsibility (toolchain folk).
 
-Bamvor
->
-> Andreas.
->
+> There are already the test results of lmbench and specint. Do you they
+> are ok or need more data to prove no regression?
 
+I would need to reproduce the tests myself, see step 3.
+
+> I have also noticed that there are ILP32 failures in glibc testsuite.
+> Is it the only blocker for merge ILP32(in technology part)?
+
+It's probably not the only blocker but I have to review the kernel
+patches again to make sure. I'd also like to see whether the libc-alpha
+community is ok with the glibc counterpart (but don't merge the patches
+until the ABI is agreed on both sides).
+
+On performance, I want to make sure there are no regressions on
+AArch32/compat and AArch64/LP64.
+
+-- 
+Catalin
