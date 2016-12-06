@@ -1,76 +1,47 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 11/18] arm64: ilp32: share aarch32 syscall handlers
-Date: Tue, 6 Dec 2016 13:02:57 +0530
-Message-ID: <20161206073257.GB18470@yury-N73SV>
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: ILP32 for ARM64: testing with glibc testsuite
+Date: Tue, 06 Dec 2016 09:31:27 +0100
+Message-ID: <mvm37i1laqo.fsf@hawking.suse.de>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <1477081997-4770-12-git-send-email-ynorov@caviumnetworks.com>
- <20161205171242.GH14429@e104818-lin.cambridge.arm.com>
+	<20161107082359.GA19666@yury-N73SV>
+	<20161109095650.GA22804@yury-N73SV>
+	<CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
+	<1479419136.908.90.camel@caviumnetworks.com>
+	<ff3b973b-3887-7ae8-5a27-4d1ad115055f@huawei.com>
+	<mvmeg1mn0yp.fsf@hawking.suse.de>
+	<1480966437.29811.23.camel@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20161205171242.GH14429@e104818-lin.cambridge.arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain
+Return-path: <libc-alpha-return-75503-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <1480966437.29811.23.camel@caviumnetworks.com> (Steve Ellcey's
+	message of "Mon, 5 Dec 2016 11:33:57 -0800")
+To: Steve Ellcey <sellcey@caviumnetworks.com>
+Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68>, k.org, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.c
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 05, 2016 at 05:12:43PM +0000, Catalin Marinas wrote:
-> On Fri, Oct 21, 2016 at 11:33:10PM +0300, Yury Norov wrote:
-> > off_t is  passed in register pair just like in aarch32.
-> > In this patch corresponding aarch32 handlers are shared to
-> > ilp32 code.
-> [...]
-> > +/*
-> > + * Note: off_4k (w5) is always in units of 4K. If we can't do the
-> > + * requested offset because it is not page-aligned, we return -EINVAL.
-> > + */
-> > +ENTRY(compat_sys_mmap2_wrapper)
-> > +#if PAGE_SHIFT > 12
-> > +	tst	w5, #~PAGE_MASK >> 12
-> > +	b.ne	1f
-> > +	lsr	w5, w5, #PAGE_SHIFT - 12
-> > +#endif
-> > +	b	sys_mmap_pgoff
-> > +1:	mov	x0, #-EINVAL
-> > +	ret
-> > +ENDPROC(compat_sys_mmap2_wrapper)
-> 
-> For compat sys_mmap2, the pgoff argument is in multiples of 4K. This was
-> traditionally used for architectures where off_t is 32-bit to allow
-> mapping files to 2^44.
-> 
-> Since off_t is 64-bit with AArch64/ILP32, should we just pass the off_t
-> as a 64-bit value in two different registers (w5 and w6)?
+On Dez 05 2016, Steve Ellcey <sellcey@caviumnetworks.com> wrote:
 
-Current glibc implementation becomes broken for 64-bit off_t if
-if I'll do what you want.
-sysdeps/unix/sysv/linux/generic/wordsize-32/mmap.c
-28 __ptr_t
-29 __mmap (__ptr_t addr, size_t len, int prot, int flags, int fd, off_t offset)
-30 {
-31   if (offset & (MMAP_PAGE_UNIT - 1))
-32     {
-33       __set_errno (EINVAL);
-34       return MAP_FAILED;
-35     }
-36   return (__ptr_t) INLINE_SYSCALL (mmap2, 6, addr, len, prot, flags, fd,
-37                                    offset / MMAP_PAGE_UNIT);
-38 }
-39 
-40 weak_alias (__mmap, mmap)
+> FAIL: nptl/tst-cancel26
+> FAIL: nptl/tst-cancel27
 
-So it requires changes both in glibc and in kernel. I can do it. But
-I'd like to collect opinions of kernel and glibc developers before
-starting it. 
+> FAIL: rt/tst-mqueue1
+> FAIL: rt/tst-mqueue2
+> FAIL: rt/tst-mqueue4
+> FAIL: rt/tst-mqueue7
 
-Yury
+I don't see these failures.  Maybe you need to rebuild libgcc?
+
+https://build.opensuse.org/package/live_build_log/devel:ARM:AArch64:ILP32/glibc-testsuite/standard/aarch64_ilp32
+
+Andreas.
+
+-- 
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
