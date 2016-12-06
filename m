@@ -1,47 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36914 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752041AbcLFIcm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 6 Dec 2016 03:32:42 -0500
-From: Andreas Schwab <schwab@suse.de>
-Subject: Re: ILP32 for ARM64: testing with glibc testsuite
+Received: from mail-co1nam03on0055.outbound.protection.outlook.com ([104.47.40.55]:22752
+        "EHLO NAM03-CO1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751569AbcLFJj6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 6 Dec 2016 04:39:58 -0500
+Date: Tue, 6 Dec 2016 15:06:17 +0530
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 14/18] arm64: signal32: move ilp32 and aarch32 common
+ code to separated file
+Message-ID: <20161206093617.GA21575@yury-N73SV>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
-        <20161107082359.GA19666@yury-N73SV>
-        <20161109095650.GA22804@yury-N73SV>
-        <CC4F99A7-1FD2-486A-BD66-ED06F1B8BF50@linaro.org>
-        <1479419136.908.90.camel@caviumnetworks.com>
-        <ff3b973b-3887-7ae8-5a27-4d1ad115055f@huawei.com>
-        <mvmeg1mn0yp.fsf@hawking.suse.de>
-        <1480966437.29811.23.camel@caviumnetworks.com>
-Date: Tue, 06 Dec 2016 09:31:27 +0100
-In-Reply-To: <1480966437.29811.23.camel@caviumnetworks.com> (Steve Ellcey's
-        message of "Mon, 5 Dec 2016 11:33:57 -0800")
-Message-ID: <mvm37i1laqo.fsf@hawking.suse.de>
+ <1477081997-4770-15-git-send-email-ynorov@caviumnetworks.com>
+ <20161205161823.GF14429@e104818-lin.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <20161205161823.GF14429@e104818-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steve Ellcey <sellcey@caviumnetworks.com>
-Cc: "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Yury Norov <ynorov@caviumnetworks.com>, arnd@arndb.de, catalin.marinas@arm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, GNU C Library <libc-alpha@sourceware.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, Andrew Pinski <pinskia@gmail.com>, broonie@kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, Szabolcs Nagy <szabolcs.nagy@arm.com>, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>, kilobyte@angband.pl, Geert Uytterhoeven <geert@linux-m68k.org>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zh@suse.de
-Message-ID: <20161206083127.21xcoC5W7MyIMoL3oxXmYVVJtYCBBf0ROGwxFWZ6Bkc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Message-ID: <20161206093617.cVVe-Q8lOicbRlQaBsQjOyNTTCRnX8XRQsVjKMe6-u8@z>
 
-On Dez 05 2016, Steve Ellcey <sellcey@caviumnetworks.com> wrote:
+On Mon, Dec 05, 2016 at 04:18:24PM +0000, Catalin Marinas wrote:
+> On Fri, Oct 21, 2016 at 11:33:13PM +0300, Yury Norov wrote:
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> 
+> Please add some description, even if it means copying the subject.
+> 
+> > ---
+> >  arch/arm64/include/asm/signal32.h        |   3 +
+> >  arch/arm64/include/asm/signal32_common.h |  27 +++++++
+> >  arch/arm64/kernel/Makefile               |   2 +-
+> >  arch/arm64/kernel/signal32.c             | 107 ------------------------
+> >  arch/arm64/kernel/signal32_common.c      | 135 +++++++++++++++++++++++++++++++
+> >  5 files changed, 166 insertions(+), 108 deletions(-)
+> >  create mode 100644 arch/arm64/include/asm/signal32_common.h
+> >  create mode 100644 arch/arm64/kernel/signal32_common.c
+> 
+> I wonder whether you can make such patches more readable by setting
+> "diff.renames" to "copy" in your gitconfig (unless it's set already and
+> Git cannot detect partial file code moving/copying).
 
-> FAIL: nptl/tst-cancel26
-> FAIL: nptl/tst-cancel27
+I tried "git format-patch -C --find-copies-harder" - the same result.
 
-> FAIL: rt/tst-mqueue1
-> FAIL: rt/tst-mqueue2
-> FAIL: rt/tst-mqueue4
-> FAIL: rt/tst-mqueue7
-
-I don't see these failures.  Maybe you need to rebuild libgcc?
-
-https://build.opensuse.org/package/live_build_log/devel:ARM:AArch64:ILP32/glibc-testsuite/standard/aarch64_ilp32
-
-Andreas.
-
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+Yury
