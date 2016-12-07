@@ -1,73 +1,49 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] arc: use hardware ARCNUM in smp_processor_id()
-Date: Wed, 7 Dec 2016 11:03:39 -0800
-Message-ID: <718dad11-573a-294a-b9df-8ada0d49fcee@synopsys.com>
-References: <1481124922-30942-1-git-send-email-abrodkin@synopsys.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently for aarch32 and ilp32
+Date: Wed, 07 Dec 2016 21:40:13 +0100
+Message-ID: <3703608.GKr1zzErMk@wuerfel>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com> <20161206062508.GA17835@yury-N73SV> <20161207165913.GD31779@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <1481124922-30942-1-git-send-email-abrodkin@synopsys.com>
-Sender: stable-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20161207165913.GD31779@e104818-lin.cambridge.arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On 12/07/2016 07:36 AM, Alexey Brodkin wrote:
-> We used to think that ARC cores in SMP SoC start
-> consequentially, i.e. core0 -> core1 -> core2 -> core4.
->
-> Moreover we treat core0 as a master core which does some
-> low-level initialization before allowing other cores to
-> start doing real stuff.
->
-> In that case everything works as expected - smp_processor_id()
-> returns expected values for all cores, i.e.:
->  0 for core0
->  1 for core1 etc.
->
-> But what if instead of core0 we want core1 to be the master?
-> That might be the case if we want to use only one core out of
-> SMP setup and that core is not core0 or for some other reason
-> modify core start-up sequence to say: core3 -> core1 > ...
->
-> In that case smp_processor_id() returns values that differ
-> from real hardware core index. For the first/master core that
-> we'l get 0, the next one will be 1 etc.
+On Wednesday, December 7, 2016 4:59:13 PM CET Catalin Marinas wrote:
+> On Tue, Dec 06, 2016 at 11:55:08AM +0530, Yury Norov wrote:
+> > On Mon, Dec 05, 2016 at 04:34:23PM +0000, Catalin Marinas wrote:
+> > > On Fri, Oct 21, 2016 at 11:33:15PM +0300, Yury Norov wrote:
+> > > > New aarch32 ptrace syscall handler is introduced to avoid run-time
+> > > > detection of the task type.
+> > > 
+> > > What's wrong with the run-time detection? If it's just to avoid a
+> > > negligible overhead, I would rather keep the code simpler by avoiding
+> > > duplicating the generic compat_sys_ptrace().
+> > 
+> > Nothing wrong. This is how Arnd asked me to do. You already asked this
+> > question: http://lkml.iu.edu/hypermail/linux/kernel/1604.3/00930.html
+> 
+> Hmm, I completely forgot about this ;). There is still an advantage to
+> doing run-time checking if we avoid touching core code (less acks to
+> gather and less code duplication).
+> 
+> Let's see what Arnd says but the initial patch looked simpler.
 
-But then the problem is you are not setting up thread_info->cpu correctly. And
-that needs fixing.
-Say we already had ur next patch which doesn't assume 0 based masters, then is
-this patch still needed.
+I don't currently have either version of the patch in my inbox
+(the archive is on a different machine), but in general I'd still
+think it's best to avoid the runtime check for aarch64-ilp32
+altogether. I'd have to look at the overall kernel source to
+see if it's worth avoiding one or two instances though, or
+if there are an overwhelming number of other checks that we
+can't avoid at all.
 
-Essentially this change can be taken as an optimization (mem vz. aux reg read) but
-I don't think it is a fix !
+Regarding ptrace, I notice that arch/tile doesn't even use
+the compat entry point for its ilp32 user space on 64-bit
+kernels, it just calls the regular 64-bit one. Would that
+help here?
 
-> The problem here is we'll use improper cpu indexes in MCIP commands
-> and inevitably commands will be sent to unexpected cores causing all
-> sorts of unexpected behavior.
->
-> But if we use hardware core index out out IDENTITY AUX reg that problem
-> won't happen because cpu value will match its hardware index.
->
-> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-> Cc: stable@vger.kernel.org
-> ---
->  arch/arc/include/asm/smp.h | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
->
-> diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
-> index 0861007d9ef3..5aad65d3defd 100644
-> --- a/arch/arc/include/asm/smp.h
-> +++ b/arch/arc/include/asm/smp.h
-> @@ -14,8 +14,9 @@
->  #include <linux/types.h>
->  #include <linux/init.h>
->  #include <linux/threads.h>
-> +#include <asm/arcregs.h>
->  
-> -#define raw_smp_processor_id() (current_thread_info()->cpu)
-> +#define raw_smp_processor_id() ((int)(read_aux_reg(AUX_IDENTITY) >> 8) & 0xFF)
->  
->  /* including cpumask.h leads to cyclic deps hence this Forward declaration */
->  struct cpumask;
+	Arnd
