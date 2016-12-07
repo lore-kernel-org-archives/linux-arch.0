@@ -1,23 +1,17 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Subject: Re: [PATCH] arc: use hardware ARCNUM in smp_processor_id()
-Date: Wed, 7 Dec 2016 10:58:18 -0800
-Message-ID: <8ff93d94-b75b-633f-58a8-962a767aa1df@synopsys.com>
+Date: Wed, 7 Dec 2016 11:03:39 -0800
+Message-ID: <718dad11-573a-294a-b9df-8ada0d49fcee@synopsys.com>
 References: <1481124922-30942-1-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:45016 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932245AbcLGS62 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Dec 2016 13:58:28 -0500
+Return-path: <stable-owner@vger.kernel.org>
 In-Reply-To: <1481124922-30942-1-git-send-email-abrodkin@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: stable-owner@vger.kernel.org
 To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Peter Zijlstra <peterz@infradead.org>
-
-+CC PeterZ, Andy
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 On 12/07/2016 07:36 AM, Alexey Brodkin wrote:
 > We used to think that ARC cores in SMP SoC start
@@ -40,7 +34,15 @@ On 12/07/2016 07:36 AM, Alexey Brodkin wrote:
 > In that case smp_processor_id() returns values that differ
 > from real hardware core index. For the first/master core that
 > we'l get 0, the next one will be 1 etc.
->
+
+But then the problem is you are not setting up thread_info->cpu correctly. And
+that needs fixing.
+Say we already had ur next patch which doesn't assume 0 based masters, then is
+this patch still needed.
+
+Essentially this change can be taken as an optimization (mem vz. aux reg read) but
+I don't think it is a fix !
+
 > The problem here is we'll use improper cpu indexes in MCIP commands
 > and inevitably commands will be sent to unexpected cores causing all
 > sorts of unexpected behavior.
@@ -66,21 +68,6 @@ On 12/07/2016 07:36 AM, Alexey Brodkin wrote:
 >  
 > -#define raw_smp_processor_id() (current_thread_info()->cpu)
 > +#define raw_smp_processor_id() ((int)(read_aux_reg(AUX_IDENTITY) >> 8) & 0xFF)
-
-So I also wondered about this when debugging the SMP bringup on FPGA last year. It
-seems kernel code never changes this field and only sets it up so it would be OK
-to do above.
-
-However most arches seem to use the per thread "soft" value (x86 uses a per cpu
-"soft" value"), blackfin seems to be using a hardware value.
-However if the value can't possibly be changes (by say scheduler etc) then there
-is no point retrieving it from memory - if it is relatively cheap derive it from
-to core reg.
-
-Peter, Andy ?
-
--Vineet
-
 >  
 >  /* including cpumask.h leads to cyclic deps hence this Forward declaration */
 >  struct cpumask;
