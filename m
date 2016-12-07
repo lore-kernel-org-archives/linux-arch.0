@@ -1,76 +1,146 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [Question] New mmap64 syscall?
-Date: Wed, 7 Dec 2016 18:09:44 +0530
-Message-ID: <20161207123944.GA11799@yury-N73SV>
-References: <20161206185440.GA4654@yury-N73SV> <3014428.VXGdOARdm1@wuerfel>
- <20161207103451.GA869@yury-N73SV>
- <0F280FED-870A-42B5-ABC4-1976ACA32462@theobroma-systems.com>
+From: Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>
+Subject: Re: [RFC PATCH v3 10/20] Add support to access boot related data in
+	the clear
+Date: Wed, 7 Dec 2016 13:19:03 +0000
+Message-ID: <20161207131903.GU20785@codeblueprint.co.uk>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+	<20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <0F280FED-870A-42B5-ABC4-1976ACA32462@theobroma-systems.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Dr.Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
-Cc: szabolcs.nagy@arm.com, Catalin Marinas <catalin.marinas@arm.com>, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, LKML <linux-kernel@vger.kernel.org>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+In-Reply-To: <20161110003631.3280.73292.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-SGkgUGhpbGlwcCwKCk9uIFdlZCwgRGVjIDA3LCAyMDE2IGF0IDEyOjA3OjI0UE0gKzAxMDAsIERy
-LlBoaWxpcHAgVG9tc2ljaCB3cm90ZToKPiBbUmVzZW5kLCBhcyBteSBtYWlsLWNsaWVudCBoYWQg
-aW5zaXN0ZWQgb24gdXNpbmcgdGhlIHdyb25nIE1JTUUgdHlwZeKApl0KPiAKPiA+IE9uIDA3IERl
-YyAyMDE2LCBhdCAxMTozNCwgWXVyeSBOb3JvdiA8eW5vcm92QGNhdml1bW5ldHdvcmtzLmNvbT4g
-d3JvdGU6Cj4gPiAKPiA+PiBJZiB0aGVyZSBpcyBhIHVzZSBjYXNlIGZvciBsYXJnZXIgdGhhbiAx
-NlRCIG9mZnNldHMsIHdlIHNob3VsZCBhZGQKPiA+PiB0aGUgY2FsbCBvbiBhbGwgYXJjaGl0ZWN0
-dXJlcywgcHJvYmFibHkgdXNpbmcgeW91ciBhcHByb2FjaCAzLiBJIGRvbid0Cj4gPj4gdGhpbmsg
-dGhhdCB3ZSBzaG91bGQgdHJlYXQgaXQgYXMgYW55dGhpbmcgc3BlY2lhbCBmb3IgYXJtNjQgdGhv
-dWdoLgo+ID4gCj4gPiBGcm9tIHRoaXMgcG9pbnQgb2YgdmlldywgMTYrVEIgb2Zmc2V0IGlzIGEg
-bWF0dGVyIG9mIDE2K1RCIHN0b3JhZ2UsCj4gPiBhbmQgaXQncyBtb3JlIHRoYW4gcmVhbC4gVGhl
-IG90aGVyIGNvbnNpZGVyYXRpb24gdG8gYWRkIGl0IGlzIHRoYXQKPiA+IHdlIGhhdmUgNjQtYml0
-IHN1cHBvcnQgZm9yIG9mZnNldHMgaW4gc3lzY2FsbHMgbGlrZSBzeXNfbGxzZWVrKCkuCj4gPiBT
-byBtbWFwNjQoKSB3aWxsIHNpbXBseSBleHRlbmQgdGhpcyBzdXBwb3J0Lgo+IAo+IEkgYmVsaWV2
-ZSB0aGUgcXVlc3Rpb24gaXMgcmF0aGVyIGlmIHRoZSAxNlRCIG9mZnNldCBpcyBhIHJlYWwgdXNl
-LWNhc2UgZm9yIElMUDMyLgoKVGhpcyBpcyBub3QgZm9yIGlscDMyLCBidXQgZm9yIGFsbCAzMi1i
-aXQgYXJjaGl0ZWN0dXJlcyAtIGJvdGggbmF0aXZlCmFuZCBjb21wYXQuIEFuZCBiZWNhdXNlIHRo
-ZSBzY29wZSBpcyBzbyBnZW5lcmljLCBJIHRoaW5rIGl0J3MgdGhlCnN0cm9uZyByZWFzb24gZm9y
-IHVzIHRvIHN1cHBvcnQgdHJ1ZSA2NC1iaXQgb2Zmc2V0IGluIG1tYXAoKS4KCj4gVGhpcyBzZWVt
-cyB0byBicmluZyB0aGUgZGlzY3Vzc2lvbiBmdWxsLWNpcmNsZSwgYXMgdGhpcyB3b3VsZCBpbmRp
-Y2F0ZSB0aGF0IDY0Yml0IGlzIHRoZSAKPiBwcmVmZXJyZWQgYml0LXdpZHRoIGZvciBhbGwgc2l6
-ZXMsIG9mZnNldHMsIGV0Yy4gdGhyb3VnaG91dCBhbGwgZmlsZXN5c3RlbS1yZWxhdGVkIGNhbGxz
-IAo+IChpLmUuIHN0YXQsIHNlZWssIGV0Yy4pLgoKQUFSQ0g2NC9JTFAzMiAoYW5kIGFsbCBuZXcg
-YXJjaGVzKSBleHBvc2VzIGlub190LCBvZmZfdCwgYmxrY250X3QsCmZzYmxrY250X3QsIGZzZmls
-Y250X3QgYW5kIHJsaW1fdCBhcyA2NC1iaXQgdHlwZXMuIChTaXplX3Qgc2hvdWxkCmJlIDMyLWJp
-dCBvZiBjb3Vyc2UsIGJlY2F1c2UgaXQncyB0aGUgc2FtZSBsZW5ndGhzIGFzIHBvaW50ZXIuKQoK
-SXQgYWxsb3dzIHRvIG1ha2Ugc3lzY2FsbHMgdGhhdCBwYXNzIGl0IHN1cHBvcnQgNjQtYml0IHZh
-bHVlcywgcmVmZXIKRG9jdW1lbnRhdGlvbi9hcm02NC9pbHAzMi50eHQgZm9yIGRldGFpbHMuIFN0
-YXQgYW5kIHNlZWsgYXJlIGJvdGgKc3VwcG9ydGluZyA2NC1iaXQgdHlwZXMuIEZyb20gdGhpcyBw
-b2ludCBvZiB2aWV3LCBtbWFwKCkgaXMgdGhlIChvbmx5PykKZXhjZXB0aW9uIGluIGN1cnJlbnQg
-SUxQMzIgQUJJLgoKPiBCdXQgaWYgdGhhdCBpcyB0aGUgY2FzZSwgdGhlbiB3ZSBzaG91bGQgaGF2
-ZSBnb25lIHdpdGggNjRiaXQgYXJndW1lbnRzIGluIGEgc2luZ2xlCj4gcmVnaXN0ZXIgZm9yIG91
-ciBJTFAzMiBkZWZpbml0aW9uIG9uIEFBcmNoNjQuCiAKVGhlcmUgYXJlIDIgdW5yZWxhdGVkIG1h
-dHRlcnMgLSB0aGUgc2l6ZSBvZiB0eXBlcywgYW5kIHRoZSBzaXplIG9mCnJlZ2lzdGVyLiBNb3N0
-IG9mIDMyLWJpdCBhcmNoaXRlY3R1cmVzIGhhcyBoYXJkd2FyZSBsaW1pdGF0aW9uIG9uCnJlZ2lz
-dGVyIHNpemUgKGNvbnNpZGVyIGFhcmNoMzIpLiBBbmQgaXQgZG9lc24ndCBtZWFuIHRoYXQgdGhl
-eSBhcmUKZm9yY2VkIHRvIHN0dWNrIHdpdGggMzItYml0IG9mZl90IGV0Yy4gVGhpcyBpcyBzdGls
-bCBvcGVuZWQgcXVlc3Rpb24KaG93IHRvIHBhc3MgNjQtYml0IHBhcmFtZXRlcnMgaW4gYWFyY2g2
-NC9pbHAzMiBiZWNhdXNlIHRoZXJlIHdlIGhhdmUKdGhlIGNob2ljZSAodGhlIHJlYXNvbiB3aHkg
-aXQncyBSRkMpLiBJZiB5b3UgaGF2ZSBuZXcgaWRlYXMgLSB3ZWxjb21lCnRvIHRoYXQgZGlzY3Vz
-c2lvbi4gVGhpcyB0b3BpYyBhbHNvIGNvdmVycyBhcmNoaXRlY3R1cmVzIHRoYXQgaGFzIHRvCnBh
-c3MgNjQtYml0IHBhcmFtZXRlcnMgaW4gYSBwYWlyLgoKPiBJbiBvdGhlciB3b3JkczogV2h5IG5v
-dCBrZWVwIElMUDMyIHNpbXBsZSBhbiBhc2sgdXNlcnMgdGhhdCBuZWVkIGEgMTZUQisgb2Zmc2V0
-Cj4gdG8gdXNlIExQNjQ/IEl0IHNlZW1zIG11Y2ggbW9yZSBjb25zaXN0ZW50IHdpdGggdGhlIG90
-aGVyIGNob2ljZXMgdGFrZXMgc28gZmFyLgoKSWYgdXNlciBjYW4gc3dpdGNoIHRvIGxwNjQsIGhl
-IGRvZXNuJ3QgbmVlZCBpbHAzMiBhdCBhbGwsIHJpZ2h0PyA6KQpBbHNvLCBJIGRvbid0IHVuZGVy
-c3RhbmQgaG93IHRydWUgNjQtYml0IG9mZnNldCBpbiBtbWFwNjQoKSB3b3VsZApjb21wbGljYXRl
-IHRoaXMgcG9ydC4KCll1cnkKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxA
-bGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xp
-c3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
+On Wed, 09 Nov, at 06:36:31PM, Tom Lendacky wrote:
+> Boot data (such as EFI related data) is not encrypted when the system is
+> booted and needs to be accessed unencrypted.  Add support to apply the
+> proper attributes to the EFI page tables and to the early_memremap and
+> memremap APIs to identify the type of data being accessed so that the
+> proper encryption attribute can be applied.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+> ---
+>  arch/x86/include/asm/e820.h    |    1 
+>  arch/x86/kernel/e820.c         |   16 +++++++
+>  arch/x86/mm/ioremap.c          |   89 ++++++++++++++++++++++++++++++++++++++++
+>  arch/x86/platform/efi/efi_64.c |   12 ++++-
+>  drivers/firmware/efi/efi.c     |   33 +++++++++++++++
+>  include/linux/efi.h            |    2 +
+>  kernel/memremap.c              |    8 +++-
+>  mm/early_ioremap.c             |   18 +++++++-
+>  8 files changed, 172 insertions(+), 7 deletions(-)
+ 
+FWIW, I think this version is an improvement over all the previous
+ones.
+
+[...]
+
+> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+> index ff542cd..ee347c2 100644
+> --- a/arch/x86/mm/ioremap.c
+> +++ b/arch/x86/mm/ioremap.c
+> @@ -20,6 +20,9 @@
+>  #include <asm/tlbflush.h>
+>  #include <asm/pgalloc.h>
+>  #include <asm/pat.h>
+> +#include <asm/e820.h>
+> +#include <asm/setup.h>
+> +#include <linux/efi.h>
+>  
+>  #include "physaddr.h"
+>  
+> @@ -418,6 +421,92 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+>  	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+>  }
+>  
+> +static bool memremap_setup_data(resource_size_t phys_addr,
+> +				unsigned long size)
+> +{
+> +	u64 paddr;
+> +
+> +	if (phys_addr == boot_params.hdr.setup_data)
+> +		return true;
+> +
+
+Why is the setup_data linked list not traversed when checking for
+matching addresses? Am I reading this incorrectly? I don't see how
+this can work.
+
+> +	paddr = boot_params.efi_info.efi_memmap_hi;
+> +	paddr <<= 32;
+> +	paddr |= boot_params.efi_info.efi_memmap;
+> +	if (phys_addr == paddr)
+> +		return true;
+> +
+> +	paddr = boot_params.efi_info.efi_systab_hi;
+> +	paddr <<= 32;
+> +	paddr |= boot_params.efi_info.efi_systab;
+> +	if (phys_addr == paddr)
+> +		return true;
+> +
+> +	if (efi_table_address_match(phys_addr))
+> +		return true;
+> +
+> +	return false;
+> +}
+> +
+> +static bool memremap_apply_encryption(resource_size_t phys_addr,
+> +				      unsigned long size)
+> +{
+> +	/* SME is not active, just return true */
+> +	if (!sme_me_mask)
+> +		return true;
+> +
+> +	/* Check if the address is part of the setup data */
+> +	if (memremap_setup_data(phys_addr, size))
+> +		return false;
+> +
+> +	/* Check if the address is part of EFI boot/runtime data */
+> +	switch (efi_mem_type(phys_addr)) {
+> +	case EFI_BOOT_SERVICES_DATA:
+> +	case EFI_RUNTIME_SERVICES_DATA:
+> +		return false;
+> +	}
+
+EFI_LOADER_DATA is notable by its absence.
+
+We use that memory type for allocations inside of the EFI boot stub
+that are than used while the kernel is running. One use that comes to
+mind is for initrd files, see handle_cmdline_files().
+
+Oh I see you handle that in PATCH 9, never mind.
+
+> diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+> index 58b0f80..3f89179 100644
+> --- a/arch/x86/platform/efi/efi_64.c
+> +++ b/arch/x86/platform/efi/efi_64.c
+> @@ -221,7 +221,13 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+>  	if (efi_enabled(EFI_OLD_MEMMAP))
+>  		return 0;
+>  
+> -	efi_scratch.efi_pgt = (pgd_t *)__pa(efi_pgd);
+> +	/*
+> +	 * Since the PGD is encrypted, set the encryption mask so that when
+> +	 * this value is loaded into cr3 the PGD will be decrypted during
+> +	 * the pagetable walk.
+> +	 */
+> +	efi_scratch.efi_pgt = (pgd_t *)__sme_pa(efi_pgd);
+> +
+>  	pgd = efi_pgd;
+>  
+>  	/*
+
+Do all callers of __pa() in arch/x86 need fixing up like this?
