@@ -1,77 +1,49 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
+From: Dr. Philipp Tomsich <philipp.tomsich@theobroma-systems.com>
 Subject: Re: [Question] New mmap64 syscall?
-Date: Wed, 7 Dec 2016 16:04:51 +0530
-Message-ID: <20161207103451.GA869@yury-N73SV>
-References: <20161206185440.GA4654@yury-N73SV>
- <3014428.VXGdOARdm1@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <libc-alpha-return-75599-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-Content-Disposition: inline
-In-Reply-To: <3014428.VXGdOARdm1@wuerfel>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Date: Wed, 7 Dec 2016 12:07:24 +0100
+Message-ID: <0F280FED-870A-42B5-ABC4-1976ACA32462@theobroma-systems.com>
+References: <20161206185440.GA4654@yury-N73SV> <3014428.VXGdOARdm1@wuerfel>
+ <20161207103451.GA869@yury-N73SV>
+Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2104\))
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20161207103451.GA869@yury-N73SV>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: szabolcs.nagy@arm.com, Catalin Marinas <catalin.marinas@arm.com>, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, LKML <linux-kernel@vger.kernel.org>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 06, 2016 at 10:20:20PM +0100, Arnd Bergmann wrote:
-> On Wednesday, December 7, 2016 12:24:40 AM CET Yury Norov wrote:
-> > 3. Introduce new mmap64() syscall like this:
-> > sys_mmap64(void *addr, size_t len, int prot, int flags, int fd, struct off_pair *off);
-> > (The pointer here because otherwise we have 7 args, if simply pass off_hi and
-> > off_lo in registers.)
-> 
-> This wouldn't have to be a pair, just a pointer to a 64-bit number.
-> 
-> > With new 64-bit interface we can deprecate mmap2(), and generalize all
-> > implementations in kernel.
-> > 
-> > I think we can discuss it because 64-bit is the default size for off_t 
-> > in all new 32-bit architectures. So generic solution may take place.
-> > 
-> > The last question here is how important to support offsets bigger than
-> > 2^44 on 32-bit machines in practice? It may be a case for ARM64 servers,
-> > which are looking like main aarch64/ilp32 users. If no, we can leave
-> > things as is, and just do nothing.
-> 
-> If there is a use case for larger than 16TB offsets, we should add
-> the call on all architectures, probably using your approach 3. I don't
-> think that we should treat it as anything special for arm64 though.
-
-From this point of view, 16+TB offset is a matter of 16+TB storage,
-and it's more than real. The other consideration to add it is that
-we have 64-bit support for offsets in syscalls like sys_llseek().
-So mmap64() will simply extend this support.
-
-I can prepare this patch. Some implementation details I'd like to
-clarify:
-Syscall declaration:
-SYSCALL_DEFINE6(mmap64, unsigned long, addr, unsigned long, len,
-                unsigned long, prot, unsigned long, flags,
-                unsigned long, fd, unsigned long long *, offset);
-
-sys_mmap64() deprecates sys_mmap2(), and __ARCH_WANT_MMAP2 is
-introduced to keep it enabled for all existing architectures.
-All modern arches (aarch64/ilp32 is the first candidate) will have
-mmap64() only. The example is set/getrlimit() or renameat() drop
-patches (b0da6d44).
-                                
-On GLIBC side, __OFF_T_MATCHES_OFF64_t will wire mmap() from
-linux/generic/wordsize32/mmap.c to mmap64() from linux/mmap64.c. 
-
-mmap64() will first try __NR_mmap64, and if not defined, or ENOSYS
-is returned, __NR_mmap2 will be called. This is to let userspace that
-supports both mmap2() and mmap64() have full 64-bit offset support, not
-44-bit one.
-
-For __NR_mmap2 case, I'd also add the check against offsets more than
-2^44, and set errno to EOVERFLOW in that case.
-
-Any thoughts?
-
-Yury.
+W1Jlc2VuZCwgYXMgbXkgbWFpbC1jbGllbnQgaGFkIGluc2lzdGVkIG9uIHVzaW5nIHRoZSB3cm9u
+ZyBNSU1FIHR5cGXigKZdCgo+IE9uIDA3IERlYyAyMDE2LCBhdCAxMTozNCwgWXVyeSBOb3JvdiA8
+eW5vcm92QGNhdml1bW5ldHdvcmtzLmNvbT4gd3JvdGU6Cj4gCj4+IElmIHRoZXJlIGlzIGEgdXNl
+IGNhc2UgZm9yIGxhcmdlciB0aGFuIDE2VEIgb2Zmc2V0cywgd2Ugc2hvdWxkIGFkZAo+PiB0aGUg
+Y2FsbCBvbiBhbGwgYXJjaGl0ZWN0dXJlcywgcHJvYmFibHkgdXNpbmcgeW91ciBhcHByb2FjaCAz
+LiBJIGRvbid0Cj4+IHRoaW5rIHRoYXQgd2Ugc2hvdWxkIHRyZWF0IGl0IGFzIGFueXRoaW5nIHNw
+ZWNpYWwgZm9yIGFybTY0IHRob3VnaC4KPiAKPiBGcm9tIHRoaXMgcG9pbnQgb2YgdmlldywgMTYr
+VEIgb2Zmc2V0IGlzIGEgbWF0dGVyIG9mIDE2K1RCIHN0b3JhZ2UsCj4gYW5kIGl0J3MgbW9yZSB0
+aGFuIHJlYWwuIFRoZSBvdGhlciBjb25zaWRlcmF0aW9uIHRvIGFkZCBpdCBpcyB0aGF0Cj4gd2Ug
+aGF2ZSA2NC1iaXQgc3VwcG9ydCBmb3Igb2Zmc2V0cyBpbiBzeXNjYWxscyBsaWtlIHN5c19sbHNl
+ZWsoKS4KPiBTbyBtbWFwNjQoKSB3aWxsIHNpbXBseSBleHRlbmQgdGhpcyBzdXBwb3J0LgoKSSBi
+ZWxpZXZlIHRoZSBxdWVzdGlvbiBpcyByYXRoZXIgaWYgdGhlIDE2VEIgb2Zmc2V0IGlzIGEgcmVh
+bCB1c2UtY2FzZSBmb3IgSUxQMzIuICBUaGlzCnNlZW1zIHRvIGJyaW5nIHRoZSBkaXNjdXNzaW9u
+IGZ1bGwtY2lyY2xlLCBhcyB0aGlzIHdvdWxkIGluZGljYXRlIHRoYXQgNjRiaXQgaXMgdGhlIApw
+cmVmZXJyZWQgYml0LXdpZHRoIGZvciBhbGwgc2l6ZXMsIG9mZnNldHMsIGV0Yy4gdGhyb3VnaG91
+dCBhbGwgZmlsZXN5c3RlbS1yZWxhdGVkIGNhbGxzIAooaS5lLiBzdGF0LCBzZWVrLCBldGMuKS4K
+CkJ1dCBpZiB0aGF0IGlzIHRoZSBjYXNlLCB0aGVuIHdlIHNob3VsZCBoYXZlIGdvbmUgd2l0aCA2
+NGJpdCBhcmd1bWVudHMgaW4gYSBzaW5nbGUKcmVnaXN0ZXIgZm9yIG91ciBJTFAzMiBkZWZpbml0
+aW9uIG9uIEFBcmNoNjQuCgpJbiBvdGhlciB3b3JkczogV2h5IG5vdCBrZWVwIElMUDMyIHNpbXBs
+ZSBhbiBhc2sgdXNlcnMgdGhhdCBuZWVkIGEgMTZUQisgb2Zmc2V0CnRvIHVzZSBMUDY0PyBJdCBz
+ZWVtcyBtdWNoIG1vcmUgY29uc2lzdGVudCB3aXRoIHRoZSBvdGhlciBjaG9pY2VzIHRha2VzIHNv
+IGZhci4KCuKAlFBoaWwuCgoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fCmxpbnV4LWFybS1rZXJuZWwgbWFpbGluZyBsaXN0CmxpbnV4LWFybS1rZXJuZWxA
+bGlzdHMuaW5mcmFkZWFkLm9yZwpodHRwOi8vbGlzdHMuaW5mcmFkZWFkLm9yZy9tYWlsbWFuL2xp
+c3RpbmZvL2xpbnV4LWFybS1rZXJuZWwK
