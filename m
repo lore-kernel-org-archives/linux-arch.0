@@ -1,107 +1,53 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
 Subject: Re: [Question] New mmap64 syscall?
-Date: Wed, 7 Dec 2016 16:32:10 +0000
-Message-ID: <20161207163210.GB31779@e104818-lin.cambridge.arm.com>
-References: <20161206185440.GA4654@yury-N73SV> <3014428.VXGdOARdm1@wuerfel>
- <20161207103451.GA869@yury-N73SV>
- <0F280FED-870A-42B5-ABC4-1976ACA32462@theobroma-systems.com>
- <20161207123944.GA11799@yury-N73SV>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20161207123944.GA11799@yury-N73SV>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Dr.Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, libc-alpha@sourceware.org, Nathan_Lynch@mentor.com, LKML <linux-kernel@vger.kernel.org>, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+Date: Wed, 7 Dec 2016 17:43:27 +0100
+Message-ID: <DF57E4A6-85C9-44EF-AD03-19EA688D19DB@theobroma-systems.com>
+References: <20161206185440.GA4654@yury-N73SV> <3014428.VXGdOARdm1@wuerfel> <20161207103451.GA869@yury-N73SV> <0F280FED-870A-42B5-ABC4-1976ACA32462@theobroma-systems.com> <20161207123944.GA11799@yury-N73SV> <20161207163210.GB31779@e104818-lin.cambridge.arm.com>
+Mime-Version: 1.0 (Mac OS X Mail 8.2 \(2104\))
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from vegas.theobroma-systems.com ([144.76.126.164]:36219 "EHLO
+        mail.theobroma-systems.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S1752088AbcLGQnm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Dec 2016 11:43:42 -0500
+In-Reply-To: <20161207163210.GB31779@e104818-lin.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>Ma
 
-T24gV2VkLCBEZWMgMDcsIDIwMTYgYXQgMDY6MDk6NDRQTSArMDUzMCwgWXVyeSBOb3JvdiB3cm90
-ZToKPiBPbiBXZWQsIERlYyAwNywgMjAxNiBhdCAxMjowNzoyNFBNICswMTAwLCBEci5QaGlsaXBw
-IFRvbXNpY2ggd3JvdGU6Cj4gPiBbUmVzZW5kLCBhcyBteSBtYWlsLWNsaWVudCBoYWQgaW5zaXN0
-ZWQgb24gdXNpbmcgdGhlIHdyb25nIE1JTUUgdHlwZeKApl0KPiA+IAo+ID4gPiBPbiAwNyBEZWMg
-MjAxNiwgYXQgMTE6MzQsIFl1cnkgTm9yb3YgPHlub3JvdkBjYXZpdW1uZXR3b3Jrcy5jb20+IHdy
-b3RlOgo+ID4gPiAKPiA+ID4+IElmIHRoZXJlIGlzIGEgdXNlIGNhc2UgZm9yIGxhcmdlciB0aGFu
-IDE2VEIgb2Zmc2V0cywgd2Ugc2hvdWxkIGFkZAo+ID4gPj4gdGhlIGNhbGwgb24gYWxsIGFyY2hp
-dGVjdHVyZXMsIHByb2JhYmx5IHVzaW5nIHlvdXIgYXBwcm9hY2ggMy4gSSBkb24ndAo+ID4gPj4g
-dGhpbmsgdGhhdCB3ZSBzaG91bGQgdHJlYXQgaXQgYXMgYW55dGhpbmcgc3BlY2lhbCBmb3IgYXJt
-NjQgdGhvdWdoLgo+ID4gPiAKPiA+ID4gRnJvbSB0aGlzIHBvaW50IG9mIHZpZXcsIDE2K1RCIG9m
-ZnNldCBpcyBhIG1hdHRlciBvZiAxNitUQiBzdG9yYWdlLAo+ID4gPiBhbmQgaXQncyBtb3JlIHRo
-YW4gcmVhbC4gVGhlIG90aGVyIGNvbnNpZGVyYXRpb24gdG8gYWRkIGl0IGlzIHRoYXQKPiA+ID4g
-d2UgaGF2ZSA2NC1iaXQgc3VwcG9ydCBmb3Igb2Zmc2V0cyBpbiBzeXNjYWxscyBsaWtlIHN5c19s
-bHNlZWsoKS4KPiA+ID4gU28gbW1hcDY0KCkgd2lsbCBzaW1wbHkgZXh0ZW5kIHRoaXMgc3VwcG9y
-dC4KPiA+IAo+ID4gSSBiZWxpZXZlIHRoZSBxdWVzdGlvbiBpcyByYXRoZXIgaWYgdGhlIDE2VEIg
-b2Zmc2V0IGlzIGEgcmVhbCB1c2UtY2FzZSBmb3IgSUxQMzIuCj4gCj4gVGhpcyBpcyBub3QgZm9y
-IGlscDMyLCBidXQgZm9yIGFsbCAzMi1iaXQgYXJjaGl0ZWN0dXJlcyAtIGJvdGggbmF0aXZlCj4g
-YW5kIGNvbXBhdC4gQW5kIGJlY2F1c2UgdGhlIHNjb3BlIGlzIHNvIGdlbmVyaWMsIEkgdGhpbmsg
-aXQncyB0aGUKPiBzdHJvbmcgcmVhc29uIGZvciB1cyB0byBzdXBwb3J0IHRydWUgNjQtYml0IG9m
-ZnNldCBpbiBtbWFwKCkuCgpXaGVuIEkgbWVudGlvbmVkIGl0LCBJIGRpZG4ndCByZWFsaXNlIHRo
-YXQgd2UgYWxyZWFkeSB1c2UgNiByZWdpc3RlcnMKZm9yIG1tYXAoKS4gV2hpbGUgd2UgY2FuIGdv
-IHVwIHRvIDggb24gQUFyY2g2NC9JTFAzMiwgSSB0aGluayBBcm5kIGhhcyBhCnBvaW50IHRoYXQg
-d2UgZG9uJ3Qgd2FudCB0aGlzIHRvIGRpdmVyZ2UgZnJvbSBvdGhlciBuZXcgMzItYml0CmFyY2hp
-dGVjdHVyZXMuIEkgZG9uJ3QgcmVhbGx5IGhhdmUgYSBzdHJvbmcgb3BpbmlvbiBlaXRoZXIgd2F5
-IGhlcmUsCmp1c3QgYSByZW1hcmsgdGhhdCBBQXJjaDY0L0lMUDMyIGFscmVhZHkgZGl2ZXJnZWQg
-ZnJvbSBfY3VycmVudF8gMzItYml0CmFyY2hpdGVjdHVyZXMgYnkgaW50cm9kdWNpbmcgNjQtYml0
-IG9mZl90IGluIGEgMzItYml0IHdvcmxkLiBJbnRyb2R1Y2luZwphbiBtbWFwNjQoKSBhdCB0aGUg
-c2FtZSB0aW1lIHdvdWxkbid0IGxvb2sgdG9vIGJhZCBlaXRoZXIuCgo+ID4gVGhpcyBzZWVtcyB0
-byBicmluZyB0aGUgZGlzY3Vzc2lvbiBmdWxsLWNpcmNsZSwgYXMgdGhpcyB3b3VsZCBpbmRpY2F0
-ZSB0aGF0IDY0Yml0IGlzIHRoZSAKPiA+IHByZWZlcnJlZCBiaXQtd2lkdGggZm9yIGFsbCBzaXpl
-cywgb2Zmc2V0cywgZXRjLiB0aHJvdWdob3V0IGFsbCBmaWxlc3lzdGVtLXJlbGF0ZWQgY2FsbHMg
-Cj4gPiAoaS5lLiBzdGF0LCBzZWVrLCBldGMuKS4KPiAKPiBBQVJDSDY0L0lMUDMyIChhbmQgYWxs
-IG5ldyBhcmNoZXMpIGV4cG9zZXMgaW5vX3QsIG9mZl90LCBibGtjbnRfdCwKPiBmc2Jsa2NudF90
-LCBmc2ZpbGNudF90IGFuZCBybGltX3QgYXMgNjQtYml0IHR5cGVzLiAoU2l6ZV90IHNob3VsZAo+
-IGJlIDMyLWJpdCBvZiBjb3Vyc2UsIGJlY2F1c2UgaXQncyB0aGUgc2FtZSBsZW5ndGhzIGFzIHBv
-aW50ZXIuKQo+IAo+IEl0IGFsbG93cyB0byBtYWtlIHN5c2NhbGxzIHRoYXQgcGFzcyBpdCBzdXBw
-b3J0IDY0LWJpdCB2YWx1ZXMsIHJlZmVyCj4gRG9jdW1lbnRhdGlvbi9hcm02NC9pbHAzMi50eHQg
-Zm9yIGRldGFpbHMuIFN0YXQgYW5kIHNlZWsgYXJlIGJvdGgKPiBzdXBwb3J0aW5nIDY0LWJpdCB0
-eXBlcy4gRnJvbSB0aGlzIHBvaW50IG9mIHZpZXcsIG1tYXAoKSBpcyB0aGUgKG9ubHk/KQo+IGV4
-Y2VwdGlvbiBpbiBjdXJyZW50IElMUDMyIEFCSS4KCkkgdGhvdWdodCBJTFAzMiB3aWxsIHVzZSBs
-bHNlZWsoKSB3aGljaCBoYXMgaXRzIG93biBleHBsaWNpdCB3YXkgb2YKcGFzc2luZyBhIDY0LWJp
-dCBvZmZzZXQgYW5kIHRoZSByZXN1bHQgd3JpdHRlbiBiYWNrIGJ5IHRoZSBrZXJuZWwuIFdlCndv
-dWxkbid0IGJlIGFibGUgdG8gdXNlIGxzZWVrKCkgYmVjYXVzZSBvZiB0aGUgcmV0dXJuIHR5cGUu
-Cgo+ID4gQnV0IGlmIHRoYXQgaXMgdGhlIGNhc2UsIHRoZW4gd2Ugc2hvdWxkIGhhdmUgZ29uZSB3
-aXRoIDY0Yml0IGFyZ3VtZW50cyBpbiBhIHNpbmdsZQo+ID4gcmVnaXN0ZXIgZm9yIG91ciBJTFAz
-MiBkZWZpbml0aW9uIG9uIEFBcmNoNjQuCj4gIAo+IFRoZXJlIGFyZSAyIHVucmVsYXRlZCBtYXR0
-ZXJzIC0gdGhlIHNpemUgb2YgdHlwZXMsIGFuZCB0aGUgc2l6ZSBvZgo+IHJlZ2lzdGVyLiBNb3N0
-IG9mIDMyLWJpdCBhcmNoaXRlY3R1cmVzIGhhcyBoYXJkd2FyZSBsaW1pdGF0aW9uIG9uCj4gcmVn
-aXN0ZXIgc2l6ZSAoY29uc2lkZXIgYWFyY2gzMikuIEFuZCBpdCBkb2Vzbid0IG1lYW4gdGhhdCB0
-aGV5IGFyZQo+IGZvcmNlZCB0byBzdHVjayB3aXRoIDMyLWJpdCBvZmZfdCBldGMuIFRoaXMgaXMg
-c3RpbGwgb3BlbmVkIHF1ZXN0aW9uCj4gaG93IHRvIHBhc3MgNjQtYml0IHBhcmFtZXRlcnMgaW4g
-YWFyY2g2NC9pbHAzMiBiZWNhdXNlIHRoZXJlIHdlIGhhdmUKPiB0aGUgY2hvaWNlICh0aGUgcmVh
-c29uIHdoeSBpdCdzIFJGQykuIElmIHlvdSBoYXZlIG5ldyBpZGVhcyAtIHdlbGNvbWUKPiB0byB0
-aGF0IGRpc2N1c3Npb24uIFRoaXMgdG9waWMgYWxzbyBjb3ZlcnMgYXJjaGl0ZWN0dXJlcyB0aGF0
-IGhhcyB0bwo+IHBhc3MgNjQtYml0IHBhcmFtZXRlcnMgaW4gYSBwYWlyLgoKV2UndmUgZGlzY3Vz
-c2VkIHRoaXMgYSBmZXcgdGltZXMgYWxyZWFkeSBhbmQgdGhlIG9ubHkgc2FuZSBvcHRpb24gZnJv
-bQp0aGUgX2tlcm5lbF8gcGVyc3BlY3RpdmUgc2VlbWVkIHRvIGJlIGVpdGhlciAoYSkgY2xvc2Ug
-dG8gbmF0aXZlIEFCSSBmb3IKSUxQMzIgKGFuZCBicmVha2luZyBQT1NJWCkgb3IgKGIpIGp1c3Qg
-YSBzdGFuZGFyZCAzMi1iaXQgQUJJLiBUaGUgbGF0dGVyCmltcGxpZXMgc3BsaXR0aW5nIDY0LWJp
-dCB2YWx1ZXMgaW4gcmVnaXN0ZXIgcGFpcnMsIGVzcGVjaWFsbHkgdG8gYXZvaWQgYQpsb3Qgb2Yg
-YW5ub3RhdGlvbnMvd3JhcHBpbmcgaW4gdGhlIGdlbmVyaWMga2VybmVsIHVuaXN0ZC5oIGZpbGUu
-IElJUkMsCndlIGRlY2lkZWQgdG8gZ28gd2l0aCBvcHRpb24gKGIpLCBzbyBJIGRvbid0IHRoaW5r
-IGl0J3Mgd29ydGggcmUtb3BlbmluZwp0aGF0IGRpc2N1c3Npb24uCgo+ID4gSW4gb3RoZXIgd29y
-ZHM6IFdoeSBub3Qga2VlcCBJTFAzMiBzaW1wbGUgYW4gYXNrIHVzZXJzIHRoYXQgbmVlZCBhIDE2
-VEIrIG9mZnNldAo+ID4gdG8gdXNlIExQNjQ/IEl0IHNlZW1zIG11Y2ggbW9yZSBjb25zaXN0ZW50
-IHdpdGggdGhlIG90aGVyIGNob2ljZXMgdGFrZXMgc28gZmFyLgo+IAo+IElmIHVzZXIgY2FuIHN3
-aXRjaCB0byBscDY0LCBoZSBkb2Vzbid0IG5lZWQgaWxwMzIgYXQgYWxsLCByaWdodD8gOikKPiBB
-bHNvLCBJIGRvbid0IHVuZGVyc3RhbmQgaG93IHRydWUgNjQtYml0IG9mZnNldCBpbiBtbWFwNjQo
-KSB3b3VsZAo+IGNvbXBsaWNhdGUgdGhpcyBwb3J0LgoKSXQncyBtb3JlIGxpa2UgdGhlIHVzZXIg
-d2FudGluZyBhIHF1aWNrIHRyYW5zaXRpb24gZnJvbSBjb2RlIHRoYXQgd2FzCm9ubHkgZXZlciBj
-b21waWxlZCBmb3IgQUFyY2gzMiAob3Igb3RoZXIgMzItYml0IGFyY2hpdGVjdHVyZSkgd2l0aCBh
-CmdvYWwgb2YgZnVsbCBMUDY0IHRyYW5zaXRpb24gb24gdGhlIGxvbmcgcnVuLiBJIGhhdmUgeWV0
-IHRvIHNlZQpjb252aW5jaW5nIGJlbmNobWFya3Mgc2hvd2luZyBJTFAzMiBhcyBhbiBhZHZhbnRh
-Z2Ugb3ZlciBMUDY0IChvZgpjb3Vyc2UsIEkgaGVhciB0aGUgYXJndW1lbnQgb2YgcmVhZGluZyBh
-IHBvaW50ZXIgYSBsb29wIGlzIHR3aWNlIGFzIGZhc3QKd2l0aCBhIGhhbGYtc2l6ZSBwb2ludGVy
-IGJ1dCBJIGRvbid0IGNvbnNpZGVyIHN1Y2ggYmVuY2htYXJrcyByZWxldmFudCkuCgotLSAKQ2F0
-YWxpbgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGlu
-dXgtYXJtLWtlcm5lbCBtYWlsaW5nIGxpc3QKbGludXgtYXJtLWtlcm5lbEBsaXN0cy5pbmZyYWRl
-YWQub3JnCmh0dHA6Ly9saXN0cy5pbmZyYWRlYWQub3JnL21haWxtYW4vbGlzdGluZm8vbGludXgt
-YXJtLWtlcm5lbAo=
+Catalin,
+
+> On 07 Dec 2016, at 17:32, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> 
+>>> In other words: Why not keep ILP32 simple an ask users that need a 16TB+ offset
+>>> to use LP64? It seems much more consistent with the other choices takes so far.
+>> 
+>> If user can switch to lp64, he doesn't need ilp32 at all, right? :)
+>> Also, I don't understand how true 64-bit offset in mmap64() would
+>> complicate this port.
+> 
+> It's more like the user wanting a quick transition from code that was
+> only ever compiled for AArch32 (or other 32-bit architecture) with a
+> goal of full LP64 transition on the long run. I have yet to see
+> convincing benchmarks showing ILP32 as an advantage over LP64 (of
+> course, I hear the argument of reading a pointer a loop is twice as fast
+> with a half-size pointer but I don't consider such benchmarks relevant).
+
+Most of the performance advantage in benchmarks comes from a reduction
+in the size of data-structures and/or tighter packing of arrays.  In other words,
+we can make slightly better use of the caches and push the memory subsystem
+a little further when running multiple instances of benchmarks.
+
+Most of these advantages should eventually go away, when struct-reorg makes
+it way into the compiler. That said, it’s a marginal (but real) improvement for a
+subset of SPEC.
+
+In the real world, the importance of ILP32 as an aid to transition legacy code
+that is not 64bit clean… and this should drive the ILP32 discussion. That we
+get a boost in our SPEC scores is just a nice extra that we get from it ;-)
+
+
+Regards,
+Philipp.
