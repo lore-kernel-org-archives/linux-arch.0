@@ -1,200 +1,126 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [RFC, PATCHv1 04/28] asm-generic: introduce <asm-generic/pgtable-nop4d.h>
-Date: Thu,  8 Dec 2016 19:21:26 +0300
-Message-ID: <20161208162150.148763-6-kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 25/28] x86/mm: make kernel_physical_mapping_init() support 5-level paging
+Date: Thu,  8 Dec 2016 19:21:47 +0300
+Message-ID: <20161208162150.148763-27-kirill.shutemov@linux.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:30666 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932862AbcLHQXH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Dec 2016 11:23:07 -0500
 In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
 
-Like with pgtable-nopud.h for 4-level paging, this new header is base
-for converting an architectures to properly folded p4d_t level.
+Properly populate addition pagetable level if CONFIG_X86_5LEVEL is
+enabled.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/pgtable-nop4d.h | 56 +++++++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable-nopud.h | 43 ++++++++++++++--------------
- include/asm-generic/tlb.h           | 12 ++++++--
- 3 files changed, 88 insertions(+), 23 deletions(-)
- create mode 100644 include/asm-generic/pgtable-nop4d.h
+ arch/x86/mm/init_64.c | 71 ++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 62 insertions(+), 9 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
-new file mode 100644
-index 000000000000..d33c1ca857fc
---- /dev/null
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -0,0 +1,56 @@
-+#ifndef _PGTABLE_NOP4D_H
-+#define _PGTABLE_NOP4D_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#define __PAGETABLE_P4D_FOLDED
-+
-+typedef struct { pgd_t pgd; } p4d_t;
-+
-+#define P4D_SHIFT	PGDIR_SHIFT
-+#define PTRS_PER_P4D	1
-+#define P4D_SIZE	(1UL << P4D_SHIFT)
-+#define P4D_MASK	(~(P4D_SIZE-1))
-+
-+/*
-+ * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the p4d is never bad, and a p4d always exists (as it's folded
-+ * into the pgd entry)
-+ */
-+static inline int pgd_none(pgd_t pgd)		{ return 0; }
-+static inline int pgd_bad(pgd_t pgd)		{ return 0; }
-+static inline int pgd_present(pgd_t pgd)	{ return 1; }
-+static inline void pgd_clear(pgd_t *pgd)	{ }
-+#define p4d_ERROR(p4d)				(pgd_ERROR((p4d).pgd))
-+
-+#define pgd_populate(mm, pgd, p4d)		do { } while (0)
-+/*
-+ * (p4ds are folded into pgds so this doesn't get actually called,
-+ * but the define is needed for a generic inline function.)
-+ */
-+#define set_pgd(pgdptr, pgdval)			set_p4d((p4d_t *)(pgdptr), (p4d_t) { pgdval })
-+
-+static inline p4d_t * p4d_offset(pgd_t * pgd, unsigned long address)
-+{
-+	return (p4d_t *)pgd;
-+}
-+
-+#define p4d_val(x)				(pgd_val((x).pgd))
-+#define __p4d(x)				((p4d_t) { __pgd(x) } )
-+
-+#define pgd_page(pgd)				(p4d_page((p4d_t){ pgd }))
-+#define pgd_page_vaddr(pgd)			(p4d_page_vaddr((p4d_t){ pgd }))
-+
-+/*
-+ * allocating and freeing a p4d is trivial: the 1-entry p4d is
-+ * inside the pgd, so has no extra memory associated with it.
-+ */
-+#define p4d_alloc_one(mm, address)		NULL
-+#define p4d_free(mm, x)				do { } while (0)
-+#define __p4d_free_tlb(tlb, x, a)		do { } while (0)
-+
-+#undef  p4d_addr_end
-+#define p4d_addr_end(addr, end)			(end)
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _PGTABLE_NOP4D_H */
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 5e49430a30a4..de52c80c4349 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -6,53 +6,54 @@
- #ifdef __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nop4d-hack.h>
- #else
-+#include <asm-generic/pgtable-nop4d.h>
- 
- #define __PAGETABLE_PUD_FOLDED
- 
- /*
-- * Having the pud type consist of a pgd gets the size right, and allows
-- * us to conceptually access the pgd entry that this pud is folded into
-+ * Having the pud type consist of a p4d gets the size right, and allows
-+ * us to conceptually access the p4d entry that this pud is folded into
-  * without casting.
-  */
--typedef struct { pgd_t pgd; } pud_t;
-+typedef struct { p4d_t p4d; } pud_t;
- 
--#define PUD_SHIFT	PGDIR_SHIFT
-+#define PUD_SHIFT	P4D_SHIFT
- #define PTRS_PER_PUD	1
- #define PUD_SIZE  	(1UL << PUD_SHIFT)
- #define PUD_MASK  	(~(PUD_SIZE-1))
- 
- /*
-- * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * The "p4d_xxx()" functions here are trivial for a folded two-level
-  * setup: the pud is never bad, and a pud always exists (as it's folded
-- * into the pgd entry)
-+ * into the p4d entry)
-  */
--static inline int pgd_none(pgd_t pgd)		{ return 0; }
--static inline int pgd_bad(pgd_t pgd)		{ return 0; }
--static inline int pgd_present(pgd_t pgd)	{ return 1; }
--static inline void pgd_clear(pgd_t *pgd)	{ }
--#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
-+static inline int p4d_none(p4d_t p4d)		{ return 0; }
-+static inline int p4d_bad(p4d_t p4d)		{ return 0; }
-+static inline int p4d_present(p4d_t p4d)	{ return 1; }
-+static inline void p4d_clear(p4d_t *p4d)	{ }
-+#define pud_ERROR(pud)				(p4d_ERROR((pud).p4d))
- 
--#define pgd_populate(mm, pgd, pud)		do { } while (0)
-+#define p4d_populate(mm, p4d, pud)		do { } while (0)
- /*
-- * (puds are folded into pgds so this doesn't get actually called,
-+ * (puds are folded into p4ds so this doesn't get actually called,
-  * but the define is needed for a generic inline function.)
-  */
--#define set_pgd(pgdptr, pgdval)			set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
-+#define set_p4d(p4dptr, p4dval)			set_pud((pud_t *)(p4dptr), (pud_t) { p4dval })
- 
--static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
-+static inline pud_t * pud_offset(p4d_t * p4d, unsigned long address)
- {
--	return (pud_t *)pgd;
-+	return (pud_t *)p4d;
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index d637893ac8c2..80c688e3133e 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -631,6 +631,58 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
+ 	return paddr_last;
  }
  
--#define pud_val(x)				(pgd_val((x).pgd))
--#define __pud(x)				((pud_t) { __pgd(x) } )
-+#define pud_val(x)				(p4d_val((x).p4d))
-+#define __pud(x)				((pud_t) { __p4d(x) } )
- 
--#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
--#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
-+#define p4d_page(p4d)				(pud_page((pud_t){ p4d }))
-+#define p4d_page_vaddr(p4d)			(pud_page_vaddr((pud_t){ p4d }))
- 
- /*
-  * allocating and freeing a pud is trivial: the 1-entry pud is
-- * inside the pgd, so has no extra memory associated with it.
-+ * inside the p4d, so has no extra memory associated with it.
-  */
- #define pud_alloc_one(mm, address)		NULL
- #define pud_free(mm, x)				do { } while (0)
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index c6d667187608..e34bdb4bfaa9 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -239,6 +239,12 @@ static inline bool __tlb_remove_pte_page(struct mmu_gather *tlb, struct page *pa
- 		__pte_free_tlb(tlb, ptep, address);		\
- 	} while (0)
- 
-+#define pmd_free_tlb(tlb, pmdp, address)			\
-+	do {							\
-+		__tlb_adjust_range(tlb, address);		\
-+		__pmd_free_tlb(tlb, pmdp, address);		\
-+	} while (0)
++static unsigned long __meminit
++phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
++	      unsigned long page_size_mask)
++{
++	unsigned long paddr_next, paddr_last = paddr_end;
++	unsigned long vaddr = (unsigned long)__va(paddr);
++	int i = p4d_index(vaddr);
 +
- #ifndef __ARCH_HAS_4LEVEL_HACK
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -247,11 +253,13 @@ static inline bool __tlb_remove_pte_page(struct mmu_gather *tlb, struct page *pa
- 	} while (0)
- #endif
++	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
++		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
++
++	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d;
++		pud_t *pud;
++
++		vaddr = (unsigned long)__va(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		if (paddr >= paddr_end) {
++			if (!after_bootmem &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RAM) &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RESERVED_KERN)) {
++				set_p4d(p4d, __p4d(0));
++			}
++			continue;
++		}
++
++		if (!p4d_none(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			paddr_last = phys_pud_init(pud, paddr,
++					paddr_end,
++					page_size_mask);
++			__flush_tlb_all();
++			continue;
++		}
++
++		pud = alloc_low_page();
++		paddr_last = phys_pud_init(pud, paddr, paddr_end,
++					   page_size_mask);
++
++		spin_lock(&init_mm.page_table_lock);
++		p4d_populate(&init_mm, p4d, pud);
++		spin_unlock(&init_mm.page_table_lock);
++	}
++	__flush_tlb_all();
++
++	return paddr_last;
++}
++
+ /*
+  * Create page table mapping for the physical memory for specific physical
+  * addresses. The virtual and physical addresses have to be aligned on PMD level
+@@ -652,26 +704,27 @@ kernel_physical_mapping_init(unsigned long paddr_start,
+ 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
+ 		pgd_t *pgd = pgd_offset_k(vaddr);
+ 		p4d_t *p4d;
+-		pud_t *pud;
  
--#define pmd_free_tlb(tlb, pmdp, address)			\
-+#ifndef __ARCH_HAS_5LEVEL_HACK
-+#define p4d_free_tlb(tlb, pudp, address)			\
- 	do {							\
- 		__tlb_adjust_range(tlb, address);		\
--		__pmd_free_tlb(tlb, pmdp, address);		\
-+		__p4d_free_tlb(tlb, pudp, address);		\
- 	} while (0)
-+#endif
+ 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
  
- #define tlb_migrate_finish(mm) do {} while (0)
+-		BUILD_BUG_ON(pgd_none(*pgd));
+-		p4d = p4d_offset(pgd, vaddr);
+-		if (p4d_val(*p4d)) {
+-			pud = (pud_t *)p4d_page_vaddr(*p4d);
+-			paddr_last = phys_pud_init(pud, __pa(vaddr),
++		if (pgd_val(*pgd)) {
++			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
++			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
+ 						   __pa(vaddr_end),
+ 						   page_size_mask);
+ 			continue;
+ 		}
  
+-		pud = alloc_low_page();
+-		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
++		p4d = alloc_low_page();
++		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
+ 					   page_size_mask);
+ 
+ 		spin_lock(&init_mm.page_table_lock);
+-		p4d_populate(&init_mm, p4d, pud);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			pgd_populate(&init_mm, pgd, p4d);
++		else
++			p4d_populate(&init_mm, p4d_offset(pgd, vaddr),
++					(pud_t *) p4d);
+ 		spin_unlock(&init_mm.page_table_lock);
+ 		pgd_changed = true;
+ 	}
 -- 
 2.10.2
