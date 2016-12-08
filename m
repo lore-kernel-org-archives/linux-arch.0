@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [RFC, PATCHv1 12/28] x86/kexec: support p4d_t
-Date: Thu,  8 Dec 2016 19:21:34 +0300
-Message-ID: <20161208162150.148763-14-kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 10/28] x86/mm: add support of p4d_t in vmalloc_fault()
+Date: Thu,  8 Dec 2016 19:21:32 +0300
+Message-ID: <20161208162150.148763-12-kirill.shutemov@linux.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
@@ -10,86 +10,55 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Handle additional page table level in kexec code.
+With 4-level paging copying happens on p4d level, as we have pgd_none()
+always false when p4d_t folded.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/kexec.h       |  1 +
- arch/x86/kernel/machine_kexec_32.c |  4 +++-
- arch/x86/kernel/machine_kexec_64.c | 12 +++++++++++-
- 3 files changed, 15 insertions(+), 2 deletions(-)
+ arch/x86/mm/fault.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
-index d2434c1cad05..5fed4cc96028 100644
---- a/arch/x86/include/asm/kexec.h
-+++ b/arch/x86/include/asm/kexec.h
-@@ -164,6 +164,7 @@ struct kimage_arch {
- };
- #else
- struct kimage_arch {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
-index 469b23d6acc2..5f43cec296c5 100644
---- a/arch/x86/kernel/machine_kexec_32.c
-+++ b/arch/x86/kernel/machine_kexec_32.c
-@@ -103,6 +103,7 @@ static void machine_kexec_page_table_set_one(
- 	pgd_t *pgd, pmd_t *pmd, pte_t *pte,
- 	unsigned long vaddr, unsigned long paddr)
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 1bbdbb0594a3..820e8c284796 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -434,6 +434,7 @@ void vmalloc_sync_all(void)
+ static noinline int vmalloc_fault(unsigned long address)
  {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 
- 	pgd += pgd_index(vaddr);
-@@ -110,7 +111,8 @@ static void machine_kexec_page_table_set_one(
- 	if (!(pgd_val(*pgd) & _PAGE_PRESENT))
- 		set_pgd(pgd, __pgd(__pa(pmd) | _PAGE_PRESENT));
- #endif
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	pud = pud_offset(p4d, vaddr);
- 	pmd = pmd_offset(pud, vaddr);
- 	if (!(pmd_val(*pmd) & _PAGE_PRESENT))
- 		set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
-diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
-index 5a294e48b185..0a44cf20f939 100644
---- a/arch/x86/kernel/machine_kexec_64.c
-+++ b/arch/x86/kernel/machine_kexec_64.c
-@@ -36,6 +36,7 @@ static struct kexec_file_ops *kexec_file_loaders[] = {
- 
- static void free_transition_pgtable(struct kimage *image)
- {
-+	free_page((unsigned long)image->arch.p4d);
- 	free_page((unsigned long)image->arch.pud);
- 	free_page((unsigned long)image->arch.pmd);
- 	free_page((unsigned long)image->arch.pte);
-@@ -43,6 +44,7 @@ static void free_transition_pgtable(struct kimage *image)
- 
- static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 	pte_t *pte;
-@@ -59,7 +61,15 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
- 		image->arch.pud = pud;
- 		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
+ 	pgd_t *pgd, *pgd_ref;
++	p4d_t *p4d, *p4d_ref;
+ 	pud_t *pud, *pud_ref;
+ 	pmd_t *pmd, *pmd_ref;
+ 	pte_t *pte, *pte_ref;
+@@ -461,13 +462,26 @@ static noinline int vmalloc_fault(unsigned long address)
+ 		BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
  	}
--	pud = pud_offset(pgd, vaddr);
-+	p4d = p4d_offset(pgd, vaddr);
-+	if (!p4d_present(*p4d)) {
-+		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL);
-+		if (!p4d)
-+			goto err;
-+		image->arch.p4d = p4d;
-+		set_p4d(p4d, __p4d(__pa(p4d) | _KERNPG_TABLE));
+ 
++	/* With 4-level paging copying happens on p4d level. */
++	p4d = p4d_offset(pgd, address);
++	p4d_ref = p4d_offset(pgd_ref, address);
++	if (p4d_none(*p4d_ref))
++		return -1;
++
++	if (p4d_none(*p4d)) {
++		set_p4d(p4d, *p4d_ref);
++		arch_flush_lazy_mmu_mode();
++	} else {
++		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_ref));
 +	}
-+	pud = pud_offset(p4d, vaddr);
- 	if (!pud_present(*pud)) {
- 		pmd = (pmd_t *)get_zeroed_page(GFP_KERNEL);
- 		if (!pmd)
++
+ 	/*
+ 	 * Below here mismatches are bugs because these lower tables
+ 	 * are shared:
+ 	 */
+ 
+-	pud = pud_offset(pgd, address);
+-	pud_ref = pud_offset(pgd_ref, address);
++	pud = pud_offset(p4d, address);
++	pud_ref = pud_offset(p4d_ref, address);
+ 	if (pud_none(*pud_ref))
+ 		return -1;
+ 
 -- 
 2.10.2
 
