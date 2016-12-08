@@ -1,122 +1,47 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [RFC, PATCHv1 17/28] x86/mm: define virtual memory map for
- 5-level paging
-Date: Thu, 8 Dec 2016 10:56:04 -0800
-Message-ID: <24bebd32-2056-dd5a-8b77-d2a9572dc512@infradead.org>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+Date: Thu, 8 Dec 2016 22:20:45 +0300
+Message-ID: <20161208192045.GA30380@node.shutemov.name>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-19-kirill.shutemov@linux.intel.com>
+ <CA+55aFz+-8RmOMqyqQOWSjJ82byy7BpJ791-gj=xO2rPKG6KFA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:43112 "EHLO
-        merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751091AbcLHS4O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2016 13:56:14 -0500
-In-Reply-To: <20161208162150.148763-19-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CA+55aFz+-8RmOMqyqQOWSjJ82byy7BpJ791-gj=xO2rPKG6KFA@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 12/08/16 08:21, Kirill A. Shutemov wrote:
-> The first part of memory map (up to %esp fixup) simply scales existing
-> map for 4-level paging by factor of 9 -- number of bits addressed by
-> additional page table level.
+On Thu, Dec 08, 2016 at 10:16:07AM -0800, Linus Torvalds wrote:
+> On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
+> <kirill.shutemov@linux.intel.com> wrote:
+> >
+> > This patchset is still very early. There are a number of things missing
+> > that we have to do before asking anyone to merge it (listed below).
+> > It would be great if folks can start testing applications now (in QEMU) to
+> > look for breakage.
+> > Any early comments on the design or the patches would be appreciated as
+> > well.
 > 
-> The rest of the map is uncahnged.
-
-                         unchanged.
-
-(more fixes below)
-
-
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  Documentation/x86/x86_64/mm.txt         | 23 ++++++++++++++++++++++-
->  arch/x86/Kconfig                        |  1 +
->  arch/x86/include/asm/kasan.h            |  9 ++++++---
->  arch/x86/include/asm/page_64_types.h    | 10 ++++++++++
->  arch/x86/include/asm/pgtable_64_types.h |  6 ++++++
->  arch/x86/include/asm/sparsemem.h        |  9 +++++++--
->  6 files changed, 52 insertions(+), 6 deletions(-)
+> Looks ok to me. Starting off with a compile-time config option seems fine.
 > 
-> diff --git a/Documentation/x86/x86_64/mm.txt b/Documentation/x86/x86_64/mm.txt
-> index 8c7dd5957ae1..d33fb0799b3d 100644
-> --- a/Documentation/x86/x86_64/mm.txt
-> +++ b/Documentation/x86/x86_64/mm.txt
-> @@ -12,7 +12,7 @@ ffffc90000000000 - ffffe8ffffffffff (=45 bits) vmalloc/ioremap space
->  ffffe90000000000 - ffffe9ffffffffff (=40 bits) hole
->  ffffea0000000000 - ffffeaffffffffff (=40 bits) virtual memory map (1TB)
->  ... unused hole ...
-> -ffffec0000000000 - fffffc0000000000 (=44 bits) kasan shadow memory (16TB)
-> +ffffec0000000000 - fffffbffffffffff (=44 bits) kasan shadow memory (16TB)
->  ... unused hole ...
->  ffffff0000000000 - ffffff7fffffffff (=39 bits) %esp fixup stacks
->  ... unused hole ...
-> @@ -23,6 +23,27 @@ ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
->  ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
->  ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
->  
-> +Virtual memory map with 5 level page tables:
-> +
-> +0000000000000000 - 00ffffffffffffff (=56 bits) user space, different per mm
-> +hole caused by [57:63] sign extension
+> I do think that the x86 cpuid part should (patch 15) should be the
+> first patch, so that we see "la57" as a capability in /proc/cpuinfo
+> whether it's being enabled or not? We should merge that part
+> regardless of any mm patches, I think.
 
-Can you briefly explain the sign extension?
-Should that be [56:63]?
+Okay, I'll split up the CPUID part into separate patch and move it
+beginning for the patchset
 
-> +ff00000000000000 - ff0fffffffffffff (=52 bits) guard hole, reserved for hypervisor
-> +ff10000000000000 - ff8fffffffffffff (=55 bits) direct mapping of all phys. memory
-> +ff90000000000000 - ff91ffffffffffff (=49 bits) hole
-> +ff92000000000000 - ffd1ffffffffffff (=54 bits) vmalloc/ioremap space
-> +ffd2000000000000 - ff93ffffffffffff (=49 bits) virtual memory map (512TB)
-> +... unused hole ...
-> +ff96000000000000 - ffb5ffffffffffff (=53 bits) kasan shadow memory (8PB)
-> +... unused hole ...
-> +fffe000000000000 - fffeffffffffffff (=49 bits) %esp fixup stacks
-> +... unused hole ...
-> +ffffffef00000000 - ffffffff00000000 (=64 GB) EFI region mapping space
-
-                    - fffffffeffffffff
-
-> +... unused hole ...
-> +ffffffff80000000 - ffffffffa0000000 (=512 MB)  kernel text mapping, from phys 0
-
-                    - ffffffff9fffffff
-
-> +ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
-> +ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
-> +ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
-> +
->  The direct mapping covers all memory in the system up to the highest
->  memory address (this means in some cases it can also include PCI memory
->  holes).
-
-> diff --git a/arch/x86/include/asm/kasan.h b/arch/x86/include/asm/kasan.h
-> index 1410b567ecde..2587c6bd89be 100644
-> --- a/arch/x86/include/asm/kasan.h
-> +++ b/arch/x86/include/asm/kasan.h
-> @@ -11,9 +11,12 @@
->   * 'kernel address space start' >> KASAN_SHADOW_SCALE_SHIFT
->   */
->  #define KASAN_SHADOW_START      (KASAN_SHADOW_OFFSET + \
-> -					(0xffff800000000000ULL >> 3))
-> -/* 47 bits for kernel address -> (47 - 3) bits for shadow */
-> -#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (47 - 3)))
-> +					((-1UL << __VIRTUAL_MASK_SHIFT) >> 3))
-> +/*
-> + * 47 bits for kernel address -> (47 - 3) bits for shadow
-> + * 56 bits for kernel address -> (56 - 3) bits fro shadow
-
-typo: s/fro/for/
-
-> + */
-> +#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (__VIRTUAL_MASK_SHIFT - 3)))
->  
->  #ifndef __ASSEMBLY__
->  
-
+REQUIRED_MASK portion will stay where it is.
 
 -- 
-~Randy
+ Kirill A. Shutemov
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
