@@ -1,48 +1,127 @@
-From: Florian Weimer <fweimer@redhat.com>
-Subject: Re: [Question] New mmap64 syscall?
-Date: Thu, 8 Dec 2016 16:47:34 +0100
-Message-ID: <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
-References: <20161206185440.GA4654@yury-N73SV>
- <f544bcc3-8aae-1bd0-b744-9964fc038a51@redhat.com>
- <20161207154811.GA15248@yury-N73SV>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <libc-alpha-return-75650-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-In-Reply-To: <20161207154811.GA15248@yury-N73SV>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 02/28] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
+Date: Thu,  8 Dec 2016 19:21:24 +0300
+Message-ID: <20161208162150.148763-4-kirill.shutemov@linux.intel.com>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/07/2016 04:48 PM, Yury Norov wrote:
-> On Wed, Dec 07, 2016 at 02:23:55PM +0100, Florian Weimer wrote:
->> On 12/06/2016 07:54 PM, Yury Norov wrote:
->>> 3. Introduce new mmap64() syscall like this:
->>> sys_mmap64(void *addr, size_t len, int prot, int flags, int fd, struct off_pair *off);
->>> (The pointer here because otherwise we have 7 args, if simply pass off_hi and
->>> off_lo in registers.)
->>
->> I would prefer a batched mmap/munmap/mremap/mprotect/madvise interface, so
->> that VM changes can be coalesced and the output reduced.  This interface
->> could then be used to implement mmap on 32-bit architectures as well because
->> the offset restrictions would not apply there.
->
-> Hi Florian,
->
-> I frankly don't understand what you mean, All syscalls you mentioned
-> doesn't take off_t or other 64-bit arguments. 'VM changes' - virtual
-> memory? If so, I don't see any changes in VM with this approach, just
-> correct handling of big offsets.
+We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
+abstraction for properly (in opposite to 5level-fixup.h hack) folded
+p4d level. The new header will be included from pgtable-nopud.h.
 
-What I was trying to suggest is a completely different interface which 
-is not subject to register size constraints and which has been requested 
-before (a mechanism for batching mm updates).
+If an architecture uses <asm-genenric/nop*d.h>, we cannot use
+5level-fixup.h directly to quickly convert the architecture to 5-level
+paging as it would conflict with pgtable-nop4d.h.
 
-Thanks,
-Florian
+With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
+inclusion <asm-genenric/nop*d.h> to 5level-fixup.h.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable-nopud.h      |  5 +++
+ 2 files changed, 67 insertions(+)
+ create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+
+diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
+new file mode 100644
+index 000000000000..37d13cbf832d
+--- /dev/null
++++ b/include/asm-generic/pgtable-nop4d-hack.h
+@@ -0,0 +1,62 @@
++#ifndef _PGTABLE_NOP4D_HACK_H
++#define _PGTABLE_NOP4D_HACK_H
++
++#ifndef __ASSEMBLY__
++#include <asm-generic/5level-fixup.h>
++
++#define __PAGETABLE_PUD_FOLDED
++
++/*
++ * Having the pud type consist of a pgd gets the size right, and allows
++ * us to conceptually access the pgd entry that this pud is folded into
++ * without casting.
++ */
++typedef struct { pgd_t pgd; } pud_t;
++
++#define PUD_SHIFT	PGDIR_SHIFT
++#define PTRS_PER_PUD	1
++#define PUD_SIZE  	(1UL << PUD_SHIFT)
++#define PUD_MASK  	(~(PUD_SIZE-1))
++
++/*
++ * The "pgd_xxx()" functions here are trivial for a folded two-level
++ * setup: the pud is never bad, and a pud always exists (as it's folded
++ * into the pgd entry)
++ */
++static inline int pgd_none(pgd_t pgd)		{ return 0; }
++static inline int pgd_bad(pgd_t pgd)		{ return 0; }
++static inline int pgd_present(pgd_t pgd)	{ return 1; }
++static inline void pgd_clear(pgd_t *pgd)	{ }
++#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
++
++#define pgd_populate(mm, pgd, pud)		do { } while (0)
++/*
++ * (puds are folded into pgds so this doesn't get actually called,
++ * but the define is needed for a generic inline function.)
++ */
++#define set_pgd(pgdptr, pgdval)			set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
++
++static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
++{
++	return (pud_t *)pgd;
++}
++
++#define pud_val(x)				(pgd_val((x).pgd))
++#define __pud(x)				((pud_t) { __pgd(x) } )
++
++#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
++#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
++
++/*
++ * allocating and freeing a pud is trivial: the 1-entry pud is
++ * inside the pgd, so has no extra memory associated with it.
++ */
++#define pud_alloc_one(mm, address)		NULL
++#define pud_free(mm, x)				do { } while (0)
++#define __pud_free_tlb(tlb, x, a)		do { } while (0)
++
++#undef  pud_addr_end
++#define pud_addr_end(addr, end)			(end)
++
++#endif /* __ASSEMBLY__ */
++#endif /* _PGTABLE_NOP4D_HACK_H */
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index 810431d8351b..5e49430a30a4 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -3,6 +3,10 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
++#ifdef __ARCH_USE_5LEVEL_HACK
++#include <asm-generic/pgtable-nop4d-hack.h>
++#else
++
+ #define __PAGETABLE_PUD_FOLDED
+ 
+ /*
+@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
+ #define pud_addr_end(addr, end)			(end)
+ 
+ #endif /* __ASSEMBLY__ */
++#endif /* !__ARCH_USE_5LEVEL_HACK */
+ #endif /* _PGTABLE_NOPUD_H */
+-- 
+2.10.2
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
