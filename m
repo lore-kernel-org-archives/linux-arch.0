@@ -1,67 +1,73 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [Question] New mmap64 syscall?
-Date: Wed, 07 Dec 2016 22:30:24 +0100
-Message-ID: <12011325.PfzMMUCfyS@wuerfel>
-References: <20161206185440.GA4654@yury-N73SV> <20161207163210.GB31779@e104818-lin.cambridge.arm.com> <DF57E4A6-85C9-44EF-AD03-19EA688D19DB@theobroma-systems.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Thu, 8 Dec 2016 13:12:32 +0000
+Message-ID: <20161208131232.GA15141@e104818-lin.cambridge.arm.com>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <20161206062508.GA17835@yury-N73SV>
+ <20161207165913.GD31779@e104818-lin.cambridge.arm.com>
+ <3703608.GKr1zzErMk@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:50608 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932645AbcLGVbs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Dec 2016 16:31:48 -0500
-In-Reply-To: <DF57E4A6-85C9-44EF-AD03-19EA688D19DB@theobroma-systems.com>
+Received: from foss.arm.com ([217.140.101.70]:33026 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751577AbcLHNNh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Dec 2016 08:13:37 -0500
+Content-Disposition: inline
+In-Reply-To: <3703608.GKr1zzErMk@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Yury Norov <ynorov@caviumnetworks.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@men>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, Yury Norov <ynorov@caviumnetworks.com>, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 
-On Wednesday, December 7, 2016 5:43:27 PM CET Dr. Philipp Tomsich wrote:
-> Catalin,
-> 
-> > On 07 Dec 2016, at 17:32, Catalin Marinas <catalin.marinas@arm.com> wrote:
+On Wed, Dec 07, 2016 at 09:40:13PM +0100, Arnd Bergmann wrote:
+> On Wednesday, December 7, 2016 4:59:13 PM CET Catalin Marinas wrote:
+> > On Tue, Dec 06, 2016 at 11:55:08AM +0530, Yury Norov wrote:
+> > > On Mon, Dec 05, 2016 at 04:34:23PM +0000, Catalin Marinas wrote:
+> > > > On Fri, Oct 21, 2016 at 11:33:15PM +0300, Yury Norov wrote:
+> > > > > New aarch32 ptrace syscall handler is introduced to avoid run-time
+> > > > > detection of the task type.
+> > > > 
+> > > > What's wrong with the run-time detection? If it's just to avoid a
+> > > > negligible overhead, I would rather keep the code simpler by avoiding
+> > > > duplicating the generic compat_sys_ptrace().
+> > > 
+> > > Nothing wrong. This is how Arnd asked me to do. You already asked this
+> > > question: http://lkml.iu.edu/hypermail/linux/kernel/1604.3/00930.html
 > > 
-> >>> In other words: Why not keep ILP32 simple an ask users that need a 16TB+ offset
-> >>> to use LP64? It seems much more consistent with the other choices takes so far.
-> >> 
-> >> If user can switch to lp64, he doesn't need ilp32 at all, right? 
-> >> Also, I don't understand how true 64-bit offset in mmap64() would
-> >> complicate this port.
+> > Hmm, I completely forgot about this ;). There is still an advantage to
+> > doing run-time checking if we avoid touching core code (less acks to
+> > gather and less code duplication).
 > > 
-> > It's more like the user wanting a quick transition from code that was
-> > only ever compiled for AArch32 (or other 32-bit architecture) with a
-> > goal of full LP64 transition on the long run. I have yet to see
-> > convincing benchmarks showing ILP32 as an advantage over LP64 (of
-> > course, I hear the argument of reading a pointer a loop is twice as fast
-> > with a half-size pointer but I don't consider such benchmarks relevant).
+> > Let's see what Arnd says but the initial patch looked simpler.
 > 
-> Most of the performance advantage in benchmarks comes from a reduction
-> in the size of data-structures and/or tighter packing of arrays.  In other words,
-> we can make slightly better use of the caches and push the memory subsystem
-> a little further when running multiple instances of benchmarks.
-> 
-> Most of these advantages should eventually go away, when struct-reorg makes
-> it way into the compiler. That said, it’s a marginal (but real) improvement for a
-> subset of SPEC.
-> 
-> In the real world, the importance of ILP32 as an aid to transition legacy code
-> that is not 64bit clean… and this should drive the ILP32 discussion. That we
-> get a boost in our SPEC scores is just a nice extra that we get from it 
+> I don't currently have either version of the patch in my inbox
+> (the archive is on a different machine), but in general I'd still
+> think it's best to avoid the runtime check for aarch64-ilp32
+> altogether. I'd have to look at the overall kernel source to
+> see if it's worth avoiding one or two instances though, or
+> if there are an overwhelming number of other checks that we
+> can't avoid at all.
 
-To bring this back from the philosophical questions of ABI design
-to the specific point of what file offset width you want for mmap()
-on 32-bit architectures.
+Just in case you haven't found them already, current version:
 
-For all I can tell, using mmap() to access a file that is many thousand
-times larger than your virtual address space is completely crazy.
-Adding a new mmap64() syscall on all 32-bit architectures would be
-trivial if there was a use case for it, without one we but without at
-least one specific application asking for it (with good reasons), we
-shouldn't even be talking about that.
+https://marc.info/?l=linux-arm-kernel&m=147708276818318&w=2
 
-Note that until commit f8b7256096a2 ("Unify sys_mmap"), we actually
-had a sys_mmap64 implementation on a couple of architectures, but
-removed it.
+Original version:
 
-	Arnd
+https://patchwork.kernel.org/patch/7980521/
+
+The old one looks more readable and given that ptrace is not really a
+fast path, I'm not two worried about run-time checks
+
+> Regarding ptrace, I notice that arch/tile doesn't even use
+> the compat entry point for its ilp32 user space on 64-bit
+> kernels, it just calls the regular 64-bit one. Would that
+> help here?
+
+I don't know whether it would work, we have incompatible siginfo_t on
+AArch64/ILP32.
+
+-- 
+Catalin
