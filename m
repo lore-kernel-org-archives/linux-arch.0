@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [RFC, PATCHv1 21/28] x86/mm: extend kasan to support 5-level paging
-Date: Thu,  8 Dec 2016 19:21:43 +0300
-Message-ID: <20161208162150.148763-23-kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 22/28] x86/espfix: support 5-level paging
+Date: Thu,  8 Dec 2016 19:21:44 +0300
+Message-ID: <20161208162150.148763-24-kirill.shutemov@linux.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
@@ -10,56 +10,97 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch bring support fo non-folded additional page table level.
+XXX: how to test this?
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Not-yet-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+ arch/x86/kernel/espfix_64.c | 41 ++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 38 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index 2964de48e177..e37504e94e8f 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -50,8 +50,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
- 	unsigned long end = KASAN_SHADOW_END;
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 04f89caef9c4..f0afa0af4237 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -70,8 +70,15 @@ static DEFINE_MUTEX(espfix_init_mutex);
+ #define ESPFIX_MAX_PAGES  DIV_ROUND_UP(CONFIG_NR_CPUS, ESPFIX_STACKS_PER_PAGE)
+ static void *espfix_pages[ESPFIX_MAX_PAGES];
  
- 	for (i = pgd_index(start); start < end; i++) {
--		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
--				| _KERNPG_TABLE);
-+		switch (CONFIG_PGTABLE_LEVELS) {
-+		case 4:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
-+					_KERNPG_TABLE);
-+			break;
-+		case 5:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
-+					_KERNPG_TABLE);
-+			break;
-+		default:
-+			BUILD_BUG();
-+		}
- 		start += PGDIR_SIZE;
- 	}
- }
-@@ -79,6 +89,7 @@ void __init kasan_early_init(void)
- 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
- 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
- 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
-+	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
+-static __page_aligned_bss pud_t espfix_pud_page[PTRS_PER_PUD]
++#if CONFIG_PGTABLE_LEVELS == 5
++static __page_aligned_bss pud_t espfix_pgtable_page[PTRS_PER_PUD]
+ 	__aligned(PAGE_SIZE);
++#elif CONFIG_PGTABLE_LEVELS == 4
++static __page_aligned_bss pud_t espfix_pgtable_page[PTRS_PER_PUD]
++	__aligned(PAGE_SIZE);
++#else
++#error Unexpected CONFIG_PGTABLE_LEVELS
++#endif
  
- 	for (i = 0; i < PTRS_PER_PTE; i++)
- 		kasan_zero_pte[i] = __pte(pte_val);
-@@ -89,6 +100,9 @@ void __init kasan_early_init(void)
- 	for (i = 0; i < PTRS_PER_PUD; i++)
- 		kasan_zero_pud[i] = __pud(pud_val);
+ static unsigned int page_random, slot_random;
  
-+	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
-+		kasan_zero_p4d[i] = __p4d(p4d_val);
+@@ -97,6 +104,8 @@ static inline unsigned long espfix_base_addr(unsigned int cpu)
+ #define ESPFIX_PTE_CLONES (PTRS_PER_PTE/PTE_STRIDE)
+ #define ESPFIX_PMD_CLONES PTRS_PER_PMD
+ #define ESPFIX_PUD_CLONES (65536/(ESPFIX_PTE_CLONES*ESPFIX_PMD_CLONES))
++/* XXX: what should it be? */
++#define ESPFIX_P4D_CLONES PTRS_PER_P4D
+ 
+ #define PGTABLE_PROT	  ((_KERNPG_TABLE & ~_PAGE_RW) | _PAGE_NX)
+ 
+@@ -122,10 +131,21 @@ static void init_espfix_random(void)
+ void __init init_espfix_bsp(void)
+ {
+ 	pgd_t *pgd_p;
++	p4d_t *p4d;
+ 
+ 	/* Install the espfix pud into the kernel page directory */
+ 	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
+-	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
++	switch (CONFIG_PGTABLE_LEVELS) {
++	case 4:
++		p4d = p4d_offset(pgd_p, ESPFIX_BASE_ADDR);
++		p4d_populate(&init_mm, p4d, (pud_t *)espfix_pgtable_page);
++		break;
++	case 5:
++		pgd_populate(&init_mm, pgd_p, (p4d_t *)espfix_pgtable_page);
++		break;
++	default:
++		BUILD_BUG();
++	}
+ 
+ 	/* Randomize the locations */
+ 	init_espfix_random();
+@@ -138,6 +158,7 @@ void init_espfix_ap(int cpu)
+ {
+ 	unsigned int page;
+ 	unsigned long addr;
++	p4d_t p4d, *p4d_p;
+ 	pud_t pud, *pud_p;
+ 	pmd_t pmd, *pmd_p;
+ 	pte_t pte, *pte_p;
+@@ -167,7 +188,21 @@ void init_espfix_ap(int cpu)
+ 	node = cpu_to_node(cpu);
+ 	ptemask = __supported_pte_mask;
+ 
+-	pud_p = &espfix_pud_page[pud_index(addr)];
++	if (CONFIG_PGTABLE_LEVELS == 5) {
++		p4d_p = (p4d_t *)espfix_pgtable_page + p4d_index(addr);
++		p4d = *p4d_p;
++		if (!p4d_present(p4d)) {
++			struct page *page = alloc_pages_node(node, PGALLOC_GFP, 0);
 +
- 	kasan_map_early_shadow(early_level4_pgt);
- 	kasan_map_early_shadow(init_level4_pgt);
- }
++			pud_p = (pud_t *)page_address(page);
++			p4d = __p4d(__pa(pud_p) | (PGTABLE_PROT & ptemask));
++			paravirt_alloc_pud(&init_mm, __pa(pud_p) >> PAGE_SHIFT);
++			for (n = 0; n < ESPFIX_P4D_CLONES; n++)
++				set_p4d(&p4d_p[n], p4d);
++		}
++	} else {
++		pud_p = (pud_t *)espfix_pgtable_page + pud_index(addr);
++	}
+ 	pud = *pud_p;
+ 	if (!pud_present(pud)) {
+ 		struct page *page = alloc_pages_node(node, PGALLOC_GFP, 0);
 -- 
 2.10.2
 
