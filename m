@@ -1,68 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.73]:50608 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S932645AbcLGVbs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Dec 2016 16:31:48 -0500
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from mx1.redhat.com ([209.132.183.28]:45740 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932267AbcLHPyK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Dec 2016 10:54:10 -0500
 Subject: Re: [Question] New mmap64 syscall?
-Date: Wed, 07 Dec 2016 22:30:24 +0100
-Message-ID: <12011325.PfzMMUCfyS@wuerfel>
-In-Reply-To: <DF57E4A6-85C9-44EF-AD03-19EA688D19DB@theobroma-systems.com>
-References: <20161206185440.GA4654@yury-N73SV> <20161207163210.GB31779@e104818-lin.cambridge.arm.com> <DF57E4A6-85C9-44EF-AD03-19EA688D19DB@theobroma-systems.com>
+References: <20161206185440.GA4654@yury-N73SV>
+ <f544bcc3-8aae-1bd0-b744-9964fc038a51@redhat.com>
+ <20161207154811.GA15248@yury-N73SV>
+From: Florian Weimer <fweimer@redhat.com>
+Message-ID: <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
+Date: Thu, 8 Dec 2016 16:47:34 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20161207154811.GA15248@yury-N73SV>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Yury Norov <ynorov@caviumnetworks.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-Message-ID: <20161207213024.5uOqgdovZJGPn_mtpgN_ReiyOckZ4RsgZ8rTB3lfx9I@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Message-ID: <20161208154734.XHiRkwEF1WeX4VtE-QKB9kxwrPIqIv8RRF9RrbriG2w@z>
 
-On Wednesday, December 7, 2016 5:43:27 PM CET Dr. Philipp Tomsich wrote:
-> Catalin,
-> 
-> > On 07 Dec 2016, at 17:32, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> > 
-> >>> In other words: Why not keep ILP32 simple an ask users that need a 16TB+ offset
-> >>> to use LP64? It seems much more consistent with the other choices takes so far.
-> >> 
-> >> If user can switch to lp64, he doesn't need ilp32 at all, right? 
-> >> Also, I don't understand how true 64-bit offset in mmap64() would
-> >> complicate this port.
-> > 
-> > It's more like the user wanting a quick transition from code that was
-> > only ever compiled for AArch32 (or other 32-bit architecture) with a
-> > goal of full LP64 transition on the long run. I have yet to see
-> > convincing benchmarks showing ILP32 as an advantage over LP64 (of
-> > course, I hear the argument of reading a pointer a loop is twice as fast
-> > with a half-size pointer but I don't consider such benchmarks relevant).
-> 
-> Most of the performance advantage in benchmarks comes from a reduction
-> in the size of data-structures and/or tighter packing of arrays.  In other words,
-> we can make slightly better use of the caches and push the memory subsystem
-> a little further when running multiple instances of benchmarks.
-> 
-> Most of these advantages should eventually go away, when struct-reorg makes
-> it way into the compiler. That said, it’s a marginal (but real) improvement for a
-> subset of SPEC.
-> 
-> In the real world, the importance of ILP32 as an aid to transition legacy code
-> that is not 64bit clean… and this should drive the ILP32 discussion. That we
-> get a boost in our SPEC scores is just a nice extra that we get from it 
+On 12/07/2016 04:48 PM, Yury Norov wrote:
+> On Wed, Dec 07, 2016 at 02:23:55PM +0100, Florian Weimer wrote:
+>> On 12/06/2016 07:54 PM, Yury Norov wrote:
+>>> 3. Introduce new mmap64() syscall like this:
+>>> sys_mmap64(void *addr, size_t len, int prot, int flags, int fd, struct off_pair *off);
+>>> (The pointer here because otherwise we have 7 args, if simply pass off_hi and
+>>> off_lo in registers.)
+>>
+>> I would prefer a batched mmap/munmap/mremap/mprotect/madvise interface, so
+>> that VM changes can be coalesced and the output reduced.  This interface
+>> could then be used to implement mmap on 32-bit architectures as well because
+>> the offset restrictions would not apply there.
+>
+> Hi Florian,
+>
+> I frankly don't understand what you mean, All syscalls you mentioned
+> doesn't take off_t or other 64-bit arguments. 'VM changes' - virtual
+> memory? If so, I don't see any changes in VM with this approach, just
+> correct handling of big offsets.
 
-To bring this back from the philosophical questions of ABI design
-to the specific point of what file offset width you want for mmap()
-on 32-bit architectures.
+What I was trying to suggest is a completely different interface which 
+is not subject to register size constraints and which has been requested 
+before (a mechanism for batching mm updates).
 
-For all I can tell, using mmap() to access a file that is many thousand
-times larger than your virtual address space is completely crazy.
-Adding a new mmap64() syscall on all 32-bit architectures would be
-trivial if there was a use case for it, without one we but without at
-least one specific application asking for it (with good reasons), we
-shouldn't even be talking about that.
-
-Note that until commit f8b7256096a2 ("Unify sys_mmap"), we actually
-had a sys_mmap64 implementation on a couple of architectures, but
-removed it.
-
-	Arnd
+Thanks,
+Florian
