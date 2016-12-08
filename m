@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [RFC, PATCHv1 08/28] x86/gup: add 5-level paging support
-Date: Thu,  8 Dec 2016 19:21:30 +0300
-Message-ID: <20161208162150.148763-10-kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 11/28] x86/power: support p4d_t in hibernate code
+Date: Thu,  8 Dec 2016 19:21:33 +0300
+Message-ID: <20161208162150.148763-13-kirill.shutemov@linux.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
@@ -10,91 +10,87 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-It's simply extension for one more page table level.
+set_up_temporary_text_mapping() and relocate_restore_code() require
+trivial adjustments to handle additional page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/gup.c | 33 +++++++++++++++++++++++++++------
- 1 file changed, 27 insertions(+), 6 deletions(-)
+ arch/x86/power/hibernate_64.c | 35 ++++++++++++++++++++++-------------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
-index b8b6a60b32cf..8b69adc10988 100644
---- a/arch/x86/mm/gup.c
-+++ b/arch/x86/mm/gup.c
-@@ -76,9 +76,9 @@ static void undo_dev_pagemap(int *nr, int nr_start, struct page **pages)
- }
- 
- /*
-- * 'pteval' can come from a pte, pmd or pud.  We only check
-+ * 'pteval' can come from a pte, pmd, pud or p4d.  We only check
-  * _PAGE_PRESENT, _PAGE_USER, and _PAGE_RW in here which are the
-- * same value on all 3 types.
-+ * same value on all 4 types.
-  */
- static inline int pte_allows_gup(unsigned long pteval, int write)
+diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
+index 9634557a5444..bf38f5df60b0 100644
+--- a/arch/x86/power/hibernate_64.c
++++ b/arch/x86/power/hibernate_64.c
+@@ -45,6 +45,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
  {
-@@ -270,13 +270,13 @@ static noinline int gup_huge_pud(pud_t pud, unsigned long addr,
- 	return 1;
- }
+ 	pmd_t *pmd;
+ 	pud_t *pud;
++	p4d_t *p4d;
  
--static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
-+static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
- 			int write, struct page **pages, int *nr)
+ 	/*
+ 	 * The new mapping only has to cover the page containing the image
+@@ -71,8 +72,10 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
+ 		__pmd((jump_address_phys & PMD_MASK) | __PAGE_KERNEL_LARGE_EXEC));
+ 	set_pud(pud + pud_index(restore_jump_address),
+ 		__pud(__pa(pmd) | _KERNPG_TABLE));
++	set_p4d(p4d + p4d_index(restore_jump_address),
++		__p4d(__pa(pud) | _KERNPG_TABLE));
+ 	set_pgd(pgd + pgd_index(restore_jump_address),
+-		__pgd(__pa(pud) | _KERNPG_TABLE));
++		__pgd(__pa(p4d) | _KERNPG_TABLE));
+ 
+ 	return 0;
+ }
+@@ -120,7 +123,10 @@ static int set_up_temporary_mappings(void)
+ static int relocate_restore_code(void)
  {
- 	unsigned long next;
- 	pud_t *pudp;
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
  
--	pudp = pud_offset(&pgd, addr);
-+	pudp = pud_offset(&p4d, addr);
- 	do {
- 		pud_t pud = *pudp;
+ 	relocated_restore_code = get_safe_page(GFP_ATOMIC);
+ 	if (!relocated_restore_code)
+@@ -130,22 +136,25 @@ static int relocate_restore_code(void)
  
-@@ -295,6 +295,27 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
- 	return 1;
+ 	/* Make the page containing the relocated code executable */
+ 	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
+-	pud = pud_offset(pgd, relocated_restore_code);
++	p4d = p4d_offset(pgd, relocated_restore_code);
++	if (p4d_large(*p4d)) {
++		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
++		goto out;
++	}
++	pud = pud_offset(p4d, relocated_restore_code);
+ 	if (pud_large(*pud)) {
+ 		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
+-	} else {
+-		pmd_t *pmd = pmd_offset(pud, relocated_restore_code);
+-
+-		if (pmd_large(*pmd)) {
+-			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
+-		} else {
+-			pte_t *pte = pte_offset_kernel(pmd, relocated_restore_code);
+-
+-			set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
+-		}
++		goto out;
++	}
++	pmd = pmd_offset(pud, relocated_restore_code);
++	if (pmd_large(*pmd)) {
++		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
++		goto out;
+ 	}
++	pte = pte_offset_kernel(pmd, relocated_restore_code);
++	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
++out:
+ 	__flush_tlb_all();
+-
+ 	return 0;
  }
  
-+static int gup_p4d_range(pgd_t pgd, unsigned long addr, unsigned long end,
-+			int write, struct page **pages, int *nr)
-+{
-+	unsigned long next;
-+	p4d_t *p4dp;
-+
-+	p4dp = p4d_offset(&pgd, addr);
-+	do {
-+		p4d_t p4d = *p4dp;
-+
-+		next = p4d_addr_end(addr, end);
-+		if (p4d_none(p4d))
-+			return 0;
-+		BUILD_BUG_ON(p4d_large(p4d));
-+		if (!gup_pud_range(p4d, addr, next, write, pages, nr))
-+			return 0;
-+	} while (p4dp++, addr = next, addr != end);
-+
-+	return 1;
-+}
-+
- /*
-  * Like get_user_pages_fast() except its IRQ-safe in that it won't fall
-  * back to the regular GUP.
-@@ -343,7 +364,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 		next = pgd_addr_end(addr, end);
- 		if (pgd_none(pgd))
- 			break;
--		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
-+		if (!gup_p4d_range(pgd, addr, next, write, pages, &nr))
- 			break;
- 	} while (pgdp++, addr = next, addr != end);
- 	local_irq_restore(flags);
-@@ -415,7 +436,7 @@ int get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 		next = pgd_addr_end(addr, end);
- 		if (pgd_none(pgd))
- 			goto slow;
--		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
-+		if (!gup_p4d_range(pgd, addr, next, write, pages, &nr))
- 			goto slow;
- 	} while (pgdp++, addr = next, addr != end);
- 	local_irq_enable();
 -- 
 2.10.2
 
