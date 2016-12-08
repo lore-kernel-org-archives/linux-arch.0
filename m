@@ -1,75 +1,60 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 24/28] x86/mm: add sync_global_pgds() for
- configuration with 5-level paging
-Date: Thu, 8 Dec 2016 22:33:24 +0300
-Message-ID: <20161208193324.GD30380@node.shutemov.name>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
+Date: Thu, 8 Dec 2016 21:05:05 +0100
+Message-ID: <20161208200505.c6xiy56oufg6d24m@pd.tnic>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-26-kirill.shutemov@linux.intel.com>
- <CALCETrWE2WSUe-m9MKmKEK44zNQuuECJ_2agnTv=AkLdOFgR=A@mail.gmail.com>
+ <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([78.46.96.112]:51227 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751577AbcLHUFP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 8 Dec 2016 15:05:15 -0500
 Content-Disposition: inline
-In-Reply-To: <CALCETrWE2WSUe-m9MKmKEK44zNQuuECJ_2agnTv=AkLdOFgR=A@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Thu, Dec 08, 2016 at 10:42:19AM -0800, Andy Lutomirski wrote:
-> On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > This basically restores slightly modified version of original
-> > sync_global_pgds() which we had before foldedl p4d was introduced.
-> >
-> > The only modification is protection against 'address' overflow.
-> >
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  arch/x86/mm/init_64.c | 47 +++++++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 47 insertions(+)
-> >
-> > diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-> > index a991f5c4c2c4..d637893ac8c2 100644
-> > --- a/arch/x86/mm/init_64.c
-> > +++ b/arch/x86/mm/init_64.c
-> > @@ -92,6 +92,52 @@ __setup("noexec32=", nonx32_setup);
-> >   * When memory was added/removed make sure all the processes MM have
-> >   * suitable PGD entries in the local PGD level page.
-> >   */
-> > +#ifdef CONFIG_X86_5LEVEL
-> > +void sync_global_pgds(unsigned long start, unsigned long end, int removed)
-> > +{
-> > +        unsigned long address;
-> > +
-> > +       for (address = start; address <= end && address >= start;
-> > +                       address += PGDIR_SIZE) {
-> > +                const pgd_t *pgd_ref = pgd_offset_k(address);
-> > +                struct page *page;
-> > +
-> > +                /*
-> > +                 * When it is called after memory hot remove, pgd_none()
-> > +                 * returns true. In this case (removed == 1), we must clear
-> > +                 * the PGD entries in the local PGD level page.
-> > +                 */
-> > +                if (pgd_none(*pgd_ref) && !removed)
-> > +                        continue;
+On Thu, Dec 08, 2016 at 07:21:37PM +0300, Kirill A. Shutemov wrote:
+> 5-level paging support is required from hardware when compiled with
+> CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
 > 
-> This isn't quite specific to your patch, but can we assert that, if
-> removed=1, then we're not operating on the vmalloc range?  Because if
-> we do, this will be racy is nasty ways.
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
-Looks like there's no users of removed=1. The last user is gone with
-af2cf278ef4f ("x86/mm/hotplug: Don't remove PGD entries in
-remove_pagetable()")
+...
 
-I'll just drop it (with separate patch).
+> diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+> index 6687ab953257..26e9a287805f 100644
+> --- a/arch/x86/boot/cpuflags.c
+> +++ b/arch/x86/boot/cpuflags.c
+> @@ -80,6 +80,17 @@ static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
+>  	);
+>  }
+>  
+> +static inline void cpuid_count(u32 id, u32 count,
+> +		u32 *a, u32 *b, u32 *c, u32 *d)
+> +{
+> +	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
+> +		     "cpuid					\n\t"
+> +		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
+> +		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+> +		    : "a" (id), "c" (count)
+> +	);
+> +}
+
+Pls make those like cpuid() and cpuid_count() in
+arch/x86/include/asm/processor.h, which explicitly assign ecx and then
+call the underlying helper.
+
+The cpuid() in cpuflags.c doesn't zero ecx which, if we have to be
+pedantic, it should do. It calls CPUID now with the ptr value of its 4th
+on 64-bit and 3rd arg on 32-bit, respectively, IINM.
 
 -- 
- Kirill A. Shutemov
+Regards/Gruss,
+    Boris.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Good mailing practices for 400: avoid top-posting and trim the reply.
