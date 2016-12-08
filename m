@@ -1,56 +1,40 @@
 From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 16/28] x86/asm: remove __VIRTUAL_MASK_SHIFT==47
- assert
-Date: Thu, 8 Dec 2016 22:22:54 +0300
-Message-ID: <20161208192254.GB30380@node.shutemov.name>
+Subject: Re: [RFC, PATCHv1 17/28] x86/mm: define virtual memory map for
+ 5-level paging
+Date: Thu, 8 Dec 2016 22:24:37 +0300
+Message-ID: <20161208192437.GC30380@node.shutemov.name>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-18-kirill.shutemov@linux.intel.com>
- <CALCETrWQagC=D87GiM+PT_j=e+Cva7FSxvmMK4hmC3AMF5t-2Q@mail.gmail.com>
+ <20161208162150.148763-19-kirill.shutemov@linux.intel.com>
+ <24bebd32-2056-dd5a-8b77-d2a9572dc512@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CALCETrWQagC=D87GiM+PT_j=e+Cva7FSxvmMK4hmC3AMF5t-2Q@mail.gmail.com>
+In-Reply-To: <24bebd32-2056-dd5a-8b77-d2a9572dc512@infradead.org>
 Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 08, 2016 at 10:39:57AM -0800, Andy Lutomirski wrote:
-> On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > We don't need it anymore. 17be0aec74fb ("x86/asm/entry/64: Implement
-> > better check for canonical addresses") made canonical address check
-> > generic wrt. address width.
+On Thu, Dec 08, 2016 at 10:56:04AM -0800, Randy Dunlap wrote:
+> > @@ -23,6 +23,27 @@ ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
+> >  ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
+> >  ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
+> >  
+> > +Virtual memory map with 5 level page tables:
+> > +
+> > +0000000000000000 - 00ffffffffffffff (=56 bits) user space, different per mm
+> > +hole caused by [57:63] sign extension
 > 
-> This code existed in part to remind us that this needs very careful
-> adjustment when the paging size becomes dynamic.  If you want to
-> remove it, please add test cases to tools/testing/selftests/x86 that
-> verify:
-> 
-> a. Either mmap(2^47-4096, ..., MAP_FIXED, ...) fails or that, if it
-> succeeds and you put a syscall instruction at the very end, that
-> invoking the syscall instruction there works.  The easiest way to do
-> this may be to have the selftest literally have a page of text that
-> has 4094 0xcc bytes and a syscall and to map that page or perhaps move
-> it into place with mremap.  That will avoid annoying W^X userspace
-> stuff from messing up the test.  You'll need to handle the signal when
-> you fall off the end of the world after the syscall.
-> 
-> b. Ditto for the new highest possible userspace page.
-> 
-> c. Ditto for one page earlier to make sure that your test actually works.
-> 
-> d. For each possible maximum address, call raise(SIGUSR1) and, in the
-> signal handler, change RIP to point to the first noncanonical address
-> and RCX to match RIP.  Return and catch the resulting exception.  This
-> may be easy to integrate into the sigreturn tests, and I can help with
-> that.
+> Can you briefly explain the sign extension?
 
-Thanks, for hints.
+Sure, I'll update it on respin.
 
-I'll come back to you with testcases to verify that they are you wanted
-to see.
+> Should that be [56:63]?
+
+You're right, it should. 
+
+Thanks for all your corrections.
 
 -- 
  Kirill A. Shutemov
