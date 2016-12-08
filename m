@@ -1,88 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sender163-mail.zoho.com ([74.201.84.163]:21412 "EHLO
-        sender163-mail.zoho.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752190AbcLHQs5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2016 11:48:57 -0500
-Reply-To: <qemu-devel@nongnu.org>
-Subject: Re: [Qemu-devel] [QEMU, PATCH] x86: implement la57 paging mode
-Message-ID: <148121568933.154.2511467743008054585@5b492b8a941d>
-In-Reply-To: <20161208162150.148763-2-kirill.shutemov@linux.intel.com>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:35980 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751143AbcLHSQI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2016 13:16:08 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-From: no-reply@patchew.org
-Date: Thu, 8 Dec 2016 08:48:11 -0800 (PST)
+In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 8 Dec 2016 10:16:07 -0800
+Message-ID: <CA+55aFz+-8RmOMqyqQOWSjJ82byy7BpJ791-gj=xO2rPKG6KFA@mail.gmail.com>
+Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kirill.shutemov@linux.intel.com
-Cc: famz@redhat.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, x86@kernel.org, tglx@linutronix.de, mingo@redhat.com, arnd@arndb.de, hpa@zytor.com, linux-arch@vger.kernel.org, ak@linux.intel.com, linux-mm@kvack.org, qemu-devel@nongnu.org, linux-kernel@vger.kernel.org, luto@amacapital.net, dave.hansen@intel.com
-Message-ID: <20161208164811.T1COBro9k_a-8UCf1ioLtxuB2GIds9btiLvgZx1wxlM@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161208181607.WrkIeTQtioCpF8rKtDHlM3kRohZjQ_CzdrjMxFFhnN0@z>
 
-SGksCgpZb3VyIHNlcmllcyBzZWVtcyB0byBoYXZlIHNvbWUgY29kaW5nIHN0eWxlIHByb2JsZW1z
-LiBTZWUgb3V0cHV0IGJlbG93IGZvcgptb3JlIGluZm9ybWF0aW9uOgoKU3ViamVjdDogW1FlbXUt
-ZGV2ZWxdIFtRRU1VLCBQQVRDSF0geDg2OiBpbXBsZW1lbnQgbGE1NyBwYWdpbmcgbW9kZQpUeXBl
-OiBzZXJpZXMKTWVzc2FnZS1pZDogMjAxNjEyMDgxNjIxNTAuMTQ4NzYzLTIta2lyaWxsLnNodXRl
-bW92QGxpbnV4LmludGVsLmNvbQoKPT09IFRFU1QgU0NSSVBUIEJFR0lOID09PQojIS9iaW4vYmFz
-aAoKQkFTRT1iYXNlCm49MQp0b3RhbD0kKGdpdCBsb2cgLS1vbmVsaW5lICRCQVNFLi4gfCB3YyAt
-bCkKZmFpbGVkPTAKCiMgVXNlZnVsIGdpdCBvcHRpb25zCmdpdCBjb25maWcgLS1sb2NhbCBkaWZm
-LnJlbmFtZWxpbWl0IDAKZ2l0IGNvbmZpZyAtLWxvY2FsIGRpZmYucmVuYW1lcyBUcnVlCgpjb21t
-aXRzPSIkKGdpdCBsb2cgLS1mb3JtYXQ9JUggLS1yZXZlcnNlICRCQVNFLi4pIgpmb3IgYyBpbiAk
-Y29tbWl0czsgZG8KICAgIGVjaG8gIkNoZWNraW5nIFBBVENIICRuLyR0b3RhbDogJChnaXQgbG9n
-IC1uIDEgLS1mb3JtYXQ9JXMgJGMpLi4uIgogICAgaWYgISBnaXQgc2hvdyAkYyAtLWZvcm1hdD1l
-bWFpbCB8IC4vc2NyaXB0cy9jaGVja3BhdGNoLnBsIC0tbWFpbGJhY2sgLTsgdGhlbgogICAgICAg
-IGZhaWxlZD0xCiAgICAgICAgZWNobwogICAgZmkKICAgIG49JCgobisxKSkKZG9uZQoKZXhpdCAk
-ZmFpbGVkCj09PSBURVNUIFNDUklQVCBFTkQgPT09CgpVcGRhdGluZyAzYzhjZjVhOWMyMWZmODc4
-MjE2NGQxZGVmN2Y0NGJkODg4NzEzMzg0ClN3aXRjaGVkIHRvIGEgbmV3IGJyYW5jaCAndGVzdCcK
-NTA5ZTM4NyB4ODY6IGltcGxlbWVudCBsYTU3IHBhZ2luZyBtb2RlCgo9PT0gT1VUUFVUIEJFR0lO
-ID09PQpDaGVja2luZyBQQVRDSCAxLzE6IHg4NjogaW1wbGVtZW50IGxhNTcgcGFnaW5nIG1vZGUu
-Li4KRVJST1I6IHNwYWNlIHByb2hpYml0ZWQgYmVmb3JlIHRoYXQgY2xvc2UgcGFyZW50aGVzaXMg
-JyknCiMzMTE6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzoxMDg6CisgICAgICAgICAgICAg
-ICAgICAgICAgICBwcmludF9wdGUobW9uLCBlbnYsIChsMSA8PCAzMCApICsgKGwyIDw8IDIxKSwg
-cGRlLAoKRVJST1I6IHNwYWNlIHByb2hpYml0ZWQgYmVmb3JlIHRoYXQgY2xvc2UgcGFyZW50aGVz
-aXMgJyknCiMzMjA6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzoxMTY6CisgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgIHByaW50X3B0ZShtb24sIGVudiwgKGwxIDw8IDMwICkgKyAo
-bDIgPDwgMjEpCgpXQVJOSU5HOiBsaW5lIG92ZXIgODAgY2hhcmFjdGVycwojMzQ3OiBGSUxFOiB0
-YXJnZXQtaTM4Ni9tb25pdG9yLmM6MTQ4OgorICAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRf
-cHRlKG1vbiwgZW52LCAobDAgPDwgNDgpICsgKGwxIDw8IDM5KSArIChsMiA8PCAzMCksCgpXQVJO
-SU5HOiBsaW5lIG92ZXIgODAgY2hhcmFjdGVycwojMzU5OiBGSUxFOiB0YXJnZXQtaTM4Ni9tb25p
-dG9yLmM6MTU4OgorICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJpbnRfcHRl
-KG1vbiwgZW52LCAobDAgPDwgNDgpICsgKGwxIDw8IDM5KSArCgpXQVJOSU5HOiBsaW5lIG92ZXIg
-ODAgY2hhcmFjdGVycwojNDY3OiBGSUxFOiB0YXJnZXQtaTM4Ni9tb25pdG9yLmM6NDY0OgorICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgY3B1X3BoeXNpY2FsX21lbW9yeV9yZWFk
-KHBkX2FkZHIgKyBsMyAqIDgsICZwZGUsIDgpOwoKRVJST1I6IGxpbmUgb3ZlciA5MCBjaGFyYWN0
-ZXJzCiM0Njk6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzo0NjY6CisgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICBlbmQgPSAobDAgPDwgNDgpICsgKGwxIDw8IDM5KSArIChs
-MiA8PCAzMCkgKyAobDMgPDwgMjEpOwoKV0FSTklORzogbGluZSBvdmVyIDgwIGNoYXJhY3RlcnMK
-IzQ3MjogRklMRTogdGFyZ2V0LWkzODYvbW9uaXRvci5jOjQ2OToKKyAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvdCA9IHBkZSAmIChQR19VU0VSX01BU0sgfCBQ
-R19SV19NQVNLIHwKCldBUk5JTkc6IGxpbmUgb3ZlciA4MCBjaGFyYWN0ZXJzCiM0NzU6IEZJTEU6
-IHRhcmdldC1pMzg2L21vbml0b3IuYzo0NzI6CisgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgIG1lbV9wcmludChtb24sICZzdGFydCwgJmxhc3RfcHJvdCwgZW5kLCBw
-cm90KTsKCldBUk5JTkc6IGxpbmUgb3ZlciA4MCBjaGFyYWN0ZXJzCiM0ODA6IEZJTEU6IHRhcmdl
-dC1pMzg2L21vbml0b3IuYzo0Nzc6CisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKyBsNCAqIDgsCgpXQVJOSU5H
-OiBsaW5lIG92ZXIgODAgY2hhcmFjdGVycwojNDgxOiBGSUxFOiB0YXJnZXQtaTM4Ni9tb25pdG9y
-LmM6NDc4OgorICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICZwdGUsIDgpOwoKRVJST1I6IGxpbmUgb3ZlciA5MCBj
-aGFyYWN0ZXJzCiM0ODM6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzo0ODA6CisgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbmQgPSAobDAgPDwgNDgp
-ICsgKGwxIDw8IDM5KSArIChsMiA8PCAzMCkgKwoKRVJST1I6IGxpbmUgb3ZlciA5MCBjaGFyYWN0
-ZXJzCiM0ODY6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzo0ODM6CisgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJvdCA9IHB0ZSAmIChQR19V
-U0VSX01BU0sgfCBQR19SV19NQVNLIHwKCldBUk5JTkc6IGxpbmUgb3ZlciA4MCBjaGFyYWN0ZXJz
-CiM0ODc6IEZJTEU6IHRhcmdldC1pMzg2L21vbml0b3IuYzo0ODQ6CisgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBQR19QUkVT
-RU5UX01BU0spOwoKRVJST1I6IGxpbmUgb3ZlciA5MCBjaGFyYWN0ZXJzCiM0OTI6IEZJTEU6IHRh
-cmdldC1pMzg2L21vbml0b3IuYzo0ODk6CisgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICBtZW1fcHJpbnQobW9uLCAmc3RhcnQsICZsYXN0X3Byb3QsIGVuZCwg
-cHJvdCk7CgpXQVJOSU5HOiBsaW5lIG92ZXIgODAgY2hhcmFjdGVycwojNDk3OiBGSUxFOiB0YXJn
-ZXQtaTM4Ni9tb25pdG9yLmM6NDk0OgorICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgIG1lbV9wcmludChtb24sICZzdGFydCwgJmxhc3RfcHJvdCwgZW5kLCBwcm90KTsKCnRv
-dGFsOiA2IGVycm9ycywgOSB3YXJuaW5ncywgNDgxIGxpbmVzIGNoZWNrZWQKCllvdXIgcGF0Y2gg
-aGFzIHN0eWxlIHByb2JsZW1zLCBwbGVhc2UgcmV2aWV3LiAgSWYgYW55IG9mIHRoZXNlIGVycm9y
-cwphcmUgZmFsc2UgcG9zaXRpdmVzIHJlcG9ydCB0aGVtIHRvIHRoZSBtYWludGFpbmVyLCBzZWUK
-Q0hFQ0tQQVRDSCBpbiBNQUlOVEFJTkVSUy4KCj09PSBPVVRQVVQgRU5EID09PQoKVGVzdCBjb21t
-YW5kIGV4aXRlZCB3aXRoIGNvZGU6IDEKCgotLS0KRW1haWwgZ2VuZXJhdGVkIGF1dG9tYXRpY2Fs
-bHkgYnkgUGF0Y2hldyBbaHR0cDovL3BhdGNoZXcub3JnL10uClBsZWFzZSBzZW5kIHlvdXIgZmVl
-ZGJhY2sgdG8gcGF0Y2hldy1kZXZlbEBmcmVlbGlzdHMub3Jn
+On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+>
+> This patchset is still very early. There are a number of things missing
+> that we have to do before asking anyone to merge it (listed below).
+> It would be great if folks can start testing applications now (in QEMU) to
+> look for breakage.
+> Any early comments on the design or the patches would be appreciated as
+> well.
 
+Looks ok to me. Starting off with a compile-time config option seems fine.
+
+I do think that the x86 cpuid part should (patch 15) should be the
+first patch, so that we see "la57" as a capability in /proc/cpuinfo
+whether it's being enabled or not? We should merge that part
+regardless of any mm patches, I think.
+
+               Linus
