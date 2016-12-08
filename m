@@ -1,111 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:65068 "EHLO mga14.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:54725 "EHLO mga14.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932643AbcLHQWg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S932604AbcLHQWg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Thu, 8 Dec 2016 11:22:36 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [RFC, PATCHv1 22/28] x86/espfix: support 5-level paging
-Date: Thu,  8 Dec 2016 19:21:44 +0300
-Message-ID: <20161208162150.148763-24-kirill.shutemov@linux.intel.com>
+Subject: [RFC, PATCHv1 20/28] x86/dump_pagetables: support 5-level paging
+Date: Thu,  8 Dec 2016 19:21:42 +0300
+Message-ID: <20161208162150.148763-22-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20161208162144.OSZMV65obPxXJWlO3qc68aCe1lrzPsDtgEhfmEBLP0I@z>
+Message-ID: <20161208162142.XswWsLDdv1JH_IPc3TkTZmLx9Q5gKpUsWUeh7cCOISc@z>
 
-XXX: how to test this?
+Simple extension to support one more page table level.
 
-Not-yet-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/kernel/espfix_64.c | 41 ++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 38 insertions(+), 3 deletions(-)
+ arch/x86/mm/dump_pagetables.c | 49 ++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 42 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
-index 04f89caef9c4..f0afa0af4237 100644
---- a/arch/x86/kernel/espfix_64.c
-+++ b/arch/x86/kernel/espfix_64.c
-@@ -70,8 +70,15 @@ static DEFINE_MUTEX(espfix_init_mutex);
- #define ESPFIX_MAX_PAGES  DIV_ROUND_UP(CONFIG_NR_CPUS, ESPFIX_STACKS_PER_PAGE)
- static void *espfix_pages[ESPFIX_MAX_PAGES];
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index ea9c49adaa1f..15670b55861b 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -100,7 +100,8 @@ static struct addr_marker address_markers[] = {
+ #define PTE_LEVEL_MULT (PAGE_SIZE)
+ #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
+ #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
+-#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
++#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
++#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
  
--static __page_aligned_bss pud_t espfix_pud_page[PTRS_PER_PUD]
-+#if CONFIG_PGTABLE_LEVELS == 5
-+static __page_aligned_bss pud_t espfix_pgtable_page[PTRS_PER_PUD]
- 	__aligned(PAGE_SIZE);
-+#elif CONFIG_PGTABLE_LEVELS == 4
-+static __page_aligned_bss pud_t espfix_pgtable_page[PTRS_PER_PUD]
-+	__aligned(PAGE_SIZE);
-+#else
-+#error Unexpected CONFIG_PGTABLE_LEVELS
+ #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
+ ({								\
+@@ -326,14 +327,14 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
+ 
+ #if PTRS_PER_PUD > 1
+ 
+-static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
++static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ 							unsigned long P)
+ {
+ 	int i;
+ 	pud_t *start;
+ 	pgprotval_t prot;
+ 
+-	start = (pud_t *) pgd_page_vaddr(addr);
++	start = (pud_t *) p4d_page_vaddr(addr);
+ 
+ 	for (i = 0; i < PTRS_PER_PUD; i++) {
+ 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
+@@ -353,9 +354,43 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
+ }
+ 
+ #else
+-#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
+-#define pgd_large(a) pud_large(__pud(pgd_val(a)))
+-#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
++#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
++#define p4d_large(a) pud_large(__pud(p4d_val(a)))
++#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
 +#endif
- 
- static unsigned int page_random, slot_random;
- 
-@@ -97,6 +104,8 @@ static inline unsigned long espfix_base_addr(unsigned int cpu)
- #define ESPFIX_PTE_CLONES (PTRS_PER_PTE/PTE_STRIDE)
- #define ESPFIX_PMD_CLONES PTRS_PER_PMD
- #define ESPFIX_PUD_CLONES (65536/(ESPFIX_PTE_CLONES*ESPFIX_PMD_CLONES))
-+/* XXX: what should it be? */
-+#define ESPFIX_P4D_CLONES PTRS_PER_P4D
- 
- #define PGTABLE_PROT	  ((_KERNPG_TABLE & ~_PAGE_RW) | _PAGE_NX)
- 
-@@ -122,10 +131,21 @@ static void init_espfix_random(void)
- void __init init_espfix_bsp(void)
- {
- 	pgd_t *pgd_p;
-+	p4d_t *p4d;
- 
- 	/* Install the espfix pud into the kernel page directory */
- 	pgd_p = &init_level4_pgt[pgd_index(ESPFIX_BASE_ADDR)];
--	pgd_populate(&init_mm, pgd_p, (pud_t *)espfix_pud_page);
-+	switch (CONFIG_PGTABLE_LEVELS) {
-+	case 4:
-+		p4d = p4d_offset(pgd_p, ESPFIX_BASE_ADDR);
-+		p4d_populate(&init_mm, p4d, (pud_t *)espfix_pgtable_page);
-+		break;
-+	case 5:
-+		pgd_populate(&init_mm, pgd_p, (p4d_t *)espfix_pgtable_page);
-+		break;
-+	default:
-+		BUILD_BUG();
-+	}
- 
- 	/* Randomize the locations */
- 	init_espfix_random();
-@@ -138,6 +158,7 @@ void init_espfix_ap(int cpu)
- {
- 	unsigned int page;
- 	unsigned long addr;
-+	p4d_t p4d, *p4d_p;
- 	pud_t pud, *pud_p;
- 	pmd_t pmd, *pmd_p;
- 	pte_t pte, *pte_p;
-@@ -167,7 +188,21 @@ void init_espfix_ap(int cpu)
- 	node = cpu_to_node(cpu);
- 	ptemask = __supported_pte_mask;
- 
--	pud_p = &espfix_pud_page[pud_index(addr)];
-+	if (CONFIG_PGTABLE_LEVELS == 5) {
-+		p4d_p = (p4d_t *)espfix_pgtable_page + p4d_index(addr);
-+		p4d = *p4d_p;
-+		if (!p4d_present(p4d)) {
-+			struct page *page = alloc_pages_node(node, PGALLOC_GFP, 0);
 +
-+			pud_p = (pud_t *)page_address(page);
-+			p4d = __p4d(__pa(pud_p) | (PGTABLE_PROT & ptemask));
-+			paravirt_alloc_pud(&init_mm, __pa(pud_p) >> PAGE_SHIFT);
-+			for (n = 0; n < ESPFIX_P4D_CLONES; n++)
-+				set_p4d(&p4d_p[n], p4d);
-+		}
-+	} else {
-+		pud_p = (pud_t *)espfix_pgtable_page + pud_index(addr);
++#if PTRS_PER_P4D > 1
++
++static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
++							unsigned long P)
++{
++	int i;
++	p4d_t *start;
++	pgprotval_t prot;
++
++	start = (p4d_t *) pgd_page_vaddr(addr);
++
++	for (i = 0; i < PTRS_PER_P4D; i++) {
++		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
++		if (!p4d_none(*start)) {
++			if (p4d_large(*start) || !p4d_present(*start)) {
++				prot = p4d_flags(*start);
++				note_page(m, st, __pgprot(prot), 2);
++			} else {
++				walk_pud_level(m, st, *start,
++					       P + i * P4D_LEVEL_MULT);
++			}
++		} else
++			note_page(m, st, __pgprot(0), 2);
++
++		start++;
 +	}
- 	pud = *pud_p;
- 	if (!pud_present(pud)) {
- 		struct page *page = alloc_pages_node(node, PGALLOC_GFP, 0);
++}
++
++#else
++#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
++#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
++#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
+ #endif
+ 
+ static inline bool is_hypervisor_range(int idx)
+@@ -400,7 +435,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
+ 				prot = pgd_flags(*start);
+ 				note_page(m, &st, __pgprot(prot), 1);
+ 			} else {
+-				walk_pud_level(m, &st, *start,
++				walk_p4d_level(m, &st, *start,
+ 					       i * PGD_LEVEL_MULT);
+ 			}
+ 		} else
 -- 
 2.10.2
 
