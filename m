@@ -1,76 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f68.google.com ([74.125.82.68]:35334 "EHLO
-        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752630AbcLHTd1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2016 14:33:27 -0500
-Received: by mail-wm0-f68.google.com with SMTP id a20so5613564wme.2
-        for <linux-arch@vger.kernel.org>; Thu, 08 Dec 2016 11:33:27 -0800 (PST)
-Date: Thu, 8 Dec 2016 22:33:24 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 24/28] x86/mm: add sync_global_pgds() for
- configuration with 5-level paging
-Message-ID: <20161208193324.GD30380@node.shutemov.name>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-26-kirill.shutemov@linux.intel.com>
- <CALCETrWE2WSUe-m9MKmKEK44zNQuuECJ_2agnTv=AkLdOFgR=A@mail.gmail.com>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:36596 "EHLO
+        mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752312AbcLHUIz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2016 15:08:55 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrWE2WSUe-m9MKmKEK44zNQuuECJ_2agnTv=AkLdOFgR=A@mail.gmail.com>
+In-Reply-To: <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+ <20161208162150.148763-17-kirill.shutemov@linux.intel.com> <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 8 Dec 2016 12:08:53 -0800
+Message-ID: <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com>
+Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20161208193324.MdC0RxYvRPVKNqDULCEBBwNg_ZEp66FZRfQ4DOipcso@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161208200853.vwc-MeZihPWBN82V3_sbUNzIuNTvGt-fy-4UVWYA08w@z>
 
-On Thu, Dec 08, 2016 at 10:42:19AM -0800, Andy Lutomirski wrote:
-> On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > This basically restores slightly modified version of original
-> > sync_global_pgds() which we had before foldedl p4d was introduced.
-> >
-> > The only modification is protection against 'address' overflow.
-> >
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  arch/x86/mm/init_64.c | 47 +++++++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 47 insertions(+)
-> >
-> > diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-> > index a991f5c4c2c4..d637893ac8c2 100644
-> > --- a/arch/x86/mm/init_64.c
-> > +++ b/arch/x86/mm/init_64.c
-> > @@ -92,6 +92,52 @@ __setup("noexec32=", nonx32_setup);
-> >   * When memory was added/removed make sure all the processes MM have
-> >   * suitable PGD entries in the local PGD level page.
-> >   */
-> > +#ifdef CONFIG_X86_5LEVEL
-> > +void sync_global_pgds(unsigned long start, unsigned long end, int removed)
-> > +{
-> > +        unsigned long address;
-> > +
-> > +       for (address = start; address <= end && address >= start;
-> > +                       address += PGDIR_SIZE) {
-> > +                const pgd_t *pgd_ref = pgd_offset_k(address);
-> > +                struct page *page;
-> > +
-> > +                /*
-> > +                 * When it is called after memory hot remove, pgd_none()
-> > +                 * returns true. In this case (removed == 1), we must clear
-> > +                 * the PGD entries in the local PGD level page.
-> > +                 */
-> > +                if (pgd_none(*pgd_ref) && !removed)
-> > +                        continue;
-> 
-> This isn't quite specific to your patch, but can we assert that, if
-> removed=1, then we're not operating on the vmalloc range?  Because if
-> we do, this will be racy is nasty ways.
+On Thu, Dec 8, 2016 at 12:05 PM, Borislav Petkov <bp@alien8.de> wrote:
+>
+> The cpuid() in cpuflags.c doesn't zero ecx which, if we have to be
+> pedantic, it should do. It calls CPUID now with the ptr value of its 4th
+> on 64-bit and 3rd arg on 32-bit, respectively, IINM.
 
-Looks like there's no users of removed=1. The last user is gone with
-af2cf278ef4f ("x86/mm/hotplug: Don't remove PGD entries in
-remove_pagetable()")
+In fact, just do a single cpuid_count(), and then implement the
+traditional cpuid() as just
 
-I'll just drop it (with separate patch).
+   #define cpuid(x, a,b,c,d) cpuid_count(x, 0, a, b, c, d)
 
--- 
- Kirill A. Shutemov
+or something.
+
+Especially since that's some of the ugliest inline asm ever due to the
+nasty BX handling.
+
+          Linus
