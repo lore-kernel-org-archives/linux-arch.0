@@ -1,135 +1,65 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
-Date: Fri, 9 Dec 2016 13:37:22 +0300
-Message-ID: <20161209103722.GE30380@node.shutemov.name>
+Date: Fri, 9 Dec 2016 10:51:20 +0000
+Message-ID: <20161209105120.GA3705@e104818-lin.cambridge.arm.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
  <20161209050130.GC2595@gmail.com>
+ <13962749.Q2mLWEctkQ@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20161209050130.GC2595@gmail.com>
+In-Reply-To: <13962749.Q2mLWEctkQ@wuerfel>
 Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, maxim.kuvyrkov@linaro.org, Will Deacon <will.deacon@arm.com>, broonie@kernel.org, schwidefsky@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 09, 2016 at 06:01:30AM +0100, Ingo Molnar wrote:
+On Fri, Dec 09, 2016 at 11:24:12AM +0100, Arnd Bergmann wrote:
+> On Friday, December 9, 2016 6:01:30 AM CET Ingo Molnar wrote:
+> > >   - Handle opt-in wider address space for userspace.
+> > > 
+> > >     Not all userspace is ready to handle addresses wider than current
+> > >     47-bits. At least some JIT compiler make use of upper bits to encode
+> > >     their info.
+> > > 
+> > >     We need to have an interface to opt-in wider addresses from userspace
+> > >     to avoid regressions.
+> > > 
+> > >     For now, I've included testing-only patch which bumps TASK_SIZE to
+> > >     56-bits. This can be handy for testing to see what breaks if we max-out
+> > >     size of virtual address space.
+> > 
+> > So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
+> > in' flag for something that will work just fine on the vast majority of 64-bit 
+> > software.
+> > 
+> > Please make this an opt out compatibility flag instead: similar to how we handle 
+> > address space layout limitations/quirks ABI details, such as ADDR_LIMIT_32BIT, 
+> > ADDR_LIMIT_3GB, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, etc.
 > 
-> * Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+> We've had a similar discussion about JIT software on ARM64, which has a wide
+> range of supported page table layouts and some software wants to limit that
+> to a specific number.
 > 
-> > x86-64 is currently limited to 256 TiB of virtual address space and 64 TiB
-> > of physical address space. We are already bumping into this limit: some
-> > vendors offers servers with 64 TiB of memory today.
-> > 
-> > To overcome the limitation upcoming hardware will introduce support for
-> > 5-level paging[1]. It is a straight-forward extension of the current page
-> > table structure adding one more layer of translation.
-> > 
-> > It bumps the limits to 128 PiB of virtual address space and 4 PiB of
-> > physical address space. This "ought to be enough for anybody" ©.
-> > 
-> > This patchset is still very early. There are a number of things missing
-> > that we have to do before asking anyone to merge it (listed below).
-> > It would be great if folks can start testing applications now (in QEMU) to
-> > look for breakage.
-> > Any early comments on the design or the patches would be appreciated as
-> > well.
-> > 
-> > More details on the design and what’s left to implement are below.
-> 
-> The patches don't look too painful, so no big complaints from me - kudos!
+> I don't remember the outcome of that discussion, but I'm adding a few people
+> to Cc that might remember.
 
-Thanks.
+The arm64 kernel supports several user VA space configurations (though
+commonly 39 and 48-bit) and has had these from the initial port. We
+realised that certain JITs (e.g.
+https://bugzilla.mozilla.org/show_bug.cgi?id=1143022) and IIRC LLVM
+assume a 47-bit user VA but AFAICT, most have been fixed.
 
-> > There is still work to do:
-> > 
-> >   - Boot-time switch between 4- and 5-level paging.
-> > 
-> >     We assume that distributions will be keen to avoid returning to the
-> >     i386 days where we shipped one kernel binary for each page table
-> >     layout.
-> 
-> Absolutely.
-> 
-> >     As page table format is the same for 4- and 5-level paging it should
-> >     be possible to have single kernel binary and switch between them at
-> >     boot-time without too much hassle.
-> > 
-> >     For now I only implemented compile-time switch.
-> > 
-> >     I hoped to bring this feature with separate patchset once basic
-> >     enabling is in upstream.
-> > 
-> >     Is it okay?
-> 
-> LGTM, but we would eventually want to convert this kind of crazy open coding:
-> 
->         pgd_t *pgd, *pgd_ref;
->         p4d_t *p4d, *p4d_ref;
->         pud_t *pud, *pud_ref;
->         pmd_t *pmd, *pmd_ref;
->         pte_t *pte, *pte_ref;
-> 
-> To something saner that iterates and navigates the page table hierarchy in an 
-> extensible fashion. That would also make it (much) easier to make the paging depth 
-> boot time switchable.
-
-Yes, it would be nice to replace all these p??_t with something more
-flexible. But that's no obviously right design for such transition.
-
-I would rather not tight it to boot-time switch for paging, but have
-separate experimental patchset. One day...
-
-> Somehow I'm quite certain we'll see requests for more than 4 PiB memory in our 
-> lifetimes.
-> 
-> In a decade or two once global warming really gets going, especially after Trump & 
-> Republicans & Old Energy implement their billionaire welfare policies to mine, 
-> sell and burn even more coal & oil without paying for the damage caused, the U.S. 
-> meteorology clusters tracking Category 6 hurricanes in the Atlantic (capable of 1+ 
-> trillion dollars damage) in near real time at 1 meter resolution will have to run 
-> on something capable, right?
-> 
-> >   - Handle opt-in wider address space for userspace.
-> > 
-> >     Not all userspace is ready to handle addresses wider than current
-> >     47-bits. At least some JIT compiler make use of upper bits to encode
-> >     their info.
-> > 
-> >     We need to have an interface to opt-in wider addresses from userspace
-> >     to avoid regressions.
-> > 
-> >     For now, I've included testing-only patch which bumps TASK_SIZE to
-> >     56-bits. This can be handy for testing to see what breaks if we max-out
-> >     size of virtual address space.
-> 
-> So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
-> in' flag for something that will work just fine on the vast majority of 64-bit 
-> software.
-> 
-> Please make this an opt out compatibility flag instead: similar to how we handle 
-> address space layout limitations/quirks ABI details, such as ADDR_LIMIT_32BIT, 
-> ADDR_LIMIT_3GB, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, etc.
-
-Well, that's true that most userspace can handle wide addresses just fine.
-But even by simply booting Fedora on QEMU I see one SIGSEGV for this
-reason: libmozjs-17.0.so cannot handle it (polkitd linked with it, hell
-knows why).
-
-I think keeping software from crashing is kinda priority in this
-transition.
-
-Beyond that, most of software would not benefit much from large virtual
-address space. Okay, there's more bits for ASLR, but that's it.
-
-On other hand, large virtual address space would put more pressure on
-cache -- at least one more page table per process, if we make 56-bit VA
-default.
+ARMv8.1 also supports 52-bit VA (though only with 64K pages and we
+haven't added support for it yet). However, it's likely that if we make
+a 52-bit TASK_SIZE this the default, we will break some user
+assumptions. While arguably that's not necessarily ABI, if user relies
+on a 47 or 48-bit VA the kernel shouldn't break it. So I'm strongly
+inclined to make the 52-bit TASK_SIZE an opt-in on arm64.
 
 -- 
- Kirill A. Shutemov
+Catalin
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
