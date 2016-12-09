@@ -1,65 +1,156 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
-Date: Fri, 9 Dec 2016 10:51:20 +0000
-Message-ID: <20161209105120.GA3705@e104818-lin.cambridge.arm.com>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161209050130.GC2595@gmail.com>
- <13962749.Q2mLWEctkQ@wuerfel>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v3 10/20] Add support to access boot related data in
+ the clear
+Date: Fri, 9 Dec 2016 08:26:40 -0600
+Message-ID: <8aebb166-12ae-64aa-bf1a-3f46fe8b52dd@amd.com>
+References: <20161110003426.3280.2999.stgit@tlendack-t1.amdoffice.net>
+ <20161110003631.3280.73292.stgit@tlendack-t1.amdoffice.net>
+ <20161207131903.GU20785@codeblueprint.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <13962749.Q2mLWEctkQ@wuerfel>
+In-Reply-To: <20161207131903.GU20785@codeblueprint.co.uk>
 Sender: owner-linux-mm@kvack.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, maxim.kuvyrkov@linaro.org, Will Deacon <will.deacon@arm.com>, broonie@kernel.org, schwidefsky@de.ibm.com
+To: Matt Fleming <matt@codeblueprint.co.uk>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Larry Woodman <lwoodman@redhat.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Alexander Potapenko <glider@google.com>, Thomas Gleixner <tglx@linutronix.de>, Dmitry Vyukov <dvyukov@google.com>, Ard Biesheuvel <ard.biesheuvel@linaro.>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 09, 2016 at 11:24:12AM +0100, Arnd Bergmann wrote:
-> On Friday, December 9, 2016 6:01:30 AM CET Ingo Molnar wrote:
-> > >   - Handle opt-in wider address space for userspace.
-> > > 
-> > >     Not all userspace is ready to handle addresses wider than current
-> > >     47-bits. At least some JIT compiler make use of upper bits to encode
-> > >     their info.
-> > > 
-> > >     We need to have an interface to opt-in wider addresses from userspace
-> > >     to avoid regressions.
-> > > 
-> > >     For now, I've included testing-only patch which bumps TASK_SIZE to
-> > >     56-bits. This can be handy for testing to see what breaks if we max-out
-> > >     size of virtual address space.
-> > 
-> > So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
-> > in' flag for something that will work just fine on the vast majority of 64-bit 
-> > software.
-> > 
-> > Please make this an opt out compatibility flag instead: similar to how we handle 
-> > address space layout limitations/quirks ABI details, such as ADDR_LIMIT_32BIT, 
-> > ADDR_LIMIT_3GB, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, etc.
+On 12/7/2016 7:19 AM, Matt Fleming wrote:
+> On Wed, 09 Nov, at 06:36:31PM, Tom Lendacky wrote:
+>> Boot data (such as EFI related data) is not encrypted when the system is
+>> booted and needs to be accessed unencrypted.  Add support to apply the
+>> proper attributes to the EFI page tables and to the early_memremap and
+>> memremap APIs to identify the type of data being accessed so that the
+>> proper encryption attribute can be applied.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/e820.h    |    1 
+>>  arch/x86/kernel/e820.c         |   16 +++++++
+>>  arch/x86/mm/ioremap.c          |   89 ++++++++++++++++++++++++++++++++++++++++
+>>  arch/x86/platform/efi/efi_64.c |   12 ++++-
+>>  drivers/firmware/efi/efi.c     |   33 +++++++++++++++
+>>  include/linux/efi.h            |    2 +
+>>  kernel/memremap.c              |    8 +++-
+>>  mm/early_ioremap.c             |   18 +++++++-
+>>  8 files changed, 172 insertions(+), 7 deletions(-)
+>  
+> FWIW, I think this version is an improvement over all the previous
+> ones.
 > 
-> We've had a similar discussion about JIT software on ARM64, which has a wide
-> range of supported page table layouts and some software wants to limit that
-> to a specific number.
+> [...]
 > 
-> I don't remember the outcome of that discussion, but I'm adding a few people
-> to Cc that might remember.
+>> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+>> index ff542cd..ee347c2 100644
+>> --- a/arch/x86/mm/ioremap.c
+>> +++ b/arch/x86/mm/ioremap.c
+>> @@ -20,6 +20,9 @@
+>>  #include <asm/tlbflush.h>
+>>  #include <asm/pgalloc.h>
+>>  #include <asm/pat.h>
+>> +#include <asm/e820.h>
+>> +#include <asm/setup.h>
+>> +#include <linux/efi.h>
+>>  
+>>  #include "physaddr.h"
+>>  
+>> @@ -418,6 +421,92 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+>>  	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+>>  }
+>>  
+>> +static bool memremap_setup_data(resource_size_t phys_addr,
+>> +				unsigned long size)
+>> +{
+>> +	u64 paddr;
+>> +
+>> +	if (phys_addr == boot_params.hdr.setup_data)
+>> +		return true;
+>> +
+> 
+> Why is the setup_data linked list not traversed when checking for
+> matching addresses? Am I reading this incorrectly? I don't see how
+> this can work.
 
-The arm64 kernel supports several user VA space configurations (though
-commonly 39 and 48-bit) and has had these from the initial port. We
-realised that certain JITs (e.g.
-https://bugzilla.mozilla.org/show_bug.cgi?id=1143022) and IIRC LLVM
-assume a 47-bit user VA but AFAICT, most have been fixed.
+Yeah, I caught that too after I sent this out. I think the best way to
+handle this would be to create a list/array of setup data addresses in
+the parse_setup_data() routine and then check the address against that
+list in this routine.
 
-ARMv8.1 also supports 52-bit VA (though only with 64K pages and we
-haven't added support for it yet). However, it's likely that if we make
-a 52-bit TASK_SIZE this the default, we will break some user
-assumptions. While arguably that's not necessarily ABI, if user relies
-on a 47 or 48-bit VA the kernel shouldn't break it. So I'm strongly
-inclined to make the 52-bit TASK_SIZE an opt-in on arm64.
+> 
+>> +	paddr = boot_params.efi_info.efi_memmap_hi;
+>> +	paddr <<= 32;
+>> +	paddr |= boot_params.efi_info.efi_memmap;
+>> +	if (phys_addr == paddr)
+>> +		return true;
+>> +
+>> +	paddr = boot_params.efi_info.efi_systab_hi;
+>> +	paddr <<= 32;
+>> +	paddr |= boot_params.efi_info.efi_systab;
+>> +	if (phys_addr == paddr)
+>> +		return true;
+>> +
+>> +	if (efi_table_address_match(phys_addr))
+>> +		return true;
+>> +
+>> +	return false;
+>> +}
+>> +
+>> +static bool memremap_apply_encryption(resource_size_t phys_addr,
+>> +				      unsigned long size)
+>> +{
+>> +	/* SME is not active, just return true */
+>> +	if (!sme_me_mask)
+>> +		return true;
+>> +
+>> +	/* Check if the address is part of the setup data */
+>> +	if (memremap_setup_data(phys_addr, size))
+>> +		return false;
+>> +
+>> +	/* Check if the address is part of EFI boot/runtime data */
+>> +	switch (efi_mem_type(phys_addr)) {
+>> +	case EFI_BOOT_SERVICES_DATA:
+>> +	case EFI_RUNTIME_SERVICES_DATA:
+>> +		return false;
+>> +	}
+> 
+> EFI_LOADER_DATA is notable by its absence.
+> 
+> We use that memory type for allocations inside of the EFI boot stub
+> that are than used while the kernel is running. One use that comes to
+> mind is for initrd files, see handle_cmdline_files().
+> 
+> Oh I see you handle that in PATCH 9, never mind.
+> 
+>> diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+>> index 58b0f80..3f89179 100644
+>> --- a/arch/x86/platform/efi/efi_64.c
+>> +++ b/arch/x86/platform/efi/efi_64.c
+>> @@ -221,7 +221,13 @@ int __init efi_setup_page_tables(unsigned long pa_memmap, unsigned num_pages)
+>>  	if (efi_enabled(EFI_OLD_MEMMAP))
+>>  		return 0;
+>>  
+>> -	efi_scratch.efi_pgt = (pgd_t *)__pa(efi_pgd);
+>> +	/*
+>> +	 * Since the PGD is encrypted, set the encryption mask so that when
+>> +	 * this value is loaded into cr3 the PGD will be decrypted during
+>> +	 * the pagetable walk.
+>> +	 */
+>> +	efi_scratch.efi_pgt = (pgd_t *)__sme_pa(efi_pgd);
+>> +
+>>  	pgd = efi_pgd;
+>>  
+>>  	/*
+> 
+> Do all callers of __pa() in arch/x86 need fixing up like this?
 
--- 
-Catalin
+No, currently this is only be needed when we're dealing with values that
+will be used in the cr3 register.
+
+Thanks,
+Tom
+
+> 
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
