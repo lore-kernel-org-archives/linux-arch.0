@@ -1,60 +1,34 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
-Date: Fri, 9 Dec 2016 17:33:28 +0100
-Message-ID: <20161209163328.wixkda7fqm5rye5h@pd.tnic>
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+Date: Fri, 9 Dec 2016 08:40:11 -0800
+Message-ID: <20161209164011.GL8388@tassilo.jf.intel.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
- <20161208200505.c6xiy56oufg6d24m@pd.tnic>
- <20161209153233.GA8932@node.shutemov.name>
+ <20161209050130.GC2595@gmail.com>
+ <20161209103722.GE30380@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:42668 "EHLO mail.skyhub.de"
+Received: from mga04.intel.com ([192.55.52.120]:46543 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933734AbcLIQdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Dec 2016 11:33:40 -0500
+        id S933294AbcLIQkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Dec 2016 11:40:12 -0500
 Content-Disposition: inline
-In-Reply-To: <20161209153233.GA8932@node.shutemov.name>
+In-Reply-To: <20161209103722.GE30380@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Fri, Dec 09, 2016 at 06:32:33PM +0300, Kirill A. Shutemov wrote:
-> Something like this?
-> 
-> diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-> index 6687ab953257..366aad972025 100644
-> --- a/arch/x86/boot/cpuflags.c
-> +++ b/arch/x86/boot/cpuflags.c
-> @@ -70,16 +70,22 @@ int has_eflag(unsigned long mask)
->  # define EBX_REG "=b"
->  #endif
-> 
-> -static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-> +static inline void cpuid_count(u32 id, u32 count,
-> +               u32 *a, u32 *b, u32 *c, u32 *d)
->  {
-> +       *a = id;
-> +       *c = count;
-> +
->         asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif  \n\t"
->                      "cpuid                                     \n\t"
->                      ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif  \n\t"
->                     : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
-> -                   : "a" (id)
-> +                   : "a" (id), "c" (count)
->         );
->  }
-> 
-> +#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
+> On other hand, large virtual address space would put more pressure on
+> cache -- at least one more page table per process, if we make 56-bit VA
+> default.
 
-LGTM.
+The top level page always has to be there unless you disable it at boot time
+(unless you go for a scheme where some processes share top level pages, and
+others do not, which would likely be very complicated)
 
-Thanks.
+But even with that it is more than one: A typical set up has at least two extra
+4K pages overhead, one for the bottom and one for the top mappings. Could easily be
+more.
 
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+-Andi
