@@ -1,50 +1,55 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
- from asm
-Date: Fri, 9 Dec 2016 18:14:59 +1000
-Message-ID: <20161209181459.1f0a4fed@roar.ozlabs.ibm.com>
-References: <20161129135118.24696-1-kilobyte@angband.pl>
-        <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
-        <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
-        <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
-        <20161129195721.GI2697@decadent.org.uk>
-        <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
-        <20161201051852.28dc335f@roar.ozlabs.ibm.com>
-        <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
-        <20161201041325.GX35881@redhat.com>
-        <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
-        <20161201152039.GB35881@redhat.com>
-        <20161209135041.5ff12770@roar.ozlabs.ibm.com>
-        <0937c184-1946-c494-56b6-c38fd0b632c2@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+Date: Fri, 09 Dec 2016 11:24:12 +0100
+Message-ID: <13962749.Q2mLWEctkQ@wuerfel>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com> <20161209050130.GC2595@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <0937c184-1946-c494-56b6-c38fd0b632c2@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stanislav Kozina <skozina@redhat.com>
-Cc: Don Zickus <dzickus@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:53474 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932960AbcLIK1H (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Dec 2016 05:27:07 -0500
+In-Reply-To: <20161209050130.GC2595@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, maxim.kuvyrkov@linaro.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, broonie@kernel.org, schwidefsky@de.ibm.com
 
-On Fri, 9 Dec 2016 08:55:51 +0100
-Stanislav Kozina <skozina@redhat.com> wrote:
-
-> >> The question is how to provide a similar guarantee if a different way?  
-> > As a tool to aid distro reviewers, modversions has some value, but the
-> > debug info parsing tools that have been mentioned in this thread seem
-> > superior (not that I've tested them).  
+On Friday, December 9, 2016 6:01:30 AM CET Ingo Molnar wrote:
+> >   - Handle opt-in wider address space for userspace.
+> > 
+> >     Not all userspace is ready to handle addresses wider than current
+> >     47-bits. At least some JIT compiler make use of upper bits to encode
+> >     their info.
+> > 
+> >     We need to have an interface to opt-in wider addresses from userspace
+> >     to avoid regressions.
+> > 
+> >     For now, I've included testing-only patch which bumps TASK_SIZE to
+> >     56-bits. This can be handy for testing to see what breaks if we max-out
+> >     size of virtual address space.
 > 
-> On the other hand the big advantage of modversions is that it also 
-> verifies the checksum during runtime (module loading). In other words, I 
-> believe that any other solution should still generate some form of 
-> checksum/watermark which can be easily checked for compatibility on 
-> module load.
-> It should not be hard to add to the DWARF based tools though. We'd just 
-> parse DWARF data instead of the C code.
+> So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
+> in' flag for something that will work just fine on the vast majority of 64-bit 
+> software.
+> 
+> Please make this an opt out compatibility flag instead: similar to how we handle 
+> address space layout limitations/quirks ABI details, such as ADDR_LIMIT_32BIT, 
+> ADDR_LIMIT_3GB, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, etc.
 
-A runtime check is still done, with per-module vermagic which distros
-can change when they bump the ABI version. Is it really necessary to
-have more than that (i.e., per-symbol versioning)?
+We've had a similar discussion about JIT software on ARM64, which has a wide
+range of supported page table layouts and some software wants to limit that
+to a specific number.
 
-Thanks,
-Nick
+I don't remember the outcome of that discussion, but I'm adding a few people
+to Cc that might remember.
+
+There have also been some discussions in the past to make the depth of the
+page table a per-task decision on s390, since you may have some tasks that
+run just fine with two or three levels of paging while another task actually
+wants the full 64-bit address space. I wonder how much extra work this would
+be on top of the boot-time option.
+
+	Arnd
