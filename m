@@ -1,33 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:33778 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752429AbcLIQtt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Dec 2016 11:49:49 -0500
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:33238 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S933531AbcLIRVV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Dec 2016 12:21:21 -0500
+Received: by mail-wm0-f68.google.com with SMTP id u144so5042667wmu.0
+        for <linux-arch@vger.kernel.org>; Fri, 09 Dec 2016 09:21:21 -0800 (PST)
+Date: Fri, 9 Dec 2016 20:21:18 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+Message-ID: <20161209172118.GB8932@node.shutemov.name>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161209050130.GC2595@gmail.com> <20161209103722.GE30380@node.shutemov.name>
-From: Dave Hansen <dave.hansen@intel.com>
-Message-ID: <0117384c-e591-2a91-3eab-1af0b0c9f9c9@intel.com>
-Date: Fri, 9 Dec 2016 08:49:47 -0800
+ <20161209050130.GC2595@gmail.com>
+ <20161209103722.GE30380@node.shutemov.name>
+ <20161209164011.GL8388@tassilo.jf.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20161209103722.GE30380@node.shutemov.name>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20161209164011.GL8388@tassilo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>, Ingo Molnar <mingo@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20161209164947.6jaC3t66kFp12micXnuHQ1bQt9aK2zn8cgr8yQ8XotI@z>
+To: Andi Kleen <ak@linux.intel.com>
+Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20161209172118.LkcjIYa0uvMSg5D3MDyU_2IcyUxaNNyVZiPWb9XVuBk@z>
 
-On 12/09/2016 02:37 AM, Kirill A. Shutemov wrote:
-> On other hand, large virtual address space would put more pressure on
-> cache -- at least one more page table per process, if we make 56-bit VA
-> default.
+On Fri, Dec 09, 2016 at 08:40:11AM -0800, Andi Kleen wrote:
+> > On other hand, large virtual address space would put more pressure on
+> > cache -- at least one more page table per process, if we make 56-bit VA
+> > default.
+> 
+> The top level page always has to be there unless you disable it at boot time
+> (unless you go for a scheme where some processes share top level pages, and
+> others do not, which would likely be very complicated)
+> 
+> But even with that it is more than one: A typical set up has at least two extra
+> 4K pages overhead, one for the bottom and one for the top mappings. Could easily be
+> more.
 
-For a process only using a small amount of its address space, the
-mid-level paging structure caches will be very effective since the page
-walks are all very similar.  You may take a cache miss on the extra
-level on the *first* walk, but you only do that once per context switch.
- I bet the CPU is also pretty aggressive about filling those things when
-it sees a new CR3 and they've been forcibly emptied.  So, you may never
-even _see_ the latency from that extra miss.
+So, right, one page for pgd, which we can't easily avoid.
+
+If we limit VA to 47-bits by default, we would have one p4d page as the
+range will be covered by one entry in pgd.
+
+If we go to 56-bits VA by default, we would have at least two p4d pages
+even for small processes. This where mine "at least one more page table
+per process" comes from.
+
+That's waste of memory and potentially cache. I don't think it's
+justified.
+
+-- 
+ Kirill A. Shutemov
