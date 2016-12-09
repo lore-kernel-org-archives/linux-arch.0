@@ -1,50 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0066.outbound.protection.outlook.com ([104.47.42.66]:33492
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1753048AbcLIUCY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Dec 2016 15:02:24 -0500
-Subject: Re: [PATCH 3/5] Move dma_ops from archdata into struct device
-References: <07c07529-4636-fafb-2598-7358d8a1460d@sandisk.com>
- <58a325aa-8df7-6a2e-fadb-5d9031d8a1a0@sandisk.com>
- <20161209182230.GC16622@lst.de> <1481310814.98151.11.camel@infradead.org>
-From: Bart Van Assche <bart.vanassche@sandisk.com>
-Message-ID: <cbfac346-3b71-fffb-65f6-3566a00366a4@sandisk.com>
-Date: Fri, 9 Dec 2016 11:46:30 -0800
+Received: from www.sr71.net ([198.145.64.142]:52247 "EHLO blackbird.sr71.net"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751076AbcLIXSG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Dec 2016 18:18:06 -0500
+Subject: Re: [PATCH] proc: mm: export PTE sizes directly in smaps (v3)
+References: <20161129201703.CE9D5054@viggo.jf.intel.com>
+ <CAHp75Vee5EzoxOoXot0+0jRKtX+nhj+obJp-zR3Kp3osdKCVNA@mail.gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <1103bf7b-b4a9-3378-7f09-ea67f8bed4a8@sr71.net>
+Date: Fri, 9 Dec 2016 15:10:05 -0800
 MIME-Version: 1.0
-In-Reply-To: <1481310814.98151.11.camel@infradead.org>
-Content-Type: text/plain; charset="utf-8"; format=flowed
+In-Reply-To: <CAHp75Vee5EzoxOoXot0+0jRKtX+nhj+obJp-zR3Kp3osdKCVNA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@lst.de>
-Cc: Doug Ledford <dledford@redhat.com>, Sagi Grimberg <sagi@grimberg.me>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>, virtualization@lists.linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20161209194630.Al3ZmauJWg8eJZMBkSqbguUe0jLj4OHO4B2fJDEzawQ@z>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, khandual@linux.vnet.ibm.com, vbabka@suse.cz, linux-mm@kvack.org, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20161209231005.2lA_8NZT9x3tdZpBg7ItsFkPtcCjAFRRIAZM9LJd1nI@z>
 
-On 12/09/2016 11:13 AM, David Woodhouse wrote:
-> On Fri, 2016-12-09 at 19:22 +0100, Christoph Hellwig wrote:
->> We'll need a bit of a wieder audience for this I think..
->>
->> On Wed, Dec 07, 2016 at 05:11:28PM -0800, Bart Van Assche wrote:
->>> Additionally, introduce set_dma_ops(). A later patch will introduce a
->>> call to that function in the RDMA drivers that will be modified to use
->>> dma_noop_ops.
->>
->> This looks good to me, and we had a lot of talk about this for other
->> purposes for a while.
->
-> Hm, I'm not convinced we want per-device dma_ops. What we want is per-
-> device IOMMU ops, and any dma_ops are just a generic or platform-
-> specific (in some cases) wrapper around those. We shouldn't normally
-> need per-device DMA ops at all.
+On 12/01/2016 06:50 AM, Andy Shevchenko wrote:
+>> > +static int size_shift(unsigned long long nr)
+>> > +{
+>> > +       if (nr < (1ULL<<10))
+>> > +               return 0;
+>> > +       if (nr < (1ULL<<20))
+>> > +               return 10;
+>> > +       if (nr < (1ULL<<30))
+>> > +               return 20;
+>> > +       if (nr < (1ULL<<40))
+>> > +               return 30;
+>> > +       if (nr < (1ULL<<50))
+>> > +               return 40;
+>> > +       if (nr < (1ULL<<60))
+>> > +               return 50;
+>> > +       return 60;
+>> > +}
+>> > +
+> New copy of string_get_size() ?
 
-Hello David,
+Not really.  That prints to a buffer, so we'll need to allocate stack
+space for a buffer, which we also have to size properly.  We also want
+to be consistent with other parts of smaps that mean kB==1024 bytes, so
+we want string_get_size()'s STRING_UNITS_10 strings, but
+STRING_UNITS_2's divisor.
 
-Can you recommend an approach for e.g. the qib driver 
-(drivers/infiniband/hw/qib)? That driver uses the CPU (PIO) instead of 
-DMA to transfer data to a PCIe device. Sorry but I don't see how 
-per-device IOMMU ops would allow to avoid that e.g. a cache flush is 
-triggered before PIO starts.
+Also, guaranteeing that we have a power-of-2 'block size' lets us cheat
+and do things much faster than using real division.  Not that it
+matters, but we could do it thousands of times for a large smaps file.
 
-Bart.
+Being defined locally, this stuff also gets inlined pretty aggressively.
 
+Given all that, I'm not sure I want to modify string_get_size() to do
+exactly what we need here.
