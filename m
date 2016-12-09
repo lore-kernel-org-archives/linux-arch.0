@@ -1,92 +1,59 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
-Date: Fri, 9 Dec 2016 18:32:33 +0300
-Message-ID: <20161209153233.GA8932@node.shutemov.name>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
- <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+From: Nicholas Piggin <npiggin@gmail.com>
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
+ from asm
+Date: Sat, 10 Dec 2016 01:56:53 +1000
+Message-ID: <20161210015653.5b0dc872@roar.ozlabs.ibm.com>
+References: <20161129135118.24696-1-kilobyte@angband.pl>
+        <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+        <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+        <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+        <20161129195721.GI2697@decadent.org.uk>
+        <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+        <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+        <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+        <20161201041325.GX35881@redhat.com>
+        <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
+        <20161201152039.GB35881@redhat.com>
+        <20161209135041.5ff12770@roar.ozlabs.ibm.com>
+        <0937c184-1946-c494-56b6-c38fd0b632c2@redhat.com>
+        <20161209181459.1f0a4fed@roar.ozlabs.ibm.com>
+        <249321c0-bcb1-f9d8-50f4-c083b656d02e@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wj0-f193.google.com ([209.85.210.193]:34305 "EHLO
-        mail-wj0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753971AbcLIPch (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 9 Dec 2016 10:32:37 -0500
-Received: by mail-wj0-f193.google.com with SMTP id xy5so2936719wjc.1
-        for <linux-arch@vger.kernel.org>; Fri, 09 Dec 2016 07:32:36 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <20161208200505.c6xiy56oufg6d24m@pd.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <249321c0-bcb1-f9d8-50f4-c083b656d02e@redhat.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stanislav Kozina <skozina@redhat.com>
+Cc: Don Zickus <dzickus@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 08, 2016 at 09:05:05PM +0100, Borislav Petkov wrote:
-> On Thu, Dec 08, 2016 at 07:21:37PM +0300, Kirill A. Shutemov wrote:
-> > 5-level paging support is required from hardware when compiled with
-> > CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+On Fri, 9 Dec 2016 15:36:04 +0100
+Stanislav Kozina <skozina@redhat.com> wrote:
+
+> >>>> The question is how to provide a similar guarantee if a different way?  
+> >>> As a tool to aid distro reviewers, modversions has some value, but the
+> >>> debug info parsing tools that have been mentioned in this thread seem
+> >>> superior (not that I've tested them).  
+> >> On the other hand the big advantage of modversions is that it also
+> >> verifies the checksum during runtime (module loading). In other words, I
+> >> believe that any other solution should still generate some form of
+> >> checksum/watermark which can be easily checked for compatibility on
+> >> module load.
+> >> It should not be hard to add to the DWARF based tools though. We'd just
+> >> parse DWARF data instead of the C code.  
+> > A runtime check is still done, with per-module vermagic which distros
+> > can change when they bump the ABI version. Is it really necessary to
+> > have more than that (i.e., per-symbol versioning)?  
 > 
-> ...
-> 
-> > diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-> > index 6687ab953257..26e9a287805f 100644
-> > --- a/arch/x86/boot/cpuflags.c
-> > +++ b/arch/x86/boot/cpuflags.c
-> > @@ -80,6 +80,17 @@ static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-> >  	);
-> >  }
-> >  
-> > +static inline void cpuid_count(u32 id, u32 count,
-> > +		u32 *a, u32 *b, u32 *c, u32 *d)
-> > +{
-> > +	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
-> > +		     "cpuid					\n\t"
-> > +		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
-> > +		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
-> > +		    : "a" (id), "c" (count)
-> > +	);
-> > +}
-> 
-> Pls make those like cpuid() and cpuid_count() in
-> arch/x86/include/asm/processor.h, which explicitly assign ecx and then
-> call the underlying helper.
-> 
-> The cpuid() in cpuflags.c doesn't zero ecx which, if we have to be
-> pedantic, it should do. It calls CPUID now with the ptr value of its 4th
-> on 64-bit and 3rd arg on 32-bit, respectively, IINM.
+>  From my point of view, it is. We need to allow changing ABI for some 
+> modules while maintaining it for others.
+> In fact I think that there should be version not only for every exported 
+> symbol (in the EXPORT_SYMBOL() sense), but also for every public type 
+> (in the sense of eg. structure defined in the public header file).
 
-Something like this?
+Well the distro can just append _v2, _v3 to the name of the function
+or type if it has to break compat for some reason. Would that be enough?
 
-diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-index 6687ab953257..366aad972025 100644
---- a/arch/x86/boot/cpuflags.c
-+++ b/arch/x86/boot/cpuflags.c
-@@ -70,16 +70,22 @@ int has_eflag(unsigned long mask)
- # define EBX_REG "=b"
- #endif
-
--static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-+static inline void cpuid_count(u32 id, u32 count,
-+               u32 *a, u32 *b, u32 *c, u32 *d)
- {
-+       *a = id;
-+       *c = count;
-+
-        asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif  \n\t"
-                     "cpuid                                     \n\t"
-                     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif  \n\t"
-                    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
--                   : "a" (id)
-+                   : "a" (id), "c" (count)
-        );
- }
-
-+#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
-+
- void get_cpuflags(void)
- {
-        u32 max_intel_level, max_amd_level;
--- 
- Kirill A. Shutemov
+Thanks,
+Nick
