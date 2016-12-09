@@ -1,45 +1,34 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
-Date: Fri, 9 Dec 2016 20:21:18 +0300
-Message-ID: <20161209172118.GB8932@node.shutemov.name>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161209050130.GC2595@gmail.com>
- <20161209103722.GE30380@node.shutemov.name>
- <20161209164011.GL8388@tassilo.jf.intel.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 3/5] Move dma_ops from archdata into struct device
+Date: Fri, 9 Dec 2016 19:22:30 +0100
+Message-ID: <20161209182230.GC16622@lst.de>
+References: <07c07529-4636-fafb-2598-7358d8a1460d@sandisk.com>
+	<58a325aa-8df7-6a2e-fadb-5d9031d8a1a0@sandisk.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <20161209164011.GL8388@tassilo.jf.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andi Kleen <ak@linux.intel.com>
-Cc: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+In-Reply-To: <58a325aa-8df7-6a2e-fadb-5d9031d8a1a0@sandisk.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Bart Van Assche <bart.vanassche@sandisk.com>
+Cc: linux-arch@vger.kernel.org, Sagi Grimberg <sagi@grimberg.me>, "linux-rdma@vger.kernel.org" <linux-rdma@vger.kernel.org>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Doug Ledford <dledford@redhat.com>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@lst.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 09, 2016 at 08:40:11AM -0800, Andi Kleen wrote:
-> > On other hand, large virtual address space would put more pressure on
-> > cache -- at least one more page table per process, if we make 56-bit VA
-> > default.
-> 
-> The top level page always has to be there unless you disable it at boot time
-> (unless you go for a scheme where some processes share top level pages, and
-> others do not, which would likely be very complicated)
-> 
-> But even with that it is more than one: A typical set up has at least two extra
-> 4K pages overhead, one for the bottom and one for the top mappings. Could easily be
-> more.
+We'll need a bit of a wieder audience for this I think..
 
-So, right, one page for pgd, which we can't easily avoid.
+On Wed, Dec 07, 2016 at 05:11:28PM -0800, Bart Van Assche wrote:
+> Additionally, introduce set_dma_ops(). A later patch will introduce a
+> call to that function in the RDMA drivers that will be modified to use
+> dma_noop_ops.
 
-If we limit VA to 47-bits by default, we would have one p4d page as the
-range will be covered by one entry in pgd.
-
-If we go to 56-bits VA by default, we would have at least two p4d pages
-even for small processes. This where mine "at least one more page table
-per process" comes from.
-
-That's waste of memory and potentially cache. I don't think it's
-justified.
-
--- 
- Kirill A. Shutemov
+This looks good to me, and we had a lot of talk about this for other
+purposes for a while. 
