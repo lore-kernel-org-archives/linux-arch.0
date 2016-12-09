@@ -1,53 +1,60 @@
-From: Don Zickus <dzickus@redhat.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-Date: Fri, 9 Dec 2016 11:16:51 -0500
-Message-ID: <20161209161651.GB35881@redhat.com>
-References: <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
- <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
- <20161129195721.GI2697@decadent.org.uk>
- <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
- <20161201051852.28dc335f@roar.ozlabs.ibm.com>
- <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
- <20161201041325.GX35881@redhat.com>
- <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
- <20161201152039.GB35881@redhat.com>
- <20161209135041.5ff12770@roar.ozlabs.ibm.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
+Date: Fri, 9 Dec 2016 17:33:28 +0100
+Message-ID: <20161209163328.wixkda7fqm5rye5h@pd.tnic>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+ <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
+ <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+ <20161209153233.GA8932@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60680 "EHLO mx1.redhat.com"
+Received: from mail.skyhub.de ([78.46.96.112]:42668 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933449AbcLIQRG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 9 Dec 2016 11:17:06 -0500
+        id S933734AbcLIQdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 9 Dec 2016 11:33:40 -0500
 Content-Disposition: inline
-In-Reply-To: <20161209135041.5ff12770@roar.ozlabs.ibm.com>
+In-Reply-To: <20161209153233.GA8932@node.shutemov.name>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicholas Piggin <npiggin@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, skozina@redhat.com, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Fri, Dec 09, 2016 at 01:50:41PM +1000, Nicholas Piggin wrote:
-> > 
-> > We have plenty of customers with 10 year old drivers, where the expertise
-> > has long left the company.  The engineers still around, recompile and make
-> > tweaks to get things working on the latest RHEL.  Verify it passes testing
-> > and release it.  Then they hope to not touch it again for a few years until
-> > the next RHEL comes along.
-> > 
-> > Scary, huh? :-)
+On Fri, Dec 09, 2016 at 06:32:33PM +0300, Kirill A. Shutemov wrote:
+> Something like this?
 > 
-> Oh yeah my aim here is not to make distro or out of tree module vendors
-> life harder, actually the opposite. If it turns out modversions really is
-> the best approach, I'm not in a position to complain about its complexity
-> because we have Suse and Redhat people maintaining the build and module
-> systems :) I just want to see if we can do things better.
+> diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+> index 6687ab953257..366aad972025 100644
+> --- a/arch/x86/boot/cpuflags.c
+> +++ b/arch/x86/boot/cpuflags.c
+> @@ -70,16 +70,22 @@ int has_eflag(unsigned long mask)
+>  # define EBX_REG "=b"
+>  #endif
+> 
+> -static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
+> +static inline void cpuid_count(u32 id, u32 count,
+> +               u32 *a, u32 *b, u32 *c, u32 *d)
+>  {
+> +       *a = id;
+> +       *c = count;
+> +
+>         asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif  \n\t"
+>                      "cpuid                                     \n\t"
+>                      ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif  \n\t"
+>                     : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+> -                   : "a" (id)
+> +                   : "a" (id), "c" (count)
+>         );
+>  }
+> 
+> +#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
 
-Hi Nick,
+LGTM.
 
-I think we are in pretty good agreement here.  We can do better than
-modversions.  On the flip side, I would hate to see modversions ripped out
-until we have an alternate path forward as it does get us by for now. :-)
+Thanks.
 
-Cheers,
-Don
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
