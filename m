@@ -1,33 +1,44 @@
-From: hpa@zytor.com
-Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
-Date: Thu, 15 Dec 2016 12:57:43 -0800
-Message-ID: <34A313BB-EB15-4A4C-AB77-BD678118F086@zytor.com>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com> <20161208162150.148763-17-kirill.shutemov@linux.intel.com> <20161208200505.c6xiy56oufg6d24m@pd.tnic> <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com> <20161208202013.uutsny6avn5gimwq@pd.tnic> <b393a48a-6e8b-6427-373c-2825641fea99@zytor.com> <BD4BD1C9-F6FD-4905-9B09-059284FD2713@alien8.de> <20161215143944.ruxr6r3b2atg4tnf@pd.tnic> <E77F6B05-4F69-4C02-90B4-A8A6D0D392DE@zytor.com> <20161215190902.tdle4uj27xkc3x4i@pd.tnic> <20161215192017.GP8388@tassilo.jf.intel.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 3/3] mm: make pagoff_t type 64-bit
+Date: Sun, 11 Dec 2016 15:59:01 +0100
+Message-ID: <2636242.RWRJivuddj@wuerfel>
+References: <1481461003-14361-1-git-send-email-ynorov@caviumnetworks.com> <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20161215192017.GP8388@tassilo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Andi Kleen <ak@linux.intel.com>, Borislav Petkov <bp@alien8.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: libc-alpha@sourceware.org
+Cc: Yury Norov <ynorov@caviumnetworks.com>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On December 15, 2016 11:20:17 AM PST, Andi Kleen <ak@linux.intel.com> wrote:
->
->The code is not calling CPUID in any performance critical path, only
->at initialization. So any discussion about saving a few instructions
->is a complete waste of time.
->
->-Andi
+On Sunday, December 11, 2016 6:26:42 PM CET Yury Norov wrote:
+> Also fix related interfaces
+> 
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> ---
+>  fs/btrfs/extent_io.c       | 2 +-
+>  fs/ext2/dir.c              | 4 ++--
+>  include/linux/mm.h         | 9 +++++----
+>  include/linux/radix-tree.h | 8 ++++----
+>  include/linux/types.h      | 2 +-
+>  lib/radix-tree.c           | 8 ++++----
+>  mm/debug.c                 | 2 +-
+>  mm/internal.h              | 2 +-
+>  mm/memory.c                | 4 ++--
+>  mm/mmap.c                  | 7 ++++---
+>  mm/readahead.c             | 4 ++--
+>  mm/util.c                  | 3 ++-
+>  12 files changed, 29 insertions(+), 26 deletions(-)
+> 
 
-NB: the chief offender is Loadlin, which is still used in some manufacturing flows that depends on a mix of legacy DOS and Linux applications; however, older versions of LILO also have this problem.
--- 
-Sent from my Android device with K-9 Mail. Please excuse my brevity.
+Thanks Yury for the demonstration. I think this would put the nail
+in the coffin of the idea of mmap64 even for Pavel, who didn't
+seem convinced already.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Changing all those interfaces and structure, struct page in particular,
+is clearly too costly for any advantage we might have otherwise
+gained.
+
+	Arnd
