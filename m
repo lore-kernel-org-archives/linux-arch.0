@@ -1,305 +1,206 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 3/3] mm: make pagoff_t type 64-bit
-Date: Sun, 11 Dec 2016 18:26:42 +0530
-Message-ID: <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com>
-References: <1481461003-14361-1-git-send-email-ynorov@caviumnetworks.com>
+From: kbuild test robot <lkp@intel.com>
+Subject: Re: [PATCH 3/3] mm: make pagoff_t type 64-bit
+Date: Sun, 11 Dec 2016 21:31:56 +0800
+Message-ID: <201612112116.8GzvAvNR%fengguang.wu@intel.com>
+References: <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1481461003-14361-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
-Cc: Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, Catalin Marinas <catalin.marinas@arm.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kerne
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed; boundary="cWoXeonUoKmBZSoM"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:34458 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753220AbcLKNcJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 11 Dec 2016 08:32:09 -0500
+Content-Disposition: inline
+In-Reply-To: <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: kbuild-all@01.org, Yury Norov <ynorov@caviumnetworks.com>, Arnd Bergmann <arnd@arndb.de>, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, Catalin Marinas <catalin.marinas@arm.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>
 
-Also fix related interfaces
 
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+--cWoXeonUoKmBZSoM
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+Hi Yury,
+
+[auto build test WARNING on linus/master]
+[also build test WARNING on v4.9-rc8]
+[cannot apply to mmotm/master next-20161209]
+[if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
+
+url:    https://github.com/0day-ci/linux/commits/Yury-Norov/mm-move-argument-checkers-of-mmap_pgoff-to-separated-routine/20161211-211314
+config: i386-tinyconfig (attached as .config)
+compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
+reproduce:
+        # save the attached .config to linux build tree
+        make ARCH=i386 
+
+All warnings (new ones prefixed by >>):
+
+   arch/x86/mm/pgtable.c: In function 'pgd_set_mm':
+>> arch/x86/mm/pgtable.c:108:29: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+     virt_to_page(pgd)->index = (pgoff_t)mm;
+                                ^
+   arch/x86/mm/pgtable.c: In function 'pgd_page_get_mm':
+>> arch/x86/mm/pgtable.c:113:9: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+     return (struct mm_struct *)page->index;
+            ^
+--
+   mm/percpu.c: In function 'pcpu_get_page_chunk':
+>> mm/percpu.c:240:9: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+     return (struct pcpu_chunk *)page->index;
+            ^
+
+vim +108 arch/x86/mm/pgtable.c
+
+68db065c Jeremy Fitzhardinge 2008-03-17  102  	(SHARED_KERNEL_PMD ? KERNEL_PGD_BOUNDARY : PTRS_PER_PGD)
+4f76cd38 Jeremy Fitzhardinge 2008-03-17  103  
+617d34d9 Jeremy Fitzhardinge 2010-09-21  104  
+617d34d9 Jeremy Fitzhardinge 2010-09-21  105  static void pgd_set_mm(pgd_t *pgd, struct mm_struct *mm)
+617d34d9 Jeremy Fitzhardinge 2010-09-21  106  {
+617d34d9 Jeremy Fitzhardinge 2010-09-21  107  	BUILD_BUG_ON(sizeof(virt_to_page(pgd)->index) < sizeof(mm));
+617d34d9 Jeremy Fitzhardinge 2010-09-21 @108  	virt_to_page(pgd)->index = (pgoff_t)mm;
+617d34d9 Jeremy Fitzhardinge 2010-09-21  109  }
+617d34d9 Jeremy Fitzhardinge 2010-09-21  110  
+617d34d9 Jeremy Fitzhardinge 2010-09-21  111  struct mm_struct *pgd_page_get_mm(struct page *page)
+617d34d9 Jeremy Fitzhardinge 2010-09-21  112  {
+617d34d9 Jeremy Fitzhardinge 2010-09-21 @113  	return (struct mm_struct *)page->index;
+617d34d9 Jeremy Fitzhardinge 2010-09-21  114  }
+617d34d9 Jeremy Fitzhardinge 2010-09-21  115  
+617d34d9 Jeremy Fitzhardinge 2010-09-21  116  static void pgd_ctor(struct mm_struct *mm, pgd_t *pgd)
+
+:::::: The code at line 108 was first introduced by commit
+:::::: 617d34d9e5d8326ec8f188c616aa06ac59d083fe x86, mm: Hold mm->page_table_lock while doing vmalloc_sync
+
+:::::: TO: Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
+:::::: CC: H. Peter Anvin <hpa@linux.intel.com>
+
 ---
- fs/btrfs/extent_io.c       | 2 +-
- fs/ext2/dir.c              | 4 ++--
- include/linux/mm.h         | 9 +++++----
- include/linux/radix-tree.h | 8 ++++----
- include/linux/types.h      | 2 +-
- lib/radix-tree.c           | 8 ++++----
- mm/debug.c                 | 2 +-
- mm/internal.h              | 2 +-
- mm/memory.c                | 4 ++--
- mm/mmap.c                  | 7 ++++---
- mm/readahead.c             | 4 ++--
- mm/util.c                  | 3 ++-
- 12 files changed, 29 insertions(+), 26 deletions(-)
+0-DAY kernel test infrastructure                Open Source Technology Center
+https://lists.01.org/pipermail/kbuild-all                   Intel Corporation
 
-diff --git a/fs/btrfs/extent_io.c b/fs/btrfs/extent_io.c
-index 8ed05d9..f4c9318 100644
---- a/fs/btrfs/extent_io.c
-+++ b/fs/btrfs/extent_io.c
-@@ -3436,7 +3436,7 @@ static noinline_for_stack int __extent_writepage_io(struct inode *inode,
- 		set_range_writeback(tree, cur, cur + iosize - 1);
- 		if (!PageWriteback(page)) {
- 			btrfs_err(BTRFS_I(inode)->root->fs_info,
--				   "page %lu not writeback, cur %llu end %llu",
-+				   "page %llu not writeback, cur %llu end %llu",
- 			       page->index, cur, end);
- 		}
- 
-diff --git a/fs/ext2/dir.c b/fs/ext2/dir.c
-index d9650c9..c01b76e 100644
---- a/fs/ext2/dir.c
-+++ b/fs/ext2/dir.c
-@@ -174,7 +174,7 @@ static bool ext2_check_page(struct page *page, int quiet)
- 	error = "inode out of bounds";
- bad_entry:
- 	if (!quiet)
--		ext2_error(sb, __func__, "bad entry in directory #%lu: : %s - "
-+		ext2_error(sb, __func__, "bad entry in directory #%llu: : %s - "
- 			"offset=%lu, inode=%lu, rec_len=%d, name_len=%d",
- 			dir->i_ino, error, (page->index<<PAGE_SHIFT)+offs,
- 			(unsigned long) le32_to_cpu(p->inode),
-@@ -184,7 +184,7 @@ static bool ext2_check_page(struct page *page, int quiet)
- 	if (!quiet) {
- 		p = (ext2_dirent *)(kaddr + offs);
- 		ext2_error(sb, "ext2_check_page",
--			"entry in directory #%lu spans the page boundary"
-+			"entry in directory #%llu spans the page boundary"
- 			"offset=%lu, inode=%lu",
- 			dir->i_ino, (page->index<<PAGE_SHIFT)+offs,
- 			(unsigned long) le32_to_cpu(p->inode));
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index a92c8d7..33d9150 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2022,19 +2022,20 @@ extern int install_special_mapping(struct mm_struct *mm,
- 				   unsigned long addr, unsigned long len,
- 				   unsigned long flags, struct page **pages);
- 
--extern unsigned long get_unmapped_area(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
-+extern unsigned long get_unmapped_area(struct file *, unsigned long,
-+		unsigned long, pgoff_t, unsigned long);
- 
- extern unsigned long mmap_region(struct file *file, unsigned long addr,
--	unsigned long len, vm_flags_t vm_flags, unsigned long pgoff);
-+	unsigned long len, vm_flags_t vm_flags, pgoff_t pgoff);
- extern unsigned long do_mmap(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot, unsigned long flags,
--	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate);
-+	vm_flags_t vm_flags, pgoff_t pgoff, unsigned long *populate);
- extern int do_munmap(struct mm_struct *, unsigned long, size_t);
- 
- static inline unsigned long
- do_mmap_pgoff(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot, unsigned long flags,
--	unsigned long pgoff, unsigned long *populate)
-+	pgoff_t pgoff, unsigned long *populate)
- {
- 	return do_mmap(file, addr, len, prot, flags, 0, pgoff, populate);
- }
-diff --git a/include/linux/radix-tree.h b/include/linux/radix-tree.h
-index af3581b..1781bb7 100644
---- a/include/linux/radix-tree.h
-+++ b/include/linux/radix-tree.h
-@@ -287,7 +287,7 @@ unsigned int radix_tree_gang_lookup(struct radix_tree_root *root,
- 			void **results, unsigned long first_index,
- 			unsigned int max_items);
- unsigned int radix_tree_gang_lookup_slot(struct radix_tree_root *root,
--			void ***results, unsigned long *indices,
-+			void ***results, unsigned long long *indices,
- 			unsigned long first_index, unsigned int max_items);
- int radix_tree_preload(gfp_t gfp_mask);
- int radix_tree_maybe_preload(gfp_t gfp_mask);
-@@ -308,7 +308,7 @@ radix_tree_gang_lookup_tag_slot(struct radix_tree_root *root, void ***results,
- 		unsigned long first_index, unsigned int max_items,
- 		unsigned int tag);
- unsigned long radix_tree_range_tag_if_tagged(struct radix_tree_root *root,
--		unsigned long *first_indexp, unsigned long last_index,
-+		unsigned long long *first_indexp, unsigned long last_index,
- 		unsigned long nr_to_tag,
- 		unsigned int fromtag, unsigned int totag);
- int radix_tree_tagged(struct radix_tree_root *root, unsigned int tag);
-@@ -335,8 +335,8 @@ static inline void radix_tree_preload_end(void)
-  * radix tree tag.
-  */
- struct radix_tree_iter {
--	unsigned long	index;
--	unsigned long	next_index;
-+	unsigned long long	index;
-+	unsigned long long	next_index;
- 	unsigned long	tags;
- #ifdef CONFIG_RADIX_TREE_MULTIORDER
- 	unsigned int	shift;
-diff --git a/include/linux/types.h b/include/linux/types.h
-index baf7183..1e711c1 100644
---- a/include/linux/types.h
-+++ b/include/linux/types.h
-@@ -137,7 +137,7 @@ typedef unsigned long blkcnt_t;
- /*
-  * The type of an index into the pagecache.
-  */
--#define pgoff_t unsigned long
-+#define pgoff_t unsigned long long
- 
- /*
-  * A dma_addr_t can hold any valid DMA address, i.e., any address returned
-diff --git a/lib/radix-tree.c b/lib/radix-tree.c
-index 0d1d23e..afb49381 100644
---- a/lib/radix-tree.c
-+++ b/lib/radix-tree.c
-@@ -97,7 +97,7 @@ static inline unsigned long get_slot_offset(struct radix_tree_node *parent,
- }
- 
- static unsigned int radix_tree_descend(struct radix_tree_node *parent,
--			struct radix_tree_node **nodep, unsigned long index)
-+			struct radix_tree_node **nodep, unsigned long long index)
- {
- 	unsigned int offset = (index >> parent->shift) & RADIX_TREE_MAP_MASK;
- 	void **entry = rcu_dereference_raw(parent->slots[offset]);
-@@ -1040,14 +1040,14 @@ EXPORT_SYMBOL(radix_tree_next_chunk);
-  * be prepared to handle that.
-  */
- unsigned long radix_tree_range_tag_if_tagged(struct radix_tree_root *root,
--		unsigned long *first_indexp, unsigned long last_index,
-+		unsigned long long *first_indexp, unsigned long last_index,
- 		unsigned long nr_to_tag,
- 		unsigned int iftag, unsigned int settag)
- {
- 	struct radix_tree_node *parent, *node, *child;
- 	unsigned long maxindex;
- 	unsigned long tagged = 0;
--	unsigned long index = *first_indexp;
-+	unsigned long long index = *first_indexp;
- 
- 	radix_tree_load_root(root, &child, &maxindex);
- 	last_index = min(last_index, maxindex);
-@@ -1195,7 +1195,7 @@ EXPORT_SYMBOL(radix_tree_gang_lookup);
-  */
- unsigned int
- radix_tree_gang_lookup_slot(struct radix_tree_root *root,
--			void ***results, unsigned long *indices,
-+			void ***results, unsigned long long *indices,
- 			unsigned long first_index, unsigned int max_items)
- {
- 	struct radix_tree_iter iter;
-diff --git a/mm/debug.c b/mm/debug.c
-index 9feb699..a568fc8 100644
---- a/mm/debug.c
-+++ b/mm/debug.c
-@@ -49,7 +49,7 @@ void __dump_page(struct page *page, const char *reason)
- 	 */
- 	int mapcount = PageSlab(page) ? 0 : page_mapcount(page);
- 
--	pr_emerg("page:%p count:%d mapcount:%d mapping:%p index:%#lx",
-+	pr_emerg("page:%p count:%d mapcount:%d mapping:%p index:%#llx",
- 		  page, page_ref_count(page), mapcount,
- 		  page->mapping, page_to_pgoff(page));
- 	if (PageCompound(page))
-diff --git a/mm/internal.h b/mm/internal.h
-index 537ac99..8027eac 100644
---- a/mm/internal.h
-+++ b/mm/internal.h
-@@ -447,7 +447,7 @@ extern u32 hwpoison_filter_enable;
- 
- extern unsigned long  __must_check vm_mmap_pgoff(struct file *, unsigned long,
-         unsigned long, unsigned long,
--        unsigned long, unsigned long);
-+        unsigned long, pgoff_t);
- 
- extern void set_pageblock_order(void);
- unsigned long reclaim_clean_pages_from_list(struct zone *zone,
-diff --git a/mm/memory.c b/mm/memory.c
-index e18c57b..c05d534 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -688,7 +688,7 @@ static void print_bad_pte(struct vm_area_struct *vma, unsigned long addr,
- 		 (long long)pte_val(pte), (long long)pmd_val(*pmd));
- 	if (page)
- 		dump_page(page, "bad pte");
--	pr_alert("addr:%p vm_flags:%08lx anon_vma:%p mapping:%p index:%lx\n",
-+	pr_alert("addr:%p vm_flags:%08lx anon_vma:%p mapping:%p index:%llx\n",
- 		 (void *)addr, vma->vm_flags, vma->anon_vma, mapping, index);
- 	/*
- 	 * Choose text because data symbols depend on CONFIG_KALLSYMS_ALL=y
-@@ -3133,7 +3133,7 @@ static int do_fault_around(struct fault_env *fe, pgoff_t start_pgoff)
- 	end_pgoff = start_pgoff -
- 		((fe->address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)) +
- 		PTRS_PER_PTE - 1;
--	end_pgoff = min3(end_pgoff, vma_pages(fe->vma) + fe->vma->vm_pgoff - 1,
-+	end_pgoff = min3(end_pgoff, (pgoff_t) vma_pages(fe->vma) + fe->vma->vm_pgoff - 1,
- 			start_pgoff + nr_pages - 1);
- 
- 	if (pmd_none(*fe->pmd)) {
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 6c6b95a..cf50232 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -9,6 +9,7 @@
- #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
- 
- #include <linux/kernel.h>
-+#include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/backing-dev.h>
- #include <linux/mm.h>
-@@ -1304,7 +1305,7 @@ static inline int mlock_future_check(struct mm_struct *mm,
- unsigned long do_mmap(struct file *file, unsigned long addr,
- 			unsigned long len, unsigned long prot,
- 			unsigned long flags, vm_flags_t vm_flags,
--			unsigned long pgoff, unsigned long *populate)
-+			pgoff_t pgoff, unsigned long *populate)
- {
- 	struct mm_struct *mm = current->mm;
- 	int pkey = 0;
-@@ -1624,7 +1625,7 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
- }
- 
- unsigned long mmap_region(struct file *file, unsigned long addr,
--		unsigned long len, vm_flags_t vm_flags, unsigned long pgoff)
-+		unsigned long len, vm_flags_t vm_flags, pgoff_t pgoff)
- {
- 	struct mm_struct *mm = current->mm;
- 	struct vm_area_struct *vma, *prev;
-@@ -2088,7 +2089,7 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
- 
- unsigned long
- get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
--		unsigned long pgoff, unsigned long flags)
-+		pgoff_t pgoff, unsigned long flags)
- {
- 	unsigned long (*get_area)(struct file *, unsigned long,
- 				  unsigned long, unsigned long, unsigned long);
-diff --git a/mm/readahead.c b/mm/readahead.c
-index c8a955b..902bad8 100644
---- a/mm/readahead.c
-+++ b/mm/readahead.c
-@@ -332,8 +332,8 @@ static pgoff_t count_history_pages(struct address_space *mapping,
- static int try_context_readahead(struct address_space *mapping,
- 				 struct file_ra_state *ra,
- 				 pgoff_t offset,
--				 unsigned long req_size,
--				 unsigned long max)
-+				 unsigned long long req_size,
-+				 unsigned long long max)
- {
- 	pgoff_t size;
- 
-diff --git a/mm/util.c b/mm/util.c
-index 1a41553..51fae99 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -2,6 +2,7 @@
- #include <linux/slab.h>
- #include <linux/string.h>
- #include <linux/compiler.h>
-+#include <linux/types.h>
- #include <linux/export.h>
- #include <linux/err.h>
- #include <linux/sched.h>
-@@ -292,7 +293,7 @@ EXPORT_SYMBOL_GPL(get_user_pages_fast);
- 
- unsigned long vm_mmap_pgoff(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot,
--	unsigned long flag, unsigned long pgoff)
-+	unsigned long flag, pgoff_t pgoff)
- {
- 	unsigned long ret;
- 	struct mm_struct *mm = current->mm;
--- 
-2.7.4
+--cWoXeonUoKmBZSoM
+Content-Type: application/gzip
+Content-Disposition: attachment; filename=".config.gz"
+Content-Transfer-Encoding: base64
+
+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
+
+--cWoXeonUoKmBZSoM--
