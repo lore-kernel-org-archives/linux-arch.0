@@ -1,50 +1,39 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
-Date: Tue, 13 Dec 2016 13:06:35 -0800
-Message-ID: <a2f86495-b55f-fda0-40d2-242c45d3c1f3@intel.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
+Date: Tue, 13 Dec 2016 14:44:06 -0800
+Message-ID: <b393a48a-6e8b-6427-373c-2825641fea99@zytor.com>
 References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161209050130.GC2595@gmail.com>
+ <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
+ <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+ <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com>
+ <20161208202013.uutsny6avn5gimwq@pd.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20161209050130.GC2595@gmail.com>
+In-Reply-To: <20161208202013.uutsny6avn5gimwq@pd.tnic>
 Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/08/2016 09:01 PM, Ingo Molnar wrote:
->> >   - Handle opt-in wider address space for userspace.
->> > 
->> >     Not all userspace is ready to handle addresses wider than current
->> >     47-bits. At least some JIT compiler make use of upper bits to encode
->> >     their info.
->> > 
->> >     We need to have an interface to opt-in wider addresses from userspace
->> >     to avoid regressions.
->> > 
->> >     For now, I've included testing-only patch which bumps TASK_SIZE to
->> >     56-bits. This can be handy for testing to see what breaks if we max-out
->> >     size of virtual address space.
-> So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
-> in' flag for something that will work just fine on the vast majority of 64-bit 
-> software.
+On 12/08/16 12:20, Borislav Petkov wrote:
+> On Thu, Dec 08, 2016 at 12:08:53PM -0800, Linus Torvalds wrote:
+>> Especially since that's some of the ugliest inline asm ever due to the
+>> nasty BX handling.
+> 
+> Yeah, about that: why doesn't gcc handle that for us like it would
+> handle a clobbered register? I mean, it *should* know that BX is live
+> when building with -fPIC... The .ifnc thing looks really silly.
+> 
 
-MPX is going to be a real pain here.  It is relatively transparent to
-applications that use it, and old MPX binaries are entirely incompatible
-with the new address space size, so an opt-out wouldn't be friendly.
+When compiling with -fPIC gcc treats ebx as a "fixed register".  A fixed
+register can't be spilled, and so a clobber of a fixed register is a
+fatal error.
 
-Because the top-level MPX bounds table is indexed by the virtual
-address, a growth in vaddr space is going to require the table to grow
-(or change somehow).  The solution baked into the hardware spec is to
-just make the top-level table 512x larger to accommodate the 512x
-increase in vaddr space.  (This behavior is controlled by a new MSR, btw...)
+Like it or not, it's how it works.
 
-So, either we disable MPX on all old MPX binaries by returning an error
-when the prctl() tries to enable MPX and 5-level paging is on, or we go
-with some form of an opt-in.  New MPX binaries will opt-in to the larger
-address space since they know to allocate the new, larger table.
+	-hpa
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
