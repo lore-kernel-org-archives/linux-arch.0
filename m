@@ -1,89 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56474 "EHLO mx1.redhat.com"
+Received: from mga07.intel.com ([134.134.136.100]:27273 "EHLO mga07.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S932206AbcLMBIE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 12 Dec 2016 20:08:04 -0500
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
- asm
-References: <20161129131922.GA31466@angband.pl>
- <20161129135118.24696-1-kilobyte@angband.pl>
- <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
- <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
- <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
- <20161129195721.GI2697@decadent.org.uk>
- <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
- <20161201051852.28dc335f@roar.ozlabs.ibm.com>
- <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
- <1480541581.16599.78.camel@decadent.org.uk>
- <20161201125545.406d092c@roar.ozlabs.ibm.com>
- <1480559754.16599.92.camel@decadent.org.uk>
- <20161201143928.07a08348@roar.ozlabs.ibm.com>
- <6e8cf20b-2d2f-ba1f-e02c-c757d5a25db7@suse.com>
- <20161209133308.0acbb57a@roar.ozlabs.ibm.com>
- <1481296893.4509.135.camel@hellion.org.uk>
- <20161210021529.4a6e684f@roar.ozlabs.ibm.com> <86vaus3eld.fsf@seketeli.org>
-From: Stanislav Kozina <skozina@redhat.com>
-Message-ID: <ffc59023-0438-22d2-cd24-bae2929b278c@redhat.com>
-Date: Tue, 13 Dec 2016 02:07:42 +0100
+        id S932655AbcLMVHy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 13 Dec 2016 16:07:54 -0500
+Subject: Re: [RFC, PATCHv1 00/28] 5-level paging
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+ <20161209050130.GC2595@gmail.com>
+From: Dave Hansen <dave.hansen@intel.com>
+Message-ID: <a2f86495-b55f-fda0-40d2-242c45d3c1f3@intel.com>
+Date: Tue, 13 Dec 2016 13:06:35 -0800
 MIME-Version: 1.0
-In-Reply-To: <86vaus3eld.fsf@seketeli.org>
-Content-Type: text/plain; charset=utf-8; format=flowed
+In-Reply-To: <20161209050130.GC2595@gmail.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dodji Seketeli <dodji@seketeli.org>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Ian Campbell <ijc@hellion.org.uk>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161213010742.zKd0hytKYsK1qiuT8kFewEX3EaSxUw9z4iDOrBWP8vc@z>
+To: Ingo Molnar <mingo@kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Message-ID: <20161213210635.KAdOCEzpYa175JOEqsN6NmrgDzZyVbIbDaa3DwN3Jcw@z>
 
-Hello,
+On 12/08/2016 09:01 PM, Ingo Molnar wrote:
+>> >   - Handle opt-in wider address space for userspace.
+>> > 
+>> >     Not all userspace is ready to handle addresses wider than current
+>> >     47-bits. At least some JIT compiler make use of upper bits to encode
+>> >     their info.
+>> > 
+>> >     We need to have an interface to opt-in wider addresses from userspace
+>> >     to avoid regressions.
+>> > 
+>> >     For now, I've included testing-only patch which bumps TASK_SIZE to
+>> >     56-bits. This can be handy for testing to see what breaks if we max-out
+>> >     size of virtual address space.
+> So this is just a detail - but it sounds a bit limiting to me to provide an 'opt 
+> in' flag for something that will work just fine on the vast majority of 64-bit 
+> software.
 
->> That said, a dwarf based checker tool should be able to do as good a job
->> (maybe a bit better because report is very informative and it may pick up
->> compiler alignments or padding options).
-> So, Nicholas was kind enough to send me the two Linux Kernel binaries
-> that he built with the tiny little interface change that we were
-> discussing earlier.  Here is what the abidiff[1] tools says about that
-> interface change:
+MPX is going to be a real pain here.  It is relatively transparent to
+applications that use it, and old MPX binaries are entirely incompatible
+with the new address space size, so an opt-out wouldn't be friendly.
 
-Thanks Nicholas and Dodji for this great example, for comparison I think 
-it would be nice to share the example run with kabi-dw too.
-kabi-dw first dumps and unifies all type information into a set of text 
-files, the unification takes a significant time. Then the two sets of 
-these text files can be compared.
+Because the top-level MPX bounds table is indexed by the virtual
+address, a growth in vaddr space is going to require the table to grow
+(or change somehow).  The solution baked into the hardware spec is to
+just make the top-level table 512x larger to accommodate the 512x
+increase in vaddr space.  (This behavior is controlled by a new MSR, btw...)
 
-An example run would look like:
-$ time ~/Code/kabi-dw/kabi-dw generate -o abi1 vmlinux.abi1
-Generating symbol defs from vmlinux.abi1...
-
-real    0m29.057s
-user    0m13.929s
-sys    0m14.862s
-$ time ~/Code/kabi-dw/kabi-dw generate -o abi2 vmlinux.abi2
-Generating symbol defs from vmlinux.abi2...
-
-real    0m29.134s
-user    0m13.961s
-sys    0m14.921s
-$ time ~/Code/kabi-dw/kabi-dw compare abi1 abi2
-Changes detected in: 
-home/npiggin/src/linux.vectors/mm/memory.c/struct--blah.txt
-Inserted:
-+0x0 int y;
-Shifted:
--0x0 int x;
-+0x4 int x;
-
-
-real    0m0.176s
-user    0m0.135s
-sys    0m0.040s
-
-The size of the generated text files with all the relevant type 
-information is as follows:
-$ du -hs abi1
-16M    abi1
-$ find abi1 -type f | wc -l
-3162
-
-Warm regards,
--Stanislav
+So, either we disable MPX on all old MPX binaries by returning an error
+when the prctl() tries to enable MPX and 5-level paging is on, or we go
+with some form of an opt-in.  New MPX binaries will opt-in to the larger
+address space since they know to allocate the new, larger table.
