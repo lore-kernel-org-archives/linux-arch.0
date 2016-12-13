@@ -1,36 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wj0-f195.google.com ([209.85.210.195]:33262 "EHLO
-        mail-wj0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752976AbcLLOWd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Dec 2016 09:22:33 -0500
-Received: by mail-wj0-f195.google.com with SMTP id kp2so11792690wjc.0
-        for <linux-arch@vger.kernel.org>; Mon, 12 Dec 2016 06:22:32 -0800 (PST)
-Date: Mon, 12 Dec 2016 17:22:29 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [RFC, PATCHv1 22/28] x86/espfix: support 5-level paging
-Message-ID: <20161212142229.GA4208@node>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-24-kirill.shutemov@linux.intel.com>
- <CALCETrXXNfL1OyZBa4tHm0cGz3trHV_FiJv=gtk2QRm-HrRXRg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:56474 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932206AbcLMBIE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 12 Dec 2016 20:08:04 -0500
+Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
+ asm
+References: <20161129131922.GA31466@angband.pl>
+ <20161129135118.24696-1-kilobyte@angband.pl>
+ <CA+55aFyZiB4YkwvqzrXO=HD8bcnc2xHkAYrek2QHVnhVvAi3Fw@mail.gmail.com>
+ <30bb2db4-47bd-0c35-8328-ef032b551f06@suse.com>
+ <CA+55aFxOGw57Gm-QiNs13kfy5k=aRrn3+98415V0g73eGc66mg@mail.gmail.com>
+ <20161129195721.GI2697@decadent.org.uk>
+ <CA+55aFyQko0t8oMZjhnwhWHrmBUyWjGhsnT=oUOU-W7_04xdzw@mail.gmail.com>
+ <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+ <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+ <1480541581.16599.78.camel@decadent.org.uk>
+ <20161201125545.406d092c@roar.ozlabs.ibm.com>
+ <1480559754.16599.92.camel@decadent.org.uk>
+ <20161201143928.07a08348@roar.ozlabs.ibm.com>
+ <6e8cf20b-2d2f-ba1f-e02c-c757d5a25db7@suse.com>
+ <20161209133308.0acbb57a@roar.ozlabs.ibm.com>
+ <1481296893.4509.135.camel@hellion.org.uk>
+ <20161210021529.4a6e684f@roar.ozlabs.ibm.com> <86vaus3eld.fsf@seketeli.org>
+From: Stanislav Kozina <skozina@redhat.com>
+Message-ID: <ffc59023-0438-22d2-cd24-bae2929b278c@redhat.com>
+Date: Tue, 13 Dec 2016 02:07:42 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALCETrXXNfL1OyZBa4tHm0cGz3trHV_FiJv=gtk2QRm-HrRXRg@mail.gmail.com>
+In-Reply-To: <86vaus3eld.fsf@seketeli.org>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20161212142229.dCMSVwtUK8qKCF33jHc-ExCggyJjmFux26HJqMoF2Uo@z>
+To: Dodji Seketeli <dodji@seketeli.org>, Nicholas Piggin <npiggin@gmail.com>
+Cc: Ian Campbell <ijc@hellion.org.uk>, Michal Marek <mmarek@suse.com>, Ben Hutchings <ben@decadent.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161213010742.zKd0hytKYsK1qiuT8kFewEX3EaSxUw9z4iDOrBWP8vc@z>
 
-On Thu, Dec 08, 2016 at 10:40:41AM -0800, Andy Lutomirski wrote:
-> On Thu, Dec 8, 2016 at 8:21 AM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > XXX: how to test this?
-> 
-> tools/testing/selftests/x86/sigreturn_{32,64}
+Hello,
 
-Hm. They fail on non-patched kernel with QEMU, but not KVM. :-/
-I guess I'd need to fix QEMU first.
+>> That said, a dwarf based checker tool should be able to do as good a job
+>> (maybe a bit better because report is very informative and it may pick up
+>> compiler alignments or padding options).
+> So, Nicholas was kind enough to send me the two Linux Kernel binaries
+> that he built with the tiny little interface change that we were
+> discussing earlier.  Here is what the abidiff[1] tools says about that
+> interface change:
 
--- 
- Kirill A. Shutemov
+Thanks Nicholas and Dodji for this great example, for comparison I think 
+it would be nice to share the example run with kabi-dw too.
+kabi-dw first dumps and unifies all type information into a set of text 
+files, the unification takes a significant time. Then the two sets of 
+these text files can be compared.
+
+An example run would look like:
+$ time ~/Code/kabi-dw/kabi-dw generate -o abi1 vmlinux.abi1
+Generating symbol defs from vmlinux.abi1...
+
+real    0m29.057s
+user    0m13.929s
+sys    0m14.862s
+$ time ~/Code/kabi-dw/kabi-dw generate -o abi2 vmlinux.abi2
+Generating symbol defs from vmlinux.abi2...
+
+real    0m29.134s
+user    0m13.961s
+sys    0m14.921s
+$ time ~/Code/kabi-dw/kabi-dw compare abi1 abi2
+Changes detected in: 
+home/npiggin/src/linux.vectors/mm/memory.c/struct--blah.txt
+Inserted:
++0x0 int y;
+Shifted:
+-0x0 int x;
++0x4 int x;
+
+
+real    0m0.176s
+user    0m0.135s
+sys    0m0.040s
+
+The size of the generated text files with all the relevant type 
+information is as follows:
+$ du -hs abi1
+16M    abi1
+$ find abi1 -type f | wc -l
+3162
+
+Warm regards,
+-Stanislav
