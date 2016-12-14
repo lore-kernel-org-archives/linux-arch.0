@@ -1,112 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:50355 "EHLO mx2.suse.de"
+Received: from mx1.redhat.com ([209.132.183.28]:49888 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755812AbcLNKNx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 14 Dec 2016 05:13:53 -0500
-Date: Wed, 14 Dec 2016 10:37:12 +0100
-From: Michal Marek <mmarek@suse.com>
+        id S1755210AbcLNONG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 14 Dec 2016 09:13:06 -0500
 Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported from
  asm
-Message-ID: <20161214093712.GA13721@sepie.suse.cz>
-References: <1480559754.16599.92.camel@decadent.org.uk>
- <20161201143928.07a08348@roar.ozlabs.ibm.com>
- <6e8cf20b-2d2f-ba1f-e02c-c757d5a25db7@suse.com>
- <20161209133308.0acbb57a@roar.ozlabs.ibm.com>
- <1481296893.4509.135.camel@hellion.org.uk>
- <20161210021529.4a6e684f@roar.ozlabs.ibm.com>
- <86vaus3eld.fsf@seketeli.org>
- <f7c5d50d-8930-7ab1-62bb-8a5d0aead988@suse.com>
- <867f72vqec.fsf@seketeli.org>
- <20161214091539.GA9000@sepie.suse.cz>
+References: <20161201051852.28dc335f@roar.ozlabs.ibm.com>
+ <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
+ <20161201041325.GX35881@redhat.com>
+ <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
+ <20161201152039.GB35881@redhat.com>
+ <20161209135041.5ff12770@roar.ozlabs.ibm.com>
+ <0937c184-1946-c494-56b6-c38fd0b632c2@redhat.com>
+ <20161209181459.1f0a4fed@roar.ozlabs.ibm.com>
+ <249321c0-bcb1-f9d8-50f4-c083b656d02e@redhat.com>
+ <20161210015653.5b0dc872@roar.ozlabs.ibm.com>
+ <20161209160337.GA3061@kroah.com>
+From: Hannes Frederic Sowa <hannes@redhat.com>
+Message-ID: <27aafb3b-adb2-47b8-7964-6e36fcb57676@redhat.com>
+Date: Wed, 14 Dec 2016 15:04:36 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161214091539.GA9000@sepie.suse.cz>
+In-Reply-To: <20161209160337.GA3061@kroah.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dodji Seketeli <dodji@seketeli.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>, Ian Campbell <ijc@hellion.org.uk>, Ben Hutchings <ben@decadent.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, Adam Borowski <kilobyte@angband.pl>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20161214093712._ap1pruAstA0DmfTejgotn7GbrfmkhNgs8AiayprH-o@z>
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Nicholas Piggin <npiggin@gmail.com>
+Cc: Stanislav Kozina <skozina@redhat.com>, Don Zickus <dzickus@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20161214140436.jQyKOGmdIYoCr_VFZNfFupahKA_rXkP7wEjVOAlKXD4@z>
 
-On 2016-12-14 10:15, Michal Marek wrote:
-> A minimal example would be
+On 09.12.2016 17:03, Greg Kroah-Hartman wrote:
+> On Sat, Dec 10, 2016 at 01:56:53AM +1000, Nicholas Piggin wrote:
+>> On Fri, 9 Dec 2016 15:36:04 +0100
+>> Stanislav Kozina <skozina@redhat.com> wrote:
+>>
+>>>>>>> The question is how to provide a similar guarantee if a different way?  
+>>>>>> As a tool to aid distro reviewers, modversions has some value, but the
+>>>>>> debug info parsing tools that have been mentioned in this thread seem
+>>>>>> superior (not that I've tested them).  
+>>>>> On the other hand the big advantage of modversions is that it also
+>>>>> verifies the checksum during runtime (module loading). In other words, I
+>>>>> believe that any other solution should still generate some form of
+>>>>> checksum/watermark which can be easily checked for compatibility on
+>>>>> module load.
+>>>>> It should not be hard to add to the DWARF based tools though. We'd just
+>>>>> parse DWARF data instead of the C code.  
+>>>> A runtime check is still done, with per-module vermagic which distros
+>>>> can change when they bump the ABI version. Is it really necessary to
+>>>> have more than that (i.e., per-symbol versioning)?  
+>>>
+>>>  From my point of view, it is. We need to allow changing ABI for some 
+>>> modules while maintaining it for others.
+>>> In fact I think that there should be version not only for every exported 
+>>> symbol (in the EXPORT_SYMBOL() sense), but also for every public type 
+>>> (in the sense of eg. structure defined in the public header file).
+>>
+>> Well the distro can just append _v2, _v3 to the name of the function
+>> or type if it has to break compat for some reason. Would that be enough?
 > 
-> t1.c:
-> struct s1;
-> struct s2 {
-> 	int i;
-> }
-> struct s3 {
-> 	struct s1 *ptr1;
-> 	struct s2 *ptr2;
-> }
-> void foo(struct s3*);
-> EXPORT_SYMBOL(foo);
-> 
-> t2.c:
-> struct s1 {
-> 	int j;
-> }
-> struct s2;
-> struct s3 {
-> 	struct s1 *ptr1;
-> 	struct s2 *ptr2;
-> }
-> void foo(struct s3*);
-> EXPORT_SYMBOL(foo);
+> There are other ways that distros can work around when upstream "breaks"
+> the ABI, sometimes they can rename functions, and others they can
+> "preload" structures with padding in anticipation for when/if fields get
+> added to them.  But that's all up to the distros, no need for us to
+> worry about that at all :)
 
-Note that the above, if passed to genksyms verbatim, would result in
-genksyms treating all the types as internal. Here is a complete
-example including linemarkers:
+The _v2 and _v3 functions are probably the ones that also get used by
+future backports in the distro kernel itself and are probably the reason
+for the ABI change in the first place. Thus going down this route will
+basically require distros to touch every future backport patch and will
+in general generate a big mess internally.
 
-$ cat t1.i
-# 1 "t1.c"
-# 1 "<built-in>"
-# 1 "<command-line>"
-# 1 "t1.c"
-# 1 "t1.h" 1
-# 1 "t.h" 1
-struct s1;
-struct s2;
-struct s3 {
- struct s1 *ptr1;
- struct s2 *ptr2;
-};
-# 2 "t1.h" 2
-struct s2 {
- int i;
-};
-# 2 "t1.c" 2
-void foo(struct s3 *s) { }
-EXPORT_SYMBOL(foo);
+I think it is important to keep versioning information outside of the
+source code. Some kind of modversions will still be required, but
+distros should be able to decide if they put in some kind of checksum or
+a string, what suites them most.
 
-$ cat t2.i
-# 1 "t2.c"
-# 1 "<built-in>"
-# 1 "<command-line>"
-# 1 "t2.c"
-# 1 "t2.h" 1
-# 1 "t.h" 1
-struct s1;
-struct s2;
-struct s3 {
- struct s1 *ptr1;
- struct s2 *ptr2;
-};
-# 2 "t2.h" 2
-struct s1 {
- int j;
-};
-# 2 "t2.c" 2
-void foo(struct s3 *s) { }
-EXPORT_SYMBOL(foo);
+Thanks,
+Hannes (who is still impressed by the genksyms tools)
 
-$ ./scripts/genksyms/genksyms -D <t1.i 
-Export foo == <void foo ( struct s3 { struct s1 { UNKNOWN } * ptr1 ; struct s2 { int i ; } * ptr2 ; } * ) >
-__crc_foo = 0xf731cef8 ;
-
-$ ./scripts/genksyms/genksyms -D <t2.i 
-Export foo == <void foo ( struct s3 { struct s1 { int j ; } * ptr1 ; struct s2 { UNKNOWN } * ptr2 ; } * ) >
-__crc_foo = 0xc925dae5 ;
-
-Michal
