@@ -1,33 +1,32 @@
-From: Andi Kleen <ak@linux.intel.com>
+From: hpa@zytor.com
 Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
-Date: Thu, 15 Dec 2016 11:20:17 -0800
-Message-ID: <20161215192017.GP8388@tassilo.jf.intel.com>
-References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
- <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
- <20161208200505.c6xiy56oufg6d24m@pd.tnic>
- <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com>
- <20161208202013.uutsny6avn5gimwq@pd.tnic>
- <b393a48a-6e8b-6427-373c-2825641fea99@zytor.com>
- <BD4BD1C9-F6FD-4905-9B09-059284FD2713@alien8.de>
- <20161215143944.ruxr6r3b2atg4tnf@pd.tnic>
- <E77F6B05-4F69-4C02-90B4-A8A6D0D392DE@zytor.com>
- <20161215190902.tdle4uj27xkc3x4i@pd.tnic>
+Date: Thu, 15 Dec 2016 12:52:24 -0800
+Message-ID: <43EC6ED8-445E-436C-AC05-A2C7CB3AD9E7@zytor.com>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com> <20161208162150.148763-17-kirill.shutemov@linux.intel.com> <20161208200505.c6xiy56oufg6d24m@pd.tnic> <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com> <20161208202013.uutsny6avn5gimwq@pd.tnic> <b393a48a-6e8b-6427-373c-2825641fea99@zytor.com> <BD4BD1C9-F6FD-4905-9B09-059284FD2713@alien8.de> <20161215143944.ruxr6r3b2atg4tnf@pd.tnic> <E77F6B05-4F69-4C02-90B4-A8A6D0D392DE@zytor.com> <20161215190902.tdle4uj27xkc3x4i@pd.tnic> <20161215192017.GP8388@tassilo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20161215190902.tdle4uj27xkc3x4i@pd.tnic>
+In-Reply-To: <20161215192017.GP8388@tassilo.jf.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Borislav Petkov <bp@alien8.de>
-Cc: hpa@zytor.com, Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: Andi Kleen <ak@linux.intel.com>, Borislav Petkov <bp@alien8.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+On December 15, 2016 11:20:17 AM PST, Andi Kleen <ak@linux.intel.com> wrote:
+>
+>The code is not calling CPUID in any performance critical path, only
+>at initialization. So any discussion about saving a few instructions
+>is a complete waste of time.
+>
+>-Andi
 
-The code is not calling CPUID in any performance critical path, only
-at initialization. So any discussion about saving a few instructions
-is a complete waste of time.
+Sort of.  The BIOS boot code is very space-constrained for certain legacy bootloaders to continue to work.  The BIOS boot code proper does not need PIC.
 
--Andi
+However, the existing .ifnc solution already takes care of it, so it doesn't matter.
+-- 
+Sent from my Android device with K-9 Mail. Please excuse my brevity.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
