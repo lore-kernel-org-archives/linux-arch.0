@@ -1,159 +1,158 @@
-From: Nicholas Piggin <npiggin@gmail.com>
-Subject: Re: [PATCH] x86/kbuild: enable modversions for symbols exported
- from asm
-Date: Fri, 16 Dec 2016 00:15:12 +1000
-Message-ID: <20161216001512.78910281@roar.ozlabs.ibm.com>
-References: <20161201051852.28dc335f@roar.ozlabs.ibm.com>
-        <CA+55aFzMTrLMrr69ipdaKhz+RJhUu3BxB+kg0689qq_470qEcw@mail.gmail.com>
-        <20161201041325.GX35881@redhat.com>
-        <20161201153215.43b6cec7@roar.ozlabs.ibm.com>
-        <20161201152039.GB35881@redhat.com>
-        <20161209135041.5ff12770@roar.ozlabs.ibm.com>
-        <0937c184-1946-c494-56b6-c38fd0b632c2@redhat.com>
-        <20161209181459.1f0a4fed@roar.ozlabs.ibm.com>
-        <249321c0-bcb1-f9d8-50f4-c083b656d02e@redhat.com>
-        <20161210015653.5b0dc872@roar.ozlabs.ibm.com>
-        <20161209160337.GA3061@kroah.com>
-        <27aafb3b-adb2-47b8-7964-6e36fcb57676@redhat.com>
-        <20161215120615.34fd0f22@roar.ozlabs.ibm.com>
-        <a7e04d09-121c-df8c-9b4c-fedc7869c465@redhat.com>
-        <20161215220322.63e72ff5@roar.ozlabs.ibm.com>
-        <027b6dd6-2117-2ff9-7308-e0b235bbd1d7@redhat.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC, PATCHv1 15/28] x86: detect 5-level paging support
+Date: Thu, 15 Dec 2016 15:39:44 +0100
+Message-ID: <20161215143944.ruxr6r3b2atg4tnf@pd.tnic>
+References: <20161208162150.148763-1-kirill.shutemov@linux.intel.com>
+ <20161208162150.148763-17-kirill.shutemov@linux.intel.com>
+ <20161208200505.c6xiy56oufg6d24m@pd.tnic>
+ <CA+55aFzgp+6c6RhgYvEjor=_+ewMeYL4XY4BqER5HMUknXBDCA@mail.gmail.com>
+ <20161208202013.uutsny6avn5gimwq@pd.tnic>
+ <b393a48a-6e8b-6427-373c-2825641fea99@zytor.com>
+ <BD4BD1C9-F6FD-4905-9B09-059284FD2713@alien8.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <027b6dd6-2117-2ff9-7308-e0b235bbd1d7@redhat.com>
+Content-Disposition: inline
+In-Reply-To: <BD4BD1C9-F6FD-4905-9B09-059284FD2713@alien8.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Hannes Frederic Sowa <hannes@redhat.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Stanislav Kozina <skozina@redhat.com>, Don Zickus <dzickus@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Michal Marek <mmarek@suse.com>, Adam Borowski <kilobyte@angband.pl>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Debian kernel maintainers <debian-kernel@lists.debian.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 15 Dec 2016 14:15:31 +0100
-Hannes Frederic Sowa <hannes@redhat.com> wrote:
+On Wed, Dec 14, 2016 at 12:07:54AM +0100, Boris Petkov wrote:
+> Thus I was thinking of adding a build-time check for the gcc version
+> but that might turn out to be more code in the end than those ugly
+> ifnc clauses.
 
-> On 15.12.2016 13:03, Nicholas Piggin wrote:
-> > On Thu, 15 Dec 2016 12:19:02 +0100
-> > Hannes Frederic Sowa <hannes@redhat.com> wrote:
-> >   
-> >> On 15.12.2016 03:06, Nicholas Piggin wrote:  
-> >>> On Wed, 14 Dec 2016 15:04:36 +0100
-> >>> Hannes Frederic Sowa <hannes@redhat.com> wrote:
-> >>>     
-> >>>> On 09.12.2016 17:03, Greg Kroah-Hartman wrote:    
-> >>>>> On Sat, Dec 10, 2016 at 01:56:53AM +1000, Nicholas Piggin wrote:      
-> >>>>>> On Fri, 9 Dec 2016 15:36:04 +0100
-> >>>>>> Stanislav Kozina <skozina@redhat.com> wrote:
-> >>>>>>      
-> >>>>>>>>>>> The question is how to provide a similar guarantee if a different way?        
-> >>>>>>>>>> As a tool to aid distro reviewers, modversions has some value, but the
-> >>>>>>>>>> debug info parsing tools that have been mentioned in this thread seem
-> >>>>>>>>>> superior (not that I've tested them).        
-> >>>>>>>>> On the other hand the big advantage of modversions is that it also
-> >>>>>>>>> verifies the checksum during runtime (module loading). In other words, I
-> >>>>>>>>> believe that any other solution should still generate some form of
-> >>>>>>>>> checksum/watermark which can be easily checked for compatibility on
-> >>>>>>>>> module load.
-> >>>>>>>>> It should not be hard to add to the DWARF based tools though. We'd just
-> >>>>>>>>> parse DWARF data instead of the C code.        
-> >>>>>>>> A runtime check is still done, with per-module vermagic which distros
-> >>>>>>>> can change when they bump the ABI version. Is it really necessary to
-> >>>>>>>> have more than that (i.e., per-symbol versioning)?        
-> >>>>>>>
-> >>>>>>>  From my point of view, it is. We need to allow changing ABI for some 
-> >>>>>>> modules while maintaining it for others.
-> >>>>>>> In fact I think that there should be version not only for every exported 
-> >>>>>>> symbol (in the EXPORT_SYMBOL() sense), but also for every public type 
-> >>>>>>> (in the sense of eg. structure defined in the public header file).      
-> >>>>>>
-> >>>>>> Well the distro can just append _v2, _v3 to the name of the function
-> >>>>>> or type if it has to break compat for some reason. Would that be enough?      
-> >>>>>
-> >>>>> There are other ways that distros can work around when upstream "breaks"
-> >>>>> the ABI, sometimes they can rename functions, and others they can
-> >>>>> "preload" structures with padding in anticipation for when/if fields get
-> >>>>> added to them.  But that's all up to the distros, no need for us to
-> >>>>> worry about that at all :)      
-> >>>>
-> >>>> The _v2 and _v3 functions are probably the ones that also get used by
-> >>>> future backports in the distro kernel itself and are probably the reason
-> >>>> for the ABI change in the first place. Thus going down this route will
-> >>>> basically require distros to touch every future backport patch and will
-> >>>> in general generate a big mess internally.    
-> >>>
-> >>> What kind of big mess? You have to check the logic of each backport even
-> >>> if it does apply cleanly, so the added overhead of the name change should
-> >>> be relatively tiny, no?    
-> >>
-> >> Basically single patches are backported in huge series. Reviewing each
-> >> single patch also definitely makes sense, a review of the series as a
-> >> whole is much more worthwhile because it focuses more on logic.
-> >>
-> >> The patches themselves are checked by individual robots or humans
-> >> against merge conflict introduced mistakes which ring alarm bells for
-> >> people to look more closely during review.
-> >>
-> >> Merge conflicts introduced mistakes definitely can happen because
-> >> developers/backporters lose the focus from the actual logic but deal
-> >> with shifting lines around or just fixing up postfixes to function names.
-> >>
-> >> We still try to align the kernel as much as possible with upstream,
-> >> because most developers can't really hold the differences between
-> >> upstream and the internal functions in their heads (is this function RMW
-> >> safe in this version but not that kernel version...).  
-> > 
-> > I agree with all this, but in the case of a function rename, you can
-> > automate it all with scripts if that's what you want.
-> > 
-> > When you have your list of exported symbols with non-zero version number,
-> > then you can script that __abivXXX into the changeset applying process,
-> > or alternatively apply the rename after your patches are applied, or
-> > use the c preprocessor to define names to something else.  
-> 
-> Yes, probably one could come up with coccinelle patches to do this,
-> preprocessing/string matching could have false positives. But as I wrote
-> above, we need one stable ABI and not multiple for our particular
-> kernels, so it seems like a lot of overhead to rename particular
-> functions internally all the time to make them inaccessible for external
-> modules.
+IOW, something like this. I did this just to try to see whether it is
+doable. And it does work - gcc 4.8 and 4.9 -m32 cannot preserve the PIC
+register - actually the inline asm fails building due to impossible
+constraints.
 
-I can't be sure until it's implemented in a workflow that distros are
-happy with of course, but I just don't see why it would be a lot of
-overhead. Particularly if you just scripted everything.
+However, so many lines changed just to save the ifnc, meh, I dunno...
 
-How frequently do symbols become incompatible within an ostensibly ABI-
-stable release?
+---
+ arch/x86/boot/compressed/Makefile |  8 ++++++
+ arch/x86/boot/cpuflags.c          | 14 ++++++++--
+ scripts/gcc-clobber-pic.sh        | 58 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 77 insertions(+), 3 deletions(-)
+ create mode 100755 scripts/gcc-clobber-pic.sh
 
-> >> Like Don also already said, genksyms already did a pretty good job so
-> >> far. We are right now working with Dodji to come up with a way to
-> >> replace genksyms, in case people really want to have very specific
-> >> control about what causes the symbol version to be changed.  
-> > 
-> > Yeah it's great work, so is Stanislav's checker. I wouldn't mind having
-> > a kernel-centric checker tool merged in the kernel if it is small,
-> > maintained, and does a sufficient job for distros.  
-> 
-> Yes, I think this needs more experimentation and thought right now
-> before we can make a decision.
+diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
+index 34d9e15857c3..705fc2ab3fd6 100644
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@ -35,6 +35,14 @@ KBUILD_CFLAGS += -mno-mmx -mno-sse
+ KBUILD_CFLAGS += $(call cc-option,-ffreestanding)
+ KBUILD_CFLAGS += $(call cc-option,-fno-stack-protector)
+ 
++# check whether inline asm clobbers the PIC register
++ifeq ($(CONFIG_X86_32),y)
++ifeq ($(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-clobber-pic.sh $(CC) -m32),n)
++	KBUILD_CFLAGS += -DCC_PRESERVES_PIC
++	KBUILD_AFLAGS += -DCC_PRESERVES_PIC
++endif
++endif
++
+ KBUILD_AFLAGS  := $(KBUILD_CFLAGS) -D__ASSEMBLY__
+ GCOV_PROFILE := n
+ UBSAN_SANITIZE :=n
+diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
+index 6687ab953257..913c3f5ab3a0 100644
+--- a/arch/x86/boot/cpuflags.c
++++ b/arch/x86/boot/cpuflags.c
+@@ -70,11 +70,19 @@ int has_eflag(unsigned long mask)
+ # define EBX_REG "=b"
+ #endif
+ 
++#if defined(__i386__) && defined(__PIC__) && !defined(CC_PRESERVES_PIC)
++# define SAVE_PIC ".ifnc %%ebx, %3;  movl %%ebx, %3; .endif\n\t"
++# define SWAP_PIC ".ifnc %%ebx, %3; xchgl %%ebx, %3; .endif\n\t"
++#else
++# define SAVE_PIC
++# define SWAP_PIC
++#endif
++
+ static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
+ {
+-	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
+-		     "cpuid					\n\t"
+-		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
++	asm volatile(SAVE_PIC
++		     "cpuid\n\t"
++		     SWAP_PIC
+ 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
+ 		    : "a" (id)
+ 	);
+diff --git a/scripts/gcc-clobber-pic.sh b/scripts/gcc-clobber-pic.sh
+new file mode 100755
+index 000000000000..7ff10edf9b08
+--- /dev/null
++++ b/scripts/gcc-clobber-pic.sh
+@@ -0,0 +1,58 @@
++#!/bin/bash -x
++err=0
++O=$(mktemp)
++cat << "END" | $@ -fPIC -x c - -o $O >/dev/null 2>&1 || err=1
++int some_global_var, some_other_global_var;
++
++typedef unsigned int u32;
++
++void __attribute__((noinline)) foo(void)
++{
++	asm volatile("# some crap just so that we don't get optimized away");
++
++	some_other_global_var = 43;
++}
++
++static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
++{
++        asm volatile("cpuid"
++                    : "=a" (*a), "=b" (*b), "=c" (*c), "=d" (*d)
++                    : "a" (id), "2" (*c)
++		    : "si", "di"
++        );
++
++	some_global_var = 42;
++	foo();
++}
++
++int main(void)
++{
++	u32 a, b, c = 0, d;
++
++	cpuid(0x1, &a, &b, &c, &d);
++
++	/*
++	 * Make sure foo() gets actually called and not optimized away due to
++	 * miscompilation.
++	 */
++	if (some_global_var == 42 && some_other_global_var == 43)
++		return 0;
++	else
++		return 1;
++}
++END
++
++if (( $err ));
++then
++	exit 1
++fi
++
++chmod u+x $O
++$O
++
++if ! (( $? ));
++then
++	echo "n"
++fi
++
++rm -f $O
+-- 
+2.11.0
 
-Sure, I wanted to mention it in case people had a concern about out
-of tree tools. It will depend on what distros end up settling with.
+-- 
+Regards/Gruss,
+    Boris.
 
-> >> Also I wonder what Ben's opinion on this is.. As I understood that he
-> >> wants to maintain a super-long-term stable kernel with kabi guarantees.
-> >>
-> >> Note, what we want is to weaken the check for kabi, by excluding parts
-> >> of the struct from genksyms with libabigail. For Red Hat genksyms is too
-> >> strict in the checks.  
-> > 
-> > Sure, that makes sense.
-> > 
-> > So if I understand where we are, moving the ABI compatibility checking
-> > to one of these tools looks possible. What to do when we have an ABI change
-> > is not settled, but feeding version numbers explicitly into modversions
-> > is an option that would be close to what distros do today.  
-> 
-> Agreed!
-
-Thanks,
-Nick
+Good mailing practices for 400: avoid top-posting and trim the reply.
