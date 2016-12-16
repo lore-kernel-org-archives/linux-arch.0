@@ -1,45 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:55340 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.73]:57473 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760765AbcLPK5G (ORCPT
+        with ESMTP id S1760751AbcLPK5G (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 05:57:06 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 12/13] KVM: arm: avoid binary number literals for gcc-4.2
-Date: Fri, 16 Dec 2016 11:56:33 +0100
-Message-ID: <20161216105634.235457-13-arnd@arndb.de>
+Subject: [PATCH 09/13] ARM: mark cmpxchg and xchg __always_inline for gcc-4.3
+Date: Fri, 16 Dec 2016 11:56:30 +0100
+Message-ID: <20161216105634.235457-10-arnd@arndb.de>
 In-Reply-To: <20161216105634.235457-1-arnd@arndb.de>
 References: <20161216105634.235457-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20161216105633.ISRqLT0HOo31-gmL_ssYqya0pIzC4Ffkr9ewO4wqEYU@z>
+Message-ID: <20161216105630.fycrDpcRYG0cTNCwYCd7IWRTMUgV3WICfj1EOtjIz30@z>
 
-Old gcc versions prior to 4.3 don't understand the 0b... syntax for
-numbers, and this seems to be the only instance in the kernel, so better
-use hexadecimal instead.
+With older compiler versions like gcc-4.3 and CONFIG_OPTIMIZE_INLINING,
+I run into link errors:
 
-arch/arm/include/asm/kvm_mmu.h:127:38: error: invalid suffix "b101" on integer constant
+kernel/task_work.o: In function `__cmpxchg':
+task_work.c:(.text+0x8c): undefined reference to `__bad_cmpxchg'
+kernel/kthread.o: In function `__xchg':
+kthread.c:(.text+0x7bc): undefined reference to `__bad_xchg'
 
-Fixes: 159793001d7d ("ARM: KVM: force cache clean on page fault when caches are off")
+This marks the functions in question as __always_inline to force
+inlining.
+
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/include/asm/kvm_mmu.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/arm/include/asm/cmpxchg.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/arm/include/asm/kvm_mmu.h b/arch/arm/include/asm/kvm_mmu.h
-index 74a44727f8e1..61121300174f 100644
---- a/arch/arm/include/asm/kvm_mmu.h
-+++ b/arch/arm/include/asm/kvm_mmu.h
-@@ -124,7 +124,7 @@ struct kvm;
+diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
+index 12215515ba02..218ba0ae90cd 100644
+--- a/arch/arm/include/asm/cmpxchg.h
++++ b/arch/arm/include/asm/cmpxchg.h
+@@ -24,7 +24,8 @@
+ #define swp_is_buggy
+ #endif
  
- static inline bool vcpu_has_cache_enabled(struct kvm_vcpu *vcpu)
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
++static __always_inline unsigned long
++__xchg(unsigned long x, volatile void *ptr, int size)
  {
--	return (vcpu_cp15(vcpu, c1_SCTLR) & 0b101) == 0b101;
-+	return (vcpu_cp15(vcpu, c1_SCTLR) & 0x5) == 0x5;
- }
+ 	extern void __bad_xchg(volatile void *, int);
+ 	unsigned long ret;
+@@ -152,8 +153,8 @@ extern void __bad_cmpxchg(volatile void *ptr, int size);
+  * cmpxchg only support 32-bits operands on ARMv6.
+  */
  
- static inline void __coherent_cache_guest_page(struct kvm_vcpu *vcpu,
+-static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
+-				      unsigned long new, int size)
++static __always_inline unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
+ {
+ 	unsigned long oldval, res;
+ 
+@@ -213,9 +214,8 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
+ 				      sizeof(*(ptr)));			\
+ })
+ 
+-static inline unsigned long __cmpxchg_local(volatile void *ptr,
+-					    unsigned long old,
+-					    unsigned long new, int size)
++static __always_inline unsigned long
++__cmpxchg_local(volatile void *ptr, unsigned long old, unsigned long new, int size)
+ {
+ 	unsigned long ret;
+ 
 -- 
 2.9.0
 
