@@ -1,85 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:64880 "EHLO
+Received: from mout.kundenserver.de ([217.72.192.75]:63093 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760770AbcLPK5G (ORCPT
+        with ESMTP id S1760757AbcLPK5G (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 05:57:06 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 13/13] ARM: avoid 'Q' asm constraint for gcc-4.1 and earlier
-Date: Fri, 16 Dec 2016 11:56:34 +0100
-Message-ID: <20161216105634.235457-14-arnd@arndb.de>
+Subject: [PATCH 10/13] asm-generic: mark cmpxchg as __always_inline for gcc-4.3
+Date: Fri, 16 Dec 2016 11:56:31 +0100
+Message-ID: <20161216105634.235457-11-arnd@arndb.de>
 In-Reply-To: <20161216105634.235457-1-arnd@arndb.de>
 References: <20161216105634.235457-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20161216105634.wDQcPRNJ8VVApmlZqkZJfr1Kyhnn_DHWVSHdMz-b5Nw@z>
+Message-ID: <20161216105631.4_wGNn-R_gFcJsU1WNnc54pt_H7ATDzP9h9JRYRxcQo@z>
 
-Building with ancient gcc versions results in a stream of build errors
-like:
+With CONFIG_OPTIMIZE_INLINING and older compilers, we can get
+a link error such as
 
-arch/arm/include/asm/io.h:100: error: impossible constraint in 'asm'
-arch/arm/include/asm/io.h:118: error: impossible constraint in 'asm'
+kernel/task_work.o: In function `__cmpxchg_local_generic':
+task_work.c:(.text+0x14c): undefined reference to `wrong_size_cmpxchg'
+kernel/locking/rtmutex.o: In function `__cmpxchg_local_generic':
+rtmutex.c:(.text+0x5ec): undefined reference to `wrong_size_cmpxchg'
+kernel/trace/ring_buffer.o: In function `__cmpxchg_local_generic':
 
-This reverts to an older version of __raw_readl, __raw_writel
-and __my_cpu_offset, which seem to be the only functions affected
-by this.
+Marking the functions in question as __always_inline avoids that
+possibility.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/include/asm/io.h     | 8 ++++++++
- arch/arm/include/asm/percpu.h | 5 ++++-
- 2 files changed, 12 insertions(+), 1 deletion(-)
+ include/asm-generic/cmpxchg-local.h | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 6f89a4d9fc85..d0f89c4cb8e2 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -97,8 +97,12 @@ static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
- #define __raw_writel __raw_writel
- static inline void __raw_writel(u32 val, volatile void __iomem *addr)
+diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+index 70bef78912b7..e82d7032b1b8 100644
+--- a/include/asm-generic/cmpxchg-local.h
++++ b/include/asm-generic/cmpxchg-local.h
+@@ -11,7 +11,8 @@ extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
+  * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
+  * long parameter, supporting various types of architectures.
+  */
+-static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
++static __always_inline unsigned long
++__cmpxchg_local_generic(volatile void *ptr,
+ 		unsigned long old, unsigned long new, int size)
  {
-+#if GCC_VERSION < 40200
-+	*(volatile u32 __force *)addr = val;
-+#else
- 	asm volatile("str %1, %0"
- 		     : : "Qo" (*(volatile u32 __force *)addr), "r" (val));
-+#endif
- }
- 
- #define __raw_readb __raw_readb
-@@ -115,9 +119,13 @@ static inline u8 __raw_readb(const volatile void __iomem *addr)
- static inline u32 __raw_readl(const volatile void __iomem *addr)
+ 	unsigned long flags, prev;
+@@ -50,8 +51,8 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
+ /*
+  * Generic version of __cmpxchg64_local. Takes an u64 parameter.
+  */
+-static inline u64 __cmpxchg64_local_generic(volatile void *ptr,
+-		u64 old, u64 new)
++static __always_inline u64
++__cmpxchg64_local_generic(volatile void *ptr, u64 old, u64 new)
  {
- 	u32 val;
-+#if GCC_VERSION < 40200
-+	val = *(volatile u32 __force *)addr;
-+#else
- 	asm volatile("ldr %0, %1"
- 		     : "=r" (val)
- 		     : "Qo" (*(volatile u32 __force *)addr));
-+#endif
- 	return val;
- }
- 
-diff --git a/arch/arm/include/asm/percpu.h b/arch/arm/include/asm/percpu.h
-index a89b4076cde4..dee4c89b4458 100644
---- a/arch/arm/include/asm/percpu.h
-+++ b/arch/arm/include/asm/percpu.h
-@@ -36,9 +36,12 @@ static inline unsigned long __my_cpu_offset(void)
- 	 * We want to allow caching the value, so avoid using volatile and
- 	 * instead use a fake stack read to hazard against barrier().
- 	 */
-+#if GCC_VERSION < 40200
-+	asm("mrc p15, 0, %0, c13, c0, 4" : "=r" (off) : : "memory");
-+#else
- 	asm("mrc p15, 0, %0, c13, c0, 4" : "=r" (off)
- 		: "Q" (*(const unsigned long *)current_stack_pointer));
--
-+#endif
- 	return off;
- }
- #define __my_cpu_offset __my_cpu_offset()
+ 	u64 prev;
+ 	unsigned long flags;
 -- 
 2.9.0
 
