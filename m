@@ -1,50 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:63566 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.10]:55340 "EHLO
         mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1760750AbcLPK5G (ORCPT
+        with ESMTP id S1760765AbcLPK5G (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 05:57:06 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 04/13] vfio-pci: use 32-bit comparisons for register address for gcc-4.5
-Date: Fri, 16 Dec 2016 11:56:25 +0100
-Message-ID: <20161216105634.235457-5-arnd@arndb.de>
+Subject: [PATCH 12/13] KVM: arm: avoid binary number literals for gcc-4.2
+Date: Fri, 16 Dec 2016 11:56:33 +0100
+Message-ID: <20161216105634.235457-13-arnd@arndb.de>
 In-Reply-To: <20161216105634.235457-1-arnd@arndb.de>
 References: <20161216105634.235457-1-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20161216105625.WLfZFwLG4ySWpN9-N_-ylR5rohg7nlE40xUXTyWDMq0@z>
+Message-ID: <20161216105633.ISRqLT0HOo31-gmL_ssYqya0pIzC4Ffkr9ewO4wqEYU@z>
 
-Using ancient compilers (gcc-4.5 or older) on ARM, we get a link
-failure with the vfio-pci driver:
+Old gcc versions prior to 4.3 don't understand the 0b... syntax for
+numbers, and this seems to be the only instance in the kernel, so better
+use hexadecimal instead.
 
-ERROR: "__aeabi_lcmp" [drivers/vfio/pci/vfio-pci.ko] undefined!
+arch/arm/include/asm/kvm_mmu.h:127:38: error: invalid suffix "b101" on integer constant
 
-The reason is that the compiler tries to do a comparison of
-a 64-bit range. This changes it to convert to a 32-bit number
-explicitly first, as newer compilers do for themselves.
-
+Fixes: 159793001d7d ("ARM: KVM: force cache clean on page fault when caches are off")
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- drivers/vfio/pci/vfio_pci_rdwr.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/arm/include/asm/kvm_mmu.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/vfio/pci/vfio_pci_rdwr.c b/drivers/vfio/pci/vfio_pci_rdwr.c
-index 5ffd1d9ad4bd..357243d76f10 100644
---- a/drivers/vfio/pci/vfio_pci_rdwr.c
-+++ b/drivers/vfio/pci/vfio_pci_rdwr.c
-@@ -193,7 +193,10 @@ ssize_t vfio_pci_vga_rw(struct vfio_pci_device *vdev, char __user *buf,
- 	if (!vdev->has_vga)
- 		return -EINVAL;
+diff --git a/arch/arm/include/asm/kvm_mmu.h b/arch/arm/include/asm/kvm_mmu.h
+index 74a44727f8e1..61121300174f 100644
+--- a/arch/arm/include/asm/kvm_mmu.h
++++ b/arch/arm/include/asm/kvm_mmu.h
+@@ -124,7 +124,7 @@ struct kvm;
  
--	switch (pos) {
-+	if (pos > 0xbfffful)
-+		return -EINVAL;
-+
-+	switch ((u32)pos) {
- 	case 0xa0000 ... 0xbffff:
- 		count = min(count, (size_t)(0xc0000 - pos));
- 		iomem = ioremap_nocache(0xa0000, 0xbffff - 0xa0000 + 1);
+ static inline bool vcpu_has_cache_enabled(struct kvm_vcpu *vcpu)
+ {
+-	return (vcpu_cp15(vcpu, c1_SCTLR) & 0b101) == 0b101;
++	return (vcpu_cp15(vcpu, c1_SCTLR) & 0x5) == 0x5;
+ }
+ 
+ static inline void __coherent_cache_guest_page(struct kvm_vcpu *vcpu,
 -- 
 2.9.0
 
