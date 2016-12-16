@@ -1,56 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f68.google.com ([209.85.214.68]:34976 "EHLO
-        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752203AbcLPUev (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 15:34:51 -0500
-MIME-Version: 1.0
-In-Reply-To: <3679707.TKdvBNIRe2@wuerfel>
-References: <20161216105634.235457-1-arnd@arndb.de> <CAMuHMdUa4j8nxrW=fSJQZok3=mW-FWZWHR=cYS2R0gQUeGHgmQ@mail.gmail.com>
- <3679707.TKdvBNIRe2@wuerfel>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Fri, 16 Dec 2016 21:34:49 +0100
-Message-ID: <CAMuHMdWnLeT=j1nXmr4ezV+o9aOu0OvM0X-gq5coBJvsJ8uOGw@mail.gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.130]:58313 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759275AbcLPWAn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 17:00:43 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Content-Type: text/plain; charset=UTF-8
+Date: Fri, 16 Dec 2016 23:00:27 +0100
+Message-ID: <2778134.jZdhGefl4B@wuerfel>
+In-Reply-To: <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
+References: <20161216105634.235457-1-arnd@arndb.de> <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
-Message-ID: <20161216203449.2-GZZiV2S3dyc3b-WkF3o7J-jd0dJf8ehHKuKZEuwG8@z>
+To: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20161216220027.lEECZtmxLZGuUceEIdP-wzBBecX_cFm5SsF-3SPLj2k@z>
 
-Hi Arnd,
+On Friday, December 16, 2016 6:00:43 PM CET Sebastian Andrzej Siewior wrote:
+> On 2016-12-16 11:56:21 [+0100], Arnd Bergmann wrote:
+> > The original gcc-4.3 release was in early 2008. If we decide to still
+> > support that, we probably want the first 10 quirks in this series,
+> > while gcc-4.6 (released in 2011) requires none of them.
+> 
+> It this min gcc thingy ARM only?
 
-On Fri, Dec 16, 2016 at 8:58 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Friday, December 16, 2016 4:54:33 PM CET Geert Uytterhoeven wrote:
->> On Fri, Dec 16, 2016 at 11:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > Specifically on ARM, going further makes things rather useless especially
->> > for build testing: with gcc-4.2, we lose support for ARMv7, EABI, and
->> > effectively ARMv6 (as it relies on EABI for building reliably). Also,
->> > the number of false-positive build warnings is so high that it is useless
->> > for finding actual bugs from the warnings.
->>
->> If you start with that activity now, there's indeed a massive amount of
->> warnings to look into.
->> However, I've been build testing various configs with m68k-linux-gnu-gcc-4.1.2
->> and looking at the compiler warnings for years, so I only have to look
->> at new warnings.
->
-> What's the reason for sticking with gcc-4.1? Does this actually work better
-> for you than a more recent version, or is it just whatever you installed
-> when you started the build testing?
+This is part of the question that I'm trying to figure out myself.
 
-It's just the cross compiler I built .debs of a long time ago.
-As long as it works, I see no reason to upgrade, especially as long as I see
-warnings for bugs that no one else is seeing. But lately you started beating
-me with newer gccs ;-)
+Clearly having the same minimum version across all architectures simplifies
+things a lot, because many of the bugs in old versions are architecture
+independent. Then again, some architectures implicitly require a new version
+because an old one never existed (e.g. arm64 or risc-v), while some other
+architectures may require an old version.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Arnd
