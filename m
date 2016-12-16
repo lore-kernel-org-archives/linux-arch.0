@@ -1,86 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wj0-f196.google.com ([209.85.210.196]:35621 "EHLO
-        mail-wj0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1754216AbcLPTzO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 14:55:14 -0500
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-References: <20161017065131.GA27863@angband.pl>
- <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
- <20161017100130.GA16013@angband.pl>
-From: Jiri Slaby <jslaby@suse.cz>
-Message-ID: <7212667f-f508-2b41-a380-8f736814d8cc@suse.cz>
-Date: Fri, 16 Dec 2016 20:55:07 +0100
+Received: from mout.kundenserver.de ([212.227.17.13]:59816 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1761577AbcLPT6S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2016 14:58:18 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Fri, 16 Dec 2016 20:58:08 +0100
+Message-ID: <3679707.TKdvBNIRe2@wuerfel>
+In-Reply-To: <CAMuHMdUa4j8nxrW=fSJQZok3=mW-FWZWHR=cYS2R0gQUeGHgmQ@mail.gmail.com>
+References: <20161216105634.235457-1-arnd@arndb.de> <CAMuHMdUa4j8nxrW=fSJQZok3=mW-FWZWHR=cYS2R0gQUeGHgmQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20161017100130.GA16013@angband.pl>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>
-Cc: Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, adobriyan@gmail.com, sfr@canb.auug.org.au, viro@zeniv.linux.org.uk, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20161216195507.pu9mq-babYkbXRQy6eETepfZhyB_eM_5oOD6nlwh4yc@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Message-ID: <20161216195808.BR00k5X_yHQKbmuaFYbPcjw7oAPW0BjJOZOqBDhx0qc@z>
 
-On 10/17/2016, 12:01 PM, Adam Borowski wrote:
-> Anyway, here's my stab at x86:
-
-Hi,
-
-what happened to this? I had to apply this to fix 4.9-pae kernel here.
-
-> From db746df65b920591606398b4b244f5b6dc9eea04 Mon Sep 17 00:00:00 2001
-> From: Adam Borowski <kilobyte@angband.pl>
-> Date: Mon, 17 Oct 2016 11:42:35 +0200
-> Subject: [PATCH] kbuild: provide include/asm/asm-prototypes.h for x86
+On Friday, December 16, 2016 4:54:33 PM CET Geert Uytterhoeven wrote:
+> Hi Arnd,
 > 
-> Nicholas Piggin wrote:
->> Architectures will need to have an include/asm/asm-prototypes.h that
->> defines or #include<>s C-style prototypes for exported asm functions.
->> We can do an asm-generic version for the common ones like memset so
->> there's not a lot of pointless duplication there.
+> On Fri, Dec 16, 2016 at 11:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > Specifically on ARM, going further makes things rather useless especially
+> > for build testing: with gcc-4.2, we lose support for ARMv7, EABI, and
+> > effectively ARMv6 (as it relies on EABI for building reliably). Also,
+> > the number of false-positive build warnings is so high that it is useless
+> > for finding actual bugs from the warnings.
 > 
-> Signed-off-by: Adam Borowski <kilobyte@angband.pl>
-> ---
->  arch/x86/include/asm/asm-prototypes.h | 13 +++++++++++++
->  include/asm-generic/asm-prototypes.h  |  7 +++++++
->  2 files changed, 20 insertions(+)
->  create mode 100644 arch/x86/include/asm/asm-prototypes.h
->  create mode 100644 include/asm-generic/asm-prototypes.h
-> 
-> diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
-> new file mode 100644
-> index 0000000..072c97c
-> --- /dev/null
-> +++ b/arch/x86/include/asm/asm-prototypes.h
-> @@ -0,0 +1,13 @@
-> +#include <asm/ftrace.h>
-> +#include <asm/uaccess.h>
-> +#include <asm/uaccess.h>
-> +#include <asm/string.h>
-> +#include <asm/page.h>
-> +#include <asm/checksum.h>
-> +
-> +#include <asm-generic/asm-prototypes.h>
-> +
-> +#include <asm/page.h>
-> +#include <asm/pgtable.h>
-> +#include <asm/special_insns.h>
-> +#include <asm/preempt.h>
-> diff --git a/include/asm-generic/asm-prototypes.h b/include/asm-generic/asm-prototypes.h
-> new file mode 100644
-> index 0000000..df13637
-> --- /dev/null
-> +++ b/include/asm-generic/asm-prototypes.h
-> @@ -0,0 +1,7 @@
-> +#include <linux/bitops.h>
-> +extern void *__memset(void *, int, __kernel_size_t);
-> +extern void *__memcpy(void *, const void *, __kernel_size_t);
-> +extern void *__memmove(void *, const void *, __kernel_size_t);
-> +extern void *memset(void *, int, __kernel_size_t);
-> +extern void *memcpy(void *, const void *, __kernel_size_t);
-> +extern void *memmove(void *, const void *, __kernel_size_t);
-> 
+> If you start with that activity now, there's indeed a massive amount of
+> warnings to look into.
+> However, I've been build testing various configs with m68k-linux-gnu-gcc-4.1.2
+> and looking at the compiler warnings for years, so I only have to look
+> at new warnings.
 
-thanks,
--- 
-js
-suse labs
+What's the reason for sticking with gcc-4.1? Does this actually work better
+for you than a more recent version, or is it just whatever you installed
+when you started the build testing?
+
+	Arnd
