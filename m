@@ -1,54 +1,34 @@
-From: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Sat, 17 Dec 2016 12:29:50 +0100
-Message-ID: <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
-References: <20161216105634.235457-1-arnd@arndb.de>
- <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
- <2778134.jZdhGefl4B@wuerfel>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+Date: Sat, 17 Dec 2016 15:59:36 -0800
+Message-ID: <CA+55aFzRqCYxkqpHioWz-o4WPTDbFmmbHNWFm2oGkYObNOQX=w@mail.gmail.com>
+References: <20161017065131.GA27863@angband.pl> <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
+ <20161017100130.GA16013@angband.pl> <7212667f-f508-2b41-a380-8f736814d8cc@suse.cz>
+ <CA+55aFxjJbAXRq2HSxhfn2gWsGiLPTcqoRrrDLJrLd2vFLu9YQ@mail.gmail.com> <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <2778134.jZdhGefl4B@wuerfel>
+In-Reply-To: <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 2016-12-16 23:00:27 [+0100], Arnd Bergmann wrote:
-> On Friday, December 16, 2016 6:00:43 PM CET Sebastian Andrzej Siewior wrote:
-> > On 2016-12-16 11:56:21 [+0100], Arnd Bergmann wrote:
-> > > The original gcc-4.3 release was in early 2008. If we decide to still
-> > > support that, we probably want the first 10 quirks in this series,
-> > > while gcc-4.6 (released in 2011) requires none of them.
-> > 
-> > It this min gcc thingy ARM only?
-> 
-> This is part of the question that I'm trying to figure out myself.
-> 
-> Clearly having the same minimum version across all architectures simplifies
-> things a lot, because many of the bugs in old versions are architecture
-> independent. 
+On Sat, Dec 17, 2016 at 12:57 AM, Jiri Slaby <jslaby@suse.cz> wrote:
+>
+> Yes, disk drivers won't load:
+> [    2.141973] virtio_pci: disagrees about version of symbol mcount
+> [    2.144415] virtio_pci: Unknown symbol mcount (err -22)
 
-agreed.
+This makes no sense.
 
-> Then again, some architectures implicitly require a new version
-> because an old one never existed (e.g. arm64 or risc-v), while some other
-> architectures may require an old version.
+mcount isn't even one of the symbols that the patch by Adam is touching.
 
-A new version is understandable. But why is an old version required?
-One thing is an enterprise distro that is "current" or "supported" and still
-stuck with gcc 4.1 because that is the version they decided to include in
-their release. This is sad. But you might want to ask yourself why you want
-the latest kernel but an old gcc / binutils.
+There's something else screwed up here. Not to mention that others
+don't have your issue.
 
-If you have an architecture that compiles with gcc v4.1 and not with gcc
-latest stable / trunk then it is a sign that this port is not supported
-properly / not heatly. One thing is something like avr32 which is not part of
-upstream gcc due to some legal reason (that was my understanding a few years
-ago). It might get to a problem for them once large parts of userland switch
-to a later C++ standard which is gcc-5+.
+Do you have some other hacks in this area? Are you testing actual
+plain 4.9, or do you (for example) still carry Arnd's patch around
+that turned out to not work (reverted by f27c2f69cc8e in my tree)?
 
-> 	Arnd
-
-Sebastian
+           Linus
