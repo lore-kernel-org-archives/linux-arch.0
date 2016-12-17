@@ -1,54 +1,54 @@
-From: Adam Borowski <kilobyte@angband.pl>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Date: Sat, 17 Dec 2016 10:33:57 +0100
-Message-ID: <20161217093357.GA10602@angband.pl>
-References: <20161017065131.GA27863@angband.pl>
- <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
- <20161017100130.GA16013@angband.pl>
- <7212667f-f508-2b41-a380-8f736814d8cc@suse.cz>
- <CA+55aFxjJbAXRq2HSxhfn2gWsGiLPTcqoRrrDLJrLd2vFLu9YQ@mail.gmail.com>
- <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
+From: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Sat, 17 Dec 2016 12:29:50 +0100
+Message-ID: <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
+References: <20161216105634.235457-1-arnd@arndb.de>
+ <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
+ <2778134.jZdhGefl4B@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
+In-Reply-To: <2778134.jZdhGefl4B@wuerfel>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu, Geert Uytterhoeven <geert@linux-m68k.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Dec 17, 2016 at 09:57:47AM +0100, Jiri Slaby wrote:
-> On 12/16/2016, 08:57 PM, Linus Torvalds wrote:
-> > On Fri, Dec 16, 2016 at 11:55 AM, Jiri Slaby <jslaby@suse.cz> wrote:
-> >>
-> >> what happened to this? I had to apply this to fix 4.9-pae kernel here.
+On 2016-12-16 23:00:27 [+0100], Arnd Bergmann wrote:
+> On Friday, December 16, 2016 6:00:43 PM CET Sebastian Andrzej Siewior wrote:
+> > On 2016-12-16 11:56:21 [+0100], Arnd Bergmann wrote:
+> > > The original gcc-4.3 release was in early 2008. If we decide to still
+> > > support that, we probably want the first 10 quirks in this series,
+> > > while gcc-4.6 (released in 2011) requires none of them.
 > > 
-> > Did you actually have to do that?
+> > It this min gcc thingy ARM only?
 > 
-> Yes, disk drivers won't load:
-> [    2.141973] virtio_pci: disagrees about version of symbol mcount
-> [    2.144415] virtio_pci: Unknown symbol mcount (err -22)
-> and whole machine gets stuck with systemd waiting for /dev/sd*.
+> This is part of the question that I'm trying to figure out myself.
 > 
-> > Because a missing CRC shouldn't be fatal in 4.9.
+> Clearly having the same minimum version across all architectures simplifies
+> things a lot, because many of the bugs in old versions are architecture
+> independent. 
 
-Most of us get just a scary-looking warning, but whatever the problem is for
-you, it's good to hear this patch works around it.
+agreed.
 
-Whatever the long-term solution will be, for 4.10 an updated[1] version of
-this fix is on kbuild/kbuild (and kbuild/for-next).  I guess we'll bother
-stable@ once it is merged.
+> Then again, some architectures implicitly require a new version
+> because an old one never existed (e.g. arm64 or risc-v), while some other
+> architectures may require an old version.
 
-Note that it handles only x86, there's a bunch of other architectures
-affected, alpha m68k s390 sparc ia64 might still need fixing.
+A new version is understandable. But why is an old version required?
+One thing is an enterprise distro that is "current" or "supported" and still
+stuck with gcc 4.1 because that is the version they decided to include in
+their release. This is sad. But you might want to ask yourself why you want
+the latest kernel but an old gcc / binutils.
 
+If you have an architecture that compiles with gcc v4.1 and not with gcc
+latest stable / trunk then it is a sign that this port is not supported
+properly / not heatly. One thing is something like avr32 which is not part of
+upstream gcc due to some legal reason (that was my understanding a few years
+ago). It might get to a problem for them once large parts of userland switch
+to a later C++ standard which is gcc-5+.
 
-Meow!
+> 	Arnd
 
-[1]. Turns out there was a missing symbol on 486; people build-test those
-but don't try to actually boot, and even when they do, they don't read
-warnings.
--- 
-Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
-  ./configure --host=zx-spectrum --build=pdp11
+Sebastian
