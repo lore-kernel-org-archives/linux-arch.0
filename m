@@ -1,7 +1,7 @@
-From: Nikolay Borisov <n.borisov.lkml@gmail.com>
+From: Jiri Slaby <jslaby@suse.cz>
 Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Date: Sun, 18 Dec 2016 15:27:48 +0200
-Message-ID: <0fca8045-30c0-590d-07b8-d7d7d9791759@gmail.com>
+Date: Sun, 18 Dec 2016 15:45:00 +0100
+Message-ID: <9aa0d77b-5cb4-f67f-4a09-2c6336b32db6@suse.cz>
 References: <20161017065131.GA27863@angband.pl>
  <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
  <20161017100130.GA16013@angband.pl>
@@ -11,61 +11,29 @@ References: <20161017065131.GA27863@angband.pl>
  <CA+55aFzRqCYxkqpHioWz-o4WPTDbFmmbHNWFm2oGkYObNOQX=w@mail.gmail.com>
  <9dec52ac-dc82-73c5-6b36-b5eb7cc052fa@suse.cz>
  <8311f14c-3d1e-6354-323a-87701cabaa97@broadcom.com>
+ <0fca8045-30c0-590d-07b8-d7d7d9791759@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <8311f14c-3d1e-6354-323a-87701cabaa97@broadcom.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arend Van Spriel <arend.vanspriel@broadcom.com>, Jiri Slaby <jslaby@suse.cz>, Linus Torvalds <torvalds@linux-foundation.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:36213 "EHLO
+        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932291AbcLROpF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Dec 2016 09:45:05 -0500
+In-Reply-To: <0fca8045-30c0-590d-07b8-d7d7d9791759@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nikolay Borisov <n.borisov.lkml@gmail.com>, Arend Van Spriel <arend.vanspriel@broadcom.com>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
+On 12/18/2016, 02:27 PM, Nikolay Borisov wrote:
+> This is the likely problem here.
 
+No, it is not. How could a rpm be built with two compilers?
 
-On 18.12.2016 13:03, Arend Van Spriel wrote:
-> On 18-12-2016 11:49, Jiri Slaby wrote:
->> On 12/18/2016, 12:59 AM, Linus Torvalds wrote:
->>> On Sat, Dec 17, 2016 at 12:57 AM, Jiri Slaby <jslaby@suse.cz> wrote:
->>>>
->>>> Yes, disk drivers won't load:
->>>> [    2.141973] virtio_pci: disagrees about version of symbol mcount
->>>> [    2.144415] virtio_pci: Unknown symbol mcount (err -22)
->>>
->>> This makes no sense.
->>>
->>> mcount isn't even one of the symbols that the patch by Adam is touching.
->>
->> asm-prototypes.h in his patch includes asm/ftrace.h, where the function
->> is declared. That should be enough IIUC scripts/Makefile.build.
->>
->>> There's something else screwed up here. Not to mention that others
->>> don't have your issue.
->>
->> I suppose people don't run i386 kernels or have different config.
->>
->>> Do you have some other hacks in this area? Are you testing actual
->>> plain 4.9, or do you (for example) still carry Arnd's patch around
->>> that turned out to not work (reverted by f27c2f69cc8e in my tree)?
->>
->> Not at all. This was plain 4.9 packaged by suse -- only rpm-related
->> fixes. I tried plain 4.9 without rpm right now with the same output:
->> # insmod soundcore.ko
->> [   31.582326] soundcore: disagrees about version of symbol mcount
->> [   31.586183] soundcore: Unknown symbol mcount (err -22)
->> insmod: ERROR: could not insert module soundcore.ko: Invalid parameters
-> 
-> I hit an mcount issue a while back (years?) which was due to building a
-> driver with gcc v4.x while kernel was built using gcc v4.y. Not claiming
-> that is your issue though.
+Moreover, with some modules, __put_user_1 and others are reported
+instead of mcount.
 
-I've usually had the same thing happen to me if things were compiled
-with different gcc versions . Essentially in newer gcc (starting with
-4.6 I believe) CC_USING_FENTRY is defined, meaning that there is no
-mcount() symbol but rather __fentry__. This is the likely problem here.
-
-
-> 
-> Regards,
-> Arend
-> 
+-- 
+js
+suse labs
