@@ -1,34 +1,25 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
-Date: Sat, 17 Dec 2016 15:59:36 -0800
-Message-ID: <CA+55aFzRqCYxkqpHioWz-o4WPTDbFmmbHNWFm2oGkYObNOQX=w@mail.gmail.com>
-References: <20161017065131.GA27863@angband.pl> <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
- <20161017100130.GA16013@angband.pl> <7212667f-f508-2b41-a380-8f736814d8cc@suse.cz>
- <CA+55aFxjJbAXRq2HSxhfn2gWsGiLPTcqoRrrDLJrLd2vFLu9YQ@mail.gmail.com> <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 3/3] mm: make pagoff_t type 64-bit
+Date: Sun, 18 Dec 2016 10:23:29 +0100
+Message-ID: <20161218092329.GA16618@lst.de>
+References: <1481461003-14361-1-git-send-email-ynorov@caviumnetworks.com> <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com> <2636242.RWRJivuddj@wuerfel> <20161216105514.GA466@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <libc-alpha-return-76050-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+Content-Disposition: inline
+In-Reply-To: <20161216105514.GA466@yury-N73SV>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, libc-alpha@sourceware.org, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, Martin Schwidefsky <schwidefsky@de.ibm.c>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Dec 17, 2016 at 12:57 AM, Jiri Slaby <jslaby@suse.cz> wrote:
->
-> Yes, disk drivers won't load:
-> [    2.141973] virtio_pci: disagrees about version of symbol mcount
-> [    2.144415] virtio_pci: Unknown symbol mcount (err -22)
+On Fri, Dec 16, 2016 at 04:25:14PM +0530, Yury Norov wrote:
+>  1 leave things as is. 32-bit architectures will have no option to
+>    mmap big offsets, and no one cares - as usual.
 
-This makes no sense.
-
-mcount isn't even one of the symbols that the patch by Adam is touching.
-
-There's something else screwed up here. Not to mention that others
-don't have your issue.
-
-Do you have some other hacks in this area? Are you testing actual
-plain 4.9, or do you (for example) still carry Arnd's patch around
-that turned out to not work (reverted by f27c2f69cc8e in my tree)?
-
-           Linus
+And that's the only sensible option.
