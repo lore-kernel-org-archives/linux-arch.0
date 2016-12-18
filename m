@@ -1,25 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:34108 "EHLO newverein.lst.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751532AbcLRJcs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 18 Dec 2016 04:32:48 -0500
-Date: Sun, 18 Dec 2016 10:23:29 +0100
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 3/3] mm: make pagoff_t type 64-bit
-Message-ID: <20161218092329.GA16618@lst.de>
-References: <1481461003-14361-1-git-send-email-ynorov@caviumnetworks.com> <1481461003-14361-4-git-send-email-ynorov@caviumnetworks.com> <2636242.RWRJivuddj@wuerfel> <20161216105514.GA466@yury-N73SV>
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:35824 "EHLO
+        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1759559AbcLRLDi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Dec 2016 06:03:38 -0500
+Received: by mail-wm0-f45.google.com with SMTP id a197so71242437wmd.0
+        for <linux-arch@vger.kernel.org>; Sun, 18 Dec 2016 03:03:37 -0800 (PST)
+Subject: Re: [GIT PULL] kbuild changes for v4.9-rc1
+References: <20161017065131.GA27863@angband.pl>
+ <20161017175951.31d8f4b7@roar.ozlabs.ibm.com>
+ <20161017100130.GA16013@angband.pl>
+ <7212667f-f508-2b41-a380-8f736814d8cc@suse.cz>
+ <CA+55aFxjJbAXRq2HSxhfn2gWsGiLPTcqoRrrDLJrLd2vFLu9YQ@mail.gmail.com>
+ <5ee08a93-6b17-d1c2-af1c-ab9aa218903c@suse.cz>
+ <CA+55aFzRqCYxkqpHioWz-o4WPTDbFmmbHNWFm2oGkYObNOQX=w@mail.gmail.com>
+ <9dec52ac-dc82-73c5-6b36-b5eb7cc052fa@suse.cz>
+From: Arend Van Spriel <arend.vanspriel@broadcom.com>
+Message-ID: <8311f14c-3d1e-6354-323a-87701cabaa97@broadcom.com>
+Date: Sun, 18 Dec 2016 12:03:34 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161216105514.GA466@yury-N73SV>
+In-Reply-To: <9dec52ac-dc82-73c5-6b36-b5eb7cc052fa@suse.cz>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, libc-alpha@sourceware.org, "Dr. Philipp Tomsich" <philipp.tomsich@theobroma-systems.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, "Joseph S. Myers" <joseph@codesourcery.com>, zhouchengming1@huawei.com, "Kapoor, Prasun" <Prasun.Kapoor@caviumnetworks.com>, Alexander Graf <agraf@suse.de>, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, Alexey Klimov <klimov.linux@gmail.com>, broonie@kernel.org, "Zhangjian (Bamvor)" <bamvor.zhangjian@huawei.com>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-Message-ID: <20161218092329.uTEJWySlOOkzu6s7GtRhRM_C88KLGf-uZ3FYx1lDHz4@z>
+To: Jiri Slaby <jslaby@suse.cz>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Adam Borowski <kilobyte@angband.pl>, Nicholas Piggin <npiggin@gmail.com>, Omar Sandoval <osandov@osandov.com>, Michal Marek <mmarek@suse.com>, Alexey Dobriyan <adobriyan@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Al Viro <viro@zeniv.linux.org.uk>, Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20161218110334.z7d_2pMbUdh2IvUgyMGjfEA8tTwyIHaroFtHPuglAO0@z>
 
-On Fri, Dec 16, 2016 at 04:25:14PM +0530, Yury Norov wrote:
->  1 leave things as is. 32-bit architectures will have no option to
->    mmap big offsets, and no one cares - as usual.
+On 18-12-2016 11:49, Jiri Slaby wrote:
+> On 12/18/2016, 12:59 AM, Linus Torvalds wrote:
+>> On Sat, Dec 17, 2016 at 12:57 AM, Jiri Slaby <jslaby@suse.cz> wrote:
+>>>
+>>> Yes, disk drivers won't load:
+>>> [    2.141973] virtio_pci: disagrees about version of symbol mcount
+>>> [    2.144415] virtio_pci: Unknown symbol mcount (err -22)
+>>
+>> This makes no sense.
+>>
+>> mcount isn't even one of the symbols that the patch by Adam is touching.
+> 
+> asm-prototypes.h in his patch includes asm/ftrace.h, where the function
+> is declared. That should be enough IIUC scripts/Makefile.build.
+> 
+>> There's something else screwed up here. Not to mention that others
+>> don't have your issue.
+> 
+> I suppose people don't run i386 kernels or have different config.
+> 
+>> Do you have some other hacks in this area? Are you testing actual
+>> plain 4.9, or do you (for example) still carry Arnd's patch around
+>> that turned out to not work (reverted by f27c2f69cc8e in my tree)?
+> 
+> Not at all. This was plain 4.9 packaged by suse -- only rpm-related
+> fixes. I tried plain 4.9 without rpm right now with the same output:
+> # insmod soundcore.ko
+> [   31.582326] soundcore: disagrees about version of symbol mcount
+> [   31.586183] soundcore: Unknown symbol mcount (err -22)
+> insmod: ERROR: could not insert module soundcore.ko: Invalid parameters
 
-And that's the only sensible option.
+I hit an mcount issue a while back (years?) which was due to building a
+driver with gcc v4.x while kernel was built using gcc v4.y. Not claiming
+that is your issue though.
+
+Regards,
+Arend
