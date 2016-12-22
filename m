@@ -1,60 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:2589 "EHLO mga03.intel.com"
+Received: from mx2.suse.de ([195.135.220.15]:46454 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S966782AbcLVVTI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Dec 2016 16:19:08 -0500
-From: Ross Zwisler <ross.zwisler@linux.intel.com>
-Subject: [PATCH v2 2/4] dax: add stub for pmdp_huge_clear_flush()
-Date: Thu, 22 Dec 2016 14:18:54 -0700
-Message-ID: <1482441536-14550-3-git-send-email-ross.zwisler@linux.intel.com>
-In-Reply-To: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
-References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+        id S1757203AbcLVWMl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Dec 2016 17:12:41 -0500
+From: Andreas Schwab <schwab@suse.de>
+Subject: Re: [PATCH] mm: pmd dirty emulation in page fault handler
+References: <1482364101-16204-1-git-send-email-minchan@kernel.org>
+        <20161222081713.GA32480@node.shutemov.name>
+        <20161222145203.GA18970@bbox>
+Date: Thu, 22 Dec 2016 23:12:32 +0100
+In-Reply-To: <20161222145203.GA18970@bbox> (Minchan Kim's message of "Thu, 22
+        Dec 2016 23:52:03 +0900")
+Message-ID: <8737hftxyn.fsf@suse.de>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Ross Zwisler <ross.zwisler@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org
-Message-ID: <20161222211854.KgQTuyvRdkyKRVFQ2cxr-lJUAJ9EPWhk9tYbRyU0e_o@z>
+To: Minchan Kim <minchan@kernel.org>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>
+Message-ID: <20161222221232.15x89yP2nGIBVPHSfjjvzgX74dvIk1aqPZQjVlejDdM@z>
 
-Add a pmdp_huge_clear_flush() stub for configs that don't define
-CONFIG_TRANSPARENT_HUGEPAGE.
+On Dez 22 2016, Minchan Kim <minchan@kernel.org> wrote:
 
-We use a WARN_ON_ONCE() instead of a BUILD_BUG() because in the DAX code at
-least we do want this compile successfully even for configs without
-CONFIG_TRANSPARENT_HUGEPAGE.  It'll be a runtime decision whether we call
-this code gets called, based on whether we find DAX PMD entries in our
-tree.  We shouldn't ever find such PMD entries for
-!CONFIG_TRANSPARENT_HUGEPAGE configs, so this function should never be
-called.
+> From b3ec95c0df91ad113525968a4a6b53030fd0b48d Mon Sep 17 00:00:00 2001
+> From: Minchan Kim <minchan@kernel.org>
+> Date: Thu, 22 Dec 2016 23:43:49 +0900
+> Subject: [PATCH v2] mm: pmd dirty emulation in page fault handler
+>
+> Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
+> http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
+>
+> The problem is page fault handler supports only accessed flag emulation
+> for THP page of SW-dirty/accessed architecture.
+>
+> This patch enables dirty-bit emulation for those architectures.
+> Without it, MADV_FREE makes application hang by repeated fault forever.
+>
+> [1] b8d3c4c3009d, mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
 
-Signed-off-by: Ross Zwisler <ross.zwisler@linux.intel.com>
----
- include/asm-generic/pgtable.h | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+Successfully tested a backport to 4.9.
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 18af2bc..65e9536 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -178,9 +178,19 @@ extern pte_t ptep_clear_flush(struct vm_area_struct *vma,
- #endif
- 
- #ifndef __HAVE_ARCH_PMDP_HUGE_CLEAR_FLUSH
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- extern pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
- 			      unsigned long address,
- 			      pmd_t *pmdp);
-+#else
-+static inline pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
-+			      unsigned long address,
-+			      pmd_t *pmdp)
-+{
-+	WARN_ON_ONCE(1);
-+	return *pmdp;
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PTEP_SET_WRPROTECT
+Andreas.
+
 -- 
-2.7.4
-
+Andreas Schwab, SUSE Labs, schwab@suse.de
+GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
+"And now for something completely different."
