@@ -1,49 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga03.intel.com ([134.134.136.65]:2589 "EHLO mga03.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1758530AbcLVVTH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Dec 2016 16:19:07 -0500
+        id S966782AbcLVVTI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 22 Dec 2016 16:19:08 -0500
 From: Ross Zwisler <ross.zwisler@linux.intel.com>
-Subject: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
-Date: Thu, 22 Dec 2016 14:18:52 -0700
-Message-ID: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+Subject: [PATCH v2 2/4] dax: add stub for pmdp_huge_clear_flush()
+Date: Thu, 22 Dec 2016 14:18:54 -0700
+Message-ID: <1482441536-14550-3-git-send-email-ross.zwisler@linux.intel.com>
+In-Reply-To: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Ross Zwisler <ross.zwisler@linux.intel.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org
-Message-ID: <20161222211852.8TpGUELYB4En1EcQ9zfVLCpemLzJ-IOwg75HZWaBTXA@z>
+Message-ID: <20161222211854.KgQTuyvRdkyKRVFQ2cxr-lJUAJ9EPWhk9tYbRyU0e_o@z>
 
-Currently dax_mapping_entry_mkclean() fails to clean and write protect the
-pmd_t of a DAX PMD entry during an *sync operation.  This can result in
-data loss, as detailed in patch 4.
+Add a pmdp_huge_clear_flush() stub for configs that don't define
+CONFIG_TRANSPARENT_HUGEPAGE.
 
-You can find a working tree here:
+We use a WARN_ON_ONCE() instead of a BUILD_BUG() because in the DAX code at
+least we do want this compile successfully even for configs without
+CONFIG_TRANSPARENT_HUGEPAGE.  It'll be a runtime decision whether we call
+this code gets called, based on whether we find DAX PMD entries in our
+tree.  We shouldn't ever find such PMD entries for
+!CONFIG_TRANSPARENT_HUGEPAGE configs, so this function should never be
+called.
 
-https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+Signed-off-by: Ross Zwisler <ross.zwisler@linux.intel.com>
+---
+ include/asm-generic/pgtable.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-This series applies cleanly to mmotm-2016-12-19-16-31.
-
-Changes since v1:
- - Included Dan's patch to kill DAX support for UML.
- - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
-   an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
-   when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
-
-Dan Williams (1):
-  dax: kill uml support
-
-Ross Zwisler (3):
-  dax: add stub for pmdp_huge_clear_flush()
-  mm: add follow_pte_pmd()
-  dax: wrprotect pmd_t in dax_mapping_entry_mkclean
-
- fs/Kconfig                    |  2 +-
- fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
- include/asm-generic/pgtable.h | 10 +++++++++
- include/linux/mm.h            |  4 ++--
- mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
- 5 files changed, 79 insertions(+), 27 deletions(-)
-
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 18af2bc..65e9536 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -178,9 +178,19 @@ extern pte_t ptep_clear_flush(struct vm_area_struct *vma,
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PMDP_HUGE_CLEAR_FLUSH
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ extern pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
+ 			      unsigned long address,
+ 			      pmd_t *pmdp);
++#else
++static inline pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
++			      unsigned long address,
++			      pmd_t *pmdp)
++{
++	WARN_ON_ONCE(1);
++	return *pmdp;
++}
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif
+ 
+ #ifndef __HAVE_ARCH_PTEP_SET_WRPROTECT
 -- 
 2.7.4
 
