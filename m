@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:60792 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:60140 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1764396AbcLVCjN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Dec 2016 21:39:13 -0500
+        id S1763381AbcLVCiz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 21 Dec 2016 21:38:55 -0500
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v5 09/14] jump_label: port __jump_table to linker tables
-Date: Wed, 21 Dec 2016 18:38:05 -0800
-Message-ID: <20161222023811.21246-10-mcgrof@kernel.org>
+Subject: [PATCH v5 05/14] kbuild: enable option to force compile force-obj-y and force-lib-y
+Date: Wed, 21 Dec 2016 18:38:01 -0800
+Message-ID: <20161222023811.21246-6-mcgrof@kernel.org>
 In-Reply-To: <20161222023811.21246-1-mcgrof@kernel.org>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
  <20161222023811.21246-1-mcgrof@kernel.org>
@@ -14,497 +14,330 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20161222023805.QEOo9Hg83IveBbPglxIMEPiEwLFOAQt-fXNCfqduUpE@z>
+Message-ID: <20161222023801.1HzCtlTEgPq7sqJ0lfu9g9Wvio5JuE_xG7cYWTe4wjA@z>
 
-Move the __jump_table from the a custom section solution
-to a generic solution, this avoiding extra vmlinux.lds.h
-customizations.
+Linux provides a rich array of features, enabling each feature
+however increases the size of the kernel and there are many
+features which users often want disabled. The traditional
+solution to this problem is for each feature to have its own
+Kconfig symbol, followed by a series of #ifdef statements
+in C code and header files, allowing the feature to be compiled
+only when desirable. As the variability of Linux increases build
+tests can and are often done with random kernel configurations,
+allyesconfig, and allmodconfig to help find code issues. This
+however doesn't catch all errors and as a consequence code that
+is typically not enabled often can suffer from bit-rot over time.
 
-This also demos the use of the .data linker table and of
-the shared asm call push_section_tbl().
+An alternative approach for subsystems, which refer to as the 'build-all
+link-selectively philosophy' is to keep the Kconfig symbols, replace
+the #ifdef approach by having each feature implemented it its own C file,
+and force compilation for all features to avoid the code bit-rot problem.
+With this strategy only features that are enabled via Kconfig get
+linked into the kernel, so the forced compilation has no size impact
+on the kernel. The practice of having each feature implemented in its own
+C file is already prevalent in many subsystems, however #ifdefs are still
+typically required during feature initialization. For instance in:
 
-Built-in kernel functionality was tested with CONFIG_STATIC_KEYS_SELFTEST.
-Moduler  kernel functionality was tested with CONFIG_TEST_STATIC_KEYS.
-Both work as expected.
+  #ifdef CONFIG_FOO
+  foo_init();
+  #endif
 
-Since __jump_table sections are also supported per
-module this also required expanding module-common.lds.S
-to capture and fold all .data.tlb.__jump_table.* onto
-the the section __jump_table -- in this case for modules
-need to keep a reference in place, given the alternative
-is to use DEFINE_LINKTABLE(struct jump_entry, __jump_table)
-per module -- and later through macro hacks instantiate
-the jump entries per module upon init. This is doable but
-we'd loose out on the sorting of the table using the
-linker, to sort we'd always still need to expand the
-module common linker script. An alternative mechanism
-is possible which would make these custom module sections
-extensions dynamic without requiring manual changes, this
-however is best done later through a separate evolution
-once linker tables are in place.
+We cannot remove the #ifdef and leave foo_init() as we'd either
+need to always enable the feature or add a respective #ifdef in a
+foo.h which makes foo_init() do nothing when CONFIG_FOO is disabled.
 
-A careful reviewer may note that some architectures use
-"\n\t" to separate asm code, while others just use a new line.
-Upon review last time it was deemed reasonable to for all
-architectures to just use "\n", this is defined as ASM_CMD_SEP,
-and if an architecture needs to override they can do so on their
-architecture sections.h prior to including asm-generic/sections.h
+Linker tables enable lifting the requirement to use of #ifdefs during
+initialization. With linker tables initialization sequences can instead
+be aggregated into a custom ELF section at link time, during run time
+the table can be iterated over and each init sequence enabled can be called.
+A feature's init routine is only added to a table when its respective
+Kconfig symbols has been enabled and therefore linked in. Linker tables
+enable subsystems to completely do away with #ifdefs if one is comfortable
+in accepting all subsystem's feature's structural size implications.
 
-v5:
+Subsystems which want to follow the 'build-all link-selectively
+philosophy' still need a way to easily express and annotate that they
+wish for all code to always be compiled to help avoid code bit rot,
+as such two new targets force-obj-y and force-lib-y are provided to
+help with this. Its not fair to require everyone to force compilation
+of all features of a subsystem though, so as a compromise, the new
+targets only force compilation when CONFIG_BUILD_AVOID_BITROT is
+enabled.
 
-o Use ..tbl instead of .tbl as suggested by Nicholas Piggin.
-  This is the typical way to avoid clash with compiler generated
-  section.
+Only built-in features are supported at the moment. Module support
+is expected to be added after a generic solution to add linker
+tables to modules more easily is developed.
 
-o Replace section macros with section names
-
-o Use LINKTABLE_START() and LINKTABLE_END()
-
-o fixed tile jump label port -- tile got jump label support as of commit
-  65a792e84f25d1 ("tile/jump_label: add jump label support for TILE-Gx"),
-  as such we just needed to adjust the asm to account for the new
-  linker table API use. This commit was merged as of v4.5-rc1.
-
-v4:
-
-o Some architectures allow linker scripts to follow including header
-  files, some others do not, so if you need a helper on a linker script
-  you need to explicitly include it. So for instance although
-  scripts/module-common.lds.S includes <asm/tables.h> and this file
-  includes <asm/section-core.h>, you still need to explicitly
-  include it on the linker script. This issue is present on ARM.
-
-o as per Josh Poimboeuf open code the section table name instead
-  of including the kernel section headers, the simplicity and
-  independence from the kernel is preferred.
-
-v3:
-
-o More elaborate tests performed
-o first modular support use case, module tested was
-  CONFIG_TEST_STATIC_KEYS (lib/test_static_keys.ko), this
-  required us to extend module-common.lds.S
-o use generic push_section_tbl_any() for all architectures
-o Makes use of ASM_CMD_SEP to enable architectures to override later
-  if needed
-o guard tables.h inclusion and table definition with __KERNEL__
-
-v2: introduced in this series
+v4: this patch was added to this series, it was split off from the
+    linker tables addition due to the confusion over the code bit
+    rot alternatives that are possible with linker tables.
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- arch/arm/include/asm/jump_label.h     |  6 ++++--
- arch/arm64/include/asm/jump_label.h   |  6 ++++--
- arch/mips/include/asm/jump_label.h    |  6 ++++--
- arch/powerpc/include/asm/jump_label.h |  8 +++++---
- arch/s390/include/asm/jump_label.h    |  6 ++++--
- arch/sparc/include/asm/jump_label.h   |  6 ++++--
- arch/tile/include/asm/jump_label.h    |  5 +++--
- arch/x86/include/asm/jump_label.h     | 10 ++++++----
- include/asm-generic/vmlinux.lds.h     |  5 -----
- include/linux/jump_label.h            |  4 ++--
- kernel/jump_label.c                   | 17 ++++++++++-------
- scripts/module-common.lds             |  1 +
- tools/objtool/special.c               |  2 +-
- 13 files changed, 48 insertions(+), 34 deletions(-)
+ Documentation/kbuild/makefiles.txt       | 36 ++++++++++++++++
+ Documentation/sections/linker-tables.rst | 15 +++++++
+ include/linux/tables.h                   | 71 ++++++++++++++++++++++++++++++++
+ init/Kconfig                             | 22 ++++++++++
+ scripts/Makefile.build                   |  7 ++--
+ scripts/Makefile.clean                   |  2 +
+ scripts/Makefile.lib                     | 11 +++++
+ 7 files changed, 161 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm/include/asm/jump_label.h b/arch/arm/include/asm/jump_label.h
-index 34f7b6980d21..609e0592a942 100644
---- a/arch/arm/include/asm/jump_label.h
-+++ b/arch/arm/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_ARM_JUMP_LABEL_H
- #define _ASM_ARM_JUMP_LABEL_H
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 9b9c4797fc55..1af275cd4879 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -1090,6 +1090,42 @@ When kbuild executes, the following steps are followed (roughly):
+ 	In this example, extra-y is used to list object files that
+ 	shall be built, but shall not be linked as part of built-in.o.
  
-+#include <asm/tables.h>
++    force-obj-y force-lib-y
 +
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\n\t"
- 		 WASM(nop) "\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
- 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
-@@ -26,7 +28,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\n\t"
- 		 WASM(b) " %l[l_yes]\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
- 		 : :  "i" (&((char *)key)[branch]) :  : l_yes);
-diff --git a/arch/arm64/include/asm/jump_label.h b/arch/arm64/include/asm/jump_label.h
-index 1b5e0e843c3a..bb56ac4fafb5 100644
---- a/arch/arm64/include/asm/jump_label.h
-+++ b/arch/arm64/include/asm/jump_label.h
-@@ -19,6 +19,8 @@
- #ifndef __ASM_JUMP_LABEL_H
- #define __ASM_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
++	When CONFIG_BUILD_AVOID_BITROT is enabled using these targets for your
++	kconfig symbols forces compilation of the associated objects if the
++	kconfig's symbol's dependencies are met, the objects however are only
++	linked into to the kernel if and only if the kconfig symbol was
++	enabled. If CONFIG_BUILD_AVOID_BITROT is disabled the force-obj-y and
++	force-lib-y targets are functionally equilvalent to obj-y and lib-y
++	respectively.
 +
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -29,7 +31,7 @@
- static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
- {
- 	asm goto("1: nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".align 3\n\t"
- 		 ".quad 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
-@@ -43,7 +45,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
- {
- 	asm goto("1: b %l[l_yes]\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".align 3\n\t"
- 		 ".quad 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection\n\t"
-diff --git a/arch/mips/include/asm/jump_label.h b/arch/mips/include/asm/jump_label.h
-index e77672539e8e..07289a1b1bcd 100644
---- a/arch/mips/include/asm/jump_label.h
-+++ b/arch/mips/include/asm/jump_label.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_MIPS_JUMP_LABEL_H
- #define _ASM_MIPS_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
++	Using force-obj-y and force-lib-y are part of a code architecture and
++	build philosophy further enabled by linker tables, for more details
++	refer to the documention in include/linux/tables.h, refer to the
++	sections:
 +
- #ifndef __ASSEMBLY__
++		o The code bit-rot problem
++		o The build-all selective-link philosophy
++		o Avoiding the code bit-rot problem with linker tables
++		o Linker table module support
++
++	Modules support is expected to be enhanced in the future, so for now
++	only built-in features are supported.
++
++	Example use:
++
++		force-obj-$(CONFIG_FEATURE_FOO) += foo.o
++
++	An alternative to using force-obj-y, is to use extra-y followed by the
++	respective obj-y:
++
++		extra-y += foo.o
++		obj-$(CONFIG_FEATURE_FOO) += foo.o
++
++	Using force-obj-y and force-lib-y can be used to help annotate the
++	targets follow the 'build-all selective-link philosophy' further
++	enabled by linker tables.
  
- #include <linux/types.h>
-@@ -30,7 +32,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\t" NOP_INSN "\n\t"
- 		"nop\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
- 		".popsection\n\t"
- 		: :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -44,7 +46,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\tj %l[l_yes]\n\t"
- 		"nop\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		WORD_INSN " 1b, %l[l_yes], %0\n\t"
- 		".popsection\n\t"
- 		: :  "i" (&((char *)key)[branch]) : : l_yes);
-diff --git a/arch/powerpc/include/asm/jump_label.h b/arch/powerpc/include/asm/jump_label.h
-index 9a287e0ac8b1..7a75623740d0 100644
---- a/arch/powerpc/include/asm/jump_label.h
-+++ b/arch/powerpc/include/asm/jump_label.h
-@@ -10,6 +10,8 @@
-  * 2 of the License, or (at your option) any later version.
+ --- 6.7 Commands useful for building a boot image
+ 
+diff --git a/Documentation/sections/linker-tables.rst b/Documentation/sections/linker-tables.rst
+index 71704159e90e..a80f4dd94659 100644
+--- a/Documentation/sections/linker-tables.rst
++++ b/Documentation/sections/linker-tables.rst
+@@ -30,6 +30,21 @@ How linker tables simplify initialization code
+ .. kernel-doc:: include/linux/tables.h
+    :doc: How linker tables simplify initialization code
+ 
++The code bit-rot problem
++------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: The code bit-rot problem
++
++The build-all selective-link philosophy
++---------------------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: The build-all selective-link philosophy
++
++Avoiding the code bit-rot problem with linker tables
++----------------------------------------------------
++.. kernel-doc:: include/linux/tables.h
++   :doc: Avoiding the code bit-rot problem with linker tables
++
+ Using linker tables in Linux
+ ============================
+ 
+diff --git a/include/linux/tables.h b/include/linux/tables.h
+index cc8fb1dcee47..fdadf794b63e 100644
+--- a/include/linux/tables.h
++++ b/include/linux/tables.h
+@@ -169,6 +169,77 @@
   */
  
-+#include <asm/tables.h>
+ /**
++ * DOC: The code bit-rot problem
++ *
++ * Linux provides a rich array of features, enabling each feature
++ * however increases the size of the kernel and there are many
++ * features which users often want disabled. The traditional
++ * solution to this problem is for each feature to have its own
++ * Kconfig symbol, followed by a series of #ifdef statements
++ * in C code and header files, allowing the feature to be compiled
++ * only when desirable. As the variability of Linux increases build
++ * tests can and are often done with random kernel configurations,
++ * allyesconfig, and allmodconfig to help find code issues. This
++ * however doesn't catch all errors and as a consequence code that
++ * is typically not enabled often can suffer from bit-rot over time.
++ */
 +
- #ifndef __ASSEMBLY__
- #include <linux/types.h>
- 
-@@ -23,7 +25,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:\n\t"
- 		 "nop # arch_static_branch\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
- 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -37,7 +39,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- {
- 	asm_volatile_goto("1:\n\t"
- 		 "b %l[l_yes] # arch_static_branch_jump\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 JUMP_ENTRY_TYPE "1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
- 		 : :  "i" (&((char *)key)[branch]) : : l_yes);
-@@ -62,7 +64,7 @@ struct jump_entry {
- #else
- #define ARCH_STATIC_BRANCH(LABEL, KEY)		\
- 1098:	nop;					\
--	.pushsection __jump_table, "aw";	\
-+	push_section_tbl_any(.data, __jump_table, aw); \
- 	FTR_ENTRY_LONG 1098b, LABEL, KEY;	\
- 	.popsection
- #endif
-diff --git a/arch/s390/include/asm/jump_label.h b/arch/s390/include/asm/jump_label.h
-index 9be198f5ee79..58e53af49e7e 100644
---- a/arch/s390/include/asm/jump_label.h
-+++ b/arch/s390/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_S390_JUMP_LABEL_H
- #define _ASM_S390_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
++/**
++ * DOC: The build-all selective-link philosophy
++ *
++ * A code architecture philosophy to help avoid code bit-rot consists
++ * of using Kconfig symbols for each subsystem feature, replace all #ifdefs
++ * by instead having each feature implemented it its own C file, and force
++ * compilation for all features. Only features that are enabled get linked in,
++ * the forced compilation therefore has no size impact on the final result of
++ * the kernel. The practice of having each feature implemented in its own C
++ * file is already prevalent in many subsystems, however #ifdefs are still
++ * typically required during feature initialization. For instance in::
++ *
++ *	#ifdef CONFIG_FOO
++ *	foo_init();
++ *	#endif
++ *
++ * We cannot remove the #ifdef and leave foo_init() as we'd either
++ * need to always enable the feature or add a respective #ifdef in a
++ * foo.h which makes foo_init() do nothing when ``CONFIG_FOO`` is disabled.
++ */
 +
- #ifndef __ASSEMBLY__
- 
- #include <linux/types.h>
-@@ -16,7 +18,7 @@
- static __always_inline bool arch_static_branch(struct static_key *key, bool branch)
- {
- 	asm_volatile_goto("0:	brcl 0,"__stringify(JUMP_LABEL_NOP_OFFSET)"\n"
--		".pushsection __jump_table, \"aw\"\n"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		".balign 8\n"
- 		".quad 0b, %l[label], %0\n"
- 		".popsection\n"
-@@ -30,7 +32,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- static __always_inline bool arch_static_branch_jump(struct static_key *key, bool branch)
- {
- 	asm_volatile_goto("0:	brcl 15, %l[label]\n"
--		".pushsection __jump_table, \"aw\"\n"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		".balign 8\n"
- 		".quad 0b, %l[label], %0\n"
- 		".popsection\n"
-diff --git a/arch/sparc/include/asm/jump_label.h b/arch/sparc/include/asm/jump_label.h
-index 62d0354d1727..35d3e5d31821 100644
---- a/arch/sparc/include/asm/jump_label.h
-+++ b/arch/sparc/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_SPARC_JUMP_LABEL_H
- #define _ASM_SPARC_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
++/**
++ * DOC: Avoiding the code bit-rot problem with linker tables
++ *
++ * Linker tables can be used to further help avoid the code bit-rot problem
++ * when embracing the 'build-all selective-link philosophy' by lifting the
++ * requirement to use of #ifdefs during initialization. With linker tables
++ * initialization sequences can be aggregated into a custom ELF section at
++ * link time, during run time the table can be iterated over and each init
++ * sequence enabled can be called. A feature's init routine is only added to a
++ * table when its respective Kconfig symbols has been enabled and therefore
++ * linked in. Linker tables enable subsystems to completely do away with
++ * #ifdefs if one is comfortable in accepting all subsystem's feature's
++ * structural size implications.
++ *
++ * To further help with this the Linux build system supports two special
++ * targets, ``force-obj-y`` and ``force-lib-y``. A subsystem which wants to
++ * follow the 'build-all selective-link philosophy' can use these targets for a
++ * feature's kconfig symbol. Using these targets will always require
++ * compilation of the kconfig's objects if the kconfig symbol's dependencies
++ * are met but only link the objects into the kernel, and therefore enable the
++ * feature, if and only if the kconfig symbol has been enabled.
++ *
++ * Not all users or build systems may want to opt-in to compile all objects
++ * following the 'build-all selective-link philosophy', as such the targets
++ * ``force-obj-y`` and ``force-lib-y`` only force compilation when the kconfig
++ * symbol ``CONFIG_BUILD_AVOID_BITROT`` has been enabled. Disabling this feature
++ * makes ``force-obj-y`` and ``force-lib-y`` functionally equivalent to
++ * ``obj-y`` and ``lib-y`` respectively.
++ *
++ * Example use::
++ *
++ * 	force-obj-$(CONFIG_FEATURE_FOO) += foo.o
++ */
 +
- #ifndef __ASSEMBLY__
++/**
+  * DOC: Linker table module support
+  *
+  * Modules can use linker tables, however the linker table definition
+diff --git a/init/Kconfig b/init/Kconfig
+index 223b734abccd..2faf4eee4c70 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -63,6 +63,28 @@ config CROSS_COMPILE
+ 	  need to set this unless you want the configured kernel build
+ 	  directory to select the cross-compiler automatically.
  
- #include <linux/types.h>
-@@ -12,7 +14,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- 	asm_volatile_goto("1:\n\t"
- 		 "nop\n\t"
- 		 "nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".align 4\n\t"
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
-@@ -28,7 +30,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	asm_volatile_goto("1:\n\t"
- 		 "b %l[l_yes]\n\t"
- 		 "nop\n\t"
--		 ".pushsection __jump_table,  \"aw\"\n\t"
-+		 push_section_tbl_any(.data, __jump_table, aw)
- 		 ".align 4\n\t"
- 		 ".word 1b, %l[l_yes], %c0\n\t"
- 		 ".popsection \n\t"
-diff --git a/arch/tile/include/asm/jump_label.h b/arch/tile/include/asm/jump_label.h
-index cde7573f397b..9bd989daad4a 100644
---- a/arch/tile/include/asm/jump_label.h
-+++ b/arch/tile/include/asm/jump_label.h
-@@ -16,6 +16,7 @@
- #define _ASM_TILE_JUMP_LABEL_H
- 
- #include <arch/opcode.h>
-+#include <asm/tables.h>
- 
- #define JUMP_LABEL_NOP_SIZE	TILE_BUNDLE_SIZE_IN_BYTES
- 
-@@ -24,7 +25,7 @@ static __always_inline bool arch_static_branch(struct static_key *key,
- {
- 	asm_volatile_goto("1:\n\t"
- 		"nop" "\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		".quad 1b, %l[l_yes], %0 + %1 \n\t"
- 		".popsection\n\t"
- 		: :  "i" (key), "i" (branch) : : l_yes);
-@@ -38,7 +39,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key,
- {
- 	asm_volatile_goto("1:\n\t"
- 		"j %l[l_yes]" "\n\t"
--		".pushsection __jump_table,  \"aw\"\n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		".quad 1b, %l[l_yes], %0 + %1 \n\t"
- 		".popsection\n\t"
- 		: :  "i" (key), "i" (branch) : : l_yes);
-diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
-index adc54c12cbd1..627df4752db0 100644
---- a/arch/x86/include/asm/jump_label.h
-+++ b/arch/x86/include/asm/jump_label.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_X86_JUMP_LABEL_H
- #define _ASM_X86_JUMP_LABEL_H
- 
-+#include <asm/tables.h>
++config BUILD_AVOID_BITROT
++	bool "Enable force building of force-obj-y and force-lib-y"
++	default n
++	help
++	  When enabled objects under the force-obj-y and force-lib-y targets
++	  using a Kconfig symbol will be forced to compile if the Kconfig
++	  symbol's dependencies are met but only linked into the kernel if
++	  the Kconfig symbol is enabled. If a Kconfig symbol on a force-obj-y
++	  or force-lib-y target is disabled, it will be compiled but not linked
++	  into the kernel.
 +
- #ifndef HAVE_JUMP_LABEL
- /*
-  * For better or for worse, if jump labels (the gcc extension) are missing,
-@@ -34,7 +36,7 @@ static __always_inline bool arch_static_branch(struct static_key *key, bool bran
- {
- 	asm_volatile_goto("1:"
- 		".byte " __stringify(STATIC_KEY_INIT_NOP) "\n\t"
--		".pushsection __jump_table,  \"aw\" \n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		_ASM_ALIGN "\n\t"
- 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
- 		".popsection \n\t"
-@@ -50,7 +52,7 @@ static __always_inline bool arch_static_branch_jump(struct static_key *key, bool
- 	asm_volatile_goto("1:"
- 		".byte 0xe9\n\t .long %l[l_yes] - 2f\n\t"
- 		"2:\n\t"
--		".pushsection __jump_table,  \"aw\" \n\t"
-+		push_section_tbl_any(.data, __jump_table, aw)
- 		_ASM_ALIGN "\n\t"
- 		_ASM_PTR "1b, %l[l_yes], %c0 + %c1 \n\t"
- 		".popsection \n\t"
-@@ -85,7 +87,7 @@ struct jump_entry {
- 	.else
- 	.byte		STATIC_KEY_INIT_NOP
- 	.endif
--	.pushsection __jump_table, "aw"
-+	push_section_tbl_any(.data, __jump_table, aw)
- 	_ASM_ALIGN
- 	_ASM_PTR	.Lstatic_jump_\@, \target, \key
- 	.popsection
-@@ -101,7 +103,7 @@ struct jump_entry {
- 	.long		\target - .Lstatic_jump_after_\@
- .Lstatic_jump_after_\@:
- 	.endif
--	.pushsection __jump_table, "aw"
-+	push_section_tbl_any(.data, __jump_table, aw)
- 	_ASM_ALIGN
- 	_ASM_PTR	.Lstatic_jump_\@, \target, \key + 1
- 	.popsection
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 8a5325d75932..887d844f0406 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -216,11 +216,6 @@
- 	*(.data.unlikely)						\
- 	STRUCT_ALIGN();							\
- 	*(__tracepoints)						\
--	/* implement dynamic printk debug */				\
--	. = ALIGN(8);                                                   \
--	VMLINUX_SYMBOL(__start___jump_table) = .;                       \
--	KEEP(*(__jump_table))                                           \
--	VMLINUX_SYMBOL(__stop___jump_table) = .;                        \
- 	. = ALIGN(8);							\
- 	VMLINUX_SYMBOL(__start___verbose) = .;                          \
- 	KEEP(*(__verbose))                                              \
-diff --git a/include/linux/jump_label.h b/include/linux/jump_label.h
-index b63d6b7b0db0..e6277888b558 100644
---- a/include/linux/jump_label.h
-+++ b/include/linux/jump_label.h
-@@ -117,6 +117,7 @@ enum jump_label_type {
- struct module;
- 
- #ifdef HAVE_JUMP_LABEL
-+#include <linux/tables.h>
- 
- #define JUMP_TYPE_FALSE	0UL
- #define JUMP_TYPE_TRUE	1UL
-@@ -132,8 +133,7 @@ static __always_inline bool static_key_true(struct static_key *key)
- 	return !arch_static_branch(key, true);
- }
- 
--extern struct jump_entry __start___jump_table[];
--extern struct jump_entry __stop___jump_table[];
-+DECLARE_LINKTABLE(struct jump_entry, __jump_table);
- 
- extern void jump_label_init(void);
- extern void jump_label_lock(void);
-diff --git a/kernel/jump_label.c b/kernel/jump_label.c
-index 93ad6c1fb9b6..d5c1067439ab 100644
---- a/kernel/jump_label.c
-+++ b/kernel/jump_label.c
-@@ -15,9 +15,12 @@
- #include <linux/static_key.h>
- #include <linux/jump_label_ratelimit.h>
- #include <linux/bug.h>
-+#include <linux/tables.h>
- 
- #ifdef HAVE_JUMP_LABEL
- 
-+DEFINE_LINKTABLE(struct jump_entry, __jump_table);
++	  The force-obj-y and force-lib-y targets can be used by subsystems
++	  which wish to want to follow the 'build-all selective-link philosophy'
++	  documented under include/linux/tables.h.
 +
- /* mutex to protect coming/going of the the jump_label table */
- static DEFINE_MUTEX(jump_label_mutex);
++	  Say Y if you have a decent build machine and would like to help test
++	  building code for more subsystems. Say N if you do you not have a
++	  good build machine or only want to compile what you've enabled for
++	  your kernel.
++
++	  Enabling this option never increases the size of your kernel.
++
+ config COMPILE_TEST
+ 	bool "Compile also drivers which will not load"
+ 	depends on !UML
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index eadcd4d359d9..c34af839d47c 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -92,7 +92,8 @@ modorder-target := $(obj)/modules.order
  
-@@ -274,8 +277,6 @@ static void __jump_label_update(struct static_key *key,
+ # We keep a list of all modules in $(MODVERDIR)
  
- void __init jump_label_init(void)
- {
--	struct jump_entry *iter_start = __start___jump_table;
--	struct jump_entry *iter_stop = __stop___jump_table;
- 	struct static_key *key = NULL;
- 	struct jump_entry *iter;
+-__build: $(if $(KBUILD_BUILTIN),$(builtin-target) $(lib-target) $(extra-y)) \
++__build: $(if $(KBUILD_BUILTIN),$(builtin-target) $(lib-target) $(extra-y) \
++				$(force-obj-y)) \
+ 	 $(if $(KBUILD_MODULES),$(obj-m) $(modorder-target)) \
+ 	 $(subdir-ym) $(always)
+ 	@:
+@@ -392,8 +393,8 @@ endif
+ $(obj)/%.o: $(src)/%.S $(objtool_obj) FORCE
+ 	$(call if_changed_rule,as_o_S)
  
-@@ -292,9 +293,10 @@ void __init jump_label_init(void)
- 		return;
+-targets += $(real-objs-y) $(real-objs-m) $(lib-y)
+-targets += $(extra-y) $(MAKECMDGOALS) $(always)
++targets += $(real-objs-y) $(real-objs-m) $(lib-y) $(force-lib-y)
++targets += $(extra-y) $(force-obj-y) $(MAKECMDGOALS) $(always)
  
- 	jump_label_lock();
--	jump_label_sort_entries(iter_start, iter_stop);
-+	jump_label_sort_entries(LINKTABLE_START(__jump_table),
-+				LINKTABLE_END(__jump_table));
+ # Linker scripts preprocessor (.lds.S -> .lds)
+ # ---------------------------------------------------------------------------
+diff --git a/scripts/Makefile.clean b/scripts/Makefile.clean
+index 50616ea25131..2b54546237d6 100644
+--- a/scripts/Makefile.clean
++++ b/scripts/Makefile.clean
+@@ -36,6 +36,8 @@ subdir-ymn	:= $(addprefix $(obj)/,$(subdir-ymn))
+ # directory
  
--	for (iter = iter_start; iter < iter_stop; iter++) {
-+	LINKTABLE_FOR_EACH(iter, __jump_table) {
- 		struct static_key *iterk;
+ __clean-files	:= $(extra-y) $(extra-m) $(extra-)       \
++		   $(force-obj-y) $(force-obj-m) $(force-obj-)       \
++		   $(force-lib-y) $(force-lib-m) $(force-lib-)       \
+ 		   $(always) $(targets) $(clean-files)   \
+ 		   $(host-progs)                         \
+ 		   $(hostprogs-y) $(hostprogs-m) $(hostprogs-) \
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0a07f9014944..d1cb0cfdf1bf 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -12,6 +12,15 @@ export KBUILD_SUBDIR_CCFLAGS := $(KBUILD_SUBDIR_CCFLAGS) $(subdir-ccflags-y)
+ # Figure out what we need to build from the various variables
+ # ===========================================================================
  
- 		/* rewrite NOPs */
-@@ -539,8 +541,9 @@ early_initcall(jump_label_init_module);
-  */
- int jump_label_text_reserved(void *start, void *end)
- {
--	int ret = __jump_label_text_reserved(__start___jump_table,
--			__stop___jump_table, start, end);
-+	int ret = __jump_label_text_reserved(LINKTABLE_START(__jump_table),
-+					     LINKTABLE_END(__jump_table),
-+					     start, end);
++ifeq ($(CONFIG_BUILD_AVOID_BITROT),y)
++extra-y += $(force-obj-) $(force-lib-)
++endif
++
++obj-m += $(force-obj-m)
++obj-y += $(force-obj-y)
++lib-m += $(force-lib-m)
++lib-y += $(force-lib-y)
++
+ # When an object is listed to be built compiled-in and modular,
+ # only build the compiled-in version
  
- 	if (ret)
- 		return ret;
-@@ -553,7 +556,7 @@ int jump_label_text_reserved(void *start, void *end)
+@@ -72,6 +81,8 @@ real-objs-m := $(foreach m, $(obj-m), $(if $(strip $($(m:.o=-objs)) $($(m:.o=-y)
+ # Add subdir path
  
- static void jump_label_update(struct static_key *key)
- {
--	struct jump_entry *stop = __stop___jump_table;
-+	struct jump_entry *stop = LINKTABLE_END(__jump_table);
- 	struct jump_entry *entry = static_key_entries(key);
- #ifdef CONFIG_MODULES
- 	struct module *mod;
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index 73a2c7da0e55..db0e724556c5 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -16,6 +16,7 @@ SECTIONS {
- 	__kcrctab_unused	0 : { *(SORT(___kcrctab_unused+*)) }
- 	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
-+	__jump_table		0 : { *(SORT(.data..tbl.__jump_table.*)) }
- 
- 	. = ALIGN(8);
- 	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
-diff --git a/tools/objtool/special.c b/tools/objtool/special.c
-index bff8abb3a4aa..79968e118294 100644
---- a/tools/objtool/special.c
-+++ b/tools/objtool/special.c
-@@ -63,7 +63,7 @@ struct special_entry entries[] = {
- 		.feature = ALT_FEATURE_OFFSET,
- 	},
- 	{
--		.sec = "__jump_table",
-+		.sec = ".data..tbl.__jump_table.any",
- 		.jump_or_nop = true,
- 		.size = JUMP_ENTRY_SIZE,
- 		.orig = JUMP_ORIG_OFFSET,
+ extra-y		:= $(addprefix $(obj)/,$(extra-y))
++force-obj-y		:= $(addprefix $(obj)/,$(force-obj-y))
++force-obj-m		:= $(addprefix $(obj)/,$(force-obj-m))
+ always		:= $(addprefix $(obj)/,$(always))
+ targets		:= $(addprefix $(obj)/,$(targets))
+ modorder	:= $(addprefix $(obj)/,$(modorder))
 -- 
 2.10.1
 
