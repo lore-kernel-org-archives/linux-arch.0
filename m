@@ -1,48 +1,106 @@
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v5 09/14] jump_label: port __jump_table to
-	linker tables
-Date: Thu, 22 Dec 2016 16:08:22 +0200
-Message-ID: <1482415702.9552.125.camel@linux.intel.com>
-References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <20161222023811.21246-1-mcgrof@kernel.org>
- <20161222023811.21246-10-mcgrof@kernel.org>
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [PATCH] mm: pmd dirty emulation in page fault handler
+Date: Thu, 22 Dec 2016 23:52:03 +0900
+Message-ID: <20161222145203.GA18970@bbox>
+References: <1482364101-16204-1-git-send-email-minchan@kernel.org>
+ <20161222081713.GA32480@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <20161222023811.21246-10-mcgrof@kernel.org>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
-Cc: gnomes@lxorguk.ukuu.org.uk, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, linux@rasmusvillemoes.dk, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, sparclinux@vger.kernel.org, wangnan0@huawei.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, xen-devel@lists.xensource.com, msalter@redhat.com, linux-sh@vger.kernel.org, mpe@ellerman.id.au, joro@8bytes.org, x86@kernel.org, fontana@sharpeleven.org, dsahern@gmail.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, linux@roeck-us.net, linux-xtensa@linux-xtensa.org, pali.rohar@gmail.com, keescook@chromium.org, arnd@arndb.de, jani.nikula@intel.com, will.deacon@arm.com, rusty@rustcorp.com.au, rostedt@goodmis.org, ak@
+Content-Type: text/plain; charset=us-ascii
+Return-path: <stable-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20161222081713.GA32480@node.shutemov.name>
+Sender: stable-owner@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>, Andreas Schwab <schwab@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-T24gV2VkLCAyMDE2LTEyLTIxIGF0IDE4OjM4IC0wODAwLCBMdWlzIFIuIFJvZHJpZ3VleiB3cm90
-ZToKPiBNb3ZlIHRoZSBfX2p1bXBfdGFibGUgZnJvbSB0aGUgYSBjdXN0b20gc2VjdGlvbiBzb2x1
-dGlvbgo+IHRvIGEgZ2VuZXJpYyBzb2x1dGlvbiwgdGhpcyBhdm9pZGluZyBleHRyYSB2bWxpbnV4
-Lmxkcy5oCj4gY3VzdG9taXphdGlvbnMuCj4gCj4gVGhpcyBhbHNvIGRlbW9zIHRoZSB1c2Ugb2Yg
-dGhlIC5kYXRhIGxpbmtlciB0YWJsZSBhbmQgb2YKPiB0aGUgc2hhcmVkIGFzbSBjYWxsIHB1c2hf
-c2VjdGlvbl90YmwoKS4KPiAKCj4gwqB7Cj4gwqAJYXNtX3ZvbGF0aWxlX2dvdG8oIjE6XG5cdCIK
-PiDCoAkJwqBXQVNNKG5vcCkgIlxuXHQiCj4gLQkJwqAiLnB1c2hzZWN0aW9uIF9fanVtcF90YWJs
-ZSzCoMKgXCJhd1wiXG5cdCIKPiArCQnCoHB1c2hfc2VjdGlvbl90YmxfYW55KC5kYXRhLCBfX2p1
-bXBfdGFibGUsIGF3KQo+IMKgCQnCoCIud29yZCAxYiwgJWxbbF95ZXNdLCAlYzBcblx0Igo+IMKg
-CQnCoCIucG9wc2VjdGlvblxuXHQiCj4gwqAJCcKgOiA6wqDCoCJpIiAoJigoY2hhciAqKWtleSlb
-YnJhbmNoXSkgOsKgwqA6IGxfeWVzKTsKPiBAQCAtMjYsNyArMjgsNyBAQCBzdGF0aWMgX19hbHdh
-eXNfaW5saW5lIGJvb2wKPiBhcmNoX3N0YXRpY19icmFuY2hfanVtcChzdHJ1Y3Qgc3RhdGljX2tl
-eSAqa2V5LCBib29sCj4gwqB7Cj4gwqAJYXNtX3ZvbGF0aWxlX2dvdG8oIjE6XG5cdCIKPiDCoAkJ
-wqBXQVNNKGIpICIgJWxbbF95ZXNdXG5cdCIKPiAtCQnCoCIucHVzaHNlY3Rpb24gX19qdW1wX3Rh
-YmxlLMKgwqBcImF3XCJcblx0Igo+ICsJCcKgcHVzaF9zZWN0aW9uX3RibF9hbnkoLmRhdGEsIF9f
-anVtcF90YWJsZSwgYXcpCj4gwqAJCcKgIi53b3JkIDFiLCAlbFtsX3llc10sICVjMFxuXHQiCj4g
-wqAJCcKgIi5wb3BzZWN0aW9uXG5cdCIKCkRvZXMgaXQgbWFrZSBzZW5zZSB0byBpbnRyb2R1Y2Ug
-c29tZXRoaW5nIGxpa2UKCiNkZWZpbmUgcG9wX3NlY3Rpb25fdGJsICIucG9wc2VjdGlvblxuXHQi
-CiNkZWZpbmUgcG9wX3NlY3Rpb25fdGJsX2FueSBwb3Bfc2VjdGlvbl90YmwKCj8KCi0tIApBbmR5
-IFNoZXZjaGVua28gPGFuZHJpeS5zaGV2Y2hlbmtvQGxpbnV4LmludGVsLmNvbT4KSW50ZWwgRmlu
-bGFuZCBPeQoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18K
-WGVuLWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xp
-c3RzLnhlbi5vcmcveGVuLWRldmVsCg==
+Hello,
+
+On Thu, Dec 22, 2016 at 11:17:13AM +0300, Kirill A. Shutemov wrote:
+
+< snip >
+> > diff --git a/mm/memory.c b/mm/memory.c
+> > index 36c774f..7408ddc 100644
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -3637,18 +3637,20 @@ static int __handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+> >  			if (pmd_protnone(orig_pmd) && vma_is_accessible(vma))
+> >  				return do_huge_pmd_numa_page(&vmf, orig_pmd);
+> >  
+> > -			if ((vmf.flags & FAULT_FLAG_WRITE) &&
+> > -					!pmd_write(orig_pmd)) {
+> > -				ret = wp_huge_pmd(&vmf, orig_pmd);
+> > -				if (!(ret & VM_FAULT_FALLBACK))
+> > +			if (vmf.flags & FAULT_FLAG_WRITE) {
+> > +				if (!pmd_write(orig_pmd)) {
+> > +					ret = wp_huge_pmd(&vmf, orig_pmd);
+> > +					if (ret == VM_FAULT_FALLBACK)
+> 
+> In theory, more than one flag can be set and it would lead to
+> false-negative. Bit check was the right thing.
+> 
+> And I don't understand why do you need to change code in
+> __handle_mm_fault() at all.
+> From what I see change to huge_pmd_set_accessed() should be enough.
+
+Yeb. Thanks for the review. Here v2 goes.
+
+From b3ec95c0df91ad113525968a4a6b53030fd0b48d Mon Sep 17 00:00:00 2001
+From: Minchan Kim <minchan@kernel.org>
+Date: Thu, 22 Dec 2016 23:43:49 +0900
+Subject: [PATCH v2] mm: pmd dirty emulation in page fault handler
+
+Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
+http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
+
+The problem is page fault handler supports only accessed flag emulation
+for THP page of SW-dirty/accessed architecture.
+
+This patch enables dirty-bit emulation for those architectures.
+Without it, MADV_FREE makes application hang by repeated fault forever.
+
+[1] b8d3c4c3009d, mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
+
+Cc: Jason Evans <je@fb.com>
+Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: <stable@vger.kernel.org> [4.5+]
+Fixes: b8d3c4c3009d ("mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called")
+Reported-by: Andreas Schwab <schwab@suse.de>
+Signed-off-by: Minchan Kim <minchan@kernel.org>
+---
+* from v1
+  * Remove __handle_mm_fault part - Kirill
+
+ mm/huge_memory.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 10eedbf..29ec8a4 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -883,15 +883,17 @@ void huge_pmd_set_accessed(struct vm_fault *vmf, pmd_t orig_pmd)
+ {
+ 	pmd_t entry;
+ 	unsigned long haddr;
++	bool write = vmf->flags & FAULT_FLAG_WRITE;
+ 
+ 	vmf->ptl = pmd_lock(vmf->vma->vm_mm, vmf->pmd);
+ 	if (unlikely(!pmd_same(*vmf->pmd, orig_pmd)))
+ 		goto unlock;
+ 
+ 	entry = pmd_mkyoung(orig_pmd);
++	if (write)
++		entry = pmd_mkdirty(entry);
+ 	haddr = vmf->address & HPAGE_PMD_MASK;
+-	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry,
+-				vmf->flags & FAULT_FLAG_WRITE))
++	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry, write))
+ 		update_mmu_cache_pmd(vmf->vma, vmf->address, vmf->pmd);
+ 
+ unlock:
+-- 
+2.7.4
