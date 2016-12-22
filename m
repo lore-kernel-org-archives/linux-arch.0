@@ -1,127 +1,99 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH] mm: pmd dirty emulation in page fault handler
-Date: Thu, 22 Dec 2016 11:17:13 +0300
-Message-ID: <20161222081713.GA32480@node.shutemov.name>
-References: <1482364101-16204-1-git-send-email-minchan@kernel.org>
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Subject: Re: [PATCH v5 04/14] tables.h: add linker table support
+Date: Thu, 22 Dec 2016 15:58:18 +0200
+Message-ID: <1482415098.9552.123.camel@linux.intel.com>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+         <20161222023811.21246-1-mcgrof@kernel.org>
+         <20161222023811.21246-5-mcgrof@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1482364101-16204-1-git-send-email-minchan@kernel.org>
-Sender: owner-linux-mm@kvack.org
-To: Minchan Kim <minchan@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>, Andreas Schwab <schwab@suse.de>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20161222023811.21246-5-mcgrof@kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@lin
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 22, 2016 at 08:48:21AM +0900, Minchan Kim wrote:
-> Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
+On Wed, 2016-12-21 at 18:38 -0800, Luis R. Rodriguez wrote:
+> A linker table is a data structure that is stitched together from
+> items
+> in multiple object files. Linux has historically implicitly used
+> linker
+> tables for ages, however they were all built in an adhoc manner which
+> requires linker script modifications, per architecture. This adds a
+> general linker table solution so that a new linker table can be
+> implemented by changing C code only. The Linux linker table was
+> inspired by Michael Brown's iPXE's linker table solution, it has been
+> been completely re-written and adapted for integration and use on
+> Linux.
 
-I guess you wanted put b8d3c4c3009d before [1], right?
 
-> http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
-> 
-> The problem is page fault handler supports only accessed flag emulation
-> for THP page of SW-dirty/accessed architecture.
-> 
-> This patch enables dirty-bit emulation for those architectures.
-> Without it, MADV_FREE makes application hang by repeated fault forever.
-> 
-> [1] mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
-> 
-> Cc: Jason Evans <je@fb.com>
-> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: <stable@vger.kernel.org> [4.5+]
-> Fixes: b8d3c4c3009d ("mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called")
-> Reported-by: Andreas Schwab <schwab@suse.de>
-> Signed-off-by: Minchan Kim <minchan@kernel.org>
-> ---
->  mm/huge_memory.c |  6 ++++--
->  mm/memory.c      | 18 ++++++++++--------
->  2 files changed, 14 insertions(+), 10 deletions(-)
-> 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 10eedbf..29ec8a4 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -883,15 +883,17 @@ void huge_pmd_set_accessed(struct vm_fault *vmf, pmd_t orig_pmd)
->  {
->  	pmd_t entry;
->  	unsigned long haddr;
-> +	bool write = vmf->flags & FAULT_FLAG_WRITE;
->  
->  	vmf->ptl = pmd_lock(vmf->vma->vm_mm, vmf->pmd);
->  	if (unlikely(!pmd_same(*vmf->pmd, orig_pmd)))
->  		goto unlock;
->  
->  	entry = pmd_mkyoung(orig_pmd);
-> +	if (write)
-> +		entry = pmd_mkdirty(entry);
->  	haddr = vmf->address & HPAGE_PMD_MASK;
-> -	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry,
-> -				vmf->flags & FAULT_FLAG_WRITE))
-> +	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry, write))
->  		update_mmu_cache_pmd(vmf->vma, vmf->address, vmf->pmd);
->  
->  unlock:
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 36c774f..7408ddc 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -3637,18 +3637,20 @@ static int __handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
->  			if (pmd_protnone(orig_pmd) && vma_is_accessible(vma))
->  				return do_huge_pmd_numa_page(&vmf, orig_pmd);
->  
-> -			if ((vmf.flags & FAULT_FLAG_WRITE) &&
-> -					!pmd_write(orig_pmd)) {
-> -				ret = wp_huge_pmd(&vmf, orig_pmd);
-> -				if (!(ret & VM_FAULT_FALLBACK))
-> +			if (vmf.flags & FAULT_FLAG_WRITE) {
-> +				if (!pmd_write(orig_pmd)) {
-> +					ret = wp_huge_pmd(&vmf, orig_pmd);
-> +					if (ret == VM_FAULT_FALLBACK)
 
-In theory, more than one flag can be set and it would lead to
-false-negative. Bit check was the right thing.
 
-And I don't understand why do you need to change code in
-__handle_mm_fault() at all.
-From what I see change to huge_pmd_set_accessed() should be enough.
-
-> +						goto pte_fault;
->  					return ret;
-> -			} else {
-> -				huge_pmd_set_accessed(&vmf, orig_pmd);
-> -				return 0;
-> +				}
->  			}
+> +/**
+> + * LINKTABLE_FOR_EACH - iterate through all entries within a linker
+> table
+> + *
+> + * @pointer: entry pointer
+> + * @tbl: linker table
+> + *
+> + * Example usage::
+> + *
+> + *   struct frobnicator *frob;
+> + *
+> + *   LINKTABLE_FOR_EACH(frob, frobnicator_fns) {
+> + *     ...
+> + *   }
+> + */
 > +
-> +			huge_pmd_set_accessed(&vmf, orig_pmd);
-> +			return 0;
->  		}
->  	}
-> -
-> +pte_fault:
->  	return handle_pte_fault(&vmf);
->  }
->  
-> -- 
-> 2.7.4
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> +#define LINKTABLE_FOR_EACH(pointer, tbl)				
+> \
+
+Hmm... SOMEONE LIKES CAPITAL LETTERS FOR everything, right? :-)
+
+I would expect more standard 
+linktable_for_each()
+macro
+
+Same to the rest of similar macros.
+
+
+> +/**
+> + * LINKTABLE_RUN_ERR - run each linker table entry func and return
+> error if any
+> + *
+> + * @tbl: linker table
+> + * @func: structure name for the function name we want to call.
+> + * @args...: arguments to pass to func
+> + *
+> + * Example usage::
+> + *
+> + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns,
+> some_run,);
+> + */
+> +#define LINKTABLE_RUN_ERR(tbl, func, args...)				
+> \
+> +({									
+> \
+> +	size_t i;							
+> \
+> +	int err = 0;							
+> \
+> +	for (i = 0; !err && i < LINKTABLE_SIZE(tbl); i++)		
+> \
+> +		err = (LINKTABLE_START(tbl)[i]).func (args);		
+
+
+> \
+> +		err;							
+
+Indentation here a bit confusing.
+
+> \
+> +})
+
 
 -- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Intel Finland Oy
