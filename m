@@ -1,49 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:34194 "EHLO mail.kernel.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S936243AbcLVCkT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 21 Dec 2016 21:40:19 -0500
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v2 3/6] tools: add __used and enable to override
-Date: Wed, 21 Dec 2016 18:39:55 -0800
-Message-ID: <20161222023958.21306-4-mcgrof@kernel.org>
-In-Reply-To: <20161222023958.21306-1-mcgrof@kernel.org>
-References: <1471642875-5957-1-git-send-email-mcgrof@kernel.org>
- <20161222023958.21306-1-mcgrof@kernel.org>
+Received: from mail-wm0-f66.google.com ([74.125.82.66]:32787 "EHLO
+        mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750697AbcLVIYI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Dec 2016 03:24:08 -0500
+Received: by mail-wm0-f66.google.com with SMTP id u144so34702953wmu.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Dec 2016 00:24:08 -0800 (PST)
+Date: Thu, 22 Dec 2016 11:17:13 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH] mm: pmd dirty emulation in page fault handler
+Message-ID: <20161222081713.GA32480@node.shutemov.name>
+References: <1482364101-16204-1-git-send-email-minchan@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1482364101-16204-1-git-send-email-minchan@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20161222023955.WjbYXnLGdt3VfkWxG_4tk1f0yBRrLbP14YZz_J7EIvk@z>
+To: Minchan Kim <minchan@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>, Andreas Schwab <schwab@suse.de>
+Message-ID: <20161222081713.vtP612Lh7L6C94C7MsTjCU5QE1GA5BdWqHMvpHe0w6s@z>
 
-This adds __used, to be used later in the userspace linker-tables
-sandbox. If any userspace applicaiton wants to override they can
-add their own definition and then use include_next.
+On Thu, Dec 22, 2016 at 08:48:21AM +0900, Minchan Kim wrote:
+> Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
 
-This definition should probably suffice for most uses cases though.
+I guess you wanted put b8d3c4c3009d before [1], right?
 
-Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
----
- tools/include/linux/compiler.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+> http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
+> 
+> The problem is page fault handler supports only accessed flag emulation
+> for THP page of SW-dirty/accessed architecture.
+> 
+> This patch enables dirty-bit emulation for those architectures.
+> Without it, MADV_FREE makes application hang by repeated fault forever.
+> 
+> [1] mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
+> 
+> Cc: Jason Evans <je@fb.com>
+> Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: <stable@vger.kernel.org> [4.5+]
+> Fixes: b8d3c4c3009d ("mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called")
+> Reported-by: Andreas Schwab <schwab@suse.de>
+> Signed-off-by: Minchan Kim <minchan@kernel.org>
+> ---
+>  mm/huge_memory.c |  6 ++++--
+>  mm/memory.c      | 18 ++++++++++--------
+>  2 files changed, 14 insertions(+), 10 deletions(-)
+> 
+> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> index 10eedbf..29ec8a4 100644
+> --- a/mm/huge_memory.c
+> +++ b/mm/huge_memory.c
+> @@ -883,15 +883,17 @@ void huge_pmd_set_accessed(struct vm_fault *vmf, pmd_t orig_pmd)
+>  {
+>  	pmd_t entry;
+>  	unsigned long haddr;
+> +	bool write = vmf->flags & FAULT_FLAG_WRITE;
+>  
+>  	vmf->ptl = pmd_lock(vmf->vma->vm_mm, vmf->pmd);
+>  	if (unlikely(!pmd_same(*vmf->pmd, orig_pmd)))
+>  		goto unlock;
+>  
+>  	entry = pmd_mkyoung(orig_pmd);
+> +	if (write)
+> +		entry = pmd_mkdirty(entry);
+>  	haddr = vmf->address & HPAGE_PMD_MASK;
+> -	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry,
+> -				vmf->flags & FAULT_FLAG_WRITE))
+> +	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry, write))
+>  		update_mmu_cache_pmd(vmf->vma, vmf->address, vmf->pmd);
+>  
+>  unlock:
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 36c774f..7408ddc 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -3637,18 +3637,20 @@ static int __handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+>  			if (pmd_protnone(orig_pmd) && vma_is_accessible(vma))
+>  				return do_huge_pmd_numa_page(&vmf, orig_pmd);
+>  
+> -			if ((vmf.flags & FAULT_FLAG_WRITE) &&
+> -					!pmd_write(orig_pmd)) {
+> -				ret = wp_huge_pmd(&vmf, orig_pmd);
+> -				if (!(ret & VM_FAULT_FALLBACK))
+> +			if (vmf.flags & FAULT_FLAG_WRITE) {
+> +				if (!pmd_write(orig_pmd)) {
+> +					ret = wp_huge_pmd(&vmf, orig_pmd);
+> +					if (ret == VM_FAULT_FALLBACK)
 
-diff --git a/tools/include/linux/compiler.h b/tools/include/linux/compiler.h
-index e33fc1df3935..556c991de212 100644
---- a/tools/include/linux/compiler.h
-+++ b/tools/include/linux/compiler.h
-@@ -5,6 +5,12 @@
- /* The "volatile" is due to gcc bugs */
- #define barrier() __asm__ __volatile__("": : :"memory")
- 
-+
-+/* You can override as you see fit on your userspace tool */
-+#ifndef __used
-+#define __used          __attribute__((__used__))
-+#endif
-+
- #ifndef __always_inline
- # define __always_inline	inline __attribute__((always_inline))
- #endif
--- 
-2.10.1
+In theory, more than one flag can be set and it would lead to
+false-negative. Bit check was the right thing.
 
+And I don't understand why do you need to change code in
+__handle_mm_fault() at all.
