@@ -1,48 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:46454 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1757203AbcLVWMl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 22 Dec 2016 17:12:41 -0500
-From: Andreas Schwab <schwab@suse.de>
+Received: from LGEAMRELO11.lge.com ([156.147.23.51]:45296 "EHLO
+        lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932659AbcLWJxk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 23 Dec 2016 04:53:40 -0500
+Date: Fri, 23 Dec 2016 18:53:36 +0900
+From: Minchan Kim <minchan@kernel.org>
 Subject: Re: [PATCH] mm: pmd dirty emulation in page fault handler
+Message-ID: <20161223095336.GA5305@bbox>
 References: <1482364101-16204-1-git-send-email-minchan@kernel.org>
-        <20161222081713.GA32480@node.shutemov.name>
-        <20161222145203.GA18970@bbox>
-Date: Thu, 22 Dec 2016 23:12:32 +0100
-In-Reply-To: <20161222145203.GA18970@bbox> (Minchan Kim's message of "Thu, 22
-        Dec 2016 23:52:03 +0900")
-Message-ID: <8737hftxyn.fsf@suse.de>
+ <20161222081713.GA32480@node.shutemov.name>
+ <20161222145203.GA18970@bbox>
+ <20161223091725.GA23117@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20161223091725.GA23117@dhcp22.suse.cz>
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minchan Kim <minchan@kernel.org>
-Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>
-Message-ID: <20161222221232.15x89yP2nGIBVPHSfjjvzgX74dvIk1aqPZQjVlejDdM@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Jason Evans <je@fb.com>, "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>, Andreas Schwab <schwab@suse.de>
+Message-ID: <20161223095336.EWCvDryk29tppoDUyuSUCK3eUsxWb_37wuAccbtywUU@z>
 
-On Dez 22 2016, Minchan Kim <minchan@kernel.org> wrote:
+Hi,
 
-> From b3ec95c0df91ad113525968a4a6b53030fd0b48d Mon Sep 17 00:00:00 2001
-> From: Minchan Kim <minchan@kernel.org>
-> Date: Thu, 22 Dec 2016 23:43:49 +0900
-> Subject: [PATCH v2] mm: pmd dirty emulation in page fault handler
->
-> Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
-> http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
->
-> The problem is page fault handler supports only accessed flag emulation
-> for THP page of SW-dirty/accessed architecture.
->
-> This patch enables dirty-bit emulation for those architectures.
-> Without it, MADV_FREE makes application hang by repeated fault forever.
->
-> [1] b8d3c4c3009d, mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
+On Fri, Dec 23, 2016 at 10:17:25AM +0100, Michal Hocko wrote:
+> On Thu 22-12-16 23:52:03, Minchan Kim wrote:
+> [...]
+> > >From b3ec95c0df91ad113525968a4a6b53030fd0b48d Mon Sep 17 00:00:00 2001
+> > From: Minchan Kim <minchan@kernel.org>
+> > Date: Thu, 22 Dec 2016 23:43:49 +0900
+> > Subject: [PATCH v2] mm: pmd dirty emulation in page fault handler
+> > 
+> > Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
+> > http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
+> > 
+> > The problem is page fault handler supports only accessed flag emulation
+> > for THP page of SW-dirty/accessed architecture.
+> > 
+> > This patch enables dirty-bit emulation for those architectures.
+> > Without it, MADV_FREE makes application hang by repeated fault forever.
+> 
+> The changelog is rather terse and considering the issue is rather subtle
+> and it aims the stable tree I think it could see more information. How
+> do we end up looping in the page fault and why the dirty pmd stops it.
+> Could you update the changelog to be more verbose, please? I am still
+> digesting this patch but I believe it is correct fwiw...
+> 
 
-Successfully tested a backport to 4.9.
+How about this? Feel free to suggest better wording.
 
-Andreas.
+Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
+http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
 
--- 
-Andreas Schwab, SUSE Labs, schwab@suse.de
-GPG Key fingerprint = 0196 BAD8 1CE9 1970 F4BE  1748 E4D4 88E3 0EEA B9D7
-"And now for something completely different."
+The problem is currently page fault handler doesn't supports dirty bit
+emulation of pte for non-HW dirty-bit architecture so that application
+stucks until VM marked the pmd dirty.
+
+How the emulation work depends on the architecture. In case of arm64,
+when it set up pte firstly, it sets pte PTE_RDONLY to get a chance to
+mark the pte dirty via triggering page fault when store access happens.
+Once the page fault occurs, VM marks the pte dirty and arch code for
+setting pte will clear PTE_RDONLY for application to proceed.
+
+IOW, if VM doesn't mark the pte dirty, application hangs forever by
+repeated fault(i.e., store op but the pte is PTE_RDONLY).
+
+This patch enables dirty-bit emulation for those architectures.
+
