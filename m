@@ -1,108 +1,69 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 21/29] x86/dump_pagetables: support 5-level paging
-Date: Tue, 27 Dec 2016 04:54:05 +0300
-Message-ID: <20161227015413.187403-22-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 12/29] x86/mm: add support of p4d_t in vmalloc_fault()
+Date: Tue, 27 Dec 2016 04:53:56 +0300
+Message-ID: <20161227015413.187403-13-kirill.shutemov@linux.intel.com>
 References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Simple extension to support one more page table level.
+With 4-level paging copying happens on p4d level, as we have pgd_none()
+always false when p4d_t folded.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/dump_pagetables.c | 49 ++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 42 insertions(+), 7 deletions(-)
+ arch/x86/mm/fault.c | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
-index ea9c49adaa1f..15670b55861b 100644
---- a/arch/x86/mm/dump_pagetables.c
-+++ b/arch/x86/mm/dump_pagetables.c
-@@ -100,7 +100,8 @@ static struct addr_marker address_markers[] = {
- #define PTE_LEVEL_MULT (PAGE_SIZE)
- #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
- #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
--#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
-+#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
- 
- #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
- ({								\
-@@ -326,14 +327,14 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
- 
- #if PTRS_PER_PUD > 1
- 
--static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
- 							unsigned long P)
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 59104b78e8a7..b4bcf2dac4a9 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -434,6 +434,7 @@ void vmalloc_sync_all(void)
+ static noinline int vmalloc_fault(unsigned long address)
  {
- 	int i;
- 	pud_t *start;
- 	pgprotval_t prot;
+ 	pgd_t *pgd, *pgd_ref;
++	p4d_t *p4d, *p4d_ref;
+ 	pud_t *pud, *pud_ref;
+ 	pmd_t *pmd, *pmd_ref;
+ 	pte_t *pte, *pte_ref;
+@@ -461,13 +462,26 @@ static noinline int vmalloc_fault(unsigned long address)
+ 		BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
+ 	}
  
--	start = (pud_t *) pgd_page_vaddr(addr);
-+	start = (pud_t *) p4d_page_vaddr(addr);
- 
- 	for (i = 0; i < PTRS_PER_PUD; i++) {
- 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
-@@ -353,9 +354,43 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
- }
- 
- #else
--#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
--#define pgd_large(a) pud_large(__pud(pgd_val(a)))
--#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
-+#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
-+#define p4d_large(a) pud_large(__pud(p4d_val(a)))
-+#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
-+#endif
++	/* With 4-level paging copying happens on p4d level. */
++	p4d = p4d_offset(pgd, address);
++	p4d_ref = p4d_offset(pgd_ref, address);
++	if (p4d_none(*p4d_ref))
++		return -1;
 +
-+#if PTRS_PER_P4D > 1
-+
-+static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
-+							unsigned long P)
-+{
-+	int i;
-+	p4d_t *start;
-+	pgprotval_t prot;
-+
-+	start = (p4d_t *) pgd_page_vaddr(addr);
-+
-+	for (i = 0; i < PTRS_PER_P4D; i++) {
-+		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
-+		if (!p4d_none(*start)) {
-+			if (p4d_large(*start) || !p4d_present(*start)) {
-+				prot = p4d_flags(*start);
-+				note_page(m, st, __pgprot(prot), 2);
-+			} else {
-+				walk_pud_level(m, st, *start,
-+					       P + i * P4D_LEVEL_MULT);
-+			}
-+		} else
-+			note_page(m, st, __pgprot(0), 2);
-+
-+		start++;
++	if (p4d_none(*p4d)) {
++		set_p4d(p4d, *p4d_ref);
++		arch_flush_lazy_mmu_mode();
++	} else {
++		BUG_ON(p4d_pfn(*p4d) != p4d_pfn(*p4d_ref));
 +	}
-+}
 +
-+#else
-+#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
-+#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
-+#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
- #endif
+ 	/*
+ 	 * Below here mismatches are bugs because these lower tables
+ 	 * are shared:
+ 	 */
  
- static inline bool is_hypervisor_range(int idx)
-@@ -400,7 +435,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
- 				prot = pgd_flags(*start);
- 				note_page(m, &st, __pgprot(prot), 1);
- 			} else {
--				walk_pud_level(m, &st, *start,
-+				walk_p4d_level(m, &st, *start,
- 					       i * PGD_LEVEL_MULT);
- 			}
- 		} else
+-	pud = pud_offset(pgd, address);
+-	pud_ref = pud_offset(pgd_ref, address);
++	pud = pud_offset(p4d, address);
++	pud_ref = pud_offset(p4d_ref, address);
+ 	if (pud_none(*pud_ref))
+ 		return -1;
+ 
 -- 
 2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
