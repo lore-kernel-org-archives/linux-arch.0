@@ -1,85 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:6496 "EHLO mga11.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:62410 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755775AbcL0By4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Dec 2016 20:54:56 -0500
+        id S1753819AbcL0Byv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Dec 2016 20:54:51 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 25/29] x86/mm: add sync_global_pgds() for configuration with 5-level paging
-Date: Tue, 27 Dec 2016 04:54:09 +0300
-Message-ID: <20161227015413.187403-26-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 11/29] x86/ident_map: add 5-level paging support
+Date: Tue, 27 Dec 2016 04:53:55 +0300
+Message-ID: <20161227015413.187403-12-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20161227015409.WNQw2KBQUhqAlfYpoqaerj5iBBqdiPwU9E2y1YIHGIE@z>
+Message-ID: <20161227015355.tyxg0_soTT9bPzLE-POHNL0dwVCh92xoP8djgB-NQrk@z>
 
-This basically restores slightly modified version of original
-sync_global_pgds() which we had before foldedl p4d was introduced.
-
-The only modification is protection against 'address' overflow.
+Nothing special: just handle one more level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/init_64.c | 37 +++++++++++++++++++++++++++++++++++++
- 1 file changed, 37 insertions(+)
+ arch/x86/mm/ident_map.c | 42 +++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 35 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 72527ece6130..72f99e837ec2 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -92,6 +92,42 @@ __setup("noexec32=", nonx32_setup);
-  * When memory was added make sure all the processes MM have
-  * suitable PGD entries in the local PGD level page.
-  */
-+#ifdef CONFIG_X86_5LEVEL
-+void sync_global_pgds(unsigned long start, unsigned long end)
-+{
-+	unsigned long address;
-+
-+	for (address = start; address <= end && address >= start;
-+			address += PGDIR_SIZE) {
-+		const pgd_t *pgd_ref = pgd_offset_k(address);
-+		struct page *page;
-+
-+		if (pgd_none(*pgd_ref))
-+			continue;
-+
-+		spin_lock(&pgd_lock);
-+		list_for_each_entry(page, &pgd_list, lru) {
-+			pgd_t *pgd;
-+			spinlock_t *pgt_lock;
-+
-+			pgd = (pgd_t *)page_address(page) + pgd_index(address);
-+			/* the pgt_lock only for Xen */
-+			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
-+			spin_lock(pgt_lock);
-+
-+			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
-+				BUG_ON(pgd_page_vaddr(*pgd)
-+						!= pgd_page_vaddr(*pgd_ref));
-+
-+			if (pgd_none(*pgd))
-+				set_pgd(pgd, *pgd_ref);
-+
-+			spin_unlock(pgt_lock);
-+		}
-+		spin_unlock(&pgd_lock);
-+	}
-+}
-+#else
- void sync_global_pgds(unsigned long start, unsigned long end)
- {
- 	unsigned long address;
-@@ -135,6 +171,7 @@ void sync_global_pgds(unsigned long start, unsigned long end)
- 		spin_unlock(&pgd_lock);
- 	}
+diff --git a/arch/x86/mm/ident_map.c b/arch/x86/mm/ident_map.c
+index 4473cb4f8b90..f1a620b9f2ef 100644
+--- a/arch/x86/mm/ident_map.c
++++ b/arch/x86/mm/ident_map.c
+@@ -45,6 +45,34 @@ static int ident_pud_init(struct x86_mapping_info *info, pud_t *pud_page,
+ 	return 0;
  }
-+#endif
  
- /*
-  * NOTE: This function is marked __ref because it calls __init function
++static int ident_p4d_init(struct x86_mapping_info *info, p4d_t *p4d_page,
++			  unsigned long addr, unsigned long end)
++{
++	unsigned long next;
++
++	for (; addr < end; addr = next) {
++		p4d_t *p4d = p4d_page + p4d_index(addr);
++		pud_t *pud;
++
++		next = (addr & P4D_MASK) + P4D_SIZE;
++		if (next > end)
++			next = end;
++
++		if (p4d_present(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			ident_pud_init(info, pud, addr, next);
++			continue;
++		}
++		pud = (pud_t *)info->alloc_pgt_page(info->context);
++		if (!pud)
++			return -ENOMEM;
++		ident_pud_init(info, pud, addr, next);
++		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
++	}
++
++	return 0;
++}
++
+ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+ 			      unsigned long pstart, unsigned long pend)
+ {
+@@ -55,27 +83,27 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+ 
+ 	for (; addr < end; addr = next) {
+ 		pgd_t *pgd = pgd_page + pgd_index(addr);
+-		pud_t *pud;
++		p4d_t *p4d;
+ 
+ 		next = (addr & PGDIR_MASK) + PGDIR_SIZE;
+ 		if (next > end)
+ 			next = end;
+ 
+ 		if (pgd_present(*pgd)) {
+-			pud = pud_offset(pgd, 0);
+-			result = ident_pud_init(info, pud, addr, next);
++			p4d = p4d_offset(pgd, 0);
++			result = ident_p4d_init(info, p4d, addr, next);
+ 			if (result)
+ 				return result;
+ 			continue;
+ 		}
+ 
+-		pud = (pud_t *)info->alloc_pgt_page(info->context);
+-		if (!pud)
++		p4d = (p4d_t *)info->alloc_pgt_page(info->context);
++		if (!p4d)
+ 			return -ENOMEM;
+-		result = ident_pud_init(info, pud, addr, next);
++		result = ident_p4d_init(info, p4d, addr, next);
+ 		if (result)
+ 			return result;
+-		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++		set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
+ 	}
+ 
+ 	return 0;
 -- 
 2.11.0
 
