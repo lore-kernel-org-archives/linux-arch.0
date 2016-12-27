@@ -1,141 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:62410 "EHLO mga11.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:41700 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755331AbcL0Byw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Dec 2016 20:54:52 -0500
+        id S1753455AbcL0Byv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Dec 2016 20:54:51 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 16/29] x86: detect 5-level paging support
-Date: Tue, 27 Dec 2016 04:54:00 +0300
-Message-ID: <20161227015413.187403-17-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 02/29] asm-generic: introduce 5level-fixup.h
+Date: Tue, 27 Dec 2016 04:53:46 +0300
+Message-ID: <20161227015413.187403-3-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20161227015400.5cux2utRnCkB_DE9EJeCDL1hiohBlDtCGycslt3WAm4@z>
+Message-ID: <20161227015346.RbII7Nnnfcm1zCAmn7lVnMRTzjB_OlDkxdyd2igyBtY@z>
 
-5-level paging support is required from hardware when compiled with
-CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
+We are going to switch core MM to 5-level paging abstraction.
+
+This is preparation step which adds <asm-generic/5level-fixup.h>
+As with 4level-fixup.h, the new header allows quickly make all
+architectures compatible with 5-level paging in core MM.
+
+In long run we would like to switch architectures to properly folded p4d
+level by using <asm-generic/pgtable-nop4d.h>, but it requires more
+changes to arch-specific code.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/boot/cpucheck.c                 |  9 +++++++++
- arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
- arch/x86/include/asm/disabled-features.h |  8 +++++++-
- arch/x86/include/asm/required-features.h |  8 +++++++-
- 4 files changed, 33 insertions(+), 4 deletions(-)
+ include/asm-generic/4level-fixup.h |  3 ++-
+ include/asm-generic/5level-fixup.h | 41 ++++++++++++++++++++++++++++++++++++++
+ include/linux/mm.h                 |  3 +++
+ 3 files changed, 46 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/5level-fixup.h
 
-diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
-index 4ad7d70e8739..8f0c4c9fc904 100644
---- a/arch/x86/boot/cpucheck.c
-+++ b/arch/x86/boot/cpucheck.c
-@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
- 	0, /* REQUIRED_MASK5 not implemented in this file */
- 	REQUIRED_MASK6,
- 	0, /* REQUIRED_MASK7 not implemented in this file */
-+	0, /* REQUIRED_MASK8 not implemented in this file */
-+	0, /* REQUIRED_MASK9 not implemented in this file */
-+	0, /* REQUIRED_MASK10 not implemented in this file */
-+	0, /* REQUIRED_MASK11 not implemented in this file */
-+	0, /* REQUIRED_MASK12 not implemented in this file */
-+	0, /* REQUIRED_MASK13 not implemented in this file */
-+	0, /* REQUIRED_MASK14 not implemented in this file */
-+	0, /* REQUIRED_MASK15 not implemented in this file */
-+	REQUIRED_MASK16,
- };
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index 5bdab6bffd23..928fd66b1271 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -15,7 +15,6 @@
+ 	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
+  		NULL: pmd_offset(pud, address))
  
- #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
-diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-index 6687ab953257..9e77c23c2422 100644
---- a/arch/x86/boot/cpuflags.c
-+++ b/arch/x86/boot/cpuflags.c
-@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
- # define EBX_REG "=b"
+-#define pud_alloc(mm, pgd, address)	(pgd)
+ #define pud_offset(pgd, start)		(pgd)
+ #define pud_none(pud)			0
+ #define pud_bad(pud)			0
+@@ -35,4 +34,6 @@
+ #undef  pud_addr_end
+ #define pud_addr_end(addr, end)		(end)
+ 
++#include <asm-generic/5level-fixup.h>
++
  #endif
- 
--static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-+static inline void cpuid_count(u32 id, u32 count,
-+		u32 *a, u32 *b, u32 *c, u32 *d)
- {
- 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
- 		     "cpuid					\n\t"
- 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
- 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
--		    : "a" (id)
-+		    : "a" (id), "c" (count)
- 	);
- }
- 
-+#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+new file mode 100644
+index 000000000000..b5ca82dc4175
+--- /dev/null
++++ b/include/asm-generic/5level-fixup.h
+@@ -0,0 +1,41 @@
++#ifndef _5LEVEL_FIXUP_H
++#define _5LEVEL_FIXUP_H
 +
- void get_cpuflags(void)
- {
- 	u32 max_intel_level, max_amd_level;
-@@ -108,6 +111,11 @@ void get_cpuflags(void)
- 				cpu.model += ((tfms >> 16) & 0xf) << 4;
- 		}
- 
-+		if (max_intel_level >= 0x00000007) {
-+			cpuid_count(0x00000007, 0, &ignored, &ignored,
-+					&cpu.flags[16], &ignored);
-+		}
++#define __ARCH_HAS_5LEVEL_HACK
++#define __PAGETABLE_P4D_FOLDED
 +
- 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
- 		      &ignored);
- 
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 85599ad4d024..fc0960236fc3 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -36,6 +36,12 @@
- # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
- #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
- 
-+#ifdef CONFIG_X86_5LEVEL
-+#define DISABLE_LA57	0
-+#else
-+#define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
++#define P4D_SHIFT			PGDIR_SHIFT
++#define P4D_SIZE			PGDIR_SIZE
++#define P4D_MASK			PGDIR_MASK
++#define PTRS_PER_P4D			1
++
++#define p4d_t				pgd_t
++
++#define pud_alloc(mm, p4d, address) \
++	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
++		NULL : pud_offset(p4d, address))
++
++#define p4d_alloc(mm, pgd, address)	(pgd)
++#define p4d_offset(pgd, start)		(pgd)
++#define p4d_none(p4d)			0
++#define p4d_bad(p4d)			0
++#define p4d_present(p4d)		1
++#define p4d_ERROR(p4d)			do { } while (0)
++#define p4d_clear(p4d)			pgd_clear(p4d)
++#define p4d_val(p4d)			pgd_val(p4d)
++#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
++#define p4d_page(p4d)			pgd_page(p4d)
++#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
++
++#define __p4d(x)			__pgd(x)
++#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
++
++#undef p4d_free_tlb
++#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
++#define p4d_free(mm, x)			do { } while (0)
++#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
++
++#undef  p4d_addr_end
++#define p4d_addr_end(addr, end)		(end)
++
 +#endif
-+
- /*
-  * Make sure to add features to the correct mask
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index fe6b4036664a..58fab8917bbe 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1574,11 +1574,14 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
+  * Remove it when 4level-fixup.h has been removed.
   */
-@@ -55,7 +61,7 @@
- #define DISABLED_MASK13	0
- #define DISABLED_MASK14	0
- #define DISABLED_MASK15	0
--#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
-+#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
- #define DISABLED_MASK17	0
- #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
- 
-diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
-index fac9a5c0abe9..d91ba04dd007 100644
---- a/arch/x86/include/asm/required-features.h
-+++ b/arch/x86/include/asm/required-features.h
-@@ -53,6 +53,12 @@
- # define NEED_MOVBE	0
- #endif
- 
-+#ifdef CONFIG_X86_5LEVEL
-+# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
-+#else
-+# define NEED_LA57	0
-+#endif
+ #if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
 +
- #ifdef CONFIG_X86_64
- #ifdef CONFIG_PARAVIRT
- /* Paravirtualized systems may not have PSE or PGE available */
-@@ -98,7 +104,7 @@
- #define REQUIRED_MASK13	0
- #define REQUIRED_MASK14	0
- #define REQUIRED_MASK15	0
--#define REQUIRED_MASK16	0
-+#define REQUIRED_MASK16	(NEED_LA57)
- #define REQUIRED_MASK17	0
- #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
++#ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline pud_t *pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+ {
+ 	return (unlikely(pgd_none(*pgd)) && __pud_alloc(mm, pgd, address))?
+ 		NULL: pud_offset(pgd, address);
+ }
++#endif /* !__ARCH_HAS_5LEVEL_HACK */
  
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
 -- 
 2.11.0
 
