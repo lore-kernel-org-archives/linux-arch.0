@@ -1,127 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:5265 "EHLO mga09.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:10745 "EHLO mga01.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752913AbcL0Byv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Dec 2016 20:54:51 -0500
+        id S932371AbcL0B4E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Dec 2016 20:56:04 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 03/29] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
-Date: Tue, 27 Dec 2016 04:53:47 +0300
-Message-ID: <20161227015413.187403-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 21/29] x86/dump_pagetables: support 5-level paging
+Date: Tue, 27 Dec 2016 04:54:05 +0300
+Message-ID: <20161227015413.187403-22-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20161227015347.1H9sJ3z3lg5hFwew_S62tMsx66D8aePLw1ajhmCcbWc@z>
+Message-ID: <20161227015405.CFX79MtxNnssvnsaV2Ub6J8isS66ysCfCXUq67pJ3nw@z>
 
-We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
-abstraction for properly (in opposite to 5level-fixup.h hack) folded
-p4d level. The new header will be included from pgtable-nopud.h.
-
-If an architecture uses <asm-generic/nop*d.h>, we cannot use
-5level-fixup.h directly to quickly convert the architecture to 5-level
-paging as it would conflict with pgtable-nop4d.h.
-
-With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
-inclusion <asm-genenric/nop*d.h> to 5level-fixup.h.
+Simple extension to support one more page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable-nopud.h      |  5 +++
- 2 files changed, 67 insertions(+)
- create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+ arch/x86/mm/dump_pagetables.c | 49 ++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 42 insertions(+), 7 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
-new file mode 100644
-index 000000000000..752fb7511750
---- /dev/null
-+++ b/include/asm-generic/pgtable-nop4d-hack.h
-@@ -0,0 +1,62 @@
-+#ifndef _PGTABLE_NOP4D_HACK_H
-+#define _PGTABLE_NOP4D_HACK_H
+diff --git a/arch/x86/mm/dump_pagetables.c b/arch/x86/mm/dump_pagetables.c
+index ea9c49adaa1f..15670b55861b 100644
+--- a/arch/x86/mm/dump_pagetables.c
++++ b/arch/x86/mm/dump_pagetables.c
+@@ -100,7 +100,8 @@ static struct addr_marker address_markers[] = {
+ #define PTE_LEVEL_MULT (PAGE_SIZE)
+ #define PMD_LEVEL_MULT (PTRS_PER_PTE * PTE_LEVEL_MULT)
+ #define PUD_LEVEL_MULT (PTRS_PER_PMD * PMD_LEVEL_MULT)
+-#define PGD_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
++#define P4D_LEVEL_MULT (PTRS_PER_PUD * PUD_LEVEL_MULT)
++#define PGD_LEVEL_MULT (PTRS_PER_PUD * P4D_LEVEL_MULT)
+ 
+ #define pt_dump_seq_printf(m, to_dmesg, fmt, args...)		\
+ ({								\
+@@ -326,14 +327,14 @@ static void walk_pmd_level(struct seq_file *m, struct pg_state *st, pud_t addr,
+ 
+ #if PTRS_PER_PUD > 1
+ 
+-static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
++static void walk_pud_level(struct seq_file *m, struct pg_state *st, p4d_t addr,
+ 							unsigned long P)
+ {
+ 	int i;
+ 	pud_t *start;
+ 	pgprotval_t prot;
+ 
+-	start = (pud_t *) pgd_page_vaddr(addr);
++	start = (pud_t *) p4d_page_vaddr(addr);
+ 
+ 	for (i = 0; i < PTRS_PER_PUD; i++) {
+ 		st->current_address = normalize_addr(P + i * PUD_LEVEL_MULT);
+@@ -353,9 +354,43 @@ static void walk_pud_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
+ }
+ 
+ #else
+-#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(pgd_val(a)),p)
+-#define pgd_large(a) pud_large(__pud(pgd_val(a)))
+-#define pgd_none(a)  pud_none(__pud(pgd_val(a)))
++#define walk_pud_level(m,s,a,p) walk_pmd_level(m,s,__pud(p4d_val(a)),p)
++#define p4d_large(a) pud_large(__pud(p4d_val(a)))
++#define p4d_none(a)  pud_none(__pud(p4d_val(a)))
++#endif
 +
-+#ifndef __ASSEMBLY__
-+#include <asm-generic/5level-fixup.h>
++#if PTRS_PER_P4D > 1
 +
-+#define __PAGETABLE_PUD_FOLDED
-+
-+/*
-+ * Having the pud type consist of a pgd gets the size right, and allows
-+ * us to conceptually access the pgd entry that this pud is folded into
-+ * without casting.
-+ */
-+typedef struct { pgd_t pgd; } pud_t;
-+
-+#define PUD_SHIFT	PGDIR_SHIFT
-+#define PTRS_PER_PUD	1
-+#define PUD_SIZE	(1UL << PUD_SHIFT)
-+#define PUD_MASK	(~(PUD_SIZE-1))
-+
-+/*
-+ * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the pud is never bad, and a pud always exists (as it's folded
-+ * into the pgd entry)
-+ */
-+static inline int pgd_none(pgd_t pgd)		{ return 0; }
-+static inline int pgd_bad(pgd_t pgd)		{ return 0; }
-+static inline int pgd_present(pgd_t pgd)	{ return 1; }
-+static inline void pgd_clear(pgd_t *pgd)	{ }
-+#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
-+
-+#define pgd_populate(mm, pgd, pud)		do { } while (0)
-+/*
-+ * (puds are folded into pgds so this doesn't get actually called,
-+ * but the define is needed for a generic inline function.)
-+ */
-+#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
-+
-+static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
++static void walk_p4d_level(struct seq_file *m, struct pg_state *st, pgd_t addr,
++							unsigned long P)
 +{
-+	return (pud_t *)pgd;
++	int i;
++	p4d_t *start;
++	pgprotval_t prot;
++
++	start = (p4d_t *) pgd_page_vaddr(addr);
++
++	for (i = 0; i < PTRS_PER_P4D; i++) {
++		st->current_address = normalize_addr(P + i * P4D_LEVEL_MULT);
++		if (!p4d_none(*start)) {
++			if (p4d_large(*start) || !p4d_present(*start)) {
++				prot = p4d_flags(*start);
++				note_page(m, st, __pgprot(prot), 2);
++			} else {
++				walk_pud_level(m, st, *start,
++					       P + i * P4D_LEVEL_MULT);
++			}
++		} else
++			note_page(m, st, __pgprot(0), 2);
++
++		start++;
++	}
 +}
 +
-+#define pud_val(x)				(pgd_val((x).pgd))
-+#define __pud(x)				((pud_t) { __pgd(x) })
-+
-+#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
-+#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
-+
-+/*
-+ * allocating and freeing a pud is trivial: the 1-entry pud is
-+ * inside the pgd, so has no extra memory associated with it.
-+ */
-+#define pud_alloc_one(mm, address)		NULL
-+#define pud_free(mm, x)				do { } while (0)
-+#define __pud_free_tlb(tlb, x, a)		do { } while (0)
-+
-+#undef  pud_addr_end
-+#define pud_addr_end(addr, end)			(end)
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _PGTABLE_NOP4D_HACK_H */
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 810431d8351b..5e49430a30a4 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -3,6 +3,10 @@
- 
- #ifndef __ASSEMBLY__
- 
-+#ifdef __ARCH_USE_5LEVEL_HACK
-+#include <asm-generic/pgtable-nop4d-hack.h>
 +#else
-+
- #define __PAGETABLE_PUD_FOLDED
++#define walk_p4d_level(m,s,a,p) walk_pud_level(m,s,__p4d(pgd_val(a)),p)
++#define pgd_large(a) p4d_large(__p4d(pgd_val(a)))
++#define pgd_none(a)  p4d_none(__p4d(pgd_val(a)))
+ #endif
  
- /*
-@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
- #define pud_addr_end(addr, end)			(end)
- 
- #endif /* __ASSEMBLY__ */
-+#endif /* !__ARCH_USE_5LEVEL_HACK */
- #endif /* _PGTABLE_NOPUD_H */
+ static inline bool is_hypervisor_range(int idx)
+@@ -400,7 +435,7 @@ static void ptdump_walk_pgd_level_core(struct seq_file *m, pgd_t *pgd,
+ 				prot = pgd_flags(*start);
+ 				note_page(m, &st, __pgprot(prot), 1);
+ 			} else {
+-				walk_pud_level(m, &st, *start,
++				walk_p4d_level(m, &st, *start,
+ 					       i * PGD_LEVEL_MULT);
+ 			}
+ 		} else
 -- 
 2.11.0
 
