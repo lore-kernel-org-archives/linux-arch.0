@@ -1,101 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:40820 "EHLO mga09.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:6496 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755730AbcL0Byz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 26 Dec 2016 20:54:55 -0500
+        id S1755775AbcL0By4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 26 Dec 2016 20:54:56 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv2 13/29] x86/power: support p4d_t in hibernate code
-Date: Tue, 27 Dec 2016 04:53:57 +0300
-Message-ID: <20161227015413.187403-14-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 25/29] x86/mm: add sync_global_pgds() for configuration with 5-level paging
+Date: Tue, 27 Dec 2016 04:54:09 +0300
+Message-ID: <20161227015413.187403-26-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20161227015357.MAGLwDdlDMfr27bUZF5wvAfszIOBABf3WyVuUy2VfF0@z>
+Message-ID: <20161227015409.WNQw2KBQUhqAlfYpoqaerj5iBBqdiPwU9E2y1YIHGIE@z>
 
-set_up_temporary_text_mapping() and relocate_restore_code() require
-trivial adjustments to handle additional page table level.
+This basically restores slightly modified version of original
+sync_global_pgds() which we had before foldedl p4d was introduced.
+
+The only modification is protection against 'address' overflow.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/power/hibernate_64.c | 35 ++++++++++++++++++++++-------------
- 1 file changed, 22 insertions(+), 13 deletions(-)
+ arch/x86/mm/init_64.c | 37 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
 
-diff --git a/arch/x86/power/hibernate_64.c b/arch/x86/power/hibernate_64.c
-index ded2e8272382..22de6e29704f 100644
---- a/arch/x86/power/hibernate_64.c
-+++ b/arch/x86/power/hibernate_64.c
-@@ -49,6 +49,7 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
- {
- 	pmd_t *pmd;
- 	pud_t *pud;
-+	p4d_t *p4d;
- 
- 	/*
- 	 * The new mapping only has to cover the page containing the image
-@@ -75,8 +76,10 @@ static int set_up_temporary_text_mapping(pgd_t *pgd)
- 		__pmd((jump_address_phys & PMD_MASK) | __PAGE_KERNEL_LARGE_EXEC));
- 	set_pud(pud + pud_index(restore_jump_address),
- 		__pud(__pa(pmd) | _KERNPG_TABLE));
-+	set_p4d(p4d + p4d_index(restore_jump_address),
-+		__p4d(__pa(pud) | _KERNPG_TABLE));
- 	set_pgd(pgd + pgd_index(restore_jump_address),
--		__pgd(__pa(pud) | _KERNPG_TABLE));
-+		__pgd(__pa(p4d) | _KERNPG_TABLE));
- 
- 	return 0;
- }
-@@ -124,7 +127,10 @@ static int set_up_temporary_mappings(void)
- static int relocate_restore_code(void)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
- 
- 	relocated_restore_code = get_safe_page(GFP_ATOMIC);
- 	if (!relocated_restore_code)
-@@ -134,22 +140,25 @@ static int relocate_restore_code(void)
- 
- 	/* Make the page containing the relocated code executable */
- 	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
--	pud = pud_offset(pgd, relocated_restore_code);
-+	p4d = p4d_offset(pgd, relocated_restore_code);
-+	if (p4d_large(*p4d)) {
-+		set_p4d(p4d, __p4d(p4d_val(*p4d) & ~_PAGE_NX));
-+		goto out;
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 72527ece6130..72f99e837ec2 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -92,6 +92,42 @@ __setup("noexec32=", nonx32_setup);
+  * When memory was added make sure all the processes MM have
+  * suitable PGD entries in the local PGD level page.
+  */
++#ifdef CONFIG_X86_5LEVEL
++void sync_global_pgds(unsigned long start, unsigned long end)
++{
++	unsigned long address;
++
++	for (address = start; address <= end && address >= start;
++			address += PGDIR_SIZE) {
++		const pgd_t *pgd_ref = pgd_offset_k(address);
++		struct page *page;
++
++		if (pgd_none(*pgd_ref))
++			continue;
++
++		spin_lock(&pgd_lock);
++		list_for_each_entry(page, &pgd_list, lru) {
++			pgd_t *pgd;
++			spinlock_t *pgt_lock;
++
++			pgd = (pgd_t *)page_address(page) + pgd_index(address);
++			/* the pgt_lock only for Xen */
++			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
++			spin_lock(pgt_lock);
++
++			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
++				BUG_ON(pgd_page_vaddr(*pgd)
++						!= pgd_page_vaddr(*pgd_ref));
++
++			if (pgd_none(*pgd))
++				set_pgd(pgd, *pgd_ref);
++
++			spin_unlock(pgt_lock);
++		}
++		spin_unlock(&pgd_lock);
 +	}
-+	pud = pud_offset(p4d, relocated_restore_code);
- 	if (pud_large(*pud)) {
- 		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
--	} else {
--		pmd_t *pmd = pmd_offset(pud, relocated_restore_code);
--
--		if (pmd_large(*pmd)) {
--			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
--		} else {
--			pte_t *pte = pte_offset_kernel(pmd, relocated_restore_code);
--
--			set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
--		}
-+		goto out;
-+	}
-+	pmd = pmd_offset(pud, relocated_restore_code);
-+	if (pmd_large(*pmd)) {
-+		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
-+		goto out;
++}
++#else
+ void sync_global_pgds(unsigned long start, unsigned long end)
+ {
+ 	unsigned long address;
+@@ -135,6 +171,7 @@ void sync_global_pgds(unsigned long start, unsigned long end)
+ 		spin_unlock(&pgd_lock);
  	}
-+	pte = pte_offset_kernel(pmd, relocated_restore_code);
-+	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
-+out:
- 	__flush_tlb_all();
--
- 	return 0;
  }
++#endif
  
+ /*
+  * NOTE: This function is marked __ref because it calls __init function
 -- 
 2.11.0
 
