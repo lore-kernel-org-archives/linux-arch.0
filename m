@@ -1,82 +1,39 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: [PATCH v4] mm: pmd dirty emulation in page fault handler
-Date: Sat, 24 Dec 2016 00:14:58 +0900
-Message-ID: <1482506098-6149-1-git-send-email-minchan@kernel.org>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv2 01/29] x86/cpufeature: Add 5-level paging detecton
+Date: Tue, 27 Dec 2016 04:53:45 +0300
+Message-ID: <20161227015413.187403-2-kirill.shutemov@linux.intel.com>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andreas Schwab <schwab@suse.de>, Minchan Kim <minchan@kernel.org>, Jason Evans <je@fb.com>, Michal Hocko <mhocko@suse.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, "[4.5+]" <stable@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Andreas reported [1] made a test in jemalloc hang in THP mode in arm64.
-http://lkml.kernel.org/r/mvmmvfy37g1.fsf@hawking.suse.de
+Look for 'la57' in /proc/cpuinfo to see if your machine supports 5-level
+paging.
 
-The problem is currently page fault handler doesn't supports dirty bit
-emulation of pmd for non-HW dirty-bit architecture so that application
-stucks until VM marked the pmd dirty.
-
-How the emulation work depends on the architecture. In case of arm64,
-when it set up pte firstly, it sets pte PTE_RDONLY to get a chance to
-mark the pte dirty via triggering page fault when store access happens.
-Once the page fault occurs, VM marks the pmd dirty and arch code for
-setting pmd will clear PTE_RDONLY for application to proceed.
-
-IOW, if VM doesn't mark the pmd dirty, application hangs forever by
-repeated fault(i.e., store op but the pmd is PTE_RDONLY).
-
-This patch enables pmd dirty-bit emulation for those architectures.
-
-[1] b8d3c4c3009d, mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called
-
-Cc: Jason Evans <je@fb.com>
-Cc: Michal Hocko <mhocko@suse.com> 
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: <stable@vger.kernel.org> [4.5+]
-Fixes: b8d3c4c3009d ("mm/huge_memory.c: don't split THP page when MADV_FREE syscall is called")
-Reported-and-Tested-by: Andreas Schwab <schwab@suse.de>
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Signed-off-by: Minchan Kim <minchan@kernel.org>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
-  Merry Xmas!
+ arch/x86/include/asm/cpufeatures.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-* from v3
-  * Elaborate description
-* from v2
-  * Add acked-by/tested-by
-* from v1
-  * Remove __handle_mm_fault part - Kirill
- mm/huge_memory.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 10eedbf..29ec8a4 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -883,15 +883,17 @@ void huge_pmd_set_accessed(struct vm_fault *vmf, pmd_t orig_pmd)
- {
- 	pmd_t entry;
- 	unsigned long haddr;
-+	bool write = vmf->flags & FAULT_FLAG_WRITE;
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index eafee3161d1c..f2f7dbfe3cb8 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -288,7 +288,8 @@
+ #define X86_FEATURE_AVX512VBMI  (16*32+ 1) /* AVX512 Vector Bit Manipulation instructions*/
+ #define X86_FEATURE_PKU		(16*32+ 3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE	(16*32+ 4) /* OS Protection Keys Enable */
+-#define X86_FEATURE_RDPID	(16*32+ 22) /* RDPID instruction */
++#define X86_FEATURE_LA57	(16*32+16) /* 5-level page tables */
++#define X86_FEATURE_RDPID	(16*32+22) /* RDPID instruction */
  
- 	vmf->ptl = pmd_lock(vmf->vma->vm_mm, vmf->pmd);
- 	if (unlikely(!pmd_same(*vmf->pmd, orig_pmd)))
- 		goto unlock;
- 
- 	entry = pmd_mkyoung(orig_pmd);
-+	if (write)
-+		entry = pmd_mkdirty(entry);
- 	haddr = vmf->address & HPAGE_PMD_MASK;
--	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry,
--				vmf->flags & FAULT_FLAG_WRITE))
-+	if (pmdp_set_access_flags(vmf->vma, haddr, vmf->pmd, entry, write))
- 		update_mmu_cache_pmd(vmf->vma, vmf->address, vmf->pmd);
- 
- unlock:
+ /* AMD-defined CPU features, CPUID level 0x80000007 (ebx), word 17 */
+ #define X86_FEATURE_OVERFLOW_RECOV (17*32+0) /* MCA overflow recovery support */
 -- 
-2.7.4
+2.11.0
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
