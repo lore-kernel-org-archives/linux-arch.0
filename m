@@ -1,54 +1,94 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
-Date: Mon, 2 Jan 2017 12:23:47 +0000
-Message-ID: <20170102122347.GB14217@n2100.armlinux.org.uk>
-References: <20161216105634.235457-1-arnd@arndb.de>
- <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
- <2778134.jZdhGefl4B@wuerfel>
- <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: How should we handle variable address space sizes (Re: [RFC 3/4]
+ x86/mm: define TASK_SIZE as current->mm->task_size)
+Date: Mon, 2 Jan 2017 08:52:41 -0800
+Message-ID: <CALCETrU+BJ2JDRocBy-6SD_G6FbD+Ez_yb1QJ6Z1KXBjVzKOHg@mail.gmail.com>
+References: <CALCETrXMCVOmVcQYxF_ghPdEjLuNNqbcnoRKRVpJegsQ=SPEFQ@mail.gmail.com>
+ <20170102094907.GC30735@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, kernel-build-reports@lists.linaro.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170102094907.GC30735@node.shutemov.name>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, X86 ML <x86@kernel.org>, Andy Lutomirski <luto@kernel.org>, Carlos O'Donell <carlos@redhat.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, "H. Peter Anvin" <hpa@zytor.com>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Dmitry Safonov <0x7f454c46@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Linux API <linux-api@vger.kernel.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Dec 17, 2016 at 12:29:50PM +0100, Sebastian Andrzej Siewior wrote:
-> A new version is understandable. But why is an old version required?
-> One thing is an enterprise distro that is "current" or "supported" and still
-> stuck with gcc 4.1 because that is the version they decided to include in
-> their release. This is sad. But you might want to ask yourself why you want
-> the latest kernel but an old gcc / binutils.
+On Mon, Jan 2, 2017 at 1:49 AM, Kirill A. Shutemov <kirill@shutemov.name> wrote:
+> On Fri, Dec 30, 2016 at 06:11:05PM -0800, Andy Lutomirski wrote:
+>> On Fri, Dec 30, 2016 at 7:56 AM, Dmitry Safonov <dsafonov@virtuozzo.com> wrote:
+>> > Keep task's virtual address space size as mm_struct field which
+>> > exists for a long time - it's initialized in setup_new_exec()
+>> > depending on the new task's personality.
+>> > This way TASK_SIZE will always be the same as current->mm->task_size.
+>> > Previously, there could be an issue about different values of
+>> > TASK_SIZE and current->mm->task_size: e.g, a 32-bit process can unset
+>> > ADDR_LIMIT_3GB personality (with personality syscall) and
+>> > so TASK_SIZE will be 4Gb, which is larger than mm->task_size = 3Gb.
+>> > As TASK_SIZE *and* current->mm->task_size are used both in code
+>> > frequently, this difference creates a subtle situations, for example:
+>> > one can mmap addresses > 3Gb, but they will be hidden in
+>> > /proc/pid/pagemap as it checks mm->task_size.
+>> > I've moved initialization of mm->task_size earlier in setup_new_exec()
+>> > as arch_pick_mmap_layout() initializes mmap_legacy_base with
+>> > TASK_UNMAPPED_BASE, which depends on TASK_SIZE.
+>>
+>> I don't like this patch so much because I think that we should figure
+>> out how this will all work in the long run first.  I've added some
+>> more people to the thread because other arches have similar issues and
+>> because x86 is about to get considerably more complicated (choices
+>> include 3GB, 4GB, 47-bit, and 56-bit (the latter IIRC)).
+>>
+>> Here are a few of my thoughts on the matter.  This isn't all that well
+>> thought out:
+>>
+>> The address space limit, especially if CRIU is in play, isn't really a
+>> hard limit.  For example, you could allocate high memory then lower
+>> the limit.  Similarly, I see no reason that an x32 program should be
+>> forbidden from mapping some high addresses or, similarly, that an i386
+>> program can't (if it really wanted to) do a 64-bit mmap() and get a
+>> high address.
+>>
+>> On that note, can we just *delete* the task_size check from pagemap?
+>> It's been there since the very beginning:
+>>
+>> commit 85863e475e59afb027b0113290e3796ee6020b7d
+>> Author: Matt Mackall <mpm@selenic.com>
+>> Date:   Mon Feb 4 22:29:04 2008 -0800
+>>
+>>     maps4: add /proc/pid/pagemap interface
+>>
+>> and there's no explanation for why it's needed.
+>>
+>> So maybe we should have a *number* (not a bit) that indicates the
+>> maximum address that mmap() will return unless an override is in use.
+>> Since common practice seems to be to stick this in the personality
+>> field, we may need some fancy encoding.  Executing a setuid binary
+>> needs to reset to the default, and personality handles that.
+>
+> If we want to be able to specify arbitrary address as maximum, a fancy
+> encoding would need to claim 51 bits (63 VA - 12 in-page address) on x86
+> from the persona flag.
+> To me, it's stretching personality interface too far.
+>
+> Maybe it's easier to reset the rlimit for suid binaries?
 
-To help isolate changes.
+I guess I don't see why rlimit makes any sense, though.  It's not a
+resource utilization control, hard vs soft limits make very little
+sense, requiring capabilities to exceed the hard limit doesn't help
+anything, and it's only useful to preserve it across execve() to work
+around bugs.
 
-If you constantly upgrade everything, how do you bug hunt for a breakage?
-How do you know whether it's created by the kernel, or by (eg) a later
-version of gcc miscompiling the kernel.  You have a large amount of code
-to start bug hunting through.
+So if it's going to be a number, let's just make it be a new number
+with a new API to control it.
 
-Sticking with particular tool versions long-term means that you build up
-confidence in it - yes, sure, latent bugs exist, but it's easier to
-bug hunt if you aren't constantly suspecting that your tools might be
-broken.
-
-For example, I build kernels with:
-
-		gcc		binutils		built on
-32-bit ARM	4.7.4		2.25			April/May 2015
-64-bit ARM	4.9.2		2.25.51.20150219	Feb/April 2015
-
-I'm not anticipating upgrading them for some time yet - the only one
-which may get upgraded is the 64-bit binutils since later kernels now
-complain about a missing errata workaround in that toolchain version.
-
-I do still have some older toolchains around on some of my ARM boxes
-though, even a GCC 3 version with ARM TLS support for faster builds!
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+--Andy
