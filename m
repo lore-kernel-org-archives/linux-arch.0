@@ -1,76 +1,54 @@
-From: "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>
-Subject: Re: How should we handle variable address space sizes (Re: [RFC 3/4]
- x86/mm: define TASK_SIZE as current->mm->task_size)
-Date: Mon, 2 Jan 2017 12:49:07 +0300
-Message-ID: <20170102094907.GC30735@node.shutemov.name>
-References: <CALCETrXMCVOmVcQYxF_ghPdEjLuNNqbcnoRKRVpJegsQ=SPEFQ@mail.gmail.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [RFC] minimum gcc version for kernel: raise to gcc-4.3 or 4.6?
+Date: Mon, 2 Jan 2017 12:23:47 +0000
+Message-ID: <20170102122347.GB14217@n2100.armlinux.org.uk>
+References: <20161216105634.235457-1-arnd@arndb.de>
+ <20161216170043.taaanbg5objnxjlh@breakpoint.cc>
+ <2778134.jZdhGefl4B@wuerfel>
+ <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CALCETrXMCVOmVcQYxF_ghPdEjLuNNqbcnoRKRVpJegsQ=SPEFQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
-Cc: Dmitry Safonov <dsafonov-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, "Kirill A. Shutemov" <kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, "linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Carlos O'Donell <carlos-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Dmitry Safonov <0x7f454c46-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+In-Reply-To: <20161217112949.pghxlhdlxjzdumuo@mikejones.breakpoint.cc>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, kernel-build-reports@lists.linaro.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 30, 2016 at 06:11:05PM -0800, Andy Lutomirski wrote:
-> On Fri, Dec 30, 2016 at 7:56 AM, Dmitry Safonov <dsafonov-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org> wrote:
-> > Keep task's virtual address space size as mm_struct field which
-> > exists for a long time - it's initialized in setup_new_exec()
-> > depending on the new task's personality.
-> > This way TASK_SIZE will always be the same as current->mm->task_size.
-> > Previously, there could be an issue about different values of
-> > TASK_SIZE and current->mm->task_size: e.g, a 32-bit process can unset
-> > ADDR_LIMIT_3GB personality (with personality syscall) and
-> > so TASK_SIZE will be 4Gb, which is larger than mm->task_size = 3Gb.
-> > As TASK_SIZE *and* current->mm->task_size are used both in code
-> > frequently, this difference creates a subtle situations, for example:
-> > one can mmap addresses > 3Gb, but they will be hidden in
-> > /proc/pid/pagemap as it checks mm->task_size.
-> > I've moved initialization of mm->task_size earlier in setup_new_exec()
-> > as arch_pick_mmap_layout() initializes mmap_legacy_base with
-> > TASK_UNMAPPED_BASE, which depends on TASK_SIZE.
-> 
-> I don't like this patch so much because I think that we should figure
-> out how this will all work in the long run first.  I've added some
-> more people to the thread because other arches have similar issues and
-> because x86 is about to get considerably more complicated (choices
-> include 3GB, 4GB, 47-bit, and 56-bit (the latter IIRC)).
-> 
-> Here are a few of my thoughts on the matter.  This isn't all that well
-> thought out:
-> 
-> The address space limit, especially if CRIU is in play, isn't really a
-> hard limit.  For example, you could allocate high memory then lower
-> the limit.  Similarly, I see no reason that an x32 program should be
-> forbidden from mapping some high addresses or, similarly, that an i386
-> program can't (if it really wanted to) do a 64-bit mmap() and get a
-> high address.
-> 
-> On that note, can we just *delete* the task_size check from pagemap?
-> It's been there since the very beginning:
-> 
-> commit 85863e475e59afb027b0113290e3796ee6020b7d
-> Author: Matt Mackall <mpm-VDJrAJ4Gl5ZBDgjK7y7TUQ@public.gmane.org>
-> Date:   Mon Feb 4 22:29:04 2008 -0800
-> 
->     maps4: add /proc/pid/pagemap interface
-> 
-> and there's no explanation for why it's needed.
-> 
-> So maybe we should have a *number* (not a bit) that indicates the
-> maximum address that mmap() will return unless an override is in use.
-> Since common practice seems to be to stick this in the personality
-> field, we may need some fancy encoding.  Executing a setuid binary
-> needs to reset to the default, and personality handles that.
+On Sat, Dec 17, 2016 at 12:29:50PM +0100, Sebastian Andrzej Siewior wrote:
+> A new version is understandable. But why is an old version required?
+> One thing is an enterprise distro that is "current" or "supported" and still
+> stuck with gcc 4.1 because that is the version they decided to include in
+> their release. This is sad. But you might want to ask yourself why you want
+> the latest kernel but an old gcc / binutils.
 
-If we want to be able to specify arbitrary address as maximum, a fancy
-encoding would need to claim 51 bits (63 VA - 12 in-page address) on x86
-from the persona flag.
-To me, it's stretching personality interface too far.
+To help isolate changes.
 
-Maybe it's easier to reset the rlimit for suid binaries?
+If you constantly upgrade everything, how do you bug hunt for a breakage?
+How do you know whether it's created by the kernel, or by (eg) a later
+version of gcc miscompiling the kernel.  You have a large amount of code
+to start bug hunting through.
+
+Sticking with particular tool versions long-term means that you build up
+confidence in it - yes, sure, latent bugs exist, but it's easier to
+bug hunt if you aren't constantly suspecting that your tools might be
+broken.
+
+For example, I build kernels with:
+
+		gcc		binutils		built on
+32-bit ARM	4.7.4		2.25			April/May 2015
+64-bit ARM	4.9.2		2.25.51.20150219	Feb/April 2015
+
+I'm not anticipating upgrading them for some time yet - the only one
+which may get upgraded is the 64-bit binutils since later kernels now
+complain about a missing errata workaround in that toolchain version.
+
+I do still have some older toolchains around on some of my ARM boxes
+though, even a GCC 3 version with ARM TLS support for faster builds!
 
 -- 
- Kirill A. Shutemov
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
