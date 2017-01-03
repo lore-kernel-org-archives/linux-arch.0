@@ -1,73 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:59307 "EHLO
-        atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S933379AbdACU47 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jan 2017 15:56:59 -0500
-Date: Tue, 3 Jan 2017 21:54:37 +0100
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [Question] New mmap64 syscall?
-Message-ID: <20170103205437.GA22548@amd>
-References: <20161206185440.GA4654@yury-N73SV>
- <f544bcc3-8aae-1bd0-b744-9964fc038a51@redhat.com>
- <20161207154811.GA15248@yury-N73SV>
- <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
+Received: from mx2.suse.de ([195.135.220.15]:55558 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1757679AbdACVZe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Jan 2017 16:25:34 -0500
+Date: Tue, 3 Jan 2017 22:25:28 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v5 04/14] tables.h: add linker table support
+Message-ID: <20170103212528.GE13946@wotan.suse.de>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <20161222023811.21246-1-mcgrof@kernel.org>
+ <20161222023811.21246-5-mcgrof@kernel.org>
+ <1482415098.9552.123.camel@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="ew6BAiZeqk4r7MaW"
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1482415098.9552.123.camel@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
-Message-ID: <20170103205437.8FwwnPRmPV_FIMKaIvkhNIcQAUZvH2NQFyLkfpAo038@z>
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, hpa@zytor.com
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
+Message-ID: <20170103212528.bURsqSo7r8vX8WAfOO2xQj1DSAIYdWd4_YeOj70s0MU@z>
 
+On Thu, Dec 22, 2016 at 03:58:18PM +0200, Andy Shevchenko wrote:
+> On Wed, 2016-12-21 at 18:38 -0800, Luis R. Rodriguez wrote:
+> > +#define LINKTABLE_FOR_EACH(pointer, tbl)				
+> 
+> Hmm... SOMEONE LIKES CAPITAL LETTERS FOR everything, right? :-)
+>
+> I would expect more standard linktable_for_each() macro
 
---ew6BAiZeqk4r7MaW
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+hpa had recommended this, if he prefers a lower case I can change that
+but I really do consider this bikeshedding.
 
+> Same to the rest of similar macros.
 
+Same answer here.
 
-> >Hi Florian,
-> >
-> >I frankly don't understand what you mean, All syscalls you mentioned
-> >doesn't take off_t or other 64-bit arguments. 'VM changes' - virtual
-> >memory? If so, I don't see any changes in VM with this approach, just
-> >correct handling of big offsets.
->=20
-> What I was trying to suggest is a completely different interface which is
-> not subject to register size constraints and which has been requested bef=
-ore
-> (a mechanism for batching mm updates).
+> > +/**
+> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return
+> > error if any
+> > + *
+> > + * @tbl: linker table
+> > + * @func: structure name for the function name we want to call.
+> > + * @args...: arguments to pass to func
+> > + *
+> > + * Example usage::
+> > + *
+> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns,
+> > some_run,);
+> > + */
+> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				
+> > \
+> > +({									
+> > \
+> > +	size_t i;							
+> > \
+> > +	int err = 0;							
+> > \
+> > +	for (i = 0; !err && i < LINKTABLE_SIZE(tbl); i++)		
+> > \
+> > +		err = (LINKTABLE_START(tbl)[i]).func (args);		
+> 
+> 
+> > \
+> > +		err;							
+> 
+> Indentation here a bit confusing.
 
-While I agree that batching might be good idea, I believe mmap64()
-makes sense, too. Yes, I guess libc could do the translation, but
-indirection will cost some performance, and will be problematic for
-stuff such as strace.
+Ah yes, good catch, fixed.
 
-=2E..actually, with strace and batched interface, it will be impossible
-to see what is going on because of races. So I'm not sure if I like
-the batched interface at all...
-
-Best regards,
-								Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
-
---ew6BAiZeqk4r7MaW
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAlhsD40ACgkQMOfwapXb+vLeVwCfQSfrDw9+Xpkq8AnOLq/nOT3I
-jL0AoJQbhRyvVJnjQ0kArd4KM5zxmlUp
-=eVM/
------END PGP SIGNATURE-----
-
---ew6BAiZeqk4r7MaW--
+  Luis
