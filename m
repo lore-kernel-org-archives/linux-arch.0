@@ -1,56 +1,43 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v5 09/14] jump_label: port __jump_table to
-	linker tables
-Date: Tue, 3 Jan 2017 22:27:44 +0100
-Message-ID: <20170103212744.GF13946@wotan.suse.de>
-References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
- <20161222023811.21246-1-mcgrof@kernel.org>
- <20161222023811.21246-10-mcgrof@kernel.org>
- <1482415702.9552.125.camel@linux.intel.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] uapi: use wildcards to list files
+Date: Tue, 03 Jan 2017 22:37:04 +0100
+Message-ID: <2108827.WpE3IvfEdH@wuerfel>
+References: <20161203.192346.1198940437155108508.davem@davemloft.net>
+ <1483454144-10519-1-git-send-email-nicolas.dichtel@6wind.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <1482415702.9552.125.camel@linux.intel.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: gnomes@lxorguk.ukuu.org.uk, dalias@libc.org, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, wangnan0@huawei.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, dsahern@gmail.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, linux@roeck-us.net, david.vrabel@citrix.com, linux-xte
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <1483454144-10519-1-git-send-email-nicolas.dichtel@6wind.com>
+List-Unsubscribe: <https://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <https://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <https://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-nfs@vger.kernel.org, alsa-devel@alsa-project.org, linux-rdma@vger.kernel.org, netdev@vger.kernel.org, linux-mmc@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-spi@vger.kernel.org, linux-raid@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, fcoe-devel@open-fcoe.org, linux-mtd@lists.infradead.org, davem@davemloft.net, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBEZWMgMjIsIDIwMTYgYXQgMDQ6MDg6MjJQTSArMDIwMCwgQW5keSBTaGV2Y2hlbmtv
-IHdyb3RlOgo+IE9uIFdlZCwgMjAxNi0xMi0yMSBhdCAxODozOCAtMDgwMCwgTHVpcyBSLiBSb2Ry
-aWd1ZXogd3JvdGU6Cj4gPiBNb3ZlIHRoZSBfX2p1bXBfdGFibGUgZnJvbSB0aGUgYSBjdXN0b20g
-c2VjdGlvbiBzb2x1dGlvbgo+ID4gdG8gYSBnZW5lcmljIHNvbHV0aW9uLCB0aGlzIGF2b2lkaW5n
-IGV4dHJhIHZtbGludXgubGRzLmgKPiA+IGN1c3RvbWl6YXRpb25zLgo+ID4gCj4gPiBUaGlzIGFs
-c28gZGVtb3MgdGhlIHVzZSBvZiB0aGUgLmRhdGEgbGlua2VyIHRhYmxlIGFuZCBvZgo+ID4gdGhl
-IHNoYXJlZCBhc20gY2FsbCBwdXNoX3NlY3Rpb25fdGJsKCkuCj4gPiAKPiAKPiA+IMKgewo+ID4g
-wqAJYXNtX3ZvbGF0aWxlX2dvdG8oIjE6XG5cdCIKPiA+IMKgCQnCoFdBU00obm9wKSAiXG5cdCIK
-PiA+IC0JCcKgIi5wdXNoc2VjdGlvbiBfX2p1bXBfdGFibGUswqDCoFwiYXdcIlxuXHQiCj4gPiAr
-CQnCoHB1c2hfc2VjdGlvbl90YmxfYW55KC5kYXRhLCBfX2p1bXBfdGFibGUsIGF3KQo+ID4gwqAJ
-CcKgIi53b3JkIDFiLCAlbFtsX3llc10sICVjMFxuXHQiCj4gPiDCoAkJwqAiLnBvcHNlY3Rpb25c
-blx0Igo+ID4gwqAJCcKgOiA6wqDCoCJpIiAoJigoY2hhciAqKWtleSlbYnJhbmNoXSkgOsKgwqA6
-IGxfeWVzKTsKPiA+IEBAIC0yNiw3ICsyOCw3IEBAIHN0YXRpYyBfX2Fsd2F5c19pbmxpbmUgYm9v
-bAo+ID4gYXJjaF9zdGF0aWNfYnJhbmNoX2p1bXAoc3RydWN0IHN0YXRpY19rZXkgKmtleSwgYm9v
-bAo+ID4gwqB7Cj4gPiDCoAlhc21fdm9sYXRpbGVfZ290bygiMTpcblx0Igo+ID4gwqAJCcKgV0FT
-TShiKSAiICVsW2xfeWVzXVxuXHQiCj4gPiAtCQnCoCIucHVzaHNlY3Rpb24gX19qdW1wX3RhYmxl
-LMKgwqBcImF3XCJcblx0Igo+ID4gKwkJwqBwdXNoX3NlY3Rpb25fdGJsX2FueSguZGF0YSwgX19q
-dW1wX3RhYmxlLCBhdykKPiA+IMKgCQnCoCIud29yZCAxYiwgJWxbbF95ZXNdLCAlYzBcblx0Igo+
-ID4gwqAJCcKgIi5wb3BzZWN0aW9uXG5cdCIKPiAKPiBEb2VzIGl0IG1ha2Ugc2Vuc2UgdG8gaW50
-cm9kdWNlIHNvbWV0aGluZyBsaWtlCj4gCj4gI2RlZmluZSBwb3Bfc2VjdGlvbl90YmwgIi5wb3Bz
-ZWN0aW9uXG5cdCIKPiAjZGVmaW5lIHBvcF9zZWN0aW9uX3RibF9hbnkgcG9wX3NlY3Rpb25fdGJs
-CgpBYnNvbHV0ZWx5ICEgSG93ZXZlciB0aGlzIHdvdWxkIGJlIGFuIGV2b2x1dGlvbiwgYW5kIEkg
-d291bGQgbXVjaApwcmVmZXIgdG8gYWRkIHRoaXMgbGF0ZXIgYXMgYW4gYXRvbWljIHN0ZXAgbGF0
-ZXIgdG8gZW5hYmxlIG90aGVyCnVzZXJzIHRvIGFsc28gYmUgdXNpbmcgdGhpcyBzaGFyZWQgbWFj
-cm8uIEkgZGlkIG5vdCBoYXZlIGFuIGltbWVkaWF0ZQpuZWVkIGZvciBhIHBvcF9zZWN0aW9uX3Ri
-bCgpIG1hY3JvIGFzIGl0cyBub3Qgc2VjdGlvbiBzcGVjaWZpYy4KCiAgTHVpcwoKX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcg
-bGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRl
-dmVsCg==
+T24gVHVlc2RheSwgSmFudWFyeSAzLCAyMDE3IDM6MzU6NDQgUE0gQ0VUIE5pY29sYXMgRGljaHRl
+bCB3cm90ZToKPiBSZWd1bGFybHksIHdoZW4gYSBuZXcgaGVhZGVyIGlzIGNyZWF0ZWQgaW4gaW5j
+bHVkZS91YXBpLywgdGhlIGRldmVsb3Blcgo+IGZvcmdldHMgdG8gYWRkIGl0IGluIHRoZSBjb3Jy
+ZXNwb25kaW5nIEtidWlsZCBmaWxlLiBUaGlzIGVycm9yIGlzIHVzdWFsbHkKPiBkZXRlY3RlZCBh
+ZnRlciB0aGUgcmVsZWFzZSBpcyBvdXQuCj4gCj4gSW4gZmFjdCwgYWxsIGhlYWRlcnMgdW5kZXIg
+aW5jbHVkZS91YXBpLyBzaG91bGQgYmUgZXhwb3J0ZWQsIHNvIGxldCdzCj4gdXNlIHdpbGRjYXJk
+cy4KCkkgdGhpbmsgdGhlIGlkZWEgbWFrZXMgYSBsb3Qgb2Ygc2Vuc2U6IGlmIGEgaGVhZGVyIGlz
+IGluIHVhcGksIHdlIHNob3VsZApyZWFsbHkgZXhwb3J0IGl0LiBIb3dldmVyLCB1c2luZyBhIHdp
+bGRjYXJkIGV4cHJlc3Npb24gc2VlbXMgYSBiaXQKYmFja3dhcmRzIGhlcmUsIEkgdGhpbmsgd2Ug
+c2hvdWxkIG1ha2UgdGhpcyBpbXBsaWNpdCBhbmQgbm90IGhhdmUgdGhlCktidWlsZCBmaWxlIGF0
+IGFsbC4KClRoZSAiaGVhZGVyLXkiIHN5bnRheCB3YXMgb3JpZ2luYWxseSBhZGRlZCBiYWNrIHdo
+ZW4gdGhlIHVhcGkgaGVhZGVycwp3ZXJlIG1peGVkIHdpdGggdGhlIGludGVybmFsIGhlYWRlcnMg
+aW4gdGhlIHNhbWUgZGlyZWN0b3J5LiBBZnRlcgpEYXZpZCBIb3dlbGxzIGludHJvZHVjZWQgdGhl
+IHNlcGFyYXRlIGRpcmVjdG9yeSBmb3IgdWFwaSwgaXQgaGFzCmJlY29tZSBhIGJpdCByZWR1bmRh
+bnQuCgpDYW4geW91IHRyeSB0byBtb2RpZnkgc2NyaXB0cy9NYWtlZmlsZS5oZWFkZXJzaW5zdCBp
+bnN0ZWFkIHNvIHdlCmNhbiBzaW1wbHkgcmVtb3ZlIHRoZSBLYnVpbGQgZmlsZXMgZW50aXJlbHk/
+CgoJQXJuZApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpk
+cmktZGV2ZWwgbWFpbGluZyBsaXN0CmRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKaHR0
+cHM6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9kcmktZGV2ZWwK
