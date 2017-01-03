@@ -1,36 +1,127 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] uapi: use wildcards to list files
-Date: Tue, 03 Jan 2017 10:56:42 -0500 (EST)
-Message-ID: <20170103.105642.1067305724615533420.davem@davemloft.net>
-References: <20161203.192346.1198940437155108508.davem@davemloft.net>
- <1483454144-10519-1-git-send-email-nicolas.dichtel@6wind.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
+Date: Tue, 3 Jan 2017 19:04:57 +0300
+Message-ID: <20170103160457.GB17319@node.shutemov.name>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
+ <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
+ <2736959.3MfCab47fD@wuerfel>
+ <CALCETrV_qejd-Ozqo4vTqz=LuukMUPeQ7EVUQbfTxs_xNbO3oQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <1483454144-10519-1-git-send-email-nicolas.dichtel@6wind.com>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: nicolas.dichtel@6wind.com
-Cc: linux-arch@vger.kernel.org, linux-nfs@vger.kernel.org, arnd@arndb.de, alsa-devel@alsa-project.org, linux-rdma@vger.kernel.org, netdev@vger.kernel.org, linux-mmc@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-spi@vger.kernel.org, linux-raid@vger.kernel.org, airlied@linux.ie, netfilter-devel@vger.kernel.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, fcoe-devel@open-fcoe.org, linux-mtd@lists.infradead.org, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrV_qejd-Ozqo4vTqz=LuukMUPeQ7EVUQbfTxs_xNbO3oQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogTmljb2xhcyBEaWNodGVsIDxuaWNvbGFzLmRpY2h0ZWxANndpbmQuY29tPgpEYXRlOiBU
-dWUsICAzIEphbiAyMDE3IDE1OjM1OjQ0ICswMTAwCgo+IFJlZ3VsYXJseSwgd2hlbiBhIG5ldyBo
-ZWFkZXIgaXMgY3JlYXRlZCBpbiBpbmNsdWRlL3VhcGkvLCB0aGUgZGV2ZWxvcGVyCj4gZm9yZ2V0
-cyB0byBhZGQgaXQgaW4gdGhlIGNvcnJlc3BvbmRpbmcgS2J1aWxkIGZpbGUuIFRoaXMgZXJyb3Ig
-aXMgdXN1YWxseQo+IGRldGVjdGVkIGFmdGVyIHRoZSByZWxlYXNlIGlzIG91dC4KPiAKPiBJbiBm
-YWN0LCBhbGwgaGVhZGVycyB1bmRlciBpbmNsdWRlL3VhcGkvIHNob3VsZCBiZSBleHBvcnRlZCwg
-c28gbGV0J3MKPiB1c2Ugd2lsZGNhcmRzLgo+IAo+IEFmdGVyIHRoaXMgcGF0Y2gsIHRoZSBmb2xs
-b3dpbmcgZmlsZXMsIHdoaWNoIHdlcmUgbm90IGV4cG9ydGVkLCBhcmUgbm93Cj4gZXhwb3J0ZWQ6
-CiAuLi4KPiAKPiBTaWduZWQtb2ZmLWJ5OiBOaWNvbGFzIERpY2h0ZWwgPG5pY29sYXMuZGljaHRl
-bEA2d2luZC5jb20+CgpBY2tlZC1ieTogRGF2aWQgUy4gTWlsbGVyIDxkYXZlbUBkYXZlbWxvZnQu
-bmV0PgoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVu
-LWRldmVsIG1haWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3Rz
-Lnhlbi5vcmcveGVuLWRldmVsCg==
+On Mon, Jan 02, 2017 at 10:08:28PM -0800, Andy Lutomirski wrote:
+> On Mon, Jan 2, 2017 at 12:44 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Tuesday, December 27, 2016 4:54:13 AM CET Kirill A. Shutemov wrote:
+> >> As with other resources you can set the limit lower than current usage.
+> >> It would affect only future virtual address space allocations.
+> 
+> I still don't buy all these use cases:
+> 
+> >>
+> >> Use-cases for new rlimit:
+> >>
+> >>   - Bumping the soft limit to RLIM_INFINITY, allows current process all
+> >>     its children to use addresses above 47-bits.
+> 
+> OK, I get this, but only as a workaround for programs that make
+> assumptions about the address space and don't use some mechanism (to
+> be designed?) to work correctly in spite of a larger address space.
+
+I guess you've misread the case. It's opt-in for large adrress space, not
+other way around.
+
+I believe 47-bit VA by default is right way to go to make the transition
+without breaking userspace.
+
+> >>   - Bumping the soft limit to RLIM_INFINITY after fork(2), but before
+> >>     exec(2) allows the child to use addresses above 47-bits.
+> 
+> Ditto.
+> 
+> >>
+> >>   - Lowering the hard limit to 47-bits would prevent current process all
+> >>     its children to use addresses above 47-bits, unless a process has
+> >>     CAP_SYS_RESOURCES.
+> 
+> I've tried and I can't imagine any reason to do this.
+
+That's just if something went wrong and we want to stop an application
+from use addresses above 47-bit.
+
+> >>   - It’s also can be handy to lower hard or soft limit to arbitrary
+> >>     address. User-mode emulation in QEMU may lower the limit to 32-bit
+> >>     to emulate 32-bit machine on 64-bit host.
+> 
+> I don't understand.  QEMU user-mode emulation intercepts all syscalls.
+> What QEMU would *actually* want is a way to say "allocate me some
+> memory with the high N bits clear".  mmap-via-int80 on x86 should be
+> fixed to do this, but a new syscall with an explicit parameter would
+> work, as would a prctl changing the current limit.
+
+Look at mess in mmap_find_vma(). QEmu has to guess where is free virtual
+memory. That's unnessesary complex.
+
+prctl would work for this too. new-mmap would *not*: there are more ways
+to allocate vitual address space: shmat(), mremap(). Changing all of them
+just for this is stupid.
+
+> >>
+> >> TODO:
+> >>   - port to non-x86;
+> >>
+> >> Not-yet-signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> >> Cc: linux-api@vger.kernel.org
+> >
+> > This seems to nicely address the same problem on arm64, which has
+> > run into the same issue due to the various page table formats
+> > that can currently be chosen at compile time.
+> 
+> On further reflection, I think this has very little to do with paging
+> formats except insofar as paging formats make us notice the problem.
+> The issue is that user code wants to be able to assume an upper limit
+> on an address, and it gets an upper limit right now that depends on
+> architecture due to paging formats.  But someone really might want to
+> write a *portable* 64-bit program that allocates memory with the high
+> 16 bits clear.  So let's add such a mechanism directly.
+> 
+> As a thought experiment, what if x86_64 simply never allocated "high"
+> (above 2^47-1) addresses unless a new mmap-with-explicit-limit syscall
+> were used?  Old glibc would continue working.  Old VMs would work.
+> New programs that want to use ginormous mappings would have to use the
+> new syscall.  This would be totally stateless and would have no issues
+> with CRIU.
+
+Except, we need more than mmap as I mentioned.
+
+And what about stack? I'm not sure that everybody would be happy with
+stack in the middle of address space.
+
+> If necessary, we could also have a prctl that changes a
+> "personality-like" limit that is in effect when the old mmap was used.
+> I say "personality-like" because it would reset under exactly the same
+> conditions that personality resets itself.
+> 
+> Thoughts?
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+-- 
+ Kirill A. Shutemov
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
