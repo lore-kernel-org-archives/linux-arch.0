@@ -1,68 +1,56 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v5 04/14] tables.h: add linker table support
-Date: Tue, 3 Jan 2017 22:25:28 +0100
-Message-ID: <20170103212528.GE13946@wotan.suse.de>
+Subject: Re: [PATCH v5 09/14] jump_label: port __jump_table to
+	linker tables
+Date: Tue, 3 Jan 2017 22:27:44 +0100
+Message-ID: <20170103212744.GF13946@wotan.suse.de>
 References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
  <20161222023811.21246-1-mcgrof@kernel.org>
- <20161222023811.21246-5-mcgrof@kernel.org>
- <1482415098.9552.123.camel@linux.intel.com>
+ <20161222023811.21246-10-mcgrof@kernel.org>
+ <1482415702.9552.125.camel@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <platform-driver-x86-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
 Content-Disposition: inline
-In-Reply-To: <1482415098.9552.123.camel@linux.intel.com>
-Sender: platform-driver-x86-owner@vger.kernel.org
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>, hpa@zytor.com
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com
+In-Reply-To: <1482415702.9552.125.camel@linux.intel.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: gnomes@lxorguk.ukuu.org.uk, dalias@libc.org, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, wangnan0@huawei.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, dsahern@gmail.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, dwmw2@infradead.org, linux@roeck-us.net, david.vrabel@citrix.com, linux-xte
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 22, 2016 at 03:58:18PM +0200, Andy Shevchenko wrote:
-> On Wed, 2016-12-21 at 18:38 -0800, Luis R. Rodriguez wrote:
-> > +#define LINKTABLE_FOR_EACH(pointer, tbl)				
-> 
-> Hmm... SOMEONE LIKES CAPITAL LETTERS FOR everything, right? :-)
->
-> I would expect more standard linktable_for_each() macro
-
-hpa had recommended this, if he prefers a lower case I can change that
-but I really do consider this bikeshedding.
-
-> Same to the rest of similar macros.
-
-Same answer here.
-
-> > +/**
-> > + * LINKTABLE_RUN_ERR - run each linker table entry func and return
-> > error if any
-> > + *
-> > + * @tbl: linker table
-> > + * @func: structure name for the function name we want to call.
-> > + * @args...: arguments to pass to func
-> > + *
-> > + * Example usage::
-> > + *
-> > + *   unsigned int err = LINKTABLE_RUN_ERR(frobnicator_fns,
-> > some_run,);
-> > + */
-> > +#define LINKTABLE_RUN_ERR(tbl, func, args...)				
-> > \
-> > +({									
-> > \
-> > +	size_t i;							
-> > \
-> > +	int err = 0;							
-> > \
-> > +	for (i = 0; !err && i < LINKTABLE_SIZE(tbl); i++)		
-> > \
-> > +		err = (LINKTABLE_START(tbl)[i]).func (args);		
-> 
-> 
-> > \
-> > +		err;							
-> 
-> Indentation here a bit confusing.
-
-Ah yes, good catch, fixed.
-
-  Luis
+T24gVGh1LCBEZWMgMjIsIDIwMTYgYXQgMDQ6MDg6MjJQTSArMDIwMCwgQW5keSBTaGV2Y2hlbmtv
+IHdyb3RlOgo+IE9uIFdlZCwgMjAxNi0xMi0yMSBhdCAxODozOCAtMDgwMCwgTHVpcyBSLiBSb2Ry
+aWd1ZXogd3JvdGU6Cj4gPiBNb3ZlIHRoZSBfX2p1bXBfdGFibGUgZnJvbSB0aGUgYSBjdXN0b20g
+c2VjdGlvbiBzb2x1dGlvbgo+ID4gdG8gYSBnZW5lcmljIHNvbHV0aW9uLCB0aGlzIGF2b2lkaW5n
+IGV4dHJhIHZtbGludXgubGRzLmgKPiA+IGN1c3RvbWl6YXRpb25zLgo+ID4gCj4gPiBUaGlzIGFs
+c28gZGVtb3MgdGhlIHVzZSBvZiB0aGUgLmRhdGEgbGlua2VyIHRhYmxlIGFuZCBvZgo+ID4gdGhl
+IHNoYXJlZCBhc20gY2FsbCBwdXNoX3NlY3Rpb25fdGJsKCkuCj4gPiAKPiAKPiA+IMKgewo+ID4g
+wqAJYXNtX3ZvbGF0aWxlX2dvdG8oIjE6XG5cdCIKPiA+IMKgCQnCoFdBU00obm9wKSAiXG5cdCIK
+PiA+IC0JCcKgIi5wdXNoc2VjdGlvbiBfX2p1bXBfdGFibGUswqDCoFwiYXdcIlxuXHQiCj4gPiAr
+CQnCoHB1c2hfc2VjdGlvbl90YmxfYW55KC5kYXRhLCBfX2p1bXBfdGFibGUsIGF3KQo+ID4gwqAJ
+CcKgIi53b3JkIDFiLCAlbFtsX3llc10sICVjMFxuXHQiCj4gPiDCoAkJwqAiLnBvcHNlY3Rpb25c
+blx0Igo+ID4gwqAJCcKgOiA6wqDCoCJpIiAoJigoY2hhciAqKWtleSlbYnJhbmNoXSkgOsKgwqA6
+IGxfeWVzKTsKPiA+IEBAIC0yNiw3ICsyOCw3IEBAIHN0YXRpYyBfX2Fsd2F5c19pbmxpbmUgYm9v
+bAo+ID4gYXJjaF9zdGF0aWNfYnJhbmNoX2p1bXAoc3RydWN0IHN0YXRpY19rZXkgKmtleSwgYm9v
+bAo+ID4gwqB7Cj4gPiDCoAlhc21fdm9sYXRpbGVfZ290bygiMTpcblx0Igo+ID4gwqAJCcKgV0FT
+TShiKSAiICVsW2xfeWVzXVxuXHQiCj4gPiAtCQnCoCIucHVzaHNlY3Rpb24gX19qdW1wX3RhYmxl
+LMKgwqBcImF3XCJcblx0Igo+ID4gKwkJwqBwdXNoX3NlY3Rpb25fdGJsX2FueSguZGF0YSwgX19q
+dW1wX3RhYmxlLCBhdykKPiA+IMKgCQnCoCIud29yZCAxYiwgJWxbbF95ZXNdLCAlYzBcblx0Igo+
+ID4gwqAJCcKgIi5wb3BzZWN0aW9uXG5cdCIKPiAKPiBEb2VzIGl0IG1ha2Ugc2Vuc2UgdG8gaW50
+cm9kdWNlIHNvbWV0aGluZyBsaWtlCj4gCj4gI2RlZmluZSBwb3Bfc2VjdGlvbl90YmwgIi5wb3Bz
+ZWN0aW9uXG5cdCIKPiAjZGVmaW5lIHBvcF9zZWN0aW9uX3RibF9hbnkgcG9wX3NlY3Rpb25fdGJs
+CgpBYnNvbHV0ZWx5ICEgSG93ZXZlciB0aGlzIHdvdWxkIGJlIGFuIGV2b2x1dGlvbiwgYW5kIEkg
+d291bGQgbXVjaApwcmVmZXIgdG8gYWRkIHRoaXMgbGF0ZXIgYXMgYW4gYXRvbWljIHN0ZXAgbGF0
+ZXIgdG8gZW5hYmxlIG90aGVyCnVzZXJzIHRvIGFsc28gYmUgdXNpbmcgdGhpcyBzaGFyZWQgbWFj
+cm8uIEkgZGlkIG5vdCBoYXZlIGFuIGltbWVkaWF0ZQpuZWVkIGZvciBhIHBvcF9zZWN0aW9uX3Ri
+bCgpIG1hY3JvIGFzIGl0cyBub3Qgc2VjdGlvbiBzcGVjaWZpYy4KCiAgTHVpcwoKX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1haWxpbmcg
+bGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcveGVuLWRl
+dmVsCg==
