@@ -1,41 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:56264 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S936216AbdACWJv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jan 2017 17:09:51 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
-Date: Tue, 03 Jan 2017 23:07:20 +0100
-Message-ID: <21511994.eBlbEPoKOz@wuerfel>
-In-Reply-To: <CALCETrUCdu3kTBU09gXaSppO7VCm+872zkGnovaZKTXBbY2wTg@mail.gmail.com>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com> <3492795.xaneWtGxgW@wuerfel> <CALCETrUCdu3kTBU09gXaSppO7VCm+872zkGnovaZKTXBbY2wTg@mail.gmail.com>
+Received: from mga07.intel.com ([134.134.136.100]:62577 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1760051AbdADAON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 3 Jan 2017 19:14:13 -0500
+Date: Tue, 3 Jan 2017 17:13:49 -0700
+From: Ross Zwisler <ross.zwisler@linux.intel.com>
+Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
+Message-ID: <20170104001349.GA8176@linux.intel.com>
+References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20170103220720.QZODGg2f_E65LiWgY3FzJq6A0emEqUFvhmPloHK5Ps8@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org
+Message-ID: <20170104001349.jdBaA2Eqb5qON4mrC8edJjGGj8YBvd33HiSpsuuYZpc@z>
 
-On Tuesday, January 3, 2017 10:29:33 AM CET Andy Lutomirski wrote:
+On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
+> Currently dax_mapping_entry_mkclean() fails to clean and write protect the
+> pmd_t of a DAX PMD entry during an *sync operation.  This can result in
+> data loss, as detailed in patch 4.
 > 
-> Hmm.  What if we approached this a bit differently?  We could add a
-> single new personality bit ADDR_LIMIT_EXPLICIT.  Setting this bit
-> cause PER_LINUX32_3GB etc to be automatically cleared.
+> You can find a working tree here:
+> 
+> https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+> 
+> This series applies cleanly to mmotm-2016-12-19-16-31.
+> 
+> Changes since v1:
+>  - Included Dan's patch to kill DAX support for UML.
+>  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
+>    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
+>    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
+> 
+> Dan Williams (1):
+>   dax: kill uml support
+> 
+> Ross Zwisler (3):
+>   dax: add stub for pmdp_huge_clear_flush()
+>   mm: add follow_pte_pmd()
+>   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
+> 
+>  fs/Kconfig                    |  2 +-
+>  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
+>  include/asm-generic/pgtable.h | 10 +++++++++
+>  include/linux/mm.h            |  4 ++--
+>  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
+>  5 files changed, 79 insertions(+), 27 deletions(-)
 
-Both the ADDR_LIMIT_32BIT and ADDR_LIMIT_3GB flags I guess?
+Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
+so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
 
-> When
-> ADDR_LIMIT_EXPLICIT is in effect, prctl can set a 64-bit numeric
-> limit.  If ADDR_LIMIT_EXPLICIT is cleared, the prctl value stops being
-> settable and reading it via prctl returns whatever is implied by the
-> other personality bits.
+I have to apologize, I didn't understand that Dan intended his "dax: kill uml
+support" patch to land in v4.11.  I thought he intended it as a cleanup to my
+series, which really needs to land in v4.10.  That's why I folded them
+together into this v2, along with the wrapper suggested by Jan.
 
-I don't see anything wrong with it, but I'm a bit confused now
-what this would be good for, compared to using just prctl.
+Andrew, does it work for you to just keep v1 of this series, and eventually
+send that to Linus for v4.10?
 
-Is this about setuid clearing the personality but not the prctl,
-or something else?
+https://lkml.org/lkml/2016/12/20/649
 
-	Arnd
+You've already pulled that one into -mm, and it does correctly solve the data
+loss issue.
+
+That would let us deal with getting rid of the #ifdef, blacklisting
+architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
+series for v4.11.
