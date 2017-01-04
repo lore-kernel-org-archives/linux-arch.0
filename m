@@ -1,71 +1,47 @@
-From: Ross Zwisler <ross.zwisler@linux.intel.com>
-Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
-Date: Tue, 3 Jan 2017 17:13:49 -0700
-Message-ID: <20170104001349.GA8176@linux.intel.com>
-References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: Re: [PATCH] uapi: use wildcards to list files
+Date: Wed, 4 Jan 2017 10:03:50 +0100
+Message-ID: <bf83da6b-01ef-bf44-b3e1-ca6fc5636818@6wind.com>
+References: <20161203.192346.1198940437155108508.davem@davemloft.net>
+ <1483454144-10519-1-git-send-email-nicolas.dichtel@6wind.com>
+ <2108827.WpE3IvfEdH@wuerfel>
+Reply-To: nicolas.dichtel@6wind.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <2108827.WpE3IvfEdH@wuerfel>
+Sender: netdev-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, netfilter-devel@vger.kernel.org, linux-nfs@vger.kernel.org, linux-raid@vger.kernel.org, linux-spi@vger.kernel.org, linux-mtd@lists.infradead.org, linux-rdma@vger.kernel.org, fcoe-devel@open-fcoe.org, alsa-devel@alsa-project.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, davem@davemloft.net, airlied@linux.ie, David Howells <dhowells@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
-> Currently dax_mapping_entry_mkclean() fails to clean and write protect the
-> pmd_t of a DAX PMD entry during an *sync operation.  This can result in
-> data loss, as detailed in patch 4.
+Le 03/01/2017 à 22:37, Arnd Bergmann a écrit :
+> On Tuesday, January 3, 2017 3:35:44 PM CET Nicolas Dichtel wrote:
+>> Regularly, when a new header is created in include/uapi/, the developer
+>> forgets to add it in the corresponding Kbuild file. This error is usually
+>> detected after the release is out.
+>>
+>> In fact, all headers under include/uapi/ should be exported, so let's
+>> use wildcards.
 > 
-> You can find a working tree here:
+> I think the idea makes a lot of sense: if a header is in uapi, we should
+> really export it. However, using a wildcard expression seems a bit
+> backwards here, I think we should make this implicit and not have the
+> Kbuild file at all.
 > 
-> https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+> The "header-y" syntax was originally added back when the uapi headers
+> were mixed with the internal headers in the same directory. After
+> David Howells introduced the separate directory for uapi, it has
+> become a bit redundant.
+Ok, thank you for the explanation, I was wondering why those Kbuild files were
+needed.
+
 > 
-> This series applies cleanly to mmotm-2016-12-19-16-31.
-> 
-> Changes since v1:
->  - Included Dan's patch to kill DAX support for UML.
->  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
->    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
->    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
-> 
-> Dan Williams (1):
->   dax: kill uml support
-> 
-> Ross Zwisler (3):
->   dax: add stub for pmdp_huge_clear_flush()
->   mm: add follow_pte_pmd()
->   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
-> 
->  fs/Kconfig                    |  2 +-
->  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
->  include/asm-generic/pgtable.h | 10 +++++++++
->  include/linux/mm.h            |  4 ++--
->  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
->  5 files changed, 79 insertions(+), 27 deletions(-)
+> Can you try to modify scripts/Makefile.headersinst instead so we
+> can simply remove the Kbuild files entirely?
+I will try something.
 
-Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
-so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
 
-I have to apologize, I didn't understand that Dan intended his "dax: kill uml
-support" patch to land in v4.11.  I thought he intended it as a cleanup to my
-series, which really needs to land in v4.10.  That's why I folded them
-together into this v2, along with the wrapper suggested by Jan.
-
-Andrew, does it work for you to just keep v1 of this series, and eventually
-send that to Linus for v4.10?
-
-https://lkml.org/lkml/2016/12/20/649
-
-You've already pulled that one into -mm, and it does correctly solve the data
-loss issue.
-
-That would let us deal with getting rid of the #ifdef, blacklisting
-architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
-series for v4.11.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Regards,
+Nicolas
