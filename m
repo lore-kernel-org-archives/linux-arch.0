@@ -1,75 +1,71 @@
-From: Brendan Gregg <brendan.d.gregg@gmail.com>
-Subject: Re: [PATCH 11/13] fs: fix unsigned enum warning with gcc-4.2
-Date: Tue, 3 Jan 2017 14:47:09 -0800
-Message-ID: <CAE40pdenVkk-JerdB905nyupoDDPiQk9qv4p1Jv62kcj3-dKhQ@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de> <20161216105634.235457-12-arnd@arndb.de>
+From: Ross Zwisler <ross.zwisler@linux.intel.com>
+Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
+Date: Tue, 3 Jan 2017 17:13:49 -0700
+Message-ID: <20170104001349.GA8176@linux.intel.com>
+References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f66.google.com ([209.85.214.66]:36406 "EHLO
-        mail-it0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1759085AbdACWrp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jan 2017 17:47:45 -0500
-In-Reply-To: <20161216105634.235457-12-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 16, 2016 at 2:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> With arm-linux-gcc-4.2, almost every file we build in the kernel ends
-> up with this warning:
->
-> include/linux/fs.h:2648: warning: comparison of unsigned expression < 0 is always false
->
+On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
+> Currently dax_mapping_entry_mkclean() fails to clean and write protect the
+> pmd_t of a DAX PMD entry during an *sync operation.  This can result in
+> data loss, as detailed in patch 4.
+> 
+> You can find a working tree here:
+> 
+> https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+> 
+> This series applies cleanly to mmotm-2016-12-19-16-31.
+> 
+> Changes since v1:
+>  - Included Dan's patch to kill DAX support for UML.
+>  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
+>    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
+>    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
+> 
+> Dan Williams (1):
+>   dax: kill uml support
+> 
+> Ross Zwisler (3):
+>   dax: add stub for pmdp_huge_clear_flush()
+>   mm: add follow_pte_pmd()
+>   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
+> 
+>  fs/Kconfig                    |  2 +-
+>  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
+>  include/asm-generic/pgtable.h | 10 +++++++++
+>  include/linux/mm.h            |  4 ++--
+>  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
+>  5 files changed, 79 insertions(+), 27 deletions(-)
 
-Thanks, I'd like to see this fixed as a similar warning gets printed
-whenever running many of the bcc/BPF tools, which gets annoying and is
-user-visible. eg:
+Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
+so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
 
-# /usr/share/bcc/tools/xfsslower 1
-In file included from /virtual/main.c:3:
-/lib/modules/4.8.6-300.fc25.x86_64/build/include/linux/fs.h:2677:9:
-warning: comparison of unsigned enum expression < 0 is always false
-[-Wtautological-compare]
-        if (id < 0 || id >= READING_MAX_ID)
-            ~~ ^ ~
-1 warning generated.
-Tracing XFS operations slower than 1 ms
-TIME     COMM           PID    T BYTES   OFF_KB   LAT(ms) FILENAME
-14:44:27 cksum          4414   R 65536   0           1.02 chcon
-14:44:27 cksum          4414   R 65536   0           1.20 cpio
-14:44:27 cksum          4414   R 65536   0           1.01 diff
-14:44:27 cksum          4414   R 65536   0           1.15 dir
-[...]
+I have to apologize, I didn't understand that Dan intended his "dax: kill uml
+support" patch to land in v4.11.  I thought he intended it as a cleanup to my
+series, which really needs to land in v4.10.  That's why I folded them
+together into this v2, along with the wrapper suggested by Jan.
 
-This patch fixes the warning.
+Andrew, does it work for you to just keep v1 of this series, and eventually
+send that to Linus for v4.10?
 
-Brendan
+https://lkml.org/lkml/2016/12/20/649
 
->
-> Later versions don't have this problem, but it's easy enough to
-> work around.
->
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  include/linux/fs.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/include/linux/fs.h b/include/linux/fs.h
-> index 398cf20a706d..782c2a292fd7 100644
-> --- a/include/linux/fs.h
-> +++ b/include/linux/fs.h
-> @@ -2645,7 +2645,7 @@ static const char * const kernel_read_file_str[] = {
->
->  static inline const char *kernel_read_file_id_str(enum kernel_read_file_id id)
->  {
-> -       if (id < 0 || id >= READING_MAX_ID)
-> +       if ((unsigned)id >= READING_MAX_ID)
->                 return kernel_read_file_str[READING_UNKNOWN];
->
->         return kernel_read_file_str[id];
-> --
-> 2.9.0
->
+You've already pulled that one into -mm, and it does correctly solve the data
+loss issue.
+
+That would let us deal with getting rid of the #ifdef, blacklisting
+architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
+series for v4.11.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
