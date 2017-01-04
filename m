@@ -1,35 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f48.google.com ([209.85.215.48]:34968 "EHLO
-        mail-lf0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1757590AbdADKjY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2017 05:39:24 -0500
-Received: by mail-lf0-f48.google.com with SMTP id b14so301945107lfg.2
-        for <linux-arch@vger.kernel.org>; Wed, 04 Jan 2017 02:39:12 -0800 (PST)
-Date: Wed, 4 Jan 2017 11:39:11 +0100
-From: Christoffer Dall <christoffer.dall@linaro.org>
-Subject: Re: [PATCH 12/13] KVM: arm: avoid binary number literals for gcc-4.2
-Message-ID: <20170104103911.GC20461@cbox>
-References: <20161216105634.235457-1-arnd@arndb.de>
- <20161216105634.235457-13-arnd@arndb.de>
+Received: from mout.kundenserver.de ([217.72.192.75]:56498 "EHLO
+        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1030834AbdADN6X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2017 08:58:23 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
+Date: Wed, 04 Jan 2017 14:55:41 +0100
+Message-ID: <5530270.v1BLsanhbo@wuerfel>
+In-Reply-To: <CALCETrXmdAnbgjsxw=qTbP2PhVCzE8v3y5XMt8DVa4P9DowsGA@mail.gmail.com>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com> <21511994.eBlbEPoKOz@wuerfel> <CALCETrXmdAnbgjsxw=qTbP2PhVCzE8v3y5XMt8DVa4P9DowsGA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20161216105634.235457-13-arnd@arndb.de>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, kernel-build-reports@lists.linaro.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kvmarm@lists.cs.columbia.edu, linux-arm-kernel@vger.kernel.org
-Message-ID: <20170104103911.0BYK5-_y7ocqpBcexqDasuIbv-9ztoXwHJ42Cvpa8LI@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170104135541.3_f5_DbBlhVXGted6jKHjtjoCtUueJeuqwuKkWY0hCc@z>
 
-On Fri, Dec 16, 2016 at 11:56:33AM +0100, Arnd Bergmann wrote:
-> Old gcc versions prior to 4.3 don't understand the 0b... syntax for
-> numbers, and this seems to be the only instance in the kernel, so better
-> use hexadecimal instead.
+On Tuesday, January 3, 2017 2:09:16 PM CET Andy Lutomirski wrote:
+> >
+> >> When
+> >> ADDR_LIMIT_EXPLICIT is in effect, prctl can set a 64-bit numeric
+> >> limit.  If ADDR_LIMIT_EXPLICIT is cleared, the prctl value stops being
+> >> settable and reading it via prctl returns whatever is implied by the
+> >> other personality bits.
+> >
+> > I don't see anything wrong with it, but I'm a bit confused now
+> > what this would be good for, compared to using just prctl.
+> >
+> > Is this about setuid clearing the personality but not the prctl,
+> > or something else?
 > 
-> arch/arm/include/asm/kvm_mmu.h:127:38: error: invalid suffix "b101" on integer constant
+> It's to avid ambiguity as to what happens if you set ADDR_LIMIT_32BIT
+> and use the prctl.  ISTM it would be nice for the semantics to be
+> fully defined in all cases.
 > 
-> Fixes: 159793001d7d ("ARM: KVM: force cache clean on page fault when caches are off")
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Same as before:
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+Ok, got it.
+
+	Arnd
