@@ -1,42 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([217.72.192.75]:56498 "EHLO
-        mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1030834AbdADN6X (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2017 08:58:23 -0500
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:33006 "EHLO
+        mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1758164AbdADOUC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2017 09:20:02 -0500
+Received: by mail-wm0-f68.google.com with SMTP id u144so91727849wmu.0
+        for <linux-arch@vger.kernel.org>; Wed, 04 Jan 2017 06:20:02 -0800 (PST)
+Date: Wed, 4 Jan 2017 17:19:59 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
 Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
-Date: Wed, 04 Jan 2017 14:55:41 +0100
-Message-ID: <5530270.v1BLsanhbo@wuerfel>
-In-Reply-To: <CALCETrXmdAnbgjsxw=qTbP2PhVCzE8v3y5XMt8DVa4P9DowsGA@mail.gmail.com>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com> <21511994.eBlbEPoKOz@wuerfel> <CALCETrXmdAnbgjsxw=qTbP2PhVCzE8v3y5XMt8DVa4P9DowsGA@mail.gmail.com>
+Message-ID: <20170104141959.GC17319@node.shutemov.name>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
+ <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
+ <2736959.3MfCab47fD@wuerfel>
+ <CALCETrV_qejd-Ozqo4vTqz=LuukMUPeQ7EVUQbfTxs_xNbO3oQ@mail.gmail.com>
+ <20170103160457.GB17319@node.shutemov.name>
+ <CALCETrW3=SsQeC-gWOVqwTtg022+gHei=xfUc2ei3kkX0CACpg@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrW3=SsQeC-gWOVqwTtg022+gHei=xfUc2ei3kkX0CACpg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Dave Hansen <dave.hansen@intel.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170104135541.3_f5_DbBlhVXGted6jKHjtjoCtUueJeuqwuKkWY0hCc@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20170104141959.6pON0lCpfptCmgHTeo5wsatFOQALCkgQNSy-8I5hceg@z>
 
-On Tuesday, January 3, 2017 2:09:16 PM CET Andy Lutomirski wrote:
-> >
-> >> When
-> >> ADDR_LIMIT_EXPLICIT is in effect, prctl can set a 64-bit numeric
-> >> limit.  If ADDR_LIMIT_EXPLICIT is cleared, the prctl value stops being
-> >> settable and reading it via prctl returns whatever is implied by the
-> >> other personality bits.
-> >
-> > I don't see anything wrong with it, but I'm a bit confused now
-> > what this would be good for, compared to using just prctl.
-> >
-> > Is this about setuid clearing the personality but not the prctl,
-> > or something else?
+On Tue, Jan 03, 2017 at 10:27:22AM -0800, Andy Lutomirski wrote:
+> On Tue, Jan 3, 2017 at 8:04 AM, Kirill A. Shutemov <kirill@shutemov.name> wrote:
+> > And what about stack? I'm not sure that everybody would be happy with
+> > stack in the middle of address space.
 > 
-> It's to avid ambiguity as to what happens if you set ADDR_LIMIT_32BIT
-> and use the prctl.  ISTM it would be nice for the semantics to be
-> fully defined in all cases.
-> 
+> I would, personally.  I think that, for very large address spaces, we
+> should allocate a large block of stack and get rid of the "stack grows
+> down forever" legacy idea.  Then we would never need to worry about
+> the stack eventually hitting some other allocation.  And 2^57 bytes is
+> hilariously large for a default stack.
 
-Ok, got it.
+The stack in the middle of address space can prevent creating other huuuge
+contiguous mapping. Databases may want this.
 
-	Arnd
+-- 
+ Kirill A. Shutemov
