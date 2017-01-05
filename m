@@ -1,100 +1,76 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
- Integrity (ADI)
-Date: Thu, 5 Jan 2017 08:13:31 -0700
-Message-ID: <e808bcce-3357-9df9-2032-442d6b59798a@oracle.com>
-References: <1483569999-13543-1-git-send-email-khalid.aziz@oracle.com>
- <fc6696de-34d7-e4ce-2b39-f788ba22843e@redhat.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCHv2 00/29] 5-level paging
+Date: Thu, 5 Jan 2017 19:57:15 +0300
+Message-ID: <20170105165715.GF17319@node.shutemov.name>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <fc6696de-34d7-e4ce-2b39-f788ba22843e@redhat.com>
+Content-Disposition: inline
+In-Reply-To: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Jerome Marchand <jmarchan@redhat.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, dave.hansen@linux.intel.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vg
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andi Kleen <ak@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 01/05/2017 02:37 AM, Jerome Marchand wrote:
-> On 01/04/2017 11:46 PM, Khalid Aziz wrote:
->> ADI is a new feature supported on sparc M7 and newer processors to allow
->> hardware to catch rogue accesses to memory. ADI is supported for data
->> fetches only and not instruction fetches. An app can enable ADI on its
->> data pages, set version tags on them and use versioned addresses to
->> access the data pages. Upper bits of the address contain the version
->> tag. On M7 processors, upper four bits (bits 63-60) contain the version
->> tag. If a rogue app attempts to access ADI enabled data pages, its
->> access is blocked and processor generates an exception.
->>
->> This patch extends mprotect to enable ADI (TSTATE.mcde), enable/disable
->> MCD (Memory Corruption Detection) on selected memory ranges, enable
->> TTE.mcd in PTEs, return ADI parameters to userspace and save/restore ADI
->> version tags on page swap out/in.  It also adds handlers for all traps
->> related to MCD. ADI is not enabled by default for any task. A task must
->> explicitly enable ADI on a memory range and set version tag for ADI to
->> be effective for the task.
->>
->> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
->> Cc: Khalid Aziz <khalid@gonehiking.org>
->> ---
->> v2:
->> 	- Fixed a build error
->>
->> v3:
->> 	- Removed CONFIG_SPARC_ADI
->> 	- Replaced prctl commands with mprotect
->> 	- Added auxiliary vectors for ADI parameters
->> 	- Enabled ADI for swappable pages
->>
->>  Documentation/sparc/adi.txt             | 239 ++++++++++++++++++++++++++++++++
->>  arch/sparc/include/asm/adi.h            |   6 +
->>  arch/sparc/include/asm/adi_64.h         |  46 ++++++
->>  arch/sparc/include/asm/elf_64.h         |   8 ++
->>  arch/sparc/include/asm/hugetlb.h        |  13 ++
->>  arch/sparc/include/asm/hypervisor.h     |   2 +
->>  arch/sparc/include/asm/mman.h           |  40 +++++-
->>  arch/sparc/include/asm/mmu_64.h         |   2 +
->>  arch/sparc/include/asm/mmu_context_64.h |  32 +++++
->>  arch/sparc/include/asm/pgtable_64.h     |  97 ++++++++++++-
->>  arch/sparc/include/asm/ttable.h         |  10 ++
->>  arch/sparc/include/asm/uaccess_64.h     | 120 +++++++++++++++-
->>  arch/sparc/include/uapi/asm/asi.h       |   5 +
->>  arch/sparc/include/uapi/asm/auxvec.h    |   8 ++
->>  arch/sparc/include/uapi/asm/mman.h      |   2 +
->>  arch/sparc/include/uapi/asm/pstate.h    |  10 ++
->>  arch/sparc/kernel/Makefile              |   1 +
->>  arch/sparc/kernel/adi_64.c              |  93 +++++++++++++
->>  arch/sparc/kernel/entry.h               |   3 +
->>  arch/sparc/kernel/head_64.S             |   1 +
->>  arch/sparc/kernel/mdesc.c               |   4 +
->>  arch/sparc/kernel/process_64.c          |  21 +++
->>  arch/sparc/kernel/sun4v_mcd.S           |  16 +++
->>  arch/sparc/kernel/traps_64.c            | 142 ++++++++++++++++++-
->>  arch/sparc/kernel/ttable_64.S           |   6 +-
->>  arch/sparc/mm/gup.c                     |  37 +++++
->>  arch/sparc/mm/tlb.c                     |  28 ++++
->>  arch/x86/kernel/signal_compat.c         |   2 +-
->>  include/asm-generic/pgtable.h           |   5 +
->>  include/linux/mm.h                      |   2 +
->>  include/uapi/asm-generic/siginfo.h      |   5 +-
->>  mm/memory.c                             |   2 +-
->>  mm/rmap.c                               |   4 +-
->
-> I haven't actually reviewed the code and looked at why you need
-> set_swp_pte_at() function, but the code that add the generic version of
-> this function need to be separated from the rest of the patch. Also,
-> given the size of this patch, I suspect the rest also need to be broken
-> into more patches.
->
-> Jerome
->
+On Tue, Dec 27, 2016 at 04:53:44AM +0300, Kirill A. Shutemov wrote:
+> Here is v2 of 5-level paging patchset.
+> 
+> Please consider applying first 7 patches.
 
-Sure, I can do that. Code to add new signal codes can be one patch, 
-generic changes to swap infrastructure can be another and I can look for 
-logical breaks for the rest of the sparc specific code.
+It's probably useful to describe all pieces and the order in which they can
+be be merged:
 
---
-Khalid
+  - The first seven patches of this patchset I would like to get applied now:
+
+    + Detect la57 feature for /proc/cpuinfo.
+
+    + Brings 5-level paging to generic code and convert all architectures
+      to it using <asm-generic/5level-fixup.h>
+
+    This is preparation for the next batch of patches.
+
+  - Basic LA57 enabling
+
+    The rest of the patches of the patchset, except rlimit proposal.
+
+    This would enable 5-level paging for kernel.
+
+    Userspace upper address would be limited to current TASK_SIZE_MAX --
+    47-bit - PAGE_SIZE, until we will figure out the right interface to
+    opt-in full 56-bit VA.
+
+    We still working on getting XEN into shape. We need to get it up and
+    running at least for 4-level paging to not regress any configuration.
+
+The reset can be merged independently after basic LA57 enabling:
+
+  - Large VA opt-in mechanism
+
+    I've proposed rlimit handle to enable large VA for userspace.
+
+    Andy is not fan of it. We need to decide what is right way to go.
+
+    Any help with that is welcome.
+
+  - Boottime switch for 5-level paging.
+
+    I haven't started looking into this yet.
+
+  - MPX - MAWA enabling required.
+
+    It requires changes into GCC (libmpx and libmpxwrappers) which are
+    not ready yet.
+
+  - Virtualization - EPT5
+
+    There's RFC patchset by Liang Li. Work in progress.
+
+Does it sound reasonable from maintainer's point of view?
+Or should I shift priorities somewhere?
+
+-- 
+ Kirill A. Shutemov
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
