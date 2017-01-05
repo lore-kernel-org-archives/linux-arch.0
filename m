@@ -1,57 +1,78 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
-Date: Thu, 5 Jan 2017 12:14:47 -0800
-Message-ID: <CALCETrUQ2+P424d9MW-Dy2yQ0+EnMfBuY80wd8NkNmc8is0AUw@mail.gmail.com>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
- <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
- <5a3dcc25-b264-37c7-c090-09981b23940d@intel.com> <20170105192910.q26ozg4ci4i3j2ai@black.fi.intel.com>
- <161ece66-fbf4-cb89-3da6-91b4851af69f@intel.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
+ Integrity (ADI)
+Date: Thu, 5 Jan 2017 13:30:10 -0700
+Message-ID: <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
+References: <1483569999-13543-1-git-send-email-khalid.aziz@oracle.com>
+ <6fcaab9f-40fb-fdfb-2c7e-bf21a862ab7c@linux.intel.com>
+ <ae0b7d0b-54fa-fa93-3b50-d14ace1b16f5@oracle.com>
+ <d234fb8b-965f-d966-46fe-965478fdf7cb@linux.intel.com>
+ <8612e7db-97c5-f757-0aae-24c3acedbc29@oracle.com>
+ <2c0502d0-20ef-44ac-db5b-7f651a70b978@linux.intel.com>
+ <ba9c4de2-cec1-1c88-82c9-24a524eb7948@oracle.com>
+ <db31d324-a1ae-7450-0e54-ad98da205773@linux.intel.com>
+ <5a0270ea-b29a-0751-a27f-2412a8588561@oracle.com>
+ <7532a1d6-6562-b10b-dacd-931cb2a9e536@linux.intel.com>
+ <92d55a69-b400-8461-53a1-d505de089700@oracle.com>
+ <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <161ece66-fbf4-cb89-3da6-91b4851af69f@intel.com>
+In-Reply-To: <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: Dave Hansen <dave.hansen@linux.intel.com>, Rob Gardner <rob.gardner@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 5, 2017 at 11:39 AM, Dave Hansen <dave.hansen@intel.com> wrote:
-> On 01/05/2017 11:29 AM, Kirill A. Shutemov wrote:
->> On Thu, Jan 05, 2017 at 11:13:57AM -0800, Dave Hansen wrote:
->>> On 12/26/2016 05:54 PM, Kirill A. Shutemov wrote:
->>>> MM would use min(RLIMIT_VADDR, TASK_SIZE) as upper limit of virtual
->>>> address available to map by userspace.
->>>
->>> What happens to existing mappings above the limit when this upper limit
->>> is dropped?
->>
->> Nothing: we only prevent creating new mappings. All existing are not
->> affected.
->>
->> The semantics here the same as with other resource limits.
->>
->>> Similarly, why do we do with an application running with something
->>> incompatible with the larger address space that tries to raise the
->>> limit?  Say, legacy MPX.
->>
->> It has to know what it does. Yes, it can change limit to the point where
->> application is unusable. But you can to the same with other limits.
+On 01/05/2017 12:22 PM, Dave Hansen wrote:
+> On 01/04/2017 04:26 PM, Khalid Aziz wrote:
+> ...
+>> No, we do not have space to stuff PAGE_SIZE/64 version tags in swap pte.
+>> There is enough space for just one tag per page. DaveM had suggested
+>> doing this since the usual case is for a task to set one tag per page
+>> even though MMU does not require it. I have implemented this as first
+>> pass to start a discussion and get feedback on whether rest of the
+>> swapping implementation and other changes look right, hence the patch is
+>> "RFC". If this all looks good, I can expand swapping support in a
+>> subsequent patch or iteration of this patch to allocate space in
+>> mm_context_t possibly to store per cacheline tags. I am open to any
+>> other ideas on storing this larger number of version tags.
 >
-> I'm not sure I'm comfortable with this.  Do other rlimit changes cause
-> silent data corruption?  I'm pretty sure doing this to MPX would.
+> FWIW, This is the kind of thing that would be really useful to point out
+> to reviewers instead of requiring them to ferret it out of the code.  It
+> has huge implications for how applications use this feature.
+
+Hi Dave,
+
+Thanks for taking the time to review this. I appreciate your patience. I 
+will add more details.
+
 >
+> As for where to store the tags...  It's potentially a *lot* of data, so
+> I think it'll be a pain any way you do it.
+>
+> If you, instead, can live with doing things on a PAGE_SIZE granularity
+> like pkeys does, you could just store it in the VMA and have the kernel
+> tag the data at the same time it zeroes the pages.
 
-What actually goes wrong in this case?  That is, what combination of
-MPX setup of subsequent allocations will cause a problem, and is the
-problem worse than just a segfault?  IMO it would be really nice to
-keep the messy case confined to MPX.
+It is very tempting to restrict tags to PAGE_SIZE granularity since it 
+makes code noticeably simpler and that is indeed going to be the 
+majority of cases. Sooner or later somebody would want to use multiple 
+tags per page though. There can be 128 4-bit tags per 8K page which 
+requires 64 bytes of tag storage for each page. This can add up. What I 
+am considering doing is store the tag in swp pte if I find only one tag 
+on the page. A VMA can cover multiple pages and we have unused bits in 
+swp pte. It makes more sense to store the tags in swp pte. If I find 
+more than one tag on the page, I can allocate memory, attach it to a 
+data structure in mm_context_t and store the tags there. I will need to 
+use an rb tree or some other way to keep the data sorted to make it 
+quick to retrieve the tags for one of the millions of pages a task might 
+have. As I said, it gets complex trying to store tags per cacheline as 
+opposed to per page :)
 
-FWIW, this problem is kind of generic.  If you run code in a process,
-MPX or otherwise, that assumes something about pointer values and then
-create a pointer that violates its assumptions, you will cause
-problems.  For example, some VMs use high bits to store metadata.  If
-you feed a pointer that's too big to such code, boom.  This is exactly
-why high addresses need to be opt-in.
+--
+Khalid
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
