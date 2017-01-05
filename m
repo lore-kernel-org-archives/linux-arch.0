@@ -1,81 +1,70 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
- Integrity (ADI)
-Date: Thu, 5 Jan 2017 13:30:10 -0700
-Message-ID: <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
-References: <1483569999-13543-1-git-send-email-khalid.aziz@oracle.com>
- <6fcaab9f-40fb-fdfb-2c7e-bf21a862ab7c@linux.intel.com>
- <ae0b7d0b-54fa-fa93-3b50-d14ace1b16f5@oracle.com>
- <d234fb8b-965f-d966-46fe-965478fdf7cb@linux.intel.com>
- <8612e7db-97c5-f757-0aae-24c3acedbc29@oracle.com>
- <2c0502d0-20ef-44ac-db5b-7f651a70b978@linux.intel.com>
- <ba9c4de2-cec1-1c88-82c9-24a524eb7948@oracle.com>
- <db31d324-a1ae-7450-0e54-ad98da205773@linux.intel.com>
- <5a0270ea-b29a-0751-a27f-2412a8588561@oracle.com>
- <7532a1d6-6562-b10b-dacd-931cb2a9e536@linux.intel.com>
- <92d55a69-b400-8461-53a1-d505de089700@oracle.com>
- <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently
+ for aarch32 and ilp32
+Date: Fri, 6 Jan 2017 02:10:03 +0530
+Message-ID: <20170105204003.GA7437@yury-N73SV>
+References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
+ <20161206062508.GA17835@yury-N73SV>
+ <20161207165913.GD31779@e104818-lin.cambridge.arm.com>
+ <3703608.GKr1zzErMk@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@linux.intel.com>, Rob Gardner <rob.gardner@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <3703608.GKr1zzErMk@wuerfel>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, Catalin Marinas <catalin.marinas@arm.com>, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On 01/05/2017 12:22 PM, Dave Hansen wrote:
-> On 01/04/2017 04:26 PM, Khalid Aziz wrote:
-> ...
->> No, we do not have space to stuff PAGE_SIZE/64 version tags in swap pte.
->> There is enough space for just one tag per page. DaveM had suggested
->> doing this since the usual case is for a task to set one tag per page
->> even though MMU does not require it. I have implemented this as first
->> pass to start a discussion and get feedback on whether rest of the
->> swapping implementation and other changes look right, hence the patch is
->> "RFC". If this all looks good, I can expand swapping support in a
->> subsequent patch or iteration of this patch to allocate space in
->> mm_context_t possibly to store per cacheline tags. I am open to any
->> other ideas on storing this larger number of version tags.
->
-> FWIW, This is the kind of thing that would be really useful to point out
-> to reviewers instead of requiring them to ferret it out of the code.  It
-> has huge implications for how applications use this feature.
+On Wed, Dec 07, 2016 at 09:40:13PM +0100, Arnd Bergmann wrote:
+> On Wednesday, December 7, 2016 4:59:13 PM CET Catalin Marinas wrote:
+> > On Tue, Dec 06, 2016 at 11:55:08AM +0530, Yury Norov wrote:
+> > > On Mon, Dec 05, 2016 at 04:34:23PM +0000, Catalin Marinas wrote:
+> > > > On Fri, Oct 21, 2016 at 11:33:15PM +0300, Yury Norov wrote:
+> > > > > New aarch32 ptrace syscall handler is introduced to avoid run-time
+> > > > > detection of the task type.
+> > > > 
+> > > > What's wrong with the run-time detection? If it's just to avoid a
+> > > > negligible overhead, I would rather keep the code simpler by avoiding
+> > > > duplicating the generic compat_sys_ptrace().
+> > > 
+> > > Nothing wrong. This is how Arnd asked me to do. You already asked this
+> > > question: http://lkml.iu.edu/hypermail/linux/kernel/1604.3/00930.html
+> > 
+> > Hmm, I completely forgot about this ;). There is still an advantage to
+> > doing run-time checking if we avoid touching core code (less acks to
+> > gather and less code duplication).
+> > 
+> > Let's see what Arnd says but the initial patch looked simpler.
+> 
+> I don't currently have either version of the patch in my inbox
+> (the archive is on a different machine), but in general I'd still
+> think it's best to avoid the runtime check for aarch64-ilp32
+> altogether. I'd have to look at the overall kernel source to
+> see if it's worth avoiding one or two instances though, or
+> if there are an overwhelming number of other checks that we
+> can't avoid at all.
+> 
+> Regarding ptrace, I notice that arch/tile doesn't even use
+> the compat entry point for its ilp32 user space on 64-bit
+> kernels, it just calls the regular 64-bit one. Would that
+> help here?
 
-Hi Dave,
+ILP32 tasks has unique context that is not like aarch64 or aarch32,
+so we have to have unique ptrace handler. I prepared the patch for
+ptrace with runtime ABI detection, as Catalin said, see there:
+https://github.com/norov/linux/commit/1f66dc22a4450b192e83458f2c3cc0e79f53e670
 
-Thanks for taking the time to review this. I appreciate your patience. I 
-will add more details.
+If it's OK, I'd like to update submission.
 
->
-> As for where to store the tags...  It's potentially a *lot* of data, so
-> I think it'll be a pain any way you do it.
->
-> If you, instead, can live with doing things on a PAGE_SIZE granularity
-> like pkeys does, you could just store it in the VMA and have the kernel
-> tag the data at the same time it zeroes the pages.
-
-It is very tempting to restrict tags to PAGE_SIZE granularity since it 
-makes code noticeably simpler and that is indeed going to be the 
-majority of cases. Sooner or later somebody would want to use multiple 
-tags per page though. There can be 128 4-bit tags per 8K page which 
-requires 64 bytes of tag storage for each page. This can add up. What I 
-am considering doing is store the tag in swp pte if I find only one tag 
-on the page. A VMA can cover multiple pages and we have unused bits in 
-swp pte. It makes more sense to store the tags in swp pte. If I find 
-more than one tag on the page, I can allocate memory, attach it to a 
-data structure in mm_context_t and store the tags there. I will need to 
-use an rb tree or some other way to keep the data sorted to make it 
-quick to retrieve the tags for one of the millions of pages a task might 
-have. As I said, it gets complex trying to store tags per cacheline as 
-opposed to per page :)
-
---
-Khalid
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Yury
