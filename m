@@ -1,55 +1,78 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
-Date: Thu, 5 Jan 2017 15:17:22 -0800
-Message-ID: <215875b1-2035-df2a-99b2-1b1b036e2a3c@intel.com>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
- <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
- <5a3dcc25-b264-37c7-c090-09981b23940d@intel.com>
- <20170105192910.q26ozg4ci4i3j2ai@black.fi.intel.com>
- <161ece66-fbf4-cb89-3da6-91b4851af69f@intel.com>
- <CALCETrUQ2+P424d9MW-Dy2yQ0+EnMfBuY80wd8NkNmc8is0AUw@mail.gmail.com>
- <978d5f1a-ec4d-f747-93fd-27ecfe10cb88@intel.com>
- <CALCETrW7yxmgrR15yvxkXOF1pHy5vicwDv6Oj019ecEyBCrWBQ@mail.gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
+Date: Thu, 5 Jan 2017 17:27:34 -0800
+Message-ID: <20170105172734.23a7603ff19006b49e9ba01a@linux-foundation.org>
+References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+	<20170104001349.GA8176@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CALCETrW7yxmgrR15yvxkXOF1pHy5vicwDv6Oj019ecEyBCrWBQ@mail.gmail.com>
+In-Reply-To: <20170104001349.GA8176@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+To: Ross Zwisler <ross.zwisler@linux.intel.com>
+Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@ml01.01.org
 List-Id: linux-arch.vger.kernel.org
 
-On 01/05/2017 01:27 PM, Andy Lutomirski wrote:
-> On Thu, Jan 5, 2017 at 12:49 PM, Dave Hansen <dave.hansen@intel.com> wrote:
-...
->> Remember, we already have (legacy MPX) binaries in the wild that have no
->> knowledge of this stuff.  So, we can implicitly have the kernel bump
->> this rlimit around, but we can't expect userspace to do it, ever.
+On Tue, 3 Jan 2017 17:13:49 -0700 Ross Zwisler <ross.zwisler@linux.intel.com> wrote:
+
+> On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
+> > Currently dax_mapping_entry_mkclean() fails to clean and write protect the
+> > pmd_t of a DAX PMD entry during an *sync operation.  This can result in
+> > data loss, as detailed in patch 4.
+> > 
+> > You can find a working tree here:
+> > 
+> > https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+> > 
+> > This series applies cleanly to mmotm-2016-12-19-16-31.
+> > 
+> > Changes since v1:
+> >  - Included Dan's patch to kill DAX support for UML.
+> >  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
+> >    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
+> >    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
+> > 
+> > Dan Williams (1):
+> >   dax: kill uml support
+> > 
+> > Ross Zwisler (3):
+> >   dax: add stub for pmdp_huge_clear_flush()
+> >   mm: add follow_pte_pmd()
+> >   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
+> > 
+> >  fs/Kconfig                    |  2 +-
+> >  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
+> >  include/asm-generic/pgtable.h | 10 +++++++++
+> >  include/linux/mm.h            |  4 ++--
+> >  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
+> >  5 files changed, 79 insertions(+), 27 deletions(-)
 > 
-> If you s/rlimit/prctl, then I think this all makes sense with one
-> exception.  It would be a bit sad if the personality-setting tool
-> didn't work if compiled with MPX.
+> Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
+> so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
+> 
+> I have to apologize, I didn't understand that Dan intended his "dax: kill uml
+> support" patch to land in v4.11.  I thought he intended it as a cleanup to my
+> series, which really needs to land in v4.10.  That's why I folded them
+> together into this v2, along with the wrapper suggested by Jan.
+> 
+> Andrew, does it work for you to just keep v1 of this series, and eventually
+> send that to Linus for v4.10?
+> 
+> https://lkml.org/lkml/2016/12/20/649
+> 
+> You've already pulled that one into -mm, and it does correctly solve the data
+> loss issue.
+> 
+> That would let us deal with getting rid of the #ifdef, blacklisting
+> architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
+> series for v4.11.
 
-Ahh, because if you have MPX enabled you *can't* sanely switch between
-the two modes because you suddenly go from having small bounds tables to
-having big ones?
+I have mm-add-follow_pte_pmd.patch and
+dax-wrprotect-pmd_t-in-dax_mapping_entry_mkclean.patch queued for 4.10.
+Please (re)send any additional patches, indicating for each one
+whether you believe it should also go into 4.10?
 
-It's not the simplest thing in the world to do, but there's nothing
-keeping the personality-setting tool from doing all the work.  It can do:
-
-	new_bd = malloc(1TB);
-	prctl(MPX_DISABLE_MANAGEMENT);
-	memcpy(new_bd, old_bd, LEGACY_MPX_BD_SIZE);
-	set_bounds_config(new_bd | ENABLE_BIT);
-	prctl(WIDER_VADDR_WIDTH);
-	prctl(MPX_ENABLE_MANAGEMENT);
-	
-
-> So what if we had a second prctl field that is the value that kicks in
-> after execve()?
-
-Yeah, that's a pretty sane way to do it too.  execve() is a nice chokepoint.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
