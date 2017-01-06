@@ -1,81 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:42010 "EHLO
-        mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751068AbdAFB0R (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jan 2017 20:26:17 -0500
-Date: Thu, 5 Jan 2017 17:27:34 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
-Message-ID: <20170105172734.23a7603ff19006b49e9ba01a@linux-foundation.org>
-In-Reply-To: <20170104001349.GA8176@linux.intel.com>
-References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
-        <20170104001349.GA8176@linux.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mx2.suse.de ([195.135.220.15]:34552 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1162767AbdAFJTo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Jan 2017 04:19:44 -0500
+Date: Fri, 6 Jan 2017 10:19:34 +0100
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
+ Integrity (ADI)
+Message-ID: <20170106091934.GF5556@dhcp22.suse.cz>
+References: <d234fb8b-965f-d966-46fe-965478fdf7cb@linux.intel.com>
+ <8612e7db-97c5-f757-0aae-24c3acedbc29@oracle.com>
+ <2c0502d0-20ef-44ac-db5b-7f651a70b978@linux.intel.com>
+ <ba9c4de2-cec1-1c88-82c9-24a524eb7948@oracle.com>
+ <db31d324-a1ae-7450-0e54-ad98da205773@linux.intel.com>
+ <5a0270ea-b29a-0751-a27f-2412a8588561@oracle.com>
+ <7532a1d6-6562-b10b-dacd-931cb2a9e536@linux.intel.com>
+ <92d55a69-b400-8461-53a1-d505de089700@oracle.com>
+ <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
+ <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@ml01.01.org
-Message-ID: <20170106012734.IDx6bfaKYAMIuFr2yWiichC8ZbUY8neGsvuJK5unFK8@z>
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, Rob Gardner <rob.gardner@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kvack.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20170106091934.HOSjROC6RJnIuo-vp13pc32dAq3NEgoQ2EE4DUIpY8M@z>
 
-On Tue, 3 Jan 2017 17:13:49 -0700 Ross Zwisler <ross.zwisler@linux.intel.com> wrote:
+On Thu 05-01-17 13:30:10, Khalid Aziz wrote:
+[...]
+> It is very tempting to restrict tags to PAGE_SIZE granularity since it makes
+> code noticeably simpler and that is indeed going to be the majority of
+> cases. Sooner or later somebody would want to use multiple tags per page
+> though.
 
-> On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
-> > Currently dax_mapping_entry_mkclean() fails to clean and write protect the
-> > pmd_t of a DAX PMD entry during an *sync operation.  This can result in
-> > data loss, as detailed in patch 4.
-> > 
-> > You can find a working tree here:
-> > 
-> > https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
-> > 
-> > This series applies cleanly to mmotm-2016-12-19-16-31.
-> > 
-> > Changes since v1:
-> >  - Included Dan's patch to kill DAX support for UML.
-> >  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
-> >    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
-> >    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
-> > 
-> > Dan Williams (1):
-> >   dax: kill uml support
-> > 
-> > Ross Zwisler (3):
-> >   dax: add stub for pmdp_huge_clear_flush()
-> >   mm: add follow_pte_pmd()
-> >   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
-> > 
-> >  fs/Kconfig                    |  2 +-
-> >  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
-> >  include/asm-generic/pgtable.h | 10 +++++++++
-> >  include/linux/mm.h            |  4 ++--
-> >  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
-> >  5 files changed, 79 insertions(+), 27 deletions(-)
-> 
-> Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
-> so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
-> 
-> I have to apologize, I didn't understand that Dan intended his "dax: kill uml
-> support" patch to land in v4.11.  I thought he intended it as a cleanup to my
-> series, which really needs to land in v4.10.  That's why I folded them
-> together into this v2, along with the wrapper suggested by Jan.
-> 
-> Andrew, does it work for you to just keep v1 of this series, and eventually
-> send that to Linus for v4.10?
-> 
-> https://lkml.org/lkml/2016/12/20/649
-> 
-> You've already pulled that one into -mm, and it does correctly solve the data
-> loss issue.
-> 
-> That would let us deal with getting rid of the #ifdef, blacklisting
-> architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
-> series for v4.11.
+I didn't get to read the patch throughly yet but I am really confused by
+this statement. The api is mprotect based which makes it ineherently
+PAGE_SIZE granular. How do you want to achieve cache line granularity
+with this API?
 
-I have mm-add-follow_pte_pmd.patch and
-dax-wrprotect-pmd_t-in-dax_mapping_entry_mkclean.patch queued for 4.10.
-Please (re)send any additional patches, indicating for each one
-whether you believe it should also go into 4.10?
-
-
+And I would really vote for simplicity first... Subpage granularity
+sounds way too tricky...
+-- 
+Michal Hocko
+SUSE Labs
