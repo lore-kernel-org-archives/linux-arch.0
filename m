@@ -1,101 +1,48 @@
-From: Matthew Wilcox <mawilcox@microsoft.com>
-Subject: RE: + find_bit-micro-optimise-find_next__bit.patch added to -mm tree
-Date: Fri, 6 Jan 2017 08:09:50 +0000
-Message-ID: <BY2PR21MB003667365453F5A6835ABE1FCB630@BY2PR21MB0036.namprd21.prod.outlook.com>
-References: <586ef08a.yZe+xDRyhTV2fTqh%akpm@linux-foundation.org>
- <20170106080755.GA3991@yury-N73SV>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
+ Integrity (ADI)
+Date: Fri, 6 Jan 2017 10:19:34 +0100
+Message-ID: <20170106091934.GF5556@dhcp22.suse.cz>
+References: <d234fb8b-965f-d966-46fe-965478fdf7cb@linux.intel.com>
+ <8612e7db-97c5-f757-0aae-24c3acedbc29@oracle.com>
+ <2c0502d0-20ef-44ac-db5b-7f651a70b978@linux.intel.com>
+ <ba9c4de2-cec1-1c88-82c9-24a524eb7948@oracle.com>
+ <db31d324-a1ae-7450-0e54-ad98da205773@linux.intel.com>
+ <5a0270ea-b29a-0751-a27f-2412a8588561@oracle.com>
+ <7532a1d6-6562-b10b-dacd-931cb2a9e536@linux.intel.com>
+ <92d55a69-b400-8461-53a1-d505de089700@oracle.com>
+ <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
+ <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0095.outbound.protection.outlook.com ([104.47.36.95]:45079
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1760478AbdAFIqW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Jan 2017 03:46:22 -0500
-In-Reply-To: <20170106080755.GA3991@yury-N73SV>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mm-commits@vger.kernel.org" <mm-commits@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, Rob Gardner <rob.gardner@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.c
+List-Id: linux-arch.vger.kernel.org
 
-SSBoYXZlIHRoYXQgcGF0Y2ggaW4gbXkgdHJlZSAoYWxzbyB0b3VjaGVzIHRvb2xzL2xpYi8pOyBJ
-IHdhc24ndCBleHBlY3RpbmcgQW5kcmV3IHRvIHBpY2sgaXQgdXAgeWV0LiAgSSdsbCBzZW5kIHYy
-IGluIGp1c3QgYSBtaW51dGUgdGhhdCBJIGFzc3VtZSBBbmRyZXcgY2FuIGp1c3QgcmVwbGFjZSB0
-aGlzIHBhdGNoIHdpdGguDQoNCj4gLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTog
-WXVyeSBOb3JvdiBbbWFpbHRvOnlub3JvdkBjYXZpdW1uZXR3b3Jrcy5jb21dDQo+IFNlbnQ6IEZy
-aWRheSwgSmFudWFyeSA2LCAyMDE3IDM6MDggQU0NCj4gVG86IE1hdHRoZXcgV2lsY294IDxtYXdp
-bGNveEBtaWNyb3NvZnQuY29tPjsgYWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZw0KPiBDYzogbGlu
-dXhAcmFzbXVzdmlsbGVtb2VzLmRrOyBsaW51eC1hcmNoQHZnZXIua2VybmVsLm9yZzsgbW0tDQo+
-IGNvbW1pdHNAdmdlci5rZXJuZWwub3JnDQo+IFN1YmplY3Q6IFJlOiArIGZpbmRfYml0LW1pY3Jv
-LW9wdGltaXNlLWZpbmRfbmV4dF9fYml0LnBhdGNoIGFkZGVkIHRvIC1tbSB0cmVlDQo+IA0KPiBO
-QUNLLg0KPiANCj4gSSBhY2tlZCBpdCBpbiBhc3N1bXB0aW9uIHRoYXQgTWF0dGhldyB3aWxsIHNl
-bmQgdjIgdGhhdCBhbHNvIGZpeGVzDQo+IF9maW5kX25leHRfYml0X2xlKCkgdGhlIHNhbWUgd2F5
-Lg0KPiANCj4gWXVyeQ0KPiANCj4gT24gVGh1LCBKYW4gMDUsIDIwMTcgYXQgMDU6MTk6MDZQTSAt
-MDgwMCwgYWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZyB3cm90ZToNCj4gPg0KPiA+IFRoZSBwYXRj
-aCB0aXRsZWQNCj4gPiAgICAgIFN1YmplY3Q6IGxpYi9maW5kX2JpdC5jOiBtaWNyby1vcHRpbWlz
-ZSBmaW5kX25leHRfKl9iaXQNCj4gPiBoYXMgYmVlbiBhZGRlZCB0byB0aGUgLW1tIHRyZWUuICBJ
-dHMgZmlsZW5hbWUgaXMNCj4gPiAgICAgIGZpbmRfYml0LW1pY3JvLW9wdGltaXNlLWZpbmRfbmV4
-dF9fYml0LnBhdGNoDQo+ID4NCj4gPiBUaGlzIHBhdGNoIHNob3VsZCBzb29uIGFwcGVhciBhdA0K
-PiA+DQo+IGh0dHBzOi8vbmEwMS5zYWZlbGlua3MucHJvdGVjdGlvbi5vdXRsb29rLmNvbS8/dXJs
-PWh0dHA6JTJGJTJGb3psYWJzLm9yZyUyRg0KPiB+YWtwbSUyRm1tb3RzJTJGYnJva2VuLW91dCUy
-RmZpbmRfYml0LW1pY3JvLW9wdGltaXNlLQ0KPiBmaW5kX25leHRfX2JpdC5wYXRjaCZkYXRhPTAy
-JTdDMDElN0NtYXdpbGNveCU0MG1pY3Jvc29mdC5jb20lN0MzOWM5DQo+IDA3MDNlZjg4NGIwYWJl
-OTcwOGQ0MzYwYjJhNWUlN0M3MmY5ODhiZjg2ZjE0MWFmOTFhYjJkN2NkMDExZGI0NyUNCj4gN0Mx
-JTdDMCU3QzYzNjE5Mjg2ODk5MjE5ODU2NyZzZGF0YT1JNlZBeE40RlpUTkthRDVVJTJGZUNTS001
-bg0KPiBDWWl5MDJ1RFpJMWNuQWRrNnZjJTNEJnJlc2VydmVkPTANCj4gPiBhbmQgbGF0ZXIgYXQN
-Cj4gPg0KPiBodHRwczovL25hMDEuc2FmZWxpbmtzLnByb3RlY3Rpb24ub3V0bG9vay5jb20vP3Vy
-bD1odHRwOiUyRiUyRm96bGFicy5vcmclMkYNCj4gfmFrcG0lMkZtbW90bSUyRmJyb2tlbi1vdXQl
-MkZmaW5kX2JpdC1taWNyby1vcHRpbWlzZS0NCj4gZmluZF9uZXh0X19iaXQucGF0Y2gmZGF0YT0w
-MiU3QzAxJTdDbWF3aWxjb3glNDBtaWNyb3NvZnQuY29tJTdDMzljOQ0KPiAwNzAzZWY4ODRiMGFi
-ZTk3MDhkNDM2MGIyYTVlJTdDNzJmOTg4YmY4NmYxNDFhZjkxYWIyZDdjZDAxMWRiNDclDQo+IDdD
-MSU3QzAlN0M2MzYxOTI4Njg5OTIxOTg1Njcmc2RhdGE9NkhwOWZxOFpVNGxzVnUzJTJGbVpYS3NC
-ejJnag0KPiBzRVkweTVDWnZXYWlqeDl1OCUzRCZyZXNlcnZlZD0wDQo+ID4NCj4gPiBCZWZvcmUg
-eW91IGp1c3QgZ28gYW5kIGhpdCAicmVwbHkiLCBwbGVhc2U6DQo+ID4gICAgYSkgQ29uc2lkZXIg
-d2hvIGVsc2Ugc2hvdWxkIGJlIGNjJ2VkDQo+ID4gICAgYikgUHJlZmVyIHRvIGNjIGEgc3VpdGFi
-bGUgbWFpbGluZyBsaXN0IGFzIHdlbGwNCj4gPiAgICBjKSBJZGVhbGx5OiBmaW5kIHRoZSBvcmln
-aW5hbCBwYXRjaCBvbiB0aGUgbWFpbGluZyBsaXN0IGFuZCBkbyBhDQo+ID4gICAgICAgcmVwbHkt
-dG8tYWxsIHRvIHRoYXQsIGFkZGluZyBzdWl0YWJsZSBhZGRpdGlvbmFsIGNjJ3MNCj4gPg0KPiA+
-ICoqKiBSZW1lbWJlciB0byB1c2UgRG9jdW1lbnRhdGlvbi9TdWJtaXRDaGVja2xpc3Qgd2hlbiB0
-ZXN0aW5nIHlvdXINCj4gY29kZSAqKioNCj4gPg0KPiA+IFRoZSAtbW0gdHJlZSBpcyBpbmNsdWRl
-ZCBpbnRvIGxpbnV4LW5leHQgYW5kIGlzIHVwZGF0ZWQNCj4gPiB0aGVyZSBldmVyeSAzLTQgd29y
-a2luZyBkYXlzDQo+ID4NCj4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0tLS0tLS0tLS0tLS0tLS0NCj4gPiBGcm9tOiBNYXR0aGV3IFdpbGNveCA8bWF3aWxjb3hAbWlj
-cm9zb2Z0LmNvbT4NCj4gPiBTdWJqZWN0OiBsaWIvZmluZF9iaXQuYzogbWljcm8tb3B0aW1pc2Ug
-ZmluZF9uZXh0XypfYml0DQo+ID4NCj4gPiBUaGlzIHNhdmVzIDIwIGJ5dGVzIG9uIG15IHg4Ni02
-NCBidWlsZCwgbW9zdGx5IGR1ZSB0byBhbGlnbm1lbnQNCj4gPiBjb25zaWRlcmF0aW9ucyAuLi4g
-IEkgdGhpbmsgaXQgYWN0dWFsbHkgc2F2ZXMgYWJvdXQgZml2ZSBieXRlcyBvZg0KPiA+IGluc3Ry
-dWN0aW9ucy4gIFRoZXJlJ3MgcmVhbGx5IHR3byBwYXJ0cyB0byB0aGlzIGNvbW1pdC4gIEZpcnN0
-LCB0aGUgZmlyc3QNCj4gPiBoYWxmIG9mIHRoZSB0ZXN0OiAoIW5iaXRzIHx8IHN0YXJ0ID49IG5i
-aXRzKSBpcyB0cml2aWFsbHkgYSBzdWJzZXQgb2YgdGhlDQo+ID4gc2Vjb25kIGhhbGYsIHNpbmNl
-IG5iaXRzIGFuZCBzdGFydCBhcmUgYm90aCB1bnNpZ25lZC4gIFNlY29uZCwgd2hpbGUNCj4gPiBs
-b29raW5nIGF0IHRoZSBkaXNhc3NlbWJseSwgSSBub3RpY2VkIHRoYXQgR0NDIHdhcyBwcmVkaWN0
-aW5nIHRoZSBicmFuY2gNCj4gPiB0YWtlbi4gIFNpbmNlIHRoaXMgaXMgYSBmYWlsdXJlIGNhc2Us
-IGl0J3MgY2xlYXJseSB0aGUgbGVzcyBsaWtlbHkgb2YgdGhlDQo+ID4gdHdvIGJyYW5jaGVzLCBz
-byBhZGQgYW4gdW5saWtlbHkoKSB0byBvdmVycmlkZSBHQ0MncyBoZXVyaXN0aWNzLg0KPiA+DQo+
-ID4gTGluazoNCj4gaHR0cHM6Ly9uYTAxLnNhZmVsaW5rcy5wcm90ZWN0aW9uLm91dGxvb2suY29t
-Lz91cmw9aHR0cCUzQSUyRiUyRmxrbWwua2VybmUNCj4gbC5vcmclMkZyJTJGMTQ4MjUxMzYwMy05
-NjMwLTEtZ2l0LXNlbmQtZW1haWwtDQo+IG1hd2lsY294JTQwbGludXhvbmh5cGVydi5jb20mZGF0
-YT0wMiU3QzAxJTdDbWF3aWxjb3glNDBtaWNyb3NvZnQuYw0KPiBvbSU3QzM5YzkwNzAzZWY4ODRi
-MGFiZTk3MDhkNDM2MGIyYTVlJTdDNzJmOTg4YmY4NmYxNDFhZjkxYWIyZDdjDQo+IGQwMTFkYjQ3
-JTdDMSU3QzAlN0M2MzYxOTI4Njg5OTIxOTg1Njcmc2RhdGE9NjlLb2MzNUJXa25nczNDUEgNCj4g
-QnNldE9VUFR6WXNpMnBIZk1jZ0VsdVQyJTJGcyUzRCZyZXNlcnZlZD0wDQo+ID4gU2lnbmVkLW9m
-Zi1ieTogTWF0dGhldyBXaWxjb3ggPG1hd2lsY294QG1pY3Jvc29mdC5jb20+DQo+ID4gQWNrZWQt
-Ynk6IFJhc211cyBWaWxsZW1vZXMgPGxpbnV4QHJhc211c3ZpbGxlbW9lcy5kaz4NCj4gPiBBY2tl
-ZC1ieTogWXVyeSBOb3JvdiA8eW5vcm92QGNhdml1bW5ldHdvcmtzLmNvbT4NCj4gPiBTaWduZWQt
-b2ZmLWJ5OiBBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPg0KPiA+IC0t
-LQ0KPiA+DQo+ID4gIGxpYi9maW5kX2JpdC5jIHwgICAgMiArLQ0KPiA+ICAxIGZpbGUgY2hhbmdl
-ZCwgMSBpbnNlcnRpb24oKyksIDEgZGVsZXRpb24oLSkNCj4gPg0KPiA+IGRpZmYgLXB1TiBsaWIv
-ZmluZF9iaXQuY35maW5kX2JpdC1taWNyby1vcHRpbWlzZS1maW5kX25leHRfX2JpdCBsaWIvZmlu
-ZF9iaXQuYw0KPiA+IC0tLSBhL2xpYi9maW5kX2JpdC5jfmZpbmRfYml0LW1pY3JvLW9wdGltaXNl
-LWZpbmRfbmV4dF9fYml0DQo+ID4gKysrIGEvbGliL2ZpbmRfYml0LmMNCj4gPiBAQCAtMzMsNyAr
-MzMsNyBAQCBzdGF0aWMgdW5zaWduZWQgbG9uZyBfZmluZF9uZXh0X2JpdChjb25zDQo+ID4gIHsN
-Cj4gPiAgCXVuc2lnbmVkIGxvbmcgdG1wOw0KPiA+DQo+ID4gLQlpZiAoIW5iaXRzIHx8IHN0YXJ0
-ID49IG5iaXRzKQ0KPiA+ICsJaWYgKHVubGlrZWx5KHN0YXJ0ID49IG5iaXRzKSkNCj4gPiAgCQly
-ZXR1cm4gbmJpdHM7DQo+ID4NCj4gPiAgCXRtcCA9IGFkZHJbc3RhcnQgLyBCSVRTX1BFUl9MT05H
-XSBeIGludmVydDsNCj4gPiBfDQo+ID4NCj4gPiBQYXRjaGVzIGN1cnJlbnRseSBpbiAtbW0gd2hp
-Y2ggbWlnaHQgYmUgZnJvbSBtYXdpbGNveEBtaWNyb3NvZnQuY29tIGFyZQ0KPiA+DQo+ID4gZmlu
-ZF9iaXQtbWljcm8tb3B0aW1pc2UtZmluZF9uZXh0X19iaXQucGF0Y2gNCj4gPiByZWltcGxlbWVu
-dC1pZHItYW5kLWlkYS11c2luZy10aGUtcmFkaXgtdHJlZS1zdXBwb3J0LXN0b3JpbmctbnVsbC1p
-bi10aGUtDQo+IGlkci5wYXRjaA0K
+On Thu 05-01-17 13:30:10, Khalid Aziz wrote:
+[...]
+> It is very tempting to restrict tags to PAGE_SIZE granularity since it makes
+> code noticeably simpler and that is indeed going to be the majority of
+> cases. Sooner or later somebody would want to use multiple tags per page
+> though.
+
+I didn't get to read the patch throughly yet but I am really confused by
+this statement. The api is mprotect based which makes it ineherently
+PAGE_SIZE granular. How do you want to achieve cache line granularity
+with this API?
+
+And I would really vote for simplicity first... Subpage granularity
+sounds way too tricky...
+-- 
+Michal Hocko
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
