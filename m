@@ -1,70 +1,83 @@
-From: Rob Gardner <rob.gardner@oracle.com>
-Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
- Integrity (ADI)
-Date: Fri, 6 Jan 2017 09:54:36 -0800
-Message-ID: <9b2562b4-754c-aab2-8fd7-3f9bd89b0314@oracle.com>
-References: <f33f2c3c-4ec5-423c-5d13-a4b9ab8f7a95@linux.intel.com>
- <cae91a3b-27f2-4008-539e-153d66fc03ae@oracle.com>
- <b761e7a9-6f64-e8cb-334a-a49528e95cdf@linux.intel.com>
- <20170106.120204.927644401352332269.davem@davemloft.net>
- <dd42d787-0d3c-bd91-7376-3ce35bdd4c4c@oracle.com>
+From: Ross Zwisler <ross.zwisler@linux.intel.com>
+Subject: Re: [PATCH v2 0/4] Write protect DAX PMDs in *sync path
+Date: Fri, 6 Jan 2017 11:18:19 -0700
+Message-ID: <20170106181819.GA3486@linux.intel.com>
+References: <1482441536-14550-1-git-send-email-ross.zwisler@linux.intel.com>
+ <20170104001349.GA8176@linux.intel.com>
+ <20170105172734.23a7603ff19006b49e9ba01a@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <dd42d787-0d3c-bd91-7376-3ce35bdd4c4c@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com
-Cc: mhocko@kernel.org, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vm
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:13267 "EHLO mga14.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1758472AbdAFSSW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Jan 2017 13:18:22 -0500
+Content-Disposition: inline
+In-Reply-To: <20170105172734.23a7603ff19006b49e9ba01a@linux-foundation.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ross Zwisler <ross.zwisler@linux.intel.com>, linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>, Dan Williams <dan.j.williams@intel.com>, Dave Chinner <david@fromorbit.com>, Dave Hansen <dave.hansen@intel.com>, Jan Kara <jack@suse.cz>, Matthew Wilcox <mawilcox@microsoft.com>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@ml01.01.org
 
-On 01/06/2017 09:10 AM, Khalid Aziz wrote:
-> On 01/06/2017 10:02 AM, David Miller wrote:
->> From: Dave Hansen <dave.hansen@linux.intel.com>
->> Date: Fri, 6 Jan 2017 08:55:03 -0800
->>
->>> Actually, that reminds me...  How does your code interface with 
->>> ksm?  Or
->>> is there no interaction needed since you're always working on virtual
->>> addresses?
->>
->> This reminds me, I consider this feature potentially extremely useful 
->> for
->> kernel debugging.  So I would like to make sure we don't implement 
->> anything
->> in a way which would preclude that in the long term.
->
-> I agree and please do point out if I have made any implementation 
-> decisions that could preclude that.
->
-> Thanks,
-> Khalid
+On Thu, Jan 05, 2017 at 05:27:34PM -0800, Andrew Morton wrote:
+> On Tue, 3 Jan 2017 17:13:49 -0700 Ross Zwisler <ross.zwisler@linux.intel.com> wrote:
+> 
+> > On Thu, Dec 22, 2016 at 02:18:52PM -0700, Ross Zwisler wrote:
+> > > Currently dax_mapping_entry_mkclean() fails to clean and write protect the
+> > > pmd_t of a DAX PMD entry during an *sync operation.  This can result in
+> > > data loss, as detailed in patch 4.
+> > > 
+> > > You can find a working tree here:
+> > > 
+> > > https://git.kernel.org/cgit/linux/kernel/git/zwisler/linux.git/log/?h=dax_pmd_clean_v2
+> > > 
+> > > This series applies cleanly to mmotm-2016-12-19-16-31.
+> > > 
+> > > Changes since v1:
+> > >  - Included Dan's patch to kill DAX support for UML.
+> > >  - Instead of wrapping the DAX PMD code in dax_mapping_entry_mkclean() in
+> > >    an #ifdef, we now create a stub for pmdp_huge_clear_flush() for the case
+> > >    when CONFIG_TRANSPARENT_HUGEPAGE isn't defined. (Dan & Jan)
+> > > 
+> > > Dan Williams (1):
+> > >   dax: kill uml support
+> > > 
+> > > Ross Zwisler (3):
+> > >   dax: add stub for pmdp_huge_clear_flush()
+> > >   mm: add follow_pte_pmd()
+> > >   dax: wrprotect pmd_t in dax_mapping_entry_mkclean
+> > > 
+> > >  fs/Kconfig                    |  2 +-
+> > >  fs/dax.c                      | 49 ++++++++++++++++++++++++++++++-------------
+> > >  include/asm-generic/pgtable.h | 10 +++++++++
+> > >  include/linux/mm.h            |  4 ++--
+> > >  mm/memory.c                   | 41 ++++++++++++++++++++++++++++--------
+> > >  5 files changed, 79 insertions(+), 27 deletions(-)
+> > 
+> > Well, 0-day found another architecture that doesn't define pmd_pfn() et al.,
+> > so we'll need some more fixes. (Thank you, 0-day, for the coverage!)
+> > 
+> > I have to apologize, I didn't understand that Dan intended his "dax: kill uml
+> > support" patch to land in v4.11.  I thought he intended it as a cleanup to my
+> > series, which really needs to land in v4.10.  That's why I folded them
+> > together into this v2, along with the wrapper suggested by Jan.
+> > 
+> > Andrew, does it work for you to just keep v1 of this series, and eventually
+> > send that to Linus for v4.10?
+> > 
+> > https://lkml.org/lkml/2016/12/20/649
+> > 
+> > You've already pulled that one into -mm, and it does correctly solve the data
+> > loss issue.
+> > 
+> > That would let us deal with getting rid of the #ifdef, blacklisting
+> > architectures and introducing the pmdp_huge_clear_flush() strub in a follow-on
+> > series for v4.11.
+> 
+> I have mm-add-follow_pte_pmd.patch and
+> dax-wrprotect-pmd_t-in-dax_mapping_entry_mkclean.patch queued for 4.10.
+> Please (re)send any additional patches, indicating for each one
+> whether you believe it should also go into 4.10?
 
-
-Khalid, I have already pointed out an implementation decision that 
-interferes with the potential for kernel debugging with ADI: lazy 
-clearing of version tags.
-
-Details: when memory is "freed" the version tags are left alone, as it 
-is an expensive operation to go through the memory and clear the tag for 
-each cache line. So this is done lazily whenever memory is "allocated". 
-More specifically, the first time a user process touches freshly 
-allocated memory, a fault occurs and the kernel then clears the page. In 
-the NG4 and M7 variants of clear_user_page, the block init store ASI is 
-used to optimize, and it has the side effect of clearing the ADI tag for 
-the cache line. BUT only if pstate.mcde is clear. If pstate.mcde is set, 
-then instead of the ADI tag being cleared, the tag is *checked*, and if 
-there is a mismatch between the version in the virtual address and the 
-version in memory, then you'll get a trap and panic. Therefore, with 
-this design, you cannot have pstate.mcde enabled while in the kernel (in 
-general). To solve this you have to check the state of pstate.mcde (or 
-just turn it off) before doing any block init store in clear_user_page, 
-memset, memcpy, etc.
-
-Rob
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+The two patches that you already have queued are correct, and no additional
+patches are necessary for v4.10 for this issue.
