@@ -1,113 +1,46 @@
-From: Rob Gardner <rob.gardner@oracle.com>
-Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
- Integrity (ADI)
-Date: Fri, 6 Jan 2017 10:28:44 -0800
-Message-ID: <f04ef1ca-fe67-1da4-61d7-bab0ccc7e00e@oracle.com>
-References: <f33f2c3c-4ec5-423c-5d13-a4b9ab8f7a95@linux.intel.com>
- <cae91a3b-27f2-4008-539e-153d66fc03ae@oracle.com>
- <b761e7a9-6f64-e8cb-334a-a49528e95cdf@linux.intel.com>
- <20170106.120204.927644401352332269.davem@davemloft.net>
- <dd42d787-0d3c-bd91-7376-3ce35bdd4c4c@oracle.com>
- <9b2562b4-754c-aab2-8fd7-3f9bd89b0314@oracle.com>
- <7f78da33-a591-e913-d96e-fec022f2ba9e@oracle.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v5 04/14] tables.h: add linker table support
+Date: Fri, 6 Jan 2017 21:00:21 +0100
+Message-ID: <20170106200021.GU13946@wotan.suse.de>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <20161222023811.21246-1-mcgrof@kernel.org>
+ <20161222023811.21246-5-mcgrof@kernel.org>
+ <1482415098.9552.123.camel@linux.intel.com>
+ <20170103212528.GE13946@wotan.suse.de>
+ <CAHp75Vd-WoYd40m0piYHUNdhJnYV9aHyQaMAJpN1YLx0nSAe5g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <7f78da33-a591-e913-d96e-fec022f2ba9e@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com
-Cc: mhocko@kernel.org, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vm
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Disposition: inline
+In-Reply-To: <CAHp75Vd-WoYd40m0piYHUNdhJnYV9aHyQaMAJpN1YLx0nSAe5g@mail.gmail.com>
+List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+ <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Errors-To: xen-devel-bounces@lists.xen.org
+Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, dalias@libc.org, linux-ia64@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, ming.lei@canonical.com, Heiko Carstens <heiko.carstens@de.ibm.com>, Platform Driver <platform-driver-x86@vger.kernel.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "H. Peter Anvin" <hpa@zytor.com>, masami.hiramatsu.pt@hitachi.com, wangnan0@huawei.com, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, Russell King <linux@arm.linux.org.uk>, Linux-SH <linux-sh@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, korea.drzix@gmail.com, x86@k
 List-Id: linux-arch.vger.kernel.org
 
-On 01/06/2017 10:18 AM, Khalid Aziz wrote:
-> On 01/06/2017 10:54 AM, Rob Gardner wrote:
->> On 01/06/2017 09:10 AM, Khalid Aziz wrote:
->>> On 01/06/2017 10:02 AM, David Miller wrote:
->>>> From: Dave Hansen <dave.hansen@linux.intel.com>
->>>> Date: Fri, 6 Jan 2017 08:55:03 -0800
->>>>
->>>>> Actually, that reminds me...  How does your code interface with
->>>>> ksm?  Or
->>>>> is there no interaction needed since you're always working on virtual
->>>>> addresses?
->>>>
->>>> This reminds me, I consider this feature potentially extremely useful
->>>> for
->>>> kernel debugging.  So I would like to make sure we don't implement
->>>> anything
->>>> in a way which would preclude that in the long term.
->>>
->>> I agree and please do point out if I have made any implementation
->>> decisions that could preclude that.
->>>
->>> Thanks,
->>> Khalid
->>
->>
->> Khalid, I have already pointed out an implementation decision that
->> interferes with the potential for kernel debugging with ADI: lazy
->> clearing of version tags.
->
-> This does not preclude kernel debugging. If kernel debugging ends up 
-> requiring tags be cleared whenever a page is freed, we can add that 
-> code as part of kernel debugging support code and enable it 
-> conditionally only when kernel is being debugged. Forcing every task 
-> to incur the large cost of clearing tags on every "free" all the time 
-> is just not an acceptable cost only to support kernel debugging. It 
-> should be a dynamic switch to be toggled on only when debugging 
-> kernel. PSTATE.mcde being set is not enough to trigger a trap. It is 
-> easy enough to clear TTE.mcd before block initialization of a page and 
-> avoid a trap due to tag mismatch, or just use physical address with 
-> block initialization.
->
-> We can evaluate all of these options when we get to implementing 
-> kernel debugging using ADI.
-
-I didn't say it precludes kernel debugging, just that it interferes, and 
-there will be additional work to do if we want kernel debugging 
-capability with ADI.
-
-Rob
-
-
-
->
-> Thanks,
-> Khalid
->
->
->>
->> Details: when memory is "freed" the version tags are left alone, as it
->> is an expensive operation to go through the memory and clear the tag for
->> each cache line. So this is done lazily whenever memory is "allocated".
->> More specifically, the first time a user process touches freshly
->> allocated memory, a fault occurs and the kernel then clears the page. In
->> the NG4 and M7 variants of clear_user_page, the block init store ASI is
->> used to optimize, and it has the side effect of clearing the ADI tag for
->> the cache line. BUT only if pstate.mcde is clear. If pstate.mcde is set,
->> then instead of the ADI tag being cleared, the tag is *checked*, and if
->> there is a mismatch between the version in the virtual address and the
->> version in memory, then you'll get a trap and panic. Therefore, with
->> this design, you cannot have pstate.mcde enabled while in the kernel (in
->> general). To solve this you have to check the state of pstate.mcde (or
->> just turn it off) before doing any block init store in clear_user_page,
->> memset, memcpy, etc.
->>
->> Rob
->>
->> -- 
->> To unsubscribe from this list: send the line "unsubscribe sparclinux" in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at http://vger.kernel.org/majordomo-info.html
->
-> -- 
-> To unsubscribe from this list: send the line "unsubscribe sparclinux" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+T24gV2VkLCBKYW4gMDQsIDIwMTcgYXQgMTE6NDc6MTRBTSArMDIwMCwgQW5keSBTaGV2Y2hlbmtv
+IHdyb3RlOgo+IE9uIFR1ZSwgSmFuIDMsIDIwMTcgYXQgMTE6MjUgUE0sIEx1aXMgUi4gUm9kcmln
+dWV6IDxtY2dyb2ZAa2VybmVsLm9yZz4gd3JvdGU6Cj4gPiBPbiBUaHUsIERlYyAyMiwgMjAxNiBh
+dCAwMzo1ODoxOFBNICswMjAwLCBBbmR5IFNoZXZjaGVua28gd3JvdGU6Cj4gPj4gT24gV2VkLCAy
+MDE2LTEyLTIxIGF0IDE4OjM4IC0wODAwLCBMdWlzIFIuIFJvZHJpZ3VleiB3cm90ZToKPiA+PiA+
+ICsjZGVmaW5lIExJTktUQUJMRV9GT1JfRUFDSChwb2ludGVyLCB0YmwpCj4gPj4KPiA+PiBIbW0u
+Li4gU09NRU9ORSBMSUtFUyBDQVBJVEFMIExFVFRFUlMgRk9SIGV2ZXJ5dGhpbmcsIHJpZ2h0PyA6
+LSkKPiA+Pgo+ID4+IEkgd291bGQgZXhwZWN0IG1vcmUgc3RhbmRhcmQgbGlua3RhYmxlX2Zvcl9l
+YWNoKCkgbWFjcm8KPiA+Cj4gPiBocGEgaGFkIHJlY29tbWVuZGVkIHRoaXMsIGlmIGhlIHByZWZl
+cnMgYSBsb3dlciBjYXNlIEkgY2FuIGNoYW5nZSB0aGF0Cj4gCj4gCj4gPiBidXQgSSByZWFsbHkg
+ZG8gY29uc2lkZXIgdGhpcyBiaWtlc2hlZGRpbmcuCj4gCj4gSSBkb24ndCB0aGluayBzbzoKPiAk
+IGdpdCBncmVwIC1uIEZPUl9FQUNIIHwgd2MgLWwKPiAgICAgODMKPiAkIGdpdCBncmVwIC1uIGZv
+cl9lYWNoIHwgd2MgLWwKPiAgMjMzMTcKCk9LLCB3b3VsZCB5b3UgYWxzbyBwcmVmZXIgaWYgTElO
+S1RBQkxFX1JVTl9FUlIoKSBhbmQgTElOS1RBQkxFX1JVTl9BTEwoKQp3ZXJlIGxvd2VyY2FzZSA/
+IE9yIGlzIHRoYXQgZmluZSA/IFRvIGJlIGNsZWFyIEknbGwgbGVhdmUgdXBwZXIgY2FzZSB0aGUK
+ZGVjbGFyZXJzIGFuZCBkZWZpbmVzLgoKICBMdWlzCgpfX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fXwpYZW4tZGV2ZWwgbWFpbGluZyBsaXN0Clhlbi1kZXZlbEBs
+aXN0cy54ZW4ub3JnCmh0dHBzOi8vbGlzdHMueGVuLm9yZy94ZW4tZGV2ZWwK
