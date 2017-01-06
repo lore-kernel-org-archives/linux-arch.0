@@ -1,91 +1,101 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: + find_bit-micro-optimise-find_next__bit.patch added to -mm tree
-Date: Fri, 6 Jan 2017 13:37:55 +0530
-Message-ID: <20170106080755.GA3991@yury-N73SV>
+From: Matthew Wilcox <mawilcox@microsoft.com>
+Subject: RE: + find_bit-micro-optimise-find_next__bit.patch added to -mm tree
+Date: Fri, 6 Jan 2017 08:09:50 +0000
+Message-ID: <BY2PR21MB003667365453F5A6835ABE1FCB630@BY2PR21MB0036.namprd21.prod.outlook.com>
 References: <586ef08a.yZe+xDRyhTV2fTqh%akpm@linux-foundation.org>
+ <20170106080755.GA3991@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0053.outbound.protection.outlook.com ([104.47.34.53]:23392
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam02on0095.outbound.protection.outlook.com ([104.47.36.95]:45079
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S966693AbdAFIIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 6 Jan 2017 03:08:15 -0500
-Content-Disposition: inline
-In-Reply-To: <586ef08a.yZe+xDRyhTV2fTqh%akpm@linux-foundation.org>
+        id S1760478AbdAFIqW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 6 Jan 2017 03:46:22 -0500
+In-Reply-To: <20170106080755.GA3991@yury-N73SV>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mawilcox@microsoft.com, akpm@linux-foundation.org
-Cc: linux@rasmusvillemoes.dk, linux-arch@vger.kernel.org, mm-commits@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "linux@rasmusvillemoes.dk" <linux@rasmusvillemoes.dk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mm-commits@vger.kernel.org" <mm-commits@vger.kernel.org>
 
-NACK.
-
-I acked it in assumption that Matthew will send v2 that also fixes 
-_find_next_bit_le() the same way.
-
-Yury
-
-On Thu, Jan 05, 2017 at 05:19:06PM -0800, akpm@linux-foundation.org wrote:
-> 
-> The patch titled
->      Subject: lib/find_bit.c: micro-optimise find_next_*_bit
-> has been added to the -mm tree.  Its filename is
->      find_bit-micro-optimise-find_next__bit.patch
-> 
-> This patch should soon appear at
->     http://ozlabs.org/~akpm/mmots/broken-out/find_bit-micro-optimise-find_next__bit.patch
-> and later at
->     http://ozlabs.org/~akpm/mmotm/broken-out/find_bit-micro-optimise-find_next__bit.patch
-> 
-> Before you just go and hit "reply", please:
->    a) Consider who else should be cc'ed
->    b) Prefer to cc a suitable mailing list as well
->    c) Ideally: find the original patch on the mailing list and do a
->       reply-to-all to that, adding suitable additional cc's
-> 
-> *** Remember to use Documentation/SubmitChecklist when testing your code ***
-> 
-> The -mm tree is included into linux-next and is updated
-> there every 3-4 working days
-> 
-> ------------------------------------------------------
-> From: Matthew Wilcox <mawilcox@microsoft.com>
-> Subject: lib/find_bit.c: micro-optimise find_next_*_bit
-> 
-> This saves 20 bytes on my x86-64 build, mostly due to alignment
-> considerations ...  I think it actually saves about five bytes of
-> instructions.  There's really two parts to this commit.  First, the first
-> half of the test: (!nbits || start >= nbits) is trivially a subset of the
-> second half, since nbits and start are both unsigned.  Second, while
-> looking at the disassembly, I noticed that GCC was predicting the branch
-> taken.  Since this is a failure case, it's clearly the less likely of the
-> two branches, so add an unlikely() to override GCC's heuristics.
-> 
-> Link: http://lkml.kernel.org/r/1482513603-9630-1-git-send-email-mawilcox@linuxonhyperv.com
-> Signed-off-by: Matthew Wilcox <mawilcox@microsoft.com>
-> Acked-by: Rasmus Villemoes <linux@rasmusvillemoes.dk>
-> Acked-by: Yury Norov <ynorov@caviumnetworks.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  lib/find_bit.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff -puN lib/find_bit.c~find_bit-micro-optimise-find_next__bit lib/find_bit.c
-> --- a/lib/find_bit.c~find_bit-micro-optimise-find_next__bit
-> +++ a/lib/find_bit.c
-> @@ -33,7 +33,7 @@ static unsigned long _find_next_bit(cons
->  {
->  	unsigned long tmp;
->  
-> -	if (!nbits || start >= nbits)
-> +	if (unlikely(start >= nbits))
->  		return nbits;
->  
->  	tmp = addr[start / BITS_PER_LONG] ^ invert;
-> _
-> 
-> Patches currently in -mm which might be from mawilcox@microsoft.com are
-> 
-> find_bit-micro-optimise-find_next__bit.patch
-> reimplement-idr-and-ida-using-the-radix-tree-support-storing-null-in-the-idr.patch
+SSBoYXZlIHRoYXQgcGF0Y2ggaW4gbXkgdHJlZSAoYWxzbyB0b3VjaGVzIHRvb2xzL2xpYi8pOyBJ
+IHdhc24ndCBleHBlY3RpbmcgQW5kcmV3IHRvIHBpY2sgaXQgdXAgeWV0LiAgSSdsbCBzZW5kIHYy
+IGluIGp1c3QgYSBtaW51dGUgdGhhdCBJIGFzc3VtZSBBbmRyZXcgY2FuIGp1c3QgcmVwbGFjZSB0
+aGlzIHBhdGNoIHdpdGguDQoNCj4gLS0tLS1PcmlnaW5hbCBNZXNzYWdlLS0tLS0NCj4gRnJvbTog
+WXVyeSBOb3JvdiBbbWFpbHRvOnlub3JvdkBjYXZpdW1uZXR3b3Jrcy5jb21dDQo+IFNlbnQ6IEZy
+aWRheSwgSmFudWFyeSA2LCAyMDE3IDM6MDggQU0NCj4gVG86IE1hdHRoZXcgV2lsY294IDxtYXdp
+bGNveEBtaWNyb3NvZnQuY29tPjsgYWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZw0KPiBDYzogbGlu
+dXhAcmFzbXVzdmlsbGVtb2VzLmRrOyBsaW51eC1hcmNoQHZnZXIua2VybmVsLm9yZzsgbW0tDQo+
+IGNvbW1pdHNAdmdlci5rZXJuZWwub3JnDQo+IFN1YmplY3Q6IFJlOiArIGZpbmRfYml0LW1pY3Jv
+LW9wdGltaXNlLWZpbmRfbmV4dF9fYml0LnBhdGNoIGFkZGVkIHRvIC1tbSB0cmVlDQo+IA0KPiBO
+QUNLLg0KPiANCj4gSSBhY2tlZCBpdCBpbiBhc3N1bXB0aW9uIHRoYXQgTWF0dGhldyB3aWxsIHNl
+bmQgdjIgdGhhdCBhbHNvIGZpeGVzDQo+IF9maW5kX25leHRfYml0X2xlKCkgdGhlIHNhbWUgd2F5
+Lg0KPiANCj4gWXVyeQ0KPiANCj4gT24gVGh1LCBKYW4gMDUsIDIwMTcgYXQgMDU6MTk6MDZQTSAt
+MDgwMCwgYWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZyB3cm90ZToNCj4gPg0KPiA+IFRoZSBwYXRj
+aCB0aXRsZWQNCj4gPiAgICAgIFN1YmplY3Q6IGxpYi9maW5kX2JpdC5jOiBtaWNyby1vcHRpbWlz
+ZSBmaW5kX25leHRfKl9iaXQNCj4gPiBoYXMgYmVlbiBhZGRlZCB0byB0aGUgLW1tIHRyZWUuICBJ
+dHMgZmlsZW5hbWUgaXMNCj4gPiAgICAgIGZpbmRfYml0LW1pY3JvLW9wdGltaXNlLWZpbmRfbmV4
+dF9fYml0LnBhdGNoDQo+ID4NCj4gPiBUaGlzIHBhdGNoIHNob3VsZCBzb29uIGFwcGVhciBhdA0K
+PiA+DQo+IGh0dHBzOi8vbmEwMS5zYWZlbGlua3MucHJvdGVjdGlvbi5vdXRsb29rLmNvbS8/dXJs
+PWh0dHA6JTJGJTJGb3psYWJzLm9yZyUyRg0KPiB+YWtwbSUyRm1tb3RzJTJGYnJva2VuLW91dCUy
+RmZpbmRfYml0LW1pY3JvLW9wdGltaXNlLQ0KPiBmaW5kX25leHRfX2JpdC5wYXRjaCZkYXRhPTAy
+JTdDMDElN0NtYXdpbGNveCU0MG1pY3Jvc29mdC5jb20lN0MzOWM5DQo+IDA3MDNlZjg4NGIwYWJl
+OTcwOGQ0MzYwYjJhNWUlN0M3MmY5ODhiZjg2ZjE0MWFmOTFhYjJkN2NkMDExZGI0NyUNCj4gN0Mx
+JTdDMCU3QzYzNjE5Mjg2ODk5MjE5ODU2NyZzZGF0YT1JNlZBeE40RlpUTkthRDVVJTJGZUNTS001
+bg0KPiBDWWl5MDJ1RFpJMWNuQWRrNnZjJTNEJnJlc2VydmVkPTANCj4gPiBhbmQgbGF0ZXIgYXQN
+Cj4gPg0KPiBodHRwczovL25hMDEuc2FmZWxpbmtzLnByb3RlY3Rpb24ub3V0bG9vay5jb20vP3Vy
+bD1odHRwOiUyRiUyRm96bGFicy5vcmclMkYNCj4gfmFrcG0lMkZtbW90bSUyRmJyb2tlbi1vdXQl
+MkZmaW5kX2JpdC1taWNyby1vcHRpbWlzZS0NCj4gZmluZF9uZXh0X19iaXQucGF0Y2gmZGF0YT0w
+MiU3QzAxJTdDbWF3aWxjb3glNDBtaWNyb3NvZnQuY29tJTdDMzljOQ0KPiAwNzAzZWY4ODRiMGFi
+ZTk3MDhkNDM2MGIyYTVlJTdDNzJmOTg4YmY4NmYxNDFhZjkxYWIyZDdjZDAxMWRiNDclDQo+IDdD
+MSU3QzAlN0M2MzYxOTI4Njg5OTIxOTg1Njcmc2RhdGE9NkhwOWZxOFpVNGxzVnUzJTJGbVpYS3NC
+ejJnag0KPiBzRVkweTVDWnZXYWlqeDl1OCUzRCZyZXNlcnZlZD0wDQo+ID4NCj4gPiBCZWZvcmUg
+eW91IGp1c3QgZ28gYW5kIGhpdCAicmVwbHkiLCBwbGVhc2U6DQo+ID4gICAgYSkgQ29uc2lkZXIg
+d2hvIGVsc2Ugc2hvdWxkIGJlIGNjJ2VkDQo+ID4gICAgYikgUHJlZmVyIHRvIGNjIGEgc3VpdGFi
+bGUgbWFpbGluZyBsaXN0IGFzIHdlbGwNCj4gPiAgICBjKSBJZGVhbGx5OiBmaW5kIHRoZSBvcmln
+aW5hbCBwYXRjaCBvbiB0aGUgbWFpbGluZyBsaXN0IGFuZCBkbyBhDQo+ID4gICAgICAgcmVwbHkt
+dG8tYWxsIHRvIHRoYXQsIGFkZGluZyBzdWl0YWJsZSBhZGRpdGlvbmFsIGNjJ3MNCj4gPg0KPiA+
+ICoqKiBSZW1lbWJlciB0byB1c2UgRG9jdW1lbnRhdGlvbi9TdWJtaXRDaGVja2xpc3Qgd2hlbiB0
+ZXN0aW5nIHlvdXINCj4gY29kZSAqKioNCj4gPg0KPiA+IFRoZSAtbW0gdHJlZSBpcyBpbmNsdWRl
+ZCBpbnRvIGxpbnV4LW5leHQgYW5kIGlzIHVwZGF0ZWQNCj4gPiB0aGVyZSBldmVyeSAzLTQgd29y
+a2luZyBkYXlzDQo+ID4NCj4gPiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS0tLS0tLS0tLS0NCj4gPiBGcm9tOiBNYXR0aGV3IFdpbGNveCA8bWF3aWxjb3hAbWlj
+cm9zb2Z0LmNvbT4NCj4gPiBTdWJqZWN0OiBsaWIvZmluZF9iaXQuYzogbWljcm8tb3B0aW1pc2Ug
+ZmluZF9uZXh0XypfYml0DQo+ID4NCj4gPiBUaGlzIHNhdmVzIDIwIGJ5dGVzIG9uIG15IHg4Ni02
+NCBidWlsZCwgbW9zdGx5IGR1ZSB0byBhbGlnbm1lbnQNCj4gPiBjb25zaWRlcmF0aW9ucyAuLi4g
+IEkgdGhpbmsgaXQgYWN0dWFsbHkgc2F2ZXMgYWJvdXQgZml2ZSBieXRlcyBvZg0KPiA+IGluc3Ry
+dWN0aW9ucy4gIFRoZXJlJ3MgcmVhbGx5IHR3byBwYXJ0cyB0byB0aGlzIGNvbW1pdC4gIEZpcnN0
+LCB0aGUgZmlyc3QNCj4gPiBoYWxmIG9mIHRoZSB0ZXN0OiAoIW5iaXRzIHx8IHN0YXJ0ID49IG5i
+aXRzKSBpcyB0cml2aWFsbHkgYSBzdWJzZXQgb2YgdGhlDQo+ID4gc2Vjb25kIGhhbGYsIHNpbmNl
+IG5iaXRzIGFuZCBzdGFydCBhcmUgYm90aCB1bnNpZ25lZC4gIFNlY29uZCwgd2hpbGUNCj4gPiBs
+b29raW5nIGF0IHRoZSBkaXNhc3NlbWJseSwgSSBub3RpY2VkIHRoYXQgR0NDIHdhcyBwcmVkaWN0
+aW5nIHRoZSBicmFuY2gNCj4gPiB0YWtlbi4gIFNpbmNlIHRoaXMgaXMgYSBmYWlsdXJlIGNhc2Us
+IGl0J3MgY2xlYXJseSB0aGUgbGVzcyBsaWtlbHkgb2YgdGhlDQo+ID4gdHdvIGJyYW5jaGVzLCBz
+byBhZGQgYW4gdW5saWtlbHkoKSB0byBvdmVycmlkZSBHQ0MncyBoZXVyaXN0aWNzLg0KPiA+DQo+
+ID4gTGluazoNCj4gaHR0cHM6Ly9uYTAxLnNhZmVsaW5rcy5wcm90ZWN0aW9uLm91dGxvb2suY29t
+Lz91cmw9aHR0cCUzQSUyRiUyRmxrbWwua2VybmUNCj4gbC5vcmclMkZyJTJGMTQ4MjUxMzYwMy05
+NjMwLTEtZ2l0LXNlbmQtZW1haWwtDQo+IG1hd2lsY294JTQwbGludXhvbmh5cGVydi5jb20mZGF0
+YT0wMiU3QzAxJTdDbWF3aWxjb3glNDBtaWNyb3NvZnQuYw0KPiBvbSU3QzM5YzkwNzAzZWY4ODRi
+MGFiZTk3MDhkNDM2MGIyYTVlJTdDNzJmOTg4YmY4NmYxNDFhZjkxYWIyZDdjDQo+IGQwMTFkYjQ3
+JTdDMSU3QzAlN0M2MzYxOTI4Njg5OTIxOTg1Njcmc2RhdGE9NjlLb2MzNUJXa25nczNDUEgNCj4g
+QnNldE9VUFR6WXNpMnBIZk1jZ0VsdVQyJTJGcyUzRCZyZXNlcnZlZD0wDQo+ID4gU2lnbmVkLW9m
+Zi1ieTogTWF0dGhldyBXaWxjb3ggPG1hd2lsY294QG1pY3Jvc29mdC5jb20+DQo+ID4gQWNrZWQt
+Ynk6IFJhc211cyBWaWxsZW1vZXMgPGxpbnV4QHJhc211c3ZpbGxlbW9lcy5kaz4NCj4gPiBBY2tl
+ZC1ieTogWXVyeSBOb3JvdiA8eW5vcm92QGNhdml1bW5ldHdvcmtzLmNvbT4NCj4gPiBTaWduZWQt
+b2ZmLWJ5OiBBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPg0KPiA+IC0t
+LQ0KPiA+DQo+ID4gIGxpYi9maW5kX2JpdC5jIHwgICAgMiArLQ0KPiA+ICAxIGZpbGUgY2hhbmdl
+ZCwgMSBpbnNlcnRpb24oKyksIDEgZGVsZXRpb24oLSkNCj4gPg0KPiA+IGRpZmYgLXB1TiBsaWIv
+ZmluZF9iaXQuY35maW5kX2JpdC1taWNyby1vcHRpbWlzZS1maW5kX25leHRfX2JpdCBsaWIvZmlu
+ZF9iaXQuYw0KPiA+IC0tLSBhL2xpYi9maW5kX2JpdC5jfmZpbmRfYml0LW1pY3JvLW9wdGltaXNl
+LWZpbmRfbmV4dF9fYml0DQo+ID4gKysrIGEvbGliL2ZpbmRfYml0LmMNCj4gPiBAQCAtMzMsNyAr
+MzMsNyBAQCBzdGF0aWMgdW5zaWduZWQgbG9uZyBfZmluZF9uZXh0X2JpdChjb25zDQo+ID4gIHsN
+Cj4gPiAgCXVuc2lnbmVkIGxvbmcgdG1wOw0KPiA+DQo+ID4gLQlpZiAoIW5iaXRzIHx8IHN0YXJ0
+ID49IG5iaXRzKQ0KPiA+ICsJaWYgKHVubGlrZWx5KHN0YXJ0ID49IG5iaXRzKSkNCj4gPiAgCQly
+ZXR1cm4gbmJpdHM7DQo+ID4NCj4gPiAgCXRtcCA9IGFkZHJbc3RhcnQgLyBCSVRTX1BFUl9MT05H
+XSBeIGludmVydDsNCj4gPiBfDQo+ID4NCj4gPiBQYXRjaGVzIGN1cnJlbnRseSBpbiAtbW0gd2hp
+Y2ggbWlnaHQgYmUgZnJvbSBtYXdpbGNveEBtaWNyb3NvZnQuY29tIGFyZQ0KPiA+DQo+ID4gZmlu
+ZF9iaXQtbWljcm8tb3B0aW1pc2UtZmluZF9uZXh0X19iaXQucGF0Y2gNCj4gPiByZWltcGxlbWVu
+dC1pZHItYW5kLWlkYS11c2luZy10aGUtcmFkaXgtdHJlZS1zdXBwb3J0LXN0b3JpbmctbnVsbC1p
+bi10aGUtDQo+IGlkci5wYXRjaA0K
