@@ -1,71 +1,75 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
-Date: Fri, 6 Jan 2017 14:48:21 +0000
-Message-ID: <20170106144820.GE12863@e104818-lin.cambridge.arm.com>
-References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <1477081997-4770-11-git-send-email-ynorov@caviumnetworks.com>
- <20161205153801.GE14429@e104818-lin.cambridge.arm.com>
- <20161221185640.GA16562@yury-N73SV>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: Re: [RFC PATCH v3] sparc64: Add support for Application Data
+ Integrity (ADI)
+Date: Fri, 6 Jan 2017 08:32:43 -0700
+Message-ID: <ac86aa55-964d-56a1-1381-c208de78b24e@oracle.com>
+References: <d234fb8b-965f-d966-46fe-965478fdf7cb@linux.intel.com>
+ <8612e7db-97c5-f757-0aae-24c3acedbc29@oracle.com>
+ <2c0502d0-20ef-44ac-db5b-7f651a70b978@linux.intel.com>
+ <ba9c4de2-cec1-1c88-82c9-24a524eb7948@oracle.com>
+ <db31d324-a1ae-7450-0e54-ad98da205773@linux.intel.com>
+ <5a0270ea-b29a-0751-a27f-2412a8588561@oracle.com>
+ <7532a1d6-6562-b10b-dacd-931cb2a9e536@linux.intel.com>
+ <92d55a69-b400-8461-53a1-d505de089700@oracle.com>
+ <75c31c99-cff7-72dc-f593-012fe5acd405@linux.intel.com>
+ <7fbc4ca1-22ef-8ef5-5c1b-dd075852e512@oracle.com>
+ <20170106091934.GF5556@dhcp22.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <20161221185640.GA16562@yury-N73SV>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170106091934.GF5556@dhcp22.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@kernel.org>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>, Rob Gardner <rob.gardner@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 22, 2016 at 12:26:40AM +0530, Yury Norov wrote:
-> On Mon, Dec 05, 2016 at 03:38:01PM +0000, Catalin Marinas wrote:
-> > On Fri, Oct 21, 2016 at 11:33:09PM +0300, Yury Norov wrote:
-> > > binfmt_ilp32.c is needed to handle ILP32 binaries
-> > > 
-> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> > > Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
-> > > ---
-> > >  arch/arm64/include/asm/elf.h     |  6 +++
-> > >  arch/arm64/kernel/Makefile       |  1 +
-> > >  arch/arm64/kernel/binfmt_ilp32.c | 97 ++++++++++++++++++++++++++++++++++++++++
-> > >  3 files changed, 104 insertions(+)
-> > >  create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
-> > > 
-> > > diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-> > > index f259fe8..be29dde 100644
-> > > --- a/arch/arm64/include/asm/elf.h
-> > > +++ b/arch/arm64/include/asm/elf.h
-> > > @@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-> > >  
-> > >  #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
-> > >  
-> > > +#ifndef USE_AARCH64_GREG
-> > >  /* AArch32 registers. */
-> > >  #define COMPAT_ELF_NGREG		18
-> > >  typedef unsigned int			compat_elf_greg_t;
-> > >  typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
-> > > +#else /* AArch64 registers for AARCH64/ILP32 */
-> > > +#define COMPAT_ELF_NGREG	ELF_NGREG
-> > > +#define compat_elf_greg_t	elf_greg_t
-> > > +#define compat_elf_gregset_t	elf_gregset_t
-> > > +#endif
-> > 
-> > I think you only need compat_elf_gregset_t definition here and leave the
-> > other two undefined.
-> 
-> I checked everything here again, and found that almost all compat defines
-> may be moved to corresponding binfmt files. If everything is OK, I'll
-> incorporate next patch to the series
+On 01/06/2017 02:19 AM, Michal Hocko wrote:
+> On Thu 05-01-17 13:30:10, Khalid Aziz wrote:
+> [...]
+>> It is very tempting to restrict tags to PAGE_SIZE granularity since it makes
+>> code noticeably simpler and that is indeed going to be the majority of
+>> cases. Sooner or later somebody would want to use multiple tags per page
+>> though.
+>
+> I didn't get to read the patch throughly yet but I am really confused by
+> this statement. The api is mprotect based which makes it ineherently
+> PAGE_SIZE granular. How do you want to achieve cache line granularity
+> with this API?
+>
+> And I would really vote for simplicity first... Subpage granularity
+> sounds way too tricky...
+>
 
-It seems fine at a quick look but I'll have to see the final patch.
+Hi Michal,
 
--- 
-Catalin
+ADI can be enabled for subsets of a task's address space. It takes three 
+steps to enable ADI completely:
+
+1. Enable the task to use ADI by setting PSTATE.mcde bit. This is the 
+master switch for ADI. mprotect() does this in my patch. Granularity for 
+this operation is entire address space for the task.
+
+2. Set TTE.mcd bit for each page translation for the pages one wants ADI 
+enabled on. mprotect() does this as well in my patch. Granularity for 
+this operation is per page.
+
+3. Set version tag for the addresses task wants to enable ADI on using 
+"stxa" instruction. This is done entirely in userspace with no 
+assistance or intervention needed from the kernel. Granularity for this 
+operation is cache line size which is 64 bytes on Sparc M7.
+
+I agree with you on simplicity first. Subpage granularity is complex, 
+but the architecture allows for subpage granularity. Maybe the right 
+approach is to support this at page granularity first for swappable 
+pages and then expand to subpage granularity in a subsequent patch? 
+Pages locked in memory can already use subpage granularity with my patch.
+
+Thanks,
+Khalid
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
