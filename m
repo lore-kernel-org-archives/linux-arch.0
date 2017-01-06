@@ -1,18 +1,17 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 16/18] arm64: ptrace: handle ptrace_request differently
- for aarch32 and ilp32
-Date: Fri, 6 Jan 2017 14:36:19 +0000
-Message-ID: <20170106143619.GC12863@e104818-lin.cambridge.arm.com>
+Subject: Re: [PATCH 10/18] arm64: ilp32: introduce binfmt_ilp32.c
+Date: Fri, 6 Jan 2017 14:48:21 +0000
+Message-ID: <20170106144820.GE12863@e104818-lin.cambridge.arm.com>
 References: <1477081997-4770-1-git-send-email-ynorov@caviumnetworks.com>
- <20161206062508.GA17835@yury-N73SV>
- <20161207165913.GD31779@e104818-lin.cambridge.arm.com>
- <3703608.GKr1zzErMk@wuerfel> <20170105204003.GA7437@yury-N73SV>
+ <1477081997-4770-11-git-send-email-ynorov@caviumnetworks.com>
+ <20161205153801.GE14429@e104818-lin.cambridge.arm.com>
+ <20161221185640.GA16562@yury-N73SV>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20170105204003.GA7437@yury-N73SV>
+In-Reply-To: <20161221185640.GA16562@yury-N73SV>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -23,53 +22,50 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, Arnd Bergmann <arnd@arndb.de>, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Cc: linux-doc@vger.kernel.org, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 06, 2017 at 02:10:03AM +0530, Yury Norov wrote:
-> On Wed, Dec 07, 2016 at 09:40:13PM +0100, Arnd Bergmann wrote:
-> > On Wednesday, December 7, 2016 4:59:13 PM CET Catalin Marinas wrote:
-> > > On Tue, Dec 06, 2016 at 11:55:08AM +0530, Yury Norov wrote:
-> > > > On Mon, Dec 05, 2016 at 04:34:23PM +0000, Catalin Marinas wrote:
-> > > > > On Fri, Oct 21, 2016 at 11:33:15PM +0300, Yury Norov wrote:
-> > > > > > New aarch32 ptrace syscall handler is introduced to avoid run-time
-> > > > > > detection of the task type.
-> > > > > 
-> > > > > What's wrong with the run-time detection? If it's just to avoid a
-> > > > > negligible overhead, I would rather keep the code simpler by avoiding
-> > > > > duplicating the generic compat_sys_ptrace().
-> > > > 
-> > > > Nothing wrong. This is how Arnd asked me to do. You already asked this
-> > > > question: http://lkml.iu.edu/hypermail/linux/kernel/1604.3/00930.html
+On Thu, Dec 22, 2016 at 12:26:40AM +0530, Yury Norov wrote:
+> On Mon, Dec 05, 2016 at 03:38:01PM +0000, Catalin Marinas wrote:
+> > On Fri, Oct 21, 2016 at 11:33:09PM +0300, Yury Norov wrote:
+> > > binfmt_ilp32.c is needed to handle ILP32 binaries
 > > > 
-> > > Hmm, I completely forgot about this ;). There is still an advantage to
-> > > doing run-time checking if we avoid touching core code (less acks to
-> > > gather and less code duplication).
+> > > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> > > Signed-off-by: Bamvor Zhang Jian <bamvor.zhangjian@linaro.org>
+> > > ---
+> > >  arch/arm64/include/asm/elf.h     |  6 +++
+> > >  arch/arm64/kernel/Makefile       |  1 +
+> > >  arch/arm64/kernel/binfmt_ilp32.c | 97 ++++++++++++++++++++++++++++++++++++++++
+> > >  3 files changed, 104 insertions(+)
+> > >  create mode 100644 arch/arm64/kernel/binfmt_ilp32.c
 > > > 
-> > > Let's see what Arnd says but the initial patch looked simpler.
+> > > diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
+> > > index f259fe8..be29dde 100644
+> > > --- a/arch/arm64/include/asm/elf.h
+> > > +++ b/arch/arm64/include/asm/elf.h
+> > > @@ -175,10 +175,16 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+> > >  
+> > >  #define COMPAT_ELF_ET_DYN_BASE		(2 * TASK_SIZE_32 / 3)
+> > >  
+> > > +#ifndef USE_AARCH64_GREG
+> > >  /* AArch32 registers. */
+> > >  #define COMPAT_ELF_NGREG		18
+> > >  typedef unsigned int			compat_elf_greg_t;
+> > >  typedef compat_elf_greg_t		compat_elf_gregset_t[COMPAT_ELF_NGREG];
+> > > +#else /* AArch64 registers for AARCH64/ILP32 */
+> > > +#define COMPAT_ELF_NGREG	ELF_NGREG
+> > > +#define compat_elf_greg_t	elf_greg_t
+> > > +#define compat_elf_gregset_t	elf_gregset_t
+> > > +#endif
 > > 
-> > I don't currently have either version of the patch in my inbox
-> > (the archive is on a different machine), but in general I'd still
-> > think it's best to avoid the runtime check for aarch64-ilp32
-> > altogether. I'd have to look at the overall kernel source to
-> > see if it's worth avoiding one or two instances though, or
-> > if there are an overwhelming number of other checks that we
-> > can't avoid at all.
-> > 
-> > Regarding ptrace, I notice that arch/tile doesn't even use
-> > the compat entry point for its ilp32 user space on 64-bit
-> > kernels, it just calls the regular 64-bit one. Would that
-> > help here?
+> > I think you only need compat_elf_gregset_t definition here and leave the
+> > other two undefined.
 > 
-> ILP32 tasks has unique context that is not like aarch64 or aarch32,
-> so we have to have unique ptrace handler. I prepared the patch for
-> ptrace with runtime ABI detection, as Catalin said, see there:
-> https://github.com/norov/linux/commit/1f66dc22a4450b192e83458f2c3cc0e79f53e670
-> 
-> If it's OK, I'd like to update submission.
+> I checked everything here again, and found that almost all compat defines
+> may be moved to corresponding binfmt files. If everything is OK, I'll
+> incorporate next patch to the series
 
-This looks better to me (and even better if you no longer need to touch
-the generic ptrace code).
+It seems fine at a quick look but I'll have to see the final patch.
 
 -- 
 Catalin
