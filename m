@@ -1,52 +1,55 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [GIT PULL] percpu fix for v4.10-rc6
-Date: Tue, 31 Jan 2017 17:27:07 -0500
-Message-ID: <20170131222707.GA5919@htj.duckdns.org>
-References: <20170131165537.GC23970@htj.duckdns.org>
- <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com>
- <CA+55aFx0u8SpEYOkNymXBu7_q5uF-MitrjmpDx9+Uj3fgnxgRg@mail.gmail.com>
- <20170131221141.GA5379@htj.duckdns.org>
- <CA+55aFyn+pVeZKA1wEdbBMku_2UCL7BuUX1O_RvHpH5LJXEy5Q@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f196.google.com ([209.85.192.196]:36839 "EHLO
-        mail-pf0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750830AbdAaW1P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2017 17:27:15 -0500
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyn+pVeZKA1wEdbBMku_2UCL7BuUX1O_RvHpH5LJXEy5Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dougmill@linux.vnet.ibm.com
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: [PATCH v3 4/6] tools: expand export.h with VMLINUX_SYMBOL()
+Date: Mon,  9 Jan 2017 07:02:47 -0800
+Message-ID: <20170109150249.11667-5-mcgrof@kernel.org>
+References: <20161222023958.21306-1-mcgrof@kernel.org>
+ <20170109150249.11667-1-mcgrof@kernel.org>
+Return-path: <platform-driver-x86-owner@vger.kernel.org>
+In-Reply-To: <20170109150249.11667-1-mcgrof@kernel.org>
+Sender: platform-driver-x86-owner@vger.kernel.org
+To: hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 31, 2017 at 02:17:10PM -0800, Linus Torvalds wrote:
-> Because there definitely have been users of the bitop routines that
-> assign the result to an "int", and I have some dim memory of us also
-> having had things like drivers that made their own "bool" variables
-> and use "char" for them.
-> 
-> But I'm not seeing it. The generic bitop pattern seems to be
-> 
->     static inline int test_and_change_bit(int nr, volatile unsigned long *addr)
->     ...
->         return (old & mask) != 0;
-> 
-> which is fine.
-> 
-> Just exactly what code did you look at?
+This will be used later by the linker-table userspace sandbox.
 
-My bad.  I misread the generic test_bit() code and was reading the
-inner helper of ppc, DEFINE_TESTOP macro, which returns the masked
-value.  We used to have this problem, right?  I seem to have a memory
-of hitting this issue.
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
+ tools/include/linux/export.h | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-Is there a reason we don't make these functions explicitly return
-bool?  To avoid unnecessary boolean conversion by the compiler?  If
-so, there gotta be a way to avoid that.
-
-Thanks.
-
+diff --git a/tools/include/linux/export.h b/tools/include/linux/export.h
+index d07e586b9ba0..cb7d6b490e08 100644
+--- a/tools/include/linux/export.h
++++ b/tools/include/linux/export.h
+@@ -1,6 +1,28 @@
+ #ifndef _TOOLS_LINUX_EXPORT_H_
+ #define _TOOLS_LINUX_EXPORT_H_
+ 
++/*
++ * Export symbols from the kernel to modules.  Forked from module.h
++ * to reduce the amount of pointless cruft we feed to gcc when only
++ * exporting a simple symbol or two.
++ *
++ * Try not to add #includes here.  It slows compilation and makes kernel
++ * hackers place grumpy comments in header files.
++ */
++
++/* Some toolchains use a `_' prefix for all user symbols. */
++#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
++#define __VMLINUX_SYMBOL(x) _##x
++#define __VMLINUX_SYMBOL_STR(x) "_" #x
++#else
++#define __VMLINUX_SYMBOL(x) x
++#define __VMLINUX_SYMBOL_STR(x) #x
++#endif
++
++/* Indirect, so macros are expanded before pasting. */
++#define VMLINUX_SYMBOL(x) __VMLINUX_SYMBOL(x)
++#define VMLINUX_SYMBOL_STR(x) __VMLINUX_SYMBOL_STR(x)
++
+ #define EXPORT_SYMBOL(sym)
+ #define EXPORT_SYMBOL_GPL(sym)
+ #define EXPORT_SYMBOL_GPL_FUTURE(sym)
 -- 
-tejun
+2.11.0
