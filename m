@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail5.windriver.com ([192.103.53.11]:44032 "EHLO mail5.wrs.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S940682AbdAIUlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Jan 2017 15:41:01 -0500
+Received: from mail1.windriver.com ([147.11.146.13]:51233 "EHLO
+        mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S940682AbdAIUlU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2017 15:41:20 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 03/10] m32r: migrate exception table users off module.h and onto extable.h
-Date: Mon, 9 Jan 2017 15:40:03 -0500
-Message-ID: <20170109204010.5047-4-paul.gortmaker@windriver.com>
+Subject: [PATCH 07/10] xtensa: migrate exception table users off module.h and onto extable.h
+Date: Mon, 9 Jan 2017 15:40:07 -0500
+Message-ID: <20170109204010.5047-8-paul.gortmaker@windriver.com>
 In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,48 +14,35 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-Message-ID: <20170109204003.xHva3QAsR-SSWqaPntC7bOG2aKs7fE2ZzSm0VSFDVzU@z>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
+Message-ID: <20170109204007.hDQInqRF_N3YZ4OvsHTjeEerOavX4ev7fFyXW3_9kUw@z>
 
-These files were only including module.h for exception table
-related functions.  We've now separated that content out into its
-own file "extable.h" so now move over to that and avoid all the
-extra header content in module.h that we don't really need to compile
-these files.
+This file was only including module.h for exception table related
+functions.  We've now separated that content out into its own file
+"extable.h" so now move over to that and avoid all the extra header
+content in module.h that we don't really need to compile this file.
 
-Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-xtensa@linux-xtensa.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/m32r/mm/extable.c | 2 +-
- arch/m32r/mm/fault.c   | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/xtensa/mm/fault.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/m32r/mm/extable.c b/arch/m32r/mm/extable.c
-index 40ccf80d29cf..8ac8ba6ef60c 100644
---- a/arch/m32r/mm/extable.c
-+++ b/arch/m32r/mm/extable.c
-@@ -2,7 +2,7 @@
-  * linux/arch/m32r/mm/extable.c
+diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
+index 2725e08ef353..a14df5aa98c8 100644
+--- a/arch/xtensa/mm/fault.c
++++ b/arch/xtensa/mm/fault.c
+@@ -13,7 +13,7 @@
   */
  
+ #include <linux/mm.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
+ #include <linux/hardirq.h>
+ #include <linux/perf_event.h>
  #include <linux/uaccess.h>
- 
- int fixup_exception(struct pt_regs *regs)
-diff --git a/arch/m32r/mm/fault.c b/arch/m32r/mm/fault.c
-index a3785d3644c2..a05dc3184594 100644
---- a/arch/m32r/mm/fault.c
-+++ b/arch/m32r/mm/fault.c
-@@ -23,7 +23,7 @@
- #include <linux/tty.h>
- #include <linux/vt_kern.h>		/* For unblank_screen() */
- #include <linux/highmem.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/uaccess.h>
- 
- #include <asm/m32r.h>
 -- 
 2.11.0
 
