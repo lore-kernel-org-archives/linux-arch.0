@@ -1,87 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:55951 "EHLO mga14.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1163479AbdAIS3m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 9 Jan 2017 13:29:42 -0500
-Message-ID: <1483986555.26691.46.camel@linux.intel.com>
-Subject: Re: [PATCH v6 00/14] linux: generalize sections, ranges and linker
- tables
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Date: Mon, 09 Jan 2017 20:29:15 +0200
-In-Reply-To: <1483981946.26691.44.camel@intel.com>
-References: <20161222023811.21246-1-mcgrof@kernel.org>
-         <20170109145833.11502-1-mcgrof@kernel.org>
-         <1483979228.26691.40.camel@linux.intel.com>
-         <1483981946.26691.44.camel@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail.windriver.com ([147.11.1.11]:56035 "EHLO
+        mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S940682AbdAIUlg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2017 15:41:36 -0500
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 04/10] arm: migrate exception table users off module.h and onto extable.h
+Date: Mon, 9 Jan 2017 15:40:04 -0500
+Message-ID: <20170109204010.5047-5-paul.gortmaker@windriver.com>
+In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
+References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
-Message-ID: <20170109182915.MHg27Q7ghejhztwiX1Yo1OIW6Tk6VfAuxFPxXEqiTUQ@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Russell King <linux@armlinux.org.uk>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170109204004.BLT_HwteAbIbMb0OuDy-hbqeD69X6NitAFrlstu5m4o@z>
 
-On Mon, 2017-01-09 at 19:12 +0200, Andy Shevchenko wrote:
-> On Mon, 2017-01-09 at 18:27 +0200, Andy Shevchenko wrote:
-> > On Mon, 2017-01-09 at 06:58 -0800, Luis R. Rodriguez wrote:
-> > > The only architecture that was not tested was avr32 and that is
-> > > because
-> > > linux-next fails to compile on it. I'd like to greatly thank
-> > > Guenter
-> > > Roeck for
-> > > his help with testing.
-> > 
-> > We have a real board here. I would try to check if you provide a git
-> > url
-> > to your stuff.
-> > 
-> > I can confirm that breakage happened like in last couple of month.
-> > v4.10-rc3 can't be compiled either.
-> 
-> The culprit commit is
-> 
-> commit 3a0af8fd61f90920f6fa04e4f1e9a6a73c1b4fd2
-> Author: Thomas Graf <tgraf@suug.ch>
-> Date:   Wed Nov 30 17:10:10 2016 +0100
-> 
->     bpf: BPF for lightweight tunnel infrastructure
-> 
+These files were only including module.h for exception table
+related functions.  We've now separated that content out into its
+own file "extable.h" so now move over to that and avoid all the
+extra header content in module.h that we don't really need to compile
+these files.
 
-This makes modules closer to each other, so,
-net/socket.c:348: relocation truncated to fit: R_AVR32_11H_PCREL against
-`.text'+2930
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+---
+ arch/arm/mm/extable.c | 2 +-
+ arch/arm/mm/fault.c   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-But still the module is too big for AVR to do some jumps.
-
-Here I stop investigating it. I had been proposed to get rid of avr32
-completely, burden to support is just increasing (no Buildroot support,
-no Gcc support, what else do we need?) for no value.
-
-diff --git a/net/core/Makefile b/net/core/Makefile
-index f6761b6e3b29..91b7d27bf2c6 100644
---- a/net/core/Makefile
-+++ b/net/core/Makefile
-@@ -2,13 +2,13 @@
- # Makefile for the Linux networking core.
- #
- 
--obj-y := sock.o request_sock.o skbuff.o datagram.o stream.o scm.o \
-+obj-y := filter.o sock.o request_sock.o skbuff.o datagram.o stream.o
-scm.o \
-         gen_stats.o gen_estimator.o net_namespace.o secure_seq.o
-flow_dissector.o
- 
- obj-$(CONFIG_SYSCTL) += sysctl_net_core.o
- 
- obj-y               += dev.o ethtool.o dev_addr_lists.o dst.o
-netevent.o \
--                       neighbour.o rtnetlink.o utils.o link_watch.o
-filter.o \
-+                       neighbour.o rtnetlink.o utils.o link_watch.o \
-                        sock_diag.o dev_ioctl.o tso.o sock_reuseport.o
- 
- obj-$(CONFIG_XFRM) += flow.o
+diff --git a/arch/arm/mm/extable.c b/arch/arm/mm/extable.c
+index 312e15e6d00b..f436f7439e46 100644
+--- a/arch/arm/mm/extable.c
++++ b/arch/arm/mm/extable.c
+@@ -1,7 +1,7 @@
+ /*
+  *  linux/arch/arm/mm/extable.c
+  */
+-#include <linux/module.h>
++#include <linux/extable.h>
+ #include <linux/uaccess.h>
+ 
+ int fixup_exception(struct pt_regs *regs)
+diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
+index 3a2e678b8d30..94de590db99e 100644
+--- a/arch/arm/mm/fault.c
++++ b/arch/arm/mm/fault.c
+@@ -8,7 +8,7 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  */
+-#include <linux/module.h>
++#include <linux/extable.h>
+ #include <linux/signal.h>
+ #include <linux/mm.h>
+ #include <linux/hardirq.h>
 -- 
-Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Intel Finland Oy
+2.11.0
+
