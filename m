@@ -1,7 +1,7 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 09/10] core: migrate exception table users off module.h and onto extable.h
-Date: Mon, 9 Jan 2017 15:40:09 -0500
-Message-ID: <20170109204010.5047-10-paul.gortmaker@windriver.com>
+Subject: [PATCH 02/10] ia64: ensure exception table search users include extable.h
+Date: Mon, 9 Jan 2017 15:40:02 -0500
+Message-ID: <20170109204010.5047-3-paul.gortmaker@windriver.com>
 References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,68 +9,97 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-These files were including module.h for exception table related
-functions.  We've now separated that content out into its own file
-"extable.h" so now move over to that and where possible, avoid all
-the extra header content in module.h that we don't really need to
-compile these non-modular files.
+We start with a delete of a duplicate prototype in asm/exception.h
+that no longer needs to exist, as it duplicates content in extable.h
+and since that header is so small, there is no point trying to
+avoid using it.
 
-Note:
-   init/main.c still needs module.h for __init_or_module
-   kernel/extable.c still needs module.h for is_module_text_address
+Then we make sure anyone using search_exception_tables directly or
+via the ia64_done_with_exception macro has included extable.h
 
-...and so we don't get the benefit of removing module.h from the cpp
-feed for these two files, unlike the almost universal 1:1 exchange
-of module.h for extable.h we were able to do in the arch dirs.
+In the process, we remove an include of moduleloader.h that was
+apparently not really required; it would have been fetching in
+module.h and hence the previous location of the exception search
+function prototypes, but we need not rely on that anymore.
 
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- init/main.c      | 1 +
- kernel/extable.c | 1 +
- kernel/module.c  | 1 +
- 3 files changed, 3 insertions(+)
+ arch/ia64/include/asm/exception.h | 1 -
+ arch/ia64/kernel/kprobes.c        | 2 +-
+ arch/ia64/kernel/traps.c          | 3 ++-
+ arch/ia64/kernel/unaligned.c      | 1 +
+ arch/ia64/mm/fault.c              | 1 +
+ 5 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/init/main.c b/init/main.c
-index b0c9d6facef9..5b244bc1c176 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -12,6 +12,7 @@
- #define DEBUG		/* Enable initcall_debug */
+diff --git a/arch/ia64/include/asm/exception.h b/arch/ia64/include/asm/exception.h
+index d90236090e8c..6bb246dcdaeb 100644
+--- a/arch/ia64/include/asm/exception.h
++++ b/arch/ia64/include/asm/exception.h
+@@ -19,7 +19,6 @@ struct exception_table_entry;
  
- #include <linux/types.h>
+ extern void ia64_handle_exception(struct pt_regs *regs,
+ 				  const struct exception_table_entry *e);
+-extern const struct exception_table_entry *search_exception_tables(unsigned long addr);
+ 
+ #define ia64_done_with_exception(regs)					  \
+ ({									  \
+diff --git a/arch/ia64/kernel/kprobes.c b/arch/ia64/kernel/kprobes.c
+index 55b18e1b67a8..f5f3a5e6fcd1 100644
+--- a/arch/ia64/kernel/kprobes.c
++++ b/arch/ia64/kernel/kprobes.c
+@@ -28,7 +28,7 @@
+ #include <linux/string.h>
+ #include <linux/slab.h>
+ #include <linux/preempt.h>
+-#include <linux/moduleloader.h>
 +#include <linux/extable.h>
- #include <linux/module.h>
- #include <linux/proc_fs.h>
+ #include <linux/kdebug.h>
+ 
+ #include <asm/pgtable.h>
+diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
+index d3e1f1ee465f..8981ce98afb3 100644
+--- a/arch/ia64/kernel/traps.c
++++ b/arch/ia64/kernel/traps.c
+@@ -12,7 +12,8 @@
+ #include <linux/sched.h>
+ #include <linux/tty.h>
+ #include <linux/vt_kern.h>		/* For unblank_screen() */
+-#include <linux/module.h>       /* for EXPORT_SYMBOL */
++#include <linux/export.h>
++#include <linux/extable.h>
+ #include <linux/hardirq.h>
+ #include <linux/kprobes.h>
+ #include <linux/delay.h>		/* for ssleep() */
+diff --git a/arch/ia64/kernel/unaligned.c b/arch/ia64/kernel/unaligned.c
+index e697403b0ec1..99348d7f2255 100644
+--- a/arch/ia64/kernel/unaligned.c
++++ b/arch/ia64/kernel/unaligned.c
+@@ -17,6 +17,7 @@
  #include <linux/kernel.h>
-diff --git a/kernel/extable.c b/kernel/extable.c
-index e3beec4a2339..b25d9901e431 100644
---- a/kernel/extable.c
-+++ b/kernel/extable.c
-@@ -17,6 +17,7 @@
- */
- #include <linux/ftrace.h>
- #include <linux/memory.h>
+ #include <linux/sched.h>
+ #include <linux/tty.h>
 +#include <linux/extable.h>
- #include <linux/module.h>
- #include <linux/mutex.h>
- #include <linux/init.h>
-diff --git a/kernel/module.c b/kernel/module.c
-index 5088784c0cf9..43b6fb20fdf4 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -17,6 +17,7 @@
-     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
- #include <linux/export.h>
+ #include <linux/ratelimit.h>
+ #include <linux/uaccess.h>
+ 
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index 52b41dad9704..7f2feb21753c 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -7,6 +7,7 @@
+ #include <linux/sched.h>
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
 +#include <linux/extable.h>
- #include <linux/moduleloader.h>
- #include <linux/trace_events.h>
- #include <linux/init.h>
+ #include <linux/interrupt.h>
+ #include <linux/kprobes.h>
+ #include <linux/kdebug.h>
 -- 
 2.11.0
