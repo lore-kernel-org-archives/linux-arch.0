@@ -1,7 +1,7 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 07/10] xtensa: migrate exception table users off module.h and onto extable.h
-Date: Mon, 9 Jan 2017 15:40:07 -0500
-Message-ID: <20170109204010.5047-8-paul.gortmaker@windriver.com>
+Subject: [PATCH 10/10] module.h: remove extable.h include now users have migrated
+Date: Mon, 9 Jan 2017 15:40:10 -0500
+Message-ID: <20170109204010.5047-11-paul.gortmaker@windriver.com>
 References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,34 +9,33 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-This file was only including module.h for exception table related
-functions.  We've now separated that content out into its own file
-"extable.h" so now move over to that and avoid all the extra header
-content in module.h that we don't really need to compile this file.
+With hopefully most/all users of module.h that were looking for
+exception table functions moved over to the new extable.h header,
+we can remove the back-compat include that let us transition
+without introducing build regressions.
 
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-xtensa@linux-xtensa.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/xtensa/mm/fault.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/module.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
-index 2725e08ef353..a14df5aa98c8 100644
---- a/arch/xtensa/mm/fault.c
-+++ b/arch/xtensa/mm/fault.c
-@@ -13,7 +13,7 @@
-  */
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 7c84273d60b9..2e6df4c41c86 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -18,7 +18,6 @@
+ #include <linux/moduleparam.h>
+ #include <linux/jump_label.h>
+ #include <linux/export.h>
+-#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
+ #include <linux/rbtree_latch.h>
  
- #include <linux/mm.h>
--#include <linux/module.h>
-+#include <linux/extable.h>
- #include <linux/hardirq.h>
- #include <linux/perf_event.h>
- #include <linux/uaccess.h>
+ #include <linux/percpu.h>
 -- 
 2.11.0
