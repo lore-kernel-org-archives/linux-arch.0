@@ -1,82 +1,180 @@
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Subject: Re: [PATCH v6 00/14] linux: generalize sections, ranges and linker
- tables
-Date: Mon, 09 Jan 2017 20:29:15 +0200
-Message-ID: <1483986555.26691.46.camel@linux.intel.com>
-References: <20161222023811.21246-1-mcgrof@kernel.org>
-         <20170109145833.11502-1-mcgrof@kernel.org>
-         <1483979228.26691.40.camel@linux.intel.com>
-         <1483981946.26691.44.camel@intel.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 01/10] ia64: move ia64_done_with_exception out of asm/uaccess.h
+Date: Mon, 9 Jan 2017 15:40:01 -0500
+Message-ID: <20170109204010.5047-2-paul.gortmaker@windriver.com>
+References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1483981946.26691.44.camel@intel.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@lin
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.windriver.com ([147.11.1.11]:55754 "EHLO
+        mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932340AbdAIUk5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2017 15:40:57 -0500
+In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-ia64@vger.kernel.org
 
-On Mon, 2017-01-09 at 19:12 +0200, Andy Shevchenko wrote:
-> On Mon, 2017-01-09 at 18:27 +0200, Andy Shevchenko wrote:
-> > On Mon, 2017-01-09 at 06:58 -0800, Luis R. Rodriguez wrote:
-> > > The only architecture that was not tested was avr32 and that is
-> > > because
-> > > linux-next fails to compile on it. I'd like to greatly thank
-> > > Guenter
-> > > Roeck for
-> > > his help with testing.
-> > 
-> > We have a real board here. I would try to check if you provide a git
-> > url
-> > to your stuff.
-> > 
-> > I can confirm that breakage happened like in last couple of month.
-> > v4.10-rc3 can't be compiled either.
-> 
-> The culprit commit is
-> 
-> commit 3a0af8fd61f90920f6fa04e4f1e9a6a73c1b4fd2
-> Author: Thomas Graf <tgraf@suug.ch>
-> Date:   Wed Nov 30 17:10:10 2016 +0100
-> 
->     bpf: BPF for lightweight tunnel infrastructure
-> 
+Move ia64_done_with_exception out of asm/uaccess.h (which is widely
+used) and into asm/exception.h (like ARM has) and then ensure the
+few callers of it include this new header.
 
-This makes modules closer to each other, so,
-net/socket.c:348: relocation truncated to fit: R_AVR32_11H_PCREL against
-`.text'+2930
+Most of the other C content in asm files is implemented in macro form.
+So we do that conversion at the same time as the move.
 
-But still the module is too big for AVR to do some jumps.
+There are two C exception prototypes that move along with the macro.
+One of them will become redundant when we switch over to using the
+<linux/extable.h> instead of <linux/module.h> header in a subsequent
+commit.
 
-Here I stop investigating it. I had been proposed to get rid of avr32
-completely, burden to support is just increasing (no Buildroot support,
-no Gcc support, what else do we need?) for no value.
+Also relocate a couple of the automated asm --> linux uaccess
+conversions to preserve the linux and asm independent grouping, since
+we are in the file at that location anyway.
 
-diff --git a/net/core/Makefile b/net/core/Makefile
-index f6761b6e3b29..91b7d27bf2c6 100644
---- a/net/core/Makefile
-+++ b/net/core/Makefile
-@@ -2,13 +2,13 @@
- # Makefile for the Linux networking core.
- #
- 
--obj-y := sock.o request_sock.o skbuff.o datagram.o stream.o scm.o \
-+obj-y := filter.o sock.o request_sock.o skbuff.o datagram.o stream.o
-scm.o \
-         gen_stats.o gen_estimator.o net_namespace.o secure_seq.o
-flow_dissector.o
- 
- obj-$(CONFIG_SYSCTL) += sysctl_net_core.o
- 
- obj-y               += dev.o ethtool.o dev_addr_lists.o dst.o
-netevent.o \
--                       neighbour.o rtnetlink.o utils.o link_watch.o
-filter.o \
-+                       neighbour.o rtnetlink.o utils.o link_watch.o \
-                        sock_diag.o dev_ioctl.o tso.o sock_reuseport.o
- 
- obj-$(CONFIG_XFRM) += flow.o
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-ia64@vger.kernel.org
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+---
+ arch/ia64/include/asm/exception.h | 36 ++++++++++++++++++++++++++++++++++++
+ arch/ia64/include/asm/uaccess.h   | 15 ---------------
+ arch/ia64/kernel/kprobes.c        |  2 +-
+ arch/ia64/kernel/traps.c          |  3 ++-
+ arch/ia64/kernel/unaligned.c      |  3 ++-
+ arch/ia64/mm/fault.c              |  1 +
+ 6 files changed, 42 insertions(+), 18 deletions(-)
+ create mode 100644 arch/ia64/include/asm/exception.h
+
+diff --git a/arch/ia64/include/asm/exception.h b/arch/ia64/include/asm/exception.h
+new file mode 100644
+index 000000000000..d90236090e8c
+--- /dev/null
++++ b/arch/ia64/include/asm/exception.h
+@@ -0,0 +1,36 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_EXCEPTION_H
++#define __ASM_EXCEPTION_H
++
++struct pt_regs;
++struct exception_table_entry;
++
++extern void ia64_handle_exception(struct pt_regs *regs,
++				  const struct exception_table_entry *e);
++extern const struct exception_table_entry *search_exception_tables(unsigned long addr);
++
++#define ia64_done_with_exception(regs)					  \
++({									  \
++	int __ex_ret = 0;						  \
++	const struct exception_table_entry *e;				  \
++	e = search_exception_tables((regs)->cr_iip + ia64_psr(regs)->ri); \
++	if (e) {							  \
++		ia64_handle_exception(regs, e);				  \
++		__ex_ret = 1;						  \
++	}								  \
++	__ex_ret;							  \
++})
++
++#endif	/* __ASM_EXCEPTION_H */
+diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
+index bfe13196f770..471044be2a3b 100644
+--- a/arch/ia64/include/asm/uaccess.h
++++ b/arch/ia64/include/asm/uaccess.h
+@@ -353,21 +353,6 @@ struct exception_table_entry {
+ 	int fixup;	/* location-relative continuation addr.; if bit 2 is set, r9 is set to 0 */
+ };
+ 
+-extern void ia64_handle_exception (struct pt_regs *regs, const struct exception_table_entry *e);
+-extern const struct exception_table_entry *search_exception_tables (unsigned long addr);
+-
+-static inline int
+-ia64_done_with_exception (struct pt_regs *regs)
+-{
+-	const struct exception_table_entry *e;
+-	e = search_exception_tables(regs->cr_iip + ia64_psr(regs)->ri);
+-	if (e) {
+-		ia64_handle_exception(regs, e);
+-		return 1;
+-	}
+-	return 0;
+-}
+-
+ #define ARCH_HAS_TRANSLATE_MEM_PTR	1
+ static __inline__ void *
+ xlate_dev_mem_ptr(phys_addr_t p)
+diff --git a/arch/ia64/kernel/kprobes.c b/arch/ia64/kernel/kprobes.c
+index 45ff27e9edbb..55b18e1b67a8 100644
+--- a/arch/ia64/kernel/kprobes.c
++++ b/arch/ia64/kernel/kprobes.c
+@@ -33,7 +33,7 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/sections.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
+ 
+ extern void jprobe_inst_return(void);
+ 
+diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
+index 095bfaff82d0..d3e1f1ee465f 100644
+--- a/arch/ia64/kernel/traps.c
++++ b/arch/ia64/kernel/traps.c
+@@ -17,11 +17,12 @@
+ #include <linux/kprobes.h>
+ #include <linux/delay.h>		/* for ssleep() */
+ #include <linux/kdebug.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/fpswa.h>
+ #include <asm/intrinsics.h>
+ #include <asm/processor.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
+ #include <asm/setup.h>
+ 
+ fpswa_interface_t *fpswa_interface;
+diff --git a/arch/ia64/kernel/unaligned.c b/arch/ia64/kernel/unaligned.c
+index 9cd01c2200ee..e697403b0ec1 100644
+--- a/arch/ia64/kernel/unaligned.c
++++ b/arch/ia64/kernel/unaligned.c
+@@ -18,11 +18,12 @@
+ #include <linux/sched.h>
+ #include <linux/tty.h>
+ #include <linux/ratelimit.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/intrinsics.h>
+ #include <asm/processor.h>
+ #include <asm/rse.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
+ #include <asm/unaligned.h>
+ 
+ extern int die_if_kernel(char *str, struct pt_regs *regs, long err);
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index fa6ad95e992e..52b41dad9704 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -15,6 +15,7 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
++#include <asm/exception.h>
+ 
+ extern int die(char *, struct pt_regs *, long);
+ 
 -- 
-Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Intel Finland Oy
+2.11.0
