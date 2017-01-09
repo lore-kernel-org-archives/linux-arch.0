@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:51220 "EHLO
-        mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S940678AbdAIUk7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2017 15:40:59 -0500
+Received: from mail5.windriver.com ([192.103.53.11]:44056 "EHLO mail5.wrs.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S940744AbdAIUlU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 9 Jan 2017 15:41:20 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 02/10] ia64: ensure exception table search users include extable.h
-Date: Mon, 9 Jan 2017 15:40:02 -0500
-Message-ID: <20170109204010.5047-3-paul.gortmaker@windriver.com>
+Subject: [PATCH 10/10] module.h: remove extable.h include now users have migrated
+Date: Mon, 9 Jan 2017 15:40:10 -0500
+Message-ID: <20170109204010.5047-11-paul.gortmaker@windriver.com>
 In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,98 +14,34 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-ia64@vger.kernel.org
-Message-ID: <20170109204002.UYzZvmWBCSi2LeBgYXBMtoGNRPY2GXqegg69RGGNtYI@z>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20170109204010.RXG6Vh-MlMqglAe6052MuRO__B7GgWPqUE9VbOYTuis@z>
 
-We start with a delete of a duplicate prototype in asm/exception.h
-that no longer needs to exist, as it duplicates content in extable.h
-and since that header is so small, there is no point trying to
-avoid using it.
+With hopefully most/all users of module.h that were looking for
+exception table functions moved over to the new extable.h header,
+we can remove the back-compat include that let us transition
+without introducing build regressions.
 
-Then we make sure anyone using search_exception_tables directly or
-via the ia64_done_with_exception macro has included extable.h
-
-In the process, we remove an include of moduleloader.h that was
-apparently not really required; it would have been fetching in
-module.h and hence the previous location of the exception search
-function prototypes, but we need not rely on that anymore.
-
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-ia64@vger.kernel.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/ia64/include/asm/exception.h | 1 -
- arch/ia64/kernel/kprobes.c        | 2 +-
- arch/ia64/kernel/traps.c          | 3 ++-
- arch/ia64/kernel/unaligned.c      | 1 +
- arch/ia64/mm/fault.c              | 1 +
- 5 files changed, 5 insertions(+), 3 deletions(-)
+ include/linux/module.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/ia64/include/asm/exception.h b/arch/ia64/include/asm/exception.h
-index d90236090e8c..6bb246dcdaeb 100644
---- a/arch/ia64/include/asm/exception.h
-+++ b/arch/ia64/include/asm/exception.h
-@@ -19,7 +19,6 @@ struct exception_table_entry;
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 7c84273d60b9..2e6df4c41c86 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -18,7 +18,6 @@
+ #include <linux/moduleparam.h>
+ #include <linux/jump_label.h>
+ #include <linux/export.h>
+-#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
+ #include <linux/rbtree_latch.h>
  
- extern void ia64_handle_exception(struct pt_regs *regs,
- 				  const struct exception_table_entry *e);
--extern const struct exception_table_entry *search_exception_tables(unsigned long addr);
- 
- #define ia64_done_with_exception(regs)					  \
- ({									  \
-diff --git a/arch/ia64/kernel/kprobes.c b/arch/ia64/kernel/kprobes.c
-index 55b18e1b67a8..f5f3a5e6fcd1 100644
---- a/arch/ia64/kernel/kprobes.c
-+++ b/arch/ia64/kernel/kprobes.c
-@@ -28,7 +28,7 @@
- #include <linux/string.h>
- #include <linux/slab.h>
- #include <linux/preempt.h>
--#include <linux/moduleloader.h>
-+#include <linux/extable.h>
- #include <linux/kdebug.h>
- 
- #include <asm/pgtable.h>
-diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
-index d3e1f1ee465f..8981ce98afb3 100644
---- a/arch/ia64/kernel/traps.c
-+++ b/arch/ia64/kernel/traps.c
-@@ -12,7 +12,8 @@
- #include <linux/sched.h>
- #include <linux/tty.h>
- #include <linux/vt_kern.h>		/* For unblank_screen() */
--#include <linux/module.h>       /* for EXPORT_SYMBOL */
-+#include <linux/export.h>
-+#include <linux/extable.h>
- #include <linux/hardirq.h>
- #include <linux/kprobes.h>
- #include <linux/delay.h>		/* for ssleep() */
-diff --git a/arch/ia64/kernel/unaligned.c b/arch/ia64/kernel/unaligned.c
-index e697403b0ec1..99348d7f2255 100644
---- a/arch/ia64/kernel/unaligned.c
-+++ b/arch/ia64/kernel/unaligned.c
-@@ -17,6 +17,7 @@
- #include <linux/kernel.h>
- #include <linux/sched.h>
- #include <linux/tty.h>
-+#include <linux/extable.h>
- #include <linux/ratelimit.h>
- #include <linux/uaccess.h>
- 
-diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
-index 52b41dad9704..7f2feb21753c 100644
---- a/arch/ia64/mm/fault.c
-+++ b/arch/ia64/mm/fault.c
-@@ -7,6 +7,7 @@
- #include <linux/sched.h>
- #include <linux/kernel.h>
- #include <linux/mm.h>
-+#include <linux/extable.h>
- #include <linux/interrupt.h>
- #include <linux/kprobes.h>
- #include <linux/kdebug.h>
+ #include <linux/percpu.h>
 -- 
 2.11.0
 
