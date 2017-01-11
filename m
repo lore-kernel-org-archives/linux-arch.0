@@ -1,90 +1,66 @@
 From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v4 2/4] mm: Add function to support extra actions on swap in/out
-Date: Wed, 11 Jan 2017 09:12:52 -0700
-Message-ID: <c24c7a844c61d6f8d57dd3791ad7ab5f05305c6b.1483999591.git.khalid.aziz@oracle.com>
+Subject: [PATCH v4 1/4] signals, sparc: Add signal codes for ADI violations
+Date: Wed, 11 Jan 2017 09:12:51 -0700
+Message-ID: <bc53392121e6df4abd127b16c7d3d0f2e2f7b4ed.1483999591.git.khalid.aziz@oracle.com>
 References: <cover.1483999591.git.khalid.aziz@oracle.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
 In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
 References: <cover.1483999591.git.khalid.aziz@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, davem@davemloft.net
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, hpa@zytor.com, 0x7f454c46@gmail.com, dave.hansen@linux.intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 List-Id: linux-arch.vger.kernel.org
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds a new function, set_swp_pte_at(), to set pte
-upon a swap in/out of page that allows kernel to take special action
-like saving and restoring version tags after or before setting a new pte
-or saving a swap pte. For architectures that do not need to take special
-action on page swap, this function defaults to set_pte_at().
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
+
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI Ttag and caused
+   a precise exception.
 
 Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
 Cc: Khalid Aziz <khalid@gonehiking.org>
 ---
- include/asm-generic/pgtable.h | 5 +++++
- mm/memory.c                   | 2 +-
- mm/rmap.c                     | 4 ++--
- 3 files changed, 8 insertions(+), 3 deletions(-)
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index c4f8fd2..5043e5a 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -294,6 +294,11 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
- # define pte_accessible(mm, pte)	((void)(pte), 1)
- #endif
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index ec1f756..d1e860c 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 1abaf62..2446864 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -213,7 +213,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
+ #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
++#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
++#define NSIGSEGV	7
  
-+#ifndef set_swp_pte_at
-+#define set_swp_pte_at(mm, addr, ptep, pte, oldpte)	\
-+		set_pte_at(mm, addr, ptep, pte)
-+#endif
-+
- #ifndef flush_tlb_fix_spurious_fault
- #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index e18c57b..1cc3b55 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2642,7 +2642,7 @@ int do_swap_page(struct fault_env *fe, pte_t orig_pte)
- 	flush_icache_page(vma, page);
- 	if (pte_swp_soft_dirty(orig_pte))
- 		pte = pte_mksoft_dirty(pte);
--	set_pte_at(vma->vm_mm, fe->address, fe->pte, pte);
-+	set_swp_pte_at(vma->vm_mm, fe->address, fe->pte, pte, orig_pte);
- 	if (page == swapcache) {
- 		do_page_add_anon_rmap(page, vma, fe->address, exclusive);
- 		mem_cgroup_commit_charge(page, memcg, true, false);
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 1ef3640..d58cb94 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1539,7 +1539,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
--		set_pte_at(mm, address, pte, swp_pte);
-+		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
- 	} else if (PageAnon(page)) {
- 		swp_entry_t entry = { .val = page_private(page) };
- 		pte_t swp_pte;
-@@ -1572,7 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
--		set_pte_at(mm, address, pte, swp_pte);
-+		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
- 	} else
- 		dec_mm_counter(mm, mm_counter_file(page));
- 
+ /*
+  * SIGBUS si_codes
 -- 
 2.7.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
