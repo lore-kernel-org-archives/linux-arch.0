@@ -1,86 +1,59 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH v4 2/4] mm: Add function to support extra actions on swap
- in/out
-Date: Wed, 11 Jan 2017 10:15:27 -0700
-Message-ID: <c5469ff4-1ed8-e545-069d-3c2d48c9a4e0@oracle.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
- <c24c7a844c61d6f8d57dd3791ad7ab5f05305c6b.1483999591.git.khalid.aziz@oracle.com>
- <b31a3aef-26d9-6d3a-109b-c8453a3a2aef@linux.intel.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
+Date: Wed, 11 Jan 2017 10:09:17 -0800
+Message-ID: <CALCETrUn=KNdOnoRYd8GcnXPNDHAhGkaMaHRTAri4o92FSC1qg@mail.gmail.com>
+References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
+ <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
+ <5a3dcc25-b264-37c7-c090-09981b23940d@intel.com> <20170105192910.q26ozg4ci4i3j2ai@black.fi.intel.com>
+ <161ece66-fbf4-cb89-3da6-91b4851af69f@intel.com> <CALCETrUQ2+P424d9MW-Dy2yQ0+EnMfBuY80wd8NkNmc8is0AUw@mail.gmail.com>
+ <978d5f1a-ec4d-f747-93fd-27ecfe10cb88@intel.com> <20170111142904.GD4895@node.shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <b31a3aef-26d9-6d3a-109b-c8453a3a2aef@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@linux.intel.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20170111142904.GD4895@node.shutemov.name>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Dave Hansen <dave.hansen@intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 01/11/2017 09:56 AM, Dave Hansen wrote:
-> On 01/11/2017 08:12 AM, Khalid Aziz wrote:
->> +#ifndef set_swp_pte_at
->> +#define set_swp_pte_at(mm, addr, ptep, pte, oldpte)	\
->> +		set_pte_at(mm, addr, ptep, pte)
->> +#endif
+On Wed, Jan 11, 2017 at 6:29 AM, Kirill A. Shutemov
+<kirill@shutemov.name> wrote:
+> On Thu, Jan 05, 2017 at 12:49:44PM -0800, Dave Hansen wrote:
+>> On 01/05/2017 12:14 PM, Andy Lutomirski wrote:
+>> >> I'm not sure I'm comfortable with this.  Do other rlimit changes cause
+>> >> silent data corruption?  I'm pretty sure doing this to MPX would.
+>> >>
+>> > What actually goes wrong in this case?  That is, what combination of
+>> > MPX setup of subsequent allocations will cause a problem, and is the
+>> > problem worse than just a segfault?  IMO it would be really nice to
+>> > keep the messy case confined to MPX.
+>>
+>> The MPX bounds tables are indexed by virtual address.  They need to grow
+>> if the virtual address space grows.   There's an MSR that controls
+>> whether we use the 48-bit or 57-bit layout.  It basically decides
+>> whether we need a 2GB (48-bit) or 1TB (57-bit) bounds directory.
+>>
+>> The question is what we do with legacy MPX applications.  We obviously
+>> can't let them just allocate a 2GB table and then go let the hardware
+>> pretend it's 1TB in size.  We also can't hand the hardware using a 2GB
+>> table an address >48-bits.
+>>
+>> Ideally, I'd like to make sure that legacy MPX can't be enabled if this
+>> RLIMIT is set over 48-bits (really 47).  I'd also like to make sure that
+>> legacy MPX is active, that the RLIMIT can't be raised because all hell
+>> will break loose when the new addresses show up.
 >
-> BTW, thanks for the *much* improved description of the series.  This is
-> way easier to understand.
+> I think we can do this. See the patch below.
+>
+> Basically, we refuse to enable MPX and issue warning in dmesg if there's
+> anything mapped above 47-bits. Once MPX is enabled, mmap_max_addr() cannot
+> be higher than 47-bits too.
+>
+> Function call from mmap_max_addr() is unfortunate, but I don't see a
+> way around.
 
-Your feedback was very helpful in getting me there.
-
->
-> I really don't think this is the interface we want, though.
-> set_swp_pte_at() is really doing *two* things:
-> 1. Detecting _PAGE_MCD_4V and squirreling the MCD data away at swap-out
-> 2. Reading back in the MCD data at swap-on
->
-> You're effectively using (!pte_none(pte) && !pte_present(pte)) to
-> determine whether you're at swap in or swap out time.  That's goofy, IMNHO.
->
-> It isn't obvious from the context, but this hunk is creating a migration
-> PTE.  Why is ADI tag manipulation needed?  We're just changing the
-> physical address of the underlying memory, but neither the
-> application-visible contents nor the tags are changing.
-
-Memory controller associates tags with physical memory. MMU verifies 
-these tags against the tag embedded in VA. If physical memory is moved, 
-tags must move with it.
-
->
->> @@ -1539,7 +1539,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->>  		swp_pte = swp_entry_to_pte(entry);
->>  		if (pte_soft_dirty(pteval))
->>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
->> -		set_pte_at(mm, address, pte, swp_pte);
->> +		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
->>  	} else if (PageAnon(page)) {
->>  		swp_entry_t entry = { .val = page_private(page) };
->>  		pte_t swp_pte;
->
-> Which means you're down to a single call that does swap-out, and a
-> single call that does swap-in.  There's no reason to hide all your code
-> behind set_pte_at().
->
-> Just add a new arch-specific call that takes the VMA and the swap PTE
-> and stores the ADI bit in there, here:
->
->> @@ -1572,7 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
->>  		swp_pte = swp_entry_to_pte(entry);
->>  		if (pte_soft_dirty(pteval))
->>  			swp_pte = pte_swp_mksoft_dirty(swp_pte);
->> -		set_pte_at(mm, address, pte, swp_pte);
->> +		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
->>  	} else
->
-> and in do_swap_page(), do the opposite with a second, new call.
-
-That does sound simpler. I will give it more thought.
-
-Thanks,
-Khalid
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+How about preventing the max addr from being changed to too high a
+value while MPX is on instead of overriding the set value?  This would
+have the added benefit that it would prevent silent failures where you
+think you've enabled large addresses but MPX is also on and mmap
+refuses to return large addresses.
