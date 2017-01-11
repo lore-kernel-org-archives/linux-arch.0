@@ -1,59 +1,90 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH v6 00/14] linux: generalize sections, ranges and linker
- tables
-Date: Wed, 11 Jan 2017 15:37:22 +0100
-Message-ID: <20170111143722.GM13946@wotan.suse.de>
-References: <20161222023811.21246-1-mcgrof@kernel.org>
- <20170109145833.11502-1-mcgrof@kernel.org>
- <1483979228.26691.40.camel@linux.intel.com>
- <1483981946.26691.44.camel@intel.com>
- <1483986555.26691.46.camel@linux.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1483986555.26691.46.camel@linux.intel.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vr
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v4 2/4] mm: Add function to support extra actions on swap in/out
+Date: Wed, 11 Jan 2017 09:12:52 -0700
+Message-ID: <c24c7a844c61d6f8d57dd3791ad7ab5f05305c6b.1483999591.git.khalid.aziz@oracle.com>
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 09, 2017 at 08:29:15PM +0200, Andy Shevchenko wrote:
-> On Mon, 2017-01-09 at 19:12 +0200, Andy Shevchenko wrote:
-> > On Mon, 2017-01-09 at 18:27 +0200, Andy Shevchenko wrote:
-> > > On Mon, 2017-01-09 at 06:58 -0800, Luis R. Rodriguez wrote:
-> > > > The only architecture that was not tested was avr32 and that is
-> > > > because
-> > > > linux-next fails to compile on it. I'd like to greatly thank
-> > > > Guenter
-> > > > Roeck for
-> > > > his help with testing.
-> > > 
-> > > We have a real board here. I would try to check if you provide a git
-> > > url
-> > > to your stuff.
-> > > 
-> > > I can confirm that breakage happened like in last couple of month.
-> > > v4.10-rc3 can't be compiled either.
-> > 
-> > The culprit commit is
-> > 
-> > commit 3a0af8fd61f90920f6fa04e4f1e9a6a73c1b4fd2
-> > Author: Thomas Graf <tgraf@suug.ch>
-> > Date:   Wed Nov 30 17:10:10 2016 +0100
-> > 
-> >     bpf: BPF for lightweight tunnel infrastructure
-> > 
-> 
-> This makes modules closer to each other, so,
-> net/socket.c:348: relocation truncated to fit: R_AVR32_11H_PCREL against
-> `.text'+2930
-> 
-> But still the module is too big for AVR to do some jumps.
+If a processor supports special metadata for a page, for example ADI
+version tags on SPARC M7, this metadata must be saved when the page is
+swapped out. The same metadata must be restored when the page is swapped
+back in. This patch adds a new function, set_swp_pte_at(), to set pte
+upon a swap in/out of page that allows kernel to take special action
+like saving and restoring version tags after or before setting a new pte
+or saving a swap pte. For architectures that do not need to take special
+action on page swap, this function defaults to set_pte_at().
 
-Well I've reverted your patch and tested on avr32 and all tests
-worked successfully. Thanks to Guenter again for helping with his
-testbed once again!
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+---
+ include/asm-generic/pgtable.h | 5 +++++
+ mm/memory.c                   | 2 +-
+ mm/rmap.c                     | 4 ++--
+ 3 files changed, 8 insertions(+), 3 deletions(-)
 
-  Luis
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index c4f8fd2..5043e5a 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -294,6 +294,11 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ # define pte_accessible(mm, pte)	((void)(pte), 1)
+ #endif
+ 
++#ifndef set_swp_pte_at
++#define set_swp_pte_at(mm, addr, ptep, pte, oldpte)	\
++		set_pte_at(mm, addr, ptep, pte)
++#endif
++
+ #ifndef flush_tlb_fix_spurious_fault
+ #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index e18c57b..1cc3b55 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2642,7 +2642,7 @@ int do_swap_page(struct fault_env *fe, pte_t orig_pte)
+ 	flush_icache_page(vma, page);
+ 	if (pte_swp_soft_dirty(orig_pte))
+ 		pte = pte_mksoft_dirty(pte);
+-	set_pte_at(vma->vm_mm, fe->address, fe->pte, pte);
++	set_swp_pte_at(vma->vm_mm, fe->address, fe->pte, pte, orig_pte);
+ 	if (page == swapcache) {
+ 		do_page_add_anon_rmap(page, vma, fe->address, exclusive);
+ 		mem_cgroup_commit_charge(page, memcg, true, false);
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 1ef3640..d58cb94 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1539,7 +1539,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 		swp_pte = swp_entry_to_pte(entry);
+ 		if (pte_soft_dirty(pteval))
+ 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+-		set_pte_at(mm, address, pte, swp_pte);
++		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
+ 	} else if (PageAnon(page)) {
+ 		swp_entry_t entry = { .val = page_private(page) };
+ 		pte_t swp_pte;
+@@ -1572,7 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 		swp_pte = swp_entry_to_pte(entry);
+ 		if (pte_soft_dirty(pteval))
+ 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
+-		set_pte_at(mm, address, pte, swp_pte);
++		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
+ 	} else
+ 		dec_mm_counter(mm, mm_counter_file(page));
+ 
+-- 
+2.7.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
