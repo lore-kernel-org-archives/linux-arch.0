@@ -1,90 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:42150 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1758056AbdAKQPq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jan 2017 11:15:46 -0500
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v4 2/4] mm: Add function to support extra actions on swap in/out
-Date: Wed, 11 Jan 2017 09:12:52 -0700
-Message-ID: <c24c7a844c61d6f8d57dd3791ad7ab5f05305c6b.1483999591.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
+Received: from mga11.intel.com ([192.55.52.93]:44785 "EHLO mga11.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1765774AbdAKQdf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 11 Jan 2017 11:33:35 -0500
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
+ SPARC M7
 References: <cover.1483999591.git.khalid.aziz@oracle.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+Date: Wed, 11 Jan 2017 08:33:30 -0800
+MIME-Version: 1.0
 In-Reply-To: <cover.1483999591.git.khalid.aziz@oracle.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20170111161252.mqw3vfBtwdIeeuqIStUpncwowGtrqq0Vf_0nc5OHwZI@z>
+To: Khalid Aziz <khalid.aziz@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kvack.org
+Message-ID: <20170111163330.Cuq7-8prCXRBQO9o0LaJEUHfyDBEGVGjGXP4yyhfGZ0@z>
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds a new function, set_swp_pte_at(), to set pte
-upon a swap in/out of page that allows kernel to take special action
-like saving and restoring version tags after or before setting a new pte
-or saving a swap pte. For architectures that do not need to take special
-action on page swap, this function defaults to set_pte_at().
+On 01/11/2017 08:12 AM, Khalid Aziz wrote:
+> A userspace task enables ADI through mprotect(). This patch series adds
+> a page protection bit PROT_ADI and a corresponding VMA flag
+> VM_SPARC_ADI. VM_SPARC_ADI is used to trigger setting TTE.mcd bit in the
+> sparc pte that enables ADI checking on the corresponding page.
 
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
----
- include/asm-generic/pgtable.h | 5 +++++
- mm/memory.c                   | 2 +-
- mm/rmap.c                     | 4 ++--
- 3 files changed, 8 insertions(+), 3 deletions(-)
+Is there a cost in the hardware associated with doing this "ADI
+checking"?  For instance, instead of having this new mprotect()
+interface, why not just always set TTE.mcd on all PTEs?
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index c4f8fd2..5043e5a 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -294,6 +294,11 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
- # define pte_accessible(mm, pte)	((void)(pte), 1)
- #endif
- 
-+#ifndef set_swp_pte_at
-+#define set_swp_pte_at(mm, addr, ptep, pte, oldpte)	\
-+		set_pte_at(mm, addr, ptep, pte)
-+#endif
-+
- #ifndef flush_tlb_fix_spurious_fault
- #define flush_tlb_fix_spurious_fault(vma, address) flush_tlb_page(vma, address)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index e18c57b..1cc3b55 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2642,7 +2642,7 @@ int do_swap_page(struct fault_env *fe, pte_t orig_pte)
- 	flush_icache_page(vma, page);
- 	if (pte_swp_soft_dirty(orig_pte))
- 		pte = pte_mksoft_dirty(pte);
--	set_pte_at(vma->vm_mm, fe->address, fe->pte, pte);
-+	set_swp_pte_at(vma->vm_mm, fe->address, fe->pte, pte, orig_pte);
- 	if (page == swapcache) {
- 		do_page_add_anon_rmap(page, vma, fe->address, exclusive);
- 		mem_cgroup_commit_charge(page, memcg, true, false);
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 1ef3640..d58cb94 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1539,7 +1539,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
--		set_pte_at(mm, address, pte, swp_pte);
-+		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
- 	} else if (PageAnon(page)) {
- 		swp_entry_t entry = { .val = page_private(page) };
- 		pte_t swp_pte;
-@@ -1572,7 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
--		set_pte_at(mm, address, pte, swp_pte);
-+		set_swp_pte_at(mm, address, pte, swp_pte, pteval);
- 	} else
- 		dec_mm_counter(mm, mm_counter_file(page));
- 
--- 
-2.7.4
-
+Also, should this be a privileged interface in some way?  The hardware
+is storing these tags *somewhere* and that storage is consuming
+resources *somewhere*.  What stops a crafty attacker from mmap()'ing a
+128TB chunk of the zero pages and storing ADI tags for all of it?
+That'll be 128TB/64*4bits = 1TB worth of 4-bit tags.  Page tables, for
+instance, consume a comparable amount of storage, but the OS *knows*
+about those and can factor them into OOM decisions.
