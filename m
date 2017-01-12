@@ -1,100 +1,131 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 03/10] arm64/sve: Set CPU vector length to match current task
-Date: Thu, 12 Jan 2017 11:26:02 +0000
-Message-ID: <1484220369-23970-4-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 05/10] arm64/sve: Wire up vector length control prctl() calls
+Date: Thu, 12 Jan 2017 11:26:04 +0000
+Message-ID: <1484220369-23970-6-git-send-email-Dave.Martin@arm.com>
 References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
-Return-path: <libc-alpha-return-76729-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:43498 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751121AbdALL1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Jan 2017 06:27:55 -0500
 In-Reply-To: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
 Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Alan Hayward <alan.hayward@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Florian Weimer <fweimer@redhat.com>, Joseph Myers <joseph@codesourcery.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Torvald Riegel <triegel@redhat.com>, gdb@sourceware.org, Yao Qi <qiyaoltc@gmail.com>
-List-Id: linux-arch.vger.kernel.org
 
-This patch adds the necessary code to configure the CPU for the
-task's vector length, whenever SVE state is loaded for a task.
+This patch provides implementation for the PR_SVE_SET_VL and
+PR_SVE_GET_VL prctls, which allow a task to set and query its
+vector length and associated control flags (although no flags are
+defined in this patch).
 
-No special action is needed on sched-out: only user tasks with SVE
-state care what the CPU's VL is set to.
+Currently any thread can set its VL, allowing a mix of VLs within
+a single process -- this behaviour will be refined in susequent
+patches.
 
 Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm64/include/asm/fpsimd.h       |  3 ++-
- arch/arm64/include/asm/fpsimdmacros.h |  7 ++++++-
- arch/arm64/kernel/entry-fpsimd.S      |  2 +-
- arch/arm64/kernel/fpsimd.c            | 10 +++++++---
- 4 files changed, 16 insertions(+), 6 deletions(-)
+ arch/arm64/include/asm/fpsimd.h |  2 ++
+ arch/arm64/kernel/fpsimd.c      | 65 +++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 65 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
-index e13259e..22d09c0 100644
+index 22d09c0..1ec2363 100644
 --- a/arch/arm64/include/asm/fpsimd.h
 +++ b/arch/arm64/include/asm/fpsimd.h
-@@ -100,7 +100,8 @@ extern void __init fpsimd_init_task_struct_size(void);
- 
- extern void *__task_sve_state(struct task_struct *task);
- extern void sve_save_state(void *state, u32 *pfpsr);
--extern void sve_load_state(void const *state, u32 const *pfpsr);
-+extern void sve_load_state(void const *state, u32 const *pfpsr,
-+			   unsigned long vq_minus_1);
+@@ -103,6 +103,8 @@ extern void sve_save_state(void *state, u32 *pfpsr);
+ extern void sve_load_state(void const *state, u32 const *pfpsr,
+ 			   unsigned long vq_minus_1);
  extern unsigned int sve_get_vl(void);
++extern int sve_set_vector_length(struct task_struct *task,
++				 unsigned long vl, unsigned long flags);
  
  /*
-diff --git a/arch/arm64/include/asm/fpsimdmacros.h b/arch/arm64/include/asm/fpsimdmacros.h
-index e2bb032..7b53bc1 100644
---- a/arch/arm64/include/asm/fpsimdmacros.h
-+++ b/arch/arm64/include/asm/fpsimdmacros.h
-@@ -254,7 +254,12 @@
- 	.purgem savep
- .endm
- 
--.macro sve_load nb, xpfpsr, ntmp
-+.macro sve_load nb, xpfpsr, xvqminus1 ntmp
-+	mrs_s	x\ntmp, ZCR_EL1
-+	bic	x\ntmp, x\ntmp, ZCR_EL1_LEN_MASK
-+	orr	x\ntmp, x\ntmp, \xvqminus1
-+	msr_s	ZCR_EL1, x\ntmp	// self-synchronising
-+
- 	.macro loadz n
- 		_zldrv	\n, \nb, (\n) - 34
- 	.endm
-diff --git a/arch/arm64/kernel/entry-fpsimd.S b/arch/arm64/kernel/entry-fpsimd.S
-index 5dcec55..0a3fdcb 100644
---- a/arch/arm64/kernel/entry-fpsimd.S
-+++ b/arch/arm64/kernel/entry-fpsimd.S
-@@ -73,7 +73,7 @@ ENTRY(sve_save_state)
- ENDPROC(sve_save_state)
- 
- ENTRY(sve_load_state)
--	sve_load 0, x1, 2
-+	sve_load 0, x1, x2, 3
- 	ret
- ENDPROC(sve_load_state)
- 
+  * FPSIMD/SVE synchronisation helpers for ptrace:
 diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index 6065707..ab2bb62 100644
+index 54d7ed0..5f2c24a 100644
 --- a/arch/arm64/kernel/fpsimd.c
 +++ b/arch/arm64/kernel/fpsimd.c
-@@ -175,10 +175,14 @@ extern void *__task_pffr(struct task_struct *task);
- static void task_fpsimd_load(struct task_struct *task)
- {
- 	if (IS_ENABLED(CONFIG_ARM64_SVE) &&
--	    test_tsk_thread_flag(task, TIF_SVE))
-+	    test_tsk_thread_flag(task, TIF_SVE)) {
-+		unsigned int vl = task->thread.sve_vl;
-+
-+		BUG_ON(!sve_vl_valid(vl));
- 		sve_load_state(__task_pffr(task),
--			       &task->thread.fpsimd_state.fpsr);
--	else
-+			       &task->thread.fpsimd_state.fpsr,
-+			       sve_vq_from_vl(vl) - 1);
-+	} else
- 		fpsimd_load_state(&task->thread.fpsimd_state);
+@@ -493,17 +493,78 @@ void fpsimd_sync_from_fpsimd_zeropad(struct task_struct *task)
+ 	__fpsimd_sync_from_fpsimd_zeropad(task, sve_vq_from_vl(vl));
+ }
  
- 	/*
++int sve_set_vector_length(struct task_struct *task,
++			  unsigned long vl, unsigned long flags)
++{
++	BUG_ON(task == current && preemptible());
++
++	if (flags)
++		return -EINVAL; /* No flags defined yet */
++
++	if (!sve_vl_valid(vl))
++		return -EINVAL;
++
++	if (vl > sve_max_vl) {
++		BUG_ON(!sve_vl_valid(sve_max_vl));
++		vl = sve_max_vl;
++	}
++
++	/*
++	 * To ensure the FPSIMD bits of the SVE vector registers are preserved,
++	 * write any live register state back to task_struct, and convert to a
++	 * non-SVE thread.
++	 */
++	if (vl != task->thread.sve_vl) {
++		if (task == current &&
++		    !test_and_set_thread_flag(TIF_FOREIGN_FPSTATE))
++			task_fpsimd_save(current);
++
++		if (test_and_clear_tsk_thread_flag(task, TIF_SVE))
++			task_sve_to_fpsimd(task);
++
++		/*
++		 * To avoid surprises, also zero out the SVE regs storage.
++		 * This means that the P-regs, FFR and high bits of Z-regs
++		 * will read as zero on next access:
++		 */
++		clear_sve_regs(task);
++	}
++
++	task->thread.sve_vl = vl;
++
++	fpsimd_flush_task_state(task);
++
++	return 0;
++}
++
+ /* PR_SVE_SET_VL */
+ int sve_set_task_vl(struct task_struct *task,
+ 		    unsigned long vector_length, unsigned long flags)
+ {
+-	return -EINVAL;
++	int ret;
++
++	if (!(elf_hwcap & HWCAP_SVE))
++		return -EINVAL;
++
++	BUG_ON(task != current);
++
++	preempt_disable();
++	ret = sve_set_vector_length(current, vector_length, flags);
++	preempt_enable();
++
++	if (ret)
++		return ret;
++
++	return task->thread.sve_vl;
+ }
+ 
+ /* PR_SVE_GET_VL */
+ int sve_get_task_vl(struct task_struct *task)
+ {
+-	return -EINVAL;
++	if (!(elf_hwcap & HWCAP_SVE))
++		return -EINVAL;
++
++	return task->thread.sve_vl;
+ }
+ 
+ #endif /* CONFIG_ARM64_SVE */
 -- 
 2.1.4
