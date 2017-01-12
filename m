@@ -1,73 +1,175 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
- SPARC M7
-Date: Wed, 11 Jan 2017 16:49:05 -0800
-Message-ID: <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
- <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
- <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
- <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
- <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
- <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
- <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kva
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: [RFC PATCH 01/10] prctl: Add skeleton for PR_SVE_{SET,GET}_VL controls
+Date: Thu, 12 Jan 2017 11:26:00 +0000
+Message-ID: <1484220369-23970-2-git-send-email-Dave.Martin@arm.com>
+References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
+Return-path: <libc-alpha-return-76726-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Alan Hayward <alan.hayward@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Florian Weimer <fweimer@redhat.com>, Joseph Myers <joseph@codesourcery.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Torvald Riegel <triegel@redhat.com>, gdb@sourceware.org, Yao Qi <qiyaoltc@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 01/11/2017 04:22 PM, Khalid Aziz wrote:
-...
-> All of the tag coordination can happen in userspace. Once a process sets
-> a tag on a physical page mapped in its address space, another process
-> that has mapped the same physical page in its address space can only set
-> the tag to exact same value. Attempts to set a different tag are caught
-> by memory controller and result in MCD trap and kernel sends SIGSEGV to
-> the process trying to set a different tag.
+This patch adds a do-nothing skeleton for the arm64 Scalable Vector
+Extension control prctls.
 
-Again, I don't think these semantics will work for anything other than
-explicitly shared memory.  This behavior ensures that it is *entirely*
-unsafe to use ADI on any data that any process you do not control might
-be able to mmap().  That's a *HUGE* caveat for the feature and can't
-imagine ever seeing this get merged without addressing it.
+These prctls are only avilable with
 
-I think it's fairly simple to address, though a bit expensive.  First,
-you can't allow the VMA bit to get set on non-writable mappings.
-Second, you'll have to force COW to occur on read-only pages in writable
-mappings before the PTE bit can get set.  I think you can probably even
-do this in the faults that presumably occur when you try to set ADI tags
-on memory mapped with non-ADI PTEs.
+    CONFIG_ARM64=y
+    CONFIG_ARM64_SVE=y
 
->> If you want to use it on copy-on-write'able data, you've got to ensure
->> that you've got entirely private copies.  I'm not sure we even have an
->> interface to guarantee that.  How could this work after a fork() on
->> un-COW'd, but COW'able data?
-> 
-> On COW, kernel maps the the source and destination pages with
-> kmap_atomic() and copies the data over to the new page and the new page
-> wouldn't be ADI protected unless the child process chooses to do so.
+Otherwise they will compile out and return -EINVAL if attempted
+from userspace.
 
-What do you mean by "ADI protection"?
+The backend functions sve_{set,get}_task_vl() will be fleshed out
+with actual functionality in subsequent patches.
 
-I think of ADI _protection_ as coming from the PTE and/or VMA bits.
-Those are copied at fork() from the old VMA to the new one.  Is there a
-reason the child won't implicitly inherit these that I missed?
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+---
 
-Whether the parent or the child does the COW fault is basically random.
-Whether they get the ADI-tagged page, or the non-ADI-tagged copy is thus
-effectively random.  Assuming that the new page has its tags cleared
-(and thus is tagged not to be protected), whether your data continues to
-be protected or not after a fork() is random.
+There will probably also be a call to discover the signal frame size
+(MINSIGSTKSZ equivalent) for the current configuration, something like
 
-That doesn't seem like workable behavior.
+ * PR_GET_MINSIGSTKSZ
+
+This series doesn't add this yet: only the PR_SVE_{SET,GET}_VL prctls
+are provided.
 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ arch/arm64/include/asm/fpsimd.h    | 19 +++++++++++++++++++
+ arch/arm64/include/asm/processor.h |  4 ++++
+ arch/arm64/kernel/fpsimd.c         | 13 +++++++++++++
+ include/uapi/linux/prctl.h         |  4 ++++
+ kernel/sys.c                       | 12 ++++++++++++
+ 5 files changed, 52 insertions(+)
+
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+index 88bcf69..e13259e 100644
+--- a/arch/arm64/include/asm/fpsimd.h
++++ b/arch/arm64/include/asm/fpsimd.h
+@@ -17,6 +17,7 @@
+ #define __ASM_FP_H
+ 
+ #include <asm/ptrace.h>
++#include <asm/errno.h>
+ 
+ #ifndef __ASSEMBLY__
+ 
+@@ -110,12 +111,30 @@ extern unsigned int sve_get_vl(void);
+ extern void fpsimd_sync_to_sve(struct task_struct *task);
+ 
+ #ifdef CONFIG_ARM64_SVE
++
+ extern void fpsimd_sync_to_fpsimd(struct task_struct *task);
+ extern void fpsimd_sync_from_fpsimd_zeropad(struct task_struct *task);
++extern int sve_set_task_vl(struct task_struct *task,
++			   unsigned long vector_length, unsigned long flags);
++extern int sve_get_task_vl(struct task_struct *task);
++
+ #else /* !CONFIG_ARM64_SVE */
++
+ static void __maybe_unused fpsimd_sync_to_fpsimd(struct task_struct *task) { }
+ static void __maybe_unused fpsimd_sync_from_fpsimd_zeropad(
+ 	struct task_struct *task) { }
++
++static int __maybe_unused sve_set_task_vl(struct task_struct *task,
++	unsigned long vector_length, unsigned long flags)
++{
++	return -EINVAL;
++}
++
++static int __maybe_unused sve_get_task_vl(struct task_struct *task)
++{
++	return -EINVAL;
++}
++
+ #endif /* !CONFIG_ARM64_SVE */
+ 
+ #endif
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index 747c65a..6f0f300 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -190,4 +190,8 @@ int cpu_enable_pan(void *__unused);
+ int cpu_enable_uao(void *__unused);
+ int cpu_enable_cache_maint_trap(void *__unused);
+ 
++#define SVE_SET_VL(task, vector_length, flags) \
++	sve_set_task_vl(task, vector_length, flags)
++#define SVE_GET_VL(task) sve_get_task_vl(task)
++
+ #endif /* __ASM_PROCESSOR_H */
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+index 2c113e4..bdacfcd 100644
+--- a/arch/arm64/kernel/fpsimd.c
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -468,6 +468,19 @@ void fpsimd_sync_from_fpsimd_zeropad(struct task_struct *task)
+ 	__fpsimd_sync_from_fpsimd_zeropad(task, sve_vq_from_vl(vl));
+ }
+ 
++/* PR_SVE_SET_VL */
++int sve_set_task_vl(struct task_struct *task,
++		    unsigned long vector_length, unsigned long flags)
++{
++	return -EINVAL;
++}
++
++/* PR_SVE_GET_VL */
++int sve_get_task_vl(struct task_struct *task)
++{
++	return -EINVAL;
++}
++
+ #endif /* CONFIG_ARM64_SVE */
+ 
+ #ifdef CONFIG_KERNEL_MODE_NEON
+diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+index a8d0759..e32e2da 100644
+--- a/include/uapi/linux/prctl.h
++++ b/include/uapi/linux/prctl.h
+@@ -197,4 +197,8 @@ struct prctl_mm_map {
+ # define PR_CAP_AMBIENT_LOWER		3
+ # define PR_CAP_AMBIENT_CLEAR_ALL	4
+ 
++/* arm64 Scalable Vector Extension controls */
++#define PR_SVE_SET_VL			48	/* set task vector length */
++#define PR_SVE_GET_VL			49	/* get task vector length */
++
+ #endif /* _LINUX_PRCTL_H */
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 842914e..5f50385 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -103,6 +103,12 @@
+ #ifndef SET_FP_MODE
+ # define SET_FP_MODE(a,b)	(-EINVAL)
+ #endif
++#ifndef SVE_SET_VL
++# define SVE_SET_VL(a,b,c)	(-EINVAL)
++#endif
++#ifndef SVE_GET_VL
++# define SVE_GET_VL(a)		(-EINVAL)
++#endif
+ 
+ /*
+  * this is where the system-wide overflow UID and GID are defined, for
+@@ -2261,6 +2267,12 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 	case PR_GET_FP_MODE:
+ 		error = GET_FP_MODE(me);
+ 		break;
++	case PR_SVE_SET_VL:
++		error = SVE_SET_VL(me, arg2, arg3);
++		break;
++	case PR_SVE_GET_VL:
++		error = SVE_GET_VL(me);
++		break;
+ 	default:
+ 		error = -EINVAL;
+ 		break;
+-- 
+2.1.4
