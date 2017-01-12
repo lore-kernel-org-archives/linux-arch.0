@@ -1,60 +1,62 @@
-From: Boris Ostrovsky <boris.ostrovsky@oracle.com>
-Subject: Re: [PATCH v2] x86, locking/spinlocks: Remove
-	paravirt_ticketlocks_enabled
-Date: Thu, 12 Jan 2017 16:39:36 -0500
-Message-ID: <76a962e4-14a9-74ab-6e6c-89fe3b8c1a1d@oracle.com>
-References: <1484252878-1962-1-git-send-email-longman@redhat.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [Question] New mmap64 syscall?
+Date: Thu, 12 Jan 2017 22:51:28 +0100
+Message-ID: <20170112215128.GA14063@amd>
+References: <20161206185440.GA4654@yury-N73SV>
+ <f544bcc3-8aae-1bd0-b744-9964fc038a51@redhat.com>
+ <20161207154811.GA15248@yury-N73SV>
+ <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
+ <20170103205437.GA22548@amd>
+ <59af3a6f-f30c-46a5-2d0b-6a7e36668e6b@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1484252878-1962-1-git-send-email-longman@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <longman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Jeremy Fitzhardinge <jeremy@goop.org>, kvm@vger.kernel.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chris Wright <chrisw@sous-sol.org>, Paolo Bonzini <pbonzini@redhat.com>, xen-devel@lists.xenproject.org, Alok Kataria <akataria@vmware.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+        protocol="application/pgp-signature"; boundary="fUYQa+Pmc3FrFX/N"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <59af3a6f-f30c-46a5-2d0b-6a7e36668e6b@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Florian Weimer <fweimer@redhat.com>
+Cc: Yury Norov <ynorov@caviumnetworks.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
 
-> diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-> index e8a9ea7..25a7c43 100644
-> --- a/arch/x86/xen/spinlock.c
-> +++ b/arch/x86/xen/spinlock.c
-> @@ -141,25 +141,6 @@ void __init xen_init_spinlocks(void)
->  	pv_lock_ops.vcpu_is_preempted = PV_CALLEE_SAVE(xen_vcpu_stolen);
->  }
->  
-> -/*
-> - * While the jump_label init code needs to happend _after_ the jump labels are
-> - * enabled and before SMP is started. Hence we use pre-SMP initcall level
-> - * init. We cannot do it in xen_init_spinlocks as that is done before
-> - * jump labels are activated.
-> - */
-> -static __init int xen_init_spinlocks_jump(void)
-> -{
-> -	if (!xen_pvspin)
-> -		return 0;
-> -
-> -	if (!xen_domain())
-> -		return 0;
-> -
-> -	static_key_slow_inc(&paravirt_ticketlocks_enabled);
-> -	return 0;
-> -}
-> -early_initcall(xen_init_spinlocks_jump);
-> -
->  static __init int xen_parse_nopvspin(char *arg)
->  {
->  	xen_pvspin = false;
+--fUYQa+Pmc3FrFX/N
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
+On Thu 2017-01-12 17:13:25, Florian Weimer wrote:
+> On 01/03/2017 09:54 PM, Pavel Machek wrote:
+> >...actually, with strace and batched interface, it will be impossible
+> >to see what is going on because of races. So I'm not sure if I like
+> >the batched interface at all...
+>=20
+> I'm not sure if I understand this problem.
+>=20
+> ioctl, fcntl, most socket system calls, even open all have this problem as
+> well, right?
 
-Xen bits:
+Yes, ioctl() and similar are problematic. Still it is possible to
+implement secure sandbox using ptrace. Dealing with indirect mmap()
+would difficult AFAICT.
 
-Reviewed-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+									Pavel
+
+--=20
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
+g.html
+
+--fUYQa+Pmc3FrFX/N
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEARECAAYFAlh3+mAACgkQMOfwapXb+vIszACcDtFQSncK+zwKbpRpvasbFveQ
+WzsAnRvgUbvC3W+fWhGptatInEx+Effa
+=E+7f
+-----END PGP SIGNATURE-----
+
+--fUYQa+Pmc3FrFX/N--
