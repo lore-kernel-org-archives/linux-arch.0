@@ -1,81 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53396 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750859AbdALPRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Jan 2017 10:17:30 -0500
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH] x86, locking/spinlocks: Remove paravirt_ticketlocks_enabled
-Date: Thu, 12 Jan 2017 10:17:16 -0500
-Message-ID: <1484234236-12976-1-git-send-email-longman@redhat.com>
+Received: from mail-lf0-f41.google.com ([209.85.215.41]:34226 "EHLO
+        mail-lf0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750846AbdALPxJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2017 10:53:09 -0500
+Received: by mail-lf0-f41.google.com with SMTP id v186so15933399lfa.1
+        for <linux-arch@vger.kernel.org>; Thu, 12 Jan 2017 07:53:05 -0800 (PST)
+Reply-To: nicolas.dichtel@6wind.com
+Subject: Re: [PATCH v2 7/7] uapi: export all headers under uapi directories
+References: <bf83da6b-01ef-bf44-b3e1-ca6fc5636818@6wind.com>
+ <1483695839-18660-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1483695839-18660-8-git-send-email-nicolas.dichtel@6wind.com>
+ <20170109125638.GA15506@infradead.org>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <464a1323-4450-e563-ff59-9e6d57b75959@6wind.com>
+Date: Thu, 12 Jan 2017 16:52:57 +0100
+MIME-Version: 1.0
+In-Reply-To: <20170109125638.GA15506@infradead.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20170112151716.JcXIcfw9sNMqCLU5lPzuSlv6G3sYOb5Sn2MopU3FEw0@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, linux-nfs@vger.kernel.org, linux-raid@vger.kernel.org, linux-spi@vger.kernel.org, linux-mtd@lists.infradead.org, linux-rdma@vger.kernel.org, fcoe-devel@open-fcoe.org, alsa-devel@alsa-project.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, airlied@linux.ie, davem@davemloft.net
+Message-ID: <20170112155257.PHynaLH9gUQvymqSMwmZLQTBcHNH9TfYiOL5ZEFaw0g@z>
 
-This is a follow-up of commit cfd8983f03c7b2 ("x86, locking/spinlocks:
-Remove ticket (spin)lock implementation"). The static_key structure
-paravirt_ticketlocks_enabled is now removed as it is no longer used.
+Le 09/01/2017 à 13:56, Christoph Hellwig a écrit :
+> On Fri, Jan 06, 2017 at 10:43:59AM +0100, Nicolas Dichtel wrote:
+>> Regularly, when a new header is created in include/uapi/, the developer
+>> forgets to add it in the corresponding Kbuild file. This error is usually
+>> detected after the release is out.
+>>
+>> In fact, all headers under uapi directories should be exported, thus it's
+>> useless to have an exhaustive list.
+>>
+>> After this patch, the following files, which were not exported, are now
+>> exported (with make headers_install_all):
+> 
+> ... snip ...
+> 
+>> linux/genwqe/.install
+>> linux/genwqe/..install.cmd
+>> linux/cifs/.install
+>> linux/cifs/..install.cmd
+> 
+> I'm pretty sure these should not be exported!
+> 
+Those files are created in every directory:
+$ find usr/include/ -name '\.\.install.cmd' | wc -l
+71
+$ find usr/include/ -name '\.install' | wc -l
+71
 
-A simple build and boot test was done to verify it.
+See also
+http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/scripts/Makefile.headersinst#n32
 
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- arch/x86/include/asm/spinlock.h      | 3 ---
- arch/x86/kernel/kvm.c                | 1 -
- arch/x86/kernel/paravirt-spinlocks.c | 3 ---
- arch/x86/xen/spinlock.c              | 1 -
- 4 files changed, 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 921bea7..6d39190 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -23,9 +23,6 @@
- /* How long a lock should spin before we consider blocking */
- #define SPIN_THRESHOLD	(1 << 15)
- 
--extern struct static_key paravirt_ticketlocks_enabled;
--static __always_inline bool static_key_false(struct static_key *key);
--
- #include <asm/qspinlock.h>
- 
- /*
-diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 36bc664..6750fdc 100644
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -627,7 +627,6 @@ static __init int kvm_spinlock_init_jump(void)
- 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
- 		return 0;
- 
--	static_key_slow_inc(&paravirt_ticketlocks_enabled);
- 	printk(KERN_INFO "KVM setup paravirtual spinlock\n");
- 
- 	return 0;
-diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
-index 6d4bf81..6259327 100644
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -42,6 +42,3 @@ struct pv_lock_ops pv_lock_ops = {
- #endif /* SMP */
- };
- EXPORT_SYMBOL(pv_lock_ops);
--
--struct static_key paravirt_ticketlocks_enabled = STATIC_KEY_INIT_FALSE;
--EXPORT_SYMBOL(paravirt_ticketlocks_enabled);
-diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-index e8a9ea7..a822606 100644
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -155,7 +155,6 @@ static __init int xen_init_spinlocks_jump(void)
- 	if (!xen_domain())
- 		return 0;
- 
--	static_key_slow_inc(&paravirt_ticketlocks_enabled);
- 	return 0;
- }
- early_initcall(xen_init_spinlocks_jump);
--- 
-1.8.3.1
-
+Thank you,
+Nicolas
