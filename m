@@ -1,67 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:43250 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53396 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751213AbdALL1y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Jan 2017 06:27:54 -0500
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 04/10] arm64/sve: Factor out clearing of tasks' SVE regs
-Date: Thu, 12 Jan 2017 11:26:03 +0000
-Message-ID: <1484220369-23970-5-git-send-email-Dave.Martin@arm.com>
-In-Reply-To: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
-References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
+        id S1750859AbdALPRa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Jan 2017 10:17:30 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH] x86, locking/spinlocks: Remove paravirt_ticketlocks_enabled
+Date: Thu, 12 Jan 2017 10:17:16 -0500
+Message-ID: <1484234236-12976-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Alan Hayward <alan.hayward@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Florian Weimer <fweimer@redhat.com>, Joseph Myers <joseph@codesourcery.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Torvald Riegel <triegel@redhat.com>, gdb@sourceware.org, Yao Qi <qiyaoltc@gmail.com>
-Message-ID: <20170112112603.7-6rQk4UNFdT9amLNQWaRgnxjAs1XBqpygoILCpINjo@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20170112151716.JcXIcfw9sNMqCLU5lPzuSlv6G3sYOb5Sn2MopU3FEw0@z>
 
-The patch factors out the code that clears a task's SVE regs on
-exec(), so that we can reuse it in subsequent patches.
+This is a follow-up of commit cfd8983f03c7b2 ("x86, locking/spinlocks:
+Remove ticket (spin)lock implementation"). The static_key structure
+paravirt_ticketlocks_enabled is now removed as it is no longer used.
 
-Signed-off-by: Dave Martin <Dave.Martin@arm.com>
+A simple build and boot test was done to verify it.
+
+Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- arch/arm64/kernel/fpsimd.c | 21 ++++++++++++++-------
- 1 file changed, 14 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/spinlock.h      | 3 ---
+ arch/x86/kernel/kvm.c                | 1 -
+ arch/x86/kernel/paravirt-spinlocks.c | 3 ---
+ arch/x86/xen/spinlock.c              | 1 -
+ 4 files changed, 8 deletions(-)
 
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
-index ab2bb62..54d7ed0 100644
---- a/arch/arm64/kernel/fpsimd.c
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -260,6 +260,19 @@ void fpsimd_thread_switch(struct task_struct *next)
- 	}
- }
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index 921bea7..6d39190 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -23,9 +23,6 @@
+ /* How long a lock should spin before we consider blocking */
+ #define SPIN_THRESHOLD	(1 << 15)
  
-+static void clear_sve_regs(struct task_struct *task)
-+{
-+	BUG_ON(task == current && preemptible());
-+
-+	BUG_ON((char *)__task_sve_state(task) < (char *)task);
-+	BUG_ON(arch_task_struct_size <
-+	       ((char *)__task_sve_state(task) - (char *)task));
-+
-+	memset(__task_sve_state(task), 0,
-+	       arch_task_struct_size -
-+	       ((char *)__task_sve_state(task) - (char *)task));
-+}
-+
- void fpsimd_flush_thread(void)
- {
- 	if (!system_supports_fpsimd())
-@@ -272,13 +285,7 @@ void fpsimd_flush_thread(void)
- 	memset(&current->thread.fpsimd_state, 0, sizeof(struct fpsimd_state));
- 
- 	if (IS_ENABLED(CONFIG_ARM64_SVE) && (elf_hwcap & HWCAP_SVE)) {
--		BUG_ON((char *)__task_sve_state(current) < (char *)current);
--		BUG_ON(arch_task_struct_size <
--		       ((char *)__task_sve_state(current) - (char *)current));
+-extern struct static_key paravirt_ticketlocks_enabled;
+-static __always_inline bool static_key_false(struct static_key *key);
 -
--		memset(__task_sve_state(current), 0,
--		       arch_task_struct_size -
--		       ((char *)__task_sve_state(current) - (char *)current));
-+		clear_sve_regs(current);
+ #include <asm/qspinlock.h>
  
- 		/*
- 		 * User tasks must have a valid vector length set, but tasks
+ /*
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 36bc664..6750fdc 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -627,7 +627,6 @@ static __init int kvm_spinlock_init_jump(void)
+ 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
+ 		return 0;
+ 
+-	static_key_slow_inc(&paravirt_ticketlocks_enabled);
+ 	printk(KERN_INFO "KVM setup paravirtual spinlock\n");
+ 
+ 	return 0;
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 6d4bf81..6259327 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -42,6 +42,3 @@ struct pv_lock_ops pv_lock_ops = {
+ #endif /* SMP */
+ };
+ EXPORT_SYMBOL(pv_lock_ops);
+-
+-struct static_key paravirt_ticketlocks_enabled = STATIC_KEY_INIT_FALSE;
+-EXPORT_SYMBOL(paravirt_ticketlocks_enabled);
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index e8a9ea7..a822606 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -155,7 +155,6 @@ static __init int xen_init_spinlocks_jump(void)
+ 	if (!xen_domain())
+ 		return 0;
+ 
+-	static_key_slow_inc(&paravirt_ticketlocks_enabled);
+ 	return 0;
+ }
+ early_initcall(xen_init_spinlocks_jump);
 -- 
-2.1.4
+1.8.3.1
 
