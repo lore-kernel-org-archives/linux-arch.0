@@ -1,51 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ares41.inai.de ([46.4.122.207]:57754 "EHLO ares41.inai.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751004AbdALQg5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 12 Jan 2017 11:36:57 -0500
-Date: Thu, 12 Jan 2017 17:28:13 +0100 (CET)
-From: Jan Engelhardt <jengelh@inai.de>
-Subject: Re: [PATCH v2 7/7] uapi: export all headers under uapi directories
-In-Reply-To: <464a1323-4450-e563-ff59-9e6d57b75959@6wind.com>
-Message-ID: <alpine.LSU.2.20.1701121727180.19188@erq.vanv.qr>
-References: <bf83da6b-01ef-bf44-b3e1-ca6fc5636818@6wind.com> <1483695839-18660-1-git-send-email-nicolas.dichtel@6wind.com> <1483695839-18660-8-git-send-email-nicolas.dichtel@6wind.com> <20170109125638.GA15506@infradead.org>
- <464a1323-4450-e563-ff59-9e6d57b75959@6wind.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:49424 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751098AbdALQvh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2017 11:51:37 -0500
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
+ SPARC M7
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+ <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+ <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
+ <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
+ <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
+ <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
+ <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
+ <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Message-ID: <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
+Date: Thu, 12 Jan 2017 09:50:35 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: Christoph Hellwig <hch@infradead.org>, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, linux-nfs@vger.kernel.org, linux-raid@vger.kernel.org, linux-spi@vger.kernel.org, linux-mtd@lists.infradead.org, linux-rdma@vger.kernel.org, fcoe-devel@open-fcoe.org, alsa-devel@alsa-project.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, airlied@linux.ie, davem@davemloft.net
-Message-ID: <20170112162813.xIvkirSn6pTz8dbKxfwPFE3arRk-K8VNXSvDF8qpZf8@z>
+To: Dave Hansen <dave.hansen@linux.intel.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kvack.org
+Message-ID: <20170112165035.rxbnGyiU7SC6QS31CCV9N8kW_j0OZTCYPcKKj3rZgyc@z>
 
-On Thursday 2017-01-12 16:52, Nicolas Dichtel wrote:
+On 01/11/2017 05:49 PM, Dave Hansen wrote:
+> On 01/11/2017 04:22 PM, Khalid Aziz wrote:
+> ...
+>> All of the tag coordination can happen in userspace. Once a process sets
+>> a tag on a physical page mapped in its address space, another process
+>> that has mapped the same physical page in its address space can only set
+>> the tag to exact same value. Attempts to set a different tag are caught
+>> by memory controller and result in MCD trap and kernel sends SIGSEGV to
+>> the process trying to set a different tag.
+>
+> Again, I don't think these semantics will work for anything other than
+> explicitly shared memory.  This behavior ensures that it is *entirely*
+> unsafe to use ADI on any data that any process you do not control might
+> be able to mmap().  That's a *HUGE* caveat for the feature and can't
+> imagine ever seeing this get merged without addressing it.
+>
+> I think it's fairly simple to address, though a bit expensive.  First,
+> you can't allow the VMA bit to get set on non-writable mappings.
+> Second, you'll have to force COW to occur on read-only pages in writable
+> mappings before the PTE bit can get set.  I think you can probably even
+> do this in the faults that presumably occur when you try to set ADI tags
+> on memory mapped with non-ADI PTEs.
 
->Le 09/01/2017 à 13:56, Christoph Hellwig a écrit :
->> On Fri, Jan 06, 2017 at 10:43:59AM +0100, Nicolas Dichtel wrote:
->>> Regularly, when a new header is created in include/uapi/, the developer
->>> forgets to add it in the corresponding Kbuild file. This error is usually
->>> detected after the release is out.
->>>
->>> In fact, all headers under uapi directories should be exported, thus it's
->>> useless to have an exhaustive list.
->>>
->>> After this patch, the following files, which were not exported, are now
->>> exported (with make headers_install_all):
->> 
->> ... snip ...
->> 
->>> linux/genwqe/.install
->>> linux/genwqe/..install.cmd
->>> linux/cifs/.install
->>> linux/cifs/..install.cmd
->> 
->> I'm pretty sure these should not be exported!
->> 
->Those files are created in every directory:
->$ find usr/include/ -name '\.\.install.cmd' | wc -l
->71
+Hi Dave,
 
-That still does not mean they should be exported.
+You have brought up an interesting scenario with COW pages. I had 
+started out with the following policies regarding ADI that made sense:
 
-Anything but headers (and directories as a skeleton structure) is maximally suspicious.
+1. New data pages do not get full ADI protection by default, i.e. 
+TTE.mcd is not set and tags are not set on the new pages. A task that 
+creates a new data page must make decision to protect these new pages or 
+not.
+
+2. Any shared page that has ADI protection enabled on it, must stay ADI 
+protected across all processes sharing it.
+
+COW creates an intersection of the two. It creates a new copy of the 
+shared data. It is a new data page and hence the process creating it 
+must be the one responsible for enabling ADI protection on it. It is 
+also a copy of what was ADI protected data, so should it inherit the 
+protection instead?
+
+I misspoke earlier. I had misinterpreted the results of test I ran. 
+Changing the tag on shared memory is allowed by memory controller. The 
+requirement is every one sharing the page must switch to the new tag or 
+else they get SIGSEGV.
+
+I am inclined to suggest we copy the tags to the new data page on COW 
+and that will continue to enforce ADI on the COW'd pages even though 
+COW'd pages are new data pages. This is the logically consistent 
+behavior. Does that make sense?
+
+Thanks,
+Khalid
