@@ -1,97 +1,122 @@
 From: Dave Martin <Dave.Martin@arm.com>
-Subject: [RFC PATCH 10/10] Revert "arm64/sve: Limit vector length to 512 bits
- by default"
-Date: Thu, 12 Jan 2017 11:26:09 +0000
-Message-ID: <1484220369-23970-11-git-send-email-Dave.Martin@arm.com>
+Subject: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length control and reporting
+Date: Thu, 12 Jan 2017 11:26:07 +0000
+Message-ID: <1484220369-23970-9-git-send-email-Dave.Martin@arm.com>
 References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:43504 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751209AbdALL1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 12 Jan 2017 06:27:55 -0500
 In-Reply-To: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org
-Cc: linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, gdb@sourceware.org, Yao Qi <qiyaoltc@gmail.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Joseph Myers <joseph@codesourcery.com>, Alan Hayward <alan.hayward@arm.com>, Torvald Riegel <triegel@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Alan Hayward <alan.hayward@arm.com>, Christoffer Dall <christoffer.dall@linaro.org>, linux-arch@vger.kernel.org, libc-alpha@sourceware.org, Florian Weimer <fweimer@redhat.com>, Joseph Myers <joseph@codesourcery.com>, Szabolcs Nagy <szabolcs.nagy@arm.com>, Torvald Riegel <triegel@redhat.com>, gdb@sourceware.org, Yao Qi <qiyaoltc@gmail.com>
 
-This reverts commit cdedb254ccddd9c6a8db91b3737690327e48dfe7.
+This patch adds support for manipulating a task's vector length at
+runtime via ptrace.
 
-Vector length limiting via Kconfig is no longer required now that
-the default vector length can be manipulated at runtime via procfs.
+As a simplification, we turn the task back into an FPSIMD-only task
+when changing the vector length.  If the register data is written
+too, we then turn the task back into an SVE task, with changed
+task_struct layout for the SVE data, before the actual data writing
+is done.
+
+Because the vector length is now variable, sve_get() now needs to
+return the real maximum for user_sve_header.max_vl, since .vl may
+be less than this (that's the whole point).
+
+Signed-off-by: Dave Martin <Dave.Martin@arm.com>
 ---
- arch/arm64/Kconfig   | 35 -----------------------------------
- arch/arm64/mm/proc.S |  5 -----
- 2 files changed, 40 deletions(-)
+ arch/arm64/include/asm/fpsimd.h      |  1 +
+ arch/arm64/include/uapi/asm/ptrace.h |  5 +++++
+ arch/arm64/kernel/ptrace.c           | 25 +++++++++++++++----------
+ 3 files changed, 21 insertions(+), 10 deletions(-)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 98c0934..bced568 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -900,41 +900,6 @@ config ARM64_SVE
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+index 1ec2363..0f1b068 100644
+--- a/arch/arm64/include/asm/fpsimd.h
++++ b/arch/arm64/include/asm/fpsimd.h
+@@ -105,6 +105,7 @@ extern void sve_load_state(void const *state, u32 const *pfpsr,
+ extern unsigned int sve_get_vl(void);
+ extern int sve_set_vector_length(struct task_struct *task,
+ 				 unsigned long vl, unsigned long flags);
++extern int sve_max_vl;
  
- 	  To enable use of this extension on CPUs that implement it, say Y.
+ /*
+  * FPSIMD/SVE synchronisation helpers for ptrace:
+diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
+index 48b57a0..bcb542d 100644
+--- a/arch/arm64/include/uapi/asm/ptrace.h
++++ b/arch/arm64/include/uapi/asm/ptrace.h
+@@ -64,6 +64,8 @@
  
--if ARM64_SVE
--
--config ARM64_SVE_FULL_VECTOR_LENGTH
--	bool "Enable full hardware vector length for userspace"
--	default n
--	help
--	  SVE vector lengths greater than 512 bits impact the size of signal
--	  frames and therefore the size requirements for any userspace stack
--	  onto which a signal may be delivered.  Using larger vector lengths
--	  may therefore cause problems for some software.  For this reason, the
--	  kernel currently limits the maximum vector length for userspace
--	  software to 512 bits by default.
--
--	  Enabling this option removes the limit, so that the full vector
--	  length implemented by the hardware is made available to userspace.
--
--	  Be aware: in general, software that (a) does not use SVE (including
--	  via libraries), or (b) does not handle signals, or (c) uses default
--	  process/thread stack sizes and does not use sigaltstack(2) should be
--	  unaffected by enabling larger vectors.  Software that does not meet
--	  these criteria or that relies on certain legacy uses of the ucontext
--	  API may be affected however.
--
--	  This is a transitional compatibility option only and will be replaced
--	  by a userspace ABI extension in the future.  Do not assume that this
--	  option will be available with compatible effect in future Linux
--	  releases.
--
--	  If you are developing software that uses SVE and understand the
--	  implications, you can consider saying Y here.
--
--	  If unsure, say N.
--
--endif
--
- config ARM64_MODULE_CMODEL_LARGE
- 	bool
+ #ifndef __ASSEMBLY__
  
-diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-index da2d602..aa96b4c 100644
---- a/arch/arm64/mm/proc.S
-+++ b/arch/arm64/mm/proc.S
-@@ -200,11 +200,6 @@ ENTRY(__cpu_setup)
++#include <linux/prctl.h>
++
+ /*
+  * User structures for general purpose, floating point and debug registers.
+  */
+@@ -108,6 +110,9 @@ struct user_sve_header {
+ #define SVE_PT_REGS_FPSIMD		0
+ #define SVE_PT_REGS_SVE			SVE_PT_REGS_MASK
  
- 	mrs_s	x5, ZIDR_EL1			// SVE: Enable full vector len
- 	and	x5, x5, #ZCR_EL1_LEN_MASK	// initially
--#ifndef CONFIG_ARM64_SVE_FULL_VECTOR_LENGTH
--	mov	x6, #(512 / 128 - 1)		// Clamp VL to 512 bits
--	cmp	x5, x6
--	csel	x5, x5, x6, lo
--#endif
- 	msr_s	ZCR_EL1, x5
++#define SVE_PT_VL_THREAD		PR_SVE_SET_VL_THREAD
++#define SVE_PT_VL_INHERIT		PR_SVE_SET_VL_INHERIT
++
  
- 	b	2f
+ /*
+  * The remainder of the SVE state follows struct user_sve_header.  The
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index 32debb8..7e40039 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -741,14 +741,15 @@ static int sve_get(struct task_struct *target,
+ 	BUG_ON(!sve_vl_valid(header.vl));
+ 	vq = sve_vq_from_vl(header.vl);
+ 
+-	/* Until runtime or per-task vector length changing is supported: */
+-	header.max_vl = header.vl;
++	BUG_ON(!sve_vl_valid(sve_max_vl));
++	header.max_vl = sve_max_vl;
+ 
+ 	header.flags = test_tsk_thread_flag(target, TIF_SVE) ?
+ 		SVE_PT_REGS_SVE : SVE_PT_REGS_FPSIMD;
+ 
+ 	header.size = SVE_PT_SIZE(vq, header.flags);
+-	header.max_size = SVE_PT_SIZE(vq, SVE_PT_REGS_SVE);
++	header.max_size = SVE_PT_SIZE(sve_vq_from_vl(header.max_vl),
++				      SVE_PT_REGS_SVE);
+ 
+ 	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, &header,
+ 				  0, sizeof(header));
+@@ -830,14 +831,18 @@ static int sve_set(struct task_struct *target,
+ 	if (ret)
+ 		goto out;
+ 
+-	if (header.vl != target->thread.sve_vl)
+-		return -EINVAL;
+-
+-	BUG_ON(!sve_vl_valid(header.vl));
+-	vq = sve_vq_from_vl(header.vl);
++	/*
++	 * Apart from PT_SVE_REGS_MASK, all PT_SVE_* flags are consumed by
++	 * sve_set_vector_length(), which will also validate them for us:
++	 */
++	ret = sve_set_vector_length(target, header.vl,
++				    header.flags & ~SVE_PT_REGS_MASK);
++	if (ret)
++		goto out;
+ 
+-	if (header.flags & ~SVE_PT_REGS_MASK)
+-		return -EINVAL;
++	/* Actual VL set may be less than the user asked for: */
++	BUG_ON(!sve_vl_valid(target->thread.sve_vl));
++	vq = sve_vq_from_vl(target->thread.sve_vl);
+ 
+ 	/* Registers: FPSIMD-only case */
+ 
 -- 
 2.1.4
