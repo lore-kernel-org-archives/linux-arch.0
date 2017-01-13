@@ -1,108 +1,86 @@
-From: Rob Gardner <rob.gardner@oracle.com>
-Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
- SPARC M7
-Date: Thu, 12 Jan 2017 18:31:45 -0700
-Message-ID: <ee959bf4-73db-f9bb-c697-20b47dd8d55f@oracle.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
- <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
- <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
- <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
- <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
- <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
- <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
- <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
- <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
- <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
- <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
+From: "Xuetao Guan" <gxt@mprc.pku.edu.cn>
+Subject: Re: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit
+ syscalls from default list
+Date: Fri, 13 Jan 2017 10:51:44 +0800 (CST)
+Message-ID: <16049.175.43.247.167.1484275904.squirrel@mprc.pku.edu.cn>
+References: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
+ <1483961397-8599-4-git-send-email-ynorov@caviumnetworks.com>
+Reply-To: gxt@mprc.pku.edu.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, Dave Hansen <dave.hansen@linux.intel.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1483961397-8599-4-git-send-email-ynorov@caviumnetworks.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+Cc: linux-doc@vger.kernel.org, Andrew Pinski <andrew.pinski@caviumnetworks.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Metcalf <cmetcalf@ezchip.com>, Yury Norov <ynorov@caviumnetworks.com>, linux@lists.openrisc.net, linux-hexagon@vger.kernel.org, philipp.tomsich@theobroma-systems.com, Joseph Myers <joseph@codesourcery.com>, linux-arch@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, zhouchengming1@huawei.com, Guan Xuetao <gxt@mprc.pku.edu.cn>, Steve Ellcey <sellcey@caviumnetworks.com>, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, prasun.kapoor@caviumnetworks.com, Andreas Schwab <schwab@suse.de>, Aurelien Jacquiot <a-jacquiot@ti.com>, agraf@suse.de, szabolcs.nagy@arm.com, geert@linux-m68k.org, Lennox Wu <lennox.wu@gmail.com>, Mark Salter <msalter@redhat.com>, linux-snps-arc@lists.infradead
 List-Id: linux-arch.vger.kernel.org
 
-On 01/12/2017 05:22 PM, Khalid Aziz wrote:
-> On 01/12/2017 10:53 AM, Dave Hansen wrote:
->> On 01/12/2017 08:50 AM, Khalid Aziz wrote:
->>> 2. Any shared page that has ADI protection enabled on it, must stay ADI
->>> protected across all processes sharing it.
->>
->> Is that true?
->>
->> What happens if a page with ADI tags set is accessed via a PTE without
->> the ADI enablement bit set?
+> The newer prlimit64 syscall provides all the functionality provided by
+> the getrlimit and setrlimit syscalls and adds the pid of target process,
+> so future architectures won't need to include getrlimit and setrlimit.
 >
-> ADI protection applies across all processes in terms of all of them 
-> must use the same tag to access the shared memory, but if a process 
-> accesses a shared page with TTE.mcde bit cleared, access will be granted.
+> Therefore drop getrlimit and setrlimit syscalls from the generic syscall
+> list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
+> unistd.h prior to including asm-generic/unistd.h, and adjust all
+> architectures
+> using the generic syscall list to define it so that no in-tree
+> architectures
+> are affected.
 >
->>
->>> COW creates an intersection of the two. It creates a new copy of the
->>> shared data. It is a new data page and hence the process creating it
->>> must be the one responsible for enabling ADI protection on it.
->>
->> Do you mean that the application must be responsible?  Or the kernel
->> running in the context of the new process must be responsible?
->>
->>> It is also a copy of what was ADI protected data, so should it
->>> inherit the protection instead?
->>
->> I think the COW'd copy must inherit the VMA bit, the PTE bits, and the
->> tags on the cachelines.
->>
->>> I misspoke earlier. I had misinterpreted the results of test I ran.
->>> Changing the tag on shared memory is allowed by memory controller. The
->>> requirement is every one sharing the page must switch to the new tag or
->>> else they get SIGSEGV.
->>
->> I asked this in the last mail, but I guess I'll ask it again. Please
->> answer this directly.
->>
->> If we require that everyone coordinate their tags on the backing
->> physical memory, and we allow a lower-privileged program to access the
->> same data as a more-privileged one, then the lower-privilege app can
->> cause arbitrary crashes in the privileged application.
->>
->> For instance, say sudo mmap()'s /etc/passwd and uses ADI tags to protect
->> the mapping.  Couldn't any other app in the system prevent sudo from
->> working?
->>
->> How can we *EVER* allow tags to be set on non-writable mappings?
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-snps-arc@lists.infradead.org
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-metag@vger.kernel.org
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
+> Cc: Chen Liqin <liqin.linux@gmail.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> Cc: Chris Metcalf <cmetcalf@mellanox.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: Ley Foon Tan <lftan@altera.com>
+> Cc: nios2-dev@lists.rocketboards.org
+> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+> Cc: uclinux-h8-devel@lists.sourceforge.jp
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Mark Salter <msalter@redhat.com> [c6x]
+> Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
+> Acked-by: Ley Foon Tan <lftan@altera.com> [nios2]
+> Acked-by: Stafford Horne <shorne@gmail.com> [openrisc]
+> Acked-by: Vineet Gupta <vgupta@synopsys.com> #arch/arc bits
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> ---
+>  arch/arc/include/uapi/asm/unistd.h       | 1 +
+>  arch/arm64/include/uapi/asm/unistd.h     | 1 +
+>  arch/c6x/include/uapi/asm/unistd.h       | 1 +
+>  arch/h8300/include/uapi/asm/unistd.h     | 1 +
+>  arch/hexagon/include/uapi/asm/unistd.h   | 1 +
+>  arch/metag/include/uapi/asm/unistd.h     | 1 +
+>  arch/nios2/include/uapi/asm/unistd.h     | 1 +
+>  arch/openrisc/include/uapi/asm/unistd.h  | 1 +
+>  arch/score/include/uapi/asm/unistd.h     | 1 +
+>  arch/tile/include/uapi/asm/unistd.h      | 1 +
+>  arch/unicore32/include/uapi/asm/unistd.h | 1 +
+>  include/uapi/asm-generic/unistd.h        | 5 +++++
+>  12 files changed, 16 insertions(+)
 
-I don't think you can write a tag to memory if you don't have write 
-access in the TTE. Writing a tag requires a store instruction, and if 
-the machine is at all sane, this will fault if you don't have write access.
+For UniCore32:
+Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Rob
-
-
-
->
-> I understand your quetion better now. That is a very valid concern. 
-> Using ADI tags to prevent an unauthorized process from just reading 
-> data in memory, say an in-memory copy of database, is one of the use 
-> cases for ADI. This means there is a reasonable case to allow enabling 
-> ADI and setting tags even on non-writable mappings. On the other hand, 
-> if an unauthorized process manages to map the right memory pages in 
-> its address space, it can read them any way by not setting TTE.mcd.
->
-> Userspace app can set tag on any memory it has mapped in without 
-> requiring assistance from kernel. Can this problem be solved by not 
-> allowing setting TTE.mcd on non-writable mappings? Doesn't the same 
-> problem occur on writable mappings? If a privileged process mmap()'s a 
-> writable file with MAP_SHARED, enables ADI and sets tag on the mmap'd 
-> memory region, then another lower privilege process mmap's the same 
-> file writable (assuming file permissions allow it to), enables ADI and 
-> sets a different tag on it, the privileged process would get SIGSEGV 
-> when it tries to access the mmap'd file. Right?
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks.
