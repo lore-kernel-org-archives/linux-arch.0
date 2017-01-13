@@ -1,98 +1,39 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
- SPARC M7
-Date: Thu, 12 Jan 2017 17:22:26 -0700
-Message-ID: <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
- <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
- <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
- <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
- <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
- <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
- <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
- <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
- <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
- <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
+From: Jeff Epler <jepler@unpythonic.net>
+Subject: Re: [PATCH v2 7/7] uapi: export all headers under uapi directories
+Date: Thu, 12 Jan 2017 19:04:27 -0600
+Message-ID: <20170113010427.GA22650@unpythonic.net>
+References: <bf83da6b-01ef-bf44-b3e1-ca6fc5636818@6wind.com>
+ <1483695839-18660-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1483695839-18660-8-git-send-email-nicolas.dichtel@6wind.com>
+ <20170109125638.GA15506@infradead.org>
+ <464a1323-4450-e563-ff59-9e6d57b75959@6wind.com>
+ <alpine.LSU.2.20.1701121727180.19188@erq.vanv.qr>
+ <9d68af8a-a609-d7b1-58a9-f1155313b077@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Dave Hansen <dave.hansen@linux.intel.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <9d68af8a-a609-d7b1-58a9-f1155313b077@6wind.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: linux-mips@linux-mips.org, alsa-devel@alsa-project.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, airlied@linux.ie, linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-mtd@lists.infradead.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, linux-c6x-dev@linux-c6x.org, linux-rdma@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, coreteam@netfilter.org, fcoe-devel@open-fcoe.org, xen-devel@lists.xenproject.org, linux-snps-arc@lists.infradead.org, linux-media@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, arnd@arndb.de, linux-kbuild@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-raid@vger.kernel.org, linux-m68k@lists.linux-m68k.org, mmarek@suse.com, linux-metag@v
 List-Id: linux-arch.vger.kernel.org
 
-On 01/12/2017 10:53 AM, Dave Hansen wrote:
-> On 01/12/2017 08:50 AM, Khalid Aziz wrote:
->> 2. Any shared page that has ADI protection enabled on it, must stay ADI
->> protected across all processes sharing it.
->
-> Is that true?
->
-> What happens if a page with ADI tags set is accessed via a PTE without
-> the ADI enablement bit set?
+On Thu, Jan 12, 2017 at 05:32:09PM +0100, Nicolas Dichtel wrote:
+> What I was trying to say is that I export those directories like other are.
+> Removing those files is not related to that series.
 
-ADI protection applies across all processes in terms of all of them must 
-use the same tag to access the shared memory, but if a process accesses 
-a shared page with TTE.mcde bit cleared, access will be granted.
+Perhaps the correct solution is to only copy files matching "*.h" to
+reduce the risk of copying files incidentally created by kbuild but
+which shouldn't be installed as uapi headers.
 
->
->> COW creates an intersection of the two. It creates a new copy of the
->> shared data. It is a new data page and hence the process creating it
->> must be the one responsible for enabling ADI protection on it.
->
-> Do you mean that the application must be responsible?  Or the kernel
-> running in the context of the new process must be responsible?
->
->> It is also a copy of what was ADI protected data, so should it
->> inherit the protection instead?
->
-> I think the COW'd copy must inherit the VMA bit, the PTE bits, and the
-> tags on the cachelines.
->
->> I misspoke earlier. I had misinterpreted the results of test I ran.
->> Changing the tag on shared memory is allowed by memory controller. The
->> requirement is every one sharing the page must switch to the new tag or
->> else they get SIGSEGV.
->
-> I asked this in the last mail, but I guess I'll ask it again.  Please
-> answer this directly.
->
-> If we require that everyone coordinate their tags on the backing
-> physical memory, and we allow a lower-privileged program to access the
-> same data as a more-privileged one, then the lower-privilege app can
-> cause arbitrary crashes in the privileged application.
->
-> For instance, say sudo mmap()'s /etc/passwd and uses ADI tags to protect
-> the mapping.  Couldn't any other app in the system prevent sudo from
-> working?
->
-> How can we *EVER* allow tags to be set on non-writable mappings?
-
-I understand your quetion better now. That is a very valid concern. 
-Using ADI tags to prevent an unauthorized process from just reading data 
-in memory, say an in-memory copy of database, is one of the use cases 
-for ADI. This means there is a reasonable case to allow enabling ADI and 
-setting tags even on non-writable mappings. On the other hand, if an 
-unauthorized process manages to map the right memory pages in its 
-address space, it can read them any way by not setting TTE.mcd.
-
-Userspace app can set tag on any memory it has mapped in without 
-requiring assistance from kernel. Can this problem be solved by not 
-allowing setting TTE.mcd on non-writable mappings? Doesn't the same 
-problem occur on writable mappings? If a privileged process mmap()'s a 
-writable file with MAP_SHARED, enables ADI and sets tag on the mmap'd 
-memory region, then another lower privilege process mmap's the same file 
-writable (assuming file permissions allow it to), enables ADI and sets a 
-different tag on it, the privileged process would get SIGSEGV when it 
-tries to access the mmap'd file. Right?
-
-Thanks,
-Khalid
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+jeff
