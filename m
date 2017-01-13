@@ -1,50 +1,42 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v3 1/8] arm: put types.h in uapi
-Date: Fri, 13 Jan 2017 16:35:48 +0000
-Message-ID: <27078.1484325348@warthog.procyon.org.uk>
-References: <20170113161951.GT14217@n2100.armlinux.org.uk> <1484304406-10820-2-git-send-email-nicolas.dichtel@6wind.com> <3131144.4Ej3KFWRbz@wuerfel> <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com> <25063.1484321803@warthog.procyon.org.uk> <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v3 4/8] x86: stop exporting msr-index.h to userland
+Date: Fri, 13 Jan 2017 17:38:36 +0100
+Message-ID: <20170113163836.jn3u6xyfcrbtynut@pd.tnic>
+References: <1484304406-10820-5-git-send-email-nicolas.dichtel@6wind.com>
+ <3131144.4Ej3KFWRbz@wuerfel>
+ <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <25483.1484322229@warthog.procyon.org.uk>
+ <dd826bc7-e1ef-be29-e0c3-692afb346036@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42360 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750953AbdAMQgB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 13 Jan 2017 11:36:01 -0500
-In-Reply-To: <20170113161951.GT14217@n2100.armlinux.org.uk>
-Content-ID: <27077.1484325348.1@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@armlinux.org.uk>
-Cc: dhowells@redhat.com, Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-
-Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
-MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <dd826bc7-e1ef-be29-e0c3-692afb346036@6wind.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: David Howells <dhowells@redhat.com>, arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtens
+List-Id: linux-arch.vger.kernel.org
 
-> > Le 13/01/2017 =C3=A0 16:36, David Howells a =C3=A9crit :
-> > > Nicolas Dichtel <nicolas.dichtel@6wind.com> wrote:
-> > >=20
-> > >> This header file is exported, thus move it to uapi.
-> > >=20
-> > > Exported how?
-> >=20
-> > It is listed in include/uapi/asm-generic/Kbuild.asm, which is included =
-by
-> > arch/arm/include/uapi/asm/Kbuild.
->=20
-> We really should not be installing non-uapi header files to userland
-> under _any_ circumstance - this to me sounds like a bug in kbuild.
+On Fri, Jan 13, 2017 at 05:08:34PM +0100, Nicolas Dichtel wrote:
+> Le 13/01/2017 à 16:43, David Howells a écrit :
+> >> -header-y += msr-index.h
+> > 
+> > I see it on my desktop as /usr/include/asm/msr-index.h and it's been there at
+> > least four years - and as such it's part of the UAPI.  I don't think you can
+> > remove it unless you can guarantee there are no userspace users.
+> I keep it in the v2 of the series, but the maintainer, Borislav Petkov, asks me
+> to un-export it.
+> 
+> I will follow the maintainer decision.
 
-It's not (or was not) a bug exactly - it was something introduced in commit
-10b63956fce7f369cc37fd4d994f09bd5203efe4 to ease the transition to using the
-UAPI headers as Linus required the commit for each header dir to go through
-the submaintainer's tree.
+I'm not the maintainer. I simply think that exporting that file was
+wrong because it if we change something in it, we will break userspace.
+And that should not happen - if userspace needs MSRs, it should do its
+own defines.
 
-It was supposed to be removed, but that never got posted to Linus because t=
-he
-next phase of cleanups didn't happen as Linus said he block my email and ne=
-ver
-take any more patches from me if I sent him any more:-/
+-- 
+Regards/Gruss,
+    Boris.
 
-David
+Good mailing practices for 400: avoid top-posting and trim the reply.
