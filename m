@@ -1,62 +1,98 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [Question] New mmap64 syscall?
-Date: Thu, 12 Jan 2017 22:51:28 +0100
-Message-ID: <20170112215128.GA14063@amd>
-References: <20161206185440.GA4654@yury-N73SV>
- <f544bcc3-8aae-1bd0-b744-9964fc038a51@redhat.com>
- <20161207154811.GA15248@yury-N73SV>
- <14981df2-b120-17c3-a5a8-5cbbd2008c4f@redhat.com>
- <20170103205437.GA22548@amd>
- <59af3a6f-f30c-46a5-2d0b-6a7e36668e6b@redhat.com>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
+ SPARC M7
+Date: Thu, 12 Jan 2017 17:22:26 -0700
+Message-ID: <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+ <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+ <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
+ <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
+ <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
+ <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
+ <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
+ <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
+ <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
+ <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="fUYQa+Pmc3FrFX/N"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <59af3a6f-f30c-46a5-2d0b-6a7e36668e6b@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Florian Weimer <fweimer@redhat.com>
-Cc: Yury Norov <ynorov@caviumnetworks.com>, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, szabolcs.nagy@arm.com, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, philipp.tomsich@theobroma-systems.com, joseph@codesourcery.com, zhouchengming1@huawei.com, Prasun.Kapoor@caviumnetworks.com, agraf@suse.de, geert@linux-m68k.org, kilobyte@angband.pl, manuel.montezelo@gmail.com, arnd@arndb.de, pinskia@gmail.com, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, bamvor.zhangjian@huawei.com, linux-arm-kernel@lists.infradead.org, maxim.kuvyrkov@linaro.org, Nathan_Lynch@mentor.com, schwidefsky@de.ibm.com, davem@davemloft.net, christoph.muellner@theobroma-systems.com
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@linux.intel.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
 List-Id: linux-arch.vger.kernel.org
 
+On 01/12/2017 10:53 AM, Dave Hansen wrote:
+> On 01/12/2017 08:50 AM, Khalid Aziz wrote:
+>> 2. Any shared page that has ADI protection enabled on it, must stay ADI
+>> protected across all processes sharing it.
+>
+> Is that true?
+>
+> What happens if a page with ADI tags set is accessed via a PTE without
+> the ADI enablement bit set?
 
---fUYQa+Pmc3FrFX/N
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+ADI protection applies across all processes in terms of all of them must 
+use the same tag to access the shared memory, but if a process accesses 
+a shared page with TTE.mcde bit cleared, access will be granted.
 
-On Thu 2017-01-12 17:13:25, Florian Weimer wrote:
-> On 01/03/2017 09:54 PM, Pavel Machek wrote:
-> >...actually, with strace and batched interface, it will be impossible
-> >to see what is going on because of races. So I'm not sure if I like
-> >the batched interface at all...
->=20
-> I'm not sure if I understand this problem.
->=20
-> ioctl, fcntl, most socket system calls, even open all have this problem as
-> well, right?
+>
+>> COW creates an intersection of the two. It creates a new copy of the
+>> shared data. It is a new data page and hence the process creating it
+>> must be the one responsible for enabling ADI protection on it.
+>
+> Do you mean that the application must be responsible?  Or the kernel
+> running in the context of the new process must be responsible?
+>
+>> It is also a copy of what was ADI protected data, so should it
+>> inherit the protection instead?
+>
+> I think the COW'd copy must inherit the VMA bit, the PTE bits, and the
+> tags on the cachelines.
+>
+>> I misspoke earlier. I had misinterpreted the results of test I ran.
+>> Changing the tag on shared memory is allowed by memory controller. The
+>> requirement is every one sharing the page must switch to the new tag or
+>> else they get SIGSEGV.
+>
+> I asked this in the last mail, but I guess I'll ask it again.  Please
+> answer this directly.
+>
+> If we require that everyone coordinate their tags on the backing
+> physical memory, and we allow a lower-privileged program to access the
+> same data as a more-privileged one, then the lower-privilege app can
+> cause arbitrary crashes in the privileged application.
+>
+> For instance, say sudo mmap()'s /etc/passwd and uses ADI tags to protect
+> the mapping.  Couldn't any other app in the system prevent sudo from
+> working?
+>
+> How can we *EVER* allow tags to be set on non-writable mappings?
 
-Yes, ioctl() and similar are problematic. Still it is possible to
-implement secure sandbox using ptrace. Dealing with indirect mmap()
-would difficult AFAICT.
+I understand your quetion better now. That is a very valid concern. 
+Using ADI tags to prevent an unauthorized process from just reading data 
+in memory, say an in-memory copy of database, is one of the use cases 
+for ADI. This means there is a reasonable case to allow enabling ADI and 
+setting tags even on non-writable mappings. On the other hand, if an 
+unauthorized process manages to map the right memory pages in its 
+address space, it can read them any way by not setting TTE.mcd.
 
-									Pavel
+Userspace app can set tag on any memory it has mapped in without 
+requiring assistance from kernel. Can this problem be solved by not 
+allowing setting TTE.mcd on non-writable mappings? Doesn't the same 
+problem occur on writable mappings? If a privileged process mmap()'s a 
+writable file with MAP_SHARED, enables ADI and sets tag on the mmap'd 
+memory region, then another lower privilege process mmap's the same file 
+writable (assuming file permissions allow it to), enables ADI and sets a 
+different tag on it, the privileged process would get SIGSEGV when it 
+tries to access the mmap'd file. Right?
 
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blo=
-g.html
+Thanks,
+Khalid
 
---fUYQa+Pmc3FrFX/N
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iEYEARECAAYFAlh3+mAACgkQMOfwapXb+vIszACcDtFQSncK+zwKbpRpvasbFveQ
-WzsAnRvgUbvC3W+fWhGptatInEx+Effa
-=E+7f
------END PGP SIGNATURE-----
-
---fUYQa+Pmc3FrFX/N--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
