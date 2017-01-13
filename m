@@ -1,40 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f49.google.com ([74.125.82.49]:37213 "EHLO
-        mail-wm0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750997AbdAMQIo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2017 11:08:44 -0500
-Received: by mail-wm0-f49.google.com with SMTP id c206so77539528wme.0
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2017 08:08:43 -0800 (PST)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v3 4/8] x86: stop exporting msr-index.h to userland
-References: <1484304406-10820-5-git-send-email-nicolas.dichtel@6wind.com>
- <3131144.4Ej3KFWRbz@wuerfel>
- <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
- <25483.1484322229@warthog.procyon.org.uk>
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <dd826bc7-e1ef-be29-e0c3-692afb346036@6wind.com>
-Date: Fri, 13 Jan 2017 17:08:34 +0100
+Received: from mga07.intel.com ([134.134.136.100]:12081 "EHLO mga07.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752040AbdAMQI4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Jan 2017 11:08:56 -0500
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
+ SPARC M7
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+ <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+ <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
+ <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
+ <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
+ <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
+ <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
+ <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
+ <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
+ <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
+ <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
+ <ee959bf4-73db-f9bb-c697-20b47dd8d55f@oracle.com>
+ <9aa6d94d-0a80-7397-5cd2-c04a39cbaf82@oracle.com>
+ <d20972cf-e9b8-b7fd-00e4-75bddb90b990@oracle.com>
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Message-ID: <216f7527-3b8a-9c2f-4631-dda30bda03b4@linux.intel.com>
+Date: Fri, 13 Jan 2017 08:08:46 -0800
 MIME-Version: 1.0
-In-Reply-To: <25483.1484322229@warthog.procyon.org.uk>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <d20972cf-e9b8-b7fd-00e4-75bddb90b990@oracle.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: arnd@arndb.de, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, linux-nfs@vger.kernel.org, linux-raid@vger.kernel.org, linux-spi@vger.kernel.org, linux-mtd@lists.infradead.org, linux-rdma@vger.kernel.org, fcoe-devel@open-fcoe.org, alsa-devel@alsa-project.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, linux@armlinux.org.uk, Borislav Petkov <bp@alien8.de>
-Message-ID: <20170113160834.r37BYd4C3OHtoq5ftJB4-idsBdrzsD3ulbTZ5BaJuRM@z>
+To: Rob Gardner <rob.gardner@oracle.com>, Khalid Aziz <khalid.aziz@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
+Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kvack.org
+Message-ID: <20170113160846.QoiumZagmpAm65CpUf8c1R1ht-RyJNnKHBD-ZIHZBu8@z>
 
-Le 13/01/2017 à 16:43, David Howells a écrit :
->> -header-y += msr-index.h
-> 
-> I see it on my desktop as /usr/include/asm/msr-index.h and it's been there at
-> least four years - and as such it's part of the UAPI.  I don't think you can
-> remove it unless you can guarantee there are no userspace users.
-I keep it in the v2 of the series, but the maintainer, Borislav Petkov, asks me
-to un-export it.
+On 01/13/2017 07:29 AM, Rob Gardner wrote:
+> so perhaps ADI should simply be disallowed for memory mapped to
+> files, and this particular complication can be avoided. Thoughts?
 
-I will follow the maintainer decision.
+What's a "file" from your perspective?
 
-
-Regards,
-Nicolas
+In Linux, shared memory is a file.  hugetlbfs is done with files.  Many
+databases mmap() their data into their address space.
