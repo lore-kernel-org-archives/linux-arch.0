@@ -1,37 +1,63 @@
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
- SPARC M7
-Date: Fri, 13 Jan 2017 08:08:46 -0800
-Message-ID: <216f7527-3b8a-9c2f-4631-dda30bda03b4@linux.intel.com>
-References: <cover.1483999591.git.khalid.aziz@oracle.com>
- <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
- <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
- <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
- <4978715f-e5e8-824e-3804-597eaa0beb95@oracle.com>
- <558ad70b-4b19-3a78-038a-b12dc7af8585@linux.intel.com>
- <5d28f71e-1ad2-b2f9-1174-ea4eb6399d23@oracle.com>
- <a7ab2796-d777-df7b-2372-2d76f2906ead@linux.intel.com>
- <b480fdcc-e08a-eea7-9bac-12bc236422c6@oracle.com>
- <b0a6341d-fb85-9f50-4803-304f3e28b4ab@linux.intel.com>
- <ae1662fa-4e51-d92d-7f19-403c92406194@oracle.com>
- <ee959bf4-73db-f9bb-c697-20b47dd8d55f@oracle.com>
- <9aa6d94d-0a80-7397-5cd2-c04a39cbaf82@oracle.com>
- <d20972cf-e9b8-b7fd-00e4-75bddb90b990@oracle.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v3 1/8] arm: put types.h in uapi
+Date: Fri, 13 Jan 2017 16:19:52 +0000
+Message-ID: <20170113161951.GT14217@n2100.armlinux.org.uk>
+References: <1484304406-10820-2-git-send-email-nicolas.dichtel@6wind.com>
+ <3131144.4Ej3KFWRbz@wuerfel>
+ <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <25063.1484321803@warthog.procyon.org.uk>
+ <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <d20972cf-e9b8-b7fd-00e4-75bddb90b990@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rob Gardner <rob.gardner@oracle.com>, Khalid Aziz <khalid.aziz@oracle.com>, davem@davemloft.net, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org
-Cc: hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kerne
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: David Howells <dhowells@redhat.com>, arnd@arndb.de, linux-mips@linux-mips.org, linux-m68k@vger.kernel.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, alsa-devel@alsa-project.org, dri-devel@lists.freedesktop.org, linux-mtd@lists.infradead.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, linux-c6x-dev@linux-c6x.org, linux-rdma@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, coreteam@netfilter.org, fcoe-devel@open-fcoe.org, xen-devel@lists.xenproject.org, linux-snps-arc@lists.infradead.org, linux-media@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-kbuild@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-raid@vg
 List-Id: linux-arch.vger.kernel.org
 
-On 01/13/2017 07:29 AM, Rob Gardner wrote:
-> so perhaps ADI should simply be disallowed for memory mapped to
-> files, and this particular complication can be avoided. Thoughts?
+On Fri, Jan 13, 2017 at 05:01:01PM +0100, Nicolas Dichtel wrote:
+> Please, do not remove the email subject when you reply. I restore it to
+> ease the thread follow-up.
 
-What's a "file" from your perspective?
+I mentioned it to David, and he says it's because the long list of
+recipients is breaking his mailer.  I've already posed the question
+about whether that's exploitable!
 
-In Linux, shared memory is a file.  hugetlbfs is done with files.  Many
-databases mmap() their data into their address space.
+> Le 13/01/2017 à 16:36, David Howells a écrit :
+> > Nicolas Dichtel <nicolas.dichtel@6wind.com> wrote:
+> > 
+> >> This header file is exported, thus move it to uapi.
+> > 
+> > Exported how?
+> 
+> It is listed in include/uapi/asm-generic/Kbuild.asm, which is included by
+> arch/arm/include/uapi/asm/Kbuild.
+
+We really should not be installing non-uapi header files to userland
+under _any_ circumstance - this to me sounds like a bug in kbuild.
+
+The assumption is that headers outside of uapi directories are not
+part of the user visible API, and so can be freely modified - which
+in the presence of this bug is untrue.
+
+However, as it's happening, and this header has been there since 2013
+(commit 09096f6a0ee2 - "ARM: 7822/1: add workaround for ambiguous C99
+stdint.h types") it's now well and truely part of the user API whether
+we intended it to be or not, so your patch looks to me like the correct
+thing to do.
+
+I think it needs further evaluation to make sure kbuild isn't going to
+do something else silly, like subsitute include/asm-generic/types.h for
+the now missing arch/arm/include/asm/types.h
+
+I wonder how many more headers are unintentionally exported.
+
+... what a mess. :(
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
