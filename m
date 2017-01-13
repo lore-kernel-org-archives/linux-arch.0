@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:48700 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:48681 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751512AbdAMKrS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2017 05:47:18 -0500
+        with ESMTP id S1751448AbdAMKrP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2017 05:47:15 -0500
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v3 6/8] Makefile.headersinst: remove destination-y option
-Date: Fri, 13 Jan 2017 11:46:44 +0100
-Message-ID: <1484304406-10820-7-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v3 1/8] arm: put types.h in uapi
+Date: Fri, 13 Jan 2017 11:46:39 +0100
+Message-ID: <1484304406-10820-2-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <3131144.4Ej3KFWRbz@wuerfel>
  <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
@@ -14,78 +14,110 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-c6x-dev@linux-c6x.org, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, nios2-dev@lists.rocketboards.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, netdev@vger.kernel.org, linux-media@vger.kernel.org, linux-mmc@vger.kernel.org, netfilter-devel@vger.kernel.org, coreteam@netfilter.org, linux-nfs@vger.kernel.org, linux-raid@vger.kernel.org, linux-spi@vger.kernel.org, linux-mtd@lists.infradead.org, linux-rdma@vger.kernel.org, fcoe-devel@open-fcoe.org, alsa-devel@alsa-project.org, linux-fbdev@vger.kernel.org, xen-devel@lists.xenproject.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <20170113104644.ygLH-AxQmlf5PUsY35ECeeM9CFdXAXCSvrxxZgzTkHw@z>
+Message-ID: <20170113104639.gUfKI6uX6_k8vqKl8EKdos3ES37x74p8EixJSofqmlo@z>
 
-This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
-for exported headers") but never used in-tree.
+This header file is exported, thus move it to uapi.
 
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 ---
- Documentation/kbuild/makefiles.txt | 23 ++++-------------------
- scripts/Makefile.headersinst       |  2 +-
- 2 files changed, 5 insertions(+), 20 deletions(-)
+ arch/arm/include/asm/types.h      | 40 ---------------------------------------
+ arch/arm/include/uapi/asm/types.h | 40 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+), 40 deletions(-)
+ delete mode 100644 arch/arm/include/asm/types.h
+ create mode 100644 arch/arm/include/uapi/asm/types.h
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 9b9c4797fc55..37b525d329ae 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -46,9 +46,8 @@ This document describes the Linux kernel Makefiles.
- 	=== 7 Kbuild syntax for exported headers
- 		--- 7.1 header-y
- 		--- 7.2 genhdr-y
--		--- 7.3 destination-y
--		--- 7.4 generic-y
--		--- 7.5 generated-y
-+		--- 7.3 generic-y
-+		--- 7.4 generated-y
- 
- 	=== 8 Kbuild Variables
- 	=== 9 Makefile language
-@@ -1295,21 +1294,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 			#include/linux/Kbuild
- 			genhdr-y += version.h
- 
--	--- 7.3 destination-y
+diff --git a/arch/arm/include/asm/types.h b/arch/arm/include/asm/types.h
+deleted file mode 100644
+index a53cdb8f068c..000000000000
+--- a/arch/arm/include/asm/types.h
++++ /dev/null
+@@ -1,40 +0,0 @@
+-#ifndef _ASM_TYPES_H
+-#define _ASM_TYPES_H
 -
--	When an architecture has a set of exported headers that needs to be
--	exported to a different directory destination-y is used.
--	destination-y specifies the destination directory for all exported
--	headers in the file where it is present.
+-#include <asm-generic/int-ll64.h>
 -
--		Example:
--			#arch/xtensa/platforms/s6105/include/platform/Kbuild
--			destination-y := include/linux
+-/*
+- * The C99 types uintXX_t that are usually defined in 'stdint.h' are not as
+- * unambiguous on ARM as you would expect. For the types below, there is a
+- * difference on ARM between GCC built for bare metal ARM, GCC built for glibc
+- * and the kernel itself, which results in build errors if you try to build with
+- * -ffreestanding and include 'stdint.h' (such as when you include 'arm_neon.h'
+- * in order to use NEON intrinsics)
+- *
+- * As the typedefs for these types in 'stdint.h' are based on builtin defines
+- * supplied by GCC, we can tweak these to align with the kernel's idea of those
+- * types, so 'linux/types.h' and 'stdint.h' can be safely included from the same
+- * source file (provided that -ffreestanding is used).
+- *
+- *                    int32_t         uint32_t               uintptr_t
+- * bare metal GCC     long            unsigned long          unsigned int
+- * glibc GCC          int             unsigned int           unsigned int
+- * kernel             int             unsigned int           unsigned long
+- */
 -
--	In the example above all exported headers in the Kbuild file
--	will be located in the directory "include/linux" when exported.
+-#ifdef __INT32_TYPE__
+-#undef __INT32_TYPE__
+-#define __INT32_TYPE__		int
+-#endif
 -
--	--- 7.4 generic-y
-+	--- 7.3 generic-y
- 
- 	If an architecture uses a verbatim copy of a header from
- 	include/asm-generic then this is listed in the file
-@@ -1336,7 +1321,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 		Example: termios.h
- 			#include <asm-generic/termios.h>
- 
--	--- 7.5 generated-y
-+	--- 7.4 generated-y
- 
- 	If an architecture generates other header files alongside generic-y
- 	wrappers, and not included in genhdr-y, then generated-y specifies
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 3e20d03432d2..876b42cfede4 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -14,7 +14,7 @@ kbuild-file := $(srctree)/$(obj)/Kbuild
- include $(kbuild-file)
- 
- # called may set destination dir (when installing to asm/)
--_dst := $(if $(destination-y),$(destination-y),$(if $(dst),$(dst),$(obj)))
-+_dst := $(if $(dst),$(dst),$(obj))
- 
- old-kbuild-file := $(srctree)/$(subst uapi/,,$(obj))/Kbuild
- ifneq ($(wildcard $(old-kbuild-file)),)
+-#ifdef __UINT32_TYPE__
+-#undef __UINT32_TYPE__
+-#define __UINT32_TYPE__	unsigned int
+-#endif
+-
+-#ifdef __UINTPTR_TYPE__
+-#undef __UINTPTR_TYPE__
+-#define __UINTPTR_TYPE__	unsigned long
+-#endif
+-
+-#endif /* _ASM_TYPES_H */
+diff --git a/arch/arm/include/uapi/asm/types.h b/arch/arm/include/uapi/asm/types.h
+new file mode 100644
+index 000000000000..9435a42f575e
+--- /dev/null
++++ b/arch/arm/include/uapi/asm/types.h
+@@ -0,0 +1,40 @@
++#ifndef _UAPI_ASM_TYPES_H
++#define _UAPI_ASM_TYPES_H
++
++#include <asm-generic/int-ll64.h>
++
++/*
++ * The C99 types uintXX_t that are usually defined in 'stdint.h' are not as
++ * unambiguous on ARM as you would expect. For the types below, there is a
++ * difference on ARM between GCC built for bare metal ARM, GCC built for glibc
++ * and the kernel itself, which results in build errors if you try to build with
++ * -ffreestanding and include 'stdint.h' (such as when you include 'arm_neon.h'
++ * in order to use NEON intrinsics)
++ *
++ * As the typedefs for these types in 'stdint.h' are based on builtin defines
++ * supplied by GCC, we can tweak these to align with the kernel's idea of those
++ * types, so 'linux/types.h' and 'stdint.h' can be safely included from the same
++ * source file (provided that -ffreestanding is used).
++ *
++ *                    int32_t         uint32_t               uintptr_t
++ * bare metal GCC     long            unsigned long          unsigned int
++ * glibc GCC          int             unsigned int           unsigned int
++ * kernel             int             unsigned int           unsigned long
++ */
++
++#ifdef __INT32_TYPE__
++#undef __INT32_TYPE__
++#define __INT32_TYPE__		int
++#endif
++
++#ifdef __UINT32_TYPE__
++#undef __UINT32_TYPE__
++#define __UINT32_TYPE__	unsigned int
++#endif
++
++#ifdef __UINTPTR_TYPE__
++#undef __UINTPTR_TYPE__
++#define __UINTPTR_TYPE__	unsigned long
++#endif
++
++#endif /* _UAPI_ASM_TYPES_H */
 -- 
 2.8.1
 
