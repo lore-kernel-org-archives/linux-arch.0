@@ -1,63 +1,50 @@
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH v3 1/8] arm: put types.h in uapi
-Date: Fri, 13 Jan 2017 16:19:52 +0000
-Message-ID: <20170113161951.GT14217@n2100.armlinux.org.uk>
-References: <1484304406-10820-2-git-send-email-nicolas.dichtel@6wind.com>
- <3131144.4Ej3KFWRbz@wuerfel>
- <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
- <25063.1484321803@warthog.procyon.org.uk>
- <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
+Date: Fri, 13 Jan 2017 16:35:48 +0000
+Message-ID: <27078.1484325348@warthog.procyon.org.uk>
+References: <20170113161951.GT14217@n2100.armlinux.org.uk> <1484304406-10820-2-git-send-email-nicolas.dichtel@6wind.com> <3131144.4Ej3KFWRbz@wuerfel> <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com> <25063.1484321803@warthog.procyon.org.uk> <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4633e475-47f2-5627-81a9-a1747dfddbc0@6wind.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: David Howells <dhowells@redhat.com>, arnd@arndb.de, linux-mips@linux-mips.org, linux-m68k@vger.kernel.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, alsa-devel@alsa-project.org, dri-devel@lists.freedesktop.org, linux-mtd@lists.infradead.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, linux-c6x-dev@linux-c6x.org, linux-rdma@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-sh@vger.kernel.org, coreteam@netfilter.org, fcoe-devel@open-fcoe.org, xen-devel@lists.xenproject.org, linux-snps-arc@lists.infradead.org, linux-media@vger.kernel.org, uclinux-h8-devel@lists.sourceforge.jp, linux-xtensa@linux-xtensa.org, linux-kbuild@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-raid@vg
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:42360 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1750953AbdAMQgB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 13 Jan 2017 11:36:01 -0500
+In-Reply-To: <20170113161951.GT14217@n2100.armlinux.org.uk>
+Content-ID: <27077.1484325348.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: dhowells@redhat.com, Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Jan 13, 2017 at 05:01:01PM +0100, Nicolas Dichtel wrote:
-> Please, do not remove the email subject when you reply. I restore it to
-> ease the thread follow-up.
+Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-I mentioned it to David, and he says it's because the long list of
-recipients is breaking his mailer.  I've already posed the question
-about whether that's exploitable!
+> > Le 13/01/2017 =C3=A0 16:36, David Howells a =C3=A9crit :
+> > > Nicolas Dichtel <nicolas.dichtel@6wind.com> wrote:
+> > >=20
+> > >> This header file is exported, thus move it to uapi.
+> > >=20
+> > > Exported how?
+> >=20
+> > It is listed in include/uapi/asm-generic/Kbuild.asm, which is included =
+by
+> > arch/arm/include/uapi/asm/Kbuild.
+>=20
+> We really should not be installing non-uapi header files to userland
+> under _any_ circumstance - this to me sounds like a bug in kbuild.
 
-> Le 13/01/2017 à 16:36, David Howells a écrit :
-> > Nicolas Dichtel <nicolas.dichtel@6wind.com> wrote:
-> > 
-> >> This header file is exported, thus move it to uapi.
-> > 
-> > Exported how?
-> 
-> It is listed in include/uapi/asm-generic/Kbuild.asm, which is included by
-> arch/arm/include/uapi/asm/Kbuild.
+It's not (or was not) a bug exactly - it was something introduced in commit
+10b63956fce7f369cc37fd4d994f09bd5203efe4 to ease the transition to using the
+UAPI headers as Linus required the commit for each header dir to go through
+the submaintainer's tree.
 
-We really should not be installing non-uapi header files to userland
-under _any_ circumstance - this to me sounds like a bug in kbuild.
+It was supposed to be removed, but that never got posted to Linus because t=
+he
+next phase of cleanups didn't happen as Linus said he block my email and ne=
+ver
+take any more patches from me if I sent him any more:-/
 
-The assumption is that headers outside of uapi directories are not
-part of the user visible API, and so can be freely modified - which
-in the presence of this bug is untrue.
-
-However, as it's happening, and this header has been there since 2013
-(commit 09096f6a0ee2 - "ARM: 7822/1: add workaround for ambiguous C99
-stdint.h types") it's now well and truely part of the user API whether
-we intended it to be or not, so your patch looks to me like the correct
-thing to do.
-
-I think it needs further evaluation to make sure kbuild isn't going to
-do something else silly, like subsitute include/asm-generic/types.h for
-the now missing arch/arm/include/asm/types.h
-
-I wonder how many more headers are unintentionally exported.
-
-... what a mess. :(
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+David
