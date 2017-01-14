@@ -1,23 +1,22 @@
-From: "Khokhar, Kashif" <kashif.khokhar@mountsinai.org>
-Subject: RE: GOOD NEWS
-Date: Wed, 18 Jan 2017 00:46:07 +0000
-Message-ID: <EE27FBD0E42D5749B421597090D4581AA772DBAE__15859.4223358252$1484701735$gmane$org@SMESEXCP014041.msnyuhealth.org>
-References: <EE27FBD0E42D5749B421597090D4581AA771D40C@SMESEXCP014041.msnyuhealth.org>
+From: tester@aldems.lv
+Subject: =?utf-8?q?Gesch=C3=A4ftsvorschlag?=
+Date: Sun, 15 Jan 2017 04:54:14 +0530
+Message-ID: <148443650510212681@mail>
+Reply-To: arnoldkristoferson101@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.mountsinai.org ([146.203.148.113]:35692 "EHLO
-        smtp.mountsinai.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751116AbdARBIi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jan 2017 20:08:38 -0500
-In-Reply-To: <EE27FBD0E42D5749B421597090D4581AA771D40C@SMESEXCP014041.msnyuhealth.org>
-Content-Language: en-US
+Received: from mail.aldems.lv ([93.177.192.35]:38951 "EHLO aldems.lv"
+        rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1752707AbdARKPt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Jan 2017 05:15:49 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <tester@aldems.lv>
 
+Lieber Freund.
 
-
-
-A donation was made to you . Contact ( antoiaxjohnson@yahoo.com ) for detai=
-ls...
+Erlauben Sie mir, auf diese Weise auf Sie zuzugehen. Ich bin Dr. Arnold Kristofferson, ein US-Auftragnehmer, der mit Nichtkämpfer US Marine in Ba'qubah, Irak arbeitet. Ich habe die Summe von 10,6 Millionen Dollar, die ich aus einem Rohöl-Deal gemacht habe, und ich möchte, dass Sie mir helfen, es zu erhalten. Da ich hier auf offizieller Kapazität arbeite, kann ich diesen Fonds nicht bei mir behalten und dies ist mein einziger Grund für die Kontaktaufnahme mit Ihnen. Wenn Sie interessiert sind und Sie diesen Fonds in Ihrer Kapazität erhalten können, melden Sie sich bitte bei mir, damit ich Ihnen weitere Details geben kann, wie Sie dieses Geld für mich erhalten können. Bitte erreichen Sie mich per E-Mail: arnoldkristoferson101@gmail.com
+Mit freundlichen Grüßen.
