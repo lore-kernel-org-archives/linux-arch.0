@@ -1,164 +1,177 @@
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v7 10/14] dynamic_debug: port to use linker tables
-Date: Sun, 15 Jan 2017 13:10:53 -0800
-Message-ID: <20170115211057.17167-11-mcgrof@kernel.org>
-References: <20170109145833.11502-1-mcgrof@kernel.org>
- <20170115211057.17167-1-mcgrof@kernel.org>
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20170115211057.17167-1-mcgrof@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
+Subject: [PATCH v4 0/6] tools: add linker table userspace sandbox
+Date: Sun, 15 Jan 2017 13:12:09 -0800
+Message-ID: <20170115211215.17216-1-mcgrof@kernel.org>
+References: <20170109150249.11667-1-mcgrof@kernel.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170109150249.11667-1-mcgrof@kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: bp@alien8.de, bp@suse.de, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel
 List-Id: linux-arch.vger.kernel.org
 
-This removes the custom vmlinux.lds.h hacks and uses
-the generalized solution for .data entries.
+This v4 also addresses some spelling / checkpatch comlplains.
+The remaining checkpatch complaints are not valid for the
+code in question. This applies after the series:
 
-There is much more potential for further fine tuning here
-in the future though. For instance, linker tables enable
-an extra postfix for order level annotations, this could
-easily be used as the KBUILD_MODNAME and with a bit of
-linker table changes we may be able to get a direct O(1)
-count of the entries for that KBUILD_MODNAME: it would
-just be a count on the number of entries for the given
-order level. This should help make dynamic_debug_init()
-cleaner and also reduce the amount of time it takes at
-boot time. Instead of iterating over each print until we
-have all for a KBUILD_MODNAME, we'd instead directly
-operate on each KBUILD_MODNAME directly. We can work on
-this later to make this change easier to review.
+[PATCH v7 00/14] linux: generalize sections, ranges and linker tables
 
-Tested dynamic debug with dyndbg query and debugfs control
-and it works as expected, for both built-in code and modules.
+Luis R. Rodriguez (6):
+  tools: add a userspace tools bug.h
+  tools: add init.h for tools
+  tools: add __used and enable to override
+  tools: expand export.h with VMLINUX_SYMBOL()
+  tools: add __section() to compiler.h
+  tools: add userspace linker table sandbox
 
-v6: rename table macro as suggested by Andy Shevchenko
+ Documentation/sections/linker-tables.rst           |   4 +-
+ MAINTAINERS                                        |   1 +
+ include/linux/tables.h                             |   5 +-
+ tools/Makefile                                     |   3 +-
+ .../arch/x86/include/generated/asm/section-core.h  |   1 +
+ tools/arch/x86/include/generated/ranges.h          |   1 +
+ tools/arch/x86/include/generated/tables.h          |   1 +
+ tools/include/asm-generic/bug.h                    |  26 +
+ tools/include/asm-generic/ranges.h                 |  93 +++
+ tools/include/asm-generic/section-core.h           | 348 +++++++++++
+ tools/include/asm-generic/tables.h                 |  48 ++
+ tools/include/linux/bug.h                          |   6 +
+ tools/include/linux/compiler.h                     |   8 +
+ tools/include/linux/export.h                       |  22 +
+ tools/include/linux/init.h                         |   9 +
+ tools/include/linux/kernel.h                       |   2 +
+ tools/include/linux/ranges.h                       | 183 ++++++
+ tools/include/linux/sections.h                     |  87 +++
+ tools/include/linux/string.h                       |   1 +
+ tools/include/linux/tables.h                       | 684 +++++++++++++++++++++
+ tools/linker-tables/.gitignore                     |   2 +
+ tools/linker-tables/Makefile                       | 184 ++++++
+ tools/linker-tables/README                         | 114 ++++
+ tools/linker-tables/arch/x86/include/asm/asm.h     |  17 +
+ tools/linker-tables/arch/x86/include/asm/boot.h    |   1 +
+ .../linker-tables/arch/x86/include/asm/bootparam.h |  32 +
+ tools/linker-tables/arch/x86/include/asm/kprobes.h |   7 +
+ .../linker-tables/arch/x86/include/asm/ps_const.h  |  23 +
+ tools/linker-tables/arch/x86/include/asm/ranges.h  |   6 +
+ .../arch/x86/include/asm/section-core.h            |   1 +
+ tools/linker-tables/arch/x86/include/asm/setup.h   |   6 +
+ tools/linker-tables/arch/x86/include/asm/tables.h  |   6 +
+ tools/linker-tables/arch/x86/include/asm/x86.h     |   4 +
+ .../arch/x86/include/asm/x86_init_fn.h             | 169 +++++
+ tools/linker-tables/arch/x86/kernel/alpha.c        |  10 +
+ tools/linker-tables/arch/x86/kernel/alternative.c  |  31 +
+ tools/linker-tables/arch/x86/kernel/beta.c         |  10 +
+ tools/linker-tables/arch/x86/kernel/head64.c       |  58 ++
+ tools/linker-tables/arch/x86/kernel/init.c         |  42 ++
+ tools/linker-tables/arch/x86/kernel/kasan.c        |  11 +
+ tools/linker-tables/arch/x86/kernel/kprobes.c      |  51 ++
+ tools/linker-tables/arch/x86/kernel/vmlinux.lds.S  | 277 +++++++++
+ tools/linker-tables/arch/x86/mm/init.c             |  11 +
+ tools/linker-tables/arch/x86/xen/init.c            |  13 +
+ tools/linker-tables/drivers/acme.c                 |  33 +
+ tools/linker-tables/drivers/synth/common.c         |  16 +
+ tools/linker-tables/drivers/synth/common.h         |   2 +
+ tools/linker-tables/drivers/synth/main.c           |  36 ++
+ tools/linker-tables/drivers/synth/or.S             |  39 ++
+ tools/linker-tables/drivers/synth/synth.h          |   2 +
+ tools/linker-tables/drivers/xen-driver.c           |  12 +
+ .../include/asm-generic/arch_init_fn.h             |  50 ++
+ tools/linker-tables/include/asm-generic/kprobes.h  |  26 +
+ tools/linker-tables/include/linux/bitops.h         |   6 +
+ tools/linker-tables/include/linux/init.h           |  40 ++
+ tools/linker-tables/include/linux/kasan.h          |   5 +
+ tools/linker-tables/include/linux/kernel.h         |   2 +
+ tools/linker-tables/include/linux/kprobes.h        |  11 +
+ tools/linker-tables/include/linux/module.h         |  14 +
+ tools/linker-tables/include/linux/mutex.h          |  17 +
+ tools/linker-tables/include/linux/pci.h            |   7 +
+ tools/linker-tables/include/linux/printk.h         |  26 +
+ tools/linker-tables/include/linux/ps_const.h       |  46 ++
+ tools/linker-tables/include/linux/sched.h          |   9 +
+ tools/linker-tables/include/linux/spinlock.h       |  13 +
+ tools/linker-tables/include/linux/start_kernel.h   |   1 +
+ tools/linker-tables/include/linux/types.h          |  13 +
+ tools/linker-tables/include/linux/workqueue.h      |  51 ++
+ tools/linker-tables/include/xen/xen.h              |   4 +
+ tools/linker-tables/kernel/locking/mutex.c         |  28 +
+ tools/linker-tables/kernel/locking/spinlock.c      |  26 +
+ tools/linker-tables/kernel/main.c                  |  32 +
+ tools/linker-tables/kernel/workqueue.c             |  43 ++
+ tools/linker-tables/lib/string.c                   |  26 +
+ tools/linker-tables/main.c                         |  20 +
+ tools/linker-tables/pci-quirks.c                   |  14 +
+ tools/linker-tables/pci.c                          |  30 +
+ 77 files changed, 3314 insertions(+), 5 deletions(-)
+ create mode 100644 tools/arch/x86/include/generated/asm/section-core.h
+ create mode 100644 tools/arch/x86/include/generated/ranges.h
+ create mode 100644 tools/arch/x86/include/generated/tables.h
+ create mode 100644 tools/include/asm-generic/bug.h
+ create mode 100644 tools/include/asm-generic/ranges.h
+ create mode 100644 tools/include/asm-generic/section-core.h
+ create mode 100644 tools/include/asm-generic/tables.h
+ create mode 100644 tools/include/linux/bug.h
+ create mode 100644 tools/include/linux/init.h
+ create mode 100644 tools/include/linux/ranges.h
+ create mode 100644 tools/include/linux/sections.h
+ create mode 100644 tools/include/linux/tables.h
+ create mode 100644 tools/linker-tables/.gitignore
+ create mode 100644 tools/linker-tables/Makefile
+ create mode 100644 tools/linker-tables/README
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/asm.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/boot.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/bootparam.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/kprobes.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/ps_const.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/ranges.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/section-core.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/setup.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/tables.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/x86.h
+ create mode 100644 tools/linker-tables/arch/x86/include/asm/x86_init_fn.h
+ create mode 100644 tools/linker-tables/arch/x86/kernel/alpha.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/alternative.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/beta.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/head64.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/init.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/kasan.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/kprobes.c
+ create mode 100644 tools/linker-tables/arch/x86/kernel/vmlinux.lds.S
+ create mode 100644 tools/linker-tables/arch/x86/mm/init.c
+ create mode 100644 tools/linker-tables/arch/x86/xen/init.c
+ create mode 100644 tools/linker-tables/drivers/acme.c
+ create mode 100644 tools/linker-tables/drivers/synth/common.c
+ create mode 100644 tools/linker-tables/drivers/synth/common.h
+ create mode 100644 tools/linker-tables/drivers/synth/main.c
+ create mode 100644 tools/linker-tables/drivers/synth/or.S
+ create mode 100644 tools/linker-tables/drivers/synth/synth.h
+ create mode 100644 tools/linker-tables/drivers/xen-driver.c
+ create mode 100644 tools/linker-tables/include/asm-generic/arch_init_fn.h
+ create mode 100644 tools/linker-tables/include/asm-generic/kprobes.h
+ create mode 100644 tools/linker-tables/include/linux/bitops.h
+ create mode 100644 tools/linker-tables/include/linux/init.h
+ create mode 100644 tools/linker-tables/include/linux/kasan.h
+ create mode 100644 tools/linker-tables/include/linux/kernel.h
+ create mode 100644 tools/linker-tables/include/linux/kprobes.h
+ create mode 100644 tools/linker-tables/include/linux/module.h
+ create mode 100644 tools/linker-tables/include/linux/mutex.h
+ create mode 100644 tools/linker-tables/include/linux/pci.h
+ create mode 100644 tools/linker-tables/include/linux/printk.h
+ create mode 100644 tools/linker-tables/include/linux/ps_const.h
+ create mode 100644 tools/linker-tables/include/linux/sched.h
+ create mode 100644 tools/linker-tables/include/linux/spinlock.h
+ create mode 100644 tools/linker-tables/include/linux/start_kernel.h
+ create mode 100644 tools/linker-tables/include/linux/types.h
+ create mode 100644 tools/linker-tables/include/linux/workqueue.h
+ create mode 100644 tools/linker-tables/include/xen/xen.h
+ create mode 100644 tools/linker-tables/kernel/locking/mutex.c
+ create mode 100644 tools/linker-tables/kernel/locking/spinlock.c
+ create mode 100644 tools/linker-tables/kernel/main.c
+ create mode 100644 tools/linker-tables/kernel/workqueue.c
+ create mode 100644 tools/linker-tables/lib/string.c
+ create mode 100644 tools/linker-tables/main.c
+ create mode 100644 tools/linker-tables/pci-quirks.c
+ create mode 100644 tools/linker-tables/pci.c
 
-v5:
-
-o Use ..tbl instead of .tbl as suggested by Nicholas Piggin.
-  This is the typical way to avoid clash with compiler generated
-  section.
-
-o Replace section macros with section names,
-  use LINKTABLE_EMPTY(), LINKTABLE_START()
-
-v4: fix compilation on blackfin
-v3: added modular support
-v2: introduced this patch into the series
-
-Cc: Barry Song <barry.song@analog.com>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Steven Miao <realmz6@gmail.com>
-Cc: Michael Matz <matz@suse.de>
-Cc: Guenter Roeck <linux@roeck-us.net>
-Cc: Fengguang Wu <fengguang.wu@intel.com>
-Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
----
- include/asm-generic/vmlinux.lds.h |  4 ----
- include/linux/dynamic_debug.h     |  5 +++--
- lib/dynamic_debug.c               | 13 ++++++-------
- scripts/module-common.lds         |  1 +
- 4 files changed, 10 insertions(+), 13 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 887d844f0406..37b99537d5a9 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -216,10 +216,6 @@
- 	*(.data.unlikely)						\
- 	STRUCT_ALIGN();							\
- 	*(__tracepoints)						\
--	. = ALIGN(8);							\
--	VMLINUX_SYMBOL(__start___verbose) = .;                          \
--	KEEP(*(__verbose))                                              \
--	VMLINUX_SYMBOL(__stop___verbose) = .;				\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
- 	TRACE_PRINTKS()							\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 546d68057e3b..a52618a77b09 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -4,6 +4,7 @@
- #if defined(CC_HAVE_ASM_GOTO) && defined(CONFIG_JUMP_LABEL)
- #include <linux/jump_label.h>
- #endif
-+#include <linux/tables.h>
- 
- /*
-  * An instance of this structure is created in a special
-@@ -50,6 +51,7 @@ int ddebug_add_module(struct _ddebug *tab, unsigned int n,
- 				const char *modname);
- 
- #if defined(CONFIG_DYNAMIC_DEBUG)
-+DECLARE_LINKTABLE(struct _ddebug, __verbose);
- extern int ddebug_remove_module(const char *mod_name);
- extern __printf(2, 3)
- void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
-@@ -71,8 +73,7 @@ void __dynamic_netdev_dbg(struct _ddebug *descriptor,
- 			  const char *fmt, ...);
- 
- #define DEFINE_DYNAMIC_DEBUG_METADATA_KEY(name, fmt, key, init)	\
--	static struct _ddebug  __aligned(8)			\
--	__attribute__((section("__verbose"))) name = {		\
-+	static LINKTABLE(__verbose, SECTION_ORDER_ANY) name = {	\
- 		.modname = KBUILD_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index da796e2dc4f5..27a335e3b1f3 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -37,8 +37,7 @@
- #include <linux/device.h>
- #include <linux/netdevice.h>
- 
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+DEFINE_LINKTABLE(struct _ddebug, __verbose);
- 
- struct ddebug_table {
- 	struct list_head link;
-@@ -978,14 +977,14 @@ static int __init dynamic_debug_init(void)
- 	int n = 0, entries = 0, modct = 0;
- 	int verbose_bytes = 0;
- 
--	if (__start___verbose == __stop___verbose) {
--		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
-+	if (LINKTABLE_EMPTY(__verbose)) {
-+		pr_warn("dynamic debug linker table empty on CONFIG_DYNAMIC_DEBUG build\n");
- 		return 1;
- 	}
--	iter = __start___verbose;
-+	iter = LINKTABLE_START(__verbose);
- 	modname = iter->modname;
- 	iter_start = iter;
--	for (; iter < __stop___verbose; iter++) {
-+	linktable_for_each(iter, __verbose) {
- 		entries++;
- 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
- 			+ strlen(iter->filename) + strlen(iter->format);
-@@ -1008,7 +1007,7 @@ static int __init dynamic_debug_init(void)
- 	ddebug_init_success = 1;
- 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
- 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
--		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
-+		 verbose_bytes + (int)(LINKTABLE_SIZE(__verbose)));
- 
- 	/* apply ddebug_query boot param, dont unload tables on err */
- 	if (ddebug_setup_string[0] != '\0') {
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index db0e724556c5..25755d458f09 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -17,6 +17,7 @@ SECTIONS {
- 	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
- 	__jump_table		0 : { *(SORT(.data..tbl.__jump_table.*)) }
-+	__verbose		0 : { *(SORT(.data..tbl.__verbose.*)) }
- 
- 	. = ALIGN(8);
- 	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
 -- 
 2.11.0
 
