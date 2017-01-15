@@ -1,128 +1,213 @@
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: Re: [RFC, PATCHv2 29/29] mm, x86: introduce RLIMIT_VADDR
-Date: Fri, 13 Jan 2017 12:11:05 -0800
-Message-ID: <CAMe9rOqRyL7eEmGSkXh9nbVPk_V8cKOuNbdwPA9Dcq=e07G7Ng@mail.gmail.com>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
- <20161227015413.187403-30-kirill.shutemov@linux.intel.com>
- <CALCETrV+3rO=CuPjpoU9iKnKiJ2toW6QZAKXEqDW-QJJrX2EgQ@mail.gmail.com>
- <20161227022405.GA8780@node.shutemov.name> <3a168403-26f7-ac8d-3086-848178be6005@redhat.com>
- <CALCETrVHf-JJGqFoX_kmx2qyLdj78SDUfbvD+VPsSpPfDbYk1Q@mail.gmail.com> <20170102083500.GA30735@node.shutemov.name>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170102083500.GA30735@node.shutemov.name>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andy Lutomirski <luto@amacapital.net>, Carlos O'Donell <carlos@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: [PATCH v7 00/14] linux: generalize sections, ranges and linker tables
+Date: Sun, 15 Jan 2017 13:10:43 -0800
+Message-ID: <20170115211057.17167-1-mcgrof@kernel.org>
+References: <20170109145833.11502-1-mcgrof@kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20170109145833.11502-1-mcgrof@kernel.org>
+Sender: sparclinux-owner@vger.kernel.org
+To: bp@alien8.de, bp@suse.de, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 2, 2017 at 12:35 AM, Kirill A. Shutemov
-<kirill@shutemov.name> wrote:
-> On Fri, Dec 30, 2016 at 06:08:27PM -0800, Andy Lutomirski wrote:
->> On Wed, Dec 28, 2016 at 6:53 PM, Carlos O'Donell <carlos@redhat.com> wro=
-te:
->> > On 12/26/2016 09:24 PM, Kirill A. Shutemov wrote:
->> >> On Mon, Dec 26, 2016 at 06:06:01PM -0800, Andy Lutomirski wrote:
->> >>> On Mon, Dec 26, 2016 at 5:54 PM, Kirill A. Shutemov
->> >>> <kirill.shutemov@linux.intel.com> wrote:
->> >>>> This patch introduces new rlimit resource to manage maximum virtual
->> >>>> address available to userspace to map.
->> >>>>
->> >>>> On x86, 5-level paging enables 56-bit userspace virtual address spa=
-ce.
->> >>>> Not all user space is ready to handle wide addresses. It's known th=
-at
->> >>>> at least some JIT compilers use high bit in pointers to encode thei=
-r
->> >>>> information. It collides with valid pointers with 5-level paging an=
-d
->> >>>> leads to crashes.
->> >>>>
->> >>>> The patch aims to address this compatibility issue.
->> >>>>
->> >>>> MM would use min(RLIMIT_VADDR, TASK_SIZE) as upper limit of virtual
->> >>>> address available to map by userspace.
->> >>>>
->> >>>> The default hard limit will be RLIM_INFINITY, which basically means=
- that
->> >>>> TASK_SIZE limits available address space.
->> >>>>
->> >>>> The soft limit will also be RLIM_INFINITY everywhere, but the machi=
-ne
->> >>>> with 5-level paging enabled. In this case, soft limit would be
->> >>>> (1UL << 47) - PAGE_SIZE. It=E2=80=99s current x86-64 TASK_SIZE_MAX =
-with 4-level
->> >>>> paging which known to be safe
->> >>>>
->> >>>> New rlimit resource would follow usual semantics with regards to
->> >>>> inheritance: preserved on fork(2) and exec(2). This has potential t=
-o
->> >>>> break application if limits set too wide or too narrow, but this is=
- not
->> >>>> uncommon for other resources (consider RLIMIT_DATA or RLIMIT_AS).
->> >>>>
->> >>>> As with other resources you can set the limit lower than current us=
-age.
->> >>>> It would affect only future virtual address space allocations.
->> >>>>
->> >>>> Use-cases for new rlimit:
->> >>>>
->> >>>>   - Bumping the soft limit to RLIM_INFINITY, allows current process=
- all
->> >>>>     its children to use addresses above 47-bits.
->> >>>>
->> >>>>   - Bumping the soft limit to RLIM_INFINITY after fork(2), but befo=
-re
->> >>>>     exec(2) allows the child to use addresses above 47-bits.
->> >>>>
->> >>>>   - Lowering the hard limit to 47-bits would prevent current proces=
-s all
->> >>>>     its children to use addresses above 47-bits, unless a process h=
-as
->> >>>>     CAP_SYS_RESOURCES.
->> >>>>
->> >>>>   - It=E2=80=99s also can be handy to lower hard or soft limit to a=
-rbitrary
->> >>>>     address. User-mode emulation in QEMU may lower the limit to 32-=
-bit
->> >>>>     to emulate 32-bit machine on 64-bit host.
->> >>>
->> >>> I tend to think that this should be a personality or an ELF flag, no=
-t
->> >>> an rlimit.
->> >>
->> >> My plan was to implement ELF flag on top. Basically, ELF flag would m=
-ean
->> >> that we bump soft limit to hard limit on exec.
->> >
->> > Could you clarify what you mean by an "ELF flag?"
->>
->> Some way to mark a binary as supporting a larger address space.  I
->> don't have a precise solution in mind, but an ELF note might be a good
->> way to go here.
->
-> + H.J.
->
-> There's discussion of proposal of "Program Properties"[1]. It seems fits
-> the purpose.
->
-> [1] https://sourceware.org/ml/gnu-gabi/2016-q4/msg00000.html
->
-> --
->  Kirill A. Shutemov
+This v7 addresses spelling / minor checkpatch complaints, as requested.
+checkpatch still complains but the remaining complaints are not valid for
+the code in question.
 
-There is another proposal:
+A respective userspace sandbox for the kernel's tools/ follows this series.
+A branch based on linux-next tag next-20170113 is available [0], if you use that
+you should drop the last patch, that is used to force 0-day to test the
+linker table test driver enabled on all architectures.
 
-https://fedoraproject.org/wiki/Toolchain/Watermark#Markup_for_ELF_objects
+Even though the changes made are minor I've re-tested this on all archs again,
+and all is good.
 
-which covers much more than mine.
+[0] https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20170113-linker-tables-v7-try2
 
---=20
-H.J.
+Luis R. Rodriguez (14):
+  generic-sections: add section core helpers
+  xtensa: skip adding literal when SORT() is used
+  ranges.h: add helpers to build and identify Linux section ranges
+  tables.h: add linker table support
+  kbuild: enable option to force compile force-obj-y and force-lib-y
+  firmware/Makefile: force recompilation if makefile changes
+  firmware: port built-in section to linker table
+  jump_label: move guard #endif down where it belongs
+  jump_label: port __jump_table to linker tables
+  dynamic_debug: port to use linker tables
+  kprobes: move kprobe declarations to asm-generic/kprobes.h
+  kprobes: port .kprobes.text to section range
+  kprobes: port blacklist kprobes to linker table
+  lib: add linker tables test driver
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ Documentation/index.rst                   |   1 +
+ Documentation/kbuild/makefiles.txt        |  36 ++
+ Documentation/sections/background.rst     | 105 ++++
+ Documentation/sections/conf.py            |   4 +
+ Documentation/sections/index.rst          |  19 +
+ Documentation/sections/linker-tables.rst  | 227 +++++++++
+ Documentation/sections/ranges.rst         |  74 +++
+ Documentation/sections/section-core.rst   | 153 ++++++
+ MAINTAINERS                               |  33 ++
+ arch/alpha/include/asm/Kbuild             |   4 +
+ arch/arc/include/asm/Kbuild               |   3 +
+ arch/arc/include/asm/kprobes.h            |   6 +-
+ arch/arc/kernel/vmlinux.lds.S             |   1 -
+ arch/arm/include/asm/Kbuild               |   3 +
+ arch/arm/include/asm/jump_label.h         |   6 +-
+ arch/arm/include/asm/kprobes.h            |   4 +
+ arch/arm/kernel/entry-armv.S              |   3 +-
+ arch/arm/kernel/vmlinux-xip.lds.S         |   1 -
+ arch/arm/kernel/vmlinux.lds.S             |   1 -
+ arch/arm/probes/decode.h                  |   1 +
+ arch/arm64/include/asm/Kbuild             |   3 +
+ arch/arm64/include/asm/jump_label.h       |   6 +-
+ arch/arm64/include/asm/kprobes.h          |   4 +
+ arch/arm64/kernel/armv8_deprecated.c      |   1 +
+ arch/arm64/kernel/insn.c                  |   1 +
+ arch/arm64/kernel/probes/decode-insn.h    |   2 +
+ arch/arm64/kernel/probes/kprobes.c        |   4 +-
+ arch/arm64/kernel/vmlinux.lds.S           |   1 -
+ arch/avr32/include/asm/Kbuild             |   3 +
+ arch/avr32/include/asm/kprobes.h          |   7 +-
+ arch/avr32/kernel/entry-avr32b.S          |  13 +-
+ arch/avr32/kernel/vmlinux.lds.S           |   1 -
+ arch/blackfin/include/asm/Kbuild          |   4 +
+ arch/blackfin/kernel/vmlinux.lds.S        |   1 -
+ arch/c6x/include/asm/Kbuild               |   3 +
+ arch/c6x/include/asm/tables.h             |  26 +
+ arch/c6x/kernel/vmlinux.lds.S             |   1 -
+ arch/cris/include/asm/Kbuild              |   4 +
+ arch/frv/include/asm/Kbuild               |   4 +
+ arch/h8300/include/asm/Kbuild             |   4 +
+ arch/hexagon/include/asm/Kbuild           |   4 +
+ arch/hexagon/kernel/vmlinux.lds.S         |   1 -
+ arch/ia64/include/asm/Kbuild              |   3 +
+ arch/ia64/include/asm/kprobes.h           |  12 +-
+ arch/ia64/kernel/jprobes.S                |   3 +-
+ arch/ia64/kernel/vmlinux.lds.S            |   1 -
+ arch/ia64/lib/flush.S                     |   6 +-
+ arch/m32r/include/asm/Kbuild              |   4 +
+ arch/m68k/include/asm/Kbuild              |   4 +
+ arch/metag/include/asm/Kbuild             |   4 +
+ arch/metag/kernel/vmlinux.lds.S           |   1 -
+ arch/microblaze/include/asm/Kbuild        |   4 +
+ arch/microblaze/kernel/vmlinux.lds.S      |   1 -
+ arch/mips/include/asm/Kbuild              |   3 +
+ arch/mips/include/asm/jump_label.h        |   6 +-
+ arch/mips/include/asm/kprobes.h           |   6 +-
+ arch/mips/kernel/vmlinux.lds.S            |   1 -
+ arch/mn10300/include/asm/Kbuild           |   3 +
+ arch/mn10300/include/asm/kprobes.h        |   7 +-
+ arch/mn10300/kernel/vmlinux.lds.S         |   1 -
+ arch/nios2/include/asm/Kbuild             |   4 +
+ arch/nios2/kernel/vmlinux.lds.S           |   1 -
+ arch/openrisc/include/asm/Kbuild          |   4 +
+ arch/openrisc/kernel/vmlinux.lds.S        |   1 -
+ arch/parisc/include/asm/Kbuild            |   4 +
+ arch/parisc/kernel/vmlinux.lds.S          |   1 -
+ arch/powerpc/include/asm/Kbuild           |   3 +
+ arch/powerpc/include/asm/jump_label.h     |   8 +-
+ arch/powerpc/include/asm/kprobes.h        |   3 +
+ arch/powerpc/include/asm/ppc_asm.h        |   3 +-
+ arch/powerpc/kernel/vmlinux.lds.S         |   3 +-
+ arch/s390/include/asm/Kbuild              |   3 +
+ arch/s390/include/asm/jump_label.h        |   6 +-
+ arch/s390/include/asm/kprobes.h           |   7 +-
+ arch/s390/kernel/entry.S                  |   5 +-
+ arch/s390/kernel/kprobes.c                |   6 +-
+ arch/s390/kernel/mcount.S                 |   3 +-
+ arch/s390/kernel/vmlinux.lds.S            |   1 -
+ arch/score/include/asm/Kbuild             |   4 +
+ arch/score/kernel/vmlinux.lds.S           |   1 -
+ arch/sh/include/asm/Kbuild                |   3 +
+ arch/sh/include/asm/kprobes.h             |   5 +-
+ arch/sh/kernel/vmlinux.lds.S              |   1 -
+ arch/sparc/include/asm/Kbuild             |   3 +
+ arch/sparc/include/asm/jump_label.h       |   6 +-
+ arch/sparc/include/asm/kprobes.h          |  10 +-
+ arch/sparc/kernel/vmlinux.lds.S           |   1 -
+ arch/sparc/mm/ultra.S                     |   3 +-
+ arch/tile/include/asm/Kbuild              |   3 +
+ arch/tile/include/asm/jump_label.h        |   5 +-
+ arch/tile/include/asm/kprobes.h           |   6 +-
+ arch/tile/kernel/vmlinux.lds.S            |   1 -
+ arch/um/include/asm/Kbuild                |   4 +
+ arch/unicore32/include/asm/Kbuild         |   3 +
+ arch/unicore32/include/asm/section-core.h |  19 +
+ arch/x86/include/asm/Kbuild               |   3 +
+ arch/x86/include/asm/asm.h                |   4 +-
+ arch/x86/include/asm/jump_label.h         |  10 +-
+ arch/x86/include/asm/kprobes.h            |   9 +-
+ arch/x86/kernel/cpu/microcode/core.c      |   8 +-
+ arch/x86/kernel/kprobes/core.c            |  11 +-
+ arch/x86/kernel/vmlinux.lds.S             |   1 -
+ arch/x86/tools/relocs.c                   |   4 +
+ arch/xtensa/include/asm/Kbuild            |   4 +
+ arch/xtensa/kernel/Makefile               |   8 +-
+ drivers/base/firmware_class.c             |  12 +-
+ firmware/Makefile                         |   6 +-
+ include/asm-generic/kprobes.h             |  26 +
+ include/asm-generic/ranges.h              |  93 ++++
+ include/asm-generic/section-core.h        | 348 +++++++++++++
+ include/asm-generic/sections.h            |   4 +-
+ include/asm-generic/tables.h              |  48 ++
+ include/asm-generic/vmlinux.lds.h         |  47 +-
+ include/linux/compiler.h                  |   8 -
+ include/linux/dynamic_debug.h             |   5 +-
+ include/linux/init.h                      |  89 +++-
+ include/linux/jump_label.h                |   8 +-
+ include/linux/kprobes.h                   |  24 +-
+ include/linux/ranges.h                    | 183 +++++++
+ include/linux/sections.h                  |  87 ++++
+ include/linux/tables.h                    | 683 +++++++++++++++++++++++++
+ init/Kconfig                              |  22 +
+ kernel/jump_label.c                       |  17 +-
+ kernel/kprobes.c                          |  17 +-
+ lib/Kconfig.debug                         |   6 +
+ lib/Makefile                              |   1 +
+ lib/dynamic_debug.c                       |  13 +-
+ lib/test_linktables/Makefile              |  13 +
+ lib/test_linktables/test-linktables-00.c  |  27 +
+ lib/test_linktables/test-linktables-01.c  |  27 +
+ lib/test_linktables/test-linktables-02.c  |  27 +
+ lib/test_linktables/test-linktables-03.c  |  27 +
+ lib/test_linktables/test-linktables-04.c  |  27 +
+ lib/test_linktables/test-linktables.c     | 801 ++++++++++++++++++++++++++++++
+ lib/test_linktables/test-linktables.h     |  48 ++
+ scripts/Makefile.build                    |   7 +-
+ scripts/Makefile.clean                    |   2 +
+ scripts/Makefile.lib                      |  11 +
+ scripts/mod/modpost.c                     |   2 +-
+ scripts/module-common.lds                 |   2 +
+ scripts/recordmcount.c                    |   2 +-
+ scripts/recordmcount.pl                   |   2 +-
+ tools/objtool/special.c                   |   2 +-
+ 143 files changed, 3633 insertions(+), 200 deletions(-)
+ create mode 100644 Documentation/sections/background.rst
+ create mode 100644 Documentation/sections/conf.py
+ create mode 100644 Documentation/sections/index.rst
+ create mode 100644 Documentation/sections/linker-tables.rst
+ create mode 100644 Documentation/sections/ranges.rst
+ create mode 100644 Documentation/sections/section-core.rst
+ create mode 100644 arch/c6x/include/asm/tables.h
+ create mode 100644 arch/unicore32/include/asm/section-core.h
+ create mode 100644 include/asm-generic/kprobes.h
+ create mode 100644 include/asm-generic/ranges.h
+ create mode 100644 include/asm-generic/section-core.h
+ create mode 100644 include/asm-generic/tables.h
+ create mode 100644 include/linux/ranges.h
+ create mode 100644 include/linux/sections.h
+ create mode 100644 include/linux/tables.h
+ create mode 100644 lib/test_linktables/Makefile
+ create mode 100644 lib/test_linktables/test-linktables-00.c
+ create mode 100644 lib/test_linktables/test-linktables-01.c
+ create mode 100644 lib/test_linktables/test-linktables-02.c
+ create mode 100644 lib/test_linktables/test-linktables-03.c
+ create mode 100644 lib/test_linktables/test-linktables-04.c
+ create mode 100644 lib/test_linktables/test-linktables.c
+ create mode 100644 lib/test_linktables/test-linktables.h
+
+-- 
+2.11.0
+
