@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:54408 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:54940 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751149AbdAOVM3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 15 Jan 2017 16:12:29 -0500
+        id S1751344AbdAOVMj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 15 Jan 2017 16:12:39 -0500
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v4 2/6] tools: add init.h for tools
-Date: Sun, 15 Jan 2017 13:12:11 -0800
-Message-ID: <20170115211215.17216-3-mcgrof@kernel.org>
+Subject: [PATCH v4 5/6] tools: add __section() to compiler.h
+Date: Sun, 15 Jan 2017 13:12:14 -0800
+Message-ID: <20170115211215.17216-6-mcgrof@kernel.org>
 In-Reply-To: <20170115211215.17216-1-mcgrof@kernel.org>
 References: <20170109150249.11667-1-mcgrof@kernel.org>
  <20170115211215.17216-1-mcgrof@kernel.org>
@@ -14,33 +14,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de, bp@suse.de, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
 Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
-Message-ID: <20170115211211.xHNEAjB2ve5gmmLjSwFF1poz5Y-6FzucCNWJqrCA1ZU@z>
+Message-ID: <20170115211214.Fiy8P9Jqkjk-UQbi7Iu0I1HCIxDpZWNm_yXP8JRu8yg@z>
 
-Start off with just __ref -- we enalbe you to override, if you do
-that then you can define your own. The way you'd use this, if you
-do override, is define your own __ref and then use include_next.
+This will be used later by the userspace linker table.
 
 Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
 ---
- tools/include/linux/init.h | 9 +++++++++
- 1 file changed, 9 insertions(+)
- create mode 100644 tools/include/linux/init.h
+ tools/include/linux/compiler.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/tools/include/linux/init.h b/tools/include/linux/init.h
-new file mode 100644
-index 000000000000..6d970a360a05
---- /dev/null
-+++ b/tools/include/linux/init.h
-@@ -0,0 +1,9 @@
-+#ifndef _TOOLS_LINUX_INIT_H
-+#define _TOOLS_LINUX_INIT_H
+diff --git a/tools/include/linux/compiler.h b/tools/include/linux/compiler.h
+index 556c991de212..6321265df00a 100644
+--- a/tools/include/linux/compiler.h
++++ b/tools/include/linux/compiler.h
+@@ -132,4 +132,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
+ #define WRITE_ONCE(x, val) \
+ 	({ union { typeof(x) __val; char __c[1]; } __u = { .__val = (val) }; __write_once_size(&(x), __u.__c, sizeof(x)); __u.__val; })
+ 
++#define __section(S)	__attribute__ ((__section__(#S)))
 +
-+/* this means you can add your own to fit you own userspace needs */
-+#ifndef __ref
-+#define __ref
-+#endif
-+
-+#endif /* _TOOLS_LINUX_INIT_H */
+ #endif /* _TOOLS_LINUX_COMPILER_H */
 -- 
 2.11.0
 
