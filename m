@@ -1,169 +1,218 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:52980 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:51278 "EHLO mail.kernel.org"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751382AbdAOVLy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 15 Jan 2017 16:11:54 -0500
+        id S1750727AbdAOVLG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sun, 15 Jan 2017 16:11:06 -0500
 From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: [PATCH v7 10/14] dynamic_debug: port to use linker tables
-Date: Sun, 15 Jan 2017 13:10:53 -0800
-Message-ID: <20170115211057.17167-11-mcgrof@kernel.org>
-In-Reply-To: <20170115211057.17167-1-mcgrof@kernel.org>
+Subject: [PATCH v7 00/14] linux: generalize sections, ranges and linker tables
+Date: Sun, 15 Jan 2017 13:10:43 -0800
+Message-ID: <20170115211057.17167-1-mcgrof@kernel.org>
+In-Reply-To: <20170109145833.11502-1-mcgrof@kernel.org>
 References: <20170109145833.11502-1-mcgrof@kernel.org>
- <20170115211057.17167-1-mcgrof@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: bp@alien8.de, bp@suse.de, hpa@zytor.com, acme@redhat.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, npiggin@gmail.com, mhiramat@kernel.org, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, dalias@libc.org, linux@arm.linux.org.uk
-Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>, Barry Song <barry.song@analog.com>, Mike Frysinger <vapier@gentoo.org>, Michael Matz <matz@suse.de>, Fengguang Wu <fengguang.wu@intel.com>
-Message-ID: <20170115211053.A3oXS_fs1y1JN5Id8HbvGl6tgQm7NqlmG6XJHPqnPDQ@z>
+Cc: x86@kernel.org, luto@amacapital.net, keescook@chromium.org, linux@roeck-us.net, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, adrian.hunter@intel.com, dsahern@gmail.com, namhyung@kernel.org, wangnan0@huawei.com, dmitry.torokhov@gmail.com, joro@8bytes.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com, "Luis R. Rodriguez" <mcgrof@kernel.org>
+Message-ID: <20170115211043.44zQmJrQUiihO985zKC8HWQSqt_hR6WWJkcT-rVXoiE@z>
 
-This removes the custom vmlinux.lds.h hacks and uses
-the generalized solution for .data entries.
+This v7 addresses spelling / minor checkpatch complaints, as requested.
+checkpatch still complains but the remaining complaints are not valid for
+the code in question.
 
-There is much more potential for further fine tuning here
-in the future though. For instance, linker tables enable
-an extra postfix for order level annotations, this could
-easily be used as the KBUILD_MODNAME and with a bit of
-linker table changes we may be able to get a direct O(1)
-count of the entries for that KBUILD_MODNAME: it would
-just be a count on the number of entries for the given
-order level. This should help make dynamic_debug_init()
-cleaner and also reduce the amount of time it takes at
-boot time. Instead of iterating over each print until we
-have all for a KBUILD_MODNAME, we'd instead directly
-operate on each KBUILD_MODNAME directly. We can work on
-this later to make this change easier to review.
+A respective userspace sandbox for the kernel's tools/ follows this series.
+A branch based on linux-next tag next-20170113 is available [0], if you use that
+you should drop the last patch, that is used to force 0-day to test the
+linker table test driver enabled on all architectures.
 
-Tested dynamic debug with dyndbg query and debugfs control
-and it works as expected, for both built-in code and modules.
+Even though the changes made are minor I've re-tested this on all archs again,
+and all is good.
 
-v6: rename table macro as suggested by Andy Shevchenko
+[0] https://git.kernel.org/cgit/linux/kernel/git/mcgrof/linux-next.git/log/?h=20170113-linker-tables-v7-try2
 
-v5:
+Luis R. Rodriguez (14):
+  generic-sections: add section core helpers
+  xtensa: skip adding literal when SORT() is used
+  ranges.h: add helpers to build and identify Linux section ranges
+  tables.h: add linker table support
+  kbuild: enable option to force compile force-obj-y and force-lib-y
+  firmware/Makefile: force recompilation if makefile changes
+  firmware: port built-in section to linker table
+  jump_label: move guard #endif down where it belongs
+  jump_label: port __jump_table to linker tables
+  dynamic_debug: port to use linker tables
+  kprobes: move kprobe declarations to asm-generic/kprobes.h
+  kprobes: port .kprobes.text to section range
+  kprobes: port blacklist kprobes to linker table
+  lib: add linker tables test driver
 
-o Use ..tbl instead of .tbl as suggested by Nicholas Piggin.
-  This is the typical way to avoid clash with compiler generated
-  section.
+ Documentation/index.rst                   |   1 +
+ Documentation/kbuild/makefiles.txt        |  36 ++
+ Documentation/sections/background.rst     | 105 ++++
+ Documentation/sections/conf.py            |   4 +
+ Documentation/sections/index.rst          |  19 +
+ Documentation/sections/linker-tables.rst  | 227 +++++++++
+ Documentation/sections/ranges.rst         |  74 +++
+ Documentation/sections/section-core.rst   | 153 ++++++
+ MAINTAINERS                               |  33 ++
+ arch/alpha/include/asm/Kbuild             |   4 +
+ arch/arc/include/asm/Kbuild               |   3 +
+ arch/arc/include/asm/kprobes.h            |   6 +-
+ arch/arc/kernel/vmlinux.lds.S             |   1 -
+ arch/arm/include/asm/Kbuild               |   3 +
+ arch/arm/include/asm/jump_label.h         |   6 +-
+ arch/arm/include/asm/kprobes.h            |   4 +
+ arch/arm/kernel/entry-armv.S              |   3 +-
+ arch/arm/kernel/vmlinux-xip.lds.S         |   1 -
+ arch/arm/kernel/vmlinux.lds.S             |   1 -
+ arch/arm/probes/decode.h                  |   1 +
+ arch/arm64/include/asm/Kbuild             |   3 +
+ arch/arm64/include/asm/jump_label.h       |   6 +-
+ arch/arm64/include/asm/kprobes.h          |   4 +
+ arch/arm64/kernel/armv8_deprecated.c      |   1 +
+ arch/arm64/kernel/insn.c                  |   1 +
+ arch/arm64/kernel/probes/decode-insn.h    |   2 +
+ arch/arm64/kernel/probes/kprobes.c        |   4 +-
+ arch/arm64/kernel/vmlinux.lds.S           |   1 -
+ arch/avr32/include/asm/Kbuild             |   3 +
+ arch/avr32/include/asm/kprobes.h          |   7 +-
+ arch/avr32/kernel/entry-avr32b.S          |  13 +-
+ arch/avr32/kernel/vmlinux.lds.S           |   1 -
+ arch/blackfin/include/asm/Kbuild          |   4 +
+ arch/blackfin/kernel/vmlinux.lds.S        |   1 -
+ arch/c6x/include/asm/Kbuild               |   3 +
+ arch/c6x/include/asm/tables.h             |  26 +
+ arch/c6x/kernel/vmlinux.lds.S             |   1 -
+ arch/cris/include/asm/Kbuild              |   4 +
+ arch/frv/include/asm/Kbuild               |   4 +
+ arch/h8300/include/asm/Kbuild             |   4 +
+ arch/hexagon/include/asm/Kbuild           |   4 +
+ arch/hexagon/kernel/vmlinux.lds.S         |   1 -
+ arch/ia64/include/asm/Kbuild              |   3 +
+ arch/ia64/include/asm/kprobes.h           |  12 +-
+ arch/ia64/kernel/jprobes.S                |   3 +-
+ arch/ia64/kernel/vmlinux.lds.S            |   1 -
+ arch/ia64/lib/flush.S                     |   6 +-
+ arch/m32r/include/asm/Kbuild              |   4 +
+ arch/m68k/include/asm/Kbuild              |   4 +
+ arch/metag/include/asm/Kbuild             |   4 +
+ arch/metag/kernel/vmlinux.lds.S           |   1 -
+ arch/microblaze/include/asm/Kbuild        |   4 +
+ arch/microblaze/kernel/vmlinux.lds.S      |   1 -
+ arch/mips/include/asm/Kbuild              |   3 +
+ arch/mips/include/asm/jump_label.h        |   6 +-
+ arch/mips/include/asm/kprobes.h           |   6 +-
+ arch/mips/kernel/vmlinux.lds.S            |   1 -
+ arch/mn10300/include/asm/Kbuild           |   3 +
+ arch/mn10300/include/asm/kprobes.h        |   7 +-
+ arch/mn10300/kernel/vmlinux.lds.S         |   1 -
+ arch/nios2/include/asm/Kbuild             |   4 +
+ arch/nios2/kernel/vmlinux.lds.S           |   1 -
+ arch/openrisc/include/asm/Kbuild          |   4 +
+ arch/openrisc/kernel/vmlinux.lds.S        |   1 -
+ arch/parisc/include/asm/Kbuild            |   4 +
+ arch/parisc/kernel/vmlinux.lds.S          |   1 -
+ arch/powerpc/include/asm/Kbuild           |   3 +
+ arch/powerpc/include/asm/jump_label.h     |   8 +-
+ arch/powerpc/include/asm/kprobes.h        |   3 +
+ arch/powerpc/include/asm/ppc_asm.h        |   3 +-
+ arch/powerpc/kernel/vmlinux.lds.S         |   3 +-
+ arch/s390/include/asm/Kbuild              |   3 +
+ arch/s390/include/asm/jump_label.h        |   6 +-
+ arch/s390/include/asm/kprobes.h           |   7 +-
+ arch/s390/kernel/entry.S                  |   5 +-
+ arch/s390/kernel/kprobes.c                |   6 +-
+ arch/s390/kernel/mcount.S                 |   3 +-
+ arch/s390/kernel/vmlinux.lds.S            |   1 -
+ arch/score/include/asm/Kbuild             |   4 +
+ arch/score/kernel/vmlinux.lds.S           |   1 -
+ arch/sh/include/asm/Kbuild                |   3 +
+ arch/sh/include/asm/kprobes.h             |   5 +-
+ arch/sh/kernel/vmlinux.lds.S              |   1 -
+ arch/sparc/include/asm/Kbuild             |   3 +
+ arch/sparc/include/asm/jump_label.h       |   6 +-
+ arch/sparc/include/asm/kprobes.h          |  10 +-
+ arch/sparc/kernel/vmlinux.lds.S           |   1 -
+ arch/sparc/mm/ultra.S                     |   3 +-
+ arch/tile/include/asm/Kbuild              |   3 +
+ arch/tile/include/asm/jump_label.h        |   5 +-
+ arch/tile/include/asm/kprobes.h           |   6 +-
+ arch/tile/kernel/vmlinux.lds.S            |   1 -
+ arch/um/include/asm/Kbuild                |   4 +
+ arch/unicore32/include/asm/Kbuild         |   3 +
+ arch/unicore32/include/asm/section-core.h |  19 +
+ arch/x86/include/asm/Kbuild               |   3 +
+ arch/x86/include/asm/asm.h                |   4 +-
+ arch/x86/include/asm/jump_label.h         |  10 +-
+ arch/x86/include/asm/kprobes.h            |   9 +-
+ arch/x86/kernel/cpu/microcode/core.c      |   8 +-
+ arch/x86/kernel/kprobes/core.c            |  11 +-
+ arch/x86/kernel/vmlinux.lds.S             |   1 -
+ arch/x86/tools/relocs.c                   |   4 +
+ arch/xtensa/include/asm/Kbuild            |   4 +
+ arch/xtensa/kernel/Makefile               |   8 +-
+ drivers/base/firmware_class.c             |  12 +-
+ firmware/Makefile                         |   6 +-
+ include/asm-generic/kprobes.h             |  26 +
+ include/asm-generic/ranges.h              |  93 ++++
+ include/asm-generic/section-core.h        | 348 +++++++++++++
+ include/asm-generic/sections.h            |   4 +-
+ include/asm-generic/tables.h              |  48 ++
+ include/asm-generic/vmlinux.lds.h         |  47 +-
+ include/linux/compiler.h                  |   8 -
+ include/linux/dynamic_debug.h             |   5 +-
+ include/linux/init.h                      |  89 +++-
+ include/linux/jump_label.h                |   8 +-
+ include/linux/kprobes.h                   |  24 +-
+ include/linux/ranges.h                    | 183 +++++++
+ include/linux/sections.h                  |  87 ++++
+ include/linux/tables.h                    | 683 +++++++++++++++++++++++++
+ init/Kconfig                              |  22 +
+ kernel/jump_label.c                       |  17 +-
+ kernel/kprobes.c                          |  17 +-
+ lib/Kconfig.debug                         |   6 +
+ lib/Makefile                              |   1 +
+ lib/dynamic_debug.c                       |  13 +-
+ lib/test_linktables/Makefile              |  13 +
+ lib/test_linktables/test-linktables-00.c  |  27 +
+ lib/test_linktables/test-linktables-01.c  |  27 +
+ lib/test_linktables/test-linktables-02.c  |  27 +
+ lib/test_linktables/test-linktables-03.c  |  27 +
+ lib/test_linktables/test-linktables-04.c  |  27 +
+ lib/test_linktables/test-linktables.c     | 801 ++++++++++++++++++++++++++++++
+ lib/test_linktables/test-linktables.h     |  48 ++
+ scripts/Makefile.build                    |   7 +-
+ scripts/Makefile.clean                    |   2 +
+ scripts/Makefile.lib                      |  11 +
+ scripts/mod/modpost.c                     |   2 +-
+ scripts/module-common.lds                 |   2 +
+ scripts/recordmcount.c                    |   2 +-
+ scripts/recordmcount.pl                   |   2 +-
+ tools/objtool/special.c                   |   2 +-
+ 143 files changed, 3633 insertions(+), 200 deletions(-)
+ create mode 100644 Documentation/sections/background.rst
+ create mode 100644 Documentation/sections/conf.py
+ create mode 100644 Documentation/sections/index.rst
+ create mode 100644 Documentation/sections/linker-tables.rst
+ create mode 100644 Documentation/sections/ranges.rst
+ create mode 100644 Documentation/sections/section-core.rst
+ create mode 100644 arch/c6x/include/asm/tables.h
+ create mode 100644 arch/unicore32/include/asm/section-core.h
+ create mode 100644 include/asm-generic/kprobes.h
+ create mode 100644 include/asm-generic/ranges.h
+ create mode 100644 include/asm-generic/section-core.h
+ create mode 100644 include/asm-generic/tables.h
+ create mode 100644 include/linux/ranges.h
+ create mode 100644 include/linux/sections.h
+ create mode 100644 include/linux/tables.h
+ create mode 100644 lib/test_linktables/Makefile
+ create mode 100644 lib/test_linktables/test-linktables-00.c
+ create mode 100644 lib/test_linktables/test-linktables-01.c
+ create mode 100644 lib/test_linktables/test-linktables-02.c
+ create mode 100644 lib/test_linktables/test-linktables-03.c
+ create mode 100644 lib/test_linktables/test-linktables-04.c
+ create mode 100644 lib/test_linktables/test-linktables.c
+ create mode 100644 lib/test_linktables/test-linktables.h
 
-o Replace section macros with section names,
-  use LINKTABLE_EMPTY(), LINKTABLE_START()
-
-v4: fix compilation on blackfin
-v3: added modular support
-v2: introduced this patch into the series
-
-Cc: Barry Song <barry.song@analog.com>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Steven Miao <realmz6@gmail.com>
-Cc: Michael Matz <matz@suse.de>
-Cc: Guenter Roeck <linux@roeck-us.net>
-Cc: Fengguang Wu <fengguang.wu@intel.com>
-Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
----
- include/asm-generic/vmlinux.lds.h |  4 ----
- include/linux/dynamic_debug.h     |  5 +++--
- lib/dynamic_debug.c               | 13 ++++++-------
- scripts/module-common.lds         |  1 +
- 4 files changed, 10 insertions(+), 13 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 887d844f0406..37b99537d5a9 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -216,10 +216,6 @@
- 	*(.data.unlikely)						\
- 	STRUCT_ALIGN();							\
- 	*(__tracepoints)						\
--	. = ALIGN(8);							\
--	VMLINUX_SYMBOL(__start___verbose) = .;                          \
--	KEEP(*(__verbose))                                              \
--	VMLINUX_SYMBOL(__stop___verbose) = .;				\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
- 	TRACE_PRINTKS()							\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 546d68057e3b..a52618a77b09 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -4,6 +4,7 @@
- #if defined(CC_HAVE_ASM_GOTO) && defined(CONFIG_JUMP_LABEL)
- #include <linux/jump_label.h>
- #endif
-+#include <linux/tables.h>
- 
- /*
-  * An instance of this structure is created in a special
-@@ -50,6 +51,7 @@ int ddebug_add_module(struct _ddebug *tab, unsigned int n,
- 				const char *modname);
- 
- #if defined(CONFIG_DYNAMIC_DEBUG)
-+DECLARE_LINKTABLE(struct _ddebug, __verbose);
- extern int ddebug_remove_module(const char *mod_name);
- extern __printf(2, 3)
- void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
-@@ -71,8 +73,7 @@ void __dynamic_netdev_dbg(struct _ddebug *descriptor,
- 			  const char *fmt, ...);
- 
- #define DEFINE_DYNAMIC_DEBUG_METADATA_KEY(name, fmt, key, init)	\
--	static struct _ddebug  __aligned(8)			\
--	__attribute__((section("__verbose"))) name = {		\
-+	static LINKTABLE(__verbose, SECTION_ORDER_ANY) name = {	\
- 		.modname = KBUILD_MODNAME,			\
- 		.function = __func__,				\
- 		.filename = __FILE__,				\
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index da796e2dc4f5..27a335e3b1f3 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -37,8 +37,7 @@
- #include <linux/device.h>
- #include <linux/netdevice.h>
- 
--extern struct _ddebug __start___verbose[];
--extern struct _ddebug __stop___verbose[];
-+DEFINE_LINKTABLE(struct _ddebug, __verbose);
- 
- struct ddebug_table {
- 	struct list_head link;
-@@ -978,14 +977,14 @@ static int __init dynamic_debug_init(void)
- 	int n = 0, entries = 0, modct = 0;
- 	int verbose_bytes = 0;
- 
--	if (__start___verbose == __stop___verbose) {
--		pr_warn("_ddebug table is empty in a CONFIG_DYNAMIC_DEBUG build\n");
-+	if (LINKTABLE_EMPTY(__verbose)) {
-+		pr_warn("dynamic debug linker table empty on CONFIG_DYNAMIC_DEBUG build\n");
- 		return 1;
- 	}
--	iter = __start___verbose;
-+	iter = LINKTABLE_START(__verbose);
- 	modname = iter->modname;
- 	iter_start = iter;
--	for (; iter < __stop___verbose; iter++) {
-+	linktable_for_each(iter, __verbose) {
- 		entries++;
- 		verbose_bytes += strlen(iter->modname) + strlen(iter->function)
- 			+ strlen(iter->filename) + strlen(iter->format);
-@@ -1008,7 +1007,7 @@ static int __init dynamic_debug_init(void)
- 	ddebug_init_success = 1;
- 	vpr_info("%d modules, %d entries and %d bytes in ddebug tables, %d bytes in (readonly) verbose section\n",
- 		 modct, entries, (int)(modct * sizeof(struct ddebug_table)),
--		 verbose_bytes + (int)(__stop___verbose - __start___verbose));
-+		 verbose_bytes + (int)(LINKTABLE_SIZE(__verbose)));
- 
- 	/* apply ddebug_query boot param, dont unload tables on err */
- 	if (ddebug_setup_string[0] != '\0') {
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index db0e724556c5..25755d458f09 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -17,6 +17,7 @@ SECTIONS {
- 	__kcrctab_unused_gpl	0 : { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	0 : { *(SORT(___kcrctab_gpl_future+*)) }
- 	__jump_table		0 : { *(SORT(.data..tbl.__jump_table.*)) }
-+	__verbose		0 : { *(SORT(.data..tbl.__verbose.*)) }
- 
- 	. = ALIGN(8);
- 	.init_array		0 : { *(SORT(.init_array.*)) *(.init_array) }
 -- 
 2.11.0
 
