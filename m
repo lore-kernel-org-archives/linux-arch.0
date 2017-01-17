@@ -1,101 +1,103 @@
-From: Dave Martin <Dave.Martin@arm.com>
+From: Alan Hayward <Alan.Hayward@arm.com>
 Subject: Re: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length
  control and reporting
-Date: Tue, 17 Jan 2017 10:03:51 +0000
-Message-ID: <20170117100349.GR3699@e103592.cambridge.arm.com>
+Date: Tue, 17 Jan 2017 13:31:03 +0000
+Message-ID: <6610C1B4-C08A-4A15-B272-77A45F341168@arm.com>
 References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
  <1484220369-23970-9-git-send-email-Dave.Martin@arm.com>
  <20170116122038.GG28060@E107787-LIN>
  <20170116133231.GO3699@e103592.cambridge.arm.com>
  <20170116151156.GI28060@E107787-LIN>
+ <20170117100349.GR3699@e103592.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <libc-alpha-return-76827-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-Content-Disposition: inline
-In-Reply-To: <20170116151156.GI28060@E107787-LIN>
-To: Yao Qi <qiyaoltc@gmail.com>
-Cc: linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, gdb@sourceware.org, Christoffer Dall <christoffer.dall@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, linux-arm-kernel@lists.infradead.org, Alan Hayward <alan.hayward@arm.com>, Torvald Riegel <triegel@redhat.com>, Joseph Myers <joseph@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-eopbgr30046.outbound.protection.outlook.com ([40.107.3.46]:58288
+        "EHLO EUR03-AM5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1750893AbdAQNbG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Jan 2017 08:31:06 -0500
+In-Reply-To: <20170117100349.GR3699@e103592.cambridge.arm.com>
+Content-Language: en-US
+Content-ID: <49465D11440C5F41B6187A8442656247@eurprd08.prod.outlook.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave P Martin <Dave.Martin@arm.com>
+Cc: Yao Qi <qiyaoltc@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, "gdb@sourceware.org" <gdb@sourceware.org>, Christoffer Dall <christoffer.dall@linaro.org>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Torvald Riegel <triegel@redhat.com>, Joseph Myers <joseph@codesourcery.com>, nd <nd@arm.com>
 
-On Mon, Jan 16, 2017 at 03:11:56PM +0000, Yao Qi wrote:
-> On 17-01-16 13:32:31, Dave Martin wrote:
-> > On Mon, Jan 16, 2017 at 12:20:38PM +0000, Yao Qi wrote:
-> > > On 17-01-12 11:26:07, Dave Martin wrote:
-> > > > This patch adds support for manipulating a task's vector length at
-> > > > runtime via ptrace.
-> > > > 
-> > > 
-> > > I hope kernel doesn't provide such interface to ptracer to change vector
-> > > length.
-> > 
-> > It does, with this patch, beacuse...
-> > 
-> > > The vector length is sort of a read-only property of thread/process/
-> > > program to debugger, unless we really have a clear requirement to modify
-> > > vector length in debugging.  I may miss something because I haven't debug
-> > > SVE code yet.
-> > 
-> > ...the vector length is no longer read-only for the task, thanks to
-> > the new prctls().
-> 
-> What I meant "read-only" is that debugger can't change it, while the program
-> itself can change it via prctl().
-
-I see.
-
-> > 
-> > This does add complexity, but I figured that any programmer's model
-> > state that the thread can modify for itself should be modifiable by the
-> > debugger, if for no other reason than the user may want to experiment to
-> > see what happens.  Without a ptrace interface, it would be necessary
-> > to inject a prctl() call into the target, which is possible but awkward.
-> 
-> We only need such interface if it is useful, see more below.
-> 
-> Suppose it is useful to change vector length through ptrace, we should align
-> ptrace interface to prctl() as much as possible.  Looks that both prctl
-> change and ptrace change can go through sve_set_vector_length, easy to keep
-> two consistent.
-> 
-> > 
-> > gdb must already re-detect the vector length on stop, since the target
-> > could have called the prctl() in the meantime.
-> 
-> Yes, gdb assumes the vector length may be changed, so it re-detects on
-> every stop, but I don't see the need for gdb to change the vector length.
-> 
-> > 
-> > Access via ptrace also allows things like trapping on exec, fork or
-> > clone and changing the vector length for the new process or thread
-> > before it starts to run.  I'm guessing here, but such a scenario seems
-> > legitimate (?)
-> > 
-> 
-> Yes, these cases are valid, but the usefulness is still questionable to
-> me.  I just doubt that SVE developers do need to change vector length
-> when they are debugging code.  Note that it is not my strong objection
-> to this patch, if kernel people believe this is useful, I am fine with
-> it.
-
-That's fair.  I'll leave the patch there for now and see if anyone else
-has a comment to make, but it could be removed without affecting
-anything else.
-
-Are there situations in which injecting a function call into the target
-won't work, i.e., where we couldn't do:
-
-set prctl(...)
-
-?
-
-Using the prctl interface this way, it would also be preferable to refer
-to the #defines by name.
-
-Cheers
----Dave
+DQo+IE9uIDE3IEphbiAyMDE3LCBhdCAxMDowMywgRGF2ZSBNYXJ0aW4gPERhdmUuTWFydGluQGFy
+bS5jb20+IHdyb3RlOg0KPiANCj4gT24gTW9uLCBKYW4gMTYsIDIwMTcgYXQgMDM6MTE6NTZQTSAr
+MDAwMCwgWWFvIFFpIHdyb3RlOg0KPj4gT24gMTctMDEtMTYgMTM6MzI6MzEsIERhdmUgTWFydGlu
+IHdyb3RlOg0KPj4+IE9uIE1vbiwgSmFuIDE2LCAyMDE3IGF0IDEyOjIwOjM4UE0gKzAwMDAsIFlh
+byBRaSB3cm90ZToNCj4+Pj4gT24gMTctMDEtMTIgMTE6MjY6MDcsIERhdmUgTWFydGluIHdyb3Rl
+Og0KPj4+Pj4gVGhpcyBwYXRjaCBhZGRzIHN1cHBvcnQgZm9yIG1hbmlwdWxhdGluZyBhIHRhc2sn
+cyB2ZWN0b3IgbGVuZ3RoIGF0DQo+Pj4+PiBydW50aW1lIHZpYSBwdHJhY2UuDQo+Pj4+PiANCj4+
+Pj4gDQo+Pj4+IEkgaG9wZSBrZXJuZWwgZG9lc24ndCBwcm92aWRlIHN1Y2ggaW50ZXJmYWNlIHRv
+IHB0cmFjZXIgdG8gY2hhbmdlIHZlY3Rvcg0KPj4+PiBsZW5ndGguDQo+Pj4gDQo+Pj4gSXQgZG9l
+cywgd2l0aCB0aGlzIHBhdGNoLCBiZWFjdXNlLi4uDQo+Pj4gDQo+Pj4+IFRoZSB2ZWN0b3IgbGVu
+Z3RoIGlzIHNvcnQgb2YgYSByZWFkLW9ubHkgcHJvcGVydHkgb2YgdGhyZWFkL3Byb2Nlc3MvDQo+
+Pj4+IHByb2dyYW0gdG8gZGVidWdnZXIsIHVubGVzcyB3ZSByZWFsbHkgaGF2ZSBhIGNsZWFyIHJl
+cXVpcmVtZW50IHRvIG1vZGlmeQ0KPj4+PiB2ZWN0b3IgbGVuZ3RoIGluIGRlYnVnZ2luZy4gIEkg
+bWF5IG1pc3Mgc29tZXRoaW5nIGJlY2F1c2UgSSBoYXZlbid0IGRlYnVnDQo+Pj4+IFNWRSBjb2Rl
+IHlldC4NCj4+PiANCj4+PiAuLi50aGUgdmVjdG9yIGxlbmd0aCBpcyBubyBsb25nZXIgcmVhZC1v
+bmx5IGZvciB0aGUgdGFzaywgdGhhbmtzIHRvDQo+Pj4gdGhlIG5ldyBwcmN0bHMoKS4NCj4+IA0K
+Pj4gV2hhdCBJIG1lYW50ICJyZWFkLW9ubHkiIGlzIHRoYXQgZGVidWdnZXIgY2FuJ3QgY2hhbmdl
+IGl0LCB3aGlsZSB0aGUgcHJvZ3JhbQ0KPj4gaXRzZWxmIGNhbiBjaGFuZ2UgaXQgdmlhIHByY3Rs
+KCkuDQo+IA0KPiBJIHNlZS4NCj4gDQo+Pj4gDQo+Pj4gVGhpcyBkb2VzIGFkZCBjb21wbGV4aXR5
+LCBidXQgSSBmaWd1cmVkIHRoYXQgYW55IHByb2dyYW1tZXIncyBtb2RlbA0KPj4+IHN0YXRlIHRo
+YXQgdGhlIHRocmVhZCBjYW4gbW9kaWZ5IGZvciBpdHNlbGYgc2hvdWxkIGJlIG1vZGlmaWFibGUg
+YnkgdGhlDQo+Pj4gZGVidWdnZXIsIGlmIGZvciBubyBvdGhlciByZWFzb24gdGhhbiB0aGUgdXNl
+ciBtYXkgd2FudCB0byBleHBlcmltZW50IHRvDQo+Pj4gc2VlIHdoYXQgaGFwcGVucy4gIFdpdGhv
+dXQgYSBwdHJhY2UgaW50ZXJmYWNlLCBpdCB3b3VsZCBiZSBuZWNlc3NhcnkNCj4+PiB0byBpbmpl
+Y3QgYSBwcmN0bCgpIGNhbGwgaW50byB0aGUgdGFyZ2V0LCB3aGljaCBpcyBwb3NzaWJsZSBidXQg
+YXdrd2FyZC4NCj4+IA0KPj4gV2Ugb25seSBuZWVkIHN1Y2ggaW50ZXJmYWNlIGlmIGl0IGlzIHVz
+ZWZ1bCwgc2VlIG1vcmUgYmVsb3cuDQo+PiANCj4+IFN1cHBvc2UgaXQgaXMgdXNlZnVsIHRvIGNo
+YW5nZSB2ZWN0b3IgbGVuZ3RoIHRocm91Z2ggcHRyYWNlLCB3ZSBzaG91bGQgYWxpZ24NCj4+IHB0
+cmFjZSBpbnRlcmZhY2UgdG8gcHJjdGwoKSBhcyBtdWNoIGFzIHBvc3NpYmxlLiAgTG9va3MgdGhh
+dCBib3RoIHByY3RsDQo+PiBjaGFuZ2UgYW5kIHB0cmFjZSBjaGFuZ2UgY2FuIGdvIHRocm91Z2gg
+c3ZlX3NldF92ZWN0b3JfbGVuZ3RoLCBlYXN5IHRvIGtlZXANCj4+IHR3byBjb25zaXN0ZW50Lg0K
+Pj4gDQo+Pj4gDQo+Pj4gZ2RiIG11c3QgYWxyZWFkeSByZS1kZXRlY3QgdGhlIHZlY3RvciBsZW5n
+dGggb24gc3RvcCwgc2luY2UgdGhlIHRhcmdldA0KPj4+IGNvdWxkIGhhdmUgY2FsbGVkIHRoZSBw
+cmN0bCgpIGluIHRoZSBtZWFudGltZS4NCj4+IA0KPj4gWWVzLCBnZGIgYXNzdW1lcyB0aGUgdmVj
+dG9yIGxlbmd0aCBtYXkgYmUgY2hhbmdlZCwgc28gaXQgcmUtZGV0ZWN0cyBvbg0KPj4gZXZlcnkg
+c3RvcCwgYnV0IEkgZG9uJ3Qgc2VlIHRoZSBuZWVkIGZvciBnZGIgdG8gY2hhbmdlIHRoZSB2ZWN0
+b3IgbGVuZ3RoLg0KPj4gDQo+Pj4gDQo+Pj4gQWNjZXNzIHZpYSBwdHJhY2UgYWxzbyBhbGxvd3Mg
+dGhpbmdzIGxpa2UgdHJhcHBpbmcgb24gZXhlYywgZm9yayBvcg0KPj4+IGNsb25lIGFuZCBjaGFu
+Z2luZyB0aGUgdmVjdG9yIGxlbmd0aCBmb3IgdGhlIG5ldyBwcm9jZXNzIG9yIHRocmVhZA0KPj4+
+IGJlZm9yZSBpdCBzdGFydHMgdG8gcnVuLiAgSSdtIGd1ZXNzaW5nIGhlcmUsIGJ1dCBzdWNoIGEg
+c2NlbmFyaW8gc2VlbXMNCj4+PiBsZWdpdGltYXRlICg/KQ0KPj4+IA0KPj4gDQo+PiBZZXMsIHRo
+ZXNlIGNhc2VzIGFyZSB2YWxpZCwgYnV0IHRoZSB1c2VmdWxuZXNzIGlzIHN0aWxsIHF1ZXN0aW9u
+YWJsZSB0bw0KPj4gbWUuICBJIGp1c3QgZG91YnQgdGhhdCBTVkUgZGV2ZWxvcGVycyBkbyBuZWVk
+IHRvIGNoYW5nZSB2ZWN0b3IgbGVuZ3RoDQo+PiB3aGVuIHRoZXkgYXJlIGRlYnVnZ2luZyBjb2Rl
+LiAgTm90ZSB0aGF0IGl0IGlzIG5vdCBteSBzdHJvbmcgb2JqZWN0aW9uDQo+PiB0byB0aGlzIHBh
+dGNoLCBpZiBrZXJuZWwgcGVvcGxlIGJlbGlldmUgdGhpcyBpcyB1c2VmdWwsIEkgYW0gZmluZSB3
+aXRoDQo+PiBpdC4NCj4gDQo+IFRoYXQncyBmYWlyLiAgSSdsbCBsZWF2ZSB0aGUgcGF0Y2ggdGhl
+cmUgZm9yIG5vdyBhbmQgc2VlIGlmIGFueW9uZSBlbHNlDQo+IGhhcyBhIGNvbW1lbnQgdG8gbWFr
+ZSwgYnV0IGl0IGNvdWxkIGJlIHJlbW92ZWQgd2l0aG91dCBhZmZlY3RpbmcNCj4gYW55dGhpbmcg
+ZWxzZS4NCj4gDQoNCkkgd291bGQgc2F5IHRoYXQgd2hpbHN0IGl0IGlzIGEgdmVyeSBkYW5nZXJv
+dXMgdGhpbmcgdG8gZG8gYW5kIGhhcyBtYW55DQpjb25zZXF1ZW5jZXMsIHRoZXJlIGlzIGEgcmVx
+dWlyZW1lbnQgZm9yIGEgZ2RiIHVzZXIgdG8gYmUgYWJsZSB0byBjaGFuZ2UgVkwNCndoaWxzdCBk
+ZWJ1Z2dpbmcgYSBydW5uaW5nIHByb2Nlc3MsIGFuZCBJIGRvbuKAmXQgdGhpbmsgd2Ugc2hvdWxk
+IHNlZQ0KY2hhbmdpbmcgVkwgYXMgbXVjaCBkaWZmZXJlbnQgZnJvbSBjaGFuZ2luZyBhIHJlZ2lz
+dGVyIHZhbHVlIG9uIHRoZSBmbHkuDQoNClNheSB5b3UgaGF2ZSBhIGxvb3AgaW4gYXNzZW1ibHkg
+eW91IGFyZSB0cnlpbmcgdG8gZGVidWcgLSB5b3UgbWlnaHQgd3JpdGUNCnRvICR4MiBhbmQgdGhl
+biBzaW5nbGUgc3RlcCB0byBzZWUgaG93IHRoaXMgZWZmZWN0cyB0aGUgcmVzdWx0LiBXaXRoIFNW
+RQ0KY29kZSB5b3UgbWlnaHQgd2FudCB0byBzZWUgaG93IGRpZmZlcmVudCBWTCB2YWx1ZXMgd2ls
+bCBlZmZlY3QgdGhlIGxheW91dA0Kb2YgcmVzdWx0cyBpbiB0aGUgdmVjdG9ycywgaG93IGl0IGVm
+ZmVjdHMgdGhlIHByZWRpY2F0ZXMgYW5kIGhvdyBpdCBjaGFuZ2VzDQp0aGUgbnVtYmVyIG9mIGl0
+ZXJhdGlvbnMgdGhlIGxvb3AgbWFrZXMuIE9mIGNvdXJzZSwgb25jZSB5b3UgZXhpdCB0aGUNCmxv
+b3AgYWxsIGJldHMgYXJlIG9mZiAtIGp1c3QgbGlrZSBpZiB5b3UgaGFkIGJlZW4gY2hhbmdpbmcg
+cmVnaXN0ZXIgdmFsdWVzLg0KDQpUaGUgY3VycmVudCBwcm9wb3NhbCBmb3IgZ2RiIGlzIHRoYXQg
+d2Ugd2lsbCBzaG93ICRWTCBpbiB0aGUgbGlzdCBvZg0KcmVnaXN0ZXJzLCB0aGVyZWZvcmUgZm9y
+IGNvbnNpc3RlbmN5IGl04oCZZCBtYWtlIHNlbnNlIGZvciB0aGUgZ2RiIHVzZXIgdG8NCmJlIGFi
+bGUgdG8gc2V0IGl0IGFzIGlmIGl0IHdhcyBqdXN0IGFub3RoZXIgcmVnaXN0ZXIuIEZvciB0aGlz
+IHdlIG5lZWQgYQ0Kc2ltcGxlIHdheSB0byBjaGFuZ2UgdGhlIFZMIGluIGFub3RoZXIgcHJvY2Vz
+cywgYW5kIEkgdGhpbmsgcHRyYWNlKCkgaXMNCnRoZSBlYXNpZXN0IHdheSAoZ2l2ZW4gdGhhdCBw
+cmN0bCgpIG9ubHkgY2hhbmdlcyBpdHMgb3duIHByb2Nlc3MpLg0KDQoNCj4gQXJlIHRoZXJlIHNp
+dHVhdGlvbnMgaW4gd2hpY2ggaW5qZWN0aW5nIGEgZnVuY3Rpb24gY2FsbCBpbnRvIHRoZSB0YXJn
+ZXQNCj4gd29uJ3Qgd29yaywgaS5lLiwgd2hlcmUgd2UgY291bGRuJ3QgZG86DQo+IA0KPiBzZXQg
+cHJjdGwoLi4uKQ0KPiANCj4gPw0KPiANCj4gVXNpbmcgdGhlIHByY3RsIGludGVyZmFjZSB0aGlz
+IHdheSwgaXQgd291bGQgYWxzbyBiZSBwcmVmZXJhYmxlIHRvIHJlZmVyDQo+IHRvIHRoZSAjZGVm
+aW5lcyBieSBuYW1lLg0KPiANCj4gQ2hlZXJzDQo+IOKAlERhdmUNCg0KDQpUaGFua3MsDQpBbGFu
+Lg0KDQo=
