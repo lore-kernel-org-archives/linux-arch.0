@@ -1,101 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44492 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750922AbdAQKEq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 17 Jan 2017 05:04:46 -0500
-Date: Tue, 17 Jan 2017 10:03:51 +0000
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length
- control and reporting
-Message-ID: <20170117100349.GR3699@e103592.cambridge.arm.com>
-References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
- <1484220369-23970-9-git-send-email-Dave.Martin@arm.com>
- <20170116122038.GG28060@E107787-LIN>
- <20170116133231.GO3699@e103592.cambridge.arm.com>
- <20170116151156.GI28060@E107787-LIN>
+Received: from aserp1040.oracle.com ([141.146.126.69]:17827 "EHLO
+        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750947AbdAQVrV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jan 2017 16:47:21 -0500
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced by
+ SPARC M7
+References: <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+ <f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
+ <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
+ <20170116.234749.545252655332977761.davem@davemloft.net>
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Message-ID: <c1c944f7-d5e6-38ec-6fde-9e6d5c1af6d0@oracle.com>
+Date: Tue, 17 Jan 2017 14:43:07 -0700
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170116151156.GI28060@E107787-LIN>
+In-Reply-To: <20170116.234749.545252655332977761.davem@davemloft.net>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yao Qi <qiyaoltc@gmail.com>
-Cc: linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, gdb@sourceware.org, Christoffer Dall <christoffer.dall@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, linux-arm-kernel@lists.infradead.org, Alan Hayward <alan.hayward@arm.com>, Torvald Riegel <triegel@redhat.com>, Joseph Myers <joseph@codesourcery.com>
-Message-ID: <20170117100351.61IYlC6F5YG2W_J9cqj4xqHobqSPASalqMNZYh9uvB4@z>
+To: David Miller <davem@davemloft.net>, dave.hansen@linux.intel.com
+Cc: corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-mm@kvack.org
+Message-ID: <20170117214307.rAG15Cy5YDY6tJ28ilKXOGkLY4570JQdDxk6kQ7Tu-o@z>
 
-On Mon, Jan 16, 2017 at 03:11:56PM +0000, Yao Qi wrote:
-> On 17-01-16 13:32:31, Dave Martin wrote:
-> > On Mon, Jan 16, 2017 at 12:20:38PM +0000, Yao Qi wrote:
-> > > On 17-01-12 11:26:07, Dave Martin wrote:
-> > > > This patch adds support for manipulating a task's vector length at
-> > > > runtime via ptrace.
-> > > > 
-> > > 
-> > > I hope kernel doesn't provide such interface to ptracer to change vector
-> > > length.
-> > 
-> > It does, with this patch, beacuse...
-> > 
-> > > The vector length is sort of a read-only property of thread/process/
-> > > program to debugger, unless we really have a clear requirement to modify
-> > > vector length in debugging.  I may miss something because I haven't debug
-> > > SVE code yet.
-> > 
-> > ...the vector length is no longer read-only for the task, thanks to
-> > the new prctls().
-> 
-> What I meant "read-only" is that debugger can't change it, while the program
-> itself can change it via prctl().
+On 01/16/2017 09:47 PM, David Miller wrote:
+> From: Dave Hansen <dave.hansen@linux.intel.com>
+> Date: Wed, 11 Jan 2017 10:13:54 -0800
+>
+>> For memory shared by two different processes, do they have to agree on
+>> what the tags are, or can they differ?
+>
+> Whoever allocates the memory (does the mmap()+mprotect() or whatever),
+> decides on the tag.  They set it, and this determines which virtual
+> address is valid to access that mapping.
+>
+> It's like kmalloc() returns pointers with some weird bits set in the
+> upper bits of the address.  Behind the scenes kmalloc() sets the
+> TAG bits appropriately.
+>
+> It doesn't, in that sense, matter where in the non-tagged virtual
+> address space the memory is mapped.  All that matters is that, for
+> a given page, the TAG bits in the virtual address used for loads
+> and stores to that mapping are set properly.
+>
+> I think the fundamental thing being missed is that the TAG bits in the
+> virtual address are not interpreted by the TLB.  They are chopped off
+> before virtual address translation occurs.
+>
+> The TAG bits of the virtual address serve only to indicate what ADI
+> value the load or store thinks is valid to use for access to that
+> piece of memory.
+>
+> Or something like that... :-)
 
-I see.
+Hi David,
 
-> > 
-> > This does add complexity, but I figured that any programmer's model
-> > state that the thread can modify for itself should be modifiable by the
-> > debugger, if for no other reason than the user may want to experiment to
-> > see what happens.  Without a ptrace interface, it would be necessary
-> > to inject a prctl() call into the target, which is possible but awkward.
-> 
-> We only need such interface if it is useful, see more below.
-> 
-> Suppose it is useful to change vector length through ptrace, we should align
-> ptrace interface to prctl() as much as possible.  Looks that both prctl
-> change and ptrace change can go through sve_set_vector_length, easy to keep
-> two consistent.
-> 
-> > 
-> > gdb must already re-detect the vector length on stop, since the target
-> > could have called the prctl() in the meantime.
-> 
-> Yes, gdb assumes the vector length may be changed, so it re-detects on
-> every stop, but I don't see the need for gdb to change the vector length.
-> 
-> > 
-> > Access via ptrace also allows things like trapping on exec, fork or
-> > clone and changing the vector length for the new process or thread
-> > before it starts to run.  I'm guessing here, but such a scenario seems
-> > legitimate (?)
-> > 
-> 
-> Yes, these cases are valid, but the usefulness is still questionable to
-> me.  I just doubt that SVE developers do need to change vector length
-> when they are debugging code.  Note that it is not my strong objection
-> to this patch, if kernel people believe this is useful, I am fine with
-> it.
+Your explanation is spot on. MMU looks at the tag bits only to determine 
+if the process has permission to access the memory address. Tag bits are 
+not part of VA->PA translation. The tags are stored in physical memory 
+though and MMU compares the tag stored at physical address obtained from 
+TLB translation to the tag embedded in VA. What that means is if two 
+processes map the same physical page in their address space, they both 
+must embed the same tag in the VA they present to MMU irrespective of 
+where in each process' address space the page is mapped in. If one 
+process changes the tag, stored in physical memory, the other process 
+must also embed the new tag in its VA when accessing this shared mapped 
+page. This is something to consider because a tag can be set and changed 
+entirely from userspace with no kernel involvement as long as the 
+process has write access to memory.
 
-That's fair.  I'll leave the patch there for now and see if anyone else
-has a comment to make, but it could be removed without affecting
-anything else.
+--
+Khalid
 
-Are there situations in which injecting a function call into the target
-won't work, i.e., where we couldn't do:
-
-set prctl(...)
-
-?
-
-Using the prctl interface this way, it would also be preferable to refer
-to the #defines by name.
-
-Cheers
----Dave
