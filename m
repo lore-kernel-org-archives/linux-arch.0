@@ -1,58 +1,36 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length control and reporting
-Date: Mon, 16 Jan 2017 16:31:23 +0000
-Message-ID: <20170116163123.GQ3699@e103592.cambridge.arm.com>
-References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com> <1484220369-23970-9-git-send-email-Dave.Martin@arm.com> <20170116122038.GG28060@E107787-LIN> <20170116133231.GO3699@e103592.cambridge.arm.com> <20170116151156.GI28060@E107787-LIN> <a7261d6b-0074-7345-d380-ef0dd335dd56@redhat.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced
+ by SPARC M7
+Date: Mon, 16 Jan 2017 23:42:13 -0500 (EST)
+Message-ID: <20170116.234213.651609572218128435.davem@davemloft.net>
+References: <cover.1483999591.git.khalid.aziz@oracle.com>
+	<621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <gdb-return-45540-gdb-gdb=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:gdb-unsubscribe-gdb-gdb=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:gdb-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/gdb/>
-List-Post: <mailto:gdb@sourceware.org>
-List-Help: <mailto:gdb-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: gdb-owner@sourceware.org
-Content-Disposition: inline
-In-Reply-To: <a7261d6b-0074-7345-d380-ef0dd335dd56@redhat.com>
-To: Pedro Alves <palves@redhat.com>
-Cc: Yao Qi <qiyaoltc@gmail.com>, linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, gdb@sourceware.org, Christoffer Dall <christoffer.dall@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, linux-arm-kernel@lists.infradead.org, Alan Hayward <alan.hayward@arm.com>, Torvald Riegel <triegel@redhat.com>, Joseph Myers <joseph@codesourcery.com>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: dave.hansen@linux.intel.com
+Cc: khalid.aziz@oracle.com, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.orgs
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 16, 2017 at 03:47:55PM +0000, Pedro Alves wrote:
-> On 01/16/2017 03:11 PM, Yao Qi wrote:
-> > 
-> >> > 
-> >> > gdb must already re-detect the vector length on stop, since the target
-> >> > could have called the prctl() in the meantime.
-> > Yes, gdb assumes the vector length may be changed, so it re-detects on
-> > every stop, but I don't see the need for gdb to change the vector length.
-> > 
-> 
-> Do we need to consider inferior function calls here?
-> 
-> Say the program is stopped in code that assumes "vector length N", and
-> the user does "print some_function_that_assumes_some_other_vector_length ()".
-> 
-> Is that a use case we need to cover?
-> 
-> If so, to make it work correctly, the debugger needs to be able to change the
-> vector length to the length assumed by that called function, and then
-> restore it back after the call completes (or is aborted).
-> 
-> I have no idea whether the debugger will be able to figure
-> out a function's assumed vector length from debug info or some such.
+From: Dave Hansen <dave.hansen@linux.intel.com>
+Date: Wed, 11 Jan 2017 08:33:30 -0800
 
-I think the proposed ptrace interface can support this -- i.e., it
-should provide everything needed to save off the VL and register state,
-switch VL, do something else, then restore the VL and state (if not,
-that's a bug).
+> Is there a cost in the hardware associated with doing this "ADI
+> checking"?  For instance, instead of having this new mprotect()
+> interface, why not just always set TTE.mcd on all PTEs?
 
-My current position is that determining what vector length is
-required by what function or binary is a 100% userspace problem, though.
+If we did this then for every page mapped into userspace we'd have
+to explicitly set all of the tags to zero, otherwise we'd get TAG
+mismatch exceptions.
 
-ELF/DWARF could have annotations about this, though it wouldn't
-necessarily be per-function -- you might require a whole image to be
-built for the same vector length (if any).
+That would be like clearing the every mapped anonymous page twice, or
+worse.
 
-Cheers
----Dave
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
