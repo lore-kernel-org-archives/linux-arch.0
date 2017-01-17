@@ -1,52 +1,101 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v4 0/4] Application Data Integrity feature introduced
- by SPARC M7
-Date: Mon, 16 Jan 2017 23:47:49 -0500 (EST)
-Message-ID: <20170116.234749.545252655332977761.davem@davemloft.net>
-References: <621cfed0-3e56-13e6-689a-0637bce164fe@linux.intel.com>
-	<f70cd704-f486-ed5c-7961-b71278fc8f9a@oracle.com>
-	<11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
+From: Dave Martin <Dave.Martin@arm.com>
+Subject: Re: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length
+ control and reporting
+Date: Tue, 17 Jan 2017 10:03:51 +0000
+Message-ID: <20170117100349.GR3699@e103592.cambridge.arm.com>
+References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
+ <1484220369-23970-9-git-send-email-Dave.Martin@arm.com>
+ <20170116122038.GG28060@E107787-LIN>
+ <20170116133231.GO3699@e103592.cambridge.arm.com>
+ <20170116151156.GI28060@E107787-LIN>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <11d20dac-2c0f-6e9a-7f98-3839c749adb6@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: dave.hansen@linux.intel.com
-Cc: khalid.aziz@oracle.com, corbet@lwn.net, arnd@arndb.de, akpm@linux-foundation.org, hpa@zytor.com, viro@zeniv.linux.org.uk, nitin.m.gupta@oracle.com, chris.hyser@oracle.com, tushar.n.dave@oracle.com, sowmini.varadhan@oracle.com, mike.kravetz@oracle.com, adam.buchbinder@gmail.com, minchan@kernel.org, hughd@google.com, kirill.shutemov@linux.intel.com, keescook@chromium.org, allen.pais@oracle.com, aryabinin@virtuozzo.com, atish.patra@oracle.com, joe@perches.com, pmladek@suse.com, jslaby@suse.cz, cmetcalf@mellanox.com, paul.gortmaker@windriver.com, mhocko@suse.com, jmarchan@redhat.com, lstoakes@gmail.com, 0x7f454c46@gmail.com, vbabka@suse.cz, tglx@linutronix.de, mingo@redhat.com, dan.j.williams@intel.com, iamjoonsoo.kim@lge.com, mgorman@techsingularity.net, vdavydov.dev@gmail.com, hannes@cmpxchg.org, namit@vmware.com, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.orgs
+Content-Type: text/plain; charset=us-ascii
+Return-path: <libc-alpha-return-76827-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+Content-Disposition: inline
+In-Reply-To: <20170116151156.GI28060@E107787-LIN>
+To: Yao Qi <qiyaoltc@gmail.com>
+Cc: linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>, libc-alpha@sourceware.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, gdb@sourceware.org, Christoffer Dall <christoffer.dall@linaro.org>, Szabolcs Nagy <szabolcs.nagy@arm.com>, linux-arm-kernel@lists.infradead.org, Alan Hayward <alan.hayward@arm.com>, Torvald Riegel <triegel@redhat.com>, Joseph Myers <joseph@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
-Date: Wed, 11 Jan 2017 10:13:54 -0800
+On Mon, Jan 16, 2017 at 03:11:56PM +0000, Yao Qi wrote:
+> On 17-01-16 13:32:31, Dave Martin wrote:
+> > On Mon, Jan 16, 2017 at 12:20:38PM +0000, Yao Qi wrote:
+> > > On 17-01-12 11:26:07, Dave Martin wrote:
+> > > > This patch adds support for manipulating a task's vector length at
+> > > > runtime via ptrace.
+> > > > 
+> > > 
+> > > I hope kernel doesn't provide such interface to ptracer to change vector
+> > > length.
+> > 
+> > It does, with this patch, beacuse...
+> > 
+> > > The vector length is sort of a read-only property of thread/process/
+> > > program to debugger, unless we really have a clear requirement to modify
+> > > vector length in debugging.  I may miss something because I haven't debug
+> > > SVE code yet.
+> > 
+> > ...the vector length is no longer read-only for the task, thanks to
+> > the new prctls().
+> 
+> What I meant "read-only" is that debugger can't change it, while the program
+> itself can change it via prctl().
 
-> For memory shared by two different processes, do they have to agree on
-> what the tags are, or can they differ?
+I see.
 
-Whoever allocates the memory (does the mmap()+mprotect() or whatever),
-decides on the tag.  They set it, and this determines which virtual
-address is valid to access that mapping.
+> > 
+> > This does add complexity, but I figured that any programmer's model
+> > state that the thread can modify for itself should be modifiable by the
+> > debugger, if for no other reason than the user may want to experiment to
+> > see what happens.  Without a ptrace interface, it would be necessary
+> > to inject a prctl() call into the target, which is possible but awkward.
+> 
+> We only need such interface if it is useful, see more below.
+> 
+> Suppose it is useful to change vector length through ptrace, we should align
+> ptrace interface to prctl() as much as possible.  Looks that both prctl
+> change and ptrace change can go through sve_set_vector_length, easy to keep
+> two consistent.
+> 
+> > 
+> > gdb must already re-detect the vector length on stop, since the target
+> > could have called the prctl() in the meantime.
+> 
+> Yes, gdb assumes the vector length may be changed, so it re-detects on
+> every stop, but I don't see the need for gdb to change the vector length.
+> 
+> > 
+> > Access via ptrace also allows things like trapping on exec, fork or
+> > clone and changing the vector length for the new process or thread
+> > before it starts to run.  I'm guessing here, but such a scenario seems
+> > legitimate (?)
+> > 
+> 
+> Yes, these cases are valid, but the usefulness is still questionable to
+> me.  I just doubt that SVE developers do need to change vector length
+> when they are debugging code.  Note that it is not my strong objection
+> to this patch, if kernel people believe this is useful, I am fine with
+> it.
 
-It's like kmalloc() returns pointers with some weird bits set in the
-upper bits of the address.  Behind the scenes kmalloc() sets the
-TAG bits appropriately.
+That's fair.  I'll leave the patch there for now and see if anyone else
+has a comment to make, but it could be removed without affecting
+anything else.
 
-It doesn't, in that sense, matter where in the non-tagged virtual
-address space the memory is mapped.  All that matters is that, for
-a given page, the TAG bits in the virtual address used for loads
-and stores to that mapping are set properly.
+Are there situations in which injecting a function call into the target
+won't work, i.e., where we couldn't do:
 
-I think the fundamental thing being missed is that the TAG bits in the
-virtual address are not interpreted by the TLB.  They are chopped off
-before virtual address translation occurs.
+set prctl(...)
 
-The TAG bits of the virtual address serve only to indicate what ADI
-value the load or store thinks is valid to use for access to that
-piece of memory.
+?
 
-Or something like that... :-)
+Using the prctl interface this way, it would also be preferable to refer
+to the #defines by name.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers
+---Dave
