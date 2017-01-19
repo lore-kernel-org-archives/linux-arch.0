@@ -1,112 +1,80 @@
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v7 09/14] jump_label: port __jump_table to
-	linker tables
-Date: Thu, 19 Jan 2017 12:24:11 +0100
-Message-ID: <20170119112411.GN28024@kroah.com>
-References: <20170109145833.11502-1-mcgrof@kernel.org>
- <20170115211057.17167-1-mcgrof@kernel.org>
- <20170115211057.17167-10-mcgrof@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xen-devel-bounces@lists.xen.org>
-Content-Disposition: inline
-In-Reply-To: <20170115211057.17167-10-mcgrof@kernel.org>
-List-Unsubscribe: <https://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <https://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
- <mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Errors-To: xen-devel-bounces@lists.xen.org
-Sender: "Xen-devel" <xen-devel-bounces@lists.xen.org>
-To: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Cc: gnomes@lxorguk.ukuu.org.uk, dalias@libc.org, linux-ia64@vger.kernel.org, jkosina@suse.cz, benh@kernel.crashing.org, ming.lei@canonical.com, heiko.carstens@de.ibm.com, platform-driver-x86@vger.kernel.org, James.Bottomley@HansenPartnership.com, paul.gortmaker@windriver.com, paulus@samba.org, mpe@ellerman.id.au, hpa@zytor.com, masami.hiramatsu.pt@hitachi.com, wangnan0@huawei.com, mchehab@osg.samsung.com, linux-arch@vger.kernel.org, markus.heiser@darmarit.de, sparclinux@vger.kernel.org, xen-devel@lists.xensource.com, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, will.deacon@arm.com, korea.drzix@gmail.com, x86@kernel.org, anil.s.keshavamurthy@intel.com, fontana@sharpeleven.org, mingo@redhat.com, dsahern@gmail.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, dvhart@infradead.org, bp@suse.de, linux@roeck-us.net, david.vrabel@citrix.com, linux-xtensa@linux
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH] locking/rwsem: Remove unnecessary atomic_long_t casts
+Date: Thu, 19 Jan 2017 09:31:52 -0500
+Message-ID: <1484836312-6656-1-git-send-email-longman@redhat.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Waiman Long <longman@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gU3VuLCBKYW4gMTUsIDIwMTcgYXQgMDE6MTA6NTJQTSAtMDgwMCwgTHVpcyBSLiBSb2RyaWd1
-ZXogd3JvdGU6Cj4gTW92ZSB0aGUgX19qdW1wX3RhYmxlIGZyb20gdGhlIGEgY3VzdG9tIHNlY3Rp
-b24gc29sdXRpb24KPiB0byBhIGdlbmVyaWMgc29sdXRpb24sIHRoaXMgYXZvaWRpbmcgZXh0cmEg
-dm1saW51eC5sZHMuaAo+IGN1c3RvbWl6YXRpb25zLgo+IAo+IFRoaXMgYWxzbyBkZW1vcyB0aGUg
-dXNlIG9mIHRoZSAuZGF0YSBsaW5rZXIgdGFibGUgYW5kIG9mCj4gdGhlIHNoYXJlZCBhc20gY2Fs
-bCBwdXNoX3NlY3Rpb25fdGJsKCkuCj4gCj4gQnVpbHQtaW4ga2VybmVsIGZ1bmN0aW9uYWxpdHkg
-d2FzIHRlc3RlZCB3aXRoIENPTkZJR19TVEFUSUNfS0VZU19TRUxGVEVTVC4KPiBNb2R1bGVyICBr
-ZXJuZWwgZnVuY3Rpb25hbGl0eSB3YXMgdGVzdGVkIHdpdGggQ09ORklHX1RFU1RfU1RBVElDX0tF
-WVMuCj4gQm90aCB3b3JrIGFzIGV4cGVjdGVkLgo+IAo+IFNpbmNlIF9fanVtcF90YWJsZSBzZWN0
-aW9ucyBhcmUgYWxzbyBzdXBwb3J0ZWQgcGVyCj4gbW9kdWxlIHRoaXMgYWxzbyByZXF1aXJlZCBl
-eHBhbmRpbmcgbW9kdWxlLWNvbW1vbi5sZHMuUwo+IHRvIGNhcHR1cmUgYW5kIGZvbGQgYWxsIC5k
-YXRhLnRsYi5fX2p1bXBfdGFibGUuKiBvbnRvCj4gdGhlIHRoZSBzZWN0aW9uIF9fanVtcF90YWJs
-ZSAtLSBpbiB0aGlzIGNhc2UgZm9yIG1vZHVsZXMKPiBuZWVkIHRvIGtlZXAgYSByZWZlcmVuY2Ug
-aW4gcGxhY2UsIGdpdmVuIHRoZSBhbHRlcm5hdGl2ZQo+IGlzIHRvIHVzZSBERUZJTkVfTElOS1RB
-QkxFKHN0cnVjdCBqdW1wX2VudHJ5LCBfX2p1bXBfdGFibGUpCj4gcGVyIG1vZHVsZSAtLSBhbmQg
-bGF0ZXIgdGhyb3VnaCBtYWNybyBoYWNrcyBpbnN0YW50aWF0ZQo+IHRoZSBqdW1wIGVudHJpZXMg
-cGVyIG1vZHVsZSB1cG9uIGluaXQuIFRoaXMgaXMgZG9hYmxlIGJ1dAo+IHdlJ2QgbG9vc2Ugb3V0
-IG9uIHRoZSBzb3J0aW5nIG9mIHRoZSB0YWJsZSB1c2luZyB0aGUKPiBsaW5rZXIsIHRvIHNvcnQg
-d2UnZCBhbHdheXMgc3RpbGwgbmVlZCB0byBleHBhbmQgdGhlCj4gbW9kdWxlIGNvbW1vbiBsaW5r
-ZXIgc2NyaXB0LiBBbiBhbHRlcm5hdGl2ZSBtZWNoYW5pc20KPiBpcyBwb3NzaWJsZSB3aGljaCB3
-b3VsZCBtYWtlIHRoZXNlIGN1c3RvbSBtb2R1bGUgc2VjdGlvbnMKPiBleHRlbnNpb25zIGR5bmFt
-aWMgd2l0aG91dCByZXF1aXJpbmcgbWFudWFsIGNoYW5nZXMsIHRoaXMKPiBob3dldmVyIGlzIGJl
-c3QgZG9uZSBsYXRlciB0aHJvdWdoIGEgc2VwYXJhdGUgZXZvbHV0aW9uCj4gb25jZSBsaW5rZXIg
-dGFibGVzIGFyZSBpbiBwbGFjZS4KPiAKPiBBIGNhcmVmdWwgcmV2aWV3ZXIgbWF5IG5vdGUgdGhh
-dCBzb21lIGFyY2hpdGVjdHVyZXMgdXNlCj4gIlxuXHQiIHRvIHNlcGFyYXRlIGFzbSBjb2RlLCB3
-aGlsZSBvdGhlcnMganVzdCB1c2UgYSBuZXcgbGluZS4KPiBVcG9uIHJldmlldyBsYXN0IHRpbWUg
-aXQgd2FzIGRlZW1lZCByZWFzb25hYmxlIHRvIGZvciBhbGwKPiBhcmNoaXRlY3R1cmVzIHRvIGp1
-c3QgdXNlICJcbiIsIHRoaXMgaXMgZGVmaW5lZCBhcyBBU01fQ01EX1NFUCwKPiBhbmQgaWYgYW4g
-YXJjaGl0ZWN0dXJlIG5lZWRzIHRvIG92ZXJyaWRlIHRoZXkgY2FuIGRvIHNvIG9uIHRoZWlyCj4g
-YXJjaGl0ZWN0dXJlIHNlY3Rpb25zLmggcHJpb3IgdG8gaW5jbHVkaW5nIGFzbS1nZW5lcmljL3Nl
-Y3Rpb25zLmgKPiAKPiB2NjogcmVuYW1lIHRhYmxlIG1hY3JvIGFzIHN1Z2dlc3RlZCBieSBBbmR5
-IFNoZXZjaGVua28KPiAKPiB2NToKPiAKPiBvIFVzZSAuLnRibCBpbnN0ZWFkIG9mIC50YmwgYXMg
-c3VnZ2VzdGVkIGJ5IE5pY2hvbGFzIFBpZ2dpbi4KPiAgIFRoaXMgaXMgdGhlIHR5cGljYWwgd2F5
-IHRvIGF2b2lkIGNsYXNoIHdpdGggY29tcGlsZXIgZ2VuZXJhdGVkCj4gICBzZWN0aW9uLgo+IAo+
-IG8gUmVwbGFjZSBzZWN0aW9uIG1hY3JvcyB3aXRoIHNlY3Rpb24gbmFtZXMKPiAKPiBvIFVzZSBM
-SU5LVEFCTEVfU1RBUlQoKSBhbmQgTElOS1RBQkxFX0VORCgpCj4gCj4gbyBmaXhlZCB0aWxlIGp1
-bXAgbGFiZWwgcG9ydCAtLSB0aWxlIGdvdCBqdW1wIGxhYmVsIHN1cHBvcnQgYXMgb2YKPiAgIGNv
-bW1pdCA2NWE3OTJlODRmMjVkMSAoInRpbGUvanVtcF9sYWJlbDogYWRkIGp1bXAgbGFiZWwgc3Vw
-cG9ydAo+ICAgZm9yIFRJTEUtR3giKSwgYXMgc3VjaCB3ZSBqdXN0IG5lZWRlZCB0byBhZGp1c3Qg
-dGhlIGFzbSB0byBhY2NvdW50Cj4gICBmb3IgdGhlIG5ldyBsaW5rZXIgdGFibGUgQVBJIHVzZS4g
-VGhpcyBjb21taXQgd2FzIG1lcmdlZCBhcyBvZiB2NC41LXJjMS4KPiAKPiB2NDoKPiAKPiBvIFNv
-bWUgYXJjaGl0ZWN0dXJlcyBhbGxvdyBsaW5rZXIgc2NyaXB0cyB0byBmb2xsb3cgaW5jbHVkaW5n
-IGhlYWRlcgo+ICAgZmlsZXMsIHNvbWUgb3RoZXJzIGRvIG5vdCwgc28gaWYgeW91IG5lZWQgYSBo
-ZWxwZXIgb24gYSBsaW5rZXIgc2NyaXB0Cj4gICB5b3UgbmVlZCB0byBleHBsaWNpdGx5IGluY2x1
-ZGUgaXQuIFNvIGZvciBpbnN0YW5jZSBhbHRob3VnaAo+ICAgc2NyaXB0cy9tb2R1bGUtY29tbW9u
-Lmxkcy5TIGluY2x1ZGVzIDxhc20vdGFibGVzLmg+IGFuZCB0aGlzIGZpbGUKPiAgIGluY2x1ZGVz
-IDxhc20vc2VjdGlvbi1jb3JlLmg+LCB5b3Ugc3RpbGwgbmVlZCB0byBleHBsaWNpdGx5Cj4gICBp
-bmNsdWRlIGl0IG9uIHRoZSBsaW5rZXIgc2NyaXB0LiBUaGlzIGlzc3VlIGlzIHByZXNlbnQgb24g
-QVJNLgo+IAo+IG8gYXMgcGVyIEpvc2ggUG9pbWJvZXVmIG9wZW4gY29kZSB0aGUgc2VjdGlvbiB0
-YWJsZSBuYW1lIGluc3RlYWQKPiAgIG9mIGluY2x1ZGluZyB0aGUga2VybmVsIHNlY3Rpb24gaGVh
-ZGVycywgdGhlIHNpbXBsaWNpdHkgYW5kCj4gICBpbmRlcGVuZGVuY2UgZnJvbSB0aGUga2VybmVs
-IGlzIHByZWZlcnJlZC4KPiAKPiB2MzoKPiAKPiBvIE1vcmUgZWxhYm9yYXRlIHRlc3RzIHBlcmZv
-cm1lZAo+IG8gZmlyc3QgbW9kdWxhciBzdXBwb3J0IHVzZSBjYXNlLCBtb2R1bGUgdGVzdGVkIHdh
-cwo+ICAgQ09ORklHX1RFU1RfU1RBVElDX0tFWVMgKGxpYi90ZXN0X3N0YXRpY19rZXlzLmtvKSwg
-dGhpcwo+ICAgcmVxdWlyZWQgdXMgdG8gZXh0ZW5kIG1vZHVsZS1jb21tb24ubGRzLlMKPiBvIHVz
-ZSBnZW5lcmljIHB1c2hfc2VjdGlvbl90YmxfYW55KCkgZm9yIGFsbCBhcmNoaXRlY3R1cmVzCj4g
-byBNYWtlcyB1c2Ugb2YgQVNNX0NNRF9TRVAgdG8gZW5hYmxlIGFyY2hpdGVjdHVyZXMgdG8gb3Zl
-cnJpZGUgbGF0ZXIKPiAgIGlmIG5lZWRlZAo+IG8gZ3VhcmQgdGFibGVzLmggaW5jbHVzaW9uIGFu
-ZCB0YWJsZSBkZWZpbml0aW9uIHdpdGggX19LRVJORUxfXwo+IAo+IHYyOiBpbnRyb2R1Y2VkIGlu
-IHRoaXMgc2VyaWVzCj4gCj4gU2lnbmVkLW9mZi1ieTogTHVpcyBSLiBSb2RyaWd1ZXogPG1jZ3Jv
-ZkBrZXJuZWwub3JnPgo+IC0tLQo+ICBhcmNoL2FybS9pbmNsdWRlL2FzbS9qdW1wX2xhYmVsLmgg
-ICAgIHwgIDYgKysrKy0tCj4gIGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vanVtcF9sYWJlbC5oICAg
-fCAgNiArKysrLS0KPiAgYXJjaC9taXBzL2luY2x1ZGUvYXNtL2p1bXBfbGFiZWwuaCAgICB8ICA2
-ICsrKystLQo+ICBhcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vanVtcF9sYWJlbC5oIHwgIDggKysr
-KystLS0KPiAgYXJjaC9zMzkwL2luY2x1ZGUvYXNtL2p1bXBfbGFiZWwuaCAgICB8ICA2ICsrKyst
-LQo+ICBhcmNoL3NwYXJjL2luY2x1ZGUvYXNtL2p1bXBfbGFiZWwuaCAgIHwgIDYgKysrKy0tCj4g
-IGFyY2gvdGlsZS9pbmNsdWRlL2FzbS9qdW1wX2xhYmVsLmggICAgfCAgNSArKystLQo+ICBhcmNo
-L3g4Ni9pbmNsdWRlL2FzbS9qdW1wX2xhYmVsLmggICAgIHwgMTAgKysrKysrLS0tLQo+ICBpbmNs
-dWRlL2FzbS1nZW5lcmljL3ZtbGludXgubGRzLmggICAgIHwgIDUgLS0tLS0KPiAgaW5jbHVkZS9s
-aW51eC9qdW1wX2xhYmVsLmggICAgICAgICAgICB8ICA0ICsrLS0KPiAga2VybmVsL2p1bXBfbGFi
-ZWwuYyAgICAgICAgICAgICAgICAgICB8IDE3ICsrKysrKysrKystLS0tLS0tCj4gIHNjcmlwdHMv
-bW9kdWxlLWNvbW1vbi5sZHMgICAgICAgICAgICAgfCAgMSArCj4gIHRvb2xzL29ianRvb2wvc3Bl
-Y2lhbC5jICAgICAgICAgICAgICAgfCAgMiArLQo+ICAxMyBmaWxlcyBjaGFuZ2VkLCA0OCBpbnNl
-cnRpb25zKCspLCAzNCBkZWxldGlvbnMoLSkKCm1ldGEtY29tbWVudC4gIFRoaXMgbmV3IGluZnJh
-c3RydWN0dXJlIGRvZXNuJ3Qgc2VlbSB0byBzYXZlIGFueSBjb2RlCndoZW4geW91IG5lZWQgdG8g
-aGF2ZSBhIG5ldyAibGluayB0YWJsZSIuICBZZXMsIHRoZSBtYWNyb3Mgc2VlbSBhIGJpdApuaWNl
-ciwgYnV0IGl0IGZlZWxzIGxpa2UgdW5uZWVkZWQgY2h1cm4uICBJIGhhdmVuJ3Qgc2VlbiBhbnkg
-cGF0Y2hlcyBpbgp0aGlzIHNlcmllcyB0aGF0IG1ha2VzIG1lIGdvICJvaCB5ZWFoLCBub3cgSSBz
-ZWUgd2h5IGhlIGRpZCB0aGlzIHdvcmssCml0J3Mgc28gbXVjaCBzaW1wbGVyIGFuZCBlYXN5IHRv
-IHVuZGVyc3RhbmQgbm93ISIKCldoYXQgYW0gSSBtaXNzaW5nPyAgV2hhdCB3b25kZXJmdWwgbmV3
-IHRoaW5ncyBhcmUgZ29pbmcgdG8gaGFwcGVuLCBvcgp3aGVyZSBpcyB0aGUgY29kZSBzYXZpbmdz
-IGdvaW5nIHRvIGNvbWUgZnJvbSB3aXRoIHRoaXMgc2VyaWVzIHRvIGp1c3RpZnkKYWxsIG9mIHRo
-ZSB3b3JrIHRvIGNyZWF0ZSBhbmQgcmV2aWV3IHRoaXM/Cgp0aGFua3MsCgpncmVnIGstaAoKX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KWGVuLWRldmVsIG1h
-aWxpbmcgbGlzdApYZW4tZGV2ZWxAbGlzdHMueGVuLm9yZwpodHRwczovL2xpc3RzLnhlbi5vcmcv
-eGVuLWRldmVsCg==
+Since sem->count had been changed to a atomic_long_t type, it is no
+longer necessary to use the atomic_long_t cast anymore. So they are
+removed.
+
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ include/asm-generic/rwsem.h | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
+index 5be122e..6c6a214 100644
+--- a/include/asm-generic/rwsem.h
++++ b/include/asm-generic/rwsem.h
+@@ -33,7 +33,7 @@
+  */
+ static inline void __down_read(struct rw_semaphore *sem)
+ {
+-	if (unlikely(atomic_long_inc_return_acquire((atomic_long_t *)&sem->count) <= 0))
++	if (unlikely(atomic_long_inc_return_acquire(&sem->count) <= 0))
+ 		rwsem_down_read_failed(sem);
+ }
+ 
+@@ -58,7 +58,7 @@ static inline void __down_write(struct rw_semaphore *sem)
+ 	long tmp;
+ 
+ 	tmp = atomic_long_add_return_acquire(RWSEM_ACTIVE_WRITE_BIAS,
+-				     (atomic_long_t *)&sem->count);
++					     &sem->count);
+ 	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
+ 		rwsem_down_write_failed(sem);
+ }
+@@ -68,7 +68,7 @@ static inline int __down_write_killable(struct rw_semaphore *sem)
+ 	long tmp;
+ 
+ 	tmp = atomic_long_add_return_acquire(RWSEM_ACTIVE_WRITE_BIAS,
+-				     (atomic_long_t *)&sem->count);
++					     &sem->count);
+ 	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
+ 		if (IS_ERR(rwsem_down_write_failed_killable(sem)))
+ 			return -EINTR;
+@@ -91,7 +91,7 @@ static inline void __up_read(struct rw_semaphore *sem)
+ {
+ 	long tmp;
+ 
+-	tmp = atomic_long_dec_return_release((atomic_long_t *)&sem->count);
++	tmp = atomic_long_dec_return_release(&sem->count);
+ 	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
+ 		rwsem_wake(sem);
+ }
+@@ -102,7 +102,7 @@ static inline void __up_read(struct rw_semaphore *sem)
+ static inline void __up_write(struct rw_semaphore *sem)
+ {
+ 	if (unlikely(atomic_long_sub_return_release(RWSEM_ACTIVE_WRITE_BIAS,
+-				 (atomic_long_t *)&sem->count) < 0))
++						    &sem->count) < 0))
+ 		rwsem_wake(sem);
+ }
+ 
+@@ -120,8 +120,7 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
+ 	 * read-locked region is ok to be re-ordered into the
+ 	 * write side. As such, rely on RELEASE semantics.
+ 	 */
+-	tmp = atomic_long_add_return_release(-RWSEM_WAITING_BIAS,
+-				     (atomic_long_t *)&sem->count);
++	tmp = atomic_long_add_return_release(-RWSEM_WAITING_BIAS, &sem->count);
+ 	if (tmp < 0)
+ 		rwsem_downgrade_wake(sem);
+ }
+-- 
+1.8.3.1
