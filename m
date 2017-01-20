@@ -1,127 +1,420 @@
-From: Dave Martin <Dave.Martin@arm.com>
-Subject: Re: [RFC PATCH 08/10] arm64/sve: ptrace: Wire up vector length
- control and reporting
-Date: Thu, 19 Jan 2017 17:11:59 +0000
-Message-ID: <20170119171157.GS3699@e103592.cambridge.arm.com>
-References: <1484220369-23970-1-git-send-email-Dave.Martin@arm.com>
- <1484220369-23970-9-git-send-email-Dave.Martin@arm.com>
- <20170116122038.GG28060@E107787-LIN>
- <20170116133231.GO3699@e103592.cambridge.arm.com>
- <20170116151156.GI28060@E107787-LIN>
- <20170117100349.GR3699@e103592.cambridge.arm.com>
- <6610C1B4-C08A-4A15-B272-77A45F341168@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <libc-alpha-return-76874-glibc-alpha=m.gmane.org@sourceware.org>
-List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
-List-Archive: <http://sourceware.org/ml/libc-alpha/>
-List-Post: <mailto:libc-alpha@sourceware.org>
-List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
-Sender: libc-alpha-owner@sourceware.org
-Content-Disposition: inline
-In-Reply-To: <6610C1B4-C08A-4A15-B272-77A45F341168@arm.com>
-To: Alan Hayward <Alan.Hayward@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Florian Weimer <fweimer@redhat.com>, nd <nd@arm.com>, "libc-alpha@sourceware.org" <libc-alpha@sourceware.org>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, Marc Zyngier <Marc.Zyngier@arm.com>, "gdb@sourceware.org" <gdb@sourceware.org>, Joseph Myers <joseph@codesourcery.com>, Yao Qi <qiyaoltc@gmail.com>, Szabolcs Nagy <Szabolcs.Nagy@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Torvald Riegel <triegel@redhat.com>, Christoffer Dall <christoffer.dall@linaro.org>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: [RFT PATCH v3] modversions: redefine kcrctab entries as relative CRC pointers
+Date: Fri, 20 Jan 2017 18:15:03 +0000
+Message-ID: <1484936103-4504-1-git-send-email-ard.biesheuvel@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, arnd@arndb.de, rusty@rustcorp.com.au, jeyu@redhat.com, mpe@ellerman.id.au, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, linux-arch@vger.kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 17, 2017 at 01:31:03PM +0000, Alan Hayward wrote:
-> 
-> > On 17 Jan 2017, at 10:03, Dave Martin <Dave.Martin@arm.com> wrote:
-> > 
-> > On Mon, Jan 16, 2017 at 03:11:56PM +0000, Yao Qi wrote:
-> >> On 17-01-16 13:32:31, Dave Martin wrote:
-> >>> On Mon, Jan 16, 2017 at 12:20:38PM +0000, Yao Qi wrote:
-> >>>> On 17-01-12 11:26:07, Dave Martin wrote:
-> >>>>> This patch adds support for manipulating a task's vector length at
-> >>>>> runtime via ptrace.
-> >>>>> 
-> >>>> 
-> >>>> I hope kernel doesn't provide such interface to ptracer to change vector
-> >>>> length.
-> >>> 
-> >>> It does, with this patch, beacuse...
-> >>> 
-> >>>> The vector length is sort of a read-only property of thread/process/
-> >>>> program to debugger, unless we really have a clear requirement to modify
-> >>>> vector length in debugging.  I may miss something because I haven't debug
-> >>>> SVE code yet.
-> >>> 
-> >>> ...the vector length is no longer read-only for the task, thanks to
-> >>> the new prctls().
-> >> 
-> >> What I meant "read-only" is that debugger can't change it, while the program
-> >> itself can change it via prctl().
-> > 
-> > I see.
-> > 
-> >>> 
-> >>> This does add complexity, but I figured that any programmer's model
-> >>> state that the thread can modify for itself should be modifiable by the
-> >>> debugger, if for no other reason than the user may want to experiment to
-> >>> see what happens.  Without a ptrace interface, it would be necessary
-> >>> to inject a prctl() call into the target, which is possible but awkward.
-> >> 
-> >> We only need such interface if it is useful, see more below.
-> >> 
-> >> Suppose it is useful to change vector length through ptrace, we should align
-> >> ptrace interface to prctl() as much as possible.  Looks that both prctl
-> >> change and ptrace change can go through sve_set_vector_length, easy to keep
-> >> two consistent.
-> >> 
-> >>> 
-> >>> gdb must already re-detect the vector length on stop, since the target
-> >>> could have called the prctl() in the meantime.
-> >> 
-> >> Yes, gdb assumes the vector length may be changed, so it re-detects on
-> >> every stop, but I don't see the need for gdb to change the vector length.
-> >> 
-> >>> 
-> >>> Access via ptrace also allows things like trapping on exec, fork or
-> >>> clone and changing the vector length for the new process or thread
-> >>> before it starts to run.  I'm guessing here, but such a scenario seems
-> >>> legitimate (?)
-> >>> 
-> >> 
-> >> Yes, these cases are valid, but the usefulness is still questionable to
-> >> me.  I just doubt that SVE developers do need to change vector length
-> >> when they are debugging code.  Note that it is not my strong objection
-> >> to this patch, if kernel people believe this is useful, I am fine with
-> >> it.
-> > 
-> > That's fair.  I'll leave the patch there for now and see if anyone else
-> > has a comment to make, but it could be removed without affecting
-> > anything else.
-> > 
-> 
-> I would say that whilst it is a very dangerous thing to do and has many
+The modversion symbol CRCs are emitted as ELF symbols, which allows us to
+easily populate the kcrctab sections by relying on the linker to associate
+each kcrctab slot with the correct value.
 
-ptrace is inherently dangerous for the target task... that's rather the
-point.
+This has a couple of downsides:
+- On architectures that support runtime relocation, a R_<arch>_RELATIVE
+  relocation entry is emitted for each CRC value, which identifies it as
+  a quantity that requires fixing up based on the actual runtime load
+  offset of the kernel. This results in corrupted CRCs unless we
+  explicitly undo the fixup (and this is currently being handled in the
+  core module code),
+- On 64 bit architectures, such runtime relocation entries take up 24
+  bytes of __init space each, resulting in a x8 overhead in [uncompressed]
+  kernel size for CRCs,
+- The use of ELF symbols to represent other things than virtual addresses
+  is poorly supported (and mostly untested) in GNU binutils.
 
-> consequences, there is a requirement for a gdb user to be able to change VL
-> whilst debugging a running process, and I don’t think we should see
-> changing VL as much different from changing a register value on the fly.
-> 
-> Say you have a loop in assembly you are trying to debug - you might write
-> to $x2 and then single step to see how this effects the result. With SVE
-> code you might want to see how different VL values will effect the layout
-> of results in the vectors, how it effects the predicates and how it changes
-> the number of iterations the loop makes. Of course, once you exit the
-> loop all bets are off - just like if you had been changing register values.
-> 
-> The current proposal for gdb is that we will show $VL in the list of
-> registers, therefore for consistency it’d make sense for the gdb user to
-> be able to set it as if it was just another register. For this we need a
-> simple way to change the VL in another process, and I think ptrace() is
-> the easiest way (given that prctl() only changes its own process).
+So avoid these issues by redefining the kcrctab entries as signed relative
+offsets pointing to the actual CRC value stored elsewhere in the kernel
+image (or in the module). This removes all the ELF hackery involving
+symbols and relocations, at the expense of 4 additional bytes of space per
+CRC on 32-bit architectures. (On 64-bit architectures, each 8 byte CRC
+symbol reference is replaced by a 4 byte relative offset and the 4 byte
+CRC value elsewhere in the image)
 
-OK, I'll keep it for now, unless somebody has a strong objection.
+Note that this mostly reverts commit d4703aefdbc8 ("module: handle ppc64
+relocating kcrctabs when CONFIG_RELOCATABLE=y")
 
-It doesn't affect the underlying plumbing much -- doing this via
-ptrace() is actually the simpler of the two options, since the task
-is stopped and thus less synchronisation is needed.
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+v3: emit CRCs into .rodata rather than .rodata.modver, given that the latter
+    will be emitted with read-write permissions, making the CRCs end up in a
+    writable module segment. (The vmlinux linker
 
-Cheers
----Dave
+    fold the modpost fix to ensure that the section address is only substracted
+    from the symbol address when the ELF object in question is fully linked
+    (i.e., ET_DYN or ET_EXEC, and not ET_REL)
+
+v2: update modpost as well, so that genksyms no longer has to emit symbols
+    for both the actual CRC value and the reference to where it is stored
+    in the image
+
+ arch/powerpc/include/asm/module.h |  4 --
+ arch/powerpc/kernel/module_64.c   |  8 ----
+ include/asm-generic/export.h      |  7 +--
+ include/linux/export.h            |  9 ++--
+ include/linux/module.h            | 14 +++---
+ kernel/module.c                   | 50 +++++++++-----------
+ scripts/genksyms/genksyms.c       |  4 +-
+ scripts/kallsyms.c                | 12 +++++
+ scripts/mod/modpost.c             | 10 +++-
+ 9 files changed, 59 insertions(+), 59 deletions(-)
+
+diff --git a/arch/powerpc/include/asm/module.h b/arch/powerpc/include/asm/module.h
+index cc12c61ef315..53885512b8d3 100644
+--- a/arch/powerpc/include/asm/module.h
++++ b/arch/powerpc/include/asm/module.h
+@@ -90,9 +90,5 @@ static inline int module_finalize_ftrace(struct module *mod, const Elf_Shdr *sec
+ }
+ #endif
+ 
+-#if defined(CONFIG_MODVERSIONS) && defined(CONFIG_PPC64)
+-#define ARCH_RELOCATES_KCRCTAB
+-#define reloc_start PHYSICAL_START
+-#endif
+ #endif /* __KERNEL__ */
+ #endif	/* _ASM_POWERPC_MODULE_H */
+diff --git a/arch/powerpc/kernel/module_64.c b/arch/powerpc/kernel/module_64.c
+index bb1807184bad..0b0f89685b67 100644
+--- a/arch/powerpc/kernel/module_64.c
++++ b/arch/powerpc/kernel/module_64.c
+@@ -286,14 +286,6 @@ static void dedotify_versions(struct modversion_info *vers,
+ 	for (end = (void *)vers + size; vers < end; vers++)
+ 		if (vers->name[0] == '.') {
+ 			memmove(vers->name, vers->name+1, strlen(vers->name));
+-#ifdef ARCH_RELOCATES_KCRCTAB
+-			/* The TOC symbol has no CRC computed. To avoid CRC
+-			 * check failing, we must force it to the expected
+-			 * value (see CRC check in module.c).
+-			 */
+-			if (!strcmp(vers->name, "TOC."))
+-				vers->crc = -(unsigned long)reloc_start;
+-#endif
+ 		}
+ }
+ 
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 63554e9f6e0c..ce63ea1a60c2 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -9,18 +9,15 @@
+ #ifndef KSYM_ALIGN
+ #define KSYM_ALIGN 8
+ #endif
+-#ifndef KCRC_ALIGN
+-#define KCRC_ALIGN 8
+-#endif
+ #else
+ #define __put .long
+ #ifndef KSYM_ALIGN
+ #define KSYM_ALIGN 4
+ #endif
++#endif
+ #ifndef KCRC_ALIGN
+ #define KCRC_ALIGN 4
+ #endif
+-#endif
+ 
+ #ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
+ #define KSYM(name) _##name
+@@ -52,7 +49,7 @@ KSYM(__kstrtab_\name):
+ 	.section ___kcrctab\sec+\name,"a"
+ 	.balign KCRC_ALIGN
+ KSYM(__kcrctab_\name):
+-	__put KSYM(__crc_\name)
++	.long KSYM(__crc_\name) - .
+ 	.weak KSYM(__crc_\name)
+ 	.previous
+ #endif
+diff --git a/include/linux/export.h b/include/linux/export.h
+index 2a0f61fbc731..efe0ce1c363a 100644
+--- a/include/linux/export.h
++++ b/include/linux/export.h
+@@ -44,11 +44,10 @@ extern struct module __this_module;
+ /* Mark the CRC weak since genksyms apparently decides not to
+  * generate a checksums for some symbols */
+ #define __CRC_SYMBOL(sym, sec)						\
+-	extern __visible void *__crc_##sym __attribute__((weak));	\
+-	static const unsigned long __kcrctab_##sym			\
+-	__used								\
+-	__attribute__((section("___kcrctab" sec "+" #sym), used))	\
+-	= (unsigned long) &__crc_##sym;
++	asm("	.section \"___kcrctab" sec "+" #sym "\", \"a\"	\n"	\
++	    "	.weak	" VMLINUX_SYMBOL_STR(__crc_##sym) "	\n"	\
++	    "	.long	" VMLINUX_SYMBOL_STR(__crc_##sym) " - .	\n"	\
++	    "	.previous					\n");
+ #else
+ #define __CRC_SYMBOL(sym, sec)
+ #endif
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 7c84273d60b9..cc7cba219b20 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -346,7 +346,7 @@ struct module {
+ 
+ 	/* Exported symbols */
+ 	const struct kernel_symbol *syms;
+-	const unsigned long *crcs;
++	const s32 *crcs;
+ 	unsigned int num_syms;
+ 
+ 	/* Kernel parameters. */
+@@ -359,18 +359,18 @@ struct module {
+ 	/* GPL-only exported symbols. */
+ 	unsigned int num_gpl_syms;
+ 	const struct kernel_symbol *gpl_syms;
+-	const unsigned long *gpl_crcs;
++	const s32 *gpl_crcs;
+ 
+ #ifdef CONFIG_UNUSED_SYMBOLS
+ 	/* unused exported symbols. */
+ 	const struct kernel_symbol *unused_syms;
+-	const unsigned long *unused_crcs;
++	const s32 *unused_crcs;
+ 	unsigned int num_unused_syms;
+ 
+ 	/* GPL-only, unused exported symbols. */
+ 	unsigned int num_unused_gpl_syms;
+ 	const struct kernel_symbol *unused_gpl_syms;
+-	const unsigned long *unused_gpl_crcs;
++	const s32 *unused_gpl_crcs;
+ #endif
+ 
+ #ifdef CONFIG_MODULE_SIG
+@@ -382,7 +382,7 @@ struct module {
+ 
+ 	/* symbols that will be GPL-only in the near future. */
+ 	const struct kernel_symbol *gpl_future_syms;
+-	const unsigned long *gpl_future_crcs;
++	const s32 *gpl_future_crcs;
+ 	unsigned int num_gpl_future_syms;
+ 
+ 	/* Exception table */
+@@ -523,7 +523,7 @@ struct module *find_module(const char *name);
+ 
+ struct symsearch {
+ 	const struct kernel_symbol *start, *stop;
+-	const unsigned long *crcs;
++	const s32 *crcs;
+ 	enum {
+ 		NOT_GPL_ONLY,
+ 		GPL_ONLY,
+@@ -539,7 +539,7 @@ struct symsearch {
+  */
+ const struct kernel_symbol *find_symbol(const char *name,
+ 					struct module **owner,
+-					const unsigned long **crc,
++					const s32 **crc,
+ 					bool gplok,
+ 					bool warn);
+ 
+diff --git a/kernel/module.c b/kernel/module.c
+index 5088784c0cf9..b1ede27fb124 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -389,16 +389,16 @@ extern const struct kernel_symbol __start___ksymtab_gpl[];
+ extern const struct kernel_symbol __stop___ksymtab_gpl[];
+ extern const struct kernel_symbol __start___ksymtab_gpl_future[];
+ extern const struct kernel_symbol __stop___ksymtab_gpl_future[];
+-extern const unsigned long __start___kcrctab[];
+-extern const unsigned long __start___kcrctab_gpl[];
+-extern const unsigned long __start___kcrctab_gpl_future[];
++extern const s32 __start___kcrctab[];
++extern const s32 __start___kcrctab_gpl[];
++extern const s32 __start___kcrctab_gpl_future[];
+ #ifdef CONFIG_UNUSED_SYMBOLS
+ extern const struct kernel_symbol __start___ksymtab_unused[];
+ extern const struct kernel_symbol __stop___ksymtab_unused[];
+ extern const struct kernel_symbol __start___ksymtab_unused_gpl[];
+ extern const struct kernel_symbol __stop___ksymtab_unused_gpl[];
+-extern const unsigned long __start___kcrctab_unused[];
+-extern const unsigned long __start___kcrctab_unused_gpl[];
++extern const s32 __start___kcrctab_unused[];
++extern const s32 __start___kcrctab_unused_gpl[];
+ #endif
+ 
+ #ifndef CONFIG_MODVERSIONS
+@@ -497,7 +497,7 @@ struct find_symbol_arg {
+ 
+ 	/* Output */
+ 	struct module *owner;
+-	const unsigned long *crc;
++	const s32 *crc;
+ 	const struct kernel_symbol *sym;
+ };
+ 
+@@ -563,7 +563,7 @@ static bool find_symbol_in_section(const struct symsearch *syms,
+  * (optional) module which owns it.  Needs preempt disabled or module_mutex. */
+ const struct kernel_symbol *find_symbol(const char *name,
+ 					struct module **owner,
+-					const unsigned long **crc,
++					const s32 **crc,
+ 					bool gplok,
+ 					bool warn)
+ {
+@@ -1249,23 +1249,17 @@ static int try_to_force_load(struct module *mod, const char *reason)
+ }
+ 
+ #ifdef CONFIG_MODVERSIONS
+-/* If the arch applies (non-zero) relocations to kernel kcrctab, unapply it. */
+-static unsigned long maybe_relocated(unsigned long crc,
+-				     const struct module *crc_owner)
++
++static u32 resolve_crc(const s32 *crc)
+ {
+-#ifdef ARCH_RELOCATES_KCRCTAB
+-	if (crc_owner == NULL)
+-		return crc - (unsigned long)reloc_start;
+-#endif
+-	return crc;
++	return *(u32 *)((void *)crc + *crc);
+ }
+ 
+ static int check_version(Elf_Shdr *sechdrs,
+ 			 unsigned int versindex,
+ 			 const char *symname,
+ 			 struct module *mod,
+-			 const unsigned long *crc,
+-			 const struct module *crc_owner)
++			 const s32 *crc)
+ {
+ 	unsigned int i, num_versions;
+ 	struct modversion_info *versions;
+@@ -1283,13 +1277,16 @@ static int check_version(Elf_Shdr *sechdrs,
+ 		/ sizeof(struct modversion_info);
+ 
+ 	for (i = 0; i < num_versions; i++) {
++		u32 crcval;
++
+ 		if (strcmp(versions[i].name, symname) != 0)
+ 			continue;
+ 
+-		if (versions[i].crc == maybe_relocated(*crc, crc_owner))
++		crcval = resolve_crc(crc);
++		if (versions[i].crc == crcval)
+ 			return 1;
+-		pr_debug("Found checksum %lX vs module %lX\n",
+-		       maybe_relocated(*crc, crc_owner), versions[i].crc);
++		pr_debug("Found checksum %X vs module %lX\n",
++			 crcval, versions[i].crc);
+ 		goto bad_version;
+ 	}
+ 
+@@ -1307,7 +1304,7 @@ static inline int check_modstruct_version(Elf_Shdr *sechdrs,
+ 					  unsigned int versindex,
+ 					  struct module *mod)
+ {
+-	const unsigned long *crc;
++	const s32 *crc;
+ 
+ 	/*
+ 	 * Since this should be found in kernel (which can't be removed), no
+@@ -1321,8 +1318,7 @@ static inline int check_modstruct_version(Elf_Shdr *sechdrs,
+ 	}
+ 	preempt_enable();
+ 	return check_version(sechdrs, versindex,
+-			     VMLINUX_SYMBOL_STR(module_layout), mod, crc,
+-			     NULL);
++			     VMLINUX_SYMBOL_STR(module_layout), mod, crc);
+ }
+ 
+ /* First part is kernel version, which we ignore if module has crcs. */
+@@ -1340,8 +1336,7 @@ static inline int check_version(Elf_Shdr *sechdrs,
+ 				unsigned int versindex,
+ 				const char *symname,
+ 				struct module *mod,
+-				const unsigned long *crc,
+-				const struct module *crc_owner)
++				const s32 *crc)
+ {
+ 	return 1;
+ }
+@@ -1368,7 +1363,7 @@ static const struct kernel_symbol *resolve_symbol(struct module *mod,
+ {
+ 	struct module *owner;
+ 	const struct kernel_symbol *sym;
+-	const unsigned long *crc;
++	const s32 *crc;
+ 	int err;
+ 
+ 	/*
+@@ -1383,8 +1378,7 @@ static const struct kernel_symbol *resolve_symbol(struct module *mod,
+ 	if (!sym)
+ 		goto unlock;
+ 
+-	if (!check_version(info->sechdrs, info->index.vers, name, mod, crc,
+-			   owner)) {
++	if (!check_version(info->sechdrs, info->index.vers, name, mod, crc)) {
+ 		sym = ERR_PTR(-EINVAL);
+ 		goto getname;
+ 	}
+diff --git a/scripts/genksyms/genksyms.c b/scripts/genksyms/genksyms.c
+index 06121ce524a7..6ac22b5f148e 100644
+--- a/scripts/genksyms/genksyms.c
++++ b/scripts/genksyms/genksyms.c
+@@ -693,7 +693,9 @@ void export_symbol(const char *name)
+ 			fputs(">\n", debugfile);
+ 
+ 		/* Used as a linker script. */
+-		printf("%s__crc_%s = 0x%08lx ;\n", mod_prefix, name, crc);
++		printf("SECTIONS { .rodata : ALIGN(4) { "
++		       "%s__crc_%s = .; LONG(0x%08lx); } }\n",
++		       mod_prefix, name, crc);
+ 	}
+ }
+ 
+diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+index 299b92ca1ae0..5d554419170b 100644
+--- a/scripts/kallsyms.c
++++ b/scripts/kallsyms.c
+@@ -219,6 +219,10 @@ static int symbol_valid(struct sym_entry *s)
+ 		"_SDA2_BASE_",		/* ppc */
+ 		NULL };
+ 
++	static char *special_prefixes[] = {
++		"__crc_",		/* modversions */
++		NULL };
++
+ 	static char *special_suffixes[] = {
+ 		"_veneer",		/* arm */
+ 		"_from_arm",		/* arm */
+@@ -259,6 +263,14 @@ static int symbol_valid(struct sym_entry *s)
+ 		if (strcmp(sym_name, special_symbols[i]) == 0)
+ 			return 0;
+ 
++	for (i = 0; special_prefixes[i]; i++) {
++		int l = strlen(special_prefixes[i]);
++
++		if (l <= strlen(sym_name) &&
++		    strncmp(sym_name, special_prefixes[i], l) == 0)
++			return 0;
++	}
++
+ 	for (i = 0; special_suffixes[i]; i++) {
+ 		int l = strlen(sym_name) - strlen(special_suffixes[i]);
+ 
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 29c89a6bad3d..90c3ca8cac4d 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -619,8 +619,16 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
+ 
+ 	/* CRC'd symbol */
+ 	if (strncmp(symname, CRC_PFX, strlen(CRC_PFX)) == 0) {
++		unsigned int *crcp = NULL;
++
++		if (sym->st_shndx != SHN_UNDEF)
++			crcp = (void *)info->hdr + sym->st_value +
++			       info->sechdrs[sym->st_shndx].sh_offset -
++			       (info->hdr->e_type != ET_REL ?
++			        info->sechdrs[sym->st_shndx].sh_addr : 0);
++
+ 		is_crc = true;
+-		crc = (unsigned int) sym->st_value;
++		crc = crcp ? *crcp : 0;
+ 		sym_update_crc(symname + strlen(CRC_PFX), mod, crc,
+ 				export);
+ 	}
+-- 
+2.7.4
