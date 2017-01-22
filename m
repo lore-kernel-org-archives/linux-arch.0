@@ -1,42 +1,59 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 14/20] metag: migrate exception table users off module.h and onto extable.h
-Date: Sun, 22 Jan 2017 11:32:38 -0500
-Message-ID: <20170122163244.11740-15-paul.gortmaker@windriver.com>
+Subject: [PATCH 05/20] alpha: migrate exception table users off module.h and onto extable.h
+Date: Sun, 22 Jan 2017 11:32:29 -0500
+Message-ID: <20170122163244.11740-6-paul.gortmaker@windriver.com>
 References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail5.windriver.com ([192.103.53.11]:58902 "EHLO mail5.wrs.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751721AbdAVQdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 22 Jan 2017 11:33:40 -0500
+Return-path: <linux-alpha-owner@vger.kernel.org>
 In-Reply-To: <20170122163244.11740-1-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-alpha-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, James Hogan <james.hogan@imgtec.com>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This file was only including module.h for exception table related
-functions.  We've now separated that content out into its own file
-"extable.h" so now move over to that and avoid all the extra header
-content in module.h that we don't really need to compile this file.
+These files were only including module.h for exception table
+related functions.  We've now separated that content out into its
+own file "extable.h" so now move over to that and avoid all the
+extra header content in module.h that we don't really need to compile
+these files.
 
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/metag/mm/extable.c | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ arch/alpha/kernel/traps.c | 2 +-
+ arch/alpha/mm/fault.c     | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/metag/mm/extable.c b/arch/metag/mm/extable.c
-index 2a21eaebe84d..3aa90b78b43d 100644
---- a/arch/metag/mm/extable.c
-+++ b/arch/metag/mm/extable.c
-@@ -1,5 +1,4 @@
--
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 3328af7c2776..af2994206b4b 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -13,7 +13,7 @@
+ #include <linux/sched.h>
+ #include <linux/tty.h>
+ #include <linux/delay.h>
+-#include <linux/module.h>
++#include <linux/extable.h>
+ #include <linux/kallsyms.h>
+ #include <linux/ratelimit.h>
+ 
+diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
+index 83e9eee57a55..47948b4dd157 100644
+--- a/arch/alpha/mm/fault.c
++++ b/arch/alpha/mm/fault.c
+@@ -22,7 +22,7 @@
+ #include <linux/mman.h>
+ #include <linux/smp.h>
+ #include <linux/interrupt.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
  #include <linux/uaccess.h>
  
- int fixup_exception(struct pt_regs *regs)
+ extern void die_if_kernel(char *,struct pt_regs *,long, unsigned long *);
 -- 
 2.11.0
+
