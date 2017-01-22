@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail5.windriver.com ([192.103.53.11]:58906 "EHLO mail5.wrs.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751800AbdAVQd4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 22 Jan 2017 11:33:56 -0500
+Received: from mail1.windriver.com ([147.11.146.13]:60062 "EHLO
+        mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751809AbdAVQeC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Jan 2017 11:34:02 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 17/20] microblaze: migrate exception table users off module.h and onto extable.h
-Date: Sun, 22 Jan 2017 11:32:41 -0500
-Message-ID: <20170122163244.11740-18-paul.gortmaker@windriver.com>
+Subject: [PATCH 10/20] openrisc: migrate exception table users off module.h and onto extable.h
+Date: Sun, 22 Jan 2017 11:32:34 -0500
+Message-ID: <20170122163244.11740-11-paul.gortmaker@windriver.com>
 In-Reply-To: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,33 +14,37 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20170122163241.nmHbmXbSvdoxwsXi5470vWbu5624BThLtnMxpYPfezw@z>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, openrisc@lists.librecores.org
+Message-ID: <20170122163234.KI3C245WxaSA0S1jYDA87g5IIzrI2kUalNRyDonvsH8@z>
 
 This file was only including module.h for exception table related
 functions.  We've now separated that content out into its own file
 "extable.h" so now move over to that and avoid all the extra header
-content in module.h that we don't really need to compile this file.
+content in module.h that we don't really need to compile these files.
 
-Cc: Michal Simek <monstr@monstr.eu>
+Reported-by: kbuild test robot <lkp@intel.com>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: openrisc@lists.librecores.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/microblaze/mm/fault.c | 2 +-
+ arch/openrisc/mm/fault.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
-index abb678ccde6f..f91b30f8aaa8 100644
---- a/arch/microblaze/mm/fault.c
-+++ b/arch/microblaze/mm/fault.c
+diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
+index b1a7435e786a..53592a639744 100644
+--- a/arch/openrisc/mm/fault.c
++++ b/arch/openrisc/mm/fault.c
 @@ -17,7 +17,7 @@
-  *
-  */
  
+ #include <linux/mm.h>
+ #include <linux/interrupt.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
- #include <linux/signal.h>
  #include <linux/sched.h>
- #include <linux/kernel.h>
+ 
+ #include <linux/uaccess.h>
 -- 
 2.11.0
 
