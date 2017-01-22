@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:34677 "EHLO
+Received: from mail.windriver.com ([147.11.1.11]:34656 "EHLO
         mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751505AbdAVQdu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Jan 2017 11:33:50 -0500
+        with ESMTP id S1751697AbdAVQdh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Jan 2017 11:33:37 -0500
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 15/20] score: migrate exception table users off module.h and onto extable.h
-Date: Sun, 22 Jan 2017 11:32:39 -0500
-Message-ID: <20170122163244.11740-16-paul.gortmaker@windriver.com>
+Subject: [PATCH 12/20] nios2: migrate exception table users off module.h and onto extable.h
+Date: Sun, 22 Jan 2017 11:32:36 -0500
+Message-ID: <20170122163244.11740-13-paul.gortmaker@windriver.com>
 In-Reply-To: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
@@ -14,48 +14,49 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
-Message-ID: <20170122163239.JTy1KHxYnY6xG51xOz8hJJ5YwCXCpzxa1WvnLDKpMJI@z>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20170122163236.1l8lyyQWuSdb4-aLtgMSAp10IeuLfEWmcie6VLttavc@z>
 
 This file was only including module.h for exception table related
 functions.  We've now separated that content out into its own file
 "extable.h" so now move over to that and avoid all the extra header
 content in module.h that we don't really need to compile this file.
 
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Reported-by: kbuild test robot <lkp@intel.com>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: nios2-dev@lists.rocketboards.org
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/score/mm/extable.c | 2 +-
- arch/score/mm/fault.c   | 2 +-
+ arch/nios2/mm/extable.c | 2 +-
+ arch/nios2/mm/fault.c   | 2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/score/mm/extable.c b/arch/score/mm/extable.c
-index 01ff6445171c..ec871355fc2d 100644
---- a/arch/score/mm/extable.c
-+++ b/arch/score/mm/extable.c
-@@ -23,7 +23,7 @@
-  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
+index 4d2fc5a589d0..2574dba0407d 100644
+--- a/arch/nios2/mm/extable.c
++++ b/arch/nios2/mm/extable.c
+@@ -8,7 +8,7 @@
+  * for more details.
   */
  
 -#include <linux/module.h>
 +#include <linux/extable.h>
+ #include <linux/uaccess.h>
  
  int fixup_exception(struct pt_regs *regs)
- {
-diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
-index 995b71e4db4b..b85fad4f0874 100644
---- a/arch/score/mm/fault.c
-+++ b/arch/score/mm/fault.c
-@@ -28,7 +28,7 @@
- #include <linux/kernel.h>
- #include <linux/mm.h>
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
+index affc4eb3f89e..e7a14e1e0d6b 100644
+--- a/arch/nios2/mm/fault.c
++++ b/arch/nios2/mm/fault.c
+@@ -21,7 +21,7 @@
+ #include <linux/ptrace.h>
  #include <linux/mman.h>
+ #include <linux/mm.h>
 -#include <linux/module.h>
 +#include <linux/extable.h>
- #include <linux/signal.h>
- #include <linux/sched.h>
- #include <linux/string.h>
+ #include <linux/uaccess.h>
+ #include <linux/ptrace.h>
+ 
 -- 
 2.11.0
 
