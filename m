@@ -1,45 +1,55 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 20/20] module.h: remove extable.h include now users have migrated
-Date: Sun, 22 Jan 2017 11:32:44 -0500
-Message-ID: <20170122163244.11740-21-paul.gortmaker@windriver.com>
+Subject: [PATCH 15/20] score: migrate exception table users off module.h and onto extable.h
+Date: Sun, 22 Jan 2017 11:32:39 -0500
+Message-ID: <20170122163244.11740-16-paul.gortmaker@windriver.com>
 References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail5.windriver.com ([192.103.53.11]:58912 "EHLO mail5.wrs.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751780AbdAVQdw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Sun, 22 Jan 2017 11:33:52 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170122163244.11740-1-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-With hopefully most/all users of module.h that were looking for
-exception table functions moved over to the new extable.h header,
-we can remove the back-compat include that let us transition
-without introducing build regressions.
+This file was only including module.h for exception table related
+functions.  We've now separated that content out into its own file
+"extable.h" so now move over to that and avoid all the extra header
+content in module.h that we don't really need to compile this file.
 
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Chen Liqin <liqin.linux@gmail.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- include/linux/module.h | 1 -
- 1 file changed, 1 deletion(-)
+ arch/score/mm/extable.c | 2 +-
+ arch/score/mm/fault.c   | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index 7c84273d60b9..2e6df4c41c86 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -18,7 +18,6 @@
- #include <linux/moduleparam.h>
- #include <linux/jump_label.h>
- #include <linux/export.h>
--#include <linux/extable.h>	/* only as arch move module.h -> extable.h */
- #include <linux/rbtree_latch.h>
+diff --git a/arch/score/mm/extable.c b/arch/score/mm/extable.c
+index 01ff6445171c..ec871355fc2d 100644
+--- a/arch/score/mm/extable.c
++++ b/arch/score/mm/extable.c
+@@ -23,7 +23,7 @@
+  * 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  */
  
- #include <linux/percpu.h>
+-#include <linux/module.h>
++#include <linux/extable.h>
+ 
+ int fixup_exception(struct pt_regs *regs)
+ {
+diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
+index 995b71e4db4b..b85fad4f0874 100644
+--- a/arch/score/mm/fault.c
++++ b/arch/score/mm/fault.c
+@@ -28,7 +28,7 @@
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <linux/mman.h>
+-#include <linux/module.h>
++#include <linux/extable.h>
+ #include <linux/signal.h>
+ #include <linux/sched.h>
+ #include <linux/string.h>
 -- 
 2.11.0
