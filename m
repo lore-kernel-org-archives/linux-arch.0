@@ -1,109 +1,182 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0045.outbound.protection.outlook.com ([104.47.36.45]:24897
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1752292AbdATVVM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 20 Jan 2017 16:21:12 -0500
-From: Bart Van Assche <bart.vanassche@sandisk.com>
-Subject: [PATCH v3 03/37] treewide: Consolidate set_dma_ops() implementations
-Date: Fri, 20 Jan 2017 13:04:03 -0800
-Message-ID: <20170120210437.26389-4-bart.vanassche@sandisk.com>
-In-Reply-To: <20170120210437.26389-1-bart.vanassche@sandisk.com>
-References: <20170120210437.26389-1-bart.vanassche@sandisk.com>
+Received: from mail1.windriver.com ([147.11.146.13]:59977 "EHLO
+        mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750999AbdAVQdI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 22 Jan 2017 11:33:08 -0500
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: [PATCH 01/20] ia64: move ia64_done_with_exception out of asm/uaccess.h
+Date: Sun, 22 Jan 2017 11:32:25 -0500
+Message-ID: <20170122163244.11740-2-paul.gortmaker@windriver.com>
+In-Reply-To: <20170122163244.11740-1-paul.gortmaker@windriver.com>
+References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Doug Ledford <dledford@redhat.com>
-Cc: linux-rdma@vger.kernel.org, Bart Van Assche <bart.vanassche@sandisk.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chris Metcalf <cmetcalf@mellanox.com>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>, Russell King <linux@armlinux.org.uk>
-Message-ID: <20170120210403.vJmDQJRcOTEmRddB-oD8hL7Iw1CamVhuVIGV8gJ3IIY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-ia64@vger.kernel.org
+Message-ID: <20170122163225.0dOcgK83EDC253GqmUGKq8XVflJlNEfnPAGnAcQvkXw@z>
 
-Now that all set_dma_ops() implementations are identical (ignoring
-BUG_ON() statements), remove the architecture specific definitions
-and add a definition in <linux/dma-mapping.h>.
+Move ia64_done_with_exception out of asm/uaccess.h (which is widely
+used) and into asm/exception.h (like ARM has) and then ensure the
+few callers of it include this new header.
 
-Signed-off-by: Bart Van Assche <bart.vanassche@sandisk.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Chris Metcalf <cmetcalf@mellanox.com>
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Russell King <linux@armlinux.org.uk>
+Most of the other C content in asm files is implemented in macro form.
+So we do that conversion at the same time as the move.
+
+There are two C exception prototypes that move along with the macro.
+One of them will become redundant when we switch over to using the
+<linux/extable.h> instead of <linux/module.h> header in a subsequent
+commit.
+
+Also relocate a couple of the automated asm --> linux uaccess
+conversions to preserve the linux and asm independent grouping, since
+we are in the file at that location anyway.
+
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-ia64@vger.kernel.org
+Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- arch/arm/include/asm/dma-mapping.h     | 6 ------
- arch/powerpc/include/asm/dma-mapping.h | 5 -----
- arch/tile/include/asm/dma-mapping.h    | 5 -----
- include/linux/dma-mapping.h            | 5 +++++
- 4 files changed, 5 insertions(+), 16 deletions(-)
+ arch/ia64/include/asm/exception.h | 36 ++++++++++++++++++++++++++++++++++++
+ arch/ia64/include/asm/uaccess.h   | 15 ---------------
+ arch/ia64/kernel/kprobes.c        |  2 +-
+ arch/ia64/kernel/traps.c          |  3 ++-
+ arch/ia64/kernel/unaligned.c      |  3 ++-
+ arch/ia64/mm/fault.c              |  1 +
+ 6 files changed, 42 insertions(+), 18 deletions(-)
+ create mode 100644 arch/ia64/include/asm/exception.h
 
-diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index 312f4d0564d6..c7432d647e53 100644
---- a/arch/arm/include/asm/dma-mapping.h
-+++ b/arch/arm/include/asm/dma-mapping.h
-@@ -31,12 +31,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
- 		return __generic_dma_ops(dev);
- }
+diff --git a/arch/ia64/include/asm/exception.h b/arch/ia64/include/asm/exception.h
+new file mode 100644
+index 000000000000..d90236090e8c
+--- /dev/null
++++ b/arch/ia64/include/asm/exception.h
+@@ -0,0 +1,36 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_EXCEPTION_H
++#define __ASM_EXCEPTION_H
++
++struct pt_regs;
++struct exception_table_entry;
++
++extern void ia64_handle_exception(struct pt_regs *regs,
++				  const struct exception_table_entry *e);
++extern const struct exception_table_entry *search_exception_tables(unsigned long addr);
++
++#define ia64_done_with_exception(regs)					  \
++({									  \
++	int __ex_ret = 0;						  \
++	const struct exception_table_entry *e;				  \
++	e = search_exception_tables((regs)->cr_iip + ia64_psr(regs)->ri); \
++	if (e) {							  \
++		ia64_handle_exception(regs, e);				  \
++		__ex_ret = 1;						  \
++	}								  \
++	__ex_ret;							  \
++})
++
++#endif	/* __ASM_EXCEPTION_H */
+diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
+index bfe13196f770..471044be2a3b 100644
+--- a/arch/ia64/include/asm/uaccess.h
++++ b/arch/ia64/include/asm/uaccess.h
+@@ -353,21 +353,6 @@ struct exception_table_entry {
+ 	int fixup;	/* location-relative continuation addr.; if bit 2 is set, r9 is set to 0 */
+ };
  
--static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
+-extern void ia64_handle_exception (struct pt_regs *regs, const struct exception_table_entry *e);
+-extern const struct exception_table_entry *search_exception_tables (unsigned long addr);
+-
+-static inline int
+-ia64_done_with_exception (struct pt_regs *regs)
 -{
--	BUG_ON(!dev);
--	dev->dma_ops = ops;
+-	const struct exception_table_entry *e;
+-	e = search_exception_tables(regs->cr_iip + ia64_psr(regs)->ri);
+-	if (e) {
+-		ia64_handle_exception(regs, e);
+-		return 1;
+-	}
+-	return 0;
 -}
 -
- #define HAVE_ARCH_DMA_SUPPORTED 1
- extern int dma_supported(struct device *dev, u64 mask);
+ #define ARCH_HAS_TRANSLATE_MEM_PTR	1
+ static __inline__ void *
+ xlate_dev_mem_ptr(phys_addr_t p)
+diff --git a/arch/ia64/kernel/kprobes.c b/arch/ia64/kernel/kprobes.c
+index 45ff27e9edbb..55b18e1b67a8 100644
+--- a/arch/ia64/kernel/kprobes.c
++++ b/arch/ia64/kernel/kprobes.c
+@@ -33,7 +33,7 @@
  
-diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-index 59fbd4abcbf8..8275603ba4d5 100644
---- a/arch/powerpc/include/asm/dma-mapping.h
-+++ b/arch/powerpc/include/asm/dma-mapping.h
-@@ -91,11 +91,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
- 	return dev->dma_ops;
- }
+ #include <asm/pgtable.h>
+ #include <asm/sections.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
  
--static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
--{
--	dev->dma_ops = ops;
--}
--
- /*
-  * get_dma_offset()
-  *
-diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
-index c0620697eaad..2562995a6ac9 100644
---- a/arch/tile/include/asm/dma-mapping.h
-+++ b/arch/tile/include/asm/dma-mapping.h
-@@ -59,11 +59,6 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+ extern void jprobe_inst_return(void);
  
- static inline void dma_mark_clean(void *addr, size_t size) {}
+diff --git a/arch/ia64/kernel/traps.c b/arch/ia64/kernel/traps.c
+index 095bfaff82d0..d3e1f1ee465f 100644
+--- a/arch/ia64/kernel/traps.c
++++ b/arch/ia64/kernel/traps.c
+@@ -17,11 +17,12 @@
+ #include <linux/kprobes.h>
+ #include <linux/delay.h>		/* for ssleep() */
+ #include <linux/kdebug.h>
++#include <linux/uaccess.h>
  
--static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
--{
--	dev->dma_ops = ops;
--}
--
- static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
- {
- 	if (!dev->dma_mask)
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index f1da68b82c63..e97f23e8b2d9 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -164,6 +164,11 @@ int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
+ #include <asm/fpswa.h>
+ #include <asm/intrinsics.h>
+ #include <asm/processor.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
+ #include <asm/setup.h>
  
- #ifdef CONFIG_HAS_DMA
- #include <asm/dma-mapping.h>
-+static inline void set_dma_ops(struct device *dev,
-+			       const struct dma_map_ops *dma_ops)
-+{
-+	dev->dma_ops = dma_ops;
-+}
- #else
- /*
-  * Define the dma api to allow compilation but not linking of
+ fpswa_interface_t *fpswa_interface;
+diff --git a/arch/ia64/kernel/unaligned.c b/arch/ia64/kernel/unaligned.c
+index 9cd01c2200ee..e697403b0ec1 100644
+--- a/arch/ia64/kernel/unaligned.c
++++ b/arch/ia64/kernel/unaligned.c
+@@ -18,11 +18,12 @@
+ #include <linux/sched.h>
+ #include <linux/tty.h>
+ #include <linux/ratelimit.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/intrinsics.h>
+ #include <asm/processor.h>
+ #include <asm/rse.h>
+-#include <linux/uaccess.h>
++#include <asm/exception.h>
+ #include <asm/unaligned.h>
+ 
+ extern int die_if_kernel(char *str, struct pt_regs *regs, long err);
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index fa6ad95e992e..52b41dad9704 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -15,6 +15,7 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
++#include <asm/exception.h>
+ 
+ extern int die(char *, struct pt_regs *, long);
+ 
 -- 
 2.11.0
 
