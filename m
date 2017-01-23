@@ -1,89 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:58335 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751351AbdAWPG4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 10:06:56 -0500
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v4 4/7] Makefile.headersinst: cleanup input files
-Date: Mon, 23 Jan 2017 15:58:38 +0100
-Message-ID: <1485183521-13002-5-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail-wm0-f52.google.com ([74.125.82.52]:36859 "EHLO
+        mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751057AbdAWQDI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 11:03:08 -0500
+Received: by mail-wm0-f52.google.com with SMTP id c85so139500165wmi.1
+        for <linux-arch@vger.kernel.org>; Mon, 23 Jan 2017 08:03:08 -0800 (PST)
+Reply-To: nicolas.dichtel@6wind.com
+Subject: Re: [PATCH v4 6/7] uapi: export all headers under uapi directories
 References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
  <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-7-git-send-email-nicolas.dichtel@6wind.com>
+ <20170123152508.GA12899@infradead.org>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <ab8be0a4-a89a-e2d9-2a55-0901e792f8a5@6wind.com>
+Date: Mon, 23 Jan 2017 17:03:04 +0100
+MIME-Version: 1.0
+In-Reply-To: <20170123152508.GA12899@infradead.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <20170123145838.PdzJqTbSBig8uKdrKr9173hNzWwcYCnCHN33EuJwrog@z>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, tklauser@distanz.ch, mpe@ellerman.id.au
+Message-ID: <20170123160304.6e2DPHOD8nH9I0oKHT_s7lomtAPaeMm_KiC0LVMTNZE@z>
 
-After the last four patches, all exported headers are under uapi/, thus
-input-files2 are not needed anymore.
-The side effect is that input-files1-name is exactly header-y.
+Le 23/01/2017 à 16:25, Christoph Hellwig a écrit :
+>> .install
+> 
+>> linux/genwqe/.install
+>> linux/genwqe/..install.cmd
+> 
+> ...
+> 
+> If these aren't just a mistake in your list the patches need to be
+> fixed not to install this build system internal file.
+> 
+> And I'm pretty sure I already pointed this out last time.
+> 
+Yes, it was already pointed out. But, as I said, this is done for *every*
+exported directory. My patch just follows how it is done currently:
+$ find . -name '.install' | wc -l
+105
+$ find . -name '..install.cmd' | wc -l
+105
+$ find . -type d | wc -l
+105
 
-Note also that input-files3-name is genhdr-y.
+I'm not against removing these files, but this should be done in another patch,
+it's not related to this series.
+Fell free to send a patch.
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- scripts/Makefile.headersinst | 34 +++++++++++-----------------------
- 1 file changed, 11 insertions(+), 23 deletions(-)
 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 1106d6ca3a38..3e20d03432d2 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
- 
--oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
--
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
- all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
- 
--input-files1  := $(foreach hdr, $(header-y), \
--		   $(if $(wildcard $(srcdir)/$(hdr)), \
--			$(wildcard $(srcdir)/$(hdr))) \
--		   )
--input-files1-name := $(notdir $(input-files1))
--input-files2  := $(foreach hdr, $(header-y), \
--		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
--			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
--				$(wildcard $(oldsrcdir)/$(hdr)), \
--				$(error Missing UAPI file $(srcdir)/$(hdr))) \
--		   ))
--input-files2-name := $(notdir $(input-files2))
--input-files3  := $(foreach hdr, $(genhdr-y), \
--		   $(if	$(wildcard $(gendir)/$(hdr)), \
--			$(wildcard $(gendir)/$(hdr)), \
--			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
--		   ))
--input-files3-name := $(notdir $(input-files3))
-+# Check that all expected files exist
-+$(foreach hdr, $(header-y), \
-+  $(if $(wildcard $(srcdir)/$(hdr)),, \
-+       $(error Missing UAPI file $(srcdir)/$(hdr)) \
-+   ))
-+$(foreach hdr, $(genhdr-y), \
-+  $(if	$(wildcard $(gendir)/$(hdr)),, \
-+       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
-+  ))
- 
- # Work out what needs to be removed
- oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
-@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
- quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
--        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
-+        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
-+        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
-         done;                                                           \
--- 
-2.8.1
-
+Regards,
+Nicolas
