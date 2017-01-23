@@ -1,55 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f52.google.com ([74.125.82.52]:36859 "EHLO
-        mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751057AbdAWQDI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 11:03:08 -0500
-Received: by mail-wm0-f52.google.com with SMTP id c85so139500165wmi.1
-        for <linux-arch@vger.kernel.org>; Mon, 23 Jan 2017 08:03:08 -0800 (PST)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v4 6/7] uapi: export all headers under uapi directories
+Received: from mail.skyhub.de ([78.46.96.112]:58443 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751338AbdAWQw7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 23 Jan 2017 11:52:59 -0500
+Date: Mon, 23 Jan 2017 17:52:45 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+Message-ID: <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
 References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
  <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
- <1485183521-13002-7-git-send-email-nicolas.dichtel@6wind.com>
- <20170123152508.GA12899@infradead.org>
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <ab8be0a4-a89a-e2d9-2a55-0901e792f8a5@6wind.com>
-Date: Mon, 23 Jan 2017 17:03:04 +0100
+ <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
 MIME-Version: 1.0
-In-Reply-To: <20170123152508.GA12899@infradead.org>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, tklauser@distanz.ch, mpe@ellerman.id.au
-Message-ID: <20170123160304.6e2DPHOD8nH9I0oKHT_s7lomtAPaeMm_KiC0LVMTNZE@z>
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au
+Message-ID: <20170123165245.YTLPViILUdyy2pxCkL-yydavF-_TxOmqFRzzKeM3qIg@z>
 
-Le 23/01/2017 à 16:25, Christoph Hellwig a écrit :
->> .install
-> 
->> linux/genwqe/.install
->> linux/genwqe/..install.cmd
-> 
-> ...
-> 
-> If these aren't just a mistake in your list the patches need to be
-> fixed not to install this build system internal file.
-> 
-> And I'm pretty sure I already pointed this out last time.
-> 
-Yes, it was already pointed out. But, as I said, this is done for *every*
-exported directory. My patch just follows how it is done currently:
-$ find . -name '.install' | wc -l
-105
-$ find . -name '..install.cmd' | wc -l
-105
-$ find . -type d | wc -l
-105
+On Mon, Jan 23, 2017 at 03:58:37PM +0100, Nicolas Dichtel wrote:
+> This header file is exported, thus move it to uapi.
 
-I'm not against removing these files, but this should be done in another patch,
-it's not related to this series.
-Fell free to send a patch.
+Why? Why is this damn thing exported in the first place?
 
+The moment we decide to change an MSR name or even remove it from that
+file, we break userspace. And what for, because userspace is using some
+arbitrary header file which was meant to be for the kernel solely.
 
-Regards,
-Nicolas
+NAKed-by: Borislav Petkov <bp@suse.de>
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
