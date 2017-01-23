@@ -1,36 +1,39 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 13/20] arc: migrate exception table users off module.h and
- onto extable.h
-Date: Mon, 23 Jan 2017 13:14:04 -0800
-Message-ID: <b8c3cef5-ad62-1e2f-499c-b80816a88469@synopsys.com>
-References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
- <20170122163244.11740-14-paul.gortmaker@windriver.com>
+From: Jan Engelhardt <jengelh@inai.de>
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+Date: Mon, 23 Jan 2017 23:24:02 +0100 (CET)
+Message-ID: <alpine.LSU.2.20.1701232316180.19605@erq.vanv.qr>
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com> <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com> <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com> <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
+ <d105332c-d8dd-938a-aaa5-ceb42fca4507@6wind.com> <20170123171732.i3qfbcsqzznppe5m@pd.tnic> <20170123172103.GB28446@infradead.org> <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:43217 "EHLO
-        smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750945AbdAWVON (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 16:14:13 -0500
-In-Reply-To: <20170122163244.11740-14-paul.gortmaker@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-snps-arc@lists.infradead.org
+Content-Type: text/plain; charset=US-ASCII
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Christoph Hellwig <hch@infradead.org>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, hpa@zytor.com
+List-Id: linux-arch.vger.kernel.org
 
-On 01/22/2017 08:32 AM, Paul Gortmaker wrote:
-> This file was only including module.h for exception table related
-> functions.  We've now separated that content out into its own file
-> "extable.h" so now move over to that and avoid all the extra header
-> content in module.h that we don't really need to compile this file.
-> Since the file does have some EXPORT_SYMBOL, we add export.h include.
-> 
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: linux-snps-arc@lists.infradead.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+On Monday 2017-01-23 18:26, Borislav Petkov wrote:
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
+>On Mon, Jan 23, 2017 at 09:21:03AM -0800, Christoph Hellwig wrote:
+>> Or keep the exported version as-is and never changed it, and use
+>> a different copy for the kernel itself.
+>
+>I guess we'll have to do that if something in userspace has put its
+>sticky fingers on that file and cannot be fixed. Which I hardly doubt
+>but we can't break that damn userspace.
 
-Thx,
--Vineet
+The importance of uapi headers presence is a bit overrated.
+
+If you look at, for example, iptables (and further projects in that 
+area), copies of uapi headers have been made (and this process is likely 
+to continue) because it could be compiled on a variety of vintage 
+systems that do not have all required #defines yet.
+
+Similarly, it may be built on a variety of _modern_ systems whose 
+kernels no longer have a particular thing (e.g. ipt_SAME), so it also 
+ships copies of those headers.
+
+So if some userspace component depends on that particular msr header (which,
+unlike ipt_SAME, was not intended for export), is it not reasonable to expect
+them to make a copy if and when they need it?
