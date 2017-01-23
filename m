@@ -1,40 +1,83 @@
-From: Joyes Dadi <"YD."@biscuit.ocn.ne.jp>
-Subject: Urgent Please,,
-Date: Mon, 23 Jan 2017 23:07:49 +0900 (JST)
-Message-ID: <1028184183.25784289.1485180469689.JavaMail.root__15198.6629156911$1485181271$gmane$org@biscuit.ocn.ne.jp>
-Reply-To: Joyes Dadi <joyesdadi767@citromail.hu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-2022-JP
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mbkd0331.ocn.ad.jp ([153.149.236.32]:32863 "EHLO
-        mbkd0331.ocn.ad.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751220AbdAWOUz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 09:20:55 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v4 4/7] Makefile.headersinst: cleanup input files
+Date: Mon, 23 Jan 2017 15:58:38 +0100
+Message-ID: <1485183521-13002-5-git-send-email-nicolas.dichtel@6wind.com>
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Nicolas Dichtel <nicolas.dichtel@6wind.com>
+List-Id: linux-arch.vger.kernel.org
 
-Good Day Dear,
+After the last four patches, all exported headers are under uapi/, thus
+input-files2 are not needed anymore.
+The side effect is that input-files1-name is exactly header-y.
 
-My name is Ms. Joyes Dadi, I am glad you are reading this letter and I hope
-we will start our communication and I know that this message will look strange,
-surprising and probably unbelievable to you, but it is the reality. I want to
-make a donation of money to you.
+Note also that input-files3-name is genhdr-y.
 
-I contact you by the will of God. I am a firm German woman specialized in
-mining gold and diamonds in Africa. But now, I'm very sick of a cancer. My
-husband died in an accident two years ago with our two children and now I have
-cancer of the esophagus that damaged almost all the cells in my system/agencies
-and I'll die soon according to my doctor.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+---
+ scripts/Makefile.headersinst | 34 +++++++++++-----------------------
+ 1 file changed, 11 insertions(+), 23 deletions(-)
 
-My most concern now is, we grew up in the orphanage and were married in
-orphanage. If I die this deposited fund will soon be left alone in the hand of
-the bank, and I do want to it that  way. Please, if you can be reliable and
-sincere to accept my humble proposal; I have (10.5Millions Euro) in a fixed
-deposit account; I will order the Bank to transfer the money into your account
-in your country immediately, and then you will take the fund to  your country
-and invest it to the orphanage homes Please, answer as quickly as possible.
-
-God bless you.
-Ms. Joyes Dadi
-Email: joyesdadi767@citromail.hu
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index 1106d6ca3a38..3e20d03432d2 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
+ srcdir        := $(srctree)/$(obj)
+ gendir        := $(objtree)/$(gen)
+ 
+-oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
+-
+ # all headers files for this dir
+ header-y      := $(filter-out $(generic-y), $(header-y))
+ all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
+ output-files  := $(addprefix $(installdir)/, $(all-files))
+ 
+-input-files1  := $(foreach hdr, $(header-y), \
+-		   $(if $(wildcard $(srcdir)/$(hdr)), \
+-			$(wildcard $(srcdir)/$(hdr))) \
+-		   )
+-input-files1-name := $(notdir $(input-files1))
+-input-files2  := $(foreach hdr, $(header-y), \
+-		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
+-			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
+-				$(wildcard $(oldsrcdir)/$(hdr)), \
+-				$(error Missing UAPI file $(srcdir)/$(hdr))) \
+-		   ))
+-input-files2-name := $(notdir $(input-files2))
+-input-files3  := $(foreach hdr, $(genhdr-y), \
+-		   $(if	$(wildcard $(gendir)/$(hdr)), \
+-			$(wildcard $(gendir)/$(hdr)), \
+-			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
+-		   ))
+-input-files3-name := $(notdir $(input-files3))
++# Check that all expected files exist
++$(foreach hdr, $(header-y), \
++  $(if $(wildcard $(srcdir)/$(hdr)),, \
++       $(error Missing UAPI file $(srcdir)/$(hdr)) \
++   ))
++$(foreach hdr, $(genhdr-y), \
++  $(if	$(wildcard $(gendir)/$(hdr)),, \
++       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
++  ))
+ 
+ # Work out what needs to be removed
+ oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
+@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
+ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+                             file$(if $(word 2, $(all-files)),s))
+       cmd_install = \
+-        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
+-        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
+-        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
++        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
++        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
+         for F in $(wrapper-files); do                                   \
+                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
+         done;                                                           \
+-- 
+2.8.1
