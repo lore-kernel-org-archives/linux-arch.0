@@ -1,53 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:58293 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:58315 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751378AbdAWPG7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 10:06:59 -0500
+        with ESMTP id S1751351AbdAWPHA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2017 10:07:00 -0500
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v4 0/7] uapi: export all headers under uapi directories
-Date: Mon, 23 Jan 2017 15:58:34 +0100
-Message-ID: <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v4 2/7] nios2: put setup.h in uapi
+Date: Mon, 23 Jan 2017 15:58:36 +0100
+Message-ID: <1485183521-13002-3-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au
-Message-ID: <20170123145834._FMU6aWm3qEUFxEJO-FH4c0Z4nVhMZilL9hQ_8v7sV8@z>
+Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <20170123145836.2ogUZ3Uz4cluiB1kqtOSPywLuixfGgXULuSJwG8hOZg@z>
 
-Here is the v4 of this series. Seems there was too many people cc'ed, so I've
-removed arch specific ml. Hope it's better now.
+This header file is exported, but from a userland pov, it's just a wrapper
+to asm-generic/setup.h.
 
-Patches #1 to #4 are just cleanup: some exported headers were still under
-a non-uapi directory.
-The patch #5 was spotted by code review: there is no in-tree user of this
-functionality.
-Patches #6 and #7 remove the need to list explicitly headers. Now all files
-under an uapi directory are exported.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
+---
+ arch/nios2/include/uapi/asm/Kbuild | 1 +
+ 1 file changed, 1 insertion(+)
 
-This series has been tested with a 'make headers_install' on x86 and a
-'make headers_install_all'. I've checked the result of both commands.
+diff --git a/arch/nios2/include/uapi/asm/Kbuild b/arch/nios2/include/uapi/asm/Kbuild
+index e0bb972a50d7..69c965304146 100644
+--- a/arch/nios2/include/uapi/asm/Kbuild
++++ b/arch/nios2/include/uapi/asm/Kbuild
+@@ -2,4 +2,5 @@ include include/uapi/asm-generic/Kbuild.asm
+ 
+ header-y += elf.h
+ 
++generic-y += setup.h
+ generic-y += ucontext.h
+-- 
+2.8.1
 
-This patch is built against linus tree. If I must rebase it against the kbuild
-tree, just tell me.
-
-v3 -> v4:
- - first patch has been included
- - patch #4: get back to v2 and remove arch/x86/include/asm/msr-index.h
-
-v2 -> v3:
- - patch #1: remove arch/arm/include/asm/types.h
- - patch #2: remove arch/h8300/include/asm/bitsperlong.h
- - patch #3: remove arch/nios2/include/uapi/asm/setup.h
- - patch #4: don't export msr-index.h
- - patch #5: fix a typo: s/unput-files3-name/input-files3-name
- - patch #6: no change
- - patch #7: fix include/uapi/asm-generic/Kbuild.asm by introducing mandatory-y
- - add patch #8
-
-v1 -> v2:
- - add patch #1 to #6
- - patch #7: remove use of header-y
-
-Comments are welcomed,
-Nicolas
