@@ -1,124 +1,211 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:46469 "EHLO ozlabs.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751113AbdAXBog (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 23 Jan 2017 20:44:36 -0500
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v2 00/10] Finalize separation of extable.h from module.h
-In-Reply-To: <20170109204010.5047-1-paul.gortmaker@windriver.com>
-References: <20170109204010.5047-1-paul.gortmaker@windriver.com>
-Date: Tue, 24 Jan 2017 10:46:58 +1030
-Message-ID: <878tq1joqt.fsf@rustcorp.com.au>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:36881 "EHLO
+        mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751176AbdAXQQw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jan 2017 11:16:52 -0500
+Received: by mail-wm0-f45.google.com with SMTP id c206so217473222wme.0
+        for <linux-arch@vger.kernel.org>; Tue, 24 Jan 2017 08:16:52 -0800 (PST)
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: [PATCH v4 1/2] kbuild: modversions: add infrastructure for emitting relative CRCs
+Date: Tue, 24 Jan 2017 16:16:39 +0000
+Message-ID: <1485274600-21976-2-git-send-email-ard.biesheuvel@linaro.org>
+In-Reply-To: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
+References: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, David Howells <dhowells@redhat.com>, Fenghua Yu <fenghua.yu@intel.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Linus Torvalds <torvalds@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-am33-list@redhat.com, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, Matt Turner <mattst88@gmail.com>, Max Filippov <jcmvbkbc@gmail.com>, Richard Henderson <rth@twiddle.net>, Rich Felker <dalias@libc.org>, Russell King <linux@armlinux.org.uk>, Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Jessica Yu <jeyu@redhat.com>
-Message-ID: <20170124001658.q2OhSxpVktk6WTbHlnti4F_oOE5A-y_BZAaVXlVI3vM@z>
+To: linux-kernel@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, arnd@arndb.de, rusty@rustcorp.com.au, jeyu@redhat.com, mpe@ellerman.id.au, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, linux-arch@vger.kernel.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Message-ID: <20170124161639.Qxujt5SZkW8rou-P8LA0ddawdNMgMpjSbdgF30ECUmI@z>
 
-BTW, you missed Jeyu, the current module maintainer.
+This add the kbuild infrastructure that will allow architectures to emit
+vmlinux symbol CRCs as 32-bit offsets to other locations in the kernel
+where the actual values are stored. This works around problems with CRCs
+being mistaken for relocatable symbols on kernels that self relocate at
+runtime (i.e., powerpc with CONFIG_RELOCATABLE=y)
 
-Not that we care, I think, it's pretty trivial:
+For the kbuild side of things, this comes down to the following:
+- introducing a Kconfig symbol MODULE_REL_CRCS
+- adding a -R switch to genksyms to instruct it to emit the CRC symbols
+  as references into the .rodata section, and emitting the actual value
+  into it
+- making modpost distinguish such references from absolute CRC symbols by
+  the section index (SHN_ABS)
+- making kallsyms disregard non-absolute symbols with a __crc_ prefix
 
-Acked-by: Rusty Russell <rusty@rustcorp.com.au> (module.h parts)
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+ init/Kconfig                |  4 ++++
+ scripts/Makefile.build      |  2 ++
+ scripts/genksyms/genksyms.c | 19 ++++++++++++++-----
+ scripts/kallsyms.c          | 12 ++++++++++++
+ scripts/mod/modpost.c       | 10 ++++++++++
+ 5 files changed, 42 insertions(+), 5 deletions(-)
 
-Cheers,
-Rusty.
+diff --git a/init/Kconfig b/init/Kconfig
+index e1a937348a3e..4dd8bd232a1d 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1987,6 +1987,10 @@ config MODVERSIONS
+ 	  make them incompatible with the kernel you are running.  If
+ 	  unsure, say N.
+ 
++config MODULE_REL_CRCS
++	bool
++	depends on MODVERSIONS
++
+ config MODULE_SRCVERSION_ALL
+ 	bool "Source checksum for all modules"
+ 	help
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index eadcd4d359d9..a9cfab2ee7c1 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -164,6 +164,7 @@ cmd_gensymtypes_c =                                                         \
+     $(CPP) -D__GENKSYMS__ $(c_flags) $< |                                   \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
++     $(if $(part-of-module),,$(patsubst y,-R,$(CONFIG_MODULE_REL_CRCS)))    \
+      $(if $(KBUILD_PRESERVE),-p)                                            \
+      -r $(firstword $(wildcard $(2:.symtypes=.symref) /dev/null))
+ 
+@@ -337,6 +338,7 @@ cmd_gensymtypes_S =                                                         \
+     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - |                                \
+     $(GENKSYMS) $(if $(1), -T $(2))                                         \
+      $(patsubst y,-s _,$(CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX))             \
++     $(if $(part-of-module),,$(patsubst y,-R,$(CONFIG_MODULE_REL_CRCS)))    \
+      $(if $(KBUILD_PRESERVE),-p)                                            \
+      -r $(firstword $(wildcard $(2:.symtypes=.symref) /dev/null))
+ 
+diff --git a/scripts/genksyms/genksyms.c b/scripts/genksyms/genksyms.c
+index 06121ce524a7..c9235d8340f1 100644
+--- a/scripts/genksyms/genksyms.c
++++ b/scripts/genksyms/genksyms.c
+@@ -44,7 +44,7 @@ char *cur_filename, *source_file;
+ int in_source_file;
+ 
+ static int flag_debug, flag_dump_defs, flag_reference, flag_dump_types,
+-	   flag_preserve, flag_warnings;
++	   flag_preserve, flag_warnings, flag_rel_crcs;
+ static const char *mod_prefix = "";
+ 
+ static int errors;
+@@ -693,7 +693,10 @@ void export_symbol(const char *name)
+ 			fputs(">\n", debugfile);
+ 
+ 		/* Used as a linker script. */
+-		printf("%s__crc_%s = 0x%08lx ;\n", mod_prefix, name, crc);
++		printf(!flag_rel_crcs ? "%s__crc_%s = 0x%08lx;\n" :
++		       "SECTIONS { .rodata : ALIGN(4) { "
++		       "%s__crc_%s = .; LONG(0x%08lx); } }\n",
++		       mod_prefix, name, crc);
+ 	}
+ }
+ 
+@@ -730,7 +733,7 @@ void error_with_pos(const char *fmt, ...)
+ 
+ static void genksyms_usage(void)
+ {
+-	fputs("Usage:\n" "genksyms [-adDTwqhV] > /path/to/.tmp_obj.ver\n" "\n"
++	fputs("Usage:\n" "genksyms [-adDTwqhVR] > /path/to/.tmp_obj.ver\n" "\n"
+ #ifdef __GNU_LIBRARY__
+ 	      "  -s, --symbol-prefix   Select symbol prefix\n"
+ 	      "  -d, --debug           Increment the debug level (repeatable)\n"
+@@ -742,6 +745,7 @@ static void genksyms_usage(void)
+ 	      "  -q, --quiet           Disable warnings (default)\n"
+ 	      "  -h, --help            Print this message\n"
+ 	      "  -V, --version         Print the release version\n"
++	      "  -R, --relative-crc    Emit section relative symbol CRCs\n"
+ #else				/* __GNU_LIBRARY__ */
+ 	      "  -s                    Select symbol prefix\n"
+ 	      "  -d                    Increment the debug level (repeatable)\n"
+@@ -753,6 +757,7 @@ static void genksyms_usage(void)
+ 	      "  -q                    Disable warnings (default)\n"
+ 	      "  -h                    Print this message\n"
+ 	      "  -V                    Print the release version\n"
++	      "  -R                    Emit section relative symbol CRCs\n"
+ #endif				/* __GNU_LIBRARY__ */
+ 	      , stderr);
+ }
+@@ -774,13 +779,14 @@ int main(int argc, char **argv)
+ 		{"preserve", 0, 0, 'p'},
+ 		{"version", 0, 0, 'V'},
+ 		{"help", 0, 0, 'h'},
++		{"relative-crc", 0, 0, 'R'},
+ 		{0, 0, 0, 0}
+ 	};
+ 
+-	while ((o = getopt_long(argc, argv, "s:dwqVDr:T:ph",
++	while ((o = getopt_long(argc, argv, "s:dwqVDr:T:phR",
+ 				&long_opts[0], NULL)) != EOF)
+ #else				/* __GNU_LIBRARY__ */
+-	while ((o = getopt(argc, argv, "s:dwqVDr:T:ph")) != EOF)
++	while ((o = getopt(argc, argv, "s:dwqVDr:T:phR")) != EOF)
+ #endif				/* __GNU_LIBRARY__ */
+ 		switch (o) {
+ 		case 's':
+@@ -823,6 +829,9 @@ int main(int argc, char **argv)
+ 		case 'h':
+ 			genksyms_usage();
+ 			return 0;
++		case 'R':
++			flag_rel_crcs = 1;
++			break;
+ 		default:
+ 			genksyms_usage();
+ 			return 1;
+diff --git a/scripts/kallsyms.c b/scripts/kallsyms.c
+index 299b92ca1ae0..5d554419170b 100644
+--- a/scripts/kallsyms.c
++++ b/scripts/kallsyms.c
+@@ -219,6 +219,10 @@ static int symbol_valid(struct sym_entry *s)
+ 		"_SDA2_BASE_",		/* ppc */
+ 		NULL };
+ 
++	static char *special_prefixes[] = {
++		"__crc_",		/* modversions */
++		NULL };
++
+ 	static char *special_suffixes[] = {
+ 		"_veneer",		/* arm */
+ 		"_from_arm",		/* arm */
+@@ -259,6 +263,14 @@ static int symbol_valid(struct sym_entry *s)
+ 		if (strcmp(sym_name, special_symbols[i]) == 0)
+ 			return 0;
+ 
++	for (i = 0; special_prefixes[i]; i++) {
++		int l = strlen(special_prefixes[i]);
++
++		if (l <= strlen(sym_name) &&
++		    strncmp(sym_name, special_prefixes[i], l) == 0)
++			return 0;
++	}
++
+ 	for (i = 0; special_suffixes[i]; i++) {
+ 		int l = strlen(sym_name) - strlen(special_suffixes[i]);
+ 
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 29c89a6bad3d..ba89e5e953b5 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -619,8 +619,18 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
+ 
+ 	/* CRC'd symbol */
+ 	if (strncmp(symname, CRC_PFX, strlen(CRC_PFX)) == 0) {
++		unsigned int *crcp = NULL;
++
+ 		is_crc = true;
+ 		crc = (unsigned int) sym->st_value;
++		if (sym->st_shndx != SHN_UNDEF && sym->st_shndx != SHN_ABS) {
++			/* symbol points to the CRC in the ELF object */
++			crcp = (void *)info->hdr + sym->st_value +
++			       info->sechdrs[sym->st_shndx].sh_offset -
++			       (info->hdr->e_type != ET_REL ?
++				info->sechdrs[sym->st_shndx].sh_addr : 0);
++			crc = crcp ? *crcp : 0;
++		}
+ 		sym_update_crc(symname + strlen(CRC_PFX), mod, crc,
+ 				export);
+ 	}
+-- 
+2.7.4
 
-Paul Gortmaker <paul.gortmaker@windriver.com> writes:
-> Some of the arch specific changes have already been picked up by the
-> arch maintainers in v1, so I'm assuming the other folks just figured I'd
-> ask Linus to pull the remainder.  Which is the current plan ; soak this
-> in linux-next on 4.10-rc3 and request a pull in the next merge window.
->
-> So please shout if you are an arch maintainer and see something here you
-> have questions or comments on.  Otherwise, you don't have to do anything.
->
-> Once all the old users who expected extable content via module.h are
-> gone, then and only then can we remove the back compat line as done in
-> the final patch in this series.
->
-> I've been build testing this locally on a regular basis in with my other
-> pending work, on a bunch of different architectures, so hopefully we
-> don't see anything go pear shaped when it goes into sfr's linux-next.
->
-> The only real change in the v1 ---> v2 aside from dropping merged
-> content was the restructuring in the ia64 based on comments from Al
-> Viro to improve some header separation at the same time.  I'd resent
-> just those two for follow up comments and nobody seemed to have further 
-> suggestions.  Note that I'm not able to run test ia64; just compile.
->
-> There was also a minor context refresh required due to the recent
-> treewide asm/uaccess --> linux/uaccess change, which gave me the
-> motivation to get this out of my queue and finalized.
->
-> RFC/V1: https://lkml.kernel.org/r/CA+55aFyDw_jK609LcjpWvVMTzCWuH6nLUXiZDeYC2tpSaZqhXA@mail.gmail.com
-> ia64: https://lkml.kernel.org/r/20160920022924.9537-1-paul.gortmaker@windriver.com
->
-> ---
->
-> Cc: Al Viro <viro@zeniv.linux.org.uk>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Fenghua Yu <fenghua.yu@intel.com>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-am33-list@redhat.com
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: Matt Turner <mattst88@gmail.com>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: Russell King <linux@armlinux.org.uk>
-> Cc: Rusty Russell <rusty@rustcorp.com.au>
-> Cc: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
->
-> Paul Gortmaker (10):
->   ia64: move ia64_done_with_exception out of asm/uaccess.h
->   ia64: ensure exception table search users include extable.h
->   m32r: migrate exception table users off module.h and onto extable.h
->   arm: migrate exception table users off module.h and onto extable.h
->   alpha: migrate exception table users off module.h and onto extable.h
->   mn10300: migrate exception table users off module.h and onto extable.h
->   xtensa: migrate exception table users off module.h and onto extable.h
->   sh: migrate exception table users off module.h and onto extable.h
->   core: migrate exception table users off module.h and onto extable.h
->   module.h: remove extable.h include now users have migrated
->
->  arch/alpha/kernel/traps.c         |  2 +-
->  arch/alpha/mm/fault.c             |  2 +-
->  arch/arm/mm/extable.c             |  2 +-
->  arch/arm/mm/fault.c               |  2 +-
->  arch/ia64/include/asm/exception.h | 35 +++++++++++++++++++++++++++++++++++
->  arch/ia64/include/asm/uaccess.h   | 15 ---------------
->  arch/ia64/kernel/kprobes.c        |  4 ++--
->  arch/ia64/kernel/traps.c          |  6 ++++--
->  arch/ia64/kernel/unaligned.c      |  4 +++-
->  arch/ia64/mm/fault.c              |  2 ++
->  arch/m32r/mm/extable.c            |  2 +-
->  arch/m32r/mm/fault.c              |  2 +-
->  arch/mn10300/mm/extable.c         |  2 +-
->  arch/mn10300/mm/misalignment.c    |  2 +-
->  arch/sh/include/asm/uaccess.h     |  1 -
->  arch/sh/kernel/kprobes.c          |  2 +-
->  arch/sh/kernel/traps.c            |  3 ++-
->  arch/sh/mm/extable_32.c           |  2 +-
->  arch/sh/mm/extable_64.c           |  2 +-
->  arch/xtensa/mm/fault.c            |  2 +-
->  include/linux/module.h            |  1 -
->  init/main.c                       |  1 +
->  kernel/extable.c                  |  1 +
->  kernel/module.c                   |  1 +
->  24 files changed, 63 insertions(+), 35 deletions(-)
->  create mode 100644 arch/ia64/include/asm/exception.h
->
-> -- 
-> 2.11.0
