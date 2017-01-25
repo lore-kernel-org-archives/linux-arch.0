@@ -1,34 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:55367 "EHLO sym2.noone.org"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751630AbdAYJxY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 25 Jan 2017 04:53:24 -0500
-Date: Wed, 25 Jan 2017 10:53:20 +0100
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH 12/20] nios2: migrate exception table users off module.h
- and onto extable.h
-Message-ID: <20170125095320.GD27277@distanz.ch>
-References: <20170122163244.11740-1-paul.gortmaker@windriver.com>
- <20170122163244.11740-13-paul.gortmaker@windriver.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170122163244.11740-13-paul.gortmaker@windriver.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:23328 "EHLO
+        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752065AbdAYT6c (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jan 2017 14:58:32 -0500
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v5 1/4] signals, sparc: Add signal codes for ADI violations
+Date: Wed, 25 Jan 2017 12:57:13 -0700
+Message-ID: <9eba1d94727cb37dbe457c891f237e4ee694a7b1.1485362562.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
+References: <cover.1485362562.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
+References: <cover.1485362562.git.khalid.aziz@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
-Message-ID: <20170125095320.UW6AkqQIHg8xTPv42e89jfxcjcABRy2dm862WPcO7I4@z>
+To: arnd@arndb.de, davem@davemloft.net
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, hpa@zytor.com, 0x7f454c46@gmail.com, dave.hansen@linux.intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Message-ID: <20170125195713.jTAVc4irHcnlwCRd_x66tuxKjT1xM1Dtw0QPCESRYfI@z>
 
-On 2017-01-22 at 17:32:36 +0100, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> This file was only including module.h for exception table related
-> functions.  We've now separated that content out into its own file
-> "extable.h" so now move over to that and avoid all the extra header
-> content in module.h that we don't really need to compile this file.
-> 
-> Reported-by: kbuild test robot <lkp@intel.com>
-> Cc: Ley Foon Tan <lftan@altera.com>
-> Cc: nios2-dev@lists.rocketboards.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+SPARC M7 processor introduces a new feature - Application Data
+Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
+When a rogue access occurs, MMU blocks the access and raises an
+exception. In response to the exception, kernel sends the offending
+task a SIGSEGV with si_code that indicates the nature of exception.
+This patch adds three new signal codes specific to ADI feature:
 
-Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
+1. ADI is not enabled for the address and task attempted to access
+   memory using ADI
+2. Task attempted to access memory using wrong ADI tag and caused
+   a deferred exception.
+3. Task attempted to access memory using wrong ADI tag and caused
+   a precise exception.
+
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+---
+ arch/x86/kernel/signal_compat.c    | 2 +-
+ include/uapi/asm-generic/siginfo.h | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
+index ec1f756..d1e860c 100644
+--- a/arch/x86/kernel/signal_compat.c
++++ b/arch/x86/kernel/signal_compat.c
+@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
+ 	 */
+ 	BUILD_BUG_ON(NSIGILL  != 8);
+ 	BUILD_BUG_ON(NSIGFPE  != 8);
+-	BUILD_BUG_ON(NSIGSEGV != 4);
++	BUILD_BUG_ON(NSIGSEGV != 7);
+ 	BUILD_BUG_ON(NSIGBUS  != 5);
+ 	BUILD_BUG_ON(NSIGTRAP != 4);
+ 	BUILD_BUG_ON(NSIGCHLD != 6);
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 1abaf62..2446864 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -213,7 +213,10 @@ typedef struct siginfo {
+ #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
+ #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
+ #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
+-#define NSIGSEGV	4
++#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
++#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
++#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
++#define NSIGSEGV	7
+ 
+ /*
+  * SIGBUS si_codes
+-- 
+2.7.4
+
