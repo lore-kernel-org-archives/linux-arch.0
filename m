@@ -1,66 +1,35 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v5 1/4] signals, sparc: Add signal codes for ADI violations
-Date: Wed, 25 Jan 2017 12:57:13 -0700
-Message-ID: <9eba1d94727cb37dbe457c891f237e4ee694a7b1.1485362562.git.khalid.aziz@oracle.com>
-References: <cover.1485362562.git.khalid.aziz@oracle.com>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+Date: Thu, 26 Jan 2017 17:02:01 +0100
+Message-ID: <1f363058-86ed-7b37-7497-8c370f33d508@6wind.com>
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
+ <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
+ <d105332c-d8dd-938a-aaa5-ceb42fca4507@6wind.com>
+ <20170123171732.i3qfbcsqzznppe5m@pd.tnic>
+ <20170123172103.GB28446@infradead.org>
+ <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
+Reply-To: nicolas.dichtel@6wind.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
-References: <cover.1485362562.git.khalid.aziz@oracle.com>
+In-Reply-To: <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de, davem@davemloft.net
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, hpa@zytor.com, 0x7f454c46@gmail.com, dave.hansen@linux.intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+To: Borislav Petkov <bp@alien8.de>, Christoph Hellwig <hch@infradead.org>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, hpa@zytor.com
 List-Id: linux-arch.vger.kernel.org
 
-SPARC M7 processor introduces a new feature - Application Data
-Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
-When a rogue access occurs, MMU blocks the access and raises an
-exception. In response to the exception, kernel sends the offending
-task a SIGSEGV with si_code that indicates the nature of exception.
-This patch adds three new signal codes specific to ADI feature:
-
-1. ADI is not enabled for the address and task attempted to access
-   memory using ADI
-2. Task attempted to access memory using wrong ADI tag and caused
-   a deferred exception.
-3. Task attempted to access memory using wrong ADI tag and caused
-   a precise exception.
-
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
----
- arch/x86/kernel/signal_compat.c    | 2 +-
- include/uapi/asm-generic/siginfo.h | 5 ++++-
- 2 files changed, 5 insertions(+), 2 deletions(-)
-
-diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-index ec1f756..d1e860c 100644
---- a/arch/x86/kernel/signal_compat.c
-+++ b/arch/x86/kernel/signal_compat.c
-@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
- 	 */
- 	BUILD_BUG_ON(NSIGILL  != 8);
- 	BUILD_BUG_ON(NSIGFPE  != 8);
--	BUILD_BUG_ON(NSIGSEGV != 4);
-+	BUILD_BUG_ON(NSIGSEGV != 7);
- 	BUILD_BUG_ON(NSIGBUS  != 5);
- 	BUILD_BUG_ON(NSIGTRAP != 4);
- 	BUILD_BUG_ON(NSIGCHLD != 6);
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 1abaf62..2446864 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -213,7 +213,10 @@ typedef struct siginfo {
- #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
- #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
- #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
--#define NSIGSEGV	4
-+#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
-+#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
-+#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
-+#define NSIGSEGV	7
- 
- /*
-  * SIGBUS si_codes
--- 
-2.7.4
+Le 23/01/2017 à 18:26, Borislav Petkov a écrit :
+> On Mon, Jan 23, 2017 at 09:21:03AM -0800, Christoph Hellwig wrote:
+>> Or keep the exported version as-is and never changed it, and use
+>> a different copy for the kernel itself.
+> 
+> Yeah, that's a good idea, thanks Christoph.
+> 
+> I guess we'll have to do that if something in userspace has put its
+> sticky fingers on that file and cannot be fixed. Which I hardly doubt
+> but we can't break that damn userspace.
+> 
+So do you agree with the current patch (a build-fix is also needed :/)?
