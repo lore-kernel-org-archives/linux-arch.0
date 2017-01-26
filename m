@@ -1,101 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:23197 "EHLO
-        userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751166AbdAYT6W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jan 2017 14:58:22 -0500
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v5 2/4] mm: Add functions to support extra actions on swap in/out
-Date: Wed, 25 Jan 2017 12:57:14 -0700
-Message-ID: <4706f9a6c626df850d1442f0051395d34ed0b448.1485362562.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
-References: <cover.1485362562.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1485362562.git.khalid.aziz@oracle.com>
-References: <cover.1485362562.git.khalid.aziz@oracle.com>
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:36231 "EHLO
+        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752479AbdAZRRl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jan 2017 12:17:41 -0500
+Received: by mail-wm0-f48.google.com with SMTP id c85so81199943wmi.1
+        for <linux-arch@vger.kernel.org>; Thu, 26 Jan 2017 09:17:40 -0800 (PST)
+Reply-To: nicolas.dichtel@6wind.com
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
+ <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
+ <d105332c-d8dd-938a-aaa5-ceb42fca4507@6wind.com>
+ <20170123171732.i3qfbcsqzznppe5m@pd.tnic>
+ <20170123172103.GB28446@infradead.org>
+ <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <1f363058-86ed-7b37-7497-8c370f33d508@6wind.com>
+Date: Thu, 26 Jan 2017 17:02:01 +0100
+MIME-Version: 1.0
+In-Reply-To: <20170123172627.32zcbntwo7nmd5rf@pd.tnic>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20170125195714.yodXkHVqQVLB9ydlotqrV7xJxau2mMfsmO4Kb5baDxM@z>
+To: Borislav Petkov <bp@alien8.de>, Christoph Hellwig <hch@infradead.org>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, hpa@zytor.com
+Message-ID: <20170126160201.MJ3A5mlOYhCNH_MA2UUV7L9qTcr3ZZ_8zZaLPUQOuBo@z>
 
-If a processor supports special metadata for a page, for example ADI
-version tags on SPARC M7, this metadata must be saved when the page is
-swapped out. The same metadata must be restored when the page is swapped
-back in. This patch adds two new architecture specific functions -
-arch_do_swap_page() to be called when a page is swapped in,
-arch_unmap_one() to be called when a page is being unmapped for swap
-out.
-
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
----
-v5:
-	- Replaced set_swp_pte() function with new architecture
-          functions arch_do_swap_page() and arch_unmap_one()
-
- include/asm-generic/pgtable.h | 16 ++++++++++++++++
- mm/memory.c                   |  1 +
- mm/rmap.c                     |  2 ++
- 3 files changed, 19 insertions(+)
-
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index c4f8fd2..cccc4e4 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -282,6 +282,22 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
-+#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-+static inline void arch_do_swap_page(struct mm_struct *mm, unsigned long addr,
-+				     pte_t pte, pte_t orig_pte)
-+{
-+
-+}
-+#endif
-+
-+#ifndef __HAVE_ARCH_UNMAP_ONE
-+static inline void arch_unmap_one(struct mm_struct *mm, unsigned long addr,
-+				  pte_t pte, pte_t orig_pte)
-+{
-+
-+}
-+#endif
-+
- #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
- #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index e18c57b..10abae2 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -2643,6 +2643,7 @@ int do_swap_page(struct fault_env *fe, pte_t orig_pte)
- 	if (pte_swp_soft_dirty(orig_pte))
- 		pte = pte_mksoft_dirty(pte);
- 	set_pte_at(vma->vm_mm, fe->address, fe->pte, pte);
-+	arch_do_swap_page(vma->vm_mm, fe->address, pte, orig_pte);
- 	if (page == swapcache) {
- 		do_page_add_anon_rmap(page, vma, fe->address, exclusive);
- 		mem_cgroup_commit_charge(page, memcg, true, false);
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 1ef3640..940939d 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1539,6 +1539,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
-+		arch_unmap_one(mm, address, swp_pte, pteval);
- 		set_pte_at(mm, address, pte, swp_pte);
- 	} else if (PageAnon(page)) {
- 		swp_entry_t entry = { .val = page_private(page) };
-@@ -1572,6 +1573,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
- 		swp_pte = swp_entry_to_pte(entry);
- 		if (pte_soft_dirty(pteval))
- 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
-+		arch_unmap_one(mm, address, swp_pte, pteval);
- 		set_pte_at(mm, address, pte, swp_pte);
- 	} else
- 		dec_mm_counter(mm, mm_counter_file(page));
--- 
-2.7.4
-
+Le 23/01/2017 à 18:26, Borislav Petkov a écrit :
+> On Mon, Jan 23, 2017 at 09:21:03AM -0800, Christoph Hellwig wrote:
+>> Or keep the exported version as-is and never changed it, and use
+>> a different copy for the kernel itself.
+> 
+> Yeah, that's a good idea, thanks Christoph.
+> 
+> I guess we'll have to do that if something in userspace has put its
+> sticky fingers on that file and cannot be fixed. Which I hardly doubt
+> but we can't break that damn userspace.
+> 
+So do you agree with the current patch (a build-fix is also needed :/)?
