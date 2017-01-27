@@ -1,52 +1,74 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv2 03/29] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
-Date: Fri, 27 Jan 2017 16:55:06 +0300
-Message-ID: <20170127135506.GB7662@node.shutemov.name>
-References: <20161227015413.187403-1-kirill.shutemov@linux.intel.com>
- <20161227015413.187403-4-kirill.shutemov@linux.intel.com>
- <ed79cc79-8ea6-c2c3-189f-919004711d3f@suse.cz>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: [PATCH v4 0/2] modversions: redefine kcrctab entries as 32-bit
+ values
+Date: Fri, 27 Jan 2017 16:13:24 +0000
+Message-ID: <CAKv+Gu8RUVVU=FhK4TT5nHiXtLmB8079GEWfZPq4jid5LQ5a5w@mail.gmail.com>
+References: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <ed79cc79-8ea6-c2c3-189f-919004711d3f@suse.cz>
-Sender: owner-linux-mm@kvack.org
-To: Vlastimil Babka <vbabka@suse.cz>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jessica Yu <jeyu@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Rusty Russell <rusty@rustcorp.com.au>, Russell King <linux@armlinux.org.uk>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 27, 2017 at 02:24:58PM +0100, Vlastimil Babka wrote:
-> On 12/27/2016 02:53 AM, Kirill A. Shutemov wrote:
-> >We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
-> >abstraction for properly (in opposite to 5level-fixup.h hack) folded
-> >p4d level. The new header will be included from pgtable-nopud.h.
-> >
-> >If an architecture uses <asm-generic/nop*d.h>, we cannot use
-> >5level-fixup.h directly to quickly convert the architecture to 5-level
-> >paging as it would conflict with pgtable-nop4d.h.
-> >
-> >With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
-> >inclusion <asm-genenric/nop*d.h> to 5level-fixup.h.
-> >
-> >Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> >---
-> > include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
-> 
-> At risk of bikeshedding and coming from somebody not familiar with this
-> code... IMHO it would be somewhat more intuitive and consistent to name the
-> file "pgtable-nopud-hack.h" as it's about the pud stuff, not p4d stuff, and
-> acts as an alternative implementation to pgtable-nopud.h, not
-> pgtable-nop4d.h
+On 24 January 2017 at 16:16, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+> This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
+> relative CRC pointers', but since relative CRC pointers do not work in
+> modules, and are actually only needed by powerpc with CONFIG_RELOCATABLE=y,
+> I have made it a Kconfig selectable feature instead.
+>
+> Patch #1 introduces the MODULE_REL_CRCS Kconfig symbol, and adds the kbuild
+> handling of it, i.e., modpost, genksyms and kallsyms.
+>
+> Patch #2 switches all architectures to 32-bit CRC entries in kcrctab, where
+> all architectures except powerpc with CONFIG_RELOCATABLE=y use absolute ELF
+> symbol references as before.
+>
+> v4: make relative CRCs kconfig selectable
+>     use absolute CRC symbols in modules regardless of kconfig selection
+>     split into two patches
+>
+> v3: emit CRCs into .rodata rather than .rodata.modver, given that the latter
+>     will be emitted with read-write permissions, making the CRCs end up in a
+>     writable module segment.
+>
+>     fold the modpost fix to ensure that the section address is only substracted
+>     from the symbol address when the ELF object in question is fully linked
+>     (i.e., ET_DYN or ET_EXEC, and not ET_REL)
+>
+> v2: update modpost as well, so that genksyms no longer has to emit symbols
+>     for both the actual CRC value and the reference to where it is stored
+>     in the image
+>
+> [0] http://marc.info/?l=linux-arch&m=148493613415294&w=2
+>
+> Ard Biesheuvel (2):
+>   kbuild: modversions: add infrastructure for emitting relative CRCs
+>   modversions: treat symbol CRCs as 32 bit quantities
+>
 
-Well, on other hand we hack-in p4d level here...
+Linus, Andrew,
 
-I don't really care. Either way works for me.
+I think this code is in good shape now, given that I had to revert the
+full switch to relative CRC references due to the fact many
+architectures don't support that in modules, and so the only arch that
+opts into these relative CRCs is power with CONFIG_RELOCATABLE=y.
 
--- 
- Kirill A. Shutemov
+I haven't heard any complaints or objections, so perhaps it is time to
+get this queued somewhere.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Andrew, is this something you would be able to pick up? Thanks.
+
+Regards,
+Ard.
