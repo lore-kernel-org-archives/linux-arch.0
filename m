@@ -1,119 +1,59 @@
 From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCH v3 03/37] treewide: Consolidate set_dma_ops()
- implementations
-Date: Mon, 30 Jan 2017 13:58:32 +0000
-Message-ID: <20170130135832.GT27312@n2100.armlinux.org.uk>
-References: <20170120210437.26389-1-bart.vanassche@sandisk.com>
- <20170120210437.26389-4-bart.vanassche@sandisk.com>
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+Date: Mon, 30 Jan 2017 14:51:51 +0000
+Message-ID: <20170130145151.GW27312@n2100.armlinux.org.uk>
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
+ <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:39080 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753616AbdA3N6s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2017 08:58:48 -0500
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170120210437.26389-4-bart.vanassche@sandisk.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bart Van Assche <bart.vanassche@sandisk.com>
-Cc: Doug Ledford <dledford@redhat.com>, linux-rdma@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chris Metcalf <cmetcalf@mellanox.com>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>
+In-Reply-To: <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, slash.tmp@free.fr, daniel.vetter@ffwll.ch, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 20, 2017 at 01:04:03PM -0800, Bart Van Assche wrote:
-> Now that all set_dma_ops() implementations are identical (ignoring
-> BUG_ON() statements), remove the architecture specific definitions
-> and add a definition in <linux/dma-mapping.h>.
+On Mon, Jan 23, 2017 at 05:52:45PM +0100, Borislav Petkov wrote:
+> On Mon, Jan 23, 2017 at 03:58:37PM +0100, Nicolas Dichtel wrote:
+> > This header file is exported, thus move it to uapi.
 > 
-> Signed-off-by: Bart Van Assche <bart.vanassche@sandisk.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Chris Metcalf <cmetcalf@mellanox.com>
-> Cc: David Woodhouse <dwmw2@infradead.org>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Russell King <linux@armlinux.org.uk>
-
-Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
-
-Thanks.
-
-> ---
->  arch/arm/include/asm/dma-mapping.h     | 6 ------
->  arch/powerpc/include/asm/dma-mapping.h | 5 -----
->  arch/tile/include/asm/dma-mapping.h    | 5 -----
->  include/linux/dma-mapping.h            | 5 +++++
->  4 files changed, 5 insertions(+), 16 deletions(-)
+> Why? Why is this damn thing exported in the first place?
 > 
-> diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-> index 312f4d0564d6..c7432d647e53 100644
-> --- a/arch/arm/include/asm/dma-mapping.h
-> +++ b/arch/arm/include/asm/dma-mapping.h
-> @@ -31,12 +31,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
->  		return __generic_dma_ops(dev);
->  }
->  
-> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
-> -{
-> -	BUG_ON(!dev);
-> -	dev->dma_ops = ops;
-> -}
-> -
->  #define HAVE_ARCH_DMA_SUPPORTED 1
->  extern int dma_supported(struct device *dev, u64 mask);
->  
-> diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
-> index 59fbd4abcbf8..8275603ba4d5 100644
-> --- a/arch/powerpc/include/asm/dma-mapping.h
-> +++ b/arch/powerpc/include/asm/dma-mapping.h
-> @@ -91,11 +91,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
->  	return dev->dma_ops;
->  }
->  
-> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
-> -{
-> -	dev->dma_ops = ops;
-> -}
-> -
->  /*
->   * get_dma_offset()
->   *
-> diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
-> index c0620697eaad..2562995a6ac9 100644
-> --- a/arch/tile/include/asm/dma-mapping.h
-> +++ b/arch/tile/include/asm/dma-mapping.h
-> @@ -59,11 +59,6 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
->  
->  static inline void dma_mark_clean(void *addr, size_t size) {}
->  
-> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
-> -{
-> -	dev->dma_ops = ops;
-> -}
-> -
->  static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
->  {
->  	if (!dev->dma_mask)
-> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-> index f1da68b82c63..e97f23e8b2d9 100644
-> --- a/include/linux/dma-mapping.h
-> +++ b/include/linux/dma-mapping.h
-> @@ -164,6 +164,11 @@ int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
->  
->  #ifdef CONFIG_HAS_DMA
->  #include <asm/dma-mapping.h>
-> +static inline void set_dma_ops(struct device *dev,
-> +			       const struct dma_map_ops *dma_ops)
-> +{
-> +	dev->dma_ops = dma_ops;
-> +}
->  #else
->  /*
->   * Define the dma api to allow compilation but not linking of
-> -- 
-> 2.11.0
+> The moment we decide to change an MSR name or even remove it from that
+> file, we break userspace. And what for, because userspace is using some
+> arbitrary header file which was meant to be for the kernel solely.
 > 
+> NAKed-by: Borislav Petkov <bp@suse.de>
+
+Here on my Fedora system:
+
+$ less /usr/include/asm/msr-index.h
+#ifndef _ASM_X86_MSR_INDEX_H
+#define _ASM_X86_MSR_INDEX_H
+
+/* CPU model specific register (MSR) numbers */
+
+/* x86-64 specific MSRs */
+#define MSR_EFER                0xc0000080 /* extended feature register */
+#define MSR_STAR                0xc0000081 /* legacy mode SYSCALL target */
+#define MSR_LSTAR               0xc0000082 /* long mode SYSCALL target */
+...
+
+Like it or not, it is _already_ exported to userspace, so it forms
+part of the user ABI.  You can try to remove it from userspace view,
+but if anyone has already started to use it, removing it will already
+cause a userspace regression.
+
+So, I don't think we have any grounds to NAK these patches on the
+basis of "we don't want this to be visible to userspace because it
+may cause a userspace regression."  Removing it from userspace view
+is likely to cause a userspace regression.
+
+This patch just makes sure that such a regression doesn't happen when
+kbuild stops exporting files in _non_-uapi directories.
 
 -- 
 RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
