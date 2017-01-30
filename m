@@ -1,74 +1,56 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v4 0/2] modversions: redefine kcrctab entries as 32-bit
- values
-Date: Fri, 27 Jan 2017 16:13:24 +0000
-Message-ID: <CAKv+Gu8RUVVU=FhK4TT5nHiXtLmB8079GEWfZPq4jid5LQ5a5w@mail.gmail.com>
-References: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH v7 00/20] ILP32 for ARM64
+Date: Mon, 30 Jan 2017 11:12:52 +0530
+Message-ID: <20170130054252.GB6156@yury-N73SV>
+References: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jessica Yu <jeyu@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Rusty Russell <rusty@rustcorp.com.au>, Russell King <linux@armlinux.org.uk>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Metcalf <cmetcalf@ezchip.com>, philipp.tomsich@theobroma-systems.com, Joseph Myers <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun.Kapoor@caviumnetworks.com, Andreas Schwab <schwab@suse.de>, agraf@suse.de, szabolcs.nagy@arm.com, geert@linux-m68k.org, Adam Borowski <kilobyte@angband.pl>, manuel.montezelo@gmail.com, Chris Metcalf <cmetcalf@mellanox.com>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, linux-arm-kernel@lists.infradead.org, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Florian Weimer <fweimer@redhat.com>, Nathan_Lynch@mentor.com, linux-kernel@vger.ker
 List-Id: linux-arch.vger.kernel.org
 
-On 24 January 2017 at 16:16, Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
-> This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
-> relative CRC pointers', but since relative CRC pointers do not work in
-> modules, and are actually only needed by powerpc with CONFIG_RELOCATABLE=y,
-> I have made it a Kconfig selectable feature instead.
->
-> Patch #1 introduces the MODULE_REL_CRCS Kconfig symbol, and adds the kbuild
-> handling of it, i.e., modpost, genksyms and kallsyms.
->
-> Patch #2 switches all architectures to 32-bit CRC entries in kcrctab, where
-> all architectures except powerpc with CONFIG_RELOCATABLE=y use absolute ELF
-> symbol references as before.
->
-> v4: make relative CRCs kconfig selectable
->     use absolute CRC symbols in modules regardless of kconfig selection
->     split into two patches
->
-> v3: emit CRCs into .rodata rather than .rodata.modver, given that the latter
->     will be emitted with read-write permissions, making the CRCs end up in a
->     writable module segment.
->
->     fold the modpost fix to ensure that the section address is only substracted
->     from the symbol address when the ELF object in question is fully linked
->     (i.e., ET_DYN or ET_EXEC, and not ET_REL)
->
-> v2: update modpost as well, so that genksyms no longer has to emit symbols
->     for both the actual CRC value and the reference to where it is stored
->     in the image
->
-> [0] http://marc.info/?l=linux-arch&m=148493613415294&w=2
->
-> Ard Biesheuvel (2):
->   kbuild: modversions: add infrastructure for emitting relative CRCs
->   modversions: treat symbol CRCs as 32 bit quantities
->
+On Mon, Jan 09, 2017 at 04:59:37PM +0530, Yury Norov wrote:
+> This series enables aarch64 with ilp32 mode.
+> 
+> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
+> option that is enabled for existing 32-bit architectures but disabled
+> for new arches (so 64-bit off_t is is used by new userspace). Also it
+> deprecates getrlimit and setrlimit syscalls prior to prlimit64.
+> 
+> This version is based on linux-next from 2017-01-09. It works with
+> glibc-2.25, and tested with LTP, glibc testsuite, trinity, lmbench,
+> CPUSpec.
+> 
+> This is not RFC anymore. I believe that all ABI and implementation
+> issues are resolved now. The way that kernel clears registers top
+> halves is probably the last question, and because there's no objection
+> for current approach for more that 6 month, I think, community agrees
+> with it.
+> 
+> Patches 1, 2, 3 and 8 are general, and may be applied separately.
+> 
+> Current version does not introduce ABI changes comparing to RFC3.
+> Kernel and GLIBC trees:
+> https://github.com/norov/linux/tree/ilp32-2017-01-09
+> https://github.com/norov/glibc/tree/dev9
 
-Linus, Andrew,
+Hi Arnd, Catalin,
 
-I think this code is in good shape now, given that I had to revert the
-full switch to relative CRC references due to the fact many
-architectures don't support that in modules, and so the only arch that
-opts into these relative CRCs is power with CONFIG_RELOCATABLE=y.
+Is there any progress with review? I particularly ask about generic
+patches (1-3, 8). They all reviewed, and most of them acked by you,
+but they are still not upstreamed.
 
-I haven't heard any complaints or objections, so perhaps it is time to
-get this queued somewhere.
-
-Andrew, is this something you would be able to pick up? Thanks.
-
-Regards,
-Ard.
+Yury
