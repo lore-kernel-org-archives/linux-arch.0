@@ -1,53 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0076.outbound.protection.outlook.com ([104.47.42.76]:3718
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
-        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751032AbdA3F7l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 30 Jan 2017 00:59:41 -0500
-Date: Mon, 30 Jan 2017 11:12:52 +0530
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v7 00/20] ILP32 for ARM64
-Message-ID: <20170130054252.GB6156@yury-N73SV>
-References: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:39982 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S932296AbdA3PAK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2017 10:00:10 -0500
+Date: Mon, 30 Jan 2017 14:51:51 +0000
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
+Message-ID: <20170130145151.GW27312@n2100.armlinux.org.uk>
+References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
+ <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Pinski <pinskia@gmail.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Adam Borowski <kilobyte@angband.pl>, Chris Metcalf <cmetcalf@ezchip.com>, Steve Ellcey <sellcey@caviumnetworks.com>, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Ramana Radhakrishnan <ramana.gcc@googlemail.com>, Florian Weimer <fweimer@redhat.com>, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, Andreas Schwab <schwab@suse.de>, Chris Metcalf <cmetcalf@mellanox.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, schwidefsky@de.ibm.com, broonie@kernel.org, Joseph Myers <joseph@codesourcery.com>, christoph.muellner@theobroma-systems.com, szabolcs.nagy@arm.com, klimov.linux@gmail.com, Nathan_Lynch@mentor.com, agraf@suse.de, Prasun.Kapoor@caviumnetworks.com, geert@linux-m68k.org, philipp.tomsich@theobroma-systems.com, manuel.montezelo@gmail.com, linyongting@huawei.com, davem@davemloft.net, zhouchengming1@huawei.com
-Message-ID: <20170130054252.aL_tndTIwmS4xLhrrG9dVVWge0BhxdqcfmUr2Sa-VyQ@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, slash.tmp@free.fr, daniel.vetter@ffwll.ch, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au
+Message-ID: <20170130145151.3NhAEaMKOGNVxhCh5TiTCNs_ISML8RHA8Dbkgu0OiLY@z>
 
-On Mon, Jan 09, 2017 at 04:59:37PM +0530, Yury Norov wrote:
-> This series enables aarch64 with ilp32 mode.
+On Mon, Jan 23, 2017 at 05:52:45PM +0100, Borislav Petkov wrote:
+> On Mon, Jan 23, 2017 at 03:58:37PM +0100, Nicolas Dichtel wrote:
+> > This header file is exported, thus move it to uapi.
 > 
-> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
-> option that is enabled for existing 32-bit architectures but disabled
-> for new arches (so 64-bit off_t is is used by new userspace). Also it
-> deprecates getrlimit and setrlimit syscalls prior to prlimit64.
+> Why? Why is this damn thing exported in the first place?
 > 
-> This version is based on linux-next from 2017-01-09. It works with
-> glibc-2.25, and tested with LTP, glibc testsuite, trinity, lmbench,
-> CPUSpec.
+> The moment we decide to change an MSR name or even remove it from that
+> file, we break userspace. And what for, because userspace is using some
+> arbitrary header file which was meant to be for the kernel solely.
 > 
-> This is not RFC anymore. I believe that all ABI and implementation
-> issues are resolved now. The way that kernel clears registers top
-> halves is probably the last question, and because there's no objection
-> for current approach for more that 6 month, I think, community agrees
-> with it.
-> 
-> Patches 1, 2, 3 and 8 are general, and may be applied separately.
-> 
-> Current version does not introduce ABI changes comparing to RFC3.
-> Kernel and GLIBC trees:
-> https://github.com/norov/linux/tree/ilp32-2017-01-09
-> https://github.com/norov/glibc/tree/dev9
+> NAKed-by: Borislav Petkov <bp@suse.de>
 
-Hi Arnd, Catalin,
+Here on my Fedora system:
 
-Is there any progress with review? I particularly ask about generic
-patches (1-3, 8). They all reviewed, and most of them acked by you,
-but they are still not upstreamed.
+$ less /usr/include/asm/msr-index.h
+#ifndef _ASM_X86_MSR_INDEX_H
+#define _ASM_X86_MSR_INDEX_H
 
-Yury
+/* CPU model specific register (MSR) numbers */
+
+/* x86-64 specific MSRs */
+#define MSR_EFER                0xc0000080 /* extended feature register */
+#define MSR_STAR                0xc0000081 /* legacy mode SYSCALL target */
+#define MSR_LSTAR               0xc0000082 /* long mode SYSCALL target */
+...
+
+Like it or not, it is _already_ exported to userspace, so it forms
+part of the user ABI.  You can try to remove it from userspace view,
+but if anyone has already started to use it, removing it will already
+cause a userspace regression.
+
+So, I don't think we have any grounds to NAK these patches on the
+basis of "we don't want this to be visible to userspace because it
+may cause a userspace regression."  Removing it from userspace view
+is likely to cause a userspace regression.
+
+This patch just makes sure that such a regression doesn't happen when
+kbuild stops exporting files in _non_-uapi directories.
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
