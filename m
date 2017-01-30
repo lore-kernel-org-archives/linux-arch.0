@@ -1,56 +1,121 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH v7 00/20] ILP32 for ARM64
-Date: Mon, 30 Jan 2017 11:12:52 +0530
-Message-ID: <20170130054252.GB6156@yury-N73SV>
-References: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCH v3 03/37] treewide: Consolidate set_dma_ops()
+ implementations
+Date: Mon, 30 Jan 2017 13:58:32 +0000
+Message-ID: <20170130135832.GT27312@n2100.armlinux.org.uk>
+References: <20170120210437.26389-1-bart.vanassche@sandisk.com>
+ <20170120210437.26389-4-bart.vanassche@sandisk.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:39080 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753616AbdA3N6s (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2017 08:58:48 -0500
 Content-Disposition: inline
-In-Reply-To: <1483961397-8599-1-git-send-email-ynorov@caviumnetworks.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-doc@vger.kernel.org, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Metcalf <cmetcalf@ezchip.com>, philipp.tomsich@theobroma-systems.com, Joseph Myers <joseph@codesourcery.com>, linux-arch@vger.kernel.org, zhouchengming1@huawei.com, Steve Ellcey <sellcey@caviumnetworks.com>, Prasun.Kapoor@caviumnetworks.com, Andreas Schwab <schwab@suse.de>, agraf@suse.de, szabolcs.nagy@arm.com, geert@linux-m68k.org, Adam Borowski <kilobyte@angband.pl>, manuel.montezelo@gmail.com, Chris Metcalf <cmetcalf@mellanox.com>, Andrew Pinski <pinskia@gmail.com>, linyongting@huawei.com, klimov.linux@gmail.com, broonie@kernel.org, Bamvor Zhangjian <bamvor.zhangjian@huawei.com>, linux-arm-kernel@lists.infradead.org, Maxim Kuvyrkov <maxim.kuvyrkov@linaro.org>, Florian Weimer <fweimer@redhat.com>, Nathan_Lynch@mentor.com, linux-kernel@vger.ker
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20170120210437.26389-4-bart.vanassche@sandisk.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bart Van Assche <bart.vanassche@sandisk.com>
+Cc: Doug Ledford <dledford@redhat.com>, linux-rdma@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chris Metcalf <cmetcalf@mellanox.com>, David Woodhouse <dwmw2@infradead.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>
 
-On Mon, Jan 09, 2017 at 04:59:37PM +0530, Yury Norov wrote:
-> This series enables aarch64 with ilp32 mode.
+On Fri, Jan 20, 2017 at 01:04:03PM -0800, Bart Van Assche wrote:
+> Now that all set_dma_ops() implementations are identical (ignoring
+> BUG_ON() statements), remove the architecture specific definitions
+> and add a definition in <linux/dma-mapping.h>.
 > 
-> As supporting work, it introduces ARCH_32BIT_OFF_T configuration
-> option that is enabled for existing 32-bit architectures but disabled
-> for new arches (so 64-bit off_t is is used by new userspace). Also it
-> deprecates getrlimit and setrlimit syscalls prior to prlimit64.
-> 
-> This version is based on linux-next from 2017-01-09. It works with
-> glibc-2.25, and tested with LTP, glibc testsuite, trinity, lmbench,
-> CPUSpec.
-> 
-> This is not RFC anymore. I believe that all ABI and implementation
-> issues are resolved now. The way that kernel clears registers top
-> halves is probably the last question, and because there's no objection
-> for current approach for more that 6 month, I think, community agrees
-> with it.
-> 
-> Patches 1, 2, 3 and 8 are general, and may be applied separately.
-> 
-> Current version does not introduce ABI changes comparing to RFC3.
-> Kernel and GLIBC trees:
-> https://github.com/norov/linux/tree/ilp32-2017-01-09
-> https://github.com/norov/glibc/tree/dev9
+> Signed-off-by: Bart Van Assche <bart.vanassche@sandisk.com>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Chris Metcalf <cmetcalf@mellanox.com>
+> Cc: David Woodhouse <dwmw2@infradead.org>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: Russell King <linux@armlinux.org.uk>
 
-Hi Arnd, Catalin,
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-Is there any progress with review? I particularly ask about generic
-patches (1-3, 8). They all reviewed, and most of them acked by you,
-but they are still not upstreamed.
+Thanks.
 
-Yury
+> ---
+>  arch/arm/include/asm/dma-mapping.h     | 6 ------
+>  arch/powerpc/include/asm/dma-mapping.h | 5 -----
+>  arch/tile/include/asm/dma-mapping.h    | 5 -----
+>  include/linux/dma-mapping.h            | 5 +++++
+>  4 files changed, 5 insertions(+), 16 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+> index 312f4d0564d6..c7432d647e53 100644
+> --- a/arch/arm/include/asm/dma-mapping.h
+> +++ b/arch/arm/include/asm/dma-mapping.h
+> @@ -31,12 +31,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
+>  		return __generic_dma_ops(dev);
+>  }
+>  
+> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
+> -{
+> -	BUG_ON(!dev);
+> -	dev->dma_ops = ops;
+> -}
+> -
+>  #define HAVE_ARCH_DMA_SUPPORTED 1
+>  extern int dma_supported(struct device *dev, u64 mask);
+>  
+> diff --git a/arch/powerpc/include/asm/dma-mapping.h b/arch/powerpc/include/asm/dma-mapping.h
+> index 59fbd4abcbf8..8275603ba4d5 100644
+> --- a/arch/powerpc/include/asm/dma-mapping.h
+> +++ b/arch/powerpc/include/asm/dma-mapping.h
+> @@ -91,11 +91,6 @@ static inline const struct dma_map_ops *get_dma_ops(struct device *dev)
+>  	return dev->dma_ops;
+>  }
+>  
+> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
+> -{
+> -	dev->dma_ops = ops;
+> -}
+> -
+>  /*
+>   * get_dma_offset()
+>   *
+> diff --git a/arch/tile/include/asm/dma-mapping.h b/arch/tile/include/asm/dma-mapping.h
+> index c0620697eaad..2562995a6ac9 100644
+> --- a/arch/tile/include/asm/dma-mapping.h
+> +++ b/arch/tile/include/asm/dma-mapping.h
+> @@ -59,11 +59,6 @@ static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t daddr)
+>  
+>  static inline void dma_mark_clean(void *addr, size_t size) {}
+>  
+> -static inline void set_dma_ops(struct device *dev, const struct dma_map_ops *ops)
+> -{
+> -	dev->dma_ops = ops;
+> -}
+> -
+>  static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
+>  {
+>  	if (!dev->dma_mask)
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> index f1da68b82c63..e97f23e8b2d9 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -164,6 +164,11 @@ int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
+>  
+>  #ifdef CONFIG_HAS_DMA
+>  #include <asm/dma-mapping.h>
+> +static inline void set_dma_ops(struct device *dev,
+> +			       const struct dma_map_ops *dma_ops)
+> +{
+> +	dev->dma_ops = dma_ops;
+> +}
+>  #else
+>  /*
+>   * Define the dma api to allow compilation but not linking of
+> -- 
+> 2.11.0
+> 
+
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
