@@ -1,35 +1,36 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+From: Ingo Molnar <mingo@kernel.org>
 Subject: Re: [PATCH v4 3/7] x86: put msr-index.h in uapi
-Date: Tue, 31 Jan 2017 11:58:57 +0100
-Message-ID: <3d68da69-353d-2fd0-ee1d-6ec3a0285607@6wind.com>
+Date: Tue, 31 Jan 2017 17:21:33 +0100
+Message-ID: <20170131162133.GA8258@gmail.com>
 References: <1484304406-10820-1-git-send-email-nicolas.dichtel@6wind.com>
  <1485183521-13002-1-git-send-email-nicolas.dichtel@6wind.com>
  <1485183521-13002-4-git-send-email-nicolas.dichtel@6wind.com>
  <20170123165245.7zy7nf3cx5o4vvh3@pd.tnic>
  <20170130145151.GW27312@n2100.armlinux.org.uk>
-Reply-To: nicolas.dichtel@6wind.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <20170130145151.GW27312@n2100.armlinux.org.uk>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@armlinux.org.uk>, Borislav Petkov <bp@alien8.de>
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, slash.tmp@free.fr, daniel.vetter@ffwll.ch, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Ingo Molnar <mingo@redhat.com>
+To: Russell King - ARM Linux <linux@armlinux.org.uk>
+Cc: Borislav Petkov <bp@alien8.de>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, slash.tmp@free.fr, daniel.vetter@ffwll.ch, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-Id: linux-arch.vger.kernel.org
 
-Le 30/01/2017 à 15:51, Russell King - ARM Linux a écrit :
+
+* Russell King - ARM Linux <linux@armlinux.org.uk> wrote:
+
 > On Mon, Jan 23, 2017 at 05:52:45PM +0100, Borislav Petkov wrote:
->> On Mon, Jan 23, 2017 at 03:58:37PM +0100, Nicolas Dichtel wrote:
->>> This header file is exported, thus move it to uapi.
->>
->> Why? Why is this damn thing exported in the first place?
->>
->> The moment we decide to change an MSR name or even remove it from that
->> file, we break userspace. And what for, because userspace is using some
->> arbitrary header file which was meant to be for the kernel solely.
->>
->> NAKed-by: Borislav Petkov <bp@suse.de>
+> > On Mon, Jan 23, 2017 at 03:58:37PM +0100, Nicolas Dichtel wrote:
+> > > This header file is exported, thus move it to uapi.
+> > 
+> > Why? Why is this damn thing exported in the first place?
+> > 
+> > The moment we decide to change an MSR name or even remove it from that
+> > file, we break userspace. And what for, because userspace is using some
+> > arbitrary header file which was meant to be for the kernel solely.
+> > 
+> > NAKed-by: Borislav Petkov <bp@suse.de>
 > 
 > Here on my Fedora system:
 > 
@@ -46,17 +47,51 @@ Le 30/01/2017 à 15:51, Russell King - ARM Linux a écrit :
 > ...
 > 
 > Like it or not, it is _already_ exported to userspace, so it forms
-> part of the user ABI.  You can try to remove it from userspace view,
-> but if anyone has already started to use it, removing it will already
-> cause a userspace regression.
-> 
-> So, I don't think we have any grounds to NAK these patches on the
-> basis of "we don't want this to be visible to userspace because it
-> may cause a userspace regression."  Removing it from userspace view
-> is likely to cause a userspace regression.
-> 
-> This patch just makes sure that such a regression doesn't happen when
-> kbuild stops exporting files in _non_-uapi directories.
-Yes, it was the only goal. My patch changes nothing!
-Is it possible to find a consensus about this patch?
-Ingo ?
+> part of the user ABI.
+
+Firstly, I believe you are (very!) confused about what forms part of the Linux 
+user-space ABI - it's not the exported headers but the functionality and how 
+application _binaries_ rely on it. We have strong ABI guarantees that are in no 
+header anywhere. And we have tons and tons of details in UAPI headers that are not 
+part of any system call ABI (or protocol ABI) of Linux.
+
+Note that for example the 'MSR_STAR' definition you quote above is not part of the 
+ABI, because user-space _cannot make use of it_: it's a privileged CPU register 
+that only the kernel can write to. There's no system call ABI that Linux defines 
+that this MSR (or any other MSR for that matter) are part of.
+
+These MSR headers are not part of the ABI - they are part of the _mechanism_ 
+trying to inform user-space about ABIs and people trying to somehow claim that 
+they are an ABI are confused IMHO.
+
+The point with msr-index.h is that there's no user-space ABI where those MSRs are 
+enumerated.
+
+Secondly, ABI means 'Application Binary Interface' - note the 'Binary' part. The 
+ABI cannot be broken, by definition, by putting a header into another place. Now 
+we do export UAPI headers and we definitely don't want to break user-space tooling 
+if we can avoid it, but trying to spin the UAPI headers mechanism into an "ABI" is 
+confused on so many levels.
+
+
+I.e. this whole discussion is silly in the extreme. The point of the UAPI exports 
+is to clean up our ABI exports, after we used to export _all_ headers to 
+user-space.
+
+I.e. by definition the UAPI mechanism is fundamentally about _restricting_ the 
+amount of headers that are exposed - separating true ABI from random kernel 
+internals. This process of enumerating ABI details separately from kernel 
+implementation internal details improves the kernel headers.
+
+> [...]  You can try to remove it from userspace view, but if anyone has already 
+> started to use it, removing it will already cause a userspace regression.
+
+I challenge you to show a single user-space regression from the removal of the 
+'MSR_STAR' definition for example.
+
+Please explain, why do you want to export msr-index.h and which part of it is an 
+'ABI' in your opinion? Until you can explain that my NAK stands.
+
+Thanks,
+
+	Ingo
