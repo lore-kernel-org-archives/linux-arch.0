@@ -1,98 +1,28 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [GIT PULL] percpu fix for v4.10-rc6
-Date: Wed, 01 Feb 2017 16:46:01 +1100
-Message-ID: <87vasutqee.fsf@concordia.ellerman.id.au>
-References: <20170131165537.GC23970@htj.duckdns.org>
- <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com>
+Date: Wed, 01 Feb 2017 07:56:51 +0000
+Message-ID: <17591.1485935811@warthog.procyon.org.uk>
+References: <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com> <20170131165537.GC23970@htj.duckdns.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:49984 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751080AbdBAH45 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Feb 2017 02:56:57 -0500
 In-Reply-To: <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Tejun Heo <tj@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: linuxppc-dev@lists.ozlabs.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dougmill@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-ID: <17590.1485935811.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, Tejun Heo <tj@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dougmill@linux.vnet.ibm.com
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-> On Tue, Jan 31, 2017 at 8:55 AM, Tejun Heo <tj@kernel.org> wrote:
->>
->> Douglas found and fixed a ref leak bug in percpu_ref_tryget[_live]().
->> The bug is caused by storing the return value of
->> atomic_long_inc_not_zero() into an int temp variable before returning
->> it as a bool.  The interim cast to int loses the upper bits and can
->> lead to false negatives.  As percpu_ref uses a high bit to mark a
->> draining counter, this can happen relatively easily.  Fixed by using
->> bool for the temp variable.
->
-> I think this fix is wrong.
->
 > The fact is, atomic_long_inc_not_zero() shouldn't be returning
-> anything with high bits.. Casting to "int" should have absolutely no
-> impact. "int" is the traditional C truth value (with zero/nonzero
-> being false/true), and while we're generally moving towards "bool" for
-> true/false return values, I do think that code that assumes that these
-> functions can be cast to "int" are right.
->
-> For example, we used to have similar bugs in "test_bit()" returning
-> the actual bit value (which could be high).
->
-> And when users hit that problem, we fixed "test_bit()", not the users of it.
->
-> So I'd rather fix the places that (insanely) return a 64-bit value.
->
-> Is this purely a ppc64 issue, or does it happen somewhere else too?
+> anything with high bits..
 
-Sorry I'm late to this, I wasn't Cc'ed on the original patch.
+Ummm...  Why's that the case?  If atomic_long_t can never exceed UINT_MAX,
+then why does it exist at all?
 
-It looks like this is only a powerpc issue, we're the only arch other
-than x86-32 that implements atomic_long_inc_not_zero() by hand (not
-using atomic64_add_unless()).
-
-Assuming all other arches have an atomic64_add_unless() which returns
-an int then they should all be safe.
-
-Actually we have a test suite for atomic64. The patch below adds a check
-which catches the problem on powerpc at the moment, and passes once I
-change our version to return an int. I'll turn it into a proper patch
-and send it to whoever maintains the tests.
-
-cheers
-
-
-diff --git a/lib/atomic64_test.c b/lib/atomic64_test.c
-index 46042901130f..813cd05bec9d 100644
---- a/lib/atomic64_test.c
-+++ b/lib/atomic64_test.c
-@@ -152,8 +152,10 @@ static __init void test_atomic64(void)
- 	long long v0 = 0xaaa31337c001d00dLL;
- 	long long v1 = 0xdeadbeefdeafcafeLL;
- 	long long v2 = 0xfaceabadf00df001LL;
-+	long long v3 = 0x8000000000000000LL;
- 	long long onestwos = 0x1111111122222222LL;
- 	long long one = 1LL;
-+	int r_int;
- 
- 	atomic64_t v = ATOMIC64_INIT(v0);
- 	long long r = v0;
-@@ -239,6 +241,11 @@ static __init void test_atomic64(void)
- 	BUG_ON(!atomic64_inc_not_zero(&v));
- 	r += one;
- 	BUG_ON(v.counter != r);
-+
-+	/* Confirm the return value fits in an int, even if the value doesn't */
-+	INIT(v3);
-+	r_int = atomic64_inc_not_zero(&v);
-+	BUG_ON(!r_int);
- }
- 
- static __init int test_atomics(void)
+David
