@@ -1,31 +1,85 @@
-From: "Luis R. Rodriguez" <mcgrof@kernel.org>
-Subject: Re: [PATCH] kprobes: move kprobe declarations to
- asm-generic/kprobes.h
-Date: Wed, 1 Feb 2017 22:46:04 +0100
-Message-ID: <20170201214604.GJ24047@wotan.suse.de>
-References: <20170118174840.16572-1-mcgrof@kernel.org>
- <20170119103812.248018d8f6f29768389cbd13@kernel.org>
- <20170119154735.b242a91beffc701b140fecda@kernel.org>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH] initity: try to improve __nocapture annotations
+Date: Wed, 1 Feb 2017 14:44:48 -0800
+Message-ID: <CAGXu5jKsENwq2nb0sw4R80yqPZ6HK_4QCFeGv1=H-Lgbsuhzbg@mail.gmail.com>
+References: <20170201161311.2050831-1-arnd@arndb.de> <CAJZ5v0ioJO1HU6yRpuX70hVQB-P9Sx1SkyRiH+hL0mw0_qX3MQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:32981 "EHLO mx2.suse.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751501AbdBAVqJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Feb 2017 16:46:09 -0500
-Content-Disposition: inline
-In-Reply-To: <20170119154735.b242a91beffc701b140fecda@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, arnd@arndb.de, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, luto@kernel.org, rostedt@goodmis.org, bp@suse.de, bp@alien8.de, will.deacon@arm.com, linux@armlinux.org.uk, dhowells@redhat.com, benh@kernel.crashing.org, ralf@linux-mips.org, jpoimboe@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CAJZ5v0ioJO1HU6yRpuX70hVQB-P9Sx1SkyRiH+hL0mw0_qX3MQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: "Rafael J. Wysocki" <rafael@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Josh Triplett <josh@joshtriplett.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, minipli@ld-linux.so, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Jeff Layton <jlayton@poochiereds.net>, Robert Moore <robert.moore@intel.com>, Lv Zheng <lv.zheng@intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "devel@acpica.org" <devel@acpica.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, Linux Memory Management List <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 19, 2017 at 03:47:35PM +0900, Masami Hiramatsu wrote:
-> OK, then it is OK to me.
-> 
-> Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
+On Wed, Feb 1, 2017 at 1:05 PM, Rafael J. Wysocki <rafael@kernel.org> wrote:
+> On Wed, Feb 1, 2017 at 5:11 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> There are some additional declarations that got missed in the original patch,
+>> and some annotated functions that use the pointer is a correct but nonobvious
+>> way:
+>>
+>> mm/kasan/kasan.c: In function 'memmove':
+>> mm/kasan/kasan.c:346:7: error: 'memmove' captures its 2 ('src') parameter, please remove it from the nocapture attribute. [-Werror]
+>>  void *memmove(void *dest, const void *src, size_t len)
+>>        ^~~~~~~
+>> mm/kasan/kasan.c: In function 'memcpy':
+>> mm/kasan/kasan.c:355:7: error: 'memcpy' captures its 2 ('src') parameter, please remove it from the nocapture attribute. [-Werror]
+>>  void *memcpy(void *dest, const void *src, size_t len)
+>>        ^~~~~~
+>> drivers/acpi/acpica/utdebug.c: In function 'acpi_debug_print':
+>> drivers/acpi/acpica/utdebug.c:158:1: error: 'acpi_debug_print' captures its 3 ('function_name') parameter, please remove it from the nocapture attribute. [-Werror]
+>>
+>> lib/string.c:893:7: error: 'memchr_inv' captures its 1 ('start') parameter, please remove it from the nocapture attribute. [-Werror]
+>>  void *memchr_inv(const void *start, int c, size_t bytes)
+>> lib/string.c: In function 'strnstr':
+>> lib/string.c:832:7: error: 'strnstr' captures its 1 ('s1') parameter, please remove it from the nocapture attribute. [-Werror]
+>>  char *strnstr(const char *s1, const char *s2, size_t len)
+>>        ^~~~~~~
+>> lib/string.c:832:7: error: 'strnstr' captures its 2 ('s2') parameter, please remove it from the nocapture attribute. [-Werror]
+>>
+>> I'm not sure if these are all appropriate fixes, please have a careful look
+>>
+>> Fixes: c2bc07665495 ("initify: Mark functions with the __nocapture attribute")
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>> ---
+>>  drivers/acpi/acpica/utdebug.c        | 2 +-
+>>  include/acpi/acpixf.h                | 2 +-
+>>  include/asm-generic/asm-prototypes.h | 8 ++++----
+>>  include/linux/string.h               | 2 +-
+>>  lib/string.c                         | 2 +-
+>>  mm/kasan/kasan.c                     | 4 ++--
+>>  6 files changed, 10 insertions(+), 10 deletions(-)
+>>
+>> diff --git a/drivers/acpi/acpica/utdebug.c b/drivers/acpi/acpica/utdebug.c
+>> index 044df9b0356e..de3c9cb305a2 100644
+>> --- a/drivers/acpi/acpica/utdebug.c
+>> +++ b/drivers/acpi/acpica/utdebug.c
+>> @@ -154,7 +154,7 @@ static const char *acpi_ut_trim_function_name(const char *function_name)
+>>   *
+>>   ******************************************************************************/
+>>
+>> -void ACPI_INTERNAL_VAR_XFACE
+>> +void __unverified_nocapture(3) ACPI_INTERNAL_VAR_XFACE
+>
+> Generally speaking, there is a problem with adding annotations like
+> this to ACPICA code.
+>
+> We get that code from an external project (upstream ACPICA) and the
+> more Linux-specific stuff is there in it, the more difficult to
+> maintain it becomes.
 
-Aha, actually I *did* send this out separately already :) --
-who's tree should this go through ?
+We need to find a way to solve this. Why can't take take our changes?
+Or better yet, why can't we keep a delta from them if they won't take
+them?
 
-  Luis
+-Kees
+
+-- 
+Kees Cook
+Pixel Security
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
