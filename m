@@ -1,27 +1,27 @@
-From: Miss Marbell <spdr3re9@friend.ocn.ne.jp>
-Subject: =?utf-8?Q?Bitte_kontaktieren_Sie_mich_f=C3=BCr_weitere_Details!?=
-Date: Wed, 1 Feb 2017 17:13:32 +0900 (JST)
-Message-ID: <868681222.132171775.1485936812960.JavaMail.root@friend.ocn.ne.jp>
-Reply-To: Miss Marbell <brownson.m221@gmail.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [GIT PULL] percpu fix for v4.10-rc6
+Date: Wed, 01 Feb 2017 10:00:58 +0000
+Message-ID: <18628.1485943258@warthog.procyon.org.uk>
+References: <CA+55aFz8TFRykr0qNBjNbK+kavUdbGOm4huf5XhPLQcy0tMyLw@mail.gmail.com> <20170131165537.GC23970@htj.duckdns.org> <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com> <17591.1485935811@warthog.procyon.org.uk> <CA+55aFyiy2jD80RTbsm3C=G5ifgtj8GQHqFwaYZM+ktgx1embA@mail.gmail.com> <CA+55aFxRLP_qPBXoLomxj-VYG-R=rKJE8KZ_h4NQ4g74gpNEWQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mbkd0302.ocn.ad.jp ([153.149.236.3]:36211 "EHLO
-        mbkd0302.ocn.ad.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751639AbdBAIfe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2017 03:35:34 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CA+55aFz8TFRykr0qNBjNbK+kavUdbGOm4huf5XhPLQcy0tMyLw@mail.gmail.com>
+Content-ID: <18627.1485943258.1@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, dougmill@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Sehr geehrte Damen und Herren,
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Ich brauche Ihre Unterstützung in Ihrem Land zu verlagern und zu investieren.Ich bitte Sie um Hilfe, weil ich nicht das Wissen über
-Geschäft und die Regeln, die Ihr Land für eine sichere Investition führen.
+> The return value isn't the value of the atomic variable.
+> 
+> The return value is whether the increment happened or not (ie the "was it not zero and
+> could be incremented" part?)
 
-Werden Sie versprechen, mit mir aufrichtig zu sein?
+Okay, fair enough.  I was thinking of it as atomic_long_inc_return() - which
+obviously it isn't.
 
-Bitte kontaktieren Sie mich für weitere Details!
-
-Mit freundlichen Grüßen,
-Fräulein Marbell.
+David
