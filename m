@@ -1,32 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:17478 "EHLO mx1.redhat.com"
+Received: from mx2.suse.de ([195.135.220.15]:49026 "EHLO mx2.suse.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751847AbdBAKBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Feb 2017 05:01:09 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <CA+55aFz8TFRykr0qNBjNbK+kavUdbGOm4huf5XhPLQcy0tMyLw@mail.gmail.com>
-References: <CA+55aFz8TFRykr0qNBjNbK+kavUdbGOm4huf5XhPLQcy0tMyLw@mail.gmail.com> <20170131165537.GC23970@htj.duckdns.org> <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com> <17591.1485935811@warthog.procyon.org.uk> <CA+55aFyiy2jD80RTbsm3C=G5ifgtj8GQHqFwaYZM+ktgx1embA@mail.gmail.com> <CA+55aFxRLP_qPBXoLomxj-VYG-R=rKJE8KZ_h4NQ4g74gpNEWQ@mail.gmail.com>
-Subject: Re: [GIT PULL] percpu fix for v4.10-rc6
+        id S1753266AbdBAUC0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Feb 2017 15:02:26 -0500
+Date: Wed, 1 Feb 2017 21:02:21 +0100
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH v4 14/16] kprobes: move kprobe declarations to
+ asm-generic/kprobes.h
+Message-ID: <20170201200221.GH24047@wotan.suse.de>
+References: <1471642454-5679-1-git-send-email-mcgrof@kernel.org>
+ <1471642454-5679-15-git-send-email-mcgrof@kernel.org>
+ <20160823001140.8f7293408d2094a14c7725a1@kernel.org>
+ <20160823163104.GZ3296@wotan.suse.de>
+ <20160829230418.0d1d69ea76810db5148316e5@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <18627.1485943258.1@warthog.procyon.org.uk>
-Content-Transfer-Encoding: 8BIT
-Date: Wed, 01 Feb 2017 10:00:58 +0000
-Message-ID: <18628.1485943258@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160829230418.0d1d69ea76810db5148316e5@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: dhowells@redhat.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, dougmill@linux.vnet.ibm.com
-Message-ID: <20170201100058._ck-WhpZUxXpO-avWlMGd5C11NKw06Xqk3bMxRIzXlg@z>
+To: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, hpa@zytor.com, tglx@linutronix.de, mingo@redhat.com, jpoimboe@redhat.com, bp@alien8.de, linux@arm.linux.org.uk, masami.hiramatsu.pt@hitachi.com, jbaron@akamai.com, heiko.carstens@de.ibm.com, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, realmz6@gmail.com, x86@kernel.org, luto@amacapital.net, keescook@chromium.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, rusty@rustcorp.com.au, gnomes@lxorguk.ukuu.org.uk, alan@linux.intel.com, dwmw2@infradead.org, arnd@arndb.de, ming.lei@canonical.com, linux-arch@vger.kernel.org, benh@kernel.crashing.org, ananth@in.ibm.com, pebolle@tiscali.nl, fontana@sharpeleven.org, david.vrabel@citrix.com, konrad.wilk@oracle.com, mcb30@ipxe.org, jgross@suse.com, andrew.cooper3@citrix.com, andriy.shevchenko@linux.intel.com, paul.gortmaker@windriver.com, xen-devel@lists.xensource.com, ak@linux.intel.com, pali.rohar@gmail.com, dvhart@infradead.org, platform-driver-x86@vger.kernel.org, mmarek@suse.com, linux@rasmusvillemoes.dk, jkosina@suse.cz, korea.drzix@gmail.com, linux-kbuild@vger.kernel.org, tony.luck@intel.com, akpm@linux-foundation.org, linux-ia64@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org, jani.nikula@intel.com, mchehab@osg.samsung.com, markus.heiser@darmarit.de, acme@redhat.com, jolsa@kernel.org, msalter@redhat.com, chris@zankel.net, jcmvbkbc@gmail.com, linux-xtensa@linux-xtensa.org, paulus@samba.org, mpe@ellerman.id.au, James.Bottomley@HansenPartnership.com
+Message-ID: <20170201200221.Y-AnZzbeJ32j8u5-MilG2nbjTDEEINRn70SpIDoI4FA@z>
 
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> The return value isn't the value of the atomic variable.
+On Mon, Aug 29, 2016 at 11:04:18PM +0900, Masami Hiramatsu wrote:
+> On Tue, 23 Aug 2016 18:31:05 +0200
+> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
 > 
-> The return value is whether the increment happened or not (ie the "was it not zero and
-> could be incremented" part?)
+> > On Tue, Aug 23, 2016 at 12:11:40AM +0900, Masami Hiramatsu wrote:
+> > > On Fri, 19 Aug 2016 14:34:12 -0700
+> > > mcgrof@kernel.org wrote:
+> > > 
+> > > > From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+> > > > 
+> > > > Often all is needed is these small helpers, instead of compiler.h
+> > > > or a full kprobes.h. This is important for asm helpers, in fact even
+> > > > some asm/kprobes.h make use of these helpers... instead just keep a
+> > > > generic asm file with helpers useful for asm code with the least amount
+> > > > of clutter as possible.
+> > > > 
+> > > > Likewise we need now to also address what to do about this file for both
+> > > > when architectures have CONFIG_HAVE_KPROBES, and when they do not. Then
+> > > > for when architectures have CONFIG_HAVE_KPROBES but have disabled
+> > > > CONFIG_KPROBES.
+> > > > 
+> > > > Right now most asm/kprobes.h do not have guards against CONFIG_KPROBES,
+> > > > this means most architecture code cannot include asm/kprobes.h safely.
+> > > > Correct this and add guards for architectures missing them. Additionally
+> > > > provide architectures that not have kprobes support with the default
+> > > > asm-generic solution. This lets us force asm/kprobes.h on the header
+> > > > include/linux/kprobes.h always, but most importantly we can now safely
+> > > > include just asm/kprobes.h on architecture code without bringing
+> > > > the full kitchen sink of header files.
+> > > > 
+> > > > Two architectures already provided a guard against CONFIG_KPROBES on
+> > > > its kprobes.h: sh, arch. The rest of the architectures needed gaurds
+> > > > added. We avoid including any not-needed headers on asm/kprobes.h
+> > > > unless kprobes have been enabled.
+> > > > 
+> > > > In a subsequent atomic change we can try now to remove compiler.h from
+> > > > include/linux/kprobes.h.
+> > > 
+> > > Hmm, this looks a bit overkill... I rather like move it into linux/table.h.
+> > 
+> > That's the thing, we can't reasonably expect every table to add an entry into
+> > table.h, this should be up to each user. Moving it to tables.h just prolongs
+> > what needs to be done. In this case the change is justifiable given kprobe
+> > annotations are required for some architectures early in architecture code, and
+> > including compiler.h on early architecture code blows up. There is no easy fix
+> > to this, and this this was *actually* the cleanest solution I could devise
+> > without much changes.
+> 
+> Aah, I misread your patch, it is asm-generic/kprobes.h, not asm/kprobes.h.
+> I think it is OK now.
+> 
+> Acked-by: Masami Hiramatsu <mhiramat@kernel.org>
 
-Okay, fair enough.  I was thinking of it as atomic_long_inc_return() - which
-obviously it isn't.
+I'm going to send this patch out separately shortly as its independent.
 
-David
+  Luis
