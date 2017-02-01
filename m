@@ -1,28 +1,27 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [GIT PULL] percpu fix for v4.10-rc6
-Date: Wed, 01 Feb 2017 07:56:51 +0000
-Message-ID: <17591.1485935811@warthog.procyon.org.uk>
-References: <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com> <20170131165537.GC23970@htj.duckdns.org>
+From: Miss Marbell <spdr3re9@friend.ocn.ne.jp>
+Subject: =?utf-8?Q?Bitte_kontaktieren_Sie_mich_f=C3=BCr_weitere_Details!?=
+Date: Wed, 1 Feb 2017 17:13:32 +0900 (JST)
+Message-ID: <868681222.132171775.1485936812960.JavaMail.root@friend.ocn.ne.jp>
+Reply-To: Miss Marbell <brownson.m221@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49984 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751080AbdBAH45 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Feb 2017 02:56:57 -0500
-In-Reply-To: <CA+55aFyiEO8o=1y_FaWjUr5C1JMCoN2h5aMJuPTG=7AexEZLLQ@mail.gmail.com>
-Content-ID: <17590.1485935811.1@warthog.procyon.org.uk>
+Received: from mbkd0302.ocn.ad.jp ([153.149.236.3]:36211 "EHLO
+        mbkd0302.ocn.ad.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751639AbdBAIfe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2017 03:35:34 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: dhowells@redhat.com, Tejun Heo <tj@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dougmill@linux.vnet.ibm.com
 
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+Sehr geehrte Damen und Herren,
 
-> The fact is, atomic_long_inc_not_zero() shouldn't be returning
-> anything with high bits..
+Ich brauche Ihre Unterstützung in Ihrem Land zu verlagern und zu investieren.Ich bitte Sie um Hilfe, weil ich nicht das Wissen über
+Geschäft und die Regeln, die Ihr Land für eine sichere Investition führen.
 
-Ummm...  Why's that the case?  If atomic_long_t can never exceed UINT_MAX,
-then why does it exist at all?
+Werden Sie versprechen, mit mir aufrichtig zu sein?
 
-David
+Bitte kontaktieren Sie mich für weitere Details!
+
+Mit freundlichen Grüßen,
+Fräulein Marbell.
