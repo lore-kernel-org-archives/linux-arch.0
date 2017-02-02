@@ -1,125 +1,66 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] initity: try to improve __nocapture annotations
-Date: Thu, 2 Feb 2017 12:59:09 +0100
-Message-ID: <CAK8P3a2Qmc0H5sE2w106We1P=OpQ_CRQ-A8b+2rZR7Zb5C40fw@mail.gmail.com>
-References: <20170201161311.2050831-1-arnd@arndb.de> <CAGXu5jLc8z0Q-etB-=9rBnt-mNPKEL3t5rDooSwTyACPX2NW0g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAGXu5jLc8z0Q-etB-=9rBnt-mNPKEL3t5rDooSwTyACPX2NW0g@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, Josh Triplett <josh@joshtriplett.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, minipli@ld-linux.so, Russell King <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Jeff Layton <jlayton@poochiereds.net>, Robert Moore <robert.moore@intel.com>, Lv Zheng <lv.zheng@intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, devel@acpica.org, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, Linux-MM <linux-mm@kvack.org>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v5 1/8] h8300: put bitsperlong.h in uapi
+Date: Thu,  2 Feb 2017 14:25:03 +0100
+Message-ID: <1486041910-2665-2-git-send-email-nicolas.dichtel@6wind.com>
+References: <20170131162133.GA8258@gmail.com>
+ <1486041910-2665-1-git-send-email-nicolas.dichtel@6wind.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1486041910-2665-1-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, Nicolas Dichtel <nicolas.dichtel@6wind.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 2, 2017 at 1:39 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Feb 1, 2017 at 8:11 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+This header file is exported, thus move it to uapi.
 
->> -void ACPI_INTERNAL_VAR_XFACE
->> +void __unverified_nocapture(3) ACPI_INTERNAL_VAR_XFACE
->>  acpi_debug_print(u32 requested_debug_level,
->>                  u32 line_number,
->>                  const char *function_name,
->
-> This might be better by marking acpi_ut_trim_function_name() as
-> __nocapture. I'll give it a try...
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+---
+ arch/h8300/include/asm/bitsperlong.h      | 14 --------------
+ arch/h8300/include/uapi/asm/bitsperlong.h | 14 ++++++++++++++
+ 2 files changed, 14 insertions(+), 14 deletions(-)
+ delete mode 100644 arch/h8300/include/asm/bitsperlong.h
+ create mode 100644 arch/h8300/include/uapi/asm/bitsperlong.h
 
-I tried that without success: the problem is actually the later acpi_os_printf()
-that takes the result from acpi_ut_trim_function_name().
+diff --git a/arch/h8300/include/asm/bitsperlong.h b/arch/h8300/include/asm/bitsperlong.h
+deleted file mode 100644
+index e140e46729ac..000000000000
+--- a/arch/h8300/include/asm/bitsperlong.h
++++ /dev/null
+@@ -1,14 +0,0 @@
+-#ifndef __ASM_H8300_BITS_PER_LONG
+-#define __ASM_H8300_BITS_PER_LONG
+-
+-#include <asm-generic/bitsperlong.h>
+-
+-#if !defined(__ASSEMBLY__)
+-/* h8300-unknown-linux required long */
+-#define __kernel_size_t __kernel_size_t
+-typedef unsigned long	__kernel_size_t;
+-typedef long		__kernel_ssize_t;
+-typedef long		__kernel_ptrdiff_t;
+-#endif
+-
+-#endif /* __ASM_H8300_BITS_PER_LONG */
+diff --git a/arch/h8300/include/uapi/asm/bitsperlong.h b/arch/h8300/include/uapi/asm/bitsperlong.h
+new file mode 100644
+index 000000000000..e56cf72369b6
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/bitsperlong.h
+@@ -0,0 +1,14 @@
++#ifndef _UAPI_ASM_H8300_BITS_PER_LONG
++#define _UAPI_ASM_H8300_BITS_PER_LONG
++
++#include <asm-generic/bitsperlong.h>
++
++#if !defined(__ASSEMBLY__)
++/* h8300-unknown-linux required long */
++#define __kernel_size_t __kernel_size_t
++typedef unsigned long	__kernel_size_t;
++typedef long		__kernel_ssize_t;
++typedef long		__kernel_ptrdiff_t;
++#endif
++
++#endif /* _UAPI_ASM_H8300_BITS_PER_LONG */
+-- 
+2.8.1
 
->> diff --git a/include/acpi/acpixf.h b/include/acpi/acpixf.h
->> index 9f4637e9dd92..9644cec5b082 100644
->> --- a/include/acpi/acpixf.h
->> +++ b/include/acpi/acpixf.h
->> @@ -946,7 +946,7 @@ ACPI_DBG_DEPENDENT_RETURN_VOID(ACPI_PRINTF_LIKE(6) __nocapture(3)
->>                                                 const char *module_name,
->>                                                 u32 component_id,
->>                                                 const char *format, ...))
->> -ACPI_DBG_DEPENDENT_RETURN_VOID(ACPI_PRINTF_LIKE(6)
->> +ACPI_DBG_DEPENDENT_RETURN_VOID(ACPI_PRINTF_LIKE(6) __nocapture(3)
->>                                 void ACPI_INTERNAL_VAR_XFACE
->>                                 acpi_debug_print_raw(u32 requested_debug_level,
->>                                                      u32 line_number,
->
-> I wonder why the plugin needs this at all: function_name (the third
-> arg) isn't even used in the function.
-
-This one wasn't needed, I should probably have left it out. It just seemed
-right for consistency to do the same for acpi_debug_print_raw() and
-acpi_debug_print().
-
->> diff --git a/include/linux/string.h b/include/linux/string.h
->> index 8b3b97e7b2b0..0ee877593464 100644
->> --- a/include/linux/string.h
->> +++ b/include/linux/string.h
->> @@ -76,7 +76,7 @@ static inline __must_check char *strstrip(char *str)
->>  extern char * strstr(const char *, const char *) __nocapture(-1, 2);
->>  #endif
->>  #ifndef __HAVE_ARCH_STRNSTR
->> -extern char * strnstr(const char *, const char *, size_t) __nocapture(-1, 2);
->> +extern char * strnstr(const char *, const char *, size_t);
->
-> That doesn't seem right: strnstr doesn't capture...
-
-Right, so better __unverified_nocapture() then?
-
->>  #endif
->>  #ifndef __HAVE_ARCH_STRLEN
->>  extern __kernel_size_t strlen(const char *) __nocapture(1);
->> diff --git a/lib/string.c b/lib/string.c
->> index ed83562a53ae..01151a1a0b61 100644
->> --- a/lib/string.c
->> +++ b/lib/string.c
->> @@ -870,7 +870,7 @@ void *memchr(const void *s, int c, size_t n)
->>  EXPORT_SYMBOL(memchr);
->>  #endif
->>
->> -static void *check_bytes8(const u8 *start, u8 value, unsigned int bytes)
->> +static __always_inline void *check_bytes8(const u8 *start, u8 value, unsigned int bytes)
->
-> Is this from another fix? Seems unrelated?
-
-This fixed a warning about memchr_inv() for me: when check_bytes8()
-is inlined, the compiler can see that the argument is not captured, but
-if gcc decides against inlining, it warns.
-
->> diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
->> index 5f6e09c88d25..ebc02ee1118e 100644
->> --- a/mm/kasan/kasan.c
->> +++ b/mm/kasan/kasan.c
->> @@ -343,7 +343,7 @@ void *memset(void *addr, int c, size_t len)
->>  }
->>
->>  #undef memmove
->> -void *memmove(void *dest, const void *src, size_t len)
->> +__unverified_nocapture(2) void *memmove(void *dest, const void *src, size_t len)
->>  {
->>         check_memory_region((unsigned long)src, len, false, _RET_IP_);
->>         check_memory_region((unsigned long)dest, len, true, _RET_IP_);
->> @@ -352,7 +352,7 @@ void *memmove(void *dest, const void *src, size_t len)
->>  }
->>
->>  #undef memcpy
->> -void *memcpy(void *dest, const void *src, size_t len)
->> +__unverified_nocapture(2) void *memcpy(void *dest, const void *src, size_t len)
->>  {
->>         check_memory_region((unsigned long)src, len, false, _RET_IP_);
->>         check_memory_region((unsigned long)dest, len, true, _RET_IP_);
->> --
->> 2.9.0
->>
->
-> Thanks for the patch! I'll try to reproduce the warnings and get some
-> fixes built if Emese or PaX Team don't beat me to it. :)
-
-I later got more warnings for some of the string functions, but we can
-deal with them
-separately.
-
-    Arnd
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
