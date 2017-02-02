@@ -1,97 +1,68 @@
-From: "Rafael J. Wysocki" <rafael@kernel.org>
+From: Kees Cook <keescook@chromium.org>
 Subject: Re: [PATCH] initity: try to improve __nocapture annotations
-Date: Thu, 2 Feb 2017 00:38:16 +0100
-Message-ID: <CAJZ5v0gy8UfcERZ1BOL2YTRDtKLPswJT0exH6J6UEQxDoQ9RHw@mail.gmail.com>
+Date: Wed, 1 Feb 2017 16:33:42 -0800
+Message-ID: <CAGXu5j+gNAb8R2yq1ieGENMaVknjykgrLi-+hfNs-482OpYfHA@mail.gmail.com>
 References: <20170201161311.2050831-1-arnd@arndb.de> <CAJZ5v0ioJO1HU6yRpuX70hVQB-P9Sx1SkyRiH+hL0mw0_qX3MQ@mail.gmail.com>
- <CAGXu5jKsENwq2nb0sw4R80yqPZ6HK_4QCFeGv1=H-Lgbsuhzbg@mail.gmail.com>
+ <CAGXu5jKsENwq2nb0sw4R80yqPZ6HK_4QCFeGv1=H-Lgbsuhzbg@mail.gmail.com> <CAJZ5v0gy8UfcERZ1BOL2YTRDtKLPswJT0exH6J6UEQxDoQ9RHw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CAGXu5jKsENwq2nb0sw4R80yqPZ6HK_4QCFeGv1=H-Lgbsuhzbg@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Kees Cook <keescook@chromium.org>
-Cc: "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Josh Triplett <josh@joshtriplett.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, minipli@ld-linux.so, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Jeff Layton <jlayton@poochiereds.net>, Robert Moore <robert.moore@intel.com>, Lv Zheng <lv.zheng@intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "devel@acpica.org" <devel@acpica.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, Linux Memory Management List <linux-mm@kvack.org>
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <CAJZ5v0gy8UfcERZ1BOL2YTRDtKLPswJT0exH6J6UEQxDoQ9RHw@mail.gmail.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: "Rafael J. Wysocki" <rafael@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Josh Triplett <josh@joshtriplett.org>, Masahiro Yamada <yamada.masahiro@socionext.com>, minipli@ld-linux.so, Russell King - ARM Linux <linux@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Jeff Layton <jlayton@poochiereds.net>, Robert Moore <robert.moore@intel.com>, Lv Zheng <lv.zheng@intel.com>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "devel@acpica.org" <devel@acpica.org>, linux-arch <linux-arch@vger.kernel.org>, kasan-dev <kasan-dev@googlegroups.com>, Linux Memory Management List <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 1, 2017 at 11:44 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Feb 1, 2017 at 1:05 PM, Rafael J. Wysocki <rafael@kernel.org> wrote:
->> On Wed, Feb 1, 2017 at 5:11 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> There are some additional declarations that got missed in the original patch,
->>> and some annotated functions that use the pointer is a correct but nonobvious
->>> way:
+On Wed, Feb 1, 2017 at 3:38 PM, Rafael J. Wysocki <rafael@kernel.org> wrote:
+> On Wed, Feb 1, 2017 at 11:44 PM, Kees Cook <keescook@chromium.org> wrote:
+>> On Wed, Feb 1, 2017 at 1:05 PM, Rafael J. Wysocki <rafael@kernel.org> wrote:
+>>> On Wed, Feb 1, 2017 at 5:11 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>>> diff --git a/drivers/acpi/acpica/utdebug.c b/drivers/acpi/acpica/utdebug.c
+>>>> index 044df9b0356e..de3c9cb305a2 100644
+>>>> --- a/drivers/acpi/acpica/utdebug.c
+>>>> +++ b/drivers/acpi/acpica/utdebug.c
+>>>> @@ -154,7 +154,7 @@ static const char *acpi_ut_trim_function_name(const char *function_name)
+>>>>   *
+>>>>   ******************************************************************************/
+>>>>
+>>>> -void ACPI_INTERNAL_VAR_XFACE
+>>>> +void __unverified_nocapture(3) ACPI_INTERNAL_VAR_XFACE
 >>>
->>> mm/kasan/kasan.c: In function 'memmove':
->>> mm/kasan/kasan.c:346:7: error: 'memmove' captures its 2 ('src') parameter, please remove it from the nocapture attribute. [-Werror]
->>>  void *memmove(void *dest, const void *src, size_t len)
->>>        ^~~~~~~
->>> mm/kasan/kasan.c: In function 'memcpy':
->>> mm/kasan/kasan.c:355:7: error: 'memcpy' captures its 2 ('src') parameter, please remove it from the nocapture attribute. [-Werror]
->>>  void *memcpy(void *dest, const void *src, size_t len)
->>>        ^~~~~~
->>> drivers/acpi/acpica/utdebug.c: In function 'acpi_debug_print':
->>> drivers/acpi/acpica/utdebug.c:158:1: error: 'acpi_debug_print' captures its 3 ('function_name') parameter, please remove it from the nocapture attribute. [-Werror]
+>>> Generally speaking, there is a problem with adding annotations like
+>>> this to ACPICA code.
 >>>
->>> lib/string.c:893:7: error: 'memchr_inv' captures its 1 ('start') parameter, please remove it from the nocapture attribute. [-Werror]
->>>  void *memchr_inv(const void *start, int c, size_t bytes)
->>> lib/string.c: In function 'strnstr':
->>> lib/string.c:832:7: error: 'strnstr' captures its 1 ('s1') parameter, please remove it from the nocapture attribute. [-Werror]
->>>  char *strnstr(const char *s1, const char *s2, size_t len)
->>>        ^~~~~~~
->>> lib/string.c:832:7: error: 'strnstr' captures its 2 ('s2') parameter, please remove it from the nocapture attribute. [-Werror]
->>>
->>> I'm not sure if these are all appropriate fixes, please have a careful look
->>>
->>> Fixes: c2bc07665495 ("initify: Mark functions with the __nocapture attribute")
->>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
->>> ---
->>>  drivers/acpi/acpica/utdebug.c        | 2 +-
->>>  include/acpi/acpixf.h                | 2 +-
->>>  include/asm-generic/asm-prototypes.h | 8 ++++----
->>>  include/linux/string.h               | 2 +-
->>>  lib/string.c                         | 2 +-
->>>  mm/kasan/kasan.c                     | 4 ++--
->>>  6 files changed, 10 insertions(+), 10 deletions(-)
->>>
->>> diff --git a/drivers/acpi/acpica/utdebug.c b/drivers/acpi/acpica/utdebug.c
->>> index 044df9b0356e..de3c9cb305a2 100644
->>> --- a/drivers/acpi/acpica/utdebug.c
->>> +++ b/drivers/acpi/acpica/utdebug.c
->>> @@ -154,7 +154,7 @@ static const char *acpi_ut_trim_function_name(const char *function_name)
->>>   *
->>>   ******************************************************************************/
->>>
->>> -void ACPI_INTERNAL_VAR_XFACE
->>> +void __unverified_nocapture(3) ACPI_INTERNAL_VAR_XFACE
+>>> We get that code from an external project (upstream ACPICA) and the
+>>> more Linux-specific stuff is there in it, the more difficult to
+>>> maintain it becomes.
 >>
->> Generally speaking, there is a problem with adding annotations like
->> this to ACPICA code.
->>
->> We get that code from an external project (upstream ACPICA) and the
->> more Linux-specific stuff is there in it, the more difficult to
->> maintain it becomes.
+>> We need to find a way to solve this. Why can't take take our changes?
 >
-> We need to find a way to solve this. Why can't take take our changes?
+> Basically because it has to be possible to build their code using
+> other compilers and build environments (some of them sort of exotic).
 
-Basically because it has to be possible to build their code using
-other compilers and build environments (some of them sort of exotic).
+Surely those environments can support macros to make this all work sanely?
 
-> Or better yet, why can't we keep a delta from them if they won't take them?
+>> Or better yet, why can't we keep a delta from them if they won't take them?
+>
+> The coding style of the original code is different from the kernel one
+> and the process used to keep track of the differences is non-trivial.
+> The more differences there are, the more difficult it becomes to
+> generate patches to backport upstream changes to the kernel code base
+> and the more likely it is to introduce bugs in the process which sort
+> of would defeat the purpose of the whole hardening exercise.
+>
+> Let me reverse the question, then: Why is it necessary to annotate the
+> ACPICA code this way instead of just leaving it alone?
 
-The coding style of the original code is different from the kernel one
-and the process used to keep track of the differences is non-trivial.
-The more differences there are, the more difficult it becomes to
-generate patches to backport upstream changes to the kernel code base
-and the more likely it is to introduce bugs in the process which sort
-of would defeat the purpose of the whole hardening exercise.
+With the GCC plugins there are going to be more and more automatic
+analysis of the kernel code base, and it'll require global changes to
+the kernel to mark things one way or another, opt in or out of things,
+etc. We need to be able to treat the kernel code as a single code
+base, since that's how the plugins see it. Without this, we're
+restricting the value those plugins bring.
 
-Let me reverse the question, then: Why is it necessary to annotate the
-ACPICA code this way instead of just leaving it alone?
+-Kees
 
-Thanks,
-Rafael
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Kees Cook
+Pixel Security
