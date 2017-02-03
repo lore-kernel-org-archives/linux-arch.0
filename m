@@ -1,50 +1,86 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: Re: [PATCH v5 7/8] uapi: export all headers under uapi directories
-Date: Thu, 2 Feb 2017 16:42:22 +0100
-Message-ID: <a1b90223-6178-50e6-27ee-9e9a610c09e5@6wind.com>
-References: <201702022242.toNVsxyq%fengguang.wu@intel.com>
-Reply-To: nicolas.dichtel@6wind.com
+From: Jessica Yu <jeyu@redhat.com>
+Subject: Re: modversions: redefine kcrctab entries as 32-bit values
+Date: Thu, 2 Feb 2017 22:54:41 -0500
+Message-ID: <20170203035441.GA2964@packer-debian-8-amd64.digitalocean.com>
+References: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:36867 "EHLO
-        mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751377AbdBBPm1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2017 10:42:27 -0500
-Received: by mail-wm0-f48.google.com with SMTP id v77so93223699wmv.0
-        for <linux-arch@vger.kernel.org>; Thu, 02 Feb 2017 07:42:26 -0800 (PST)
-In-Reply-To: <201702022242.toNVsxyq%fengguang.wu@intel.com>
+Received: from mx1.redhat.com ([209.132.183.28]:41050 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752230AbdBCDym (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Feb 2017 22:54:42 -0500
+Content-Disposition: inline
+In-Reply-To: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: kbuild-all@01.org, arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, akpm@linux-foundation.org, torvalds@linux-foundation.org, arnd@arndb.de, rusty@rustcorp.com.au, mpe@ellerman.id.au, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, linux@armlinux.org.uk, linux-arch@vger.kernel.org
 
-Le 02/02/2017 à 15:47, kbuild test robot a écrit :
-> Hi Nicolas,
-> 
-> [auto build test ERROR on linus/master]
-> [also build test ERROR on v4.10-rc6]
-> [cannot apply to next-20170202]
-> [if your patch is applied to the wrong git tree, please drop us a note to help improve the system]
-> 
-> url:    https://github.com/0day-ci/linux/commits/Nicolas-Dichtel/uapi-export-all-headers-under-uapi-directories/20170202-213944
-> config: i386-tinyconfig (attached as .config)
-> compiler: gcc-6 (Debian 6.2.0-3) 6.2.0 20160901
-> reproduce:
->         # save the attached .config to linux build tree
->         make ARCH=i386 
-> 
-> Note: the linux-review/Nicolas-Dichtel/uapi-export-all-headers-under-uapi-directories/20170202-213944 HEAD fec8d2b493885de70b229c7ce5bf917dc92ddb9f builds fine.
->       It only hurts bisectibility.
-> 
-> All errors (new ones prefixed by >>):
-> 
->>> ./usr/include/asm/unistd.h:8: included file 'asm-x86/unistd_32.h' is not exported
->>> ./usr/include/asm/unistd.h:10: included file 'asm-x86/unistd_x32.h' is not exported
->>> ./usr/include/asm/unistd.h:12: included file 'asm-x86/unistd_64.h' is not exported
-I don't reproduce this error, it compiles on my target (gcc 4.9.2).
++++ Ard Biesheuvel [24/01/17 16:16 +0000]:
+>This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
+>relative CRC pointers', but since relative CRC pointers do not work in
+>modules, and are actually only needed by powerpc with CONFIG_RELOCATABLE=y,
+>I have made it a Kconfig selectable feature instead.
+>
+>Patch #1 introduces the MODULE_REL_CRCS Kconfig symbol, and adds the kbuild
+>handling of it, i.e., modpost, genksyms and kallsyms.
+>
+>Patch #2 switches all architectures to 32-bit CRC entries in kcrctab, where
+>all architectures except powerpc with CONFIG_RELOCATABLE=y use absolute ELF
+>symbol references as before.
+>
+>v4: make relative CRCs kconfig selectable
+>    use absolute CRC symbols in modules regardless of kconfig selection
+>    split into two patches
 
+This asymmetry threw me off a bit, especially the Kconfig naming (only
+vmlinux crcs get the relative offsets, and only on powerpc atm, but all
+modules keep the absolute syms, but it is called MODULE_REL_CRCS...),
+if we keep this asymmetric crc treatment, it would be really nice to
+note this discrepancy this somewhere, perhaps in the Kconfig, to keep
+our heads from spinning :-)
 
-Regards,
-Nicolas
+I'm still catching up on the previous discussion threads, but can you
+explain a bit more why you switched away from full blown relative crcs
+from your last patchset [1]? I had lightly tested your v3 on ppc64le
+previously, and relative offsets with modules seemed to worked very
+well. I'm probably missing something very obvious.
+
+[1] http://marc.info/?l=linux-arch&m=148493613415294&w=2
+
+>v3: emit CRCs into .rodata rather than .rodata.modver, given that the latter
+>    will be emitted with read-write permissions, making the CRCs end up in a
+>    writable module segment.
+>
+>    fold the modpost fix to ensure that the section address is only substracted
+>    from the symbol address when the ELF object in question is fully linked
+>    (i.e., ET_DYN or ET_EXEC, and not ET_REL)
+>
+>v2: update modpost as well, so that genksyms no longer has to emit symbols
+>    for both the actual CRC value and the reference to where it is stored
+>    in the image
+>
+>[0] http://marc.info/?l=linux-arch&m=148493613415294&w=2
+>
+>Ard Biesheuvel (2):
+>  kbuild: modversions: add infrastructure for emitting relative CRCs
+>  modversions: treat symbol CRCs as 32 bit quantities
+>
+> arch/powerpc/Kconfig              |  1 +
+> arch/powerpc/include/asm/module.h |  4 --
+> arch/powerpc/kernel/module_64.c   |  8 ----
+> include/asm-generic/export.h      | 11 ++---
+> include/linux/export.h            | 14 ++++++
+> include/linux/module.h            | 14 +++---
+> init/Kconfig                      |  4 ++
+> kernel/module.c                   | 45 ++++++++++----------
+> scripts/Makefile.build            |  2 +
+> scripts/genksyms/genksyms.c       | 19 ++++++---
+> scripts/kallsyms.c                | 12 ++++++
+> scripts/mod/modpost.c             | 10 +++++
+> 12 files changed, 93 insertions(+), 51 deletions(-)
+>
+>-- 
+>2.7.4
+>
