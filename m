@@ -1,30 +1,32 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v5 0/3] modversions: redefine kcrctab entries as 32-bit values
-Date: Fri, 3 Feb 2017 08:30:09 -0800
-Message-ID: <CA+55aFz8faoGYBqkHuGPy4yp+SU5brCbkOCdZNTgfdDzkN8hOw@mail.gmail.com>
-References: <1486115647-27680-1-git-send-email-ard.biesheuvel@linaro.org>
+From: Paul Bolle <pebolle@tiscali.nl>
+Subject: Re: [PATCH v5 5/8] Makefile.headersinst: remove destination-y option
+Date: Fri, 03 Feb 2017 22:45:22 +0100
+Message-ID: <1486158322.16569.3.camel@tiscali.nl>
+References: <20170131162133.GA8258@gmail.com>
+         <1486041910-2665-1-git-send-email-nicolas.dichtel@6wind.com>
+         <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f68.google.com ([209.85.218.68]:35541 "EHLO
-        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750984AbdBCQaL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2017 11:30:11 -0500
-In-Reply-To: <1486115647-27680-1-git-send-email-ard.biesheuvel@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Jessica Yu <jeyu@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, Michal Marek <mmarek@suse.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de
+Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 3, 2017 at 1:54 AM, Ard Biesheuvel
-<ard.biesheuvel@linaro.org> wrote:
-> This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
-> relative CRC pointers' [...]
+On Thu, 2017-02-02 at 14:25 +0100, Nicolas Dichtel wrote:
+> This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
+> for exported headers") but never used in-tree.
+> 
+> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 
-ok, I have this in a local branch now, assuming it passes my
-(admittedly fairly superficial) testing I'll merge it so that we can
-put this whole sorry saga behind us.
+I've got an identical patch in my ever growing stack of stuff that I should
+actually submit:
+
+Acked-by: Paul Bolle <pebolle@tiscali.nl>
 
 Thanks,
 
-             Linus
+
+Paul Bolle
