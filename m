@@ -1,94 +1,65 @@
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: modversions: redefine kcrctab entries as 32-bit values
-Date: Fri, 3 Feb 2017 08:31:48 +0000
-Message-ID: <CAKv+Gu_vBJPN071h_kRpLMSG3FWx_Gq6TLeZbOP8_W3XDk3V+Q@mail.gmail.com>
-References: <1485274600-21976-1-git-send-email-ard.biesheuvel@linaro.org>
- <20170203035441.GA2964@packer-debian-8-amd64.digitalocean.com> <20170203050954.4qisyy66es6yjhkg@jeyu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-it0-f52.google.com ([209.85.214.52]:38796 "EHLO
-        mail-it0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751673AbdBCIbu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2017 03:31:50 -0500
-Received: by mail-it0-f52.google.com with SMTP id c7so7362405itd.1
-        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2017 00:31:49 -0800 (PST)
-In-Reply-To: <20170203050954.4qisyy66es6yjhkg@jeyu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Rusty Russell <rusty@rustcorp.com.au>, Michael Ellerman <mpe@ellerman.id.au>, "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@armlinux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Subject: [PATCH v5 0/3] modversions: redefine kcrctab entries as 32-bit values
+Date: Fri,  3 Feb 2017 09:54:04 +0000
+Message-ID: <1486115647-27680-1-git-send-email-ard.biesheuvel@linaro.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, jeyu@redhat.com, rusty@rustcorp.com.au, mmarek@suse.com, mpe@ellerman.id.au
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 3 February 2017 at 05:09, Jessica Yu <jeyu@redhat.com> wrote:
-> +++ Jessica Yu [02/02/17 22:54 -0500]:
->>
->> +++ Ard Biesheuvel [24/01/17 16:16 +0000]:
->>>
->>> This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
->>> relative CRC pointers', but since relative CRC pointers do not work in
->>> modules, and are actually only needed by powerpc with
->>> CONFIG_RELOCATABLE=y,
->>> I have made it a Kconfig selectable feature instead.
->>>
->>> Patch #1 introduces the MODULE_REL_CRCS Kconfig symbol, and adds the
->>> kbuild
->>> handling of it, i.e., modpost, genksyms and kallsyms.
->>>
->>> Patch #2 switches all architectures to 32-bit CRC entries in kcrctab,
->>> where
->>> all architectures except powerpc with CONFIG_RELOCATABLE=y use absolute
->>> ELF
->>> symbol references as before.
->>>
->>> v4: make relative CRCs kconfig selectable
->>>   use absolute CRC symbols in modules regardless of kconfig selection
->>>   split into two patches
->>
->>
->> This asymmetry threw me off a bit, especially the Kconfig naming (only
->> vmlinux crcs get the relative offsets, and only on powerpc atm, but all
->> modules keep the absolute syms, but it is called MODULE_REL_CRCS...),
->> if we keep this asymmetric crc treatment, it would be really nice to
->> note this discrepancy this somewhere, perhaps in the Kconfig, to keep
->> our heads from spinning :-)
->>
->> I'm still catching up on the previous discussion threads, but can you
->> explain a bit more why you switched away from full blown relative crcs
->> from your last patchset [1]? I had lightly tested your v3 on ppc64le
->> previously, and relative offsets with modules seemed to worked very
->> well. I'm probably missing something very obvious.
->
->
-> Ah, I just saw your other comment about other arches not having support
-> for the rel32 offsets :-/
->
-> The asymmetry still bothers me though. Can't we have something that just
-> switches relative crcs on and off, that applies to *both* vmlinux and
-> modules?
-> Then we can get rid of the crc_owner check in check_version() and just have
-> something like:
->
->   if (IS_ENABLED(CONFIG_RELATIVE_CRCS))
->       crcval = resolve_crc(crc);
->
-> Also we could get rid of the '&& !defined(MODULE)' checks scattered in
-> export.h. Then the arches that want relative crcs and that *do* have rel32
-> relocation support can turn relative crcs on, and powerpc can enable it,
-> right?
->
+This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
+relative CRC pointers', but since relative CRC pointers do not work in
+modules, and are actually only needed by powerpc with CONFIG_RELOCATABLE=y,
+I have made it a Kconfig selectable feature instead.
 
-Indeed. My reasoning was that, given that we need to support both
-absolute and relative CRCs anyway, it would make sense for modules to
-keep using absolute ones regardless of what vmlinux is using, but it
-does obfuscate the code a bit.
+Patch #1 introduces the MODULE_REL_CRCS Kconfig symbol, and adds the kbuild
+handling of it, i.e., modpost, genksyms and kallsyms.
 
-> Would that work or is there another reason this won't work with modules
-> (assuming that the arches that select this option support the relative
-> offsets)?
->
+Patch #2 switches all architectures to 32-bit CRC entries in kcrctab, where
+all architectures except powerpc with CONFIG_RELOCATABLE=y use absolute ELF
+symbol references as before.
 
-PowerPC with CONFIG_RELOCATABLE=y is really the only arch that
-requires this atm, and it supports REL32 relocations just fine, both
-for 32-bit and 64-bit.
+v5: make MODULE_REL_CRCS apply to both vmlinux and modules when selected
+    reinstate Rusty's ack on #2, given that it is now mostly identical again
+    to the patch he acked 3 months ago
 
-I will respin the patches with the above modification.
+v4: make relative CRCs kconfig selectable
+    use absolute CRC symbols in modules regardless of kconfig selection
+    split into two patches
+
+v3: emit CRCs into .rodata rather than .rodata.modver, given that the latter
+    will be emitted with read-write permissions, making the CRCs end up in a
+    writable module segment.
+
+    fold the modpost fix to ensure that the section address is only substracted
+    from the symbol address when the ELF object in question is fully linked
+    (i.e., ET_DYN or ET_EXEC, and not ET_REL)
+
+v2: update modpost as well, so that genksyms no longer has to emit symbols
+    for both the actual CRC value and the reference to where it is stored
+    in the image
+
+[0] http://marc.info/?l=linux-arch&m=148493613415294&w=2
+
+Ard Biesheuvel (3):
+  kbuild: modversions: add infrastructure for emitting relative CRCs
+  modversions: treat symbol CRCs as 32 bit quantities
+  module: unify absolute krctab definitions for 32-bit and 64-bit
+
+ arch/powerpc/Kconfig              |  1 +
+ arch/powerpc/include/asm/module.h |  4 --
+ arch/powerpc/kernel/module_64.c   |  8 ---
+ include/asm-generic/export.h      | 11 ++--
+ include/linux/export.h            | 17 +++++--
+ include/linux/module.h            | 14 +++---
+ init/Kconfig                      |  4 ++
+ kernel/module.c                   | 53 +++++++++-----------
+ scripts/Makefile.build            |  2 +
+ scripts/genksyms/genksyms.c       | 19 +++++--
+ scripts/kallsyms.c                | 12 +++++
+ scripts/mod/modpost.c             | 10 ++++
+ 12 files changed, 93 insertions(+), 62 deletions(-)
+
+-- 
+2.7.4
