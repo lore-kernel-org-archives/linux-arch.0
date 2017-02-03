@@ -1,46 +1,30 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v5 3/3] module: unify absolute krctab definitions for 32-bit and 64-bit
-Date: Fri,  3 Feb 2017 09:54:07 +0000
-Message-ID: <1486115647-27680-4-git-send-email-ard.biesheuvel@linaro.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v5 0/3] modversions: redefine kcrctab entries as 32-bit values
+Date: Fri, 3 Feb 2017 08:30:09 -0800
+Message-ID: <CA+55aFz8faoGYBqkHuGPy4yp+SU5brCbkOCdZNTgfdDzkN8hOw@mail.gmail.com>
 References: <1486115647-27680-1-git-send-email-ard.biesheuvel@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:35541 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750984AbdBCQaL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2017 11:30:11 -0500
 In-Reply-To: <1486115647-27680-1-git-send-email-ard.biesheuvel@linaro.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, jeyu@redhat.com, rusty@rustcorp.com.au, mmarek@suse.com, mpe@ellerman.id.au
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, viro@zeniv.linux.org.uk, linux-arm-kernel@lists.infradead.org, Ard Biesheuvel <ard.biesheuvel@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, Jessica Yu <jeyu@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, Michal Marek <mmarek@suse.com>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, Al Viro <viro@zeniv.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-The previous patch introduced a separate inline asm version of the
-krcrctab declaration template for use with 64-bit architectures, which
-cannot refer to ELF symbols using 32-bit quantities. This declaration
-should be equivalent to the C one for 32-bit architectures, but this
-needs to be checked first, so unify them in a separate patch.
+On Fri, Feb 3, 2017 at 1:54 AM, Ard Biesheuvel
+<ard.biesheuvel@linaro.org> wrote:
+> This v4 is a followup to [0] 'modversions: redefine kcrctab entries as
+> relative CRC pointers' [...]
 
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
+ok, I have this in a local branch now, assuming it passes my
+(admittedly fairly superficial) testing I'll merge it so that we can
+put this whole sorry saga behind us.
 
-... which can simply be dropped if it turns out to break anything.
+Thanks,
 
- include/linux/export.h | 7 -------
- 1 file changed, 7 deletions(-)
-
-diff --git a/include/linux/export.h b/include/linux/export.h
-index 7473fba6a60c..1a1dfdb2a5c6 100644
---- a/include/linux/export.h
-+++ b/include/linux/export.h
-@@ -49,13 +49,6 @@ extern struct module __this_module;
- 	    "	.weak	" VMLINUX_SYMBOL_STR(__crc_##sym) "	\n"	\
- 	    "	.long	" VMLINUX_SYMBOL_STR(__crc_##sym) " - .	\n"	\
- 	    "	.previous					\n");
--#elif !defined(CONFIG_64BIT)
--#define __CRC_SYMBOL(sym, sec)						\
--	extern __visible void *__crc_##sym __attribute__((weak));	\
--	static const unsigned long __kcrctab_##sym			\
--	__used								\
--	__attribute__((section("___kcrctab" sec "+" #sym), used))	\
--	= (unsigned long) &__crc_##sym;
- #else
- #define __CRC_SYMBOL(sym, sec)						\
- 	asm("	.section \"___kcrctab" sec "+" #sym "\", \"a\"	\n"	\
--- 
-2.7.4
+             Linus
