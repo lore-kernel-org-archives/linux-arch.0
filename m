@@ -1,32 +1,42 @@
-From: Paul Bolle <pebolle@tiscali.nl>
-Subject: Re: [PATCH v5 5/8] Makefile.headersinst: remove destination-y option
-Date: Fri, 03 Feb 2017 22:45:22 +0100
-Message-ID: <1486158322.16569.3.camel@tiscali.nl>
-References: <20170131162133.GA8258@gmail.com>
-         <1486041910-2665-1-git-send-email-nicolas.dichtel@6wind.com>
-         <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: Re: [PATCH] kprobes: move kprobe declarations to
+ asm-generic/kprobes.h
+Date: Sat, 4 Feb 2017 00:24:54 +0100
+Message-ID: <20170203232454.GS24047@wotan.suse.de>
+References: <20170118174840.16572-1-mcgrof@kernel.org>
+ <20170119103812.248018d8f6f29768389cbd13@kernel.org>
+ <20170119154735.b242a91beffc701b140fecda@kernel.org>
+ <20170201214604.GJ24047@wotan.suse.de>
+ <20170201220057.5b4828fb@grimm.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:45304 "EHLO mx2.suse.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752441AbdBCXY6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Feb 2017 18:24:58 -0500
+Content-Disposition: inline
+In-Reply-To: <20170201220057.5b4828fb@grimm.local.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: "Luis R. Rodriguez" <mcgrof@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Masami Hiramatsu <mhiramat@kernel.org>, arnd@arndb.de, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, luto@kernel.org, bp@suse.de, bp@alien8.de, will.deacon@arm.com, linux@armlinux.org.uk, dhowells@redhat.com, benh@kernel.crashing.org, ralf@linux-mips.org, jpoimboe@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, 2017-02-02 at 14:25 +0100, Nicolas Dichtel wrote:
-> This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
-> for exported headers") but never used in-tree.
+On Wed, Feb 01, 2017 at 10:00:57PM -0500, Steven Rostedt wrote:
+> On Wed, 1 Feb 2017 22:46:04 +0100
+> "Luis R. Rodriguez" <mcgrof@kernel.org> wrote:
 > 
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+> > On Thu, Jan 19, 2017 at 03:47:35PM +0900, Masami Hiramatsu wrote:
+> > > OK, then it is OK to me.
+> > > 
+> > > Acked-by: Masami Hiramatsu <mhiramat@kernel.org>  
+> > 
+> > Aha, actually I *did* send this out separately already :) --
+> > who's tree should this go through ?
+> 
+> This hits a lot of archs. Perhaps it should go through the default
+> tree... Andrew?
 
-I've got an identical patch in my ever growing stack of stuff that I should
-actually submit:
+Sure, will rebase and send again.
 
-Acked-by: Paul Bolle <pebolle@tiscali.nl>
-
-Thanks,
-
-
-Paul Bolle
+  Luis
