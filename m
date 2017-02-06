@@ -1,37 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lb3-smtp-cloud6.xs4all.net ([194.109.24.31]:56558 "EHLO
-        lb3-smtp-cloud6.xs4all.net" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1752439AbdBCVpd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2017 16:45:33 -0500
-Message-ID: <1486158322.16569.3.camel@tiscali.nl>
-Subject: Re: [PATCH v5 5/8] Makefile.headersinst: remove destination-y option
-From: Paul Bolle <pebolle@tiscali.nl>
-Date: Fri, 03 Feb 2017 22:45:22 +0100
-In-Reply-To: <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
-References: <20170131162133.GA8258@gmail.com>
-         <1486041910-2665-1-git-send-email-nicolas.dichtel@6wind.com>
-         <1486041910-2665-6-git-send-email-nicolas.dichtel@6wind.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from bombadil.infradead.org ([65.50.211.133]:47530 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752555AbdBFOtN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2017 09:49:13 -0500
+Date: Mon, 6 Feb 2017 06:49:02 -0800
+From: Matthew Wilcox <willy@infradead.org>
+Subject: memfill
+Message-ID: <20170206144902.GH2267@bombadil.infradead.org>
+References: <1486307804-27903-1-git-send-email-minchan@kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1486307804-27903-1-git-send-email-minchan@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>, arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
-Message-ID: <20170203214522._WP3gIzGtBvzyzEEPmYjSuPuoH5G1ABmugKvXjPI74I@z>
-
-On Thu, 2017-02-02 at 14:25 +0100, Nicolas Dichtel wrote:
-> This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
-> for exported headers") but never used in-tree.
-> 
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-
-I've got an identical patch in my ever growing stack of stuff that I should
-actually submit:
-
-Acked-by: Paul Bolle <pebolle@tiscali.nl>
-
-Thanks,
+To: Minchan Kim <minchan@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sergey.senozhatsky@gmail.com, iamjoonsoo.kim@lge.com, ngupta@vflare.org, zhouxianrong@huawei.com, zhouxiyu@huawei.com, weidu.du@huawei.com, zhangshiming5@huawei.com, Mi.Sophia.Wang@huawei.com, won.ho.park@huawei.com
+Message-ID: <20170206144902.mGUIFj4ffbeibmpIf_vOG4wBGcjtDFemeGRp6_zbFQ0@z>
 
 
-Paul Bolle
+[adding linux-arch to see if anyone there wants to do an optimised
+version of memfill for their CPU]
+
+On Mon, Feb 06, 2017 at 12:16:44AM +0900, Minchan Kim wrote:
+> +static inline void zram_fill_page(char *ptr, unsigned long len,
+> +					unsigned long value)
+> +{
+> +	int i;
+> +	unsigned long *page = (unsigned long *)ptr;
+> +
+> +	WARN_ON_ONCE(!IS_ALIGNED(len, sizeof(unsigned long)));
+> +
+> +	if (likely(value == 0)) {
+> +		memset(ptr, 0, len);
+> +	} else {
+> +		for (i = 0; i < len / sizeof(*page); i++)
+> +			page[i] = value;
+> +	}
+> +}
+
+I would suggest:
+
+#ifndef __HAVE_ARCH_MEMFILL
+/** 
+ * memfill - Fill a region of memory with the given value
+ * @s: Pointer to the start of the region.
+ * @v: The word to fill the region with.
+ * @n: The size of the region.
+ * 
+ * Differs from memset() in that it fills with an unsigned long instead of 
+ * a byte.  The pointer and the size must be aligned to unsigned long.
+ */
+void memfill(unsigned long *s, unsigned long v, size_t n)
+{
+	WARN_ON_ONCE(!IS_ALIGNED(n, sizeof(v)));
+
+	if (likely(v == 0)) {
+		memset(s, 0, n);
+	} else {
+		while (n) {
+			*s++ = v;
+			n -= sizeof(v);
+		}
+	}
+}
+EXPORT_SYMBOL(memfill);
+#endif
+
+(I would also suggest this move to lib/string.c and architectures be
+given the opportunity to provide an optimised version of memfill).
+
