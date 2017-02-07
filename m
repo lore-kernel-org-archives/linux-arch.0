@@ -1,33 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47552 "EHLO mx1.redhat.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753581AbdBGJkI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 7 Feb 2017 04:40:08 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20170206144902.GH2267@bombadil.infradead.org>
-References: <20170206144902.GH2267@bombadil.infradead.org> <1486307804-27903-1-git-send-email-minchan@kernel.org>
+Received: from bombadil.infradead.org ([65.50.211.133]:48412 "EHLO
+        bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1755149AbdBGTD7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2017 14:03:59 -0500
+Date: Tue, 7 Feb 2017 11:03:57 -0800
+From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: memfill
+Message-ID: <20170207190357.GN2267@bombadil.infradead.org>
+References: <20170207172258.GM2267@bombadil.infradead.org>
+ <20170206144902.GH2267@bombadil.infradead.org>
+ <1486307804-27903-1-git-send-email-minchan@kernel.org>
+ <27995.1486460404@warthog.procyon.org.uk>
+ <28294.1486488555@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <27994.1486460404.1@warthog.procyon.org.uk>
-Date: Tue, 07 Feb 2017 09:40:04 +0000
-Message-ID: <27995.1486460404@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <28294.1486488555@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
-Cc: dhowells@redhat.com, Minchan Kim <minchan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sergey.senozhatsky@gmail.com, iamjoonsoo.kim@lge.com, ngupta@vflare.org, zhouxianrong@huawei.com, zhouxiyu@huawei.com, weidu.du@huawei.com, zhangshiming5@huawei.com, Mi.Sophia.Wang@huawei.com, won.ho.park@huawei.com
-Message-ID: <20170207094004.k1pfXd3_BQzxaJ4881wugt6lFELKWWcVGJPWVYiTOZs@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Minchan Kim <minchan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sergey.senozhatsky@gmail.com, iamjoonsoo.kim@lge.com, ngupta@vflare.org, zhouxianrong@huawei.com, zhouxiyu@huawei.com, weidu.du@huawei.com, zhangshiming5@huawei.com, Mi.Sophia.Wang@huawei.com, won.ho.park@huawei.com
+Message-ID: <20170207190357.LWFaGn1NYwsYMltSlXYxbzvd1S9VGKMyRH1TndFs5q8@z>
 
-Matthew Wilcox <willy@infradead.org> wrote:
+On Tue, Feb 07, 2017 at 05:29:15PM +0000, David Howells wrote:
+> Matthew Wilcox <willy@infradead.org> wrote:
+> 
+> > You've misunderstood the purpose of memfill.  memfill allows the caller
+> > to specify a pattern which is not a single byte in size, eg memfill(addr,
+> > 0x12345678, 64) would result in 0x12345678 being reproduced 16 times.
+> > memset(addr, 0x12345678, 64) would result in 0x78 being reproduced
+> > 64 times.
+> 
+> Ah.  Should it take a unsigned int rather than an unsigned long?
 
-> [adding linux-arch to see if anyone there wants to do an optimised
-> version of memfill for their CPU]
+Well, our one user so far is looking to use an unsigned long (indeed,
+wouldn't be able to use it if it took an unsigned int).  If we have users
+who want to memfill with an unsigned int, they can do something like:
 
-For mn10300, this is superfluous since the memset() implementation will do
-optimised filling of up to 8 x 4 bytes per loop if the alignments suit.
+void memfill_int(int *a, unsigned int v, size_t n)
+{
+	if ((unsigned long)a & (sizeof(unsigned long) - 1)) {
+		*a++ = v;
+		n -= sizeof(unsigned int);
+	}
+	memfill((unsigned long *)a, v | ((v << 16) << 16), n);
+	if (n & (sizeof(unsigned long) - 1)
+		a[n / sizeof(v)] = v;
+}
 
-This is also superfluous for frv as that will do up to 8 x 8 bytes per loop.
-
-So on both those arches, memfill() should probably just wrap memset().
-
-David
+... but since we know of no users today, I don't want to put that in.
