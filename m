@@ -1,28 +1,44 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 net-next] virtio: Fix affinity for #VCPUs != #queue
- pairs
-Date: Wed, 08 Feb 2017 13:37:44 -0500 (EST)
-Message-ID: <20170208.133744.558863839333233338.davem@davemloft.net>
-References: <20170207181506.36668-1-serebrin@google.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 1/2] x86/paravirt: Don't make vcpu_is_preempted() a
+	callee-save function
+Date: Wed, 8 Feb 2017 20:05:08 +0100
+Message-ID: <20170208190508.GA6515@twins.programming.kicks-ass.net>
+References: <1486576825-17058-1-git-send-email-longman@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20170207181506.36668-1-serebrin@google.com>
-Sender: netdev-owner@vger.kernel.org
-To: serebrin@google.com
-Cc: borntraeger@de.ibm.com, netdev@vger.kernel.org, mst@redhat.com, jasowang@redhat.com, willemb@google.com, venkateshs@google.com, jonolson@google.com, willemdebruijn.kernel@gmail.com, rick.jones2@hpe.com, jmattson@google.com, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <1486576825-17058-1-git-send-email-longman@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Jeremy Fitzhardinge <jeremy@goop.org>, x86@kernel.org, kvm@vger.kernel.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Alok Kataria <akataria@vmware.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Ben Serebrin <serebrin@google.com>
-Date: Tue,  7 Feb 2017 10:15:06 -0800
+On Wed, Feb 08, 2017 at 01:00:24PM -0500, Waiman Long wrote:
+> It was found when running fio sequential write test with a XFS ramdisk
+> on a 2-socket x86-64 system, the %CPU times as reported by perf were
+> as follows:
+> 
+>  71.27%  0.28%  fio  [k] down_write
+>  70.99%  0.01%  fio  [k] call_rwsem_down_write_failed
+>  69.43%  1.18%  fio  [k] rwsem_down_write_failed
+>  65.51% 54.57%  fio  [k] osq_lock
+>   9.72%  7.99%  fio  [k] __raw_callee_save___kvm_vcpu_is_preempted
+>   4.16%  4.16%  fio  [k] __kvm_vcpu_is_preempted
+> 
+> So making vcpu_is_preempted() a callee-save function has a pretty high
+> cost associated with it. As vcpu_is_preempted() is called within the
+> spinlock, mutex and rwsem slowpaths, there isn't much to gain by making
+> it callee-save. So it is now changed to a normal function call instead.
+> 
 
-> If the number of virtio queue pairs is not equal to the
-> number of VCPUs, the virtio guest driver doesn't assign
-> any CPU affinity for the queue interrupts or the xps
-> aggregation interrupt.  (In contrast, the driver does assign
-> both if the counts of VCPUs and queues are equal, which is a good
-> default behavior.)
- ...
-
-Can I get some reviews, please?
+Numbers for bare metal too please.
