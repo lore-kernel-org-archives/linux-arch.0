@@ -1,56 +1,45 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH] treewide: Move set_memory_* functions away from
- cacheflush.h
-Date: Wed, 8 Feb 2017 09:28:30 +0000
-Message-ID: <20170208092830.GB30215@arm.com>
-References: <1486501816-27600-1-git-send-email-labbott@redhat.com>
- <CAGXu5j+BGgs747D2cCW_is2z8QPA2crduE4SDDmu8tmxQ4Zh8A@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <CAGXu5j+BGgs747D2cCW_is2z8QPA2crduE4SDDmu8tmxQ4Zh8A@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Kees Cook <keescook@chromium.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Russell King <linux@armlinux.org.uk>, LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Laura Abbott <labbott@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+From: "Luis R. Rodriguez" <mcgrof@kernel.org>
+Subject: [PATCH] arm64: armv8_deprecated: add missing arm/kprobes.h header
+Date: Wed,  8 Feb 2017 09:33:41 -0800
+Message-ID: <20170208173341.14326-1-mcgrof@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kernel.org ([198.145.29.136]:48662 "EHLO mail.kernel.org"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S932227AbdBHRom (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 8 Feb 2017 12:44:42 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: akpm@linux-foundation.org, arnd@arndb.de, mhiramat@kernel.org, ananth@linux.vnet.ibm.com, anil.s.keshavamurthy@intel.com, davem@davemloft.net, mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, luto@kernel.org, broonie@kernel.org, catalin.marinas@arm.com, will.deacon@arm.com, rostedt@goodmis.org
+Cc: bp@suse.de, bp@alien8.de, linux@armlinux.org.uk, dhowells@redhat.com, benh@kernel.crashing.org, ralf@linux-mips.org, jpoimboe@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linaro-kernel@lists.linaro.org, linux-next@vger.kernel.org, kernel-build-reports@lists.linaro.org, "Luis R. Rodriguez" <mcgrof@kernel.org>
 
-On Tue, Feb 07, 2017 at 01:25:53PM -0800, Kees Cook wrote:
-> On Tue, Feb 7, 2017 at 1:10 PM, Laura Abbott <labbott@redhat.com> wrote:
-> > The set_memory_* APIs came out of a desire to have a better way to
-> > change memory attributes. Many of these attributes were linked to cache
-> > functionality so the prototypes were put in cacheflush.h. These days,
-> > the APIs have grown and have a much wider use than just cache APIs. To
-> > support this growth, split off set_memory_* and friends into a separate
-> > header file to avoid growing cacheflush.h for APIs that have nothing to
-> > do with caches.
-> >
-> > Signed-off-by: Laura Abbott <labbott@redhat.com>
-> > ---
-> > This came out of a comment Russell made while reviewing RODATA test cases
-> > http://lists.infradead.org/pipermail/linux-arm-kernel/2017-January/480855.html
-> > While the final result of that series was the rodata code was refactored into
-> > its own header file, the set_memory_* APIs are still out of place.
-> 
-> Yeah, this is a nice clean up to start on.
-> 
-> > This is a simple attempt at moving all the API stubs to their own file.
-> > Another idea I had was throwing set_memory_{x,nx,ro,rw} in an asm-generic
-> > file since those are commonly used for module setting across all arches.
-> 
-> It seems like asm-generic would be cleaner, yes? Only a few archs have
-> anything "special" happening in the resulting header files.
+0-day caught a compile issue after the commit titled (kprobes: move
+kprobe declarations to asm-generic/kprobes.h) was applied. This fixes
+that.
 
-I'd also prefer the asm-generic approach if it makes the arch part a simple
-addition to asm/Kbuild.
+Reported-by: 0-day
+Cc: Mark Brown <broonie@kernel.org>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Luis R. Rodriguez <mcgrof@kernel.org>
+---
 
-Will
+As seen on linux-next tag next-20170208.
+
+ arch/arm64/kernel/armv8_deprecated.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/kernel/armv8_deprecated.c b/arch/arm64/kernel/armv8_deprecated.c
+index 86032a012388..657977e77ec8 100644
+--- a/arch/arm64/kernel/armv8_deprecated.c
++++ b/arch/arm64/kernel/armv8_deprecated.c
+@@ -19,6 +19,7 @@
+ #include <asm/sysreg.h>
+ #include <asm/system_misc.h>
+ #include <asm/traps.h>
++#include <asm/kprobes.h>
+ #include <linux/uaccess.h>
+ #include <asm/cpufeature.h>
+ 
+-- 
+2.11.0
