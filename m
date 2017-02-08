@@ -1,81 +1,65 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: Matthew Wilcox <willy@infradead.org>
 Subject: Re: memfill
-Date: Wed, 08 Feb 2017 13:01:08 -0800
-Message-ID: <1486587668.2484.37.camel@HansenPartnership.com>
+Date: Wed, 8 Feb 2017 13:54:35 -0800
+Message-ID: <20170208215435.GP2267@bombadil.infradead.org>
 References: <1486307804-27903-1-git-send-email-minchan@kernel.org>
-         <20170206144902.GH2267@bombadil.infradead.org>
-         <1486494454.2488.60.camel@HansenPartnership.com>
-         <20170208180447.GO2267@bombadil.infradead.org>
+ <20170206144902.GH2267@bombadil.infradead.org>
+ <1486494454.2488.60.camel@HansenPartnership.com>
+ <20170208180447.GO2267@bombadil.infradead.org>
+ <1486587668.2484.37.camel@HansenPartnership.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:38642 "EHLO
-        bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S1751011AbdBHVJn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Feb 2017 16:09:43 -0500
-In-Reply-To: <20170208180447.GO2267@bombadil.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1486587668.2484.37.camel@HansenPartnership.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
 Cc: Minchan Kim <minchan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sergey.senozhatsky@gmail.com, iamjoonsoo.kim@lge.com, ngupta@vflare.org, zhouxianrong@huawei.com, zhouxiyu@huawei.com, weidu.du@huawei.com, zhangshiming5@huawei.com, Mi.Sophia.Wang@huawei.com, won.ho.park@huawei.com, liw@liw.fi
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2017-02-08 at 10:04 -0800, Matthew Wilcox wrote:
-> On Tue, Feb 07, 2017 at 11:07:34AM -0800, James Bottomley wrote:
-> > > /** 
-> > >  * memfill - Fill a region of memory with the given value
-> > >  * @s: Pointer to the start of the region.
-> > >  * @v: The word to fill the region with.
-> > >  * @n: The size of the region.
-> > >  * 
-> > >  * Differs from memset() in that it fills with an unsigned long
-> > > instead of 
-> > >  * a byte.  The pointer and the size must be aligned to unsigned
-> > > long.
-> > >  */
-> > > void memfill(unsigned long *s, unsigned long v, size_t n)
-> > 
-> > If we're going to do this, are you sure we wouldn't be wanting a
-> > string
-> > fill instead of a memfill (because filling either by byte or long
-> > looks
-> > a bit restrictive) assuming static strings that we can tell the
-> > compile
-> > time size of, it would be easy for generic code to optimise.
-> 
-> When you say 'string fill', do you mean this?
-> 
-> void memfill(void *dst, size_t dsz, void *src, size_t ssz)
-> {
-> 	if (ssz == 1) {
-> 		memset(dst, *(unsigned char *)src, dsz);
-> 	} else if (ssz == sizeof(short)) {
-> 		memset_s(dst, *(unsigned short *)src, dsz);
-> 	} else if (ssz == sizeof(int)) {
-> 		memset_i(dst, *(unsigned int *)src, dsz);
-> 	} else if (ssz == sizeof(long)) {
-> 		memset_l(dst, *(unsigned long *)src, dsz);
-> 	} else {
-> 		while (dsz >= ssz) {
-> 			memcpy(dst, src, ssz);
-> 			dsz -= ssz;
-> 			dst += ssz;
-> 		}
-> 		if (dsz)
-> 			memcpy(dst. src. dsz);
-> 	}
-> }
-> 
-> (with memset_[sil] being obvious, I hope).  Possibly some variation 
-> on this to optimise compile-time constant dsz.
-> 
-> I have no objection to that.  Indeed, it would match Lars Wirzenius'
-> memfill() definition (if not implementation) which makes me quite 
-> happy.
+On Wed, Feb 08, 2017 at 01:01:08PM -0800, James Bottomley wrote:
+> Yes, that's about it.  My only qualm looking at the proposal was if
+> memfill is genuinely useful to something why would it only want to fill
+> in units of sizeof(long).  On the other hand, we've been operating for
+> decades without it, so perhaps memset_l is the only use case?
 
-Yes, that's about it.  My only qualm looking at the proposal was if
-memfill is genuinely useful to something why would it only want to fill
-in units of sizeof(long).  On the other hand, we've been operating for
-decades without it, so perhaps memset_l is the only use case?
+I suspect we've grown hundreds of unoptimised implementations of this all
+over the kernel.  I mean, look at the attitude of the zram developers when
+I suggested memfill: "this is beyond zram scope."  I think finding all of
+these is beyond the abilities of grep.  maybe coccinelle could find some?
 
-James
+Instead I chose a driver at random that both you and I are familiar with,
+sym53c8xx_2.  Oh, look, here's one:
+
+        np->badlun_sa = cpu_to_scr(SCRIPTB_BA(np, resel_bad_lun));
+        for (i = 0 ; i < 64 ; i++)      /* 64 luns/target, no less */
+                np->badluntbl[i] = cpu_to_scr(vtobus(&np->badlun_sa));
+
+and another one:
+
+                for (i = 0 ; i < 64 ; i++)
+                        tp->luntbl[i] = cpu_to_scr(vtobus(&np->badlun_sa));
+
+and another:
+
+        for (i = 0 ; i < SYM_CONF_MAX_TASK ; i++)
+                lp->itlq_tbl[i] = cpu_to_scr(np->notask_ba);
+
+I don't think any of these are performance path, but they're there.
+
+Maybe SCSI drivers are unusual.  Let's try a random network driver, e1000e:
+
+        /* Clear shadow ram */
+        for (i = 0; i < nvm->word_size; i++) {
+                dev_spec->shadow_ram[i].modified = false;
+                dev_spec->shadow_ram[i].value = 0xFFFF;
+        }
+
+(three of those loops)
+
+I mean, it's not going to bring the house down, but that I chose two
+drivers more or less at random and found places where such an API could
+be used indicates there may be more places this should be used.  And it
+gives architectures a good place to plug in a performance optimisation
+for zram rather than hiding it away in that funny old driver almost
+nobody looks at.
