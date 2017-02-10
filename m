@@ -1,56 +1,177 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from Galois.linutronix.de ([146.0.238.70]:59972 "EHLO
-        Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752339AbdBJLQg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2017 06:16:36 -0500
-Date: Fri, 10 Feb 2017 12:15:51 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v6 3/8] x86: stop exporting msr-index.h to userland
-In-Reply-To: <1486724338-5389-4-git-send-email-nicolas.dichtel@6wind.com>
-Message-ID: <alpine.DEB.2.20.1702101215320.4036@nanos>
-References: <201702022242.toNVsxyq%fengguang.wu@intel.com> <1486724338-5389-1-git-send-email-nicolas.dichtel@6wind.com> <1486724338-5389-4-git-send-email-nicolas.dichtel@6wind.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mx1.redhat.com ([209.132.183.28]:50502 "EHLO mx1.redhat.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752608AbdBJP4G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 10 Feb 2017 10:56:06 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v2] x86/paravirt: Don't make vcpu_is_preempted() a callee-save function
+Date: Fri, 10 Feb 2017 10:43:09 -0500
+Message-ID: <1486741389-8513-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
-Message-ID: <20170210111551.x0jBQujdkV0gF1ElmZr1dJvZAP97-HMm7ZFizt6d1q0@z>
+To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20170210154309.HdjstUXi1uczhkyj2Y3O0nh223EhCaAQa62OACaj7Aw@z>
 
-On Fri, 10 Feb 2017, Nicolas Dichtel wrote:
+It was found when running fio sequential write test with a XFS ramdisk
+on a VM running on a 2-socket x86-64 system, the %CPU times as reported
+by perf were as follows:
 
-> Even if this file was not in an uapi directory, it was exported because
-> it was listed in the Kbuild file.
-> 
-> Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
-> Suggested-by: Borislav Petkov <bp@alien8.de>
-> CC: Ingo Molnar <mingo@kernel.org>
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-> Acked-by: Ingo Molnar <mingo@kernel.org>
+ 69.75%  0.59%  fio  [k] down_write
+ 69.15%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 67.12%  1.12%  fio  [k] rwsem_down_write_failed
+ 63.48% 52.77%  fio  [k] osq_lock
+  9.46%  7.88%  fio  [k] __raw_callee_save___kvm_vcpu_is_preempt
+  3.93%  3.93%  fio  [k] __kvm_vcpu_is_preempted
 
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
+Making vcpu_is_preempted() a callee-save function has a relatively
+high cost on x86-64 primarily due to at least one more cacheline of
+data access from the saving and restoring of registers (8 of them)
+to and from stack as well as one more level of function call. As
+vcpu_is_preempted() is called within the spinlock, mutex and rwsem
+slowpaths, there isn't much to gain by making it callee-save. So it
+is now changed to a normal function call instead.
 
-> ---
->  arch/x86/include/uapi/asm/Kbuild | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
-> index 3dec769cadf7..1c532b3f18ea 100644
-> --- a/arch/x86/include/uapi/asm/Kbuild
-> +++ b/arch/x86/include/uapi/asm/Kbuild
-> @@ -27,7 +27,6 @@ header-y += ldt.h
->  header-y += mce.h
->  header-y += mman.h
->  header-y += msgbuf.h
-> -header-y += msr-index.h
->  header-y += msr.h
->  header-y += mtrr.h
->  header-y += param.h
-> -- 
-> 2.8.1
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+With this patch applied on both bare-metal & KVM guest on a 2-socekt
+16-core 32-thread system with 16 parallel jobs (8 on each socket), the
+aggregrate bandwidth of the fio test on an XFS ramdisk were as follows:
+
+                       Bare Metal                KVM Guest
+   I/O Type      w/o patch    with patch   w/o patch    with patch
+   --------      ---------    ----------   ---------    ----------
+   random read   8650.5 MB/s  8560.9 MB/s  7602.9 MB/s  8196.1 MB/s  
+   seq read      9104.8 MB/s  9397.2 MB/s  8293.7 MB/s  8566.9 MB/s
+   random write  1623.8 MB/s  1626.7 MB/s  1590.6 MB/s  1700.7 MB/s
+   seq write     1626.4 MB/s  1624.9 MB/s  1604.8 MB/s  1726.3 MB/s
+
+The perf data (on KVM guest) now became:
+
+ 70.78%  0.58%  fio  [k] down_write
+ 70.20%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 69.70%  1.17%  fio  [k] rwsem_down_write_failed
+ 59.91% 55.42%  fio  [k] osq_lock
+ 10.14% 10.14%  fio  [k] __kvm_vcpu_is_preempted
+
+On bare metal, the patch doesn't introduce any performance
+regression. On KVM guest, it produces noticeable performance
+improvement (up to 7%).
+
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ v1->v2:
+  - Rerun the fio test on a different system on both bare-metal and a
+    KVM guest. Both sockets were utilized in this test.
+  - The commit log was updated with new performance numbers, but the
+    patch wasn't changed.
+  - Drop patch 2.
+
+ arch/x86/include/asm/paravirt.h       | 2 +-
+ arch/x86/include/asm/paravirt_types.h | 2 +-
+ arch/x86/kernel/kvm.c                 | 7 ++-----
+ arch/x86/kernel/paravirt-spinlocks.c  | 6 ++----
+ arch/x86/xen/spinlock.c               | 4 +---
+ 5 files changed, 7 insertions(+), 14 deletions(-)
+
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index 864f57b..2515885 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -676,7 +676,7 @@ static __always_inline void pv_kick(int cpu)
+ 
+ static __always_inline bool pv_vcpu_is_preempted(int cpu)
+ {
+-	return PVOP_CALLEE1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
++	return PVOP_CALL1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
+ }
+ 
+ #endif /* SMP && PARAVIRT_SPINLOCKS */
+diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
+index bb2de45..88dc852 100644
+--- a/arch/x86/include/asm/paravirt_types.h
++++ b/arch/x86/include/asm/paravirt_types.h
+@@ -309,7 +309,7 @@ struct pv_lock_ops {
+ 	void (*wait)(u8 *ptr, u8 val);
+ 	void (*kick)(int cpu);
+ 
+-	struct paravirt_callee_save vcpu_is_preempted;
++	bool (*vcpu_is_preempted)(int cpu);
+ };
+ 
+ /* This contains all the paravirt structures: we get a convenient
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 099fcba..eb3753d 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -595,7 +595,6 @@ __visible bool __kvm_vcpu_is_preempted(int cpu)
+ 
+ 	return !!src->preempted;
+ }
+-PV_CALLEE_SAVE_REGS_THUNK(__kvm_vcpu_is_preempted);
+ 
+ /*
+  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
+@@ -614,10 +613,8 @@ void __init kvm_spinlock_init(void)
+ 	pv_lock_ops.wait = kvm_wait;
+ 	pv_lock_ops.kick = kvm_kick_cpu;
+ 
+-	if (kvm_para_has_feature(KVM_FEATURE_STEAL_TIME)) {
+-		pv_lock_ops.vcpu_is_preempted =
+-			PV_CALLEE_SAVE(__kvm_vcpu_is_preempted);
+-	}
++	if (kvm_para_has_feature(KVM_FEATURE_STEAL_TIME))
++		pv_lock_ops.vcpu_is_preempted = __kvm_vcpu_is_preempted;
+ }
+ 
+ #endif	/* CONFIG_PARAVIRT_SPINLOCKS */
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 6259327..da050bc 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -24,12 +24,10 @@ __visible bool __native_vcpu_is_preempted(int cpu)
+ {
+ 	return false;
+ }
+-PV_CALLEE_SAVE_REGS_THUNK(__native_vcpu_is_preempted);
+ 
+ bool pv_is_native_vcpu_is_preempted(void)
+ {
+-	return pv_lock_ops.vcpu_is_preempted.func ==
+-		__raw_callee_save___native_vcpu_is_preempted;
++	return pv_lock_ops.vcpu_is_preempted == __native_vcpu_is_preempted;
+ }
+ 
+ struct pv_lock_ops pv_lock_ops = {
+@@ -38,7 +36,7 @@ struct pv_lock_ops pv_lock_ops = {
+ 	.queued_spin_unlock = PV_CALLEE_SAVE(__native_queued_spin_unlock),
+ 	.wait = paravirt_nop,
+ 	.kick = paravirt_nop,
+-	.vcpu_is_preempted = PV_CALLEE_SAVE(__native_vcpu_is_preempted),
++	.vcpu_is_preempted = __native_vcpu_is_preempted,
+ #endif /* SMP */
+ };
+ EXPORT_SYMBOL(pv_lock_ops);
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index 25a7c43..c85bb8f 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -114,8 +114,6 @@ void xen_uninit_lock_cpu(int cpu)
+ 	per_cpu(irq_name, cpu) = NULL;
+ }
+ 
+-PV_CALLEE_SAVE_REGS_THUNK(xen_vcpu_stolen);
+-
+ /*
+  * Our init of PV spinlocks is split in two init functions due to us
+  * using paravirt patching and jump labels patching and having to do
+@@ -138,7 +136,7 @@ void __init xen_init_spinlocks(void)
+ 	pv_lock_ops.queued_spin_unlock = PV_CALLEE_SAVE(__pv_queued_spin_unlock);
+ 	pv_lock_ops.wait = xen_qlock_wait;
+ 	pv_lock_ops.kick = xen_qlock_kick;
+-	pv_lock_ops.vcpu_is_preempted = PV_CALLEE_SAVE(xen_vcpu_stolen);
++	pv_lock_ops.vcpu_is_preempted = xen_vcpu_stolen;
+ }
+ 
+ static __init int xen_parse_nopvspin(char *arg)
+-- 
+1.8.3.1
+
