@@ -1,65 +1,51 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v6 0/8] uapi: export all headers under uapi directories
-Date: Fri, 10 Feb 2017 11:58:50 +0100
-Message-ID: <1486724338-5389-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <201702022242.toNVsxyq%fengguang.wu@intel.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v6 3/8] x86: stop exporting msr-index.h to userland
+Date: Fri, 10 Feb 2017 12:15:51 +0100 (CET)
+Message-ID: <alpine.DEB.2.20.1702101215320.4036@nanos>
+References: <201702022242.toNVsxyq%fengguang.wu@intel.com> <1486724338-5389-1-git-send-email-nicolas.dichtel@6wind.com> <1486724338-5389-4-git-send-email-nicolas.dichtel@6wind.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201702022242.toNVsxyq%fengguang.wu@intel.com>
+In-Reply-To: <1486724338-5389-4-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, 10 Feb 2017, Nicolas Dichtel wrote:
 
-Here is the v6 of this series.
+> Even if this file was not in an uapi directory, it was exported because
+> it was listed in the Kbuild file.
+> 
+> Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
+> Suggested-by: Borislav Petkov <bp@alien8.de>
+> CC: Ingo Molnar <mingo@kernel.org>
+> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+> Acked-by: Ingo Molnar <mingo@kernel.org>
 
-Patches #1 and #2 are just cleanup: some exported headers were still under
-a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
-not under an uapi directory.
-After these three patches, all exported headers are under an uapi directory:
-path #4 stops searching files in non uapi directories.
-The patch #5 was spotted by code review: there is no in-tree user of this
-functionality.
-Patch #6 fixes some warnings/errors reported by 0-day tests.
-Patches #7 and #8 remove the need to list explicitly headers. Now all files
-under an uapi directory are exported.
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
 
-This series has been tested with a 'make headers_install' on x86 and a
-'make headers_install_all'. I've checked the result of both commands.
-
-This patch is built against linus tree. If I must rebase it against the kbuild
-tree, just tell me.
-
-FYI, I will be off for 10 days.
-
-v5 -> v6:
-  - patch #6: remove change of include/uapi/linux/media.h
-  - patch #7: fix hdr export when 'make O=' is used (look for genhdr files in
-              the right directory)
-  - patch #8: fix 'make headers_check'
-
-v4 -> v5:
-  - patch #3: get back to v3 (don't export msr-index.h)
-  - patch #6: new in this version
-  - patch #7: fix compilation by introducing header-n
-
-v3 -> v4:
- - first patch has been included
- - patch #4: get back to v2 and remove arch/x86/include/asm/msr-index.h
-
-v2 -> v3:
- - patch #1: remove arch/arm/include/asm/types.h
- - patch #2: remove arch/h8300/include/asm/bitsperlong.h
- - patch #3: remove arch/nios2/include/uapi/asm/setup.h
- - patch #4: don't export msr-index.h
- - patch #5: fix a typo: s/unput-files3-name/input-files3-name
- - patch #6: no change
- - patch #7: fix include/uapi/asm-generic/Kbuild.asm by introducing mandatory-y
- - add patch #8
-
-v1 -> v2:
- - add patch #1 to #6
- - patch #7: remove use of header-y
-
-Comments are welcomed,
-Nicolas
+> ---
+>  arch/x86/include/uapi/asm/Kbuild | 1 -
+>  1 file changed, 1 deletion(-)
+> 
+> diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
+> index 3dec769cadf7..1c532b3f18ea 100644
+> --- a/arch/x86/include/uapi/asm/Kbuild
+> +++ b/arch/x86/include/uapi/asm/Kbuild
+> @@ -27,7 +27,6 @@ header-y += ldt.h
+>  header-y += mce.h
+>  header-y += mman.h
+>  header-y += msgbuf.h
+> -header-y += msr-index.h
+>  header-y += msr.h
+>  header-y += mtrr.h
+>  header-y += param.h
+> -- 
+> 2.8.1
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
