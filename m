@@ -1,9 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:41398 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([65.50.211.136]:41694 "EHLO mail.zytor.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751328AbdBMWH1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 13 Feb 2017 17:07:27 -0500
-Date: Mon, 13 Feb 2017 14:00:43 -0800
+        id S1750831AbdBMWPk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 13 Feb 2017 17:15:40 -0500
+Date: Mon, 13 Feb 2017 14:07:51 -0800
 In-Reply-To: <20170213215220.GN25813@worktop.programming.kicks-ass.net>
 References: <1486741389-8513-1-git-send-email-longman@redhat.com> <20170210161928.GI6515@twins.programming.kicks-ass.net> <1c949ed0-1b88-ae6e-4e6c-426502bfab5f@redhat.com> <14854496-0baa-1bf6-c819-f3d7fae13c2c@redhat.com> <20170213104716.GM6515@twins.programming.kicks-ass.net> <20170213105343.GJ6536@twins.programming.kicks-ass.net> <3dc50409-60dd-ad47-f971-448191e66038@redhat.com> <6f69b112-7ae4-bf8f-b767-29a68fd48632@redhat.com> <20170213215220.GN25813@worktop.programming.kicks-ass.net>
 MIME-Version: 1.0
@@ -12,12 +12,12 @@ Content-Type: text/plain;
 Content-Transfer-Encoding: 8BIT
 Subject: Re: [PATCH v2] x86/paravirt: Don't make vcpu_is_preempted() a callee-save function
 From: hpa@zytor.com
-Message-ID: <01772CFB-1B5E-4B03-BEDF-94E62373CEAA@zytor.com>
+Message-ID: <8BDFD84E-33DB-4017-8229-6E87F4F7A861@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
 Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>
-Message-ID: <20170213220043.SIsuqfUtNWWD6YheBauDiOeTOMa-t-sUZgBIEtGl7Vo@z>
+Message-ID: <20170213220751.uDhkduPoQFZTZ5DHp_T99vy7FWloCeJ8IG_WcKJjq_M@z>
 
 On February 13, 2017 1:52:20 PM PST, Peter Zijlstra <peterz@infradead.org> wrote:
 >On Mon, Feb 13, 2017 at 03:12:45PM -0500, Waiman Long wrote:
@@ -68,9 +68,6 @@ On February 13, 2017 1:52:20 PM PST, Peter Zijlstra <peterz@infradead.org> wrote
 >should fail compile with a semi-sensible failure if the displacement is
 >too big.
 
-e for signed, Z for unsigned.  Obviously you have to use a matching instruction: an immediate or displacement in a 64-bit instruction is sign-extended, in a 32-bit instruction zero-extended.  E.g.:
-
-   movl %0,%%eax # use Z, all of %rax will be set
-   movq %0,%%rax # use e
+Oh, and unless you are explicitly forcing 32-bit addressing mode, displacements are always "e" (or "m" if you let gcc pick the addressing mode.)
 -- 
 Sent from my Android device with K-9 Mail. Please excuse my brevity.
