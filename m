@@ -1,8 +1,8 @@
 From: hpa@zytor.com
 Subject: Re: [PATCH v2] x86/paravirt: Don't make vcpu_is_preempted() a
 	callee-save function
-Date: Mon, 13 Feb 2017 14:00:43 -0800
-Message-ID: <01772CFB-1B5E-4B03-BEDF-94E62373CEAA@zytor.com>
+Date: Mon, 13 Feb 2017 14:07:51 -0800
+Message-ID: <8BDFD84E-33DB-4017-8229-6E87F4F7A861@zytor.com>
 References: <1486741389-8513-1-git-send-email-longman@redhat.com>
 	<20170210161928.GI6515@twins.programming.kicks-ass.net>
 	<1c949ed0-1b88-ae6e-4e6c-426502bfab5f@redhat.com>
@@ -79,9 +79,6 @@ On February 13, 2017 1:52:20 PM PST, Peter Zijlstra <peterz@infradead.org> wrote
 >should fail compile with a semi-sensible failure if the displacement is
 >too big.
 
-e for signed, Z for unsigned.  Obviously you have to use a matching instruction: an immediate or displacement in a 64-bit instruction is sign-extended, in a 32-bit instruction zero-extended.  E.g.:
-
-   movl %0,%%eax # use Z, all of %rax will be set
-   movq %0,%%rax # use e
+Oh, and unless you are explicitly forcing 32-bit addressing mode, displacements are always "e" (or "m" if you let gcc pick the addressing mode.)
 -- 
 Sent from my Android device with K-9 Mail. Please excuse my brevity.
