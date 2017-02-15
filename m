@@ -1,82 +1,131 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v4 1/2] x86/paravirt: Change vcp_is_preempted() arg type to long
-Date: Wed, 15 Feb 2017 16:37:49 -0500
-Message-ID: <1487194670-6319-2-git-send-email-longman@redhat.com>
+Subject: [PATCH v4 2/2] x86/kvm: Provide optimized version of
+	vcpu_is_preempted() for x86-64
+Date: Wed, 15 Feb 2017 16:37:50 -0500
+Message-ID: <1487194670-6319-3-git-send-email-longman@redhat.com>
 References: <1487194670-6319-1-git-send-email-longman@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1487194670-6319-1-git-send-email-longman@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, kvm@vger.kernel.org, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Waiman Long <longman@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-The cpu argument in the function prototype of vcpu_is_preempted()
-is changed from int to long. That makes it easier to provide a better
-optimized assembly version of that function.
+It was found when running fio sequential write test with a XFS ramdisk
+on a KVM guest running on a 2-socket x86-64 system, the %CPU times
+as reported by perf were as follows:
 
-For Xen, vcpu_is_preempted(long) calls xen_vcpu_stolen(int), the
-downcast from long to int is not a problem as vCPU number won't exceed
-32 bits.
+ 69.75%  0.59%  fio  [k] down_write
+ 69.15%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 67.12%  1.12%  fio  [k] rwsem_down_write_failed
+ 63.48% 52.77%  fio  [k] osq_lock
+  9.46%  7.88%  fio  [k] __raw_callee_save___kvm_vcpu_is_preempt
+  3.93%  3.93%  fio  [k] __kvm_vcpu_is_preempted
 
+Making vcpu_is_preempted() a callee-save function has a relatively
+high cost on x86-64 primarily due to at least one more cacheline of
+data access from the saving and restoring of registers (8 of them)
+to and from stack as well as one more level of function call.
+
+To reduce this performance overhead, an optimized assembly version
+of the the __raw_callee_save___kvm_vcpu_is_preempt() function is
+provided for x86-64.
+
+With this patch applied on a KVM guest on a 2-socekt 16-core 32-thread
+system with 16 parallel jobs (8 on each socket), the aggregrate
+bandwidth of the fio test on an XFS ramdisk were as follows:
+
+   I/O Type      w/o patch    with patch
+   --------      ---------    ----------
+   random read   8141.2 MB/s  8497.1 MB/s
+   seq read      8229.4 MB/s  8304.2 MB/s
+   random write  1675.5 MB/s  1701.5 MB/s
+   seq write     1681.3 MB/s  1699.9 MB/s
+
+There are some increases in the aggregated bandwidth because of
+the patch.
+
+The perf data now became:
+
+ 70.78%  0.58%  fio  [k] down_write
+ 70.20%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 69.70%  1.17%  fio  [k] rwsem_down_write_failed
+ 59.91% 55.42%  fio  [k] osq_lock
+ 10.14% 10.14%  fio  [k] __kvm_vcpu_is_preempted
+
+The assembly code was verified by using a test kernel module to
+compare the output of C __kvm_vcpu_is_preempted() and that of assembly
+__raw_callee_save___kvm_vcpu_is_preempt() to verify that they matched.
+
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Waiman Long <longman@redhat.com>
 ---
- arch/x86/include/asm/paravirt.h      | 2 +-
- arch/x86/include/asm/qspinlock.h     | 2 +-
- arch/x86/kernel/kvm.c                | 2 +-
- arch/x86/kernel/paravirt-spinlocks.c | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+ arch/x86/kernel/kvm.c | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index 1eea6ca..f75fbfe 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -673,7 +673,7 @@ static __always_inline void pv_kick(int cpu)
- 	PVOP_VCALL1(pv_lock_ops.kick, cpu);
- }
- 
--static __always_inline bool pv_vcpu_is_preempted(int cpu)
-+static __always_inline bool pv_vcpu_is_preempted(long cpu)
- {
- 	return PVOP_CALLEE1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
- }
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index c343ab5..48a706f 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -34,7 +34,7 @@ static inline void queued_spin_unlock(struct qspinlock *lock)
- }
- 
- #define vcpu_is_preempted vcpu_is_preempted
--static inline bool vcpu_is_preempted(int cpu)
-+static inline bool vcpu_is_preempted(long cpu)
- {
- 	return pv_vcpu_is_preempted(cpu);
- }
 diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 099fcba..85ed343 100644
+index 85ed343..e423435 100644
 --- a/arch/x86/kernel/kvm.c
 +++ b/arch/x86/kernel/kvm.c
-@@ -589,7 +589,7 @@ static void kvm_wait(u8 *ptr, u8 val)
+@@ -589,6 +589,7 @@ static void kvm_wait(u8 *ptr, u8 val)
  	local_irq_restore(flags);
  }
  
--__visible bool __kvm_vcpu_is_preempted(int cpu)
-+__visible bool __kvm_vcpu_is_preempted(long cpu)
++#ifdef CONFIG_X86_32
+ __visible bool __kvm_vcpu_is_preempted(long cpu)
  {
  	struct kvm_steal_time *src = &per_cpu(steal_time, cpu);
- 
-diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
-index 6259327..8f2d1c9 100644
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -20,7 +20,7 @@ bool pv_is_native_spin_unlock(void)
- 		__raw_callee_save___native_queued_spin_unlock;
+@@ -597,11 +598,40 @@ __visible bool __kvm_vcpu_is_preempted(long cpu)
  }
+ PV_CALLEE_SAVE_REGS_THUNK(__kvm_vcpu_is_preempted);
  
--__visible bool __native_vcpu_is_preempted(int cpu)
-+__visible bool __native_vcpu_is_preempted(long cpu)
++#else
++
++extern bool __raw_callee_save___kvm_vcpu_is_preempted(long);
++
++/*
++ * Hand-optimize version for x86-64 to avoid 8 64-bit register saving and
++ * restoring to/from the stack. It is assumed that the preempted value
++ * is at an offset of 16 from the beginning of the kvm_steal_time structure
++ * which is verified by the BUILD_BUG_ON() macro below.
++ */
++#define PREEMPTED_OFFSET	16
++asm(
++".pushsection .text;"
++".global __raw_callee_save___kvm_vcpu_is_preempted;"
++".type __raw_callee_save___kvm_vcpu_is_preempted, @function;"
++"__raw_callee_save___kvm_vcpu_is_preempted:"
++"movq	__per_cpu_offset(,%rdi,8), %rax;"
++"cmpb	$0, " __stringify(PREEMPTED_OFFSET) "+steal_time(%rax);"
++"setne	%al;"
++"ret;"
++".popsection");
++
++#endif
++
+ /*
+  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
+  */
+ void __init kvm_spinlock_init(void)
  {
- 	return false;
- }
++#ifdef CONFIG_X86_64
++	BUILD_BUG_ON((offsetof(struct kvm_steal_time, preempted)
++		!= PREEMPTED_OFFSET) || (sizeof(steal_time.preempted) != 1));
++#endif
++
+ 	if (!kvm_para_available())
+ 		return;
+ 	/* Does host kernel support KVM_FEATURE_PV_UNHALT? */
 -- 
 1.8.3.1
