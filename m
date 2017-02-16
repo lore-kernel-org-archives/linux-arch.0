@@ -1,51 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:56548 "EHLO mail.skyhub.de"
+Received: from mx1.redhat.com ([209.132.183.28]:33730 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S933101AbdBPUGa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 15:06:30 -0500
-Date: Thu, 16 Feb 2017 21:06:08 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 03/28] x86: Add the Secure Memory Encryption CPU
- feature
-Message-ID: <20170216200608.xli5fybhh3mhlujw@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154236.19244.7580.stgit@tlendack-t1.amdoffice.net>
- <20170216181355.bjxo2h6vlhukz4ih@pd.tnic>
- <a1a6a6d7-3aac-3138-1e75-6160f0427a6b@amd.com>
+        id S933481AbdBPVAS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 16:00:18 -0500
+Subject: Re: [PATCH v4 2/2] x86/kvm: Provide optimized version of
+ vcpu_is_preempted() for x86-64
+References: <1487194670-6319-1-git-send-email-longman@redhat.com>
+ <1487194670-6319-3-git-send-email-longman@redhat.com>
+ <20170216164815.GD6515@twins.programming.kicks-ass.net>
+From: Waiman Long <longman@redhat.com>
+Message-ID: <9c101df4-7320-556a-ca41-e024629e9a67@redhat.com>
+Date: Thu, 16 Feb 2017 16:00:10 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <a1a6a6d7-3aac-3138-1e75-6160f0427a6b@amd.com>
+In-Reply-To: <20170216164815.GD6515@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216200608.5ygdyoEZ_nSR-V2H5H7gYXU063h5612GQ0Yc7FVoXtM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, andrew.cooper3@citrix.com
+Message-ID: <20170216210010.D-TK7tyEPVyWHemnbfCKCps5sOkKBlf1E4nzOx5JyeY@z>
 
-On Thu, Feb 16, 2017 at 01:42:13PM -0600, Tom Lendacky wrote:
-> I realize it's a bit more code and expands the changes but I thought it
-> would be a bit clearer as to what was going on this way. And then the
-> follow on patch for the physical address reduction goes in nicely, too.
+On 02/16/2017 11:48 AM, Peter Zijlstra wrote:
+> On Wed, Feb 15, 2017 at 04:37:50PM -0500, Waiman Long wrote:
+>> +/*
+>> + * Hand-optimize version for x86-64 to avoid 8 64-bit register saving and
+>> + * restoring to/from the stack. It is assumed that the preempted value
+>> + * is at an offset of 16 from the beginning of the kvm_steal_time structure
+>> + * which is verified by the BUILD_BUG_ON() macro below.
+>> + */
+>> +#define PREEMPTED_OFFSET	16
+> As per Andrew's suggestion, the 'right' way is something like so.
 
-Well, the code from the next patch should go to AMD-specific place like
-arch/x86/kernel/cpu/amd.c anyway, where you don't have to do vendor
-checks.
+Thanks for the tip. I was not aware of the asm-offsets stuff. I will
+update the patch to use it.
 
-> If you prefer I stay with the scattered feature approach and then clear
-> the bit based on the MSR at the end of init_amd() I can do that. I'm
-> not attached to either method.
-
-Yes please. We should keep the shole X86_FEATURE machinery from
-exploding in size. Especially if CPUID_0x8000001f is not a leaf we're
-going to be adding the majority of its bits, to warrant a separate
-->x86_capability array element.
-
-  [If it does later, we can always move it to a separate element. ]
-
-Thanks.
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+Cheers,
+Longman
