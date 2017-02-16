@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam02on0053.outbound.protection.outlook.com ([104.47.36.53]:5267
-        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-cys01nam02on0061.outbound.protection.outlook.com ([104.47.37.61]:41664
+        "EHLO NAM02-CY1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932277AbdBPPnV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 10:43:21 -0500
+        id S932462AbdBPPo1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 10:44:27 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v4 05/28] x86: Add Secure Memory Encryption (SME) support
-Date: Thu, 16 Feb 2017 09:43:07 -0600
-Message-ID: <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v4 10/28] x86: Insure that boot memory areas are mapped
+ properly
+Date: Thu, 16 Feb 2017 09:44:11 -0600
+Message-ID: <20170216154411.19244.99258.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -17,182 +18,248 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216154307.C-xP2G2RdwNSRuXV7ZuACVS_e_JvCvShdYSB1NXB4C4@z>
+Message-ID: <20170216154411.bct_rj1ySZEb2fMCYyNXCKqWD-xvMIYl8ABU9Kb7cHc@z>
 
-Add support for Secure Memory Encryption (SME). This initial support
-provides a Kconfig entry to build the SME support into the kernel and
-defines the memory encryption mask that will be used in subsequent
-patches to mark pages as encrypted.
+The boot data and command line data are present in memory in a decrypted
+state and are copied early in the boot process.  The early page fault
+support will map these areas as encrypted, so before attempting to copy
+them, add decrypted mappings so the data is accessed properly when copied.
+
+For the initrd, encrypt this data in place. Since the future mapping of the
+initrd area will be mapped as encrypted the data will be accessed properly.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/Kconfig                   |   22 +++++++++++++++++++
- arch/x86/include/asm/mem_encrypt.h |   42 ++++++++++++++++++++++++++++++++++++
- arch/x86/mm/Makefile               |    1 +
- arch/x86/mm/mem_encrypt.c          |   21 ++++++++++++++++++
- include/linux/mem_encrypt.h        |   37 ++++++++++++++++++++++++++++++++
- 5 files changed, 123 insertions(+)
- create mode 100644 arch/x86/include/asm/mem_encrypt.h
- create mode 100644 arch/x86/mm/mem_encrypt.c
- create mode 100644 include/linux/mem_encrypt.h
+ arch/x86/include/asm/mem_encrypt.h |   11 +++++
+ arch/x86/kernel/head64.c           |   34 +++++++++++++++--
+ arch/x86/kernel/setup.c            |   10 +++++
+ arch/x86/mm/mem_encrypt.c          |   74 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 126 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index f8fbfc5..a3b8c71 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1395,6 +1395,28 @@ config X86_DIRECT_GBPAGES
- 	  supports them), so don't confuse the user by printing
- 	  that we have them enabled.
- 
-+config AMD_MEM_ENCRYPT
-+	bool "AMD Secure Memory Encryption (SME) support"
-+	depends on X86_64 && CPU_SUP_AMD
-+	---help---
-+	  Say yes to enable support for the encryption of system memory.
-+	  This requires an AMD processor that supports Secure Memory
-+	  Encryption (SME).
-+
-+config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
-+	bool "Activate AMD Secure Memory Encryption (SME) by default"
-+	default y
-+	depends on AMD_MEM_ENCRYPT
-+	---help---
-+	  Say yes to have system memory encrypted by default if running on
-+	  an AMD processor that supports Secure Memory Encryption (SME).
-+
-+	  If set to Y, then the encryption of system memory can be
-+	  deactivated with the mem_encrypt=off command line option.
-+
-+	  If set to N, then the encryption of system memory can be
-+	  activated with the mem_encrypt=on command line option.
-+
- # Common NUMA Features
- config NUMA
- 	bool "Numa Memory Allocation and Scheduler Support"
 diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-new file mode 100644
-index 0000000..ccc53b0
---- /dev/null
+index 3c9052c..e2b7364 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
 +++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -0,0 +1,42 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __X86_MEM_ENCRYPT_H__
-+#define __X86_MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
-+extern unsigned long sme_me_mask;
-+
-+static inline bool sme_active(void)
-+{
-+	return (sme_me_mask) ? true : false;
-+}
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#ifndef sme_me_mask
-+#define sme_me_mask	0UL
-+
-+static inline bool sme_active(void)
-+{
-+	return false;
-+}
-+#endif
-+
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
-+
-+#endif	/* __ASSEMBLY__ */
-+
-+#endif	/* __X86_MEM_ENCRYPT_H__ */
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index 96d2b84..44d4d21 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -39,3 +39,4 @@ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
- obj-$(CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) += pkeys.o
- obj-$(CONFIG_RANDOMIZE_MEMORY) += kaslr.o
+@@ -31,6 +31,9 @@ void __init sme_early_encrypt(resource_size_t paddr,
+ void __init sme_early_decrypt(resource_size_t paddr,
+ 			      unsigned long size);
  
-+obj-$(CONFIG_AMD_MEM_ENCRYPT)	+= mem_encrypt.o
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-new file mode 100644
-index 0000000..b99d469
---- /dev/null
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -0,0 +1,21 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++void __init sme_map_bootdata(char *real_mode_data);
++void __init sme_unmap_bootdata(char *real_mode_data);
 +
-+#include <linux/linkage.h>
-+
-+/*
-+ * Since SME related variables are set early in the boot process they must
-+ * reside in the .data section so as not to be zeroed out when the .bss
-+ * section is later cleared.
-+ */
-+unsigned long sme_me_mask __section(.data) = 0;
-+EXPORT_SYMBOL_GPL(sme_me_mask);
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-new file mode 100644
-index 0000000..14a7b9f
---- /dev/null
-+++ b/include/linux/mem_encrypt.h
-@@ -0,0 +1,37 @@
-+/*
-+ * AMD Memory Encryption Support
-+ *
-+ * Copyright (C) 2016 Advanced Micro Devices, Inc.
-+ *
-+ * Author: Tom Lendacky <thomas.lendacky@amd.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __MEM_ENCRYPT_H__
-+#define __MEM_ENCRYPT_H__
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef CONFIG_AMD_MEM_ENCRYPT
-+
-+#include <asm/mem_encrypt.h>
-+
-+#else	/* !CONFIG_AMD_MEM_ENCRYPT */
-+
-+#ifndef sme_me_mask
-+#define sme_me_mask	0UL
-+
-+static inline bool sme_active(void)
+ void __init sme_early_init(void);
+ 
+ #define __sme_pa(x)		(__pa((x)) | sme_me_mask)
+@@ -57,6 +60,14 @@ static inline void __init sme_early_decrypt(resource_size_t paddr,
+ {
+ }
+ 
++static inline void __init sme_map_bootdata(char *real_mode_data)
 +{
-+	return false;
 +}
-+#endif
 +
-+#endif	/* CONFIG_AMD_MEM_ENCRYPT */
++static inline void __init sme_unmap_bootdata(char *real_mode_data)
++{
++}
 +
-+#endif	/* __ASSEMBLY__ */
+ static inline void __init sme_early_init(void)
+ {
+ }
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index 182a4c7..03f8e74 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -46,13 +46,18 @@ static void __init reset_early_page_tables(void)
+ 	write_cr3(__sme_pa_nodebug(early_level4_pgt));
+ }
+ 
++void __init __early_pgtable_flush(void)
++{
++	write_cr3(__sme_pa_nodebug(early_level4_pgt));
++}
 +
-+#endif	/* __MEM_ENCRYPT_H__ */
+ /* Create a new PMD entry */
+-int __init early_make_pgtable(unsigned long address)
++int __init __early_make_pgtable(unsigned long address, pmdval_t pmd)
+ {
+ 	unsigned long physaddr = address - __PAGE_OFFSET;
+ 	pgdval_t pgd, *pgd_p;
+ 	pudval_t pud, *pud_p;
+-	pmdval_t pmd, *pmd_p;
++	pmdval_t *pmd_p;
+ 
+ 	/* Invalid address or early pgt is done ?  */
+ 	if (physaddr >= MAXMEM || read_cr3() != __sme_pa_nodebug(early_level4_pgt))
+@@ -94,12 +99,21 @@ int __init early_make_pgtable(unsigned long address)
+ 		memset(pmd_p, 0, sizeof(*pmd_p) * PTRS_PER_PMD);
+ 		*pud_p = (pudval_t)pmd_p - __START_KERNEL_map + phys_base + _KERNPG_TABLE;
+ 	}
+-	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
+ 	pmd_p[pmd_index(address)] = pmd;
+ 
+ 	return 0;
+ }
+ 
++int __init early_make_pgtable(unsigned long address)
++{
++	unsigned long physaddr = address - __PAGE_OFFSET;
++	pmdval_t pmd;
++
++	pmd = (physaddr & PMD_MASK) + early_pmd_flags;
++
++	return __early_make_pgtable(address, pmd);
++}
++
+ /* Don't add a printk in there. printk relies on the PDA which is not initialized 
+    yet. */
+ static void __init clear_bss(void)
+@@ -122,6 +136,12 @@ static void __init copy_bootdata(char *real_mode_data)
+ 	char * command_line;
+ 	unsigned long cmd_line_ptr;
+ 
++	/*
++	 * If SME is active, this will create decrypted mappings of the
++	 * boot data in advance of the copy operations.
++	 */
++	sme_map_bootdata(real_mode_data);
++
+ 	memcpy(&boot_params, real_mode_data, sizeof boot_params);
+ 	sanitize_boot_params(&boot_params);
+ 	cmd_line_ptr = get_cmd_line_ptr();
+@@ -129,6 +149,14 @@ static void __init copy_bootdata(char *real_mode_data)
+ 		command_line = __va(cmd_line_ptr);
+ 		memcpy(boot_command_line, command_line, COMMAND_LINE_SIZE);
+ 	}
++
++	/*
++	 * The old boot data is no longer needed and won't be reserved,
++	 * freeing up that memory for use by the system. If SME is active,
++	 * we need to remove the mappings that were created so that the
++	 * memory doesn't remain mapped as decrypted.
++	 */
++	sme_unmap_bootdata(real_mode_data);
+ }
+ 
+ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index cab13f7..bd5b9a7 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -114,6 +114,7 @@
+ #include <asm/microcode.h>
+ #include <asm/mmu_context.h>
+ #include <asm/kaslr.h>
++#include <asm/mem_encrypt.h>
+ 
+ /*
+  * max_low_pfn_mapped: highest direct mapped pfn under 4GB
+@@ -376,6 +377,15 @@ static void __init reserve_initrd(void)
+ 	    !ramdisk_image || !ramdisk_size)
+ 		return;		/* No initrd provided by bootloader */
+ 
++	/*
++	 * If SME is active, this memory will be marked encrypted by the
++	 * kernel when it is accessed (including relocation). However, the
++	 * ramdisk image was loaded decrypted by the bootloader, so make
++	 * sure that it is encrypted before accessing it.
++	 */
++	if (sme_active())
++		sme_early_encrypt(ramdisk_image, ramdisk_end - ramdisk_image);
++
+ 	initrd_start = 0;
+ 
+ 	mapped_size = memblock_mem_size(max_pfn_mapped);
+diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
+index ac3565c..ec548e9 100644
+--- a/arch/x86/mm/mem_encrypt.c
++++ b/arch/x86/mm/mem_encrypt.c
+@@ -16,8 +16,12 @@
+ 
+ #include <asm/tlbflush.h>
+ #include <asm/fixmap.h>
++#include <asm/setup.h>
++#include <asm/bootparam.h>
+ 
+ extern pmdval_t early_pmd_flags;
++int __init __early_make_pgtable(unsigned long, pmdval_t);
++void __init __early_pgtable_flush(void);
+ 
+ /*
+  * Since SME related variables are set early in the boot process they must
+@@ -103,6 +107,76 @@ void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
+ 	__sme_early_enc_dec(paddr, size, false);
+ }
+ 
++static void __init __sme_early_map_unmap_mem(void *vaddr, unsigned long size,
++					     bool map)
++{
++	unsigned long paddr = (unsigned long)vaddr - __PAGE_OFFSET;
++	pmdval_t pmd_flags, pmd;
++
++	/* Use early_pmd_flags but remove the encryption mask */
++	pmd_flags = early_pmd_flags & ~sme_me_mask;
++
++	do {
++		pmd = map ? (paddr & PMD_MASK) + pmd_flags : 0;
++		__early_make_pgtable((unsigned long)vaddr, pmd);
++
++		vaddr += PMD_SIZE;
++		paddr += PMD_SIZE;
++		size = (size <= PMD_SIZE) ? 0 : size - PMD_SIZE;
++	} while (size);
++}
++
++static void __init __sme_map_unmap_bootdata(char *real_mode_data, bool map)
++{
++	struct boot_params *boot_data;
++	unsigned long cmdline_paddr;
++
++	__sme_early_map_unmap_mem(real_mode_data, sizeof(boot_params), map);
++	boot_data = (struct boot_params *)real_mode_data;
++
++	/*
++	 * Determine the command line address only after having established
++	 * the decrypted mapping.
++	 */
++	cmdline_paddr = boot_data->hdr.cmd_line_ptr |
++			((u64)boot_data->ext_cmd_line_ptr << 32);
++
++	if (cmdline_paddr)
++		__sme_early_map_unmap_mem(__va(cmdline_paddr),
++					  COMMAND_LINE_SIZE, map);
++}
++
++void __init sme_unmap_bootdata(char *real_mode_data)
++{
++	/* If SME is not active, the bootdata is in the correct state */
++	if (!sme_active())
++		return;
++
++	/*
++	 * The bootdata and command line aren't needed anymore so clear
++	 * any mapping of them.
++	 */
++	__sme_map_unmap_bootdata(real_mode_data, false);
++
++	__early_pgtable_flush();
++}
++
++void __init sme_map_bootdata(char *real_mode_data)
++{
++	/* If SME is not active, the bootdata is in the correct state */
++	if (!sme_active())
++		return;
++
++	/*
++	 * The bootdata and command line will not be encrypted, so they
++	 * need to be mapped as decrypted memory so they can be copied
++	 * properly.
++	 */
++	__sme_map_unmap_bootdata(real_mode_data, true);
++
++	__early_pgtable_flush();
++}
++
+ void __init sme_early_init(void)
+ {
+ 	unsigned int i;
