@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-dm3nam03on0059.outbound.protection.outlook.com ([104.47.41.59]:50272
-        "EHLO NAM03-DM3-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam01on0085.outbound.protection.outlook.com ([104.47.34.85]:23168
+        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932276AbdBPPon (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 10:44:43 -0500
+        id S932570AbdBPPqA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 10:46:00 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type of
- an address
-Date: Thu, 16 Feb 2017 09:44:30 -0600
-Message-ID: <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v4 17/28] x86: Decrypt trampoline area if memory
+ encryption is active
+Date: Thu, 16 Feb 2017 09:45:50 -0600
+Message-ID: <20170216154550.19244.5070.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,86 +18,45 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216154430.ETchU4hTqvykzn8srpSVji2yMdAhcPkPOoHAg32sHrs@z>
+Message-ID: <20170216154550.k1TaBt3DHIweLEICxfd_GkDWKZnZppacpiJ1zR4dzuA@z>
 
-This patch adds support to return the E820 type associated with an address
-range.
+When Secure Memory Encryption is enabled, the trampoline area must not
+be encrypted. A CPU running in real mode will not be able to decrypt
+memory that has been encrypted because it will not be able to use addresses
+with the memory encryption mask.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/e820/api.h   |    2 ++
- arch/x86/include/asm/e820/types.h |    2 ++
- arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
- 3 files changed, 27 insertions(+), 3 deletions(-)
+ arch/x86/realmode/init.c |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
-diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
-index 8e0f8b8..7c1bdc9 100644
---- a/arch/x86/include/asm/e820/api.h
-+++ b/arch/x86/include/asm/e820/api.h
-@@ -38,6 +38,8 @@
- extern void e820__reallocate_tables(void);
- extern void e820__register_nosave_regions(unsigned long limit_pfn);
+diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+index 5db706f1..21d7506 100644
+--- a/arch/x86/realmode/init.c
++++ b/arch/x86/realmode/init.c
+@@ -6,6 +6,8 @@
+ #include <asm/pgtable.h>
+ #include <asm/realmode.h>
+ #include <asm/tlbflush.h>
++#include <asm/mem_encrypt.h>
++#include <asm/cacheflush.h>
  
-+extern enum e820_type e820__get_entry_type(u64 start, u64 end);
-+
- /*
-  * Returns true iff the specified range [start,end) is completely contained inside
-  * the ISA region.
-diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
-index 4adeed0..bf49591 100644
---- a/arch/x86/include/asm/e820/types.h
-+++ b/arch/x86/include/asm/e820/types.h
-@@ -7,6 +7,8 @@
-  * These are the E820 types known to the kernel:
-  */
- enum e820_type {
-+	E820_TYPE_INVALID	= 0,
-+
- 	E820_TYPE_RAM		= 1,
- 	E820_TYPE_RESERVED	= 2,
- 	E820_TYPE_ACPI		= 3,
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 6e9b26f..2ee7ee2 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -84,7 +84,8 @@ bool e820__mapped_any(u64 start, u64 end, enum e820_type type)
-  * Note: this function only works correctly once the E820 table is sorted and
-  * not-overlapping (at least for the range specified), which is the case normally.
-  */
--bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
-+static struct e820_entry *__e820__mapped_all(u64 start, u64 end,
-+					     enum e820_type type)
- {
- 	int i;
+ struct real_mode_header *real_mode_header;
+ u32 *trampoline_cr4_features;
+@@ -130,6 +132,16 @@ static void __init set_real_mode_permissions(void)
+ 	unsigned long text_start =
+ 		(unsigned long) __va(real_mode_header->text_start);
  
-@@ -110,9 +111,28 @@ bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
- 		 * coverage of the desired range exists:
- 		 */
- 		if (start >= end)
--			return 1;
-+			return entry;
- 	}
--	return 0;
++	/*
++	 * If SME is active, the trampoline area will need to be in
++	 * decrypted memory in order to bring up other processors
++	 * successfully.
++	 */
++	if (sme_active()) {
++		sme_early_decrypt(__pa(base), size);
++		set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
++	}
 +
-+	return NULL;
-+}
-+
-+/*
-+ * This function checks if the entire range <start,end> is mapped with type.
-+ */
-+bool __init e820__mapped_all(u64 start, u64 end, enum e820_type type)
-+{
-+	return __e820__mapped_all(start, end, type) ? 1 : 0;
-+}
-+
-+/*
-+ * This function returns the type associated with the range <start,end>.
-+ */
-+enum e820_type e820__get_entry_type(u64 start, u64 end)
-+{
-+	struct e820_entry *entry = __e820__mapped_all(start, end, 0);
-+
-+	return entry ? entry->type : E820_TYPE_INVALID;
- }
- 
- /*
+ 	set_memory_nx((unsigned long) base, size >> PAGE_SHIFT);
+ 	set_memory_ro((unsigned long) base, ro_size >> PAGE_SHIFT);
+ 	set_memory_x((unsigned long) text_start, text_size >> PAGE_SHIFT);
