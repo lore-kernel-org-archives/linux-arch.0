@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam01on0085.outbound.protection.outlook.com ([104.47.34.85]:23168
-        "EHLO NAM01-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0061.outbound.protection.outlook.com ([104.47.32.61]:48701
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932570AbdBPPqA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 10:46:00 -0500
+        id S932605AbdBPPq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 10:46:28 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v4 17/28] x86: Decrypt trampoline area if memory
- encryption is active
-Date: Thu, 16 Feb 2017 09:45:50 -0600
-Message-ID: <20170216154550.19244.5070.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v4 19/28] swiotlb: Add warnings for use of bounce
+ buffers with SME
+Date: Thu, 16 Feb 2017 09:46:19 -0600
+Message-ID: <20170216154619.19244.76653.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,45 +18,114 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216154550.k1TaBt3DHIweLEICxfd_GkDWKZnZppacpiJ1zR4dzuA@z>
+Message-ID: <20170216154619.LIjG4jmV59Cbrb7_7Qxkg_esjIpOjeib1F5oguDPnRI@z>
 
-When Secure Memory Encryption is enabled, the trampoline area must not
-be encrypted. A CPU running in real mode will not be able to decrypt
-memory that has been encrypted because it will not be able to use addresses
-with the memory encryption mask.
+Add warnings to let the user know when bounce buffers are being used for
+DMA when SME is active.  Since the bounce buffers are not in encrypted
+memory, these notifications are to allow the user to determine some
+appropriate action - if necessary.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/realmode/init.c |   12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ arch/x86/include/asm/mem_encrypt.h |   11 +++++++++++
+ include/linux/dma-mapping.h        |   11 +++++++++++
+ include/linux/mem_encrypt.h        |    6 ++++++
+ lib/swiotlb.c                      |    3 +++
+ 4 files changed, 31 insertions(+)
 
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index 5db706f1..21d7506 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -6,6 +6,8 @@
- #include <asm/pgtable.h>
- #include <asm/realmode.h>
- #include <asm/tlbflush.h>
-+#include <asm/mem_encrypt.h>
-+#include <asm/cacheflush.h>
+diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
+index 87e816f..5a17f1b 100644
+--- a/arch/x86/include/asm/mem_encrypt.h
++++ b/arch/x86/include/asm/mem_encrypt.h
+@@ -26,6 +26,11 @@ static inline bool sme_active(void)
+ 	return (sme_me_mask) ? true : false;
+ }
  
- struct real_mode_header *real_mode_header;
- u32 *trampoline_cr4_features;
-@@ -130,6 +132,16 @@ static void __init set_real_mode_permissions(void)
- 	unsigned long text_start =
- 		(unsigned long) __va(real_mode_header->text_start);
- 
-+	/*
-+	 * If SME is active, the trampoline area will need to be in
-+	 * decrypted memory in order to bring up other processors
-+	 * successfully.
-+	 */
-+	if (sme_active()) {
-+		sme_early_decrypt(__pa(base), size);
-+		set_memory_decrypted((unsigned long)base, size >> PAGE_SHIFT);
-+	}
++static inline u64 sme_dma_mask(void)
++{
++	return ((u64)sme_me_mask << 1) - 1;
++}
 +
- 	set_memory_nx((unsigned long) base, size >> PAGE_SHIFT);
- 	set_memory_ro((unsigned long) base, ro_size >> PAGE_SHIFT);
- 	set_memory_x((unsigned long) text_start, text_size >> PAGE_SHIFT);
+ void __init sme_early_encrypt(resource_size_t paddr,
+ 			      unsigned long size);
+ void __init sme_early_decrypt(resource_size_t paddr,
+@@ -53,6 +58,12 @@ static inline bool sme_active(void)
+ {
+ 	return false;
+ }
++
++static inline u64 sme_dma_mask(void)
++{
++	return 0ULL;
++}
++
+ #endif
+ 
+ static inline void __init sme_early_encrypt(resource_size_t paddr,
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 10c5a17..130bef7 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -10,6 +10,7 @@
+ #include <linux/scatterlist.h>
+ #include <linux/kmemcheck.h>
+ #include <linux/bug.h>
++#include <linux/mem_encrypt.h>
+ 
+ /**
+  * List of possible attributes associated with a DMA mapping. The semantics
+@@ -557,6 +558,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
+ 
+ 	if (!dev->dma_mask || !dma_supported(dev, mask))
+ 		return -EIO;
++
++	if (sme_active() && (mask < sme_dma_mask()))
++		dev_warn(dev,
++			 "SME is active, device will require DMA bounce buffers\n");
++
+ 	*dev->dma_mask = mask;
+ 	return 0;
+ }
+@@ -576,6 +582,11 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
+ {
+ 	if (!dma_supported(dev, mask))
+ 		return -EIO;
++
++	if (sme_active() && (mask < sme_dma_mask()))
++		dev_warn(dev,
++			 "SME is active, device will require DMA bounce buffers\n");
++
+ 	dev->coherent_dma_mask = mask;
+ 	return 0;
+ }
+diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
+index 14a7b9f..6829ff1 100644
+--- a/include/linux/mem_encrypt.h
++++ b/include/linux/mem_encrypt.h
+@@ -28,6 +28,12 @@ static inline bool sme_active(void)
+ {
+ 	return false;
+ }
++
++static inline u64 sme_dma_mask(void)
++{
++	return 0ULL;
++}
++
+ #endif
+ 
+ #endif	/* CONFIG_AMD_MEM_ENCRYPT */
+diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+index c463067..aff9353 100644
+--- a/lib/swiotlb.c
++++ b/lib/swiotlb.c
+@@ -509,6 +509,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
+ 	if (no_iotlb_memory)
+ 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
+ 
++	WARN_ONCE(sme_active(),
++		  "SME is active and system is using DMA bounce buffers\n");
++
+ 	mask = dma_get_seg_boundary(hwdev);
+ 
+ 	tbl_dma_addr &= mask;
