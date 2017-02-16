@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0071.outbound.protection.outlook.com ([104.47.32.71]:25952
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-by2nam03on0080.outbound.protection.outlook.com ([104.47.42.80]:39712
+        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932277AbdBPPm5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 10:42:57 -0500
+        id S932277AbdBPPn3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 10:43:29 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v4 03/28] x86: Add the Secure Memory Encryption CPU
- feature
-Date: Thu, 16 Feb 2017 09:42:36 -0600
-Message-ID: <20170216154236.19244.7580.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v4 06/28] x86: Add support to enable SME during early
+ boot processing
+Date: Thu, 16 Feb 2017 09:43:19 -0600
+Message-ID: <20170216154319.19244.7863.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,147 +18,182 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216154236.S7XVDVlcDUoET9xjlX7ffDulyieRGBxrnBVAJpSMReo@z>
+Message-ID: <20170216154319.d9nRhH94mP0U8H4FAmPVCVfT4K0zL7VHitadSHmQX2E@z>
 
-Update the CPU features to include identifying and reporting on the
-Secure Memory Encryption (SME) feature.  SME is identified by CPUID
-0x8000001f, but requires BIOS support to enable it (set bit 23 of
-SYS_CFG MSR).  Only show the SME feature as available if reported by
-CPUID and enabled by BIOS.
+This patch adds support to the early boot code to use Secure Memory
+Encryption (SME).  Support is added to update the early pagetables with
+the memory encryption mask and to encrypt the kernel in place.
+
+The routines to set the encryption mask and perform the encryption are
+stub routines for now with full function to be added in a later patch.
+
+A new file, arch/x86/kernel/mem_encrypt_init.c, is introduced to avoid
+adding #ifdefs within arch/x86/kernel/head_64.S and allow
+arch/x86/mm/mem_encrypt.c to be removed from the build if SME is not
+configured. The mem_encrypt_init.c file will contain the necessary #ifdefs
+to allow head_64.S to successfully build and call the SME routines.
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/cpufeature.h        |    7 +++++--
- arch/x86/include/asm/cpufeatures.h       |    5 ++++-
- arch/x86/include/asm/disabled-features.h |    3 ++-
- arch/x86/include/asm/msr-index.h         |    2 ++
- arch/x86/include/asm/required-features.h |    3 ++-
- arch/x86/kernel/cpu/common.c             |   19 +++++++++++++++++++
- 6 files changed, 34 insertions(+), 5 deletions(-)
+ arch/x86/kernel/Makefile           |    2 +
+ arch/x86/kernel/head_64.S          |   46 ++++++++++++++++++++++++++++++++-
+ arch/x86/kernel/mem_encrypt_init.c |   50 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 96 insertions(+), 2 deletions(-)
+ create mode 100644 arch/x86/kernel/mem_encrypt_init.c
 
-diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
-index d59c15c..ea2de6a 100644
---- a/arch/x86/include/asm/cpufeature.h
-+++ b/arch/x86/include/asm/cpufeature.h
-@@ -28,6 +28,7 @@ enum cpuid_leafs
- 	CPUID_8000_000A_EDX,
- 	CPUID_7_ECX,
- 	CPUID_8000_0007_EBX,
-+	CPUID_8000_001F_EAX,
- };
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index bdcdb3b..33af80a 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -140,4 +140,6 @@ ifeq ($(CONFIG_X86_64),y)
  
- #ifdef CONFIG_X86_FEATURE_NAMES
-@@ -78,8 +79,9 @@ enum cpuid_leafs
- 	   CHECK_BIT_IN_MASK_WORD(REQUIRED_MASK, 15, feature_bit) ||	\
- 	   CHECK_BIT_IN_MASK_WORD(REQUIRED_MASK, 16, feature_bit) ||	\
- 	   CHECK_BIT_IN_MASK_WORD(REQUIRED_MASK, 17, feature_bit) ||	\
-+	   CHECK_BIT_IN_MASK_WORD(REQUIRED_MASK, 18, feature_bit) ||	\
- 	   REQUIRED_MASK_CHECK					  ||	\
--	   BUILD_BUG_ON_ZERO(NCAPINTS != 18))
-+	   BUILD_BUG_ON_ZERO(NCAPINTS != 19))
- 
- #define DISABLED_MASK_BIT_SET(feature_bit)				\
- 	 ( CHECK_BIT_IN_MASK_WORD(DISABLED_MASK,  0, feature_bit) ||	\
-@@ -100,8 +102,9 @@ enum cpuid_leafs
- 	   CHECK_BIT_IN_MASK_WORD(DISABLED_MASK, 15, feature_bit) ||	\
- 	   CHECK_BIT_IN_MASK_WORD(DISABLED_MASK, 16, feature_bit) ||	\
- 	   CHECK_BIT_IN_MASK_WORD(DISABLED_MASK, 17, feature_bit) ||	\
-+	   CHECK_BIT_IN_MASK_WORD(DISABLED_MASK, 18, feature_bit) ||	\
- 	   DISABLED_MASK_CHECK					  ||	\
--	   BUILD_BUG_ON_ZERO(NCAPINTS != 18))
-+	   BUILD_BUG_ON_ZERO(NCAPINTS != 19))
- 
- #define cpu_has(c, bit)							\
- 	(__builtin_constant_p(bit) && REQUIRED_MASK_BIT_SET(bit) ? 1 :	\
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index d45ab4b..331fb81 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -12,7 +12,7 @@
- /*
-  * Defines x86 CPU feature bits
-  */
--#define NCAPINTS	18	/* N 32-bit words worth of info */
-+#define NCAPINTS	19	/* N 32-bit words worth of info */
- #define NBUGINTS	1	/* N 32-bit bug flags */
- 
- /*
-@@ -296,6 +296,9 @@
- #define X86_FEATURE_SUCCOR	(17*32+1) /* Uncorrectable error containment and recovery */
- #define X86_FEATURE_SMCA	(17*32+3) /* Scalable MCA */
- 
-+/* AMD-defined CPU features, CPUID level 0x8000001f (eax), word 18 */
-+#define X86_FEATURE_SME		(18*32+0) /* Secure Memory Encryption */
+ 	obj-$(CONFIG_PCI_MMCONFIG)	+= mmconf-fam10h_64.o
+ 	obj-y				+= vsmp_64.o
 +
- /*
-  * BUG word(s)
-  */
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 85599ad..8b45e08 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -57,6 +57,7 @@
- #define DISABLED_MASK15	0
- #define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
- #define DISABLED_MASK17	0
--#define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
-+#define DISABLED_MASK18	0
-+#define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
- 
- #endif /* _ASM_X86_DISABLED_FEATURES_H */
-diff --git a/arch/x86/include/asm/msr-index.h b/arch/x86/include/asm/msr-index.h
-index 00293a9..e2d0503 100644
---- a/arch/x86/include/asm/msr-index.h
-+++ b/arch/x86/include/asm/msr-index.h
-@@ -339,6 +339,8 @@
- #define MSR_K8_TOP_MEM1			0xc001001a
- #define MSR_K8_TOP_MEM2			0xc001001d
- #define MSR_K8_SYSCFG			0xc0010010
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT_BIT	23
-+#define MSR_K8_SYSCFG_MEM_ENCRYPT	BIT_ULL(MSR_K8_SYSCFG_MEM_ENCRYPT_BIT)
- #define MSR_K8_INT_PENDING_MSG		0xc0010055
- /* C1E active bits in int pending message */
- #define K8_INTP_C1E_ACTIVE_MASK		0x18000000
-diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
-index fac9a5c..6847d85 100644
---- a/arch/x86/include/asm/required-features.h
-+++ b/arch/x86/include/asm/required-features.h
-@@ -100,6 +100,7 @@
- #define REQUIRED_MASK15	0
- #define REQUIRED_MASK16	0
- #define REQUIRED_MASK17	0
--#define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
-+#define REQUIRED_MASK18	0
-+#define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 19)
- 
- #endif /* _ASM_X86_REQUIRED_FEATURES_H */
-diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
-index c188ae5..b33bc06 100644
---- a/arch/x86/kernel/cpu/common.c
-+++ b/arch/x86/kernel/cpu/common.c
-@@ -763,6 +763,25 @@ void get_cpu_cap(struct cpuinfo_x86 *c)
- 	if (c->extended_cpuid_level >= 0x8000000a)
- 		c->x86_capability[CPUID_8000_000A_EDX] = cpuid_edx(0x8000000a);
- 
-+	if (c->extended_cpuid_level >= 0x8000001f) {
-+		cpuid(0x8000001f, &eax, &ebx, &ecx, &edx);
-+
-+		/* SME feature support */
-+		if ((c->x86_vendor == X86_VENDOR_AMD) && (eax & 0x01)) {
-+			u64 msr;
-+
-+			/*
-+			 * For SME, BIOS support is required. If BIOS has not
-+			 * enabled SME don't advertise the feature.
-+			 */
-+			rdmsrl(MSR_K8_SYSCFG, msr);
-+			if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-+				eax &= ~0x01;
-+		}
-+
-+		c->x86_capability[CPUID_8000_001F_EAX] = eax;
-+	}
-+
- 	init_scattered_cpuid_features(c);
++	obj-y				+= mem_encrypt_init.o
+ endif
+diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+index b467b14..4f8201b 100644
+--- a/arch/x86/kernel/head_64.S
++++ b/arch/x86/kernel/head_64.S
+@@ -91,6 +91,23 @@ startup_64:
+ 	jnz	bad_address
  
  	/*
++	 * Enable Secure Memory Encryption (SME), if supported and enabled.
++	 * The real_mode_data address is in %rsi and that register can be
++	 * clobbered by the called function so be sure to save it.
++	 * Save the returned mask in %r12 for later use.
++	 */
++	push	%rsi
++	call	sme_enable
++	pop	%rsi
++	movq	%rax, %r12
++
++	/*
++	 * Add the memory encryption mask to %rbp to include it in the page
++	 * table fixups.
++	 */
++	addq	%r12, %rbp
++
++	/*
+ 	 * Fixup the physical addresses in the page table
+ 	 */
+ 	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+@@ -113,6 +130,7 @@ startup_64:
+ 	shrq	$PGDIR_SHIFT, %rax
+ 
+ 	leaq	(PAGE_SIZE + _KERNPG_TABLE)(%rbx), %rdx
++	addq	%r12, %rdx
+ 	movq	%rdx, 0(%rbx,%rax,8)
+ 	movq	%rdx, 8(%rbx,%rax,8)
+ 
+@@ -129,6 +147,7 @@ startup_64:
+ 	movq	%rdi, %rax
+ 	shrq	$PMD_SHIFT, %rdi
+ 	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
++	addq	%r12, %rax
+ 	leaq	(_end - 1)(%rip), %rcx
+ 	shrq	$PMD_SHIFT, %rcx
+ 	subq	%rdi, %rcx
+@@ -162,11 +181,25 @@ startup_64:
+ 	cmp	%r8, %rdi
+ 	jne	1b
+ 
+-	/* Fixup phys_base */
++	/*
++	 * Fixup phys_base - remove the memory encryption mask from %rbp
++	 * to obtain the true physical address.
++	 */
++	subq	%r12, %rbp
+ 	addq	%rbp, phys_base(%rip)
+ 
++	/*
++	 * Encrypt the kernel if SME is active.
++	 * The real_mode_data address is in %rsi and that register can be
++	 * clobbered by the called function so be sure to save it.
++	 */
++	push	%rsi
++	call	sme_encrypt_kernel
++	pop	%rsi
++
+ .Lskip_fixup:
+ 	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
++	addq	%r12, %rax
+ 	jmp 1f
+ ENTRY(secondary_startup_64)
+ 	/*
+@@ -186,7 +219,16 @@ ENTRY(secondary_startup_64)
+ 	/* Sanitize CPU configuration */
+ 	call verify_cpu
+ 
+-	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
++	/*
++	 * Get the SME encryption mask.
++	 * The real_mode_data address is in %rsi and that register can be
++	 * clobbered by the called function so be sure to save it.
++	 */
++	push	%rsi
++	call	sme_get_me_mask
++	pop	%rsi
++
++	addq	$(init_level4_pgt - __START_KERNEL_map), %rax
+ 1:
+ 
+ 	/* Enable PAE mode and PGE */
+diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
+new file mode 100644
+index 0000000..25af15d
+--- /dev/null
++++ b/arch/x86/kernel/mem_encrypt_init.c
+@@ -0,0 +1,50 @@
++/*
++ * AMD Memory Encryption Support
++ *
++ * Copyright (C) 2016 Advanced Micro Devices, Inc.
++ *
++ * Author: Tom Lendacky <thomas.lendacky@amd.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/linkage.h>
++#include <linux/init.h>
++
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++
++#include <linux/mem_encrypt.h>
++
++void __init sme_encrypt_kernel(void)
++{
++}
++
++unsigned long __init sme_get_me_mask(void)
++{
++	return sme_me_mask;
++}
++
++unsigned long __init sme_enable(void)
++{
++	return sme_me_mask;
++}
++
++#else	/* !CONFIG_AMD_MEM_ENCRYPT */
++
++void __init sme_encrypt_kernel(void)
++{
++}
++
++unsigned long __init sme_get_me_mask(void)
++{
++	return 0;
++}
++
++unsigned long __init sme_enable(void)
++{
++	return 0;
++}
++
++#endif	/* CONFIG_AMD_MEM_ENCRYPT */
