@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sn1nam01on0061.outbound.protection.outlook.com ([104.47.32.61]:48701
-        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0069.outbound.protection.outlook.com ([104.47.33.69]:27824
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S932605AbdBPPq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 16 Feb 2017 10:46:28 -0500
+        id S932442AbdBPPsC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 16 Feb 2017 10:48:02 -0500
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Subject: [RFC PATCH v4 19/28] swiotlb: Add warnings for use of bounce
- buffers with SME
-Date: Thu, 16 Feb 2017 09:46:19 -0600
-Message-ID: <20170216154619.19244.76653.stgit@tlendack-t1.amdoffice.net>
+Subject: [RFC PATCH v4 25/28] x86: Access the setup data through sysfs
+ decrypted
+Date: Thu, 16 Feb 2017 09:47:38 -0600
+Message-ID: <20170216154738.19244.37908.stgit@tlendack-t1.amdoffice.net>
 In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
@@ -18,114 +18,121 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org
 Cc: Rik van Riel <riel@redhat.com>, Radim =?utf-8?b?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Borislav Petkov <bp@alien8.de>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170216154619.LIjG4jmV59Cbrb7_7Qxkg_esjIpOjeib1F5oguDPnRI@z>
+Message-ID: <20170216154738.IcMq5Sm4f4SkOaeSaQ0_8M4YoYwukqbcUFIuiexW8Co@z>
 
-Add warnings to let the user know when bounce buffers are being used for
-DMA when SME is active.  Since the bounce buffers are not in encrypted
-memory, these notifications are to allow the user to determine some
-appropriate action - if necessary.
+Use memremap() to map the setup data.  This will make the appropriate
+decision as to whether a RAM remapping can be done or if a fallback to
+ioremap_cache() is needed (similar to the setup data debugfs support).
 
 Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 ---
- arch/x86/include/asm/mem_encrypt.h |   11 +++++++++++
- include/linux/dma-mapping.h        |   11 +++++++++++
- include/linux/mem_encrypt.h        |    6 ++++++
- lib/swiotlb.c                      |    3 +++
- 4 files changed, 31 insertions(+)
+ arch/x86/kernel/ksysfs.c |   27 ++++++++++++++-------------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
-index 87e816f..5a17f1b 100644
---- a/arch/x86/include/asm/mem_encrypt.h
-+++ b/arch/x86/include/asm/mem_encrypt.h
-@@ -26,6 +26,11 @@ static inline bool sme_active(void)
- 	return (sme_me_mask) ? true : false;
+diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
+index 4afc67f..d653b3e 100644
+--- a/arch/x86/kernel/ksysfs.c
++++ b/arch/x86/kernel/ksysfs.c
+@@ -16,6 +16,7 @@
+ #include <linux/stat.h>
+ #include <linux/slab.h>
+ #include <linux/mm.h>
++#include <linux/io.h>
+ 
+ #include <asm/io.h>
+ #include <asm/setup.h>
+@@ -79,12 +80,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
+ 			*paddr = pa_data;
+ 			return 0;
+ 		}
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data)
+ 			return -ENOMEM;
+ 
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 		i++;
+ 	}
+ 	return -EINVAL;
+@@ -97,17 +98,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
+ 	u64 pa_data = boot_params.hdr.setup_data;
+ 
+ 	while (pa_data) {
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data)
+ 			return -ENOMEM;
+ 		if (nr == i) {
+ 			*size = data->len;
+-			iounmap(data);
++			memunmap(data);
+ 			return 0;
+ 		}
+ 
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 		i++;
+ 	}
+ 	return -EINVAL;
+@@ -127,12 +128,12 @@ static ssize_t type_show(struct kobject *kobj,
+ 	ret = get_setup_data_paddr(nr, &paddr);
+ 	if (ret)
+ 		return ret;
+-	data = ioremap_cache(paddr, sizeof(*data));
++	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
+ 	if (!data)
+ 		return -ENOMEM;
+ 
+ 	ret = sprintf(buf, "0x%x\n", data->type);
+-	iounmap(data);
++	memunmap(data);
+ 	return ret;
  }
  
-+static inline u64 sme_dma_mask(void)
-+{
-+	return ((u64)sme_me_mask << 1) - 1;
-+}
-+
- void __init sme_early_encrypt(resource_size_t paddr,
- 			      unsigned long size);
- void __init sme_early_decrypt(resource_size_t paddr,
-@@ -53,6 +58,12 @@ static inline bool sme_active(void)
- {
- 	return false;
+@@ -154,7 +155,7 @@ static ssize_t setup_data_data_read(struct file *fp,
+ 	ret = get_setup_data_paddr(nr, &paddr);
+ 	if (ret)
+ 		return ret;
+-	data = ioremap_cache(paddr, sizeof(*data));
++	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
+ 	if (!data)
+ 		return -ENOMEM;
+ 
+@@ -170,15 +171,15 @@ static ssize_t setup_data_data_read(struct file *fp,
+ 		goto out;
+ 
+ 	ret = count;
+-	p = ioremap_cache(paddr + sizeof(*data), data->len);
++	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
+ 	if (!p) {
+ 		ret = -ENOMEM;
+ 		goto out;
+ 	}
+ 	memcpy(buf, p + off, count);
+-	iounmap(p);
++	memunmap(p);
+ out:
+-	iounmap(data);
++	memunmap(data);
+ 	return ret;
  }
-+
-+static inline u64 sme_dma_mask(void)
-+{
-+	return 0ULL;
-+}
-+
- #endif
  
- static inline void __init sme_early_encrypt(resource_size_t paddr,
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 10c5a17..130bef7 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -10,6 +10,7 @@
- #include <linux/scatterlist.h>
- #include <linux/kmemcheck.h>
- #include <linux/bug.h>
-+#include <linux/mem_encrypt.h>
+@@ -250,13 +251,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
+ 	*nr = 0;
+ 	while (pa_data) {
+ 		*nr += 1;
+-		data = ioremap_cache(pa_data, sizeof(*data));
++		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
+ 		if (!data) {
+ 			ret = -ENOMEM;
+ 			goto out;
+ 		}
+ 		pa_data = data->next;
+-		iounmap(data);
++		memunmap(data);
+ 	}
  
- /**
-  * List of possible attributes associated with a DMA mapping. The semantics
-@@ -557,6 +558,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
- 
- 	if (!dev->dma_mask || !dma_supported(dev, mask))
- 		return -EIO;
-+
-+	if (sme_active() && (mask < sme_dma_mask()))
-+		dev_warn(dev,
-+			 "SME is active, device will require DMA bounce buffers\n");
-+
- 	*dev->dma_mask = mask;
- 	return 0;
- }
-@@ -576,6 +582,11 @@ static inline int dma_set_coherent_mask(struct device *dev, u64 mask)
- {
- 	if (!dma_supported(dev, mask))
- 		return -EIO;
-+
-+	if (sme_active() && (mask < sme_dma_mask()))
-+		dev_warn(dev,
-+			 "SME is active, device will require DMA bounce buffers\n");
-+
- 	dev->coherent_dma_mask = mask;
- 	return 0;
- }
-diff --git a/include/linux/mem_encrypt.h b/include/linux/mem_encrypt.h
-index 14a7b9f..6829ff1 100644
---- a/include/linux/mem_encrypt.h
-+++ b/include/linux/mem_encrypt.h
-@@ -28,6 +28,12 @@ static inline bool sme_active(void)
- {
- 	return false;
- }
-+
-+static inline u64 sme_dma_mask(void)
-+{
-+	return 0ULL;
-+}
-+
- #endif
- 
- #endif	/* CONFIG_AMD_MEM_ENCRYPT */
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index c463067..aff9353 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -509,6 +509,9 @@ phys_addr_t swiotlb_tbl_map_single(struct device *hwdev,
- 	if (no_iotlb_memory)
- 		panic("Can not allocate SWIOTLB buffer earlier and can't now provide you with the DMA bounce buffer");
- 
-+	WARN_ONCE(sme_active(),
-+		  "SME is active and system is using DMA bounce buffers\n");
-+
- 	mask = dma_get_seg_boundary(hwdev);
- 
- 	tbl_dma_addr &= mask;
+ out:
