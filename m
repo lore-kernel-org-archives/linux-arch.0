@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 03/33] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
-Date: Fri, 17 Feb 2017 17:12:58 +0300
-Message-ID: <20170217141328.164563-4-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 08/33] x86: basic changes into headers for 5-level paging
+Date: Fri, 17 Feb 2017 17:13:03 +0300
+Message-ID: <20170217141328.164563-9-kirill.shutemov@linux.intel.com>
 References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
@@ -10,113 +10,164 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
-abstraction for properly (in opposite to 5level-fixup.h hack) folded
-p4d level. The new header will be included from pgtable-nopud.h.
+This patch extends x86 headers to enable 5-level paging support.
 
-If an architecture uses <asm-generic/nop*d.h>, we cannot use
-5level-fixup.h directly to quickly convert the architecture to 5-level
-paging as it would conflict with pgtable-nop4d.h.
-
-With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
-inclusion <asm-genenric/nop*d.h> to use 5level-fixup.h.
+It's still based on <asm-generic/5level-fixup.h>. We will get to the
+point where we can have <asm-generic/pgtable-nop4d.h> later.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable-nopud.h      |  5 +++
- 2 files changed, 67 insertions(+)
- create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
+ arch/x86/include/asm/pgtable-2level_types.h |  1 +
+ arch/x86/include/asm/pgtable-3level_types.h |  1 +
+ arch/x86/include/asm/pgtable.h              | 26 ++++++++++++++++++++-----
+ arch/x86/include/asm/pgtable_64_types.h     |  1 +
+ arch/x86/include/asm/pgtable_types.h        | 30 ++++++++++++++++++++++++++++-
+ 5 files changed, 53 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
-new file mode 100644
-index 000000000000..752fb7511750
---- /dev/null
-+++ b/include/asm-generic/pgtable-nop4d-hack.h
-@@ -0,0 +1,62 @@
-+#ifndef _PGTABLE_NOP4D_HACK_H
-+#define _PGTABLE_NOP4D_HACK_H
-+
-+#ifndef __ASSEMBLY__
-+#include <asm-generic/5level-fixup.h>
-+
-+#define __PAGETABLE_PUD_FOLDED
-+
-+/*
-+ * Having the pud type consist of a pgd gets the size right, and allows
-+ * us to conceptually access the pgd entry that this pud is folded into
-+ * without casting.
-+ */
-+typedef struct { pgd_t pgd; } pud_t;
-+
-+#define PUD_SHIFT	PGDIR_SHIFT
-+#define PTRS_PER_PUD	1
-+#define PUD_SIZE	(1UL << PUD_SHIFT)
-+#define PUD_MASK	(~(PUD_SIZE-1))
-+
-+/*
-+ * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the pud is never bad, and a pud always exists (as it's folded
-+ * into the pgd entry)
-+ */
-+static inline int pgd_none(pgd_t pgd)		{ return 0; }
-+static inline int pgd_bad(pgd_t pgd)		{ return 0; }
-+static inline int pgd_present(pgd_t pgd)	{ return 1; }
-+static inline void pgd_clear(pgd_t *pgd)	{ }
-+#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
-+
-+#define pgd_populate(mm, pgd, pud)		do { } while (0)
-+/*
-+ * (puds are folded into pgds so this doesn't get actually called,
-+ * but the define is needed for a generic inline function.)
-+ */
-+#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
-+
-+static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
+diff --git a/arch/x86/include/asm/pgtable-2level_types.h b/arch/x86/include/asm/pgtable-2level_types.h
+index 392576433e77..373ab1de909f 100644
+--- a/arch/x86/include/asm/pgtable-2level_types.h
++++ b/arch/x86/include/asm/pgtable-2level_types.h
+@@ -7,6 +7,7 @@
+ typedef unsigned long	pteval_t;
+ typedef unsigned long	pmdval_t;
+ typedef unsigned long	pudval_t;
++typedef unsigned long	p4dval_t;
+ typedef unsigned long	pgdval_t;
+ typedef unsigned long	pgprotval_t;
+ 
+diff --git a/arch/x86/include/asm/pgtable-3level_types.h b/arch/x86/include/asm/pgtable-3level_types.h
+index bcc89625ebe5..b8a4341faafa 100644
+--- a/arch/x86/include/asm/pgtable-3level_types.h
++++ b/arch/x86/include/asm/pgtable-3level_types.h
+@@ -7,6 +7,7 @@
+ typedef u64	pteval_t;
+ typedef u64	pmdval_t;
+ typedef u64	pudval_t;
++typedef u64	p4dval_t;
+ typedef u64	pgdval_t;
+ typedef u64	pgprotval_t;
+ 
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 437feb436efa..8e3435a53a04 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -168,6 +168,17 @@ static inline unsigned long pud_pfn(pud_t pud)
+ 	return (pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT;
+ }
+ 
++static inline unsigned long p4d_pfn(p4d_t p4d)
 +{
-+	return (pud_t *)pgd;
++	return (p4d_val(p4d) & p4d_pfn_mask(p4d)) >> PAGE_SHIFT;
 +}
 +
-+#define pud_val(x)				(pgd_val((x).pgd))
-+#define __pud(x)				((pud_t) { __pgd(x) })
++static inline int p4d_large(p4d_t p4d)
++{
++	/* No 512 GiB pages yet */
++	return 0;
++}
 +
-+#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
-+#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
-+
-+/*
-+ * allocating and freeing a pud is trivial: the 1-entry pud is
-+ * inside the pgd, so has no extra memory associated with it.
-+ */
-+#define pud_alloc_one(mm, address)		NULL
-+#define pud_free(mm, x)				do { } while (0)
-+#define __pud_free_tlb(tlb, x, a)		do { } while (0)
-+
-+#undef  pud_addr_end
-+#define pud_addr_end(addr, end)			(end)
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _PGTABLE_NOP4D_HACK_H */
-diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 810431d8351b..5e49430a30a4 100644
---- a/include/asm-generic/pgtable-nopud.h
-+++ b/include/asm-generic/pgtable-nopud.h
-@@ -3,6 +3,10 @@
+ #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
  
- #ifndef __ASSEMBLY__
+ static inline int pmd_large(pmd_t pte)
+@@ -660,6 +671,16 @@ static inline int pud_large(pud_t pud)
+ }
+ #endif	/* CONFIG_PGTABLE_LEVELS > 2 */
  
-+#ifdef __ARCH_USE_5LEVEL_HACK
-+#include <asm-generic/pgtable-nop4d-hack.h>
++static inline unsigned long pud_index(unsigned long address)
++{
++	return (address >> PUD_SHIFT) & (PTRS_PER_PUD - 1);
++}
++
++static inline unsigned long p4d_index(unsigned long address)
++{
++	return (address >> P4D_SHIFT) & (PTRS_PER_P4D - 1);
++}
++
+ #if CONFIG_PGTABLE_LEVELS > 3
+ static inline int pgd_present(pgd_t pgd)
+ {
+@@ -678,11 +699,6 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
+ #define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
+ 
+ /* to find an entry in a page-table-directory. */
+-static inline unsigned long pud_index(unsigned long address)
+-{
+-	return (address >> PUD_SHIFT) & (PTRS_PER_PUD - 1);
+-}
+-
+ static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
+ {
+ 	return (pud_t *)pgd_page_vaddr(*pgd) + pud_index(address);
+diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
+index 3a264200c62f..0b2797e5083c 100644
+--- a/arch/x86/include/asm/pgtable_64_types.h
++++ b/arch/x86/include/asm/pgtable_64_types.h
+@@ -13,6 +13,7 @@
+ typedef unsigned long	pteval_t;
+ typedef unsigned long	pmdval_t;
+ typedef unsigned long	pudval_t;
++typedef unsigned long	p4dval_t;
+ typedef unsigned long	pgdval_t;
+ typedef unsigned long	pgprotval_t;
+ 
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 62484333673d..df08535f774a 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -272,9 +272,20 @@ static inline pgdval_t pgd_flags(pgd_t pgd)
+ 	return native_pgd_val(pgd) & PTE_FLAGS_MASK;
+ }
+ 
+-#if CONFIG_PGTABLE_LEVELS > 3
++#if CONFIG_PGTABLE_LEVELS > 4
++
++#error FIXME
++
 +#else
+ #include <asm-generic/5level-fixup.h>
+ 
++static inline p4dval_t native_p4d_val(p4d_t p4d)
++{
++	return native_pgd_val(p4d);
++}
++#endif
 +
- #define __PAGETABLE_PUD_FOLDED
++#if CONFIG_PGTABLE_LEVELS > 3
+ typedef struct { pudval_t pud; } pud_t;
  
- /*
-@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
- #define pud_addr_end(addr, end)			(end)
+ static inline pud_t native_make_pud(pmdval_t val)
+@@ -318,6 +329,22 @@ static inline pmdval_t native_pmd_val(pmd_t pmd)
+ }
+ #endif
  
- #endif /* __ASSEMBLY__ */
-+#endif /* !__ARCH_USE_5LEVEL_HACK */
- #endif /* _PGTABLE_NOPUD_H */
++static inline p4dval_t p4d_pfn_mask(p4d_t p4d)
++{
++	/* No 512 GiB huge pages yet */
++	return PTE_PFN_MASK;
++}
++
++static inline p4dval_t p4d_flags_mask(p4d_t p4d)
++{
++	return ~p4d_pfn_mask(p4d);
++}
++
++static inline p4dval_t p4d_flags(p4d_t p4d)
++{
++	return native_p4d_val(p4d) & p4d_flags_mask(p4d);
++}
++
+ static inline pudval_t pud_pfn_mask(pud_t pud)
+ {
+ 	if (native_pud_val(pud) & _PAGE_PSE)
+@@ -461,6 +488,7 @@ enum pg_level {
+ 	PG_LEVEL_4K,
+ 	PG_LEVEL_2M,
+ 	PG_LEVEL_1G,
++	PG_LEVEL_512G,
+ 	PG_LEVEL_NUM
+ };
+ 
 -- 
 2.11.0
 
