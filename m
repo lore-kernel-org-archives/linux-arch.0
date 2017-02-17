@@ -1,52 +1,56 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v4 1/2] x86/paravirt: Change vcp_is_preempted() arg type
-	to long
-Date: Fri, 17 Feb 2017 10:42:39 +0100
-Message-ID: <20170217094239.GA6500@twins.programming.kicks-ass.net>
-References: <1487194670-6319-1-git-send-email-longman@redhat.com>
-	<1487194670-6319-2-git-send-email-longman@redhat.com>
-	<20170216160930.GC6515@twins.programming.kicks-ass.net>
-	<ac84bb22-6211-50e2-5b53-2f95c9142d76@redhat.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 04/28] x86: Handle reduction in physical address
+ size with SME
+Date: Fri, 17 Feb 2017 12:04:32 +0100
+Message-ID: <20170217110432.tgi4cnkl22vyspk5@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154253.19244.70114.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <ac84bb22-6211-50e2-5b53-2f95c9142d76@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Jeremy Fitzhardinge <jeremy@goop.org>, x86@kernel.org, kvm@vger.kernel.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Alok Kataria <akataria@vmware.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <20170216154253.19244.70114.stgit@tlendack-t1.amdoffice.net>
+Sender: linux-doc-owner@vger.kernel.org
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 04:02:57PM -0500, Waiman Long wrote:
-> On 02/16/2017 11:09 AM, Peter Zijlstra wrote:
-> > On Wed, Feb 15, 2017 at 04:37:49PM -0500, Waiman Long wrote:
-> >> The cpu argument in the function prototype of vcpu_is_preempted()
-> >> is changed from int to long. That makes it easier to provide a better
-> >> optimized assembly version of that function.
-> >>
-> >> For Xen, vcpu_is_preempted(long) calls xen_vcpu_stolen(int), the
-> >> downcast from long to int is not a problem as vCPU number won't exceed
-> >> 32 bits.
-> >>
-> > Note that because of the cast in PVOP_CALL_ARG1() this patch is
-> > pointless.
-> >
-> > Then again, it doesn't seem to affect code generation, so why not. Takes
-> > away the reliance on that weird cast.
+On Thu, Feb 16, 2017 at 09:42:54AM -0600, Tom Lendacky wrote:
+> When System Memory Encryption (SME) is enabled, the physical address
+> space is reduced. Adjust the x86_phys_bits value to reflect this
+> reduction.
 > 
-> I add this patch because I am a bit uneasy about clearing the upper 32
-> bits of rdi and assuming that the compiler won't have a previous use of
-> those bits. It gives me peace of mind.
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/cpu/common.c |   10 +++++++---
+>  1 file changed, 7 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+> index b33bc06..358208d7 100644
+> --- a/arch/x86/kernel/cpu/common.c
+> +++ b/arch/x86/kernel/cpu/common.c
+> @@ -771,11 +771,15 @@ void get_cpu_cap(struct cpuinfo_x86 *c)
+>  			u64 msr;
+>  
+>  			/*
+> -			 * For SME, BIOS support is required. If BIOS has not
+> -			 * enabled SME don't advertise the feature.
+> +			 * For SME, BIOS support is required. If BIOS has
+> +			 * enabled SME adjust x86_phys_bits by the SME
+> +			 * physical address space reduction value. If BIOS
+> +			 * has not enabled SME don't advertise the feature.
+>  			 */
+>  			rdmsrl(MSR_K8_SYSCFG, msr);
+> -			if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
+> +			if (msr & MSR_K8_SYSCFG_MEM_ENCRYPT)
+> +				c->x86_phys_bits -= (ebx >> 6) & 0x3f;
+> +			else
+>  				eax &= ~0x01;
 
-So currently the PVOP_CALL_ARG#() macros force cast everything to
-(unsigned long) anyway, but it would be good not to rely on that I
-think, so yes.
+Right, as I mentioned yesterday, this should go to arch/x86/kernel/cpu/amd.c
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
