@@ -1,72 +1,121 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 05/28] x86: Add Secure Memory Encryption (SME)
- support
-Date: Fri, 17 Feb 2017 13:00:18 +0100
-Message-ID: <20170217120018.y64pf4sv2plasbsv@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
-Sender: linux-doc-owner@vger.kernel.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 02/33] asm-generic: introduce 5level-fixup.h
+Date: Fri, 17 Feb 2017 17:12:57 +0300
+Message-ID: <20170217141328.164563-3-kirill.shutemov@linux.intel.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga05.intel.com ([192.55.52.43]:41693 "EHLO mga05.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S933938AbdBQONu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Feb 2017 09:13:50 -0500
+In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-On Thu, Feb 16, 2017 at 09:43:07AM -0600, Tom Lendacky wrote:
-> Add support for Secure Memory Encryption (SME). This initial support
-> provides a Kconfig entry to build the SME support into the kernel and
-> defines the memory encryption mask that will be used in subsequent
-> patches to mark pages as encrypted.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/Kconfig                   |   22 +++++++++++++++++++
->  arch/x86/include/asm/mem_encrypt.h |   42 ++++++++++++++++++++++++++++++++++++
->  arch/x86/mm/Makefile               |    1 +
->  arch/x86/mm/mem_encrypt.c          |   21 ++++++++++++++++++
->  include/linux/mem_encrypt.h        |   37 ++++++++++++++++++++++++++++++++
->  5 files changed, 123 insertions(+)
->  create mode 100644 arch/x86/include/asm/mem_encrypt.h
->  create mode 100644 arch/x86/mm/mem_encrypt.c
->  create mode 100644 include/linux/mem_encrypt.h
-> 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index f8fbfc5..a3b8c71 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1395,6 +1395,28 @@ config X86_DIRECT_GBPAGES
->  	  supports them), so don't confuse the user by printing
->  	  that we have them enabled.
->  
-> +config AMD_MEM_ENCRYPT
-> +	bool "AMD Secure Memory Encryption (SME) support"
-> +	depends on X86_64 && CPU_SUP_AMD
-> +	---help---
-> +	  Say yes to enable support for the encryption of system memory.
-> +	  This requires an AMD processor that supports Secure Memory
-> +	  Encryption (SME).
-> +
-> +config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
-> +	bool "Activate AMD Secure Memory Encryption (SME) by default"
-> +	default y
-> +	depends on AMD_MEM_ENCRYPT
-> +	---help---
-> +	  Say yes to have system memory encrypted by default if running on
-> +	  an AMD processor that supports Secure Memory Encryption (SME).
-> +
-> +	  If set to Y, then the encryption of system memory can be
-> +	  deactivated with the mem_encrypt=off command line option.
-> +
-> +	  If set to N, then the encryption of system memory can be
-> +	  activated with the mem_encrypt=on command line option.
+We are going to switch core MM to 5-level paging abstraction.
 
-Good.
+This is preparation step which adds <asm-generic/5level-fixup.h>
+As with 4level-fixup.h, the new header allows quickly make all
+architectures compatible with 5-level paging in core MM.
 
+In long run we would like to switch architectures to properly folded p4d
+level by using <asm-generic/pgtable-nop4d.h>, but it requires more
+changes to arch-specific code.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ include/asm-generic/4level-fixup.h |  3 ++-
+ include/asm-generic/5level-fixup.h | 41 ++++++++++++++++++++++++++++++++++++++
+ include/linux/mm.h                 |  3 +++
+ 3 files changed, 46 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/5level-fixup.h
+
+diff --git a/include/asm-generic/4level-fixup.h b/include/asm-generic/4level-fixup.h
+index 5bdab6bffd23..928fd66b1271 100644
+--- a/include/asm-generic/4level-fixup.h
++++ b/include/asm-generic/4level-fixup.h
+@@ -15,7 +15,6 @@
+ 	((unlikely(pgd_none(*(pud))) && __pmd_alloc(mm, pud, address))? \
+  		NULL: pmd_offset(pud, address))
+ 
+-#define pud_alloc(mm, pgd, address)	(pgd)
+ #define pud_offset(pgd, start)		(pgd)
+ #define pud_none(pud)			0
+ #define pud_bad(pud)			0
+@@ -35,4 +34,6 @@
+ #undef  pud_addr_end
+ #define pud_addr_end(addr, end)		(end)
+ 
++#include <asm-generic/5level-fixup.h>
++
+ #endif
+diff --git a/include/asm-generic/5level-fixup.h b/include/asm-generic/5level-fixup.h
+new file mode 100644
+index 000000000000..b5ca82dc4175
+--- /dev/null
++++ b/include/asm-generic/5level-fixup.h
+@@ -0,0 +1,41 @@
++#ifndef _5LEVEL_FIXUP_H
++#define _5LEVEL_FIXUP_H
++
++#define __ARCH_HAS_5LEVEL_HACK
++#define __PAGETABLE_P4D_FOLDED
++
++#define P4D_SHIFT			PGDIR_SHIFT
++#define P4D_SIZE			PGDIR_SIZE
++#define P4D_MASK			PGDIR_MASK
++#define PTRS_PER_P4D			1
++
++#define p4d_t				pgd_t
++
++#define pud_alloc(mm, p4d, address) \
++	((unlikely(pgd_none(*(p4d))) && __pud_alloc(mm, p4d, address)) ? \
++		NULL : pud_offset(p4d, address))
++
++#define p4d_alloc(mm, pgd, address)	(pgd)
++#define p4d_offset(pgd, start)		(pgd)
++#define p4d_none(p4d)			0
++#define p4d_bad(p4d)			0
++#define p4d_present(p4d)		1
++#define p4d_ERROR(p4d)			do { } while (0)
++#define p4d_clear(p4d)			pgd_clear(p4d)
++#define p4d_val(p4d)			pgd_val(p4d)
++#define p4d_populate(mm, p4d, pud)	pgd_populate(mm, p4d, pud)
++#define p4d_page(p4d)			pgd_page(p4d)
++#define p4d_page_vaddr(p4d)		pgd_page_vaddr(p4d)
++
++#define __p4d(x)			__pgd(x)
++#define set_p4d(p4dp, p4d)		set_pgd(p4dp, p4d)
++
++#undef p4d_free_tlb
++#define p4d_free_tlb(tlb, x, addr)	do { } while (0)
++#define p4d_free(mm, x)			do { } while (0)
++#define __p4d_free_tlb(tlb, x, addr)	do { } while (0)
++
++#undef  p4d_addr_end
++#define p4d_addr_end(addr, end)		(end)
++
++#endif
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index b84615b0f64c..a953e87183ea 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1574,11 +1574,14 @@ int __pte_alloc_kernel(pmd_t *pmd, unsigned long address);
+  * Remove it when 4level-fixup.h has been removed.
+  */
+ #if defined(CONFIG_MMU) && !defined(__ARCH_HAS_4LEVEL_HACK)
++
++#ifndef __ARCH_HAS_5LEVEL_HACK
+ static inline pud_t *pud_alloc(struct mm_struct *mm, pgd_t *pgd, unsigned long address)
+ {
+ 	return (unlikely(pgd_none(*pgd)) && __pud_alloc(mm, pgd, address))?
+ 		NULL: pud_offset(pgd, address);
+ }
++#endif /* !__ARCH_HAS_5LEVEL_HACK */
+ 
+ static inline pmd_t *pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ {
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.11.0
