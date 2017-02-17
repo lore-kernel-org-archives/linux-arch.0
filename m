@@ -1,178 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:24061 "EHLO mga11.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:34602 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934281AbdBQOOG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S934288AbdBQOOG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 17 Feb 2017 09:14:06 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 23/33] x86/paravirt: make paravirt code support 5-level paging
-Date: Fri, 17 Feb 2017 17:13:18 +0300
-Message-ID: <20170217141328.164563-24-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 16/33] x86/mm/pat: handle additional page table
+Date: Fri, 17 Feb 2017 17:13:11 +0300
+Message-ID: <20170217141328.164563-17-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170217141318.Pv0oGmAdDs4OeVGazObvl9EGnMym-hA4WLN9SQ3m2vQ@z>
+Message-ID: <20170217141311.IvHIGopQz-ePMrYOIcdelxAsF4YD7SQoBHtG3719OjU@z>
 
-Add operations to allocate/release p4ds.
+Straight-forward extension of existing code to support additional page
+table level.
 
-TODO: cover XEN.
-
-Not-yet-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/include/asm/paravirt.h       | 44 +++++++++++++++++++++++++++++++----
- arch/x86/include/asm/paravirt_types.h |  7 +++++-
- arch/x86/include/asm/pgalloc.h        |  2 ++
- arch/x86/kernel/paravirt.c            |  9 +++++--
- 4 files changed, 55 insertions(+), 7 deletions(-)
+ arch/x86/mm/pageattr.c | 56 ++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 41 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index 432c6e730ed1..7605910598a6 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -357,6 +357,16 @@ static inline void paravirt_release_pud(unsigned long pfn)
- 	PVOP_VCALL1(pv_mmu_ops.release_pud, pfn);
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 5a287e523eab..3b04432b0bcd 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -333,6 +333,7 @@ static inline pgprot_t static_protections(pgprot_t prot, unsigned long address,
+ pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
+ 			     unsigned int *level)
+ {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 
+@@ -341,7 +342,15 @@ pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
+ 	if (pgd_none(*pgd))
+ 		return NULL;
+ 
+-	pud = pud_offset(pgd, address);
++	p4d = p4d_offset(pgd, address);
++	if (p4d_none(*p4d))
++		return NULL;
++
++	*level = PG_LEVEL_512G;
++	if (p4d_large(*p4d) || !p4d_present(*p4d))
++		return (pte_t *)p4d;
++
++	pud = pud_offset(p4d, address);
+ 	if (pud_none(*pud))
+ 		return NULL;
+ 
+@@ -393,13 +402,18 @@ static pte_t *_lookup_address_cpa(struct cpa_data *cpa, unsigned long address,
+ pmd_t *lookup_pmd_address(unsigned long address)
+ {
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 
+ 	pgd = pgd_offset_k(address);
+ 	if (pgd_none(*pgd))
+ 		return NULL;
+ 
+-	pud = pud_offset(pgd, address);
++	p4d = p4d_offset(pgd, address);
++	if (p4d_none(*p4d) || p4d_large(*p4d) || !p4d_present(*p4d))
++		return NULL;
++
++	pud = pud_offset(p4d, address);
+ 	if (pud_none(*pud) || pud_large(*pud) || !pud_present(*pud))
+ 		return NULL;
+ 
+@@ -464,11 +478,13 @@ static void __set_pmd_pte(pte_t *kpte, unsigned long address, pte_t pte)
+ 
+ 		list_for_each_entry(page, &pgd_list, lru) {
+ 			pgd_t *pgd;
++			p4d_t *p4d;
+ 			pud_t *pud;
+ 			pmd_t *pmd;
+ 
+ 			pgd = (pgd_t *)page_address(page) + pgd_index(address);
+-			pud = pud_offset(pgd, address);
++			p4d = p4d_offset(pgd, address);
++			pud = pud_offset(p4d, address);
+ 			pmd = pmd_offset(pud, address);
+ 			set_pte_atomic((pte_t *)pmd, pte);
+ 		}
+@@ -823,9 +839,9 @@ static void unmap_pmd_range(pud_t *pud, unsigned long start, unsigned long end)
+ 			pud_clear(pud);
  }
  
-+static inline void paravirt_alloc_p4d(struct mm_struct *mm, unsigned long pfn)
-+{
-+	PVOP_VCALL2(pv_mmu_ops.alloc_p4d, mm, pfn);
-+}
-+
-+static inline void paravirt_release_p4d(unsigned long pfn)
-+{
-+	PVOP_VCALL1(pv_mmu_ops.release_p4d, pfn);
-+}
-+
- static inline void pte_update(struct mm_struct *mm, unsigned long addr,
- 			      pte_t *ptep)
+-static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
++static void unmap_pud_range(p4d_t *p4d, unsigned long start, unsigned long end)
  {
-@@ -571,14 +581,35 @@ static inline void set_p4d(p4d_t *p4dp, p4d_t p4d)
- 			    val);
+-	pud_t *pud = pud_offset(pgd, start);
++	pud_t *pud = pud_offset(p4d, start);
+ 
+ 	/*
+ 	 * Not on a GB page boundary?
+@@ -991,8 +1007,8 @@ static long populate_pmd(struct cpa_data *cpa,
+ 	return num_pages;
  }
  
--static inline void p4d_clear(p4d_t *p4dp)
-+#if CONFIG_PGTABLE_LEVELS >= 5
-+
-+static inline p4d_t __p4d(p4dval_t val)
+-static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+-			 pgprot_t pgprot)
++static int populate_pud(struct cpa_data *cpa, unsigned long start, p4d_t *p4d,
++			pgprot_t pgprot)
  {
--	set_p4d(p4dp, __p4d(0));
-+	p4dval_t ret;
-+
-+	if (sizeof(p4dval_t) > sizeof(long))
-+		ret = PVOP_CALLEE2(p4dval_t, pv_mmu_ops.make_p4d,
-+				   val, (u64)val >> 32);
-+	else
-+		ret = PVOP_CALLEE1(p4dval_t, pv_mmu_ops.make_p4d,
-+				   val);
-+
-+	return (p4d_t) { ret };
- }
+ 	pud_t *pud;
+ 	unsigned long end;
+@@ -1013,7 +1029,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 		cur_pages = (pre_end - start) >> PAGE_SHIFT;
+ 		cur_pages = min_t(int, (int)cpa->numpages, cur_pages);
  
--#if CONFIG_PGTABLE_LEVELS >= 5
-+static inline p4dval_t p4d_val(p4d_t p4d)
-+{
-+	p4dval_t ret;
-+
-+	if (sizeof(p4dval_t) > sizeof(long))
-+		ret =  PVOP_CALLEE2(p4dval_t, pv_mmu_ops.p4d_val,
-+				    p4d.p4d, (u64)p4d.p4d >> 32);
-+	else
-+		ret =  PVOP_CALLEE1(p4dval_t, pv_mmu_ops.p4d_val,
-+				    p4d.p4d);
+-		pud = pud_offset(pgd, start);
++		pud = pud_offset(p4d, start);
  
--#error FIXME
-+	return ret;
-+}
+ 		/*
+ 		 * Need a PMD page?
+@@ -1034,7 +1050,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 	if (cpa->numpages == cur_pages)
+ 		return cur_pages;
  
- static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
+-	pud = pud_offset(pgd, start);
++	pud = pud_offset(p4d, start);
+ 	pud_pgprot = pgprot_4k_2_large(pgprot);
+ 
+ 	/*
+@@ -1054,7 +1070,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
+ 	if (start < end) {
+ 		long tmp;
+ 
+-		pud = pud_offset(pgd, start);
++		pud = pud_offset(p4d, start);
+ 		if (pud_none(*pud))
+ 			if (alloc_pmd_page(pud))
+ 				return -1;
+@@ -1077,33 +1093,43 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
  {
-@@ -599,6 +630,11 @@ static inline void pgd_clear(pgd_t *pgdp)
+ 	pgprot_t pgprot = __pgprot(_KERNPG_TABLE);
+ 	pud_t *pud = NULL;	/* shut up gcc */
++	p4d_t *p4d;
+ 	pgd_t *pgd_entry;
+ 	long ret;
  
- #endif  /* CONFIG_PGTABLE_LEVELS == 5 */
+ 	pgd_entry = cpa->pgd + pgd_index(addr);
  
-+static inline void p4d_clear(p4d_t *p4dp)
-+{
-+	set_p4d(p4dp, __p4d(0));
-+}
++	if (pgd_none(*pgd_entry)) {
++		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
++		if (!p4d)
++			return -1;
 +
- #endif	/* CONFIG_PGTABLE_LEVELS == 4 */
- 
- #endif	/* CONFIG_PGTABLE_LEVELS >= 3 */
-diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
-index 3982c200845f..2dfbb7cedbaa 100644
---- a/arch/x86/include/asm/paravirt_types.h
-+++ b/arch/x86/include/asm/paravirt_types.h
-@@ -238,9 +238,11 @@ struct pv_mmu_ops {
- 	void (*alloc_pte)(struct mm_struct *mm, unsigned long pfn);
- 	void (*alloc_pmd)(struct mm_struct *mm, unsigned long pfn);
- 	void (*alloc_pud)(struct mm_struct *mm, unsigned long pfn);
-+	void (*alloc_p4d)(struct mm_struct *mm, unsigned long pfn);
- 	void (*release_pte)(unsigned long pfn);
- 	void (*release_pmd)(unsigned long pfn);
- 	void (*release_pud)(unsigned long pfn);
-+	void (*release_p4d)(unsigned long pfn);
- 
- 	/* Pagetable manipulation functions */
- 	void (*set_pte)(pte_t *ptep, pte_t pteval);
-@@ -284,7 +286,10 @@ struct pv_mmu_ops {
- 	void (*set_p4d)(p4d_t *p4dp, p4d_t p4dval);
- 
- #if CONFIG_PGTABLE_LEVELS >= 5
--#error FIXME
-+	struct paravirt_callee_save p4d_val;
-+	struct paravirt_callee_save make_p4d;
++		set_pgd(pgd_entry, __pgd(__pa(p4d) | _KERNPG_TABLE));
++	}
 +
-+	void (*set_pgd)(pgd_t *pgdp, pgd_t pgdval);
- #endif	/* CONFIG_PGTABLE_LEVELS >= 5 */
+ 	/*
+-	 * Allocate a PUD page and hand it down for mapping.
++	 * Allocate a P4D page and hand it down for mapping.
+ 	 */
+-	if (pgd_none(*pgd_entry)) {
++	p4d = p4d_offset(pgd_entry, addr);
++	if (p4d_none(*p4d)) {
+ 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
+ 		if (!pud)
+ 			return -1;
  
- #endif	/* CONFIG_PGTABLE_LEVELS >= 4 */
-diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
-index 2f585054c63c..b2d0cd8288aa 100644
---- a/arch/x86/include/asm/pgalloc.h
-+++ b/arch/x86/include/asm/pgalloc.h
-@@ -17,9 +17,11 @@ static inline void paravirt_alloc_pmd(struct mm_struct *mm, unsigned long pfn)	{
- static inline void paravirt_alloc_pmd_clone(unsigned long pfn, unsigned long clonepfn,
- 					    unsigned long start, unsigned long count) {}
- static inline void paravirt_alloc_pud(struct mm_struct *mm, unsigned long pfn)	{}
-+static inline void paravirt_alloc_p4d(struct mm_struct *mm, unsigned long pfn)	{}
- static inline void paravirt_release_pte(unsigned long pfn) {}
- static inline void paravirt_release_pmd(unsigned long pfn) {}
- static inline void paravirt_release_pud(unsigned long pfn) {}
-+static inline void paravirt_release_p4d(unsigned long pfn) {}
- #endif
+-		set_pgd(pgd_entry, __pgd(__pa(pud) | _KERNPG_TABLE));
++		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
+ 	}
  
- /*
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index f8aedc112d5e..974359f83cff 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -405,9 +405,11 @@ struct pv_mmu_ops pv_mmu_ops __ro_after_init = {
- 	.alloc_pte = paravirt_nop,
- 	.alloc_pmd = paravirt_nop,
- 	.alloc_pud = paravirt_nop,
-+	.alloc_p4d = paravirt_nop,
- 	.release_pte = paravirt_nop,
- 	.release_pmd = paravirt_nop,
- 	.release_pud = paravirt_nop,
-+	.release_p4d = paravirt_nop,
+ 	pgprot_val(pgprot) &= ~pgprot_val(cpa->mask_clr);
+ 	pgprot_val(pgprot) |=  pgprot_val(cpa->mask_set);
  
- 	.set_pte = native_set_pte,
- 	.set_pte_at = native_set_pte_at,
-@@ -436,8 +438,11 @@ struct pv_mmu_ops pv_mmu_ops __ro_after_init = {
- 	.set_p4d = native_set_p4d,
- 
- #if CONFIG_PGTABLE_LEVELS >= 5
--#error FIXME
--#endif /* CONFIG_PGTABLE_LEVELS >= 4 */
-+	.p4d_val = PTE_IDENT,
-+	.make_p4d = PTE_IDENT,
-+
-+	.set_pgd = native_set_pgd,
-+#endif /* CONFIG_PGTABLE_LEVELS >= 5 */
- #endif /* CONFIG_PGTABLE_LEVELS >= 4 */
- #endif /* CONFIG_PGTABLE_LEVELS >= 3 */
- 
+-	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
++	ret = populate_pud(cpa, addr, p4d, pgprot);
+ 	if (ret < 0) {
+ 		/*
+ 		 * Leave the PUD page in place in case some other CPU or thread
+ 		 * already found it, but remove any useless entries we just
+ 		 * added to it.
+ 		 */
+-		unmap_pud_range(pgd_entry, addr,
++		unmap_pud_range(p4d, addr,
+ 				addr + (cpa->numpages << PAGE_SHIFT));
+ 		return ret;
+ 	}
 -- 
 2.11.0
