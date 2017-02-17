@@ -1,77 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:49061 "EHLO mail.skyhub.de"
+Received: from mga02.intel.com ([134.134.136.20]:34602 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1755335AbdBQMAk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Feb 2017 07:00:40 -0500
-Date: Fri, 17 Feb 2017 13:00:18 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 05/28] x86: Add Secure Memory Encryption (SME)
- support
-Message-ID: <20170217120018.y64pf4sv2plasbsv@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
+        id S934328AbdBQOON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Feb 2017 09:14:13 -0500
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 30/33] x86/mm: make kernel_physical_mapping_init() support 5-level paging
+Date: Fri, 17 Feb 2017 17:13:25 +0300
+Message-ID: <20170217141328.164563-31-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170217120018.9M7JsvtXJhikprynp-lhv_iVKnTm-gpwcsQ40FkE0CY@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20170217141325.WGlaK2Qu9tlZwiqD5NLCtSVeuJsEfYimHqA3GZrcDPc@z>
 
-On Thu, Feb 16, 2017 at 09:43:07AM -0600, Tom Lendacky wrote:
-> Add support for Secure Memory Encryption (SME). This initial support
-> provides a Kconfig entry to build the SME support into the kernel and
-> defines the memory encryption mask that will be used in subsequent
-> patches to mark pages as encrypted.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/Kconfig                   |   22 +++++++++++++++++++
->  arch/x86/include/asm/mem_encrypt.h |   42 ++++++++++++++++++++++++++++++++++++
->  arch/x86/mm/Makefile               |    1 +
->  arch/x86/mm/mem_encrypt.c          |   21 ++++++++++++++++++
->  include/linux/mem_encrypt.h        |   37 ++++++++++++++++++++++++++++++++
->  5 files changed, 123 insertions(+)
->  create mode 100644 arch/x86/include/asm/mem_encrypt.h
->  create mode 100644 arch/x86/mm/mem_encrypt.c
->  create mode 100644 include/linux/mem_encrypt.h
-> 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index f8fbfc5..a3b8c71 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1395,6 +1395,28 @@ config X86_DIRECT_GBPAGES
->  	  supports them), so don't confuse the user by printing
->  	  that we have them enabled.
->  
-> +config AMD_MEM_ENCRYPT
-> +	bool "AMD Secure Memory Encryption (SME) support"
-> +	depends on X86_64 && CPU_SUP_AMD
-> +	---help---
-> +	  Say yes to enable support for the encryption of system memory.
-> +	  This requires an AMD processor that supports Secure Memory
-> +	  Encryption (SME).
-> +
-> +config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
-> +	bool "Activate AMD Secure Memory Encryption (SME) by default"
-> +	default y
-> +	depends on AMD_MEM_ENCRYPT
-> +	---help---
-> +	  Say yes to have system memory encrypted by default if running on
-> +	  an AMD processor that supports Secure Memory Encryption (SME).
-> +
-> +	  If set to Y, then the encryption of system memory can be
-> +	  deactivated with the mem_encrypt=off command line option.
-> +
-> +	  If set to N, then the encryption of system memory can be
-> +	  activated with the mem_encrypt=on command line option.
+Properly populate addition pagetable level if CONFIG_X86_5LEVEL is
+enabled.
 
-Good.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/mm/init_64.c | 71 ++++++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 62 insertions(+), 9 deletions(-)
 
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 58be5713ec09..d53eda53419d 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -622,6 +622,58 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
+ 	return paddr_last;
+ }
+ 
++static unsigned long __meminit
++phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
++	      unsigned long page_size_mask)
++{
++	unsigned long paddr_next, paddr_last = paddr_end;
++	unsigned long vaddr = (unsigned long)__va(paddr);
++	int i = p4d_index(vaddr);
++
++	if (!IS_ENABLED(CONFIG_X86_5LEVEL))
++		return phys_pud_init((pud_t *) p4d_page, paddr, paddr_end, page_size_mask);
++
++	for (; i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d;
++		pud_t *pud;
++
++		vaddr = (unsigned long)__va(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		if (paddr >= paddr_end) {
++			if (!after_bootmem &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RAM) &&
++			    !e820_any_mapped(paddr & P4D_MASK, paddr_next,
++					     E820_RESERVED_KERN)) {
++				set_p4d(p4d, __p4d(0));
++			}
++			continue;
++		}
++
++		if (!p4d_none(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			paddr_last = phys_pud_init(pud, paddr,
++					paddr_end,
++					page_size_mask);
++			__flush_tlb_all();
++			continue;
++		}
++
++		pud = alloc_low_page();
++		paddr_last = phys_pud_init(pud, paddr, paddr_end,
++					   page_size_mask);
++
++		spin_lock(&init_mm.page_table_lock);
++		p4d_populate(&init_mm, p4d, pud);
++		spin_unlock(&init_mm.page_table_lock);
++	}
++	__flush_tlb_all();
++
++	return paddr_last;
++}
++
+ /*
+  * Create page table mapping for the physical memory for specific physical
+  * addresses. The virtual and physical addresses have to be aligned on PMD level
+@@ -643,26 +695,27 @@ kernel_physical_mapping_init(unsigned long paddr_start,
+ 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
+ 		pgd_t *pgd = pgd_offset_k(vaddr);
+ 		p4d_t *p4d;
+-		pud_t *pud;
+ 
+ 		vaddr_next = (vaddr & PGDIR_MASK) + PGDIR_SIZE;
+ 
+-		BUILD_BUG_ON(pgd_none(*pgd));
+-		p4d = p4d_offset(pgd, vaddr);
+-		if (p4d_val(*p4d)) {
+-			pud = (pud_t *)p4d_page_vaddr(*p4d);
+-			paddr_last = phys_pud_init(pud, __pa(vaddr),
++		if (pgd_val(*pgd)) {
++			p4d = (p4d_t *)pgd_page_vaddr(*pgd);
++			paddr_last = phys_p4d_init(p4d, __pa(vaddr),
+ 						   __pa(vaddr_end),
+ 						   page_size_mask);
+ 			continue;
+ 		}
+ 
+-		pud = alloc_low_page();
+-		paddr_last = phys_pud_init(pud, __pa(vaddr), __pa(vaddr_end),
++		p4d = alloc_low_page();
++		paddr_last = phys_p4d_init(p4d, __pa(vaddr), __pa(vaddr_end),
+ 					   page_size_mask);
+ 
+ 		spin_lock(&init_mm.page_table_lock);
+-		p4d_populate(&init_mm, p4d, pud);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			pgd_populate(&init_mm, pgd, p4d);
++		else
++			p4d_populate(&init_mm, p4d_offset(pgd, vaddr),
++					(pud_t *) p4d);
+ 		spin_unlock(&init_mm.page_table_lock);
+ 		pgd_changed = true;
+ 	}
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.11.0
