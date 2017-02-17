@@ -1,38 +1,78 @@
-From: Andy Lutomirski <luto@amacapital.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
-Date: Fri, 17 Feb 2017 09:21:47 -0800
-Message-ID: <CALCETrU957t7RQOAUJKWdjcA8t2ScWGkrnou2+cHksetC9aN=A@mail.gmail.com>
-References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
- <20170217141328.164563-34-kirill.shutemov@linux.intel.com> <ae15457f-731d-bb1b-c60d-14d641c265f0@intel.com>
+Date: Fri, 17 Feb 2017 12:02:13 -0800
+Message-ID: <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com> <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ua0-f174.google.com ([209.85.217.174]:35895 "EHLO
-        mail-ua0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934578AbdBQRWJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Feb 2017 12:22:09 -0500
-Received: by mail-ua0-f174.google.com with SMTP id t17so25867383uae.3
-        for <linux-arch@vger.kernel.org>; Fri, 17 Feb 2017 09:22:09 -0800 (PST)
-In-Reply-To: <ae15457f-731d-bb1b-c60d-14d641c265f0@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 17, 2017 at 9:19 AM, Dave Hansen <dave.hansen@intel.com> wrote:
-> On 02/17/2017 06:13 AM, Kirill A. Shutemov wrote:
->> +/*
->> + * Default maximum virtual address. This is required for
->> + * compatibility with applications that assumes 47-bit VA.
->> + * The limit can be changed with prctl(PR_SET_MAX_VADDR).
->> + */
->> +#define MAX_VADDR_DEFAULT    ((1UL << 47) - PAGE_SIZE)
->
-> This is a bit goofy.  It's not the largest virtual adddress that can be
-> accessed, but the beginning of the last page.
+On Fri, Feb 17, 2017 at 6:13 AM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> This patch introduces two new prctl(2) handles to manage maximum virtual
+> address available to userspace to map.
 
-No, it really is the limit.  We don't allow user code to map the last
-page because ti would be a root hole due to SYSRET.  Thanks, Intel.
-See the comment near TASK_SIZE_MAX IIRC.
+So this is my least favorite patch of the whole series, for a couple of reasons:
 
---Andy
+ (a) adding new code, and mixing it with the mindless TASK_SIZE ->
+get_max_addr() conversion.
+
+ (b) what's the point of that whole TASK_SIZE vs get_max_addr() thing?
+When use one, when the other?
+
+so I think this patch needs a lot more thought and/or explanation.
+
+Honestly, (a) is a no-brainer, and can be fixed by just splitting the
+patch up. But I think (b) is more fundamental.
+
+In particular, I think that get_max_addr() thing is badly defined.
+When should you use TASK_SIZE, when should you use TASK_SIZE_MAX, and
+when should you use get_max_addr()? I don't find that clear at all,
+and I think that needs to be a whole lot more explicit and documented.
+
+I also get he feeling that the whole thing is unnecessary. I'm
+wondering if we should just instead say that the whole 47 vs 56-bit
+virtual address is _purely_ about "get_unmapped_area()", and nothing
+else.
+
+IOW, I'm wondering if we can't just say that
+
+ - if the processor and kernel support 56-bit user address space, then
+you can *always* use the whole space
+
+ - but by default, get_unmapped_area() will only return mappings that
+fit in the 47 bit address space.
+
+So if you use MAP_FIXED and give an address in the high range, it will
+just always work, and the MM will always consider the task size to be
+the full address space.
+
+But for the common case where a process does no use MAP_FIXED, the
+kernel will never give a high address by default, and you have to do
+the process control thing to say "I want those high addresses".
+
+Hmm?
+
+In other words, I'd like to at least start out trying to keep the
+differences between the 47-bit and 56-bit models as simple and minimal
+as possible. Not make such a big deal out of it.
+
+We already have "arch_get_unmapped_area()" that controls the whole
+"what will non-MAP_FIXED mmap allocations return", so I'd hope that
+the above kind of semantics could be done without *any* actual
+TASK_SIZE changes _anywhere_ in the VM code.
+
+Comments?
+
+      Linus
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
