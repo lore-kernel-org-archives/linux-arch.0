@@ -1,193 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga04.intel.com ([192.55.52.120]:46645 "EHLO mga04.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:14310 "EHLO mga09.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934411AbdBQOOg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        id S934377AbdBQOOg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
         Fri, 17 Feb 2017 09:14:36 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 22/33] x86/mm: define virtual memory map for 5-level paging
-Date: Fri, 17 Feb 2017 17:13:17 +0300
-Message-ID: <20170217141328.164563-23-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 14/33] x86/kexec: support p4d_t
+Date: Fri, 17 Feb 2017 17:13:09 +0300
+Message-ID: <20170217141328.164563-15-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170217141317.OMbQky2xubGhHK4pjkNvO-k3QvKy_AAWxL9ob8yVaOg@z>
+Message-ID: <20170217141309.zWdLDASYk6ZK7P-cIGfWVnhRBZYnCYjMgTCodBcQbxQ@z>
 
-The first part of memory map (up to %esp fixup) simply scales existing
-map for 4-level paging by factor of 9 -- number of bits addressed by
-additional page table level.
-
-The rest of the map is uncahnged.
+Handle additional page table level in kexec code.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- Documentation/x86/x86_64/mm.txt         | 33 ++++++++++++++++++++++++++++++---
- arch/x86/Kconfig                        |  1 +
- arch/x86/include/asm/kasan.h            |  9 ++++++---
- arch/x86/include/asm/page_64_types.h    | 10 ++++++++++
- arch/x86/include/asm/pgtable_64_types.h |  6 ++++++
- arch/x86/include/asm/sparsemem.h        |  9 +++++++--
- 6 files changed, 60 insertions(+), 8 deletions(-)
+ arch/x86/include/asm/kexec.h       |  1 +
+ arch/x86/kernel/machine_kexec_32.c |  4 +++-
+ arch/x86/kernel/machine_kexec_64.c | 14 ++++++++++++--
+ 3 files changed, 16 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/x86/x86_64/mm.txt b/Documentation/x86/x86_64/mm.txt
-index 5724092db811..0303a47b82f8 100644
---- a/Documentation/x86/x86_64/mm.txt
-+++ b/Documentation/x86/x86_64/mm.txt
-@@ -4,7 +4,7 @@
- Virtual memory map with 4 level page tables:
- 
- 0000000000000000 - 00007fffffffffff (=47 bits) user space, different per mm
--hole caused by [48:63] sign extension
-+hole caused by [47:63] sign extension
- ffff800000000000 - ffff87ffffffffff (=43 bits) guard hole, reserved for hypervisor
- ffff880000000000 - ffffc7ffffffffff (=64 TB) direct mapping of all phys. memory
- ffffc80000000000 - ffffc8ffffffffff (=40 bits) hole
-@@ -23,12 +23,39 @@ ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
- ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
- ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
- 
-+Virtual memory map with 5 level page tables:
-+
-+0000000000000000 - 00ffffffffffffff (=56 bits) user space, different per mm
-+hole caused by [56:63] sign extension
-+ff00000000000000 - ff0fffffffffffff (=52 bits) guard hole, reserved for hypervisor
-+ff10000000000000 - ff8fffffffffffff (=55 bits) direct mapping of all phys. memory
-+ff90000000000000 - ff91ffffffffffff (=49 bits) hole
-+ff92000000000000 - ffd1ffffffffffff (=54 bits) vmalloc/ioremap space
-+ffd2000000000000 - ffd3ffffffffffff (=49 bits) hole
-+ffd4000000000000 - ffd5ffffffffffff (=49 bits) virtual memory map (512TB)
-+... unused hole ...
-+ffd8000000000000 - fff7ffffffffffff (=53 bits) kasan shadow memory (8PB)
-+... unused hole ...
-+fffe000000000000 - fffe007fffffffff (=39 bits) %esp fixup stacks
-+... unused hole ...
-+ffffffef00000000 - fffffffeffffffff (=64 GB) EFI region mapping space
-+... unused hole ...
-+ffffffff80000000 - ffffffff9fffffff (=512 MB)  kernel text mapping, from phys 0
-+ffffffffa0000000 - ffffffffff5fffff (=1526 MB) module mapping space
-+ffffffffff600000 - ffffffffffdfffff (=8 MB) vsyscalls
-+ffffffffffe00000 - ffffffffffffffff (=2 MB) unused hole
-+
-+Architecture defines a 64-bit virtual address. Implementations can support
-+less. Currently supported are 48- and 57-bit virtual addresses. Bits 63
-+through to the most-significant implemented bit are set to either all ones
-+or all zero. This causes hole between user space and kernel addresses.
-+
- The direct mapping covers all memory in the system up to the highest
- memory address (this means in some cases it can also include PCI memory
- holes).
- 
--vmalloc space is lazily synchronized into the different PML4 pages of
--the processes using the page fault handler, with init_level4_pgt as
-+vmalloc space is lazily synchronized into the different PML4/PML5 pages of
-+the processes using the page fault handler, with init_top_pgt as
- reference.
- 
- Current X86-64 implementations support up to 46 bits of address space (64 TB),
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index e487493bbd47..3d51256a9e61 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -285,6 +285,7 @@ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
- config KASAN_SHADOW_OFFSET
- 	hex
- 	depends on KASAN
-+	default 0xdff8000000000000 if X86_5LEVEL
- 	default 0xdffffc0000000000
- 
- config HAVE_INTEL_TXT
-diff --git a/arch/x86/include/asm/kasan.h b/arch/x86/include/asm/kasan.h
-index 1410b567ecde..f527b02a0ee3 100644
---- a/arch/x86/include/asm/kasan.h
-+++ b/arch/x86/include/asm/kasan.h
-@@ -11,9 +11,12 @@
-  * 'kernel address space start' >> KASAN_SHADOW_SCALE_SHIFT
-  */
- #define KASAN_SHADOW_START      (KASAN_SHADOW_OFFSET + \
--					(0xffff800000000000ULL >> 3))
--/* 47 bits for kernel address -> (47 - 3) bits for shadow */
--#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (47 - 3)))
-+					((-1UL << __VIRTUAL_MASK_SHIFT) >> 3))
-+/*
-+ * 47 bits for kernel address -> (47 - 3) bits for shadow
-+ * 56 bits for kernel address -> (56 - 3) bits for shadow
-+ */
-+#define KASAN_SHADOW_END        (KASAN_SHADOW_START + (1ULL << (__VIRTUAL_MASK_SHIFT - 3)))
- 
- #ifndef __ASSEMBLY__
- 
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 9215e0527647..3f5f08b010d0 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -36,7 +36,12 @@
-  * hypervisor to fit.  Choosing 16 slots here is arbitrary, but it's
-  * what Xen requires.
-  */
-+#ifdef CONFIG_X86_5LEVEL
-+#define __PAGE_OFFSET_BASE      _AC(0xff10000000000000, UL)
-+#else
- #define __PAGE_OFFSET_BASE      _AC(0xffff880000000000, UL)
-+#endif
-+
- #ifdef CONFIG_RANDOMIZE_MEMORY
- #define __PAGE_OFFSET           page_offset_base
+diff --git a/arch/x86/include/asm/kexec.h b/arch/x86/include/asm/kexec.h
+index 282630e4c6ea..70ef205489f0 100644
+--- a/arch/x86/include/asm/kexec.h
++++ b/arch/x86/include/asm/kexec.h
+@@ -164,6 +164,7 @@ struct kimage_arch {
+ };
  #else
-@@ -46,8 +51,13 @@
- #define __START_KERNEL_map	_AC(0xffffffff80000000, UL)
+ struct kimage_arch {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+diff --git a/arch/x86/kernel/machine_kexec_32.c b/arch/x86/kernel/machine_kexec_32.c
+index 469b23d6acc2..5f43cec296c5 100644
+--- a/arch/x86/kernel/machine_kexec_32.c
++++ b/arch/x86/kernel/machine_kexec_32.c
+@@ -103,6 +103,7 @@ static void machine_kexec_page_table_set_one(
+ 	pgd_t *pgd, pmd_t *pmd, pte_t *pte,
+ 	unsigned long vaddr, unsigned long paddr)
+ {
++	p4d_t *p4d;
+ 	pud_t *pud;
  
- /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
-+#ifdef CONFIG_X86_5LEVEL
-+#define __PHYSICAL_MASK_SHIFT	52
-+#define __VIRTUAL_MASK_SHIFT	56
-+#else
- #define __PHYSICAL_MASK_SHIFT	46
- #define __VIRTUAL_MASK_SHIFT	47
-+#endif
- 
- /*
-  * Kernel image size is limited to 1GiB due to the fixmap living in the
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 0b2797e5083c..00dc0c2b456e 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -56,9 +56,15 @@ typedef struct { pteval_t pte; } pte_t;
- 
- /* See Documentation/x86/x86_64/mm.txt for a description of the memory map. */
- #define MAXMEM		_AC(__AC(1, UL) << MAX_PHYSMEM_BITS, UL)
-+#ifdef CONFIG_X86_5LEVEL
-+#define VMALLOC_SIZE_TB _AC(16384, UL)
-+#define __VMALLOC_BASE	_AC(0xff92000000000000, UL)
-+#define __VMEMMAP_BASE	_AC(0xffd4000000000000, UL)
-+#else
- #define VMALLOC_SIZE_TB	_AC(32, UL)
- #define __VMALLOC_BASE	_AC(0xffffc90000000000, UL)
- #define __VMEMMAP_BASE	_AC(0xffffea0000000000, UL)
-+#endif
- #ifdef CONFIG_RANDOMIZE_MEMORY
- #define VMALLOC_START	vmalloc_base
- #define VMEMMAP_START	vmemmap_base
-diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
-index 4517d6b93188..1f5bee2c202f 100644
---- a/arch/x86/include/asm/sparsemem.h
-+++ b/arch/x86/include/asm/sparsemem.h
-@@ -26,8 +26,13 @@
- # endif
- #else /* CONFIG_X86_32 */
- # define SECTION_SIZE_BITS	27 /* matt - 128 is convenient right now */
--# define MAX_PHYSADDR_BITS	44
--# define MAX_PHYSMEM_BITS	46
-+# ifdef CONFIG_X86_5LEVEL
-+#  define MAX_PHYSADDR_BITS	52
-+#  define MAX_PHYSMEM_BITS	52
-+# else
-+#  define MAX_PHYSADDR_BITS	44
-+#  define MAX_PHYSMEM_BITS	46
-+# endif
+ 	pgd += pgd_index(vaddr);
+@@ -110,7 +111,8 @@ static void machine_kexec_page_table_set_one(
+ 	if (!(pgd_val(*pgd) & _PAGE_PRESENT))
+ 		set_pgd(pgd, __pgd(__pa(pmd) | _PAGE_PRESENT));
  #endif
+-	pud = pud_offset(pgd, vaddr);
++	p4d = p4d_offset(pgd, vaddr);
++	pud = pud_offset(p4d, vaddr);
+ 	pmd = pmd_offset(pud, vaddr);
+ 	if (!(pmd_val(*pmd) & _PAGE_PRESENT))
+ 		set_pmd(pmd, __pmd(__pa(pte) | _PAGE_TABLE));
+diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
+index 307b1f4543de..42eae96c8450 100644
+--- a/arch/x86/kernel/machine_kexec_64.c
++++ b/arch/x86/kernel/machine_kexec_64.c
+@@ -36,6 +36,7 @@ static struct kexec_file_ops *kexec_file_loaders[] = {
  
- #endif /* CONFIG_SPARSEMEM */
+ static void free_transition_pgtable(struct kimage *image)
+ {
++	free_page((unsigned long)image->arch.p4d);
+ 	free_page((unsigned long)image->arch.pud);
+ 	free_page((unsigned long)image->arch.pmd);
+ 	free_page((unsigned long)image->arch.pte);
+@@ -43,6 +44,7 @@ static void free_transition_pgtable(struct kimage *image)
+ 
+ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+ {
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	pmd_t *pmd;
+ 	pte_t *pte;
+@@ -53,13 +55,21 @@ static int init_transition_pgtable(struct kimage *image, pgd_t *pgd)
+ 	paddr = __pa(page_address(image->control_code_page)+PAGE_SIZE);
+ 	pgd += pgd_index(vaddr);
+ 	if (!pgd_present(*pgd)) {
++		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL);
++		if (!p4d)
++			goto err;
++		image->arch.p4d = p4d;
++		set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
++	}
++	p4d = p4d_offset(pgd, vaddr);
++	if (!p4d_present(*p4d)) {
+ 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL);
+ 		if (!pud)
+ 			goto err;
+ 		image->arch.pud = pud;
+-		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
+ 	}
+-	pud = pud_offset(pgd, vaddr);
++	pud = pud_offset(p4d, vaddr);
+ 	if (!pud_present(*pud)) {
+ 		pmd = (pmd_t *)get_zeroed_page(GFP_KERNEL);
+ 		if (!pmd)
 -- 
 2.11.0
