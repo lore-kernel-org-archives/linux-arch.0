@@ -1,157 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:1030 "EHLO mga06.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:34602 "EHLO mga02.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S934223AbdBQOOJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Feb 2017 09:14:09 -0500
+        id S934223AbdBQON5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 17 Feb 2017 09:13:57 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv3 31/33] x86/mm: add support for 5-level paging for KASLR
-Date: Fri, 17 Feb 2017 17:13:26 +0300
-Message-ID: <20170217141328.164563-32-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv3 10/33] x86/gup: add 5-level paging support
+Date: Fri, 17 Feb 2017 17:13:05 +0300
+Message-ID: <20170217141328.164563-11-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170217141326.eZU-t4dVfpbUKBjn4D0veW14PHKje59WVaSlHQG7eY0@z>
+Message-ID: <20170217141305.RvNRVHentLiJA59HDPpuDKPFy8NNv2bCQxHd_Iv1ePE@z>
 
-With 5-level paging randomization happens on P4D level instead of PUD.
-
-Maximum amount of physical memory also bumped to 52-bits for 5-level
-paging.
+It's simply extension for one more page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/kaslr.c | 82 ++++++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 63 insertions(+), 19 deletions(-)
+ arch/x86/mm/gup.c | 33 +++++++++++++++++++++++++++------
+ 1 file changed, 27 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
-index 887e57182716..662e5c4b21c8 100644
---- a/arch/x86/mm/kaslr.c
-+++ b/arch/x86/mm/kaslr.c
-@@ -6,12 +6,12 @@
-  *
-  * Entropy is generated using the KASLR early boot functions now shared in
-  * the lib directory (originally written by Kees Cook). Randomization is
-- * done on PGD & PUD page table levels to increase possible addresses. The
-- * physical memory mapping code was adapted to support PUD level virtual
-- * addresses. This implementation on the best configuration provides 30,000
-- * possible virtual addresses in average for each memory region. An additional
-- * low memory page is used to ensure each CPU can start with a PGD aligned
-- * virtual address (for realmode).
-+ * done on PGD & P4D/PUD page table levels to increase possible addresses.
-+ * The physical memory mapping code was adapted to support P4D/PUD level
-+ * virtual addresses. This implementation on the best configuration provides
-+ * 30,000 possible virtual addresses in average for each memory region.
-+ * An additional low memory page is used to ensure each CPU can start with
-+ * a PGD aligned virtual address (for realmode).
-  *
-  * The order of each memory region is not changed. The feature looks at
-  * the available space for the regions based on different configuration
-@@ -70,7 +70,8 @@ static __initdata struct kaslr_memory_region {
- 	unsigned long *base;
- 	unsigned long size_tb;
- } kaslr_regions[] = {
--	{ &page_offset_base, 64/* Maximum */ },
-+	{ &page_offset_base,
-+		1 << (__PHYSICAL_MASK_SHIFT - TB_SHIFT) /* Maximum */ },
- 	{ &vmalloc_base, VMALLOC_SIZE_TB },
- 	{ &vmemmap_base, 1 },
- };
-@@ -142,7 +143,10 @@ void __init kernel_randomize_memory(void)
- 		 */
- 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
- 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
--		entropy = (rand % (entropy + 1)) & PUD_MASK;
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			entropy = (rand % (entropy + 1)) & P4D_MASK;
-+		else
-+			entropy = (rand % (entropy + 1)) & PUD_MASK;
- 		vaddr += entropy;
- 		*kaslr_regions[i].base = vaddr;
- 
-@@ -151,27 +155,21 @@ void __init kernel_randomize_memory(void)
- 		 * randomization alignment.
- 		 */
- 		vaddr += get_padding(&kaslr_regions[i]);
--		vaddr = round_up(vaddr + 1, PUD_SIZE);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			vaddr = round_up(vaddr + 1, P4D_SIZE);
-+		else
-+			vaddr = round_up(vaddr + 1, PUD_SIZE);
- 		remain_entropy -= entropy;
- 	}
+diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+index 0d4fb3ebbbac..27b92430a8cd 100644
+--- a/arch/x86/mm/gup.c
++++ b/arch/x86/mm/gup.c
+@@ -76,9 +76,9 @@ static void undo_dev_pagemap(int *nr, int nr_start, struct page **pages)
  }
  
--/*
-- * Create PGD aligned trampoline table to allow real mode initialization
-- * of additional CPUs. Consume only 1 low memory page.
-- */
--void __meminit init_trampoline(void)
-+static void __meminit init_trampoline_pud(void)
+ /*
+- * 'pteval' can come from a pte, pmd or pud.  We only check
++ * 'pteval' can come from a pte, pmd, pud or p4d.  We only check
+  * _PAGE_PRESENT, _PAGE_USER, and _PAGE_RW in here which are the
+- * same value on all 3 types.
++ * same value on all 4 types.
+  */
+ static inline int pte_allows_gup(unsigned long pteval, int write)
  {
- 	unsigned long paddr, paddr_next;
- 	pgd_t *pgd;
- 	pud_t *pud_page, *pud_page_tramp;
- 	int i;
- 
--	if (!kaslr_memory_enabled()) {
--		init_trampoline_default();
--		return;
--	}
--
- 	pud_page_tramp = alloc_low_page();
- 
- 	paddr = 0;
-@@ -192,3 +190,49 @@ void __meminit init_trampoline(void)
- 	set_pgd(&trampoline_pgd_entry,
- 		__pgd(_KERNPG_TABLE | __pa(pud_page_tramp)));
+@@ -270,13 +270,13 @@ static noinline int gup_huge_pud(pud_t pud, unsigned long addr,
+ 	return 1;
  }
-+
-+static void __meminit init_trampoline_p4d(void)
+ 
+-static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
++static int gup_pud_range(p4d_t p4d, unsigned long addr, unsigned long end,
+ 			int write, struct page **pages, int *nr)
+ {
+ 	unsigned long next;
+ 	pud_t *pudp;
+ 
+-	pudp = pud_offset(&pgd, addr);
++	pudp = pud_offset(&p4d, addr);
+ 	do {
+ 		pud_t pud = *pudp;
+ 
+@@ -295,6 +295,27 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
+ 	return 1;
+ }
+ 
++static int gup_p4d_range(pgd_t pgd, unsigned long addr, unsigned long end,
++			int write, struct page **pages, int *nr)
 +{
-+	unsigned long paddr, paddr_next;
-+	pgd_t *pgd;
-+	p4d_t *p4d_page, *p4d_page_tramp;
-+	int i;
++	unsigned long next;
++	p4d_t *p4dp;
 +
-+	p4d_page_tramp = alloc_low_page();
++	p4dp = p4d_offset(&pgd, addr);
++	do {
++		p4d_t p4d = *p4dp;
 +
-+	paddr = 0;
-+	pgd = pgd_offset_k((unsigned long)__va(paddr));
-+	p4d_page = (p4d_t *) pgd_page_vaddr(*pgd);
++		next = p4d_addr_end(addr, end);
++		if (p4d_none(p4d))
++			return 0;
++		BUILD_BUG_ON(p4d_large(p4d));
++		if (!gup_pud_range(p4d, addr, next, write, pages, nr))
++			return 0;
++	} while (p4dp++, addr = next, addr != end);
 +
-+	for (i = p4d_index(paddr); i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d, *p4d_tramp;
-+		unsigned long vaddr = (unsigned long)__va(paddr);
-+
-+		p4d_tramp = p4d_page_tramp + p4d_index(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
-+
-+		*p4d_tramp = *p4d;
-+	}
-+
-+	set_pgd(&trampoline_pgd_entry,
-+		__pgd(_KERNPG_TABLE | __pa(p4d_page_tramp)));
++	return 1;
 +}
 +
-+/*
-+ * Create PGD aligned trampoline table to allow real mode initialization
-+ * of additional CPUs. Consume only 1 low memory page.
-+ */
-+void __meminit init_trampoline(void)
-+{
-+
-+	if (!kaslr_memory_enabled()) {
-+		init_trampoline_default();
-+		return;
-+	}
-+
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		init_trampoline_p4d();
-+	else
-+		init_trampoline_pud();
-+}
+ /*
+  * Like get_user_pages_fast() except its IRQ-safe in that it won't fall
+  * back to the regular GUP.
+@@ -343,7 +364,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 		next = pgd_addr_end(addr, end);
+ 		if (pgd_none(pgd))
+ 			break;
+-		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
++		if (!gup_p4d_range(pgd, addr, next, write, pages, &nr))
+ 			break;
+ 	} while (pgdp++, addr = next, addr != end);
+ 	local_irq_restore(flags);
+@@ -415,7 +436,7 @@ int get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 		next = pgd_addr_end(addr, end);
+ 		if (pgd_none(pgd))
+ 			goto slow;
+-		if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
++		if (!gup_p4d_range(pgd, addr, next, write, pages, &nr))
+ 			goto slow;
+ 	} while (pgdp++, addr = next, addr != end);
+ 	local_irq_enable();
 -- 
 2.11.0
