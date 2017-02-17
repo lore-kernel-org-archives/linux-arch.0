@@ -1,36 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:34407 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934861AbdBQVK3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Feb 2017 16:10:29 -0500
+Received: from mail-vk0-f46.google.com ([209.85.213.46]:35275 "EHLO
+        mail-vk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S935133AbdBQXC7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Feb 2017 18:02:59 -0500
+Received: by mail-vk0-f46.google.com with SMTP id x75so37456145vke.2
+        for <linux-arch@vger.kernel.org>; Fri, 17 Feb 2017 15:02:55 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <ae493a75-138c-9c01-d4a1-90bcd01d560f@intel.com>
+In-Reply-To: <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com>
 References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
  <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
- <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com> <ae493a75-138c-9c01-d4a1-90bcd01d560f@intel.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 17 Feb 2017 13:10:27 -0800
-Message-ID: <CA+55aFzVWHUNuhTSBKLyLjOd4UQ8s1-RhMWA7oVr=3G5euo7ZQ@mail.gmail.com>
+ <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com>
+ <CALCETrW6YBxZw0NJGHe92dy7qfHqRHNr0VqTKV=O4j9r8hcSew@mail.gmail.com> <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Fri, 17 Feb 2017 15:02:33 -0800
+Message-ID: <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com>
 Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Andy Lutomirski <luto@amacapital.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20170217211027.shh_WEzlxV7rxeB7y7niSfidEF-lCyr3vEJdmbMTdnM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20170217230233.ccCA1MKINOxC3kMG731cOb1oqnqP_5BhbwgEaS3tsjo@z>
 
-On Fri, Feb 17, 2017 at 1:04 PM, Dave Hansen <dave.hansen@intel.com> wrote:
+On Fri, Feb 17, 2017 at 1:01 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Fri, Feb 17, 2017 at 12:12 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>>
+>> At the very least, I'd want to see
+>> MAP_FIXED_BUT_DONT_BLOODY_UNMAP_ANYTHING.  I *hate* the current
+>> interface.
 >
-> Is this likely to break anything in practice?  Nah.  But it would nice
-> to avoid it.
+> That's unrelated, but I guess w could add a MAP_NOUNMAP flag, and then
+> you can use MAP_FIXED | MAP_NOUNMAP or something.
+>
+> But that has nothing to do with the 47-vs-56 bit issue.
+>
+>> How about MAP_LIMIT where the address passed in is interpreted as an
+>> upper bound instead of a fixed address?
+>
+> Again, that's a unrelated semantic issue. Right now - if you don't
+> pass in MAP_FIXED at all, the "addr" argument is used as a starting
+> value for deciding where to find an unmapped area. But there is no way
+> to specify the end. That would basically be what the process control
+> thing would be (not per-system-call, but per-thread ).
+>
 
-So I go the other way: what *I* would like to avoid is odd code that
-is hard to follow. I'd much rather make the code be simple and the
-rules be straightforward, and not introduce that complicated
-"different address limits" thing at all.
-
-Then, _if_ we ever find a case where it makes a difference, we could
-go the more complex route. But not first implementation, and not
-without a real example of why we shouldn't just keep things simple.
-
-              Linus
+What I'm trying to say is: if we're going to do the route of 48-bit
+limit unless a specific mmap call requests otherwise, can we at least
+have an interface that doesn't suck?
