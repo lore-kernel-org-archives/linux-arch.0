@@ -1,45 +1,42 @@
-From: Stephen Boyd <stephen.boyd@linaro.org>
-Subject: [PATCH] asm-generic: Force cast get_user() setting x to 0
-Date: Fri, 17 Feb 2017 08:52:29 -0800
-Message-ID: <20170217165229.17768-1-stephen.boyd@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pg0-f48.google.com ([74.125.83.48]:35446 "EHLO
-        mail-pg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S934113AbdBQQwb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 17 Feb 2017 11:52:31 -0500
-Received: by mail-pg0-f48.google.com with SMTP id t188so16925784pgt.2
-        for <linux-arch@vger.kernel.org>; Fri, 17 Feb 2017 08:52:31 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Dave Hansen <dave.hansen-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and
+ PR_GET_MAX_VADDR
+Date: Fri, 17 Feb 2017 09:19:56 -0800
+Message-ID: <ae15457f-731d-bb1b-c60d-14d641c265f0@intel.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20170217141328.164563-34-kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Kirill A. Shutemov" <kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
+Cc: Andi Kleen <ak-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-If we call get_user() with an __le* or __be* type sparse will
-complain when we assign the result to 0 on the faulting path.
-Let's force cast here so that sparse doesn't complain. This
-mirrors what we do in __get_user() as well.
+On 02/17/2017 06:13 AM, Kirill A. Shutemov wrote:
+> +/*
+> + * Default maximum virtual address. This is required for
+> + * compatibility with applications that assumes 47-bit VA.
+> + * The limit can be changed with prctl(PR_SET_MAX_VADDR).
+> + */
+> +#define MAX_VADDR_DEFAULT	((1UL << 47) - PAGE_SIZE)
 
-Signed-off-by: Stephen Boyd <stephen.boyd@linaro.org>
----
+This is a bit goofy.  It's not the largest virtual adddress that can be
+accessed, but the beginning of the last page.
 
-I made a similar fix to arm64 headers, and it looks like asm-generic
-would need the same fix.
+Isn't this easier to deal with in userspace if we make it a "limit", so
+we can do:
 
- include/asm-generic/uaccess.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+	if (addr >= limit)
+		// error
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index cc6bb319e464..6352d61df7eb 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -227,7 +227,7 @@ extern int __put_user_bad(void) __attribute__((noreturn));
- 	might_fault();						\
- 	access_ok(VERIFY_READ, __p, sizeof(*ptr)) ?		\
- 		__get_user((x), (__typeof__(*(ptr)) *)__p) :	\
--		((x) = (__typeof__(*(ptr)))0,-EFAULT);		\
-+		((x) = (__force __typeof__(*(ptr)))0, -EFAULT);	\
- })
- 
- #ifndef __get_user_fn
--- 
-2.10.0.297.gf6727b0
+Now, we have to do:
+	
+	prctl(PR_GET_MAX_VADDR, &max_vaddr, 0, 0, 0);
+	if (addr > (max_vaddr + PAGE_SIZE))
+		// error
+
+I don't care what you track in the kernel, but I think we need to
+provide a more usable number out to userspace.
