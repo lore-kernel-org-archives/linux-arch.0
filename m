@@ -1,57 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([65.50.211.136]:46174 "EHLO mail.zytor.com"
+Received: from mail.skyhub.de ([78.46.96.112]:44922 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S964820AbdBQXMV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 17 Feb 2017 18:12:21 -0500
-Date: Fri, 17 Feb 2017 15:11:52 -0800
-In-Reply-To: <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com>
-References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com> <20170217141328.164563-34-kirill.shutemov@linux.intel.com> <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com> <CALCETrW6YBxZw0NJGHe92dy7qfHqRHNr0VqTKV=O4j9r8hcSew@mail.gmail.com> <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com> <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com>
+        id S1753604AbdBRSMe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 18 Feb 2017 13:12:34 -0500
+Date: Sat, 18 Feb 2017 19:12:09 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 00/28] x86: Secure Memory Encryption (AMD)
+Message-ID: <20170218181209.xk5ut4g65f2fedzi@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-Content-Type: text/plain;
- charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
-From: hpa@zytor.com
-Message-ID: <86524164-94F0-44D6-8B1A-6858E23F66B5@zytor.com>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, the arch/x86 maintainers <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20170217231152.MmNGDk7Va8SCuq5pl9iqtM6vTJdmU9B2geN_5Iy8lco@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170218181209.N0AZ2ii9-wnySPzuuOTY94g4FqMB7wVX5qov0cedAhQ@z>
 
-On February 17, 2017 3:02:33 PM PST, Andy Lutomirski <luto@amacapital.net> wrote:
->On Fri, Feb 17, 2017 at 1:01 PM, Linus Torvalds
-><torvalds@linux-foundation.org> wrote:
->> On Fri, Feb 17, 2017 at 12:12 PM, Andy Lutomirski
-><luto@amacapital.net> wrote:
->>>
->>> At the very least, I'd want to see
->>> MAP_FIXED_BUT_DONT_BLOODY_UNMAP_ANYTHING.  I *hate* the current
->>> interface.
->>
->> That's unrelated, but I guess w could add a MAP_NOUNMAP flag, and
->then
->> you can use MAP_FIXED | MAP_NOUNMAP or something.
->>
->> But that has nothing to do with the 47-vs-56 bit issue.
->>
->>> How about MAP_LIMIT where the address passed in is interpreted as an
->>> upper bound instead of a fixed address?
->>
->> Again, that's a unrelated semantic issue. Right now - if you don't
->> pass in MAP_FIXED at all, the "addr" argument is used as a starting
->> value for deciding where to find an unmapped area. But there is no
->way
->> to specify the end. That would basically be what the process control
->> thing would be (not per-system-call, but per-thread ).
->>
->
->What I'm trying to say is: if we're going to do the route of 48-bit
->limit unless a specific mmap call requests otherwise, can we at least
->have an interface that doesn't suck?
+On Thu, Feb 16, 2017 at 09:41:59AM -0600, Tom Lendacky wrote:
+>  create mode 100644 Documentation/x86/amd-memory-encryption.txt
+>  create mode 100644 arch/x86/include/asm/mem_encrypt.h
+>  create mode 100644 arch/x86/kernel/mem_encrypt_boot.S
+>  create mode 100644 arch/x86/kernel/mem_encrypt_init.c
+>  create mode 100644 arch/x86/mm/mem_encrypt.c
 
-Let's not, please.
+I don't see anything standing in the way of merging those last two and
+having a single:
 
-But we really want this interface anyway.
+arch/x86/kernel/mem_encrypt.c
+
+with all functionality in there with ifdeffery around it so
+that sme_encrypt_kernel() et all are still visible in the
+!CONFIG_AMD_MEM_ENCRYPT case.
+
 -- 
-Sent from my Android device with K-9 Mail. Please excuse my brevity.
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
