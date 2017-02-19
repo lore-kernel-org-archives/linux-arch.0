@@ -1,45 +1,96 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v4 00/28] x86: Secure Memory Encryption (AMD)
-Date: Sat, 18 Feb 2017 19:12:09 +0100
-Message-ID: <20170218181209.xk5ut4g65f2fedzi@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20170216154158.19244.66630.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+From: Hoeun Ryu <hoeun.ryu@gmail.com>
+Subject: [RFC 1/7] arch: add __ro_mostly_after_init section marker
+Date: Sun, 19 Feb 2017 19:04:04 +0900
+Message-ID: <1487498660-16600-1-git-send-email-hoeun.ryu@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org
+Cc: Hoeun Ryu <hoeun.ryu@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 09:41:59AM -0600, Tom Lendacky wrote:
->  create mode 100644 Documentation/x86/amd-memory-encryption.txt
->  create mode 100644 arch/x86/include/asm/mem_encrypt.h
->  create mode 100644 arch/x86/kernel/mem_encrypt_boot.S
->  create mode 100644 arch/x86/kernel/mem_encrypt_init.c
->  create mode 100644 arch/x86/mm/mem_encrypt.c
+ After `__ro_after_init` marker is included in kernel, many kernel data
+objects can be read-only-after-init. But there are many other places that
+would be good to read-only-after-init but `__ro_after_init` can not be simply
+applicable to them because they should be writable at some points, which are
+during module_init/exit or dynamic de/registration for a specific subsystem.
+ `__ro_mostly_after_init` is basically the same to `__ro_after_init`. The
+section is mapped as read-only after kernel init. The different thing is
+this section is temporarily mapped as read-write during module_init/exit and
+de/registration of a subsystem using set_ro_mostly_after_init_rw/ro pair.
+ Use `__ro_mostly_after_init` as a way to mark such memory instead when
+`__ro_after_init` is not applicable because the memory should be writable
+at the described points of time. They are read-only right after kernel init
+and writable temporarily only during module_init/exit and dynamic
+de/registration for a subsystem.
 
-I don't see anything standing in the way of merging those last two and
-having a single:
+Signed-off-by: Hoeun Ryu <hoeun.ryu@gmail.com>
+---
+ include/asm-generic/sections.h    |  1 +
+ include/asm-generic/vmlinux.lds.h | 10 ++++++++++
+ include/linux/cache.h             | 11 +++++++++++
+ 3 files changed, 22 insertions(+)
 
-arch/x86/kernel/mem_encrypt.c
-
-with all functionality in there with ifdeffery around it so
-that sme_encrypt_kernel() et all are still visible in the
-!CONFIG_AMD_MEM_ENCRYPT case.
-
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index 4df64a1..16a6f21 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -34,6 +34,7 @@ extern char __bss_start[], __bss_stop[];
+ extern char __init_begin[], __init_end[];
+ extern char _sinittext[], _einittext[];
+ extern char __start_data_ro_after_init[], __end_data_ro_after_init[];
++extern char __start_data_ro_mostly_after_init[], __end_data_ro_mostly_after_init[];
+ extern char _end[];
+ extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+ extern char __kprobes_text_start[], __kprobes_text_end[];
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 4e09b28..cc5f44e 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -265,6 +265,15 @@
+ 	__end_data_ro_after_init = .;
+ #endif
+ 
++#ifndef RO_MOSTLY_AFTER_INIT_DATA
++#define RO_MOSTLY_AFTER_INIT_DATA(align)				\
++	. = ALIGN(align);						\
++	VMLINUX_SYMBOL(__start_data_ro_mostly_after_init) = .;		\
++	*(.data..ro_mostly_after_init)					\
++	. = ALIGN(align);						\
++	VMLINUX_SYMBOL(__end_data_ro_mostly_after_init) = .;
++#endif
++
+ /*
+  * Read only Data
+  */
+@@ -275,6 +284,7 @@
+ 		*(.rodata) *(.rodata.*)					\
+ 		RO_AFTER_INIT_DATA	/* Read only after init */	\
+ 		KEEP(*(__vermagic))	/* Kernel version magic */	\
++		RO_MOSTLY_AFTER_INIT_DATA(align)			\
+ 		. = ALIGN(8);						\
+ 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
+ 		KEEP(*(__tracepoints_ptrs)) /* Tracepoints: pointer array */ \
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 1be04f8..fd1cb9b 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -30,6 +30,17 @@
+ #define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
+ #endif
+ 
++/*
++ * __ro_mostly_after_init is almost like __ro_after_init.
++ * but __ro_mostly_after_init section is temporarily writable only during
++ * module_init/exit or dynamic de/registeration of a subsystem using
++ * set_ro_mostly_after_init_rw/ro pair.
++ */
++#ifndef __ro_mostly_after_init
++#define __ro_mostly_after_init \
++	__attribute__((__section__(".data..ro_mostly_after_init")))
++#endif
++
+ #ifndef ____cacheline_aligned
+ #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
+ #endif
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.7.4
