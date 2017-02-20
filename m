@@ -1,11 +1,14 @@
 From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v5 0/2] x86/kvm: Reduce vcpu_is_preempted() overhead
-Date: Mon, 20 Feb 2017 13:36:02 -0500
-Message-ID: <1487615764-1343-1-git-send-email-longman@redhat.com>
+Subject: [PATCH v5 1/2] x86/paravirt: Change vcp_is_preempted() arg type to
+	long
+Date: Mon, 20 Feb 2017 13:36:03 -0500
+Message-ID: <1487615764-1343-2-git-send-email-longman@redhat.com>
+References: <1487615764-1343-1-git-send-email-longman@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <1487615764-1343-1-git-send-email-longman@redhat.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -19,44 +22,73 @@ To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, A
 Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, kvm@vger.kernel.org, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Waiman Long <longman@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
- v4->v5:
-  - As suggested by PeterZ, use the asm-offsets header file generation
-    mechanism to get the offset of the preempted field in
-    kvm_steal_time instead of hardcoding it.
+The cpu argument in the function prototype of vcpu_is_preempted()
+is changed from int to long. That makes it easier to provide a better
+optimized assembly version of that function.
 
- v3->v4:
-  - Fix x86-32 build error.
+For Xen, vcpu_is_preempted(long) calls xen_vcpu_stolen(int), the
+downcast from long to int is not a problem as vCPU number won't exceed
+32 bits.
 
- v2->v3:
-  - Provide an optimized __raw_callee_save___kvm_vcpu_is_preempted()
-    in assembly as suggested by PeterZ.
-  - Add a new patch to change vcpu_is_preempted() argument type to long
-    to ease the writing of the assembly code.
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ arch/x86/include/asm/paravirt.h      | 2 +-
+ arch/x86/include/asm/qspinlock.h     | 2 +-
+ arch/x86/kernel/kvm.c                | 2 +-
+ arch/x86/kernel/paravirt-spinlocks.c | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
- v1->v2:
-  - Rerun the fio test on a different system on both bare-metal and a
-    KVM guest. Both sockets were utilized in this test.
-  - The commit log was updated with new performance numbers, but the
-    patch wasn't changed.
-  - Drop patch 2.
-
-As it was found that the overhead of callee-save vcpu_is_preempted()
-can have some impact on system performance on a VM guest, especially
-of x86-64 guest, this patch set intends to reduce this performance
-overhead by replacing the C __kvm_vcpu_is_preempted() function by
-an optimized version of __raw_callee_save___kvm_vcpu_is_preempted()
-written in assembly.
-
-Waiman Long (2):
-  x86/paravirt: Change vcp_is_preempted() arg type to long
-  x86/kvm: Provide optimized version of vcpu_is_preempted() for x86-64
-
- arch/x86/include/asm/paravirt.h      |  2 +-
- arch/x86/include/asm/qspinlock.h     |  2 +-
- arch/x86/kernel/asm-offsets_64.c     |  9 +++++++++
- arch/x86/kernel/kvm.c                | 26 +++++++++++++++++++++++++-
- arch/x86/kernel/paravirt-spinlocks.c |  2 +-
- 5 files changed, 37 insertions(+), 4 deletions(-)
-
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index 1eea6ca..f75fbfe 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -673,7 +673,7 @@ static __always_inline void pv_kick(int cpu)
+ 	PVOP_VCALL1(pv_lock_ops.kick, cpu);
+ }
+ 
+-static __always_inline bool pv_vcpu_is_preempted(int cpu)
++static __always_inline bool pv_vcpu_is_preempted(long cpu)
+ {
+ 	return PVOP_CALLEE1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
+ }
+diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+index c343ab5..48a706f 100644
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -34,7 +34,7 @@ static inline void queued_spin_unlock(struct qspinlock *lock)
+ }
+ 
+ #define vcpu_is_preempted vcpu_is_preempted
+-static inline bool vcpu_is_preempted(int cpu)
++static inline bool vcpu_is_preempted(long cpu)
+ {
+ 	return pv_vcpu_is_preempted(cpu);
+ }
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 099fcba..85ed343 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -589,7 +589,7 @@ static void kvm_wait(u8 *ptr, u8 val)
+ 	local_irq_restore(flags);
+ }
+ 
+-__visible bool __kvm_vcpu_is_preempted(int cpu)
++__visible bool __kvm_vcpu_is_preempted(long cpu)
+ {
+ 	struct kvm_steal_time *src = &per_cpu(steal_time, cpu);
+ 
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 6259327..8f2d1c9 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -20,7 +20,7 @@ bool pv_is_native_spin_unlock(void)
+ 		__raw_callee_save___native_queued_spin_unlock;
+ }
+ 
+-__visible bool __native_vcpu_is_preempted(int cpu)
++__visible bool __native_vcpu_is_preempted(long cpu)
+ {
+ 	return false;
+ }
 -- 
 1.8.3.1
