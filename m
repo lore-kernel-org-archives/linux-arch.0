@@ -1,62 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f176.google.com ([209.85.128.176]:33952 "EHLO
-        mail-wr0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753148AbdBTM6V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Feb 2017 07:58:21 -0500
-Received: by mail-wr0-f176.google.com with SMTP id z61so63479114wrc.1
-        for <linux-arch@vger.kernel.org>; Mon, 20 Feb 2017 04:58:20 -0800 (PST)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v6 7/8] uapi: export all headers under uapi directories
-References: <201702022242.toNVsxyq%fengguang.wu@intel.com>
- <1486724338-5389-1-git-send-email-nicolas.dichtel@6wind.com>
- <1486724338-5389-8-git-send-email-nicolas.dichtel@6wind.com>
- <20170213074931.GA19927@infradead.org>
- <fc363060-f00d-e9e6-c548-6bfe73665e93@6wind.com>
- <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <3539c228-2a1e-f9c3-953d-a755b7c35830@6wind.com>
-Date: Mon, 20 Feb 2017 13:58:17 +0100
+Received: from mail.skyhub.de ([78.46.96.112]:43834 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752346AbdBTNCw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Feb 2017 08:02:52 -0500
+Date: Mon, 20 Feb 2017 13:51:31 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 06/28] x86: Add support to enable SME during early
+ boot processing
+Message-ID: <20170220125131.cenb2subqjcqf2xr@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154319.19244.7863.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Disposition: inline
+In-Reply-To: <20170216154319.19244.7863.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>, Michal Marek <mmarek@suse.com>, linux-kbuild@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Airlie <airlied@linux.ie>, David Miller <davem@davemloft.net>, Russell King - ARM Linux <linux@armlinux.org.uk>, bp@alien8.de, Mason <slash.tmp@free.fr>, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, tklauser@distanz.ch, Michael Ellerman <mpe@ellerman.id.au>, mingo@kernel.org
-Message-ID: <20170220125817.imfMc3-h_xguWeFH0fuZ591n-4PBUxc5edKJ0dkWrTo@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170220125131.8NptQ99EoSZQQtroWg4XbKg05G7zRDpHKrE-Dnx-F_M@z>
 
-Le 20/02/2017 à 11:14, Arnd Bergmann a écrit :
-> On Mon, Feb 20, 2017 at 10:32 AM, Nicolas Dichtel
-> <nicolas.dichtel@6wind.com> wrote:
->> Le 13/02/2017 à 08:49, Christoph Hellwig a écrit :
->>>> linux/genwqe/..install.cmd
->>>> linux/genwqe/.install
->>>
->>> Third time:  NAK on exporting internal kbuild metadata.
->>>
->> And for the third time: this is not related to this series. Those files are
->> there before my series and the goal of the series has nothing to do with that.
->>
->> Feel free to send a patch.
+On Thu, Feb 16, 2017 at 09:43:19AM -0600, Tom Lendacky wrote:
+> This patch adds support to the early boot code to use Secure Memory
+> Encryption (SME).  Support is added to update the early pagetables with
+> the memory encryption mask and to encrypt the kernel in place.
 > 
-> Your description literally says "After this patch, the following files, which
-> were not exported, are now exported (with make headers_install_all)"
-> for the files that Christoph quoted. It that is not true, then you need to
-> update the patch description to say what your patch actually does.
-That is true. But as I explained when the comment was done the first time (and I
-never got any answer), these files are generated in every exported directory.
-Because the genwqe directory is now exported, the corresponding '..install.cmd'
-and '.install' are generated.
-See
-http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/scripts/Makefile.headersinst#n32
-and
-http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/scripts/Makefile.headersinst#n130
-for more details.
+> The routines to set the encryption mask and perform the encryption are
+> stub routines for now with full function to be added in a later patch.
 
-In other words, these files are there because some new directories are exported.
-If those directories were added to the 'header-y' variable, the result would be
-the same.
+s/full function/functionality/
 
-Regards,
-Nicolas
+> A new file, arch/x86/kernel/mem_encrypt_init.c, is introduced to avoid
+> adding #ifdefs within arch/x86/kernel/head_64.S and allow
+> arch/x86/mm/mem_encrypt.c to be removed from the build if SME is not
+> configured. The mem_encrypt_init.c file will contain the necessary #ifdefs
+> to allow head_64.S to successfully build and call the SME routines.
+
+That paragraph is superfluous.
+
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+>  arch/x86/kernel/Makefile           |    2 +
+>  arch/x86/kernel/head_64.S          |   46 ++++++++++++++++++++++++++++++++-
+>  arch/x86/kernel/mem_encrypt_init.c |   50 ++++++++++++++++++++++++++++++++++++
+>  3 files changed, 96 insertions(+), 2 deletions(-)
+>  create mode 100644 arch/x86/kernel/mem_encrypt_init.c
+> 
+> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+> index bdcdb3b..33af80a 100644
+> --- a/arch/x86/kernel/Makefile
+> +++ b/arch/x86/kernel/Makefile
+> @@ -140,4 +140,6 @@ ifeq ($(CONFIG_X86_64),y)
+>  
+>  	obj-$(CONFIG_PCI_MMCONFIG)	+= mmconf-fam10h_64.o
+>  	obj-y				+= vsmp_64.o
+> +
+> +	obj-y				+= mem_encrypt_init.o
+>  endif
+> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
+> index b467b14..4f8201b 100644
+> --- a/arch/x86/kernel/head_64.S
+> +++ b/arch/x86/kernel/head_64.S
+> @@ -91,6 +91,23 @@ startup_64:
+>  	jnz	bad_address
+>  
+>  	/*
+> +	 * Enable Secure Memory Encryption (SME), if supported and enabled.
+> +	 * The real_mode_data address is in %rsi and that register can be
+> +	 * clobbered by the called function so be sure to save it.
+> +	 * Save the returned mask in %r12 for later use.
+> +	 */
+> +	push	%rsi
+> +	call	sme_enable
+> +	pop	%rsi
+> +	movq	%rax, %r12
+> +
+> +	/*
+> +	 * Add the memory encryption mask to %rbp to include it in the page
+> +	 * table fixups.
+> +	 */
+> +	addq	%r12, %rbp
+> +
+> +	/*
+>  	 * Fixup the physical addresses in the page table
+>  	 */
+>  	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+> @@ -113,6 +130,7 @@ startup_64:
+>  	shrq	$PGDIR_SHIFT, %rax
+>  
+>  	leaq	(PAGE_SIZE + _KERNPG_TABLE)(%rbx), %rdx
+> +	addq	%r12, %rdx
+>  	movq	%rdx, 0(%rbx,%rax,8)
+>  	movq	%rdx, 8(%rbx,%rax,8)
+>  
+> @@ -129,6 +147,7 @@ startup_64:
+>  	movq	%rdi, %rax
+>  	shrq	$PMD_SHIFT, %rdi
+>  	addq	$(__PAGE_KERNEL_LARGE_EXEC & ~_PAGE_GLOBAL), %rax
+> +	addq	%r12, %rax
+>  	leaq	(_end - 1)(%rip), %rcx
+>  	shrq	$PMD_SHIFT, %rcx
+>  	subq	%rdi, %rcx
+> @@ -162,11 +181,25 @@ startup_64:
+>  	cmp	%r8, %rdi
+>  	jne	1b
+>  
+> -	/* Fixup phys_base */
+> +	/*
+> +	 * Fixup phys_base - remove the memory encryption mask from %rbp
+> +	 * to obtain the true physical address.
+> +	 */
+> +	subq	%r12, %rbp
+>  	addq	%rbp, phys_base(%rip)
+>  
+> +	/*
+> +	 * Encrypt the kernel if SME is active.
+> +	 * The real_mode_data address is in %rsi and that register can be
+> +	 * clobbered by the called function so be sure to save it.
+> +	 */
+> +	push	%rsi
+> +	call	sme_encrypt_kernel
+> +	pop	%rsi
+> +
+>  .Lskip_fixup:
+
+So if we land on this label because we can skip the fixup due to %rbp
+being 0, we will skip sme_encrypt_kernel() too.
+
+I think you need to move the .Lskip_fixup label above the
+sme_encrypt_kernel call.
+
+>  	movq	$(early_level4_pgt - __START_KERNEL_map), %rax
+> +	addq	%r12, %rax
+>  	jmp 1f
+>  ENTRY(secondary_startup_64)
+>  	/*
+> @@ -186,7 +219,16 @@ ENTRY(secondary_startup_64)
+>  	/* Sanitize CPU configuration */
+>  	call verify_cpu
+>  
+> -	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
+> +	/*
+> +	 * Get the SME encryption mask.
+> +	 * The real_mode_data address is in %rsi and that register can be
+> +	 * clobbered by the called function so be sure to save it.
+
+You can say here that sme_get_me_mask puts the mask in %rax, that's why
+we do ADD below and not MOV. I know, it is very explicit but this is
+boot asm and I'd prefer for it to be absolutely clear.
+
+> +	 */
+> +	push	%rsi
+> +	call	sme_get_me_mask
+> +	pop	%rsi
+> +
+> +	addq	$(init_level4_pgt - __START_KERNEL_map), %rax
+>  1:
+
+...
+
+> +#else	/* !CONFIG_AMD_MEM_ENCRYPT */
+> +
+> +void __init sme_encrypt_kernel(void)
+> +{
+> +}
+> +
+> +unsigned long __init sme_get_me_mask(void)
+> +{
+> +	return 0;
+> +}
+> +
+> +unsigned long __init sme_enable(void)
+> +{
+> +	return 0;
+> +}
+
+Do that:
+
+void __init sme_encrypt_kernel(void)            { }
+unsigned long __init sme_get_me_mask(void)      { return 0; }
+unsigned long __init sme_enable(void)           { return 0; }
+
+to save some lines.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
