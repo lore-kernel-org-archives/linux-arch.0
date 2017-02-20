@@ -1,176 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:42166 "EHLO mail.skyhub.de"
+Received: from mx1.redhat.com ([209.132.183.28]:57542 "EHLO mx1.redhat.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751325AbdBTSXY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Feb 2017 13:23:24 -0500
-Date: Mon, 20 Feb 2017 19:22:56 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 09/28] x86: Add support for early
- encryption/decryption of memory
-Message-ID: <20170220182256.qorlso5f4c72hl6o@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154358.19244.6082.stgit@tlendack-t1.amdoffice.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170216154358.19244.6082.stgit@tlendack-t1.amdoffice.net>
+        id S1752551AbdBTSgY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Feb 2017 13:36:24 -0500
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v5 2/2] x86/kvm: Provide optimized version of vcpu_is_preempted() for x86-64
+Date: Mon, 20 Feb 2017 13:36:04 -0500
+Message-ID: <1487615764-1343-3-git-send-email-longman@redhat.com>
+In-Reply-To: <1487615764-1343-1-git-send-email-longman@redhat.com>
+References: <1487615764-1343-1-git-send-email-longman@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170220182256.W1tKhDUUWyYrSl7YUTe1sDsrgYyBgHeV8M7ObATmPfY@z>
+To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
+Message-ID: <20170220183604.AVN5WGLYOrf9PQsGbjnPPJGd5okitnPo97NGIqyhu-M@z>
 
-On Thu, Feb 16, 2017 at 09:43:58AM -0600, Tom Lendacky wrote:
-> Add support to be able to either encrypt or decrypt data in place during
-> the early stages of booting the kernel. This does not change the memory
-> encryption attribute - it is used for ensuring that data present in either
-> an encrypted or decrypted memory area is in the proper state (for example
-> the initrd will have been loaded by the boot loader and will not be
-> encrypted, but the memory that it resides in is marked as encrypted).
-> 
-> The early_memmap support is enhanced to specify encrypted and decrypted
-> mappings with and without write-protection. The use of write-protection is
-> necessary when encrypting data "in place". The write-protect attribute is
-> considered cacheable for loads, but not stores. This implies that the
-> hardware will never give the core a dirty line with this memtype.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/mem_encrypt.h |   15 +++++++
->  arch/x86/mm/mem_encrypt.c          |   79 ++++++++++++++++++++++++++++++++++++
->  2 files changed, 94 insertions(+)
+It was found when running fio sequential write test with a XFS ramdisk
+on a KVM guest running on a 2-socket x86-64 system, the %CPU times
+as reported by perf were as follows:
 
-...
+ 69.75%  0.59%  fio  [k] down_write
+ 69.15%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 67.12%  1.12%  fio  [k] rwsem_down_write_failed
+ 63.48% 52.77%  fio  [k] osq_lock
+  9.46%  7.88%  fio  [k] __raw_callee_save___kvm_vcpu_is_preempt
+  3.93%  3.93%  fio  [k] __kvm_vcpu_is_preempted
 
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index d71df97..ac3565c 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -14,6 +14,9 @@
->  #include <linux/init.h>
->  #include <linux/mm.h>
->  
-> +#include <asm/tlbflush.h>
-> +#include <asm/fixmap.h>
-> +
->  extern pmdval_t early_pmd_flags;
->  
->  /*
-> @@ -24,6 +27,82 @@
->  unsigned long sme_me_mask __section(.data) = 0;
->  EXPORT_SYMBOL_GPL(sme_me_mask);
->  
-> +/* Buffer used for early in-place encryption by BSP, no locking needed */
-> +static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-> +
-> +/*
-> + * This routine does not change the underlying encryption setting of the
-> + * page(s) that map this memory. It assumes that eventually the memory is
-> + * meant to be accessed as either encrypted or decrypted but the contents
-> + * are currently not in the desired stated.
+Making vcpu_is_preempted() a callee-save function has a relatively
+high cost on x86-64 primarily due to at least one more cacheline of
+data access from the saving and restoring of registers (8 of them)
+to and from stack as well as one more level of function call.
 
-				       state.
+To reduce this performance overhead, an optimized assembly version
+of the the __raw_callee_save___kvm_vcpu_is_preempt() function is
+provided for x86-64.
 
-> + *
-> + * This routine follows the steps outlined in the AMD64 Architecture
-> + * Programmer's Manual Volume 2, Section 7.10.8 Encrypt-in-Place.
-> + */
-> +static void __init __sme_early_enc_dec(resource_size_t paddr,
-> +				       unsigned long size, bool enc)
-> +{
-> +	void *src, *dst;
-> +	size_t len;
-> +
-> +	if (!sme_me_mask)
-> +		return;
-> +
-> +	local_flush_tlb();
-> +	wbinvd();
-> +
-> +	/*
-> +	 * There are limited number of early mapping slots, so map (at most)
-> +	 * one page at time.
-> +	 */
-> +	while (size) {
-> +		len = min_t(size_t, sizeof(sme_early_buffer), size);
-> +
-> +		/*
-> +		 * Create write protected mappings for the current format
+With this patch applied on a KVM guest on a 2-socekt 16-core 32-thread
+system with 16 parallel jobs (8 on each socket), the aggregrate
+bandwidth of the fio test on an XFS ramdisk were as follows:
 
-			  write-protected
+   I/O Type      w/o patch    with patch
+   --------      ---------    ----------
+   random read   8141.2 MB/s  8497.1 MB/s
+   seq read      8229.4 MB/s  8304.2 MB/s
+   random write  1675.5 MB/s  1701.5 MB/s
+   seq write     1681.3 MB/s  1699.9 MB/s
 
-> +		 * of the memory.
-> +		 */
-> +		src = enc ? early_memremap_decrypted_wp(paddr, len) :
-> +			    early_memremap_encrypted_wp(paddr, len);
-> +
-> +		/*
-> +		 * Create mappings for the desired format of the memory.
-> +		 */
+There are some increases in the aggregated bandwidth because of
+the patch.
 
-That comment can go - you already say that in the previous one.
+The perf data now became:
 
-> +		dst = enc ? early_memremap_encrypted(paddr, len) :
-> +			    early_memremap_decrypted(paddr, len);
+ 70.78%  0.58%  fio  [k] down_write
+ 70.20%  0.01%  fio  [k] call_rwsem_down_write_failed
+ 69.70%  1.17%  fio  [k] rwsem_down_write_failed
+ 59.91% 55.42%  fio  [k] osq_lock
+ 10.14% 10.14%  fio  [k] __kvm_vcpu_is_preempted
 
-Btw, looking at this again, it seems to me that if you write it this
-way:
+The assembly code was verified by using a test kernel module to
+compare the output of C __kvm_vcpu_is_preempted() and that of assembly
+__raw_callee_save___kvm_vcpu_is_preempt() to verify that they matched.
 
-                if (enc) {
-                        src = early_memremap_decrypted_wp(paddr, len);
-                        dst = early_memremap_encrypted(paddr, len);
-                } else {
-                        src = early_memremap_encrypted_wp(paddr, len);
-                        dst = early_memremap_decrypted(paddr, len);
-                }
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Waiman Long <longman@redhat.com>
+---
+ arch/x86/kernel/asm-offsets_64.c |  9 +++++++++
+ arch/x86/kernel/kvm.c            | 24 ++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+)
 
-it might become even more readable. Anyway, just an idea - your decision
-which is better.
-
-> +
-> +		/*
-> +		 * If a mapping can't be obtained to perform the operation,
-> +		 * then eventual access of that area will in the desired
-
-s/will //
-
-> +		 * mode will cause a crash.
-> +		 */
-> +		BUG_ON(!src || !dst);
-> +
-> +		/*
-> +		 * Use a temporary buffer, of cache-line multiple size, to
-> +		 * avoid data corruption as documented in the APM.
-> +		 */
-> +		memcpy(sme_early_buffer, src, len);
-> +		memcpy(dst, sme_early_buffer, len);
-> +
-> +		early_memunmap(dst, len);
-> +		early_memunmap(src, len);
-> +
-> +		paddr += len;
-> +		size -= len;
-> +	}
-> +}
-> +
-> +void __init sme_early_encrypt(resource_size_t paddr, unsigned long size)
-> +{
-> +	__sme_early_enc_dec(paddr, size, true);
-> +}
-> +
-> +void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
-> +{
-> +	__sme_early_enc_dec(paddr, size, false);
-> +}
-> +
->  void __init sme_early_init(void)
->  {
->  	unsigned int i;
-> 
-> 
-
+diff --git a/arch/x86/kernel/asm-offsets_64.c b/arch/x86/kernel/asm-offsets_64.c
+index 210927e..99332f5 100644
+--- a/arch/x86/kernel/asm-offsets_64.c
++++ b/arch/x86/kernel/asm-offsets_64.c
+@@ -13,6 +13,10 @@
+ #include <asm/syscalls_32.h>
+ };
+ 
++#if defined(CONFIG_KVM_GUEST) && defined(CONFIG_PARAVIRT_SPINLOCKS)
++#include <asm/kvm_para.h>
++#endif
++
+ int main(void)
+ {
+ #ifdef CONFIG_PARAVIRT
+@@ -22,6 +26,11 @@ int main(void)
+ 	BLANK();
+ #endif
+ 
++#if defined(CONFIG_KVM_GUEST) && defined(CONFIG_PARAVIRT_SPINLOCKS)
++	OFFSET(KVM_STEAL_TIME_preempted, kvm_steal_time, preempted);
++	BLANK();
++#endif
++
+ #define ENTRY(entry) OFFSET(pt_regs_ ## entry, pt_regs, entry)
+ 	ENTRY(bx);
+ 	ENTRY(cx);
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 85ed343..14f65a5 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -589,6 +589,7 @@ static void kvm_wait(u8 *ptr, u8 val)
+ 	local_irq_restore(flags);
+ }
+ 
++#ifdef CONFIG_X86_32
+ __visible bool __kvm_vcpu_is_preempted(long cpu)
+ {
+ 	struct kvm_steal_time *src = &per_cpu(steal_time, cpu);
+@@ -597,6 +598,29 @@ __visible bool __kvm_vcpu_is_preempted(long cpu)
+ }
+ PV_CALLEE_SAVE_REGS_THUNK(__kvm_vcpu_is_preempted);
+ 
++#else
++
++#include <asm/asm-offsets.h>
++
++extern bool __raw_callee_save___kvm_vcpu_is_preempted(long);
++
++/*
++ * Hand-optimize version for x86-64 to avoid 8 64-bit register saving and
++ * restoring to/from the stack.
++ */
++asm(
++".pushsection .text;"
++".global __raw_callee_save___kvm_vcpu_is_preempted;"
++".type __raw_callee_save___kvm_vcpu_is_preempted, @function;"
++"__raw_callee_save___kvm_vcpu_is_preempted:"
++"movq	__per_cpu_offset(,%rdi,8), %rax;"
++"cmpb	$0, " __stringify(KVM_STEAL_TIME_preempted) "+steal_time(%rax);"
++"setne	%al;"
++"ret;"
++".popsection");
++
++#endif
++
+ /*
+  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
+  */
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+1.8.3.1
