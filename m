@@ -1,40 +1,81 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 0/2] x86/kvm: Reduce vcpu_is_preempted() overhead
-Date: Mon, 20 Feb 2017 20:54:26 +0100
-Message-ID: <20170220195426.GF6515@twins.programming.kicks-ass.net>
-References: <1487615764-1343-1-git-send-email-longman@redhat.com>
+From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
+Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
+	of an address
+Date: Mon, 20 Feb 2017 21:09:55 +0100
+Message-ID: <20170220200955.32e2wqxgulswnr55@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+	<20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <1487615764-1343-1-git-send-email-longman@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Jeremy Fitzhardinge <jeremy@goop.org>, x86@kernel.org, kvm@vger.kernel.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Alok Kataria <akataria@vmware.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <20170216154430.19244.95519.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 20, 2017 at 01:36:02PM -0500, Waiman Long wrote:
-> Waiman Long (2):
->   x86/paravirt: Change vcp_is_preempted() arg type to long
->   x86/kvm: Provide optimized version of vcpu_is_preempted() for x86-64
+On Thu, Feb 16, 2017 at 09:44:30AM -0600, Tom Lendacky wrote:
+> This patch adds support to return the E820 type associated with an address
+
+s/This patch adds/Add/
+
+> range.
 > 
->  arch/x86/include/asm/paravirt.h      |  2 +-
->  arch/x86/include/asm/qspinlock.h     |  2 +-
->  arch/x86/kernel/asm-offsets_64.c     |  9 +++++++++
->  arch/x86/kernel/kvm.c                | 26 +++++++++++++++++++++++++-
->  arch/x86/kernel/paravirt-spinlocks.c |  2 +-
->  5 files changed, 37 insertions(+), 4 deletions(-)
+> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+> ---
+>  arch/x86/include/asm/e820/api.h   |    2 ++
+>  arch/x86/include/asm/e820/types.h |    2 ++
+>  arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
+>  3 files changed, 27 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+> index 8e0f8b8..7c1bdc9 100644
+> --- a/arch/x86/include/asm/e820/api.h
+> +++ b/arch/x86/include/asm/e820/api.h
+> @@ -38,6 +38,8 @@
+>  extern void e820__reallocate_tables(void);
+>  extern void e820__register_nosave_regions(unsigned long limit_pfn);
+>  
+> +extern enum e820_type e820__get_entry_type(u64 start, u64 end);
+> +
+>  /*
+>   * Returns true iff the specified range [start,end) is completely contained inside
+>   * the ISA region.
+> diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
+> index 4adeed0..bf49591 100644
+> --- a/arch/x86/include/asm/e820/types.h
+> +++ b/arch/x86/include/asm/e820/types.h
+> @@ -7,6 +7,8 @@
+>   * These are the E820 types known to the kernel:
+>   */
+>  enum e820_type {
+> +	E820_TYPE_INVALID	= 0,
+> +
 
-I'm assuming this will go through the KVM tree, if people want me to
-take it through the tip tree, please let me know.
+Now this is strange - ACPI spec doesn't explicitly say that range type 0
+is invalid. Am I looking at the wrong place?
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infraded.org>
+"Table 15-312 Address Range Types12" in ACPI spec 6.
+
+If 0 is really the invalid entry, then e820_print_type() needs updating
+too. And then the invalid-entry-add should be a separate patch.
+
+>  	E820_TYPE_RAM		= 1,
+>  	E820_TYPE_RESERVED	= 2,
+>  	E820_TYPE_ACPI		= 3,
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
