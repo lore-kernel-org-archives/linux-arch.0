@@ -1,87 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48068 "EHLO mx1.redhat.com"
+Received: from mail.skyhub.de ([78.46.96.112]:54584 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752443AbdBTSgP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Feb 2017 13:36:15 -0500
-From: Waiman Long <longman@redhat.com>
-Subject: [PATCH v5 1/2] x86/paravirt: Change vcp_is_preempted() arg type to long
-Date: Mon, 20 Feb 2017 13:36:03 -0500
-Message-ID: <1487615764-1343-2-git-send-email-longman@redhat.com>
-In-Reply-To: <1487615764-1343-1-git-send-email-longman@redhat.com>
-References: <1487615764-1343-1-git-send-email-longman@redhat.com>
+        id S1751071AbdBTSiu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 20 Feb 2017 13:38:50 -0500
+Date: Mon, 20 Feb 2017 19:38:23 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 07/28] x86: Provide general kernel support for
+ memory encryption
+Message-ID: <20170220183823.k7bsg77wbb4xyc2s@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154332.19244.55451.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170216154332.19244.55451.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Juergen Gross <jgross@suse.com>, Waiman Long <longman@redhat.com>
-Message-ID: <20170220183603.Kj_ewkdDjHXkbYOcnNB0aZDsjOP_NKkTOdH1hSlH1hY@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170220183823.2AH-lDP-GxzsQL95msoQ9kQbKkVvuZTwiqngp9hVvEE@z>
 
-The cpu argument in the function prototype of vcpu_is_preempted()
-is changed from int to long. That makes it easier to provide a better
-optimized assembly version of that function.
+On Thu, Feb 16, 2017 at 09:43:32AM -0600, Tom Lendacky wrote:
+> Adding general kernel support for memory encryption includes:
+> - Modify and create some page table macros to include the Secure Memory
+>   Encryption (SME) memory encryption mask
+> - Modify and create some macros for calculating physical and virtual
+>   memory addresses
+> - Provide an SME initialization routine to update the protection map with
+>   the memory encryption mask so that it is used by default
+> - #undef CONFIG_AMD_MEM_ENCRYPT in the compressed boot path
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 
-For Xen, vcpu_is_preempted(long) calls xen_vcpu_stolen(int), the
-downcast from long to int is not a problem as vCPU number won't exceed
-32 bits.
+...
 
-Signed-off-by: Waiman Long <longman@redhat.com>
----
- arch/x86/include/asm/paravirt.h      | 2 +-
- arch/x86/include/asm/qspinlock.h     | 2 +-
- arch/x86/kernel/kvm.c                | 2 +-
- arch/x86/kernel/paravirt-spinlocks.c | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+> +#define __sme_pa(x)		(__pa((x)) | sme_me_mask)
+> +#define __sme_pa_nodebug(x)	(__pa_nodebug((x)) | sme_me_mask)
+> +
+>  #else	/* !CONFIG_AMD_MEM_ENCRYPT */
+>  
+>  #ifndef sme_me_mask
+> @@ -35,6 +42,13 @@ static inline bool sme_active(void)
+>  }
+>  #endif
+>  
+> +static inline void __init sme_early_init(void)
+> +{
+> +}
+> +
+> +#define __sme_pa		__pa
+> +#define __sme_pa_nodebug	__pa_nodebug
 
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index 1eea6ca..f75fbfe 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -673,7 +673,7 @@ static __always_inline void pv_kick(int cpu)
- 	PVOP_VCALL1(pv_lock_ops.kick, cpu);
- }
- 
--static __always_inline bool pv_vcpu_is_preempted(int cpu)
-+static __always_inline bool pv_vcpu_is_preempted(long cpu)
- {
- 	return PVOP_CALLEE1(bool, pv_lock_ops.vcpu_is_preempted, cpu);
- }
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index c343ab5..48a706f 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -34,7 +34,7 @@ static inline void queued_spin_unlock(struct qspinlock *lock)
- }
- 
- #define vcpu_is_preempted vcpu_is_preempted
--static inline bool vcpu_is_preempted(int cpu)
-+static inline bool vcpu_is_preempted(long cpu)
- {
- 	return pv_vcpu_is_preempted(cpu);
- }
-diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 099fcba..85ed343 100644
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -589,7 +589,7 @@ static void kvm_wait(u8 *ptr, u8 val)
- 	local_irq_restore(flags);
- }
- 
--__visible bool __kvm_vcpu_is_preempted(int cpu)
-+__visible bool __kvm_vcpu_is_preempted(long cpu)
- {
- 	struct kvm_steal_time *src = &per_cpu(steal_time, cpu);
- 
-diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
-index 6259327..8f2d1c9 100644
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -20,7 +20,7 @@ bool pv_is_native_spin_unlock(void)
- 		__raw_callee_save___native_queued_spin_unlock;
- }
- 
--__visible bool __native_vcpu_is_preempted(int cpu)
-+__visible bool __native_vcpu_is_preempted(long cpu)
- {
- 	return false;
- }
+One more thing - in the !CONFIG_AMD_MEM_ENCRYPT case, sme_me_mask is 0
+so you don't need to define __sme_pa* again.
+
 -- 
-1.8.3.1
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
