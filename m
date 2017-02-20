@@ -1,180 +1,62 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v4 09/28] x86: Add support for early
-	encryption/decryption of memory
-Date: Mon, 20 Feb 2017 19:22:56 +0100
-Message-ID: <20170220182256.qorlso5f4c72hl6o@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154358.19244.6082.stgit@tlendack-t1.amdoffice.net>
+From: Waiman Long <longman@redhat.com>
+Subject: [PATCH v5 0/2] x86/kvm: Reduce vcpu_is_preempted() overhead
+Date: Mon, 20 Feb 2017 13:36:02 -0500
+Message-ID: <1487615764-1343-1-git-send-email-longman@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20170216154358.19244.6082.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Jeremy Fitzhardinge <jeremy@goop.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Rusty Russell <rusty@rustcorp.com.au>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, kvm@vger.kernel.org, =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@redhat.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Waiman Long <longman@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 09:43:58AM -0600, Tom Lendacky wrote:
-> Add support to be able to either encrypt or decrypt data in place during
-> the early stages of booting the kernel. This does not change the memory
-> encryption attribute - it is used for ensuring that data present in either
-> an encrypted or decrypted memory area is in the proper state (for example
-> the initrd will have been loaded by the boot loader and will not be
-> encrypted, but the memory that it resides in is marked as encrypted).
-> 
-> The early_memmap support is enhanced to specify encrypted and decrypted
-> mappings with and without write-protection. The use of write-protection is
-> necessary when encrypting data "in place". The write-protect attribute is
-> considered cacheable for loads, but not stores. This implies that the
-> hardware will never give the core a dirty line with this memtype.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/include/asm/mem_encrypt.h |   15 +++++++
->  arch/x86/mm/mem_encrypt.c          |   79 ++++++++++++++++++++++++++++++++++++
->  2 files changed, 94 insertions(+)
+ v4->v5:
+  - As suggested by PeterZ, use the asm-offsets header file generation
+    mechanism to get the offset of the preempted field in
+    kvm_steal_time instead of hardcoding it.
 
-...
+ v3->v4:
+  - Fix x86-32 build error.
 
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index d71df97..ac3565c 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -14,6 +14,9 @@
->  #include <linux/init.h>
->  #include <linux/mm.h>
->  
-> +#include <asm/tlbflush.h>
-> +#include <asm/fixmap.h>
-> +
->  extern pmdval_t early_pmd_flags;
->  
->  /*
-> @@ -24,6 +27,82 @@
->  unsigned long sme_me_mask __section(.data) = 0;
->  EXPORT_SYMBOL_GPL(sme_me_mask);
->  
-> +/* Buffer used for early in-place encryption by BSP, no locking needed */
-> +static char sme_early_buffer[PAGE_SIZE] __aligned(PAGE_SIZE);
-> +
-> +/*
-> + * This routine does not change the underlying encryption setting of the
-> + * page(s) that map this memory. It assumes that eventually the memory is
-> + * meant to be accessed as either encrypted or decrypted but the contents
-> + * are currently not in the desired stated.
+ v2->v3:
+  - Provide an optimized __raw_callee_save___kvm_vcpu_is_preempted()
+    in assembly as suggested by PeterZ.
+  - Add a new patch to change vcpu_is_preempted() argument type to long
+    to ease the writing of the assembly code.
 
-				       state.
+ v1->v2:
+  - Rerun the fio test on a different system on both bare-metal and a
+    KVM guest. Both sockets were utilized in this test.
+  - The commit log was updated with new performance numbers, but the
+    patch wasn't changed.
+  - Drop patch 2.
 
-> + *
-> + * This routine follows the steps outlined in the AMD64 Architecture
-> + * Programmer's Manual Volume 2, Section 7.10.8 Encrypt-in-Place.
-> + */
-> +static void __init __sme_early_enc_dec(resource_size_t paddr,
-> +				       unsigned long size, bool enc)
-> +{
-> +	void *src, *dst;
-> +	size_t len;
-> +
-> +	if (!sme_me_mask)
-> +		return;
-> +
-> +	local_flush_tlb();
-> +	wbinvd();
-> +
-> +	/*
-> +	 * There are limited number of early mapping slots, so map (at most)
-> +	 * one page at time.
-> +	 */
-> +	while (size) {
-> +		len = min_t(size_t, sizeof(sme_early_buffer), size);
-> +
-> +		/*
-> +		 * Create write protected mappings for the current format
+As it was found that the overhead of callee-save vcpu_is_preempted()
+can have some impact on system performance on a VM guest, especially
+of x86-64 guest, this patch set intends to reduce this performance
+overhead by replacing the C __kvm_vcpu_is_preempted() function by
+an optimized version of __raw_callee_save___kvm_vcpu_is_preempted()
+written in assembly.
 
-			  write-protected
+Waiman Long (2):
+  x86/paravirt: Change vcp_is_preempted() arg type to long
+  x86/kvm: Provide optimized version of vcpu_is_preempted() for x86-64
 
-> +		 * of the memory.
-> +		 */
-> +		src = enc ? early_memremap_decrypted_wp(paddr, len) :
-> +			    early_memremap_encrypted_wp(paddr, len);
-> +
-> +		/*
-> +		 * Create mappings for the desired format of the memory.
-> +		 */
-
-That comment can go - you already say that in the previous one.
-
-> +		dst = enc ? early_memremap_encrypted(paddr, len) :
-> +			    early_memremap_decrypted(paddr, len);
-
-Btw, looking at this again, it seems to me that if you write it this
-way:
-
-                if (enc) {
-                        src = early_memremap_decrypted_wp(paddr, len);
-                        dst = early_memremap_encrypted(paddr, len);
-                } else {
-                        src = early_memremap_encrypted_wp(paddr, len);
-                        dst = early_memremap_decrypted(paddr, len);
-                }
-
-it might become even more readable. Anyway, just an idea - your decision
-which is better.
-
-> +
-> +		/*
-> +		 * If a mapping can't be obtained to perform the operation,
-> +		 * then eventual access of that area will in the desired
-
-s/will //
-
-> +		 * mode will cause a crash.
-> +		 */
-> +		BUG_ON(!src || !dst);
-> +
-> +		/*
-> +		 * Use a temporary buffer, of cache-line multiple size, to
-> +		 * avoid data corruption as documented in the APM.
-> +		 */
-> +		memcpy(sme_early_buffer, src, len);
-> +		memcpy(dst, sme_early_buffer, len);
-> +
-> +		early_memunmap(dst, len);
-> +		early_memunmap(src, len);
-> +
-> +		paddr += len;
-> +		size -= len;
-> +	}
-> +}
-> +
-> +void __init sme_early_encrypt(resource_size_t paddr, unsigned long size)
-> +{
-> +	__sme_early_enc_dec(paddr, size, true);
-> +}
-> +
-> +void __init sme_early_decrypt(resource_size_t paddr, unsigned long size)
-> +{
-> +	__sme_early_enc_dec(paddr, size, false);
-> +}
-> +
->  void __init sme_early_init(void)
->  {
->  	unsigned int i;
-> 
-> 
+ arch/x86/include/asm/paravirt.h      |  2 +-
+ arch/x86/include/asm/qspinlock.h     |  2 +-
+ arch/x86/kernel/asm-offsets_64.c     |  9 +++++++++
+ arch/x86/kernel/kvm.c                | 26 +++++++++++++++++++++++++-
+ arch/x86/kernel/paravirt-spinlocks.c |  2 +-
+ 5 files changed, 37 insertions(+), 4 deletions(-)
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+1.8.3.1
