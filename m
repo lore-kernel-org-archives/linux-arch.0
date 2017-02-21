@@ -1,81 +1,213 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
-	of an address
-Date: Mon, 20 Feb 2017 21:09:55 +0100
-Message-ID: <20170220200955.32e2wqxgulswnr55@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+From: Michael Pratt <mpratt@google.com>
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
+Date: Mon, 20 Feb 2017 22:00:12 -0800
+Message-ID: <CALoThU9+jW_K7vH99PytuOojVrJvcygzHduwYd2dzfTHQfE2AQ@mail.gmail.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+ <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com>
+ <CALCETrW6YBxZw0NJGHe92dy7qfHqRHNr0VqTKV=O4j9r8hcSew@mail.gmail.com>
+ <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com>
+ <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com> <CA+oaBQ+s5oXqu5TqddKs9LmUbaNNPGM7=gu5On4GYrkSDu0_XA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20170216154430.19244.95519.stgit-qCXWGYdRb2BnqfbPTmsdiZQ+2ll4COg0XqFh9Ls21Oc@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Type: multipart/alternative; boundary=94eb2c08cd5646e3830549041a86
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CA+oaBQ+s5oXqu5TqddKs9LmUbaNNPGM7=gu5On4GYrkSDu0_XA@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: luto@amacapital.net
+Cc: torvalds@linux-foundation.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, x86@kernel.org, tglx@linutronix.de, mingo@redhat.com, arnd@arndb.de, hpa@zytor.com, ak@linux.intel.com, dave.hansen@intel.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 09:44:30AM -0600, Tom Lendacky wrote:
-> This patch adds support to return the E820 type associated with an address
+--94eb2c08cd5646e3830549041a86
+Content-Type: text/plain; charset=UTF-8
 
-s/This patch adds/Add/
+On Mon, Feb 20, 2017 at 9:21 PM, Michael Pratt <linux@pratt.im> wrote:
 
-> range.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-> ---
->  arch/x86/include/asm/e820/api.h   |    2 ++
->  arch/x86/include/asm/e820/types.h |    2 ++
->  arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
->  3 files changed, 27 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
-> index 8e0f8b8..7c1bdc9 100644
-> --- a/arch/x86/include/asm/e820/api.h
-> +++ b/arch/x86/include/asm/e820/api.h
-> @@ -38,6 +38,8 @@
->  extern void e820__reallocate_tables(void);
->  extern void e820__register_nosave_regions(unsigned long limit_pfn);
->  
-> +extern enum e820_type e820__get_entry_type(u64 start, u64 end);
-> +
->  /*
->   * Returns true iff the specified range [start,end) is completely contained inside
->   * the ISA region.
-> diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
-> index 4adeed0..bf49591 100644
-> --- a/arch/x86/include/asm/e820/types.h
-> +++ b/arch/x86/include/asm/e820/types.h
-> @@ -7,6 +7,8 @@
->   * These are the E820 types known to the kernel:
->   */
->  enum e820_type {
-> +	E820_TYPE_INVALID	= 0,
-> +
+> On Fri, Feb 17, 2017 at 3:02 PM, Andy Lutomirski <luto@amacapital.net>
+> wrote:
+> > On Fri, Feb 17, 2017 at 1:01 PM, Linus Torvalds
+> > <torvalds@linux-foundation.org> wrote:
+> >> On Fri, Feb 17, 2017 at 12:12 PM, Andy Lutomirski <luto@amacapital.net>
+> wrote:
+> >>>
+> >>> At the very least, I'd want to see
+> >>> MAP_FIXED_BUT_DONT_BLOODY_UNMAP_ANYTHING.  I *hate* the current
+> >>> interface.
+> >>
+> >> That's unrelated, but I guess w could add a MAP_NOUNMAP flag, and then
+> >> you can use MAP_FIXED | MAP_NOUNMAP or something.
+> >>
+> >> But that has nothing to do with the 47-vs-56 bit issue.
+> >>
+> >>> How about MAP_LIMIT where the address passed in is interpreted as an
+> >>> upper bound instead of a fixed address?
+> >>
+> >> Again, that's a unrelated semantic issue. Right now - if you don't
+> >> pass in MAP_FIXED at all, the "addr" argument is used as a starting
+> >> value for deciding where to find an unmapped area. But there is no way
+> >> to specify the end. That would basically be what the process control
+> >> thing would be (not per-system-call, but per-thread ).
+> >>
+> >
+> > What I'm trying to say is: if we're going to do the route of 48-bit
+> > limit unless a specific mmap call requests otherwise, can we at least
+> > have an interface that doesn't suck?
+>
 
-Now this is strange - ACPI spec doesn't explicitly say that range type 0
-is invalid. Am I looking at the wrong place?
+I've got a set of patches that I've meant to send out as an RFC for a while
+that tries to address userspace control of address space layout and covers
+many of these ideas.
 
-"Table 15-312 Address Range Types12" in ACPI spec 6.
+There is a new syscall and set of prctls for controlling the "mmap layout"
+(i.e., get_unmapped_area search range) that look something like this:
 
-If 0 is really the invalid entry, then e820_print_type() needs updating
-too. And then the invalid-entry-add should be a separate patch.
+struct mmap_layout {
+unsigned long start;
+unsigned long end;
+/*
+* These are equivalent to mmap_legacy_base and mmap_base,
+* but are not really needed in this proposal.
+*/
+unsigned long low_base;
+unsigned long high_base;
+unsigned long flags;
+};
 
->  	E820_TYPE_RAM		= 1,
->  	E820_TYPE_RESERVED	= 2,
->  	E820_TYPE_ACPI		= 3,
+/* For flags */
+#define MMAP_TOPDOWN 1
 
--- 
-Regards/Gruss,
-    Boris.
+struct layout_mmap_args {
+unsigned long addr;
+unsigned long len;
+unsigned long prot;
+unsigned long flags;
+unsigned long fd;
+unsigned long off;
+struct mmap_layout layout;
+};
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+void *layout_mmap(struct layout_mmap_args *args);
+
+int prctl(PR_GET_MMAP_LAYOUT, struct mmap_layout *layout);
+int prctl(PR_SET_MMAP_LAYOUT, struct mmap_layout *layout);
+
+The prctls control the default range that mmap and friends will allocate.
+For 56-bit user address space, it could default to [mmap_min_addr, 1<<47),
+as Linus suggests. Applications that want the full address space can
+increase it to cover the entire range.
+
+The layout_mmap syscall allows one-off mappings that fall outside the
+default layout, and nicely solves the "MAP_FIXED but don't unmap anything
+problem" by passing an explicit range to check without actually setting
+MAP_FIXED.
+
+This idea is quite similar to the MAX_VADDR + default get_unmapped_area
+behavior ides, just more generalized to give userspace more control over
+the ultimate behavior of get_unmapped_area.
+
+
+PS. Apologies if my email client screwed up this message. I didn't have
+this thread in my client and have tried to import it from another account.
+
+--94eb2c08cd5646e3830549041a86
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><br><div class=3D"gmail_extra"><br><div class=3D"gmail_quo=
+te">On Mon, Feb 20, 2017 at 9:21 PM, Michael Pratt <span dir=3D"ltr">&lt;<a=
+ href=3D"mailto:linux@pratt.im" target=3D"_blank">linux@pratt.im</a>&gt;</s=
+pan> wrote:<br><blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0p=
+x 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex">On Fri, Fe=
+b 17, 2017 at 3:02 PM, Andy Lutomirski &lt;<a href=3D"mailto:luto@amacapita=
+l.net">luto@amacapital.net</a>&gt; wrote:<br>
+&gt; On Fri, Feb 17, 2017 at 1:01 PM, Linus Torvalds<br>
+&gt; &lt;<a href=3D"mailto:torvalds@linux-foundation.org">torvalds@linux-fo=
+undation.org</a><wbr>&gt; wrote:<br>
+&gt;&gt; On Fri, Feb 17, 2017 at 12:12 PM, Andy Lutomirski &lt;<a href=3D"m=
+ailto:luto@amacapital.net">luto@amacapital.net</a>&gt; wrote:<br>
+&gt;&gt;&gt;<br>
+&gt;&gt;&gt; At the very least, I&#39;d want to see<br>
+&gt;&gt;&gt; MAP_FIXED_BUT_DONT_BLOODY_<wbr>UNMAP_ANYTHING.=C2=A0 I *hate* =
+the current<br>
+&gt;&gt;&gt; interface.<br>
+&gt;&gt;<br>
+&gt;&gt; That&#39;s unrelated, but I guess w could add a MAP_NOUNMAP flag, =
+and then<br>
+&gt;&gt; you can use MAP_FIXED | MAP_NOUNMAP or something.<br>
+&gt;&gt;<br>
+&gt;&gt; But that has nothing to do with the 47-vs-56 bit issue.<br>
+&gt;&gt;<br>
+&gt;&gt;&gt; How about MAP_LIMIT where the address passed in is interpreted=
+ as an<br>
+&gt;&gt;&gt; upper bound instead of a fixed address?<br>
+&gt;&gt;<br>
+&gt;&gt; Again, that&#39;s a unrelated semantic issue. Right now - if you d=
+on&#39;t<br>
+&gt;&gt; pass in MAP_FIXED at all, the &quot;addr&quot; argument is used as=
+ a starting<br>
+&gt;&gt; value for deciding where to find an unmapped area. But there is no=
+ way<br>
+&gt;&gt; to specify the end. That would basically be what the process contr=
+ol<br>
+&gt;&gt; thing would be (not per-system-call, but per-thread ).<br>
+&gt;&gt;<br>
+&gt;<br>
+&gt; What I&#39;m trying to say is: if we&#39;re going to do the route of 4=
+8-bit<br>
+&gt; limit unless a specific mmap call requests otherwise, can we at least<=
+br>
+&gt; have an interface that doesn&#39;t suck?<br></blockquote><div><br></di=
+v><div>I&#39;ve got a set of patches that I&#39;ve meant to send out as an =
+RFC for a while that tries to address userspace control of address space la=
+yout and covers many of these ideas.</div><div><br></div><div>There is a ne=
+w syscall and set of prctls for controlling the &quot;mmap layout&quot; (i.=
+e., get_unmapped_area search range) that look something like this:</div><di=
+v><br></div><div><div>struct mmap_layout {</div><div><span class=3D"gmail-A=
+pple-tab-span" style=3D"white-space:pre">	</span>unsigned long start;</div>=
+<div><span class=3D"gmail-Apple-tab-span" style=3D"white-space:pre">	</span=
+>unsigned long end;</div><div><span style=3D"white-space:pre">	 /*</span></=
+div><div><span style=3D"white-space:pre">	 * </span><span style=3D"white-sp=
+ace:pre">These are equivalent to mmap_legacy_base and mmap_base,</span><br>=
+</div><div><span style=3D"white-space:pre">	 * but are not really needed in=
+ this proposal.</span></div><div><span style=3D"white-space:pre">	 */</span=
+><span style=3D"white-space:pre"> </span><span style=3D"white-space:pre"><b=
+r></span></div><div><span class=3D"gmail-Apple-tab-span" style=3D"white-spa=
+ce:pre">	</span>unsigned long low_base;</div><div><span class=3D"gmail-Appl=
+e-tab-span" style=3D"white-space:pre">	</span>unsigned long high_base;</div=
+><div><span class=3D"gmail-Apple-tab-span" style=3D"white-space:pre">	</spa=
+n>unsigned long flags;</div><div>};</div><div><br></div><div>/* For flags *=
+/</div><div>#define MMAP_TOPDOWN<span class=3D"gmail-Apple-tab-span" style=
+=3D"white-space:pre">	</span>1</div><div><br></div><div>struct layout_mmap_=
+args {</div><div><span class=3D"gmail-Apple-tab-span" style=3D"white-space:=
+pre">	</span>unsigned long addr;</div><div><span class=3D"gmail-Apple-tab-s=
+pan" style=3D"white-space:pre">	</span>unsigned long len;</div><div><span c=
+lass=3D"gmail-Apple-tab-span" style=3D"white-space:pre">	</span>unsigned lo=
+ng prot;</div><div><span class=3D"gmail-Apple-tab-span" style=3D"white-spac=
+e:pre">	</span>unsigned long flags;</div><div><span class=3D"gmail-Apple-ta=
+b-span" style=3D"white-space:pre">	</span>unsigned long fd;</div><div><span=
+ class=3D"gmail-Apple-tab-span" style=3D"white-space:pre">	</span>unsigned =
+long off;</div><div><span class=3D"gmail-Apple-tab-span" style=3D"white-spa=
+ce:pre">	</span>struct mmap_layout layout;</div><div>};</div></div><div><br=
+></div><div>void *layout_mmap(struct layout_mmap_args *args);<br></div><div=
+><br></div><div>int prctl(PR_GET_MMAP_LAYOUT, struct mmap_layout *layout);<=
+/div><div>int prctl(PR_SET_MMAP_LAYOUT, struct mmap_layout *layout);</div><=
+div><br></div><div>The prctls control the default range that mmap and frien=
+ds will allocate. For 56-bit user address space, it could default to [mmap_=
+min_addr, 1&lt;&lt;47), as Linus suggests. Applications that want the full =
+address space can increase it to cover the entire range.</div><div><br></di=
+v><div>The layout_mmap syscall allows one-off mappings that fall outside th=
+e default layout, and nicely solves the &quot;MAP_FIXED but don&#39;t unmap=
+ anything problem&quot; by passing an explicit range to check without actua=
+lly setting MAP_FIXED.</div><div><br></div><div>This idea is quite similar =
+to the MAX_VADDR + default get_unmapped_area behavior ides, just more gener=
+alized to give userspace more control over the ultimate behavior of get_unm=
+apped_area.</div><div><br></div><div><br></div></div>PS. Apologies if my em=
+ail client screwed up this message. I didn&#39;t have this thread in my cli=
+ent and have tried to import it from another account.</div></div>
+
+--94eb2c08cd5646e3830549041a86--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
