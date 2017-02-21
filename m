@@ -1,77 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:35874 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751071AbdBTUKe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 20 Feb 2017 15:10:34 -0500
-Date: Mon, 20 Feb 2017 21:09:55 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
- of an address
-Message-ID: <20170220200955.32e2wqxgulswnr55@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-it0-f43.google.com ([209.85.214.43]:35230 "EHLO
+        mail-it0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751380AbdBUGK6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Feb 2017 01:10:58 -0500
+Received: by mail-it0-f43.google.com with SMTP id 203so95900221ith.0
+        for <linux-arch@vger.kernel.org>; Mon, 20 Feb 2017 22:10:58 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <CA+oaBQ+s5oXqu5TqddKs9LmUbaNNPGM7=gu5On4GYrkSDu0_XA@mail.gmail.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+ <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com>
+ <CALCETrW6YBxZw0NJGHe92dy7qfHqRHNr0VqTKV=O4j9r8hcSew@mail.gmail.com>
+ <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com>
+ <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com> <CA+oaBQ+s5oXqu5TqddKs9LmUbaNNPGM7=gu5On4GYrkSDu0_XA@mail.gmail.com>
+From: Michael Pratt <mpratt@google.com>
+Date: Mon, 20 Feb 2017 22:10:17 -0800
+Message-ID: <CALoThU9TKLtdnQX=9xBh6qYE6oQRcD8m+0nmsMVnp9UjiOasMQ@mail.gmail.com>
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170220200955.XjVPBVAxfhmssn4L5OhnzEbp9ZjS8piun8LejeEMQso@z>
+To: luto@amacapital.net
+Cc: torvalds@linux-foundation.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, x86@kernel.org, tglx@linutronix.de, mingo@redhat.com, arnd@arndb.de, hpa@zytor.com, ak@linux.intel.com, dave.hansen@intel.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, linux-api@vger.kernel.org
+Message-ID: <20170221061017.5RO_vn3ZArh-nZmXpAiJDRCm-zow3nBNlZAgA96QzKM@z>
 
-On Thu, Feb 16, 2017 at 09:44:30AM -0600, Tom Lendacky wrote:
-> This patch adds support to return the E820 type associated with an address
+Sigh... apologies for the HTML. Trying again...
 
-s/This patch adds/Add/
+On Mon, Feb 20, 2017 at 9:21 PM, Michael Pratt <linux@pratt.im> wrote:
+> On Fri, Feb 17, 2017 at 3:02 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> On Fri, Feb 17, 2017 at 1:01 PM, Linus Torvalds
+>> <torvalds@linux-foundation.org> wrote:
+>>> On Fri, Feb 17, 2017 at 12:12 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>>>>
+>>>> At the very least, I'd want to see
+>>>> MAP_FIXED_BUT_DONT_BLOODY_UNMAP_ANYTHING.  I *hate* the current
+>>>> interface.
+>>>
+>>> That's unrelated, but I guess w could add a MAP_NOUNMAP flag, and then
+>>> you can use MAP_FIXED | MAP_NOUNMAP or something.
+>>>
+>>> But that has nothing to do with the 47-vs-56 bit issue.
+>>>
+>>>> How about MAP_LIMIT where the address passed in is interpreted as an
+>>>> upper bound instead of a fixed address?
+>>>
+>>> Again, that's a unrelated semantic issue. Right now - if you don't
+>>> pass in MAP_FIXED at all, the "addr" argument is used as a starting
+>>> value for deciding where to find an unmapped area. But there is no way
+>>> to specify the end. That would basically be what the process control
+>>> thing would be (not per-system-call, but per-thread ).
+>>>
+>>
+>> What I'm trying to say is: if we're going to do the route of 48-bit
+>> limit unless a specific mmap call requests otherwise, can we at least
+>> have an interface that doesn't suck?
 
-> range.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/include/asm/e820/api.h   |    2 ++
->  arch/x86/include/asm/e820/types.h |    2 ++
->  arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
->  3 files changed, 27 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
-> index 8e0f8b8..7c1bdc9 100644
-> --- a/arch/x86/include/asm/e820/api.h
-> +++ b/arch/x86/include/asm/e820/api.h
-> @@ -38,6 +38,8 @@
->  extern void e820__reallocate_tables(void);
->  extern void e820__register_nosave_regions(unsigned long limit_pfn);
->  
-> +extern enum e820_type e820__get_entry_type(u64 start, u64 end);
-> +
->  /*
->   * Returns true iff the specified range [start,end) is completely contained inside
->   * the ISA region.
-> diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
-> index 4adeed0..bf49591 100644
-> --- a/arch/x86/include/asm/e820/types.h
-> +++ b/arch/x86/include/asm/e820/types.h
-> @@ -7,6 +7,8 @@
->   * These are the E820 types known to the kernel:
->   */
->  enum e820_type {
-> +	E820_TYPE_INVALID	= 0,
-> +
+I've got a set of patches that I've meant to send out as an RFC for a
+while that tries to address userspace control of address space layout
+and covers many of these ideas.
 
-Now this is strange - ACPI spec doesn't explicitly say that range type 0
-is invalid. Am I looking at the wrong place?
+There is a new syscall and set of prctls for controlling the "mmap
+layout" (i.e., get_unmapped_area search range) that look something
+like this:
 
-"Table 15-312 Address Range Types12" in ACPI spec 6.
+struct mmap_layout {
+unsigned long start;
+unsigned long end;
+/*
+* These are equivalent to mmap_legacy_base and mmap_base,
+* but are not really needed in this proposal.
+*/
+unsigned long low_base;
+unsigned long high_base;
+unsigned long flags;
+};
 
-If 0 is really the invalid entry, then e820_print_type() needs updating
-too. And then the invalid-entry-add should be a separate patch.
+/* For flags */
+#define MMAP_TOPDOWN 1
 
->  	E820_TYPE_RAM		= 1,
->  	E820_TYPE_RESERVED	= 2,
->  	E820_TYPE_ACPI		= 3,
+struct layout_mmap_args {
+unsigned long addr;
+unsigned long len;
+unsigned long prot;
+unsigned long flags;
+unsigned long fd;
+unsigned long off;
+struct mmap_layout layout;
+};
 
--- 
-Regards/Gruss,
-    Boris.
+void *layout_mmap(struct layout_mmap_args *args);
 
-Good mailing practices for 400: avoid top-posting and trim the reply.
+int prctl(PR_GET_MMAP_LAYOUT, struct mmap_layout *layout);
+int prctl(PR_SET_MMAP_LAYOUT, struct mmap_layout *layout);
+
+The prctls control the default range that mmap and friends will
+allocate. For 56-bit user address space, it could default to
+[mmap_min_addr, 1<<47), as Linus suggests. Applications that want the
+full address space can increase it to cover the entire range.
+
+The layout_mmap syscall allows one-off mappings that fall outside the
+default layout, and nicely solves the "MAP_FIXED but don't unmap
+anything problem" by passing an explicit range to check without
+actually setting MAP_FIXED.
+
+This idea is quite similar to the MAX_VADDR + default
+get_unmapped_area behavior ides, just more generalized to give
+userspace more control over the ultimate behavior of
+get_unmapped_area.
+
+
+PS. Apologies if my email client screwed up this message. I didn't
+have this thread in my client and have tried to import it from another
+account.
