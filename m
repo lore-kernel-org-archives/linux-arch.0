@@ -1,59 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f194.google.com ([209.85.128.194]:36155 "EHLO
-        mail-wr0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751637AbdBUKrk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Feb 2017 05:47:40 -0500
-Received: by mail-wr0-f194.google.com with SMTP id z61so13974444wrc.3
-        for <linux-arch@vger.kernel.org>; Tue, 21 Feb 2017 02:47:39 -0800 (PST)
-Date: Tue, 21 Feb 2017 13:47:36 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and
- PR_GET_MAX_VADDR
-Message-ID: <20170221104736.GA13174@node.shutemov.name>
-References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
- <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
- <CA+55aFwgbHxV-Ha2n1H=Z7P6bgcQ3D8aW=fr8ZrQ5OnvZ1vOYg@mail.gmail.com>
- <CALCETrW6YBxZw0NJGHe92dy7qfHqRHNr0VqTKV=O4j9r8hcSew@mail.gmail.com>
- <CA+55aFxu0p90nz6-VPFLCLBSpEVx7vNFGP_M8j=YS-Dk-zfJGg@mail.gmail.com>
- <CALCETrW91F0=GLWt4yBJVbt7U=E6nLXDUMNUvTpnmn6XLjaY6g@mail.gmail.com>
- <CA+55aFw4hAe-SUp9K8kfgT+RO60Ow8c=Bi=ZTw9qzHy2D=h8pQ@mail.gmail.com>
- <20170221103401.GA31018@e104818-lin.cambridge.arm.com>
+Received: from mail-wr0-f196.google.com ([209.85.128.196]:35664 "EHLO
+        mail-wr0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751819AbdBULtK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Feb 2017 06:49:10 -0500
+Subject: Re: [PATCH v5 0/2] x86/kvm: Reduce vcpu_is_preempted() overhead
+References: <1487615764-1343-1-git-send-email-longman@redhat.com>
+ <20170220195426.GF6515@twins.programming.kicks-ass.net>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Message-ID: <62938e9e-6d25-80e3-2fb2-2812ad948605@redhat.com>
+Date: Tue, 21 Feb 2017 12:49:07 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170221103401.GA31018@e104818-lin.cambridge.arm.com>
+In-Reply-To: <20170220195426.GF6515@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andy Lutomirski <luto@amacapital.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Andi Kleen <ak@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, Dave Hansen <dave.hansen@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-mm <linux-mm@kvack.org>
-Message-ID: <20170221104736.x5bDCOcgHZRNAiUhnovMcsQzMW13ubyL6B9H-WGYkrw@z>
+To: Peter Zijlstra <peterz@infradead.org>, Waiman Long <longman@redhat.com>
+Cc: linux-arch@vger.kernel.org, Juergen Gross <jgross@suse.com>, Jeremy Fitzhardinge <jeremy@goop.org>, x86@kernel.org, kvm@vger.kernel.org, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Pan Xinhui <xinhui.pan@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chris Wright <chrisw@sous-sol.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Alok Kataria <akataria@vmware.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20170221114907.kz8DJ_UXcOMWjLwNbR8MZ_5juBBhffSILhJ-Po61A0E@z>
 
-On Tue, Feb 21, 2017 at 10:34:02AM +0000, Catalin Marinas wrote:
-> On Fri, Feb 17, 2017 at 03:21:27PM -0800, Linus Torvalds wrote:
-> > On Feb 17, 2017 3:02 PM, "Andy Lutomirski" <luto@amacapital.net> wrote:
-> > >   What I'm trying to say is: if we're going to do the route of 48-bit
-> > >   limit unless a specific mmap call requests otherwise, can we at least
-> > >   have an interface that doesn't suck?
-> > 
-> > No, I'm not suggesting specific mmap calls at all. I'm suggesting the complete
-> > opposite: not having some magical "max address" at all in the VM layer. Keep
-> > all the existing TASK_SIZE defines as-is, and just make those be the new 56-bit
-> > limit.
-> > 
-> > But to then not make most processes use it, just make the default x86
-> > arch_get_free_area() return an address limited to the old 47-bit limit. So
-> > effectively all legacy programs work exactly the same way they always did.
+
+
+On 20/02/2017 20:54, Peter Zijlstra wrote:
+> On Mon, Feb 20, 2017 at 01:36:02PM -0500, Waiman Long wrote:
+>> Waiman Long (2):
+>>   x86/paravirt: Change vcp_is_preempted() arg type to long
+>>   x86/kvm: Provide optimized version of vcpu_is_preempted() for x86-64
+>>
+>>  arch/x86/include/asm/paravirt.h      |  2 +-
+>>  arch/x86/include/asm/qspinlock.h     |  2 +-
+>>  arch/x86/kernel/asm-offsets_64.c     |  9 +++++++++
+>>  arch/x86/kernel/kvm.c                | 26 +++++++++++++++++++++++++-
+>>  arch/x86/kernel/paravirt-spinlocks.c |  2 +-
+>>  5 files changed, 37 insertions(+), 4 deletions(-)
 > 
-> arch_get_unmapped_area() changes would not cover STACK_TOP which is
-> currently defined as TASK_SIZE (on both x86 and arm64). I don't think it
-> matters much (normally such upper bits tricks are done on heap objects)
-> but you may find some weird user program that passes pointers to the
-> stack around and expects bits 48-63 to be masked out. If that's a real
-> issue, we could also limit STACK_TOP to 47-bit (48-bit on arm64).
+> I'm assuming this will go through the KVM tree, if people want me to
+> take it through the tip tree, please let me know.
+> 
+> Acked-by: Peter Zijlstra (Intel) <peterz@infraded.org>
 
-I've limited STACK_TOP to 47-bit in my implementation of Linus' proposal:
+Applied, thanks.
 
-http://lkml.kernel.org/r/20170220131515.GA9502@node.shutemov.name
-
--- 
- Kirill A. Shutemov
+Paolo
