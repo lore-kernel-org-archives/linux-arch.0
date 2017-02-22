@@ -1,35 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:33798 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751351AbdBURx7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 21 Feb 2017 12:53:59 -0500
-Date: Tue, 21 Feb 2017 18:53:31 +0100
+Received: from mail.skyhub.de ([5.9.137.197]:39064 "EHLO mail.skyhub.de"
+        rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
+        id S932241AbdBVMTR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 22 Feb 2017 07:19:17 -0500
+Date: Wed, 22 Feb 2017 13:08:03 +0100
 From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 00/28] x86: Secure Memory Encryption (AMD)
-Message-ID: <20170221175331.hpbvw7tepxfkilko@pd.tnic>
+Subject: Re: [RFC PATCH v4 07/28] x86: Provide general kernel support for
+ memory encryption
+Message-ID: <20170222120802.ke3wvs3ixa72fj2l@pd.tnic>
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170218181209.xk5ut4g65f2fedzi@pd.tnic>
- <1487698965.17158.8.camel@redhat.com>
+ <20170216154332.19244.55451.stgit@tlendack-t1.amdoffice.net>
+ <20170220152152.apdfjjuvu2u56tik@pd.tnic>
+ <78e1d42a-3a7b-2508-28d6-38a9d45a1c55@amd.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <1487698965.17158.8.camel@redhat.com>
+In-Reply-To: <78e1d42a-3a7b-2508-28d6-38a9d45a1c55@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rik van Riel <riel@redhat.com>
-Cc: Tom Lendacky <thomas.lendacky@amd.com>, linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170221175331.PDmWDCKFTL5w4PMMJ-kjMRLqYvw4gkm2I9JxtEH6Rzw@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170222120803.yOS7IjYXrqX1TXPBVEkkgq75g_jzdDye52rTVCbdp24@z>
 
-On Tue, Feb 21, 2017 at 12:42:45PM -0500, Rik van Riel wrote:
-> Do we want that in kernel/ or in arch/x86/mm/ ?
+On Tue, Feb 21, 2017 at 11:18:08AM -0600, Tom Lendacky wrote:
+> It's the latter.  It's really only used for working with values that
+> will either be written to or read from cr3.  I'll add some comments
+> around the macros as well as expand on it in the commit message.
 
-If you'd ask me, I don't have a strong preference. It is a pile of
-functionality which is part of the SME feature and as such, it is closer
-to the CPU. So arch/x86/cpu/sme.c or so.
+Ok, that makes sense. Normally we will have the mask in the lower levels
+of the pagetable hierarchy but we need to add it to the CR3 value by
+hand. Yap.
 
-But then it is mm-related in a way as it is RAM encryption...
+> Ok, I'll try and come up with something...  maybe __sme_rm or
+> __sme_clear (__sme_clr).
 
-Meh, ask me something easier :-)
+__sme_clr looks nice to me :)
+
+Thanks.
 
 -- 
 Regards/Gruss,
