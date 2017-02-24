@@ -1,57 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:33018 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751292AbdBXPW7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Fri, 24 Feb 2017 10:22:59 -0500
-Date: Fri, 24 Feb 2017 16:22:26 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 14/28] Add support to access boot related data in
- the clear
-Message-ID: <20170224152226.gzs4qquv7b7gmamu@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154508.19244.58580.stgit@tlendack-t1.amdoffice.net>
- <20170221150625.lohyskz5bjuey7fa@pd.tnic>
- <031277bf-25ad-3d41-d189-1ad6b4d27c93@amd.com>
- <20170224102155.4pauis3acrzp3rwz@pd.tnic>
- <8c8bf255-c48d-ac7f-e344-8059e1ffedb3@amd.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <8c8bf255-c48d-ac7f-e344-8059e1ffedb3@amd.com>
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:59067 "EHLO
+        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751312AbdBXQtc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2017 11:49:32 -0500
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v7 3/8] x86: stop exporting msr-index.h to userland
+Date: Fri, 24 Feb 2017 17:49:11 +0100
+Message-ID: <1487954956-23318-4-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
+References: <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
+ <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170224152226.rL-I9sG489zg-Qu78wJsHqPQz3nueX_5BDJPTMbAbsw@z>
+To: arnd@arndb.de
+Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Message-ID: <20170224164911.HJRTI3WzetQid0ZXdZkJ4zENVwFEIRjK1UFJ0V4O-dk@z>
 
-On Fri, Feb 24, 2017 at 09:04:21AM -0600, Tom Lendacky wrote:
-> I looked at doing that but you get into this cyclical situation unless
-> you specifically map each setup data elemement as decrypted. This is ok
-> for early_memremap since we have early_memremap_decrypted() but a new
-> memremap_decrypted() would have to be added. But I was trying to avoid
-> having to do multiple mapping calls inside the current mapping call.
-> 
-> I can always look at converting the setup_data_list from an array
-> into a list to eliminate the 32 entry limit, too.
-> 
-> Let me look at adding the early_memremap_decrypted() type support to
-> memremap() and see how that looks.
+Even if this file was not in an uapi directory, it was exported because
+it was listed in the Kbuild file.
 
-Yes, so this sounds better than the cyclic thing you explained
-where you have to add and update since early_memremap() calls into
-memremap_should_map_encrypted() which touches the list we're updating at
-the same time.
+Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
+Suggested-by: Borislav Petkov <bp@alien8.de>
+CC: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Acked-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/x86/include/uapi/asm/Kbuild | 1 -
+ 1 file changed, 1 deletion(-)
 
-So in the case where you absolutely know that those ranges should
-be mapped decrypted, we should have special helpers which do that
-explicitly and they are called when we access those special regions.
-Well, special for SME. I'm thinking that should simplify the handling
-but you'll know better once you write it. :)
-
-Thanks.
-
+diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
+index 3dec769cadf7..1c532b3f18ea 100644
+--- a/arch/x86/include/uapi/asm/Kbuild
++++ b/arch/x86/include/uapi/asm/Kbuild
+@@ -27,7 +27,6 @@ header-y += ldt.h
+ header-y += mce.h
+ header-y += mman.h
+ header-y += msgbuf.h
+-header-y += msr-index.h
+ header-y += msr.h
+ header-y += mtrr.h
+ header-y += param.h
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+2.8.1
