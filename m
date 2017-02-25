@@ -1,87 +1,62 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v7 4/8] Makefile.headersinst: cleanup input files
-Date: Fri, 24 Feb 2017 17:49:12 +0100
-Message-ID: <1487954956-23318-5-git-send-email-nicolas.dichtel@6wind.com>
-References: <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
- <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
+From: Stephen Boyd <stephen.boyd@linaro.org>
+Subject: Re: [PATCH] asm-generic: Force cast get_user() setting x to 0
+Date: Fri, 24 Feb 2017 17:24:52 -0800
+Message-ID: <148798589245.16996.9285242756855195986@sboyd-linaro>
+References: <20170217165229.17768-1-stephen.boyd@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:59082 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751315AbdBXQtd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2017 11:49:33 -0500
-In-Reply-To: <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail-pg0-f46.google.com ([74.125.83.46]:34468 "EHLO
+        mail-pg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751455AbdBYBZB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2017 20:25:01 -0500
+Received: by mail-pg0-f46.google.com with SMTP id 1so18053548pgi.1
+        for <linux-arch@vger.kernel.org>; Fri, 24 Feb 2017 17:24:58 -0800 (PST)
+In-Reply-To: <20170217165229.17768-1-stephen.boyd@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, Nicolas Dichtel <nicolas.dichtel@6wind.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 
-After the last four patches, all exported headers are under uapi/, thus
-input-files2 are not needed anymore.
-The side effect is that input-files1-name is exactly header-y.
+Quoting Stephen Boyd (2017-02-17 08:52:29)
+> If we call get_user() with an __le* or __be* type sparse will
+> complain when we assign the result to 0 on the faulting path.
+> Let's force cast here so that sparse doesn't complain. This
+> mirrors what we do in __get_user() as well.
+> =
 
-Note also that input-files3-name is genhdr-y.
+> Signed-off-by: Stephen Boyd <stephen.boyd@linaro.org>
+> ---
+> =
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- scripts/Makefile.headersinst | 34 +++++++++++-----------------------
- 1 file changed, 11 insertions(+), 23 deletions(-)
+> I made a similar fix to arm64 headers, and it looks like asm-generic
+> would need the same fix.
 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 1106d6ca3a38..3e20d03432d2 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
- 
--oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
--
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
- all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
- 
--input-files1  := $(foreach hdr, $(header-y), \
--		   $(if $(wildcard $(srcdir)/$(hdr)), \
--			$(wildcard $(srcdir)/$(hdr))) \
--		   )
--input-files1-name := $(notdir $(input-files1))
--input-files2  := $(foreach hdr, $(header-y), \
--		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
--			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
--				$(wildcard $(oldsrcdir)/$(hdr)), \
--				$(error Missing UAPI file $(srcdir)/$(hdr))) \
--		   ))
--input-files2-name := $(notdir $(input-files2))
--input-files3  := $(foreach hdr, $(genhdr-y), \
--		   $(if	$(wildcard $(gendir)/$(hdr)), \
--			$(wildcard $(gendir)/$(hdr)), \
--			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
--		   ))
--input-files3-name := $(notdir $(input-files3))
-+# Check that all expected files exist
-+$(foreach hdr, $(header-y), \
-+  $(if $(wildcard $(srcdir)/$(hdr)),, \
-+       $(error Missing UAPI file $(srcdir)/$(hdr)) \
-+   ))
-+$(foreach hdr, $(genhdr-y), \
-+  $(if	$(wildcard $(gendir)/$(hdr)),, \
-+       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
-+  ))
- 
- # Work out what needs to be removed
- oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
-@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
- quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
--        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
-+        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
-+        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
-         done;                                                           \
--- 
-2.8.1
+I suppose we can ignore this. I was using sparse v0.5.0 but it seems
+that later versions of sparse don't complain here anymore as Luc has
+pointed out.
+
+-Stephen
+
+> =
+
+>  include/asm-generic/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> =
+
+> diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+> index cc6bb319e464..6352d61df7eb 100644
+> --- a/include/asm-generic/uaccess.h
+> +++ b/include/asm-generic/uaccess.h
+> @@ -227,7 +227,7 @@ extern int __put_user_bad(void) __attribute__((noretu=
+rn));
+>         might_fault();                                          \
+>         access_ok(VERIFY_READ, __p, sizeof(*ptr)) ?             \
+>                 __get_user((x), (__typeof__(*(ptr)) *)__p) :    \
+> -               ((x) =3D (__typeof__(*(ptr)))0,-EFAULT);          \
+> +               ((x) =3D (__force __typeof__(*(ptr)))0, -EFAULT); \
+>  })
+>  =
+
+>  #ifndef __get_user_fn
