@@ -1,152 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:59111 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751334AbdBXQtf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2017 11:49:35 -0500
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v7 8/8] uapi: export all arch specifics directories
-Date: Fri, 24 Feb 2017 17:49:16 +0100
-Message-ID: <1487954956-23318-9-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
- <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail.skyhub.de ([5.9.137.197]:41250 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751231AbdBYQYL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Sat, 25 Feb 2017 11:24:11 -0500
+Date: Sat, 25 Feb 2017 16:29:31 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 05/28] x86: Add Secure Memory Encryption (SME)
+ support
+Message-ID: <20170225152931.p4lws753myepkkb3@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170216154307.19244.72895.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <20170224164916.rC2M6lTtk80cUclx9r-Qt8VRwDCM371g-mgYKATTHjI@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170225152931.U8yYOlTh46ihFA2OmVqzuP2lrNt2OPnlWsa0A7etiQ8@z>
 
-This patch removes the need of subdir-y. Now all files/directories under
-arch/<arch>/include/uapi/ are exported.
+On Thu, Feb 16, 2017 at 09:43:07AM -0600, Tom Lendacky wrote:
+> Add support for Secure Memory Encryption (SME). This initial support
+> provides a Kconfig entry to build the SME support into the kernel and
+> defines the memory encryption mask that will be used in subsequent
+> patches to mark pages as encrypted.
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 
-The only change for userland is the layout of the command 'make
-headers_install_all': directories asm-<arch> are replaced by arch-<arch>/.
-Those new directories contains all files/directories of the specified arch.
+...
 
-Note that only cris and tile have more directories than only asm:
- - arch-v[10|32] for cris;
- - arch for tile.
+> +++ b/arch/x86/include/asm/mem_encrypt.h
+> @@ -0,0 +1,42 @@
+> +/*
+> + * AMD Memory Encryption Support
+> + *
+> + * Copyright (C) 2016 Advanced Micro Devices, Inc.
+> + *
+> + * Author: Tom Lendacky <thomas.lendacky@amd.com>
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +
+> +#ifndef __X86_MEM_ENCRYPT_H__
+> +#define __X86_MEM_ENCRYPT_H__
+> +
+> +#ifndef __ASSEMBLY__
+> +
+> +#ifdef CONFIG_AMD_MEM_ENCRYPT
+> +
+> +extern unsigned long sme_me_mask;
+> +
+> +static inline bool sme_active(void)
+> +{
+> +	return (sme_me_mask) ? true : false;
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- Documentation/kbuild/makefiles.txt | 15 +--------------
- Makefile                           |  6 +++---
- arch/cris/include/uapi/asm/Kbuild  |  3 ---
- arch/tile/include/uapi/asm/Kbuild  |  2 --
- scripts/Makefile.headersinst       |  3 +--
- 5 files changed, 5 insertions(+), 24 deletions(-)
+	return !!sme_me_mask;
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 91ffb391ed54..223b33d5195a 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -49,7 +49,6 @@ This document describes the Linux kernel Makefiles.
- 		--- 7.3 generic-y
- 		--- 7.4 generated-y
- 		--- 7.5 mandatory-y
--		--- 7.6 subdir-y
- 
- 	=== 8 Kbuild Variables
- 	=== 9 Makefile language
-@@ -1265,7 +1264,7 @@ The pre-processing does:
- - drop all sections that are kernel internal (guarded by ifdef __KERNEL__)
- 
- All headers under include/uapi/, include/generated/uapi/,
--arch/<arch>/include/uapi/asm/ and arch/<arch>/include/generated/uapi/asm/
-+arch/<arch>/include/uapi/ and arch/<arch>/include/generated/uapi/
- are exported.
- 
- A Kbuild file may be defined under arch/<arch>/include/uapi/asm/ and
-@@ -1338,18 +1337,6 @@ See subsequent chapter for the syntax of the Kbuild file.
- 	The convention is to list one subdir per line and
- 	preferably in alphabetic order.
- 
--	--- 7.6 subdir-y
--
--	subdir-y may be used to specify a subdirectory to be exported.
--
--		Example:
--			#arch/cris/include/uapi/asm/Kbuild
--			subdir-y += ../arch-v10/arch/
--			subdir-y += ../arch-v32/arch/
--
--	The convention is to list one subdir per line and
--	preferably in alphabetic order.
--
- === 8 Kbuild Variables
- 
- The top Makefile exports the following variables:
-diff --git a/Makefile b/Makefile
-index b83109b5d217..ecb319dd6675 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1128,7 +1128,7 @@ firmware_install:
- export INSTALL_HDR_PATH = $(objtree)/usr
- 
- # If we do an all arch process set dst to asm-$(hdr-arch)
--hdr-dst = $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
-+hdr-dst = $(if $(KBUILD_HEADERS), dst=include/arch-$(hdr-arch), dst=include)
- 
- PHONY += archheaders
- archheaders:
-@@ -1149,7 +1149,7 @@ headers_install: __headers
- 	$(if $(wildcard $(srctree)/arch/$(hdr-arch)/include/uapi/asm/Kbuild),, \
- 	  $(error Headers not exportable for the $(SRCARCH) architecture))
- 	$(Q)$(MAKE) $(hdr-inst)=include/uapi
--	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst)
-+	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi $(hdr-dst)
- 
- PHONY += headers_check_all
- headers_check_all: headers_install_all
-@@ -1158,7 +1158,7 @@ headers_check_all: headers_install_all
- PHONY += headers_check
- headers_check: headers_install
- 	$(Q)$(MAKE) $(hdr-inst)=include/uapi HDRCHECK=1
--	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/asm $(hdr-dst) HDRCHECK=1
-+	$(Q)$(MAKE) $(hdr-inst)=arch/$(hdr-arch)/include/uapi/ $(hdr-dst) HDRCHECK=1
- 
- # ---------------------------------------------------------------------------
- # Kernel selftest
-diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-index d0c5471856e0..b15bf6bc0e94 100644
---- a/arch/cris/include/uapi/asm/Kbuild
-+++ b/arch/cris/include/uapi/asm/Kbuild
-@@ -1,5 +1,2 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
--
--subdir-y += ../arch-v10/arch/
--subdir-y += ../arch-v32/arch/
-diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
-index e0a50111e07f..0c74c3c5ebfa 100644
---- a/arch/tile/include/uapi/asm/Kbuild
-+++ b/arch/tile/include/uapi/asm/Kbuild
-@@ -2,5 +2,3 @@
- include include/uapi/asm-generic/Kbuild.asm
- 
- generic-y += ucontext.h
--
--subdir-y += ../arch
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 122945618ae2..1aeb4f45208f 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -2,7 +2,7 @@
- # Installing headers
- #
- # All headers under include/uapi, include/generated/uapi,
--# arch/<arch>/include/uapi/asm and arch/<arch>/include/generated/uapi/asm are
-+# arch/<arch>/include/uapi and arch/<arch>/include/generated/uapi are
- # exported.
- # They are preprocessed to remove __KERNEL__ section of the file.
- #
-@@ -30,7 +30,6 @@ installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
- subdirs       := $(patsubst $(srcdir)/%/.,%,$(wildcard $(srcdir)/*/.))
--subdirs       += $(subdir-y)
- header-files  := $(notdir $(wildcard $(srcdir)/*.h))
- header-files  += $(notdir $(wildcard $(srcdir)/*.agh))
- header-files  := $(filter-out $(header-n), $(header-files))
 -- 
-2.8.1
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
