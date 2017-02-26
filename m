@@ -1,205 +1,293 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 18/28] x86: DMA support for memory encryption
-Date: Sat, 25 Feb 2017 18:10:24 +0100
-Message-ID: <20170225171024.xzlfox56rbbflxfo@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154604.19244.69522.stgit@tlendack-t1.amdoffice.net>
+From: "Dmitry V. Levin" <ldv@altlinux.org>
+Subject: [PATCH] uapi: fix asm/signal.h userspace compilation errors
+Date: Sun, 26 Feb 2017 04:01:56 +0300
+Message-ID: <20170226010156.GA28831@altlinux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-m68k-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20170216154604.19244.69522.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 09:46:04AM -0600, Tom Lendacky wrote:
-> Since DMA addresses will effectively look like 48-bit addresses when the
-> memory encryption mask is set, SWIOTLB is needed if the DMA mask of the
-> device performing the DMA does not support 48-bits. SWIOTLB will be
-> initialized to create decrypted bounce buffers for use by these devices.
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
+Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
+userspace compilation errors like this:
 
-Just nitpicks below...
+/usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
+  size_t ss_size;
 
-> diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-> index ec548e9..a46bcf4 100644
-> --- a/arch/x86/mm/mem_encrypt.c
-> +++ b/arch/x86/mm/mem_encrypt.c
-> @@ -13,11 +13,14 @@
->  #include <linux/linkage.h>
->  #include <linux/init.h>
->  #include <linux/mm.h>
-> +#include <linux/dma-mapping.h>
-> +#include <linux/swiotlb.h>
->  
->  #include <asm/tlbflush.h>
->  #include <asm/fixmap.h>
->  #include <asm/setup.h>
->  #include <asm/bootparam.h>
-> +#include <asm/cacheflush.h>
->  
->  extern pmdval_t early_pmd_flags;
->  int __init __early_make_pgtable(unsigned long, pmdval_t);
-> @@ -192,3 +195,22 @@ void __init sme_early_init(void)
->  	for (i = 0; i < ARRAY_SIZE(protection_map); i++)
->  		protection_map[i] = pgprot_encrypted(protection_map[i]);
->  }
-> +
-> +/* Architecture __weak replacement functions */
-> +void __init mem_encrypt_init(void)
-> +{
-> +	if (!sme_me_mask)
+As no uapi header provides a definition of size_t, inclusion
+of <stddef.h> seems to be the most conservative fix available.
 
-	    !sme_active()
+On the kernel side size_t is typedef'ed to __kernel_size_t, so
+an alternative fix would be to change the type of sigaltstack.ss_size
+from size_t to __kernel_size_t for all architectures except those where
+sizeof(size_t) < sizeof(__kernel_size_t), namely, x32 and mips n32.
 
-no?
+On x32 and mips n32, however, #include <stddef.h> seems to be the most
+straightforward way to obtain the definition for sigaltstack.ss_size's
+type.
 
-Unless we're going to be switching SME dynamically at run time?
+Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+---
+ include/uapi/asm-generic/signal.h      | 3 +++
+ arch/alpha/include/uapi/asm/signal.h   | 3 +++
+ arch/arm/include/uapi/asm/signal.h     | 3 +++
+ arch/avr32/include/uapi/asm/signal.h   | 3 +++
+ arch/cris/include/uapi/asm/signal.h    | 3 +++
+ arch/h8300/include/uapi/asm/signal.h   | 3 +++
+ arch/ia64/include/uapi/asm/signal.h    | 4 ++++
+ arch/m32r/include/uapi/asm/signal.h    | 3 +++
+ arch/m68k/include/uapi/asm/signal.h    | 3 +++
+ arch/mips/include/uapi/asm/signal.h    | 3 +++
+ arch/mn10300/include/uapi/asm/signal.h | 3 +++
+ arch/parisc/include/uapi/asm/signal.h  | 4 ++++
+ arch/powerpc/include/uapi/asm/signal.h | 3 +++
+ arch/s390/include/uapi/asm/signal.h    | 3 +++
+ arch/sparc/include/uapi/asm/signal.h   | 3 +++
+ arch/x86/include/uapi/asm/signal.h     | 3 +++
+ arch/xtensa/include/uapi/asm/signal.h  | 2 ++
+ 17 files changed, 52 insertions(+)
 
-> +		return;
-> +
-> +	/* Call into SWIOTLB to update the SWIOTLB DMA buffers */
-> +	swiotlb_update_mem_attributes();
-> +}
-> +
-> +void swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
-> +{
-> +	WARN(PAGE_ALIGN(size) != size,
-> +	     "size is not page aligned (%#lx)\n", size);
-
-"page-aligned" I guess.
-
-> +
-> +	/* Make the SWIOTLB buffer area decrypted */
-> +	set_memory_decrypted((unsigned long)vaddr, size >> PAGE_SHIFT);
-> +}
-> diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-> index 4ee479f..15e7160 100644
-> --- a/include/linux/swiotlb.h
-> +++ b/include/linux/swiotlb.h
-> @@ -35,6 +35,7 @@ enum swiotlb_force {
->  extern unsigned long swiotlb_nr_tbl(void);
->  unsigned long swiotlb_size_or_default(void);
->  extern int swiotlb_late_init_with_tbl(char *tlb, unsigned long nslabs);
-> +extern void __init swiotlb_update_mem_attributes(void);
->  
->  /*
->   * Enumeration for sync targets
-> diff --git a/init/main.c b/init/main.c
-> index 8222caa..ba13f8f 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -466,6 +466,10 @@ void __init __weak thread_stack_cache_init(void)
->  }
->  #endif
->  
-> +void __init __weak mem_encrypt_init(void)
-> +{
-> +}
-> +
->  /*
->   * Set up kernel memory allocators
->   */
-> @@ -614,6 +618,15 @@ asmlinkage __visible void __init start_kernel(void)
->  	 */
->  	locking_selftest();
->  
-> +	/*
-> +	 * This needs to be called before any devices perform DMA
-> +	 * operations that might use the swiotlb bounce buffers.
-
-					 SWIOTLB
-
-> +	 * This call will mark the bounce buffers as decrypted so
-> +	 * that their usage will not cause "plain-text" data to be
-> +	 * decrypted when accessed.
-> +	 */
-> +	mem_encrypt_init();
-> +
->  #ifdef CONFIG_BLK_DEV_INITRD
->  	if (initrd_start && !initrd_below_start_ok &&
->  	    page_to_pfn(virt_to_page((void *)initrd_start)) < min_low_pfn) {
-> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-> index a8d74a7..c463067 100644
-> --- a/lib/swiotlb.c
-> +++ b/lib/swiotlb.c
-> @@ -30,6 +30,7 @@
->  #include <linux/highmem.h>
->  #include <linux/gfp.h>
->  #include <linux/scatterlist.h>
-> +#include <linux/mem_encrypt.h>
->  
->  #include <asm/io.h>
->  #include <asm/dma.h>
-> @@ -155,6 +156,17 @@ unsigned long swiotlb_size_or_default(void)
->  	return size ? size : (IO_TLB_DEFAULT_SIZE);
->  }
->  
-> +void __weak swiotlb_set_mem_attributes(void *vaddr, unsigned long size)
-> +{
-> +}
-> +
-> +/* For swiotlb, clear memory encryption mask from dma addresses */
-> +static dma_addr_t swiotlb_phys_to_dma(struct device *hwdev,
-> +				      phys_addr_t address)
-> +{
-> +	return phys_to_dma(hwdev, address) & ~sme_me_mask;
-> +}
-> +
->  /* Note that this doesn't work with highmem page */
->  static dma_addr_t swiotlb_virt_to_bus(struct device *hwdev,
->  				      volatile void *address)
-> @@ -183,6 +195,31 @@ void swiotlb_print_info(void)
->  	       bytes >> 20, vstart, vend - 1);
->  }
->  
-> +/*
-> + * Early SWIOTLB allocation may be to early to allow an architecture to
-
-				      too
-
-> + * perform the desired operations.  This function allows the architecture to
-> + * call SWIOTLB when the operations are possible.  This function needs to be
-
-s/This function/It/
-
-> + * called before the SWIOTLB memory is used.
-> + */
-> +void __init swiotlb_update_mem_attributes(void)
-> +{
-> +	void *vaddr;
-> +	unsigned long bytes;
-> +
-> +	if (no_iotlb_memory || late_alloc)
-> +		return;
-> +
-> +	vaddr = phys_to_virt(io_tlb_start);
-> +	bytes = PAGE_ALIGN(io_tlb_nslabs << IO_TLB_SHIFT);
-> +	swiotlb_set_mem_attributes(vaddr, bytes);
-> +	memset(vaddr, 0, bytes);
-> +
-> +	vaddr = phys_to_virt(io_tlb_overflow_buffer);
-> +	bytes = PAGE_ALIGN(io_tlb_overflow);
-> +	swiotlb_set_mem_attributes(vaddr, bytes);
-> +	memset(vaddr, 0, bytes);
-> +}
-> +
->  int __init swiotlb_init_with_tbl(char *tlb, unsigned long nslabs, int verbose)
->  {
->  	void *v_overflow_buffer;
-
+diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+index 3094618..e618eab 100644
+--- a/include/uapi/asm-generic/signal.h
++++ b/include/uapi/asm-generic/signal.h
+@@ -100,6 +100,9 @@ typedef unsigned long old_sigset_t;
+ #endif
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ struct sigaction {
+ 	__sighandler_t sa_handler;
+ 	unsigned long sa_flags;
+diff --git a/arch/alpha/include/uapi/asm/signal.h b/arch/alpha/include/uapi/asm/signal.h
+index dd4ca4bc..74e09f6 100644
+--- a/arch/alpha/include/uapi/asm/signal.h
++++ b/arch/alpha/include/uapi/asm/signal.h
+@@ -94,6 +94,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/arm/include/uapi/asm/signal.h b/arch/arm/include/uapi/asm/signal.h
+index 33073bd..a7b0012 100644
+--- a/arch/arm/include/uapi/asm/signal.h
++++ b/arch/arm/include/uapi/asm/signal.h
+@@ -93,6 +93,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/avr32/include/uapi/asm/signal.h b/arch/avr32/include/uapi/asm/signal.h
+index ffe8c77..62f3b88 100644
+--- a/arch/avr32/include/uapi/asm/signal.h
++++ b/arch/avr32/include/uapi/asm/signal.h
+@@ -95,6 +95,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/cris/include/uapi/asm/signal.h b/arch/cris/include/uapi/asm/signal.h
+index ce42fa7..bedff78 100644
+--- a/arch/cris/include/uapi/asm/signal.h
++++ b/arch/cris/include/uapi/asm/signal.h
+@@ -89,6 +89,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
+index af3a6c3..361e2e5 100644
+--- a/arch/h8300/include/uapi/asm/signal.h
++++ b/arch/h8300/include/uapi/asm/signal.h
+@@ -88,6 +88,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/ia64/include/uapi/asm/signal.h b/arch/ia64/include/uapi/asm/signal.h
+index c0ea285..b089bfc 100644
+--- a/arch/ia64/include/uapi/asm/signal.h
++++ b/arch/ia64/include/uapi/asm/signal.h
+@@ -107,6 +107,10 @@
+ 
+ #  include <linux/types.h>
+ 
++#  ifndef __KERNEL__
++#   include <stddef.h>	/* For size_t. */
++#  endif
++
+ /* Avoid too many header ordering problems.  */
+ struct siginfo;
+ 
+diff --git a/arch/m32r/include/uapi/asm/signal.h b/arch/m32r/include/uapi/asm/signal.h
+index 54acacb..269ec39 100644
+--- a/arch/m32r/include/uapi/asm/signal.h
++++ b/arch/m32r/include/uapi/asm/signal.h
+@@ -90,6 +90,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/m68k/include/uapi/asm/signal.h b/arch/m68k/include/uapi/asm/signal.h
+index cba6f85..f6a409e 100644
+--- a/arch/m68k/include/uapi/asm/signal.h
++++ b/arch/m68k/include/uapi/asm/signal.h
+@@ -86,6 +86,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/mips/include/uapi/asm/signal.h b/arch/mips/include/uapi/asm/signal.h
+index addb9f5..744fd71 100644
+--- a/arch/mips/include/uapi/asm/signal.h
++++ b/arch/mips/include/uapi/asm/signal.h
+@@ -101,6 +101,9 @@ typedef unsigned long old_sigset_t;		/* at least 32 bits */
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ struct sigaction {
+ 	unsigned int	sa_flags;
+ 	__sighandler_t	sa_handler;
+diff --git a/arch/mn10300/include/uapi/asm/signal.h b/arch/mn10300/include/uapi/asm/signal.h
+index f423a08..2e79c71 100644
+--- a/arch/mn10300/include/uapi/asm/signal.h
++++ b/arch/mn10300/include/uapi/asm/signal.h
+@@ -98,6 +98,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/parisc/include/uapi/asm/signal.h b/arch/parisc/include/uapi/asm/signal.h
+index e26043b..6c6c979 100644
+--- a/arch/parisc/include/uapi/asm/signal.h
++++ b/arch/parisc/include/uapi/asm/signal.h
+@@ -81,6 +81,10 @@
+ 
+ #  include <linux/types.h>
+ 
++#  ifndef __KERNEL__
++#   include <stddef.h>	/* For size_t. */
++#  endif
++
+ /* Avoid too many header ordering problems.  */
+ struct siginfo;
+ 
+diff --git a/arch/powerpc/include/uapi/asm/signal.h b/arch/powerpc/include/uapi/asm/signal.h
+index 6c69ee9..fba7738 100644
+--- a/arch/powerpc/include/uapi/asm/signal.h
++++ b/arch/powerpc/include/uapi/asm/signal.h
+@@ -91,6 +91,9 @@ typedef struct {
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ struct old_sigaction {
+ 	__sighandler_t sa_handler;
+ 	old_sigset_t sa_mask;
+diff --git a/arch/s390/include/uapi/asm/signal.h b/arch/s390/include/uapi/asm/signal.h
+index 2f43cfb..306373b6a 100644
+--- a/arch/s390/include/uapi/asm/signal.h
++++ b/arch/s390/include/uapi/asm/signal.h
+@@ -96,6 +96,9 @@ typedef unsigned long sigset_t;
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
+diff --git a/arch/sparc/include/uapi/asm/signal.h b/arch/sparc/include/uapi/asm/signal.h
+index f387400..3b4664c 100644
+--- a/arch/sparc/include/uapi/asm/signal.h
++++ b/arch/sparc/include/uapi/asm/signal.h
+@@ -154,6 +154,9 @@ struct sigstack {
+ #include <asm-generic/signal-defs.h>
+ 
+ #ifndef __KERNEL__
++
++#include <stddef.h>	/* For size_t. */
++
+ struct __new_sigaction {
+ 	__sighandler_t		sa_handler;
+ 	unsigned long		sa_flags;
+diff --git a/arch/x86/include/uapi/asm/signal.h b/arch/x86/include/uapi/asm/signal.h
+index 8264f47..2d6db1d 100644
+--- a/arch/x86/include/uapi/asm/signal.h
++++ b/arch/x86/include/uapi/asm/signal.h
+@@ -96,6 +96,9 @@ typedef unsigned long sigset_t;
+ 
+ 
+ # ifndef __KERNEL__
++
++#  include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ #ifdef __i386__
+ 
+diff --git a/arch/xtensa/include/uapi/asm/signal.h b/arch/xtensa/include/uapi/asm/signal.h
+index 586756e..bbc9b14 100644
+--- a/arch/xtensa/include/uapi/asm/signal.h
++++ b/arch/xtensa/include/uapi/asm/signal.h
+@@ -106,6 +106,8 @@ typedef struct {
+ 
+ #ifndef __KERNEL__
+ 
++#include <stddef.h>	/* For size_t. */
++
+ /* Here we must cater to libcs that poke about in kernel headers.  */
+ 
+ struct sigaction {
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ldv
