@@ -1,48 +1,39 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 18/20] PCI: tegra: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:29 +0000
-Message-ID: <20170227151436.18698-19-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 16/20] PCI: armada8k: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:27 +0000
+Message-ID: <20170227151436.18698-17-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Thierry Reding <thierry.reding@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 List-Id: linux-arch.vger.kernel.org
 
 PCI configuration space should be mapped with a memory region type that
 generates on the CPU host bus non-posted write transations. Update the
-driver to use correct memory mapping attributes to map config space
-regions to enforce configuration space non-posted writes behaviour.
+driver to use the devm_pci_remap_cfg* interface to make sure the correct
+memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Thierry Reding <thierry.reding@gmail.com>
+Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 ---
- drivers/pci/host/pci-tegra.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/pci/dwc/pcie-armada8k.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/pci/host/pci-tegra.c b/drivers/pci/host/pci-tegra.c
-index ed8a93f..2618f87 100644
---- a/drivers/pci/host/pci-tegra.c
-+++ b/drivers/pci/host/pci-tegra.c
-@@ -380,7 +380,7 @@ static struct tegra_pcie_bus *tegra_pcie_bus_alloc(struct tegra_pcie *pcie,
- 						   unsigned int busnr)
- {
- 	struct device *dev = pcie->dev;
--	pgprot_t prot = pgprot_device(PAGE_KERNEL);
-+	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
- 	phys_addr_t cs = pcie->cs->start;
- 	struct tegra_pcie_bus *bus;
- 	unsigned int i;
-@@ -1962,7 +1962,7 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
- 		rp->pcie = pcie;
- 		rp->np = port;
+diff --git a/drivers/pci/dwc/pcie-armada8k.c b/drivers/pci/dwc/pcie-armada8k.c
+index 66bac6f..31f5cb1 100644
+--- a/drivers/pci/dwc/pcie-armada8k.c
++++ b/drivers/pci/dwc/pcie-armada8k.c
+@@ -228,7 +228,7 @@ static int armada8k_pcie_probe(struct platform_device *pdev)
  
--		rp->base = devm_ioremap_resource(dev, &rp->regs);
-+		rp->base = devm_pci_remap_cfg_resource(dev, &rp->regs);
- 		if (IS_ERR(rp->base))
- 			return PTR_ERR(rp->base);
- 
+ 	/* Get the dw-pcie unit configuration/control registers base. */
+ 	base = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ctrl");
+-	pci->dbi_base = devm_ioremap_resource(dev, base);
++	pci->dbi_base = devm_pci_remap_cfg_resource(dev, base);
+ 	if (IS_ERR(pci->dbi_base)) {
+ 		dev_err(dev, "couldn't remap regs base %p\n", base);
+ 		ret = PTR_ERR(pci->dbi_base);
 -- 
 2.10.0
