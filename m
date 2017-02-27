@@ -1,54 +1,40 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 06/20] PCI: ECAM: use pci_remap_cfgspace() to map config region
-Date: Mon, 27 Feb 2017 15:14:17 +0000
-Message-ID: <20170227151436.18698-7-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 09/20] PCI: xilinx-nwl: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:20 +0000
+Message-ID: <20170227151436.18698-10-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.co>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Michal Simek <michal.simek@xilinx.com>
 List-Id: linux-arch.vger.kernel.org
 
-Current ECAM kernel implementation uses ioremap() to map the ECAM
-configuration space memory region; this is not safe in that on some
-architectures the ioremap interface provides mappings that allow posted
-write transactions. This, as highlighted in the PCIe specifications
-(4.0 - Rev0.3, "Ordering Considerations for the Enhanced Configuration
-Address Mechanism"), can create ordering issues for software because
-posted writes transactions on the CPU host bus are non posted in the
-PCI express fabric.
-
-Update the ioremap() interface to use pci_remap_cfgspace() whose
-mapping attributes guarantee that non-posted writes transactions
-are issued for memory writes within the ECAM memory mapped address
-region.
+PCI configuration space should be mapped with a memory region type that
+generates on the CPU host bus non-posted write transations. Update the
+driver to use the devm_pci_remap_cfg* interface to make sure the correct
+memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>
+Cc: Michal Simek <michal.simek@xilinx.com>
 ---
- drivers/pci/ecam.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ drivers/pci/host/pcie-xilinx-nwl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/pci/ecam.c b/drivers/pci/ecam.c
-index 2fee61b..e2068a4 100644
---- a/drivers/pci/ecam.c
-+++ b/drivers/pci/ecam.c
-@@ -84,12 +84,13 @@ struct pci_config_window *pci_ecam_create(struct device *dev,
- 		if (!cfg->winp)
- 			goto err_exit_malloc;
- 		for (i = 0; i < bus_range; i++) {
--			cfg->winp[i] = ioremap(cfgres->start + i * bsz, bsz);
-+			cfg->winp[i] =
-+				pci_remap_cfgspace(cfgres->start + i * bsz, bsz);
- 			if (!cfg->winp[i])
- 				goto err_exit_iomap;
- 		}
- 	} else {
--		cfg->win = ioremap(cfgres->start, bus_range * bsz);
-+		cfg->win = pci_remap_cfgspace(cfgres->start, bus_range * bsz);
- 		if (!cfg->win)
- 			goto err_exit_iomap;
- 	}
+diff --git a/drivers/pci/host/pcie-xilinx-nwl.c b/drivers/pci/host/pcie-xilinx-nwl.c
+index 4c3e0ab..4b16b26 100644
+--- a/drivers/pci/host/pcie-xilinx-nwl.c
++++ b/drivers/pci/host/pcie-xilinx-nwl.c
+@@ -761,7 +761,7 @@ static int nwl_pcie_parse_dt(struct nwl_pcie *pcie,
+ 	pcie->phys_pcie_reg_base = res->start;
+ 
+ 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "cfg");
+-	pcie->ecam_base = devm_ioremap_resource(dev, res);
++	pcie->ecam_base = devm_pci_remap_cfg_resource(dev, res);
+ 	if (IS_ERR(pcie->ecam_base))
+ 		return PTR_ERR(pcie->ecam_base);
+ 	pcie->phys_ecam_base = res->start;
 -- 
 2.10.0
