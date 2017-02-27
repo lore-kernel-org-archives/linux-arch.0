@@ -1,67 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54362 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54540 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751421AbdB0PPc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:32 -0500
+        id S1751863AbdB0PPj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:39 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 04/20] ARM64: implement pci_remap_cfgspace() interface
-Date: Mon, 27 Feb 2017 15:14:15 +0000
-Message-ID: <20170227151436.18698-5-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 12/20] PCI: qcom: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:23 +0000
+Message-ID: <20170227151436.18698-13-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170227151415.jqWtBKZ9-ZsbDUUMlFzA0Ib2ri57MQSrQSJ0zu_XLN0@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Stanimir Varbanov <svarbanov@mm-sol.com>
+Message-ID: <20170227151423.Egrhi3Hn2xN3EVmvtbX7C7IZVJA4q_tSyqMxCdOk5Fc@z>
 
-The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
-and Posting") defines rules for PCI configuration space transactions
-ordering and posting, that state that configuration writes
-are non-posted transactions.
-
-This rule is reinforced by the ARM v8 architecture reference manual
-(issue A.k, Early Write Acknowledgment) that explicitly recommends
-that No Early Write Acknowledgment attribute should be used to map
-PCI configuration (write) transactions.
-
-Current ioremap interface on ARM64 implements mapping functions
-where the Early Write Acknowledgment hint is enabled, so they
-cannot be used to map PCI configuration space in a PCI specs
-compliant way.
-
-Implement an ARM64 specific pci_remap_cfgspace() interface
-that allows to map PCI config region with nGnRnE attributes, providing
-a remap function that complies with PCI specifications and the ARMv8
-architecture reference manual recommendations.
+PCI configuration space should be mapped with a memory region type that
+generates on the CPU host bus non-posted write transations. Update the
+driver to use the devm_pci_remap_cfg* interface to make sure the correct
+memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Stanimir Varbanov <svarbanov@mm-sol.com>
 ---
- arch/arm64/include/asm/io.h | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ drivers/pci/dwc/pcie-qcom.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
-index 0c00c87..7a03250 100644
---- a/arch/arm64/include/asm/io.h
-+++ b/arch/arm64/include/asm/io.h
-@@ -173,6 +173,16 @@ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
- #define iounmap				__iounmap
+diff --git a/drivers/pci/dwc/pcie-qcom.c b/drivers/pci/dwc/pcie-qcom.c
+index e36abe0..bf7bd21 100644
+--- a/drivers/pci/dwc/pcie-qcom.c
++++ b/drivers/pci/dwc/pcie-qcom.c
+@@ -698,7 +698,7 @@ static int qcom_pcie_probe(struct platform_device *pdev)
+ 		return PTR_ERR(pcie->parf);
  
- /*
-+ * PCI configuration space mapping function.
-+ *
-+ * PCI specifications disallows posted write configuration transactions.
-+ * Add an arch specific pci_remap_cfgspace definition that is implemented
-+ * through nGnRnE device memory attribute as recommended by the ARM v8
-+ * Architecture reference manual Issue A.k B2.8.2 "Device memory".
-+ */
-+#define pci_remap_cfgspace(addr, size) __ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRnE))
-+
-+/*
-  * io{read,write}{16,32,64}be() macros
-  */
- #define ioread16be(p)		({ __u16 __v = be16_to_cpu((__force __be16)__raw_readw(p)); __iormb(); __v; })
+ 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
+-	pci->dbi_base = devm_ioremap_resource(dev, res);
++	pci->dbi_base = devm_pci_remap_cfg_resource(dev, res);
+ 	if (IS_ERR(pci->dbi_base))
+ 		return PTR_ERR(pci->dbi_base);
+ 
 -- 
 2.10.0
