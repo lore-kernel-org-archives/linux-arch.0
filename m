@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54598 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54564 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752161AbdB0PP6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:58 -0500
+        id S1751452AbdB0PPw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:52 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 16/20] PCI: armada8k: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:27 +0000
-Message-ID: <20170227151436.18698-17-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 14/20] PCI: hisi: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:25 +0000
+Message-ID: <20170227151436.18698-15-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20170227151427.r2FJTMItXiOrQx2WGjyCZbLt9WNRlnEVDSibif9fJ7Y@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Zhou Wang <wangzhou1@hisilicon.com>
+Message-ID: <20170227151425.9YsSPYxAcFLaAT86r1zGhciOCaI3QKU1b2CFQALDnFY@z>
 
 PCI configuration space should be mapped with a memory region type that
 generates on the CPU host bus non-posted write transations. Update the
@@ -22,23 +22,27 @@ memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Cc: Zhou Wang <wangzhou1@hisilicon.com>
 ---
- drivers/pci/dwc/pcie-armada8k.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/pci/dwc/pcie-hisi.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/drivers/pci/dwc/pcie-armada8k.c b/drivers/pci/dwc/pcie-armada8k.c
-index 66bac6f..31f5cb1 100644
---- a/drivers/pci/dwc/pcie-armada8k.c
-+++ b/drivers/pci/dwc/pcie-armada8k.c
-@@ -228,7 +228,7 @@ static int armada8k_pcie_probe(struct platform_device *pdev)
+diff --git a/drivers/pci/dwc/pcie-hisi.c b/drivers/pci/dwc/pcie-hisi.c
+index e3e4fed..8042780 100644
+--- a/drivers/pci/dwc/pcie-hisi.c
++++ b/drivers/pci/dwc/pcie-hisi.c
+@@ -294,10 +294,9 @@ static int hisi_pcie_probe(struct platform_device *pdev)
+ 	}
  
- 	/* Get the dw-pcie unit configuration/control registers base. */
- 	base = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ctrl");
--	pci->dbi_base = devm_ioremap_resource(dev, base);
-+	pci->dbi_base = devm_pci_remap_cfg_resource(dev, base);
- 	if (IS_ERR(pci->dbi_base)) {
- 		dev_err(dev, "couldn't remap regs base %p\n", base);
- 		ret = PTR_ERR(pci->dbi_base);
+ 	reg = platform_get_resource_byname(pdev, IORESOURCE_MEM, "rc_dbi");
+-	pci->dbi_base = devm_ioremap_resource(dev, reg);
++	pci->dbi_base = devm_pci_remap_cfg_resource(dev, reg);
+ 	if (IS_ERR(pci->dbi_base))
+ 		return PTR_ERR(pci->dbi_base);
+-
+ 	platform_set_drvdata(pdev, hisi_pcie);
+ 
+ 	ret = hisi_add_pcie_port(hisi_pcie, pdev);
 -- 
 2.10.0
