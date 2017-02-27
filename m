@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54608 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54552 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752107AbdB0PPw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:52 -0500
+        id S1751950AbdB0PPl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:41 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 17/20] PCI: xgene: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:28 +0000
-Message-ID: <20170227151436.18698-18-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:24 +0000
+Message-ID: <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Tanmay Inamdar <tinamdar@apm.com>
-Message-ID: <20170227151428.-Bph_Fg_T7AQxmclqJfOZVPNTiDXnhadHX2dRvy7B58@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Ray Jui <rjui@broadcom.com>, Jon Mason <jonmason@broadcom.com>
+Message-ID: <20170227151424.4Q9feuIh014B3zm_fpmGv0JJBOWtf-PgFXwETtVDJvc@z>
 
 PCI configuration space should be mapped with a memory region type that
 generates on the CPU host bus non-posted write transations. Update the
@@ -22,32 +22,25 @@ memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Tanmay Inamdar <tinamdar@apm.com>
+Cc: Ray Jui <rjui@broadcom.com>
+Cc: Jon Mason <jonmason@broadcom.com>
 ---
- drivers/pci/host/pci-xgene.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/pci/host/pcie-iproc-platform.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/pci/host/pci-xgene.c b/drivers/pci/host/pci-xgene.c
-index 1a61087..de19898 100644
---- a/drivers/pci/host/pci-xgene.c
-+++ b/drivers/pci/host/pci-xgene.c
-@@ -248,7 +248,7 @@ static int xgene_pcie_ecam_init(struct pci_config_window *cfg, u32 ipversion)
- 		dev_err(dev, "can't get CSR resource\n");
+diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
+index f4909bb..b48d0db 100644
+--- a/drivers/pci/host/pcie-iproc-platform.c
++++ b/drivers/pci/host/pcie-iproc-platform.c
+@@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
  		return ret;
  	}
--	port->csr_base = devm_ioremap_resource(dev, &csr);
-+	port->csr_base = devm_pci_remap_cfg_resource(dev, &csr);
- 	if (IS_ERR(port->csr_base))
- 		return PTR_ERR(port->csr_base);
  
-@@ -359,7 +359,7 @@ static int xgene_pcie_map_reg(struct xgene_pcie_port *port,
- 	struct resource *res;
- 
- 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "csr");
--	port->csr_base = devm_ioremap_resource(dev, res);
-+	port->csr_base = devm_pci_remap_cfg_resource(dev, res);
- 	if (IS_ERR(port->csr_base))
- 		return PTR_ERR(port->csr_base);
- 
+-	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
++	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
++					     resource_size(&reg));
+ 	if (!pcie->base) {
+ 		dev_err(dev, "unable to map controller registers\n");
+ 		return -ENOMEM;
 -- 
 2.10.0
