@@ -1,44 +1,64 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 01/20] PCI: remove __weak tag from pci_remap_iospace()
-Date: Mon, 27 Feb 2017 15:14:12 +0000
-Message-ID: <20170227151436.18698-2-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 15/20] PCI: designware: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:26 +0000
+Message-ID: <20170227151436.18698-16-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.co>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Jingoo Han <jingoohan1@gmail.com>, Joao Pinto <Joao.Pinto@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-pci_remap_iospace() is marked as a weak symbol even though
-no architecture is currently overriding it; given that its
-implementation internals have already code paths that are
-arch specific (ie PCI_IOBASE and ioremap_page_range() attributes)
-there is no need to leave the weak symbol in the kernel since the
-same functionality can be achieved by customizing per-arch the
-corresponding functionality.
-
-Remove the __weak symbol from pci_remap_iospace().
+PCI configuration space should be mapped with a memory region type that
+generates on the CPU host bus non-posted write transations. Update the
+driver to use the devm_pci_remap_cfg* interface to make sure the correct
+memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jingoo Han <jingoohan1@gmail.com>
+Cc: Joao Pinto <Joao.Pinto@synopsys.com>
 ---
- drivers/pci/pci.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/pci/dwc/pcie-designware-host.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 7904d02..bd98674 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -3363,7 +3363,7 @@ unsigned long __weak pci_address_to_pio(phys_addr_t address)
-  *	Only architectures that have memory mapped IO functions defined
-  *	(and the PCI_IOBASE value defined) should call this function.
-  */
--int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
-+int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
- {
- #if defined(PCI_IOBASE) && defined(CONFIG_MMU)
- 	unsigned long vaddr = (unsigned long)PCI_IOBASE + res->start;
+diff --git a/drivers/pci/dwc/pcie-designware-host.c b/drivers/pci/dwc/pcie-designware-host.c
+index 5ba3349..2b789af 100644
+--- a/drivers/pci/dwc/pcie-designware-host.c
++++ b/drivers/pci/dwc/pcie-designware-host.c
+@@ -338,8 +338,9 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	}
+ 
+ 	if (!pci->dbi_base) {
+-		pci->dbi_base = devm_ioremap(dev, pp->cfg->start,
+-					resource_size(pp->cfg));
++		pci->dbi_base = devm_pci_remap_cfgspace(dev,
++						pp->cfg->start,
++						resource_size(pp->cfg));
+ 		if (!pci->dbi_base) {
+ 			dev_err(dev, "error with ioremap\n");
+ 			ret = -ENOMEM;
+@@ -350,8 +351,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	pp->mem_base = pp->mem->start;
+ 
+ 	if (!pp->va_cfg0_base) {
+-		pp->va_cfg0_base = devm_ioremap(dev, pp->cfg0_base,
+-						pp->cfg0_size);
++		pp->va_cfg0_base = devm_pci_remap_cfgspace(dev,
++					pp->cfg0_base, pp->cfg0_size);
+ 		if (!pp->va_cfg0_base) {
+ 			dev_err(dev, "error with ioremap in function\n");
+ 			ret = -ENOMEM;
+@@ -360,7 +361,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	}
+ 
+ 	if (!pp->va_cfg1_base) {
+-		pp->va_cfg1_base = devm_ioremap(dev, pp->cfg1_base,
++		pp->va_cfg1_base = devm_pci_remap_cfgspace(dev,
++						pp->cfg1_base,
+ 						pp->cfg1_size);
+ 		if (!pp->va_cfg1_base) {
+ 			dev_err(dev, "error with ioremap\n");
 -- 
 2.10.0
