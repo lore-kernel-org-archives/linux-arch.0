@@ -1,83 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54498 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54300 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751457AbdB0PPd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:33 -0500
+        id S1751387AbdB0PPc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:32 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
-Date: Mon, 27 Feb 2017 15:14:16 +0000
-Message-ID: <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 02/20] PCI: fix pci_remap_iospace() remap attribute
+Date: Mon, 27 Feb 2017 15:14:13 +0000
+Message-ID: <20170227151436.18698-3-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170227151416.8GwAqCKKiZqILzMtDPhUBE4R2MGcEDTfMEov3U2Fx7E@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170227151413.GykHVMK_TtF6qXeaCDKhVe3mrPm3_ikgqxtg7Xup4Xs@z>
 
-The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
-and Posting") define rules for PCI configuration space transactions
-ordering and posting, that state that configuration writes have to
-be non-posted transactions.
+According to the PCI local bus specifications (Revision 3.0, 3.2.5),
+I/O Address space transactions are non-posted. On architectures where
+I/O space is implemented through a chunk of memory mapped space mapped
+to PCI address space (ie IA64/ARM/ARM64) the memory mapping for the
+region backing I/O Address Space transactions determines the I/O
+transactions attributes (before the transactions actually reaches the
+PCI bus where it is handled according to the PCI specifications).
 
-Current ioremap interface on ARM provides mapping functions that
-provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
-memory type) aka posted writes, so PCI host controller drivers have
-no arch interface to remap PCI configuration space with memory
-attributes that comply with the PCI specifications for configuration
-space.
+Current pci_remap_iospace() interface, that is used to map the PCI I/O
+Address Space into virtual address space, use pgprot_device() as memory
+attribute for the virtual address mapping, that in some architectures
+(ie ARM64) provides non-cacheable but write bufferable mappings (ie
+posted writes), which clash with the non-posted write behaviour for I/O
+Address Space mandated by the PCI specifications.
 
-Implement an ARM specific pci_remap_cfgspace() interface that allows to
-map PCI config memory regions with MT_UNCACHED memory type (ie strongly
-ordered - non-posted writes), providing a remap function that complies
-with PCI specifications for config space transactions.
+Update the prot ioremap_page_range() parameter in pci_remap_iospace()
+to pgprot_noncached to ensure that the virtual mapping backing
+I/O Address Space guarantee non-posted write transactions issued
+when addressing I/O Address Space through the MMIO mapping.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Russell King <linux@armlinux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm/include/asm/io.h | 10 ++++++++++
- arch/arm/mm/ioremap.c     |  7 +++++++
- 2 files changed, 17 insertions(+)
+ drivers/pci/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 42871fb..74d1b09 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -187,6 +187,16 @@ static inline void pci_ioremap_set_mem_type(int mem_type) {}
- extern int pci_ioremap_io(unsigned int offset, phys_addr_t phys_addr);
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index bd98674..bfb3c6e 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -3375,7 +3375,7 @@ int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
+ 		return -EINVAL;
  
- /*
-+ * PCI configuration space mapping function.
-+ *
-+ * PCI specifications does not allow configuration write
-+ * transactions to be posted. Add an arch specific
-+ * pci_remap_cfgspace definition that is implemented
-+ * through strongly ordered memory mappings.
-+ */
-+#define pci_remap_cfgspace pci_remap_cfgspace
-+void __iomem *pci_remap_cfgspace(resource_size_t res_cookie, size_t size);
-+/*
-  * Now, pick up the machine-defined IO definitions
-  */
- #ifdef CONFIG_NEED_MACH_IO_H
-diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
-index ff0eed2..fc91205 100644
---- a/arch/arm/mm/ioremap.c
-+++ b/arch/arm/mm/ioremap.c
-@@ -481,6 +481,13 @@ int pci_ioremap_io(unsigned int offset, phys_addr_t phys_addr)
- 				  __pgprot(get_mem_type(pci_ioremap_mem_type)->prot_pte));
- }
- EXPORT_SYMBOL_GPL(pci_ioremap_io);
-+
-+void __iomem *pci_remap_cfgspace(resource_size_t res_cookie, size_t size)
-+{
-+	return arch_ioremap_caller(res_cookie, size, MT_UNCACHED,
-+				   __builtin_return_address(0));
-+}
-+EXPORT_SYMBOL_GPL(pci_remap_cfgspace);
- #endif
- 
- /*
+ 	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
+-				  pgprot_device(PAGE_KERNEL));
++				  pgprot_noncached(PAGE_KERNEL));
+ #else
+ 	/* this architecture does not have memory mapped I/O space,
+ 	   so this function should never be called */
 -- 
 2.10.0
