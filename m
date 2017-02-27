@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54608 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54582 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752139AbdB0PP4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:56 -0500
+        id S1751452AbdB0PPq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:46 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 20/20] PCI: keystone-dw: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:31 +0000
-Message-ID: <20170227151436.18698-21-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 15/20] PCI: designware: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:26 +0000
+Message-ID: <20170227151436.18698-16-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Murali Karicheri <m-karicheri2@ti.com>
-Message-ID: <20170227151431.g_a9HJSGoiEOvkokMabAPnV1I4AVawSh5WS29nBrAYI@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Jingoo Han <jingoohan1@gmail.com>, Joao Pinto <Joao.Pinto@synopsys.com>
+Message-ID: <20170227151426._QwteHgDvhfRM52k7cZ-KzeB1mzn6eLfWmgAUuQzOE8@z>
 
 PCI configuration space should be mapped with a memory region type that
 generates on the CPU host bus non-posted write transations. Update the
@@ -22,23 +22,48 @@ memory mappings for PCI configuration space are used.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Murali Karicheri <m-karicheri2@ti.com>
+Cc: Jingoo Han <jingoohan1@gmail.com>
+Cc: Joao Pinto <Joao.Pinto@synopsys.com>
 ---
- drivers/pci/dwc/pci-keystone-dw.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/pci/dwc/pcie-designware-host.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/pci/dwc/pci-keystone-dw.c b/drivers/pci/dwc/pci-keystone-dw.c
-index 6b396f6..8bc626e 100644
---- a/drivers/pci/dwc/pci-keystone-dw.c
-+++ b/drivers/pci/dwc/pci-keystone-dw.c
-@@ -543,7 +543,7 @@ int __init ks_dw_pcie_host_init(struct keystone_pcie *ks_pcie,
+diff --git a/drivers/pci/dwc/pcie-designware-host.c b/drivers/pci/dwc/pcie-designware-host.c
+index 5ba3349..2b789af 100644
+--- a/drivers/pci/dwc/pcie-designware-host.c
++++ b/drivers/pci/dwc/pcie-designware-host.c
+@@ -338,8 +338,9 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	}
  
- 	/* Index 0 is the config reg. space address */
- 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	pci->dbi_base = devm_ioremap_resource(dev, res);
-+	pci->dbi_base = devm_pci_remap_cfg_resource(dev, res);
- 	if (IS_ERR(pci->dbi_base))
- 		return PTR_ERR(pci->dbi_base);
+ 	if (!pci->dbi_base) {
+-		pci->dbi_base = devm_ioremap(dev, pp->cfg->start,
+-					resource_size(pp->cfg));
++		pci->dbi_base = devm_pci_remap_cfgspace(dev,
++						pp->cfg->start,
++						resource_size(pp->cfg));
+ 		if (!pci->dbi_base) {
+ 			dev_err(dev, "error with ioremap\n");
+ 			ret = -ENOMEM;
+@@ -350,8 +351,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	pp->mem_base = pp->mem->start;
  
+ 	if (!pp->va_cfg0_base) {
+-		pp->va_cfg0_base = devm_ioremap(dev, pp->cfg0_base,
+-						pp->cfg0_size);
++		pp->va_cfg0_base = devm_pci_remap_cfgspace(dev,
++					pp->cfg0_base, pp->cfg0_size);
+ 		if (!pp->va_cfg0_base) {
+ 			dev_err(dev, "error with ioremap in function\n");
+ 			ret = -ENOMEM;
+@@ -360,7 +361,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
+ 	}
+ 
+ 	if (!pp->va_cfg1_base) {
+-		pp->va_cfg1_base = devm_ioremap(dev, pp->cfg1_base,
++		pp->va_cfg1_base = devm_pci_remap_cfgspace(dev,
++						pp->cfg1_base,
+ 						pp->cfg1_size);
+ 		if (!pp->va_cfg1_base) {
+ 			dev_err(dev, "error with ioremap\n");
 -- 
 2.10.0
