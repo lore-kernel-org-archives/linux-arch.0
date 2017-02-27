@@ -1,44 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54496 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54498 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751610AbdB0PPf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:35 -0500
+        id S1751457AbdB0PPd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:33 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 10/20] PCI: spear13xx: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:21 +0000
-Message-ID: <20170227151436.18698-11-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 05/20] ARM: implement pci_remap_cfgspace() interface
+Date: Mon, 27 Feb 2017 15:14:16 +0000
+Message-ID: <20170227151436.18698-6-lorenzo.pieralisi@arm.com>
 In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>
-Message-ID: <20170227151421.MfO5sJJDDa7VyCN3eO__D7kU-FZ5mPNp-HX8E778y1M@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170227151416.8GwAqCKKiZqILzMtDPhUBE4R2MGcEDTfMEov3U2Fx7E@z>
 
-PCI configuration space should be mapped with a memory region type that
-generate on the CPU host bus non-posted write transations. Update the
-driver to use the devm_pci_remap_cfg* interface to make sure the correct
-memory mappings for PCI configuration space are used.
+The PCI bus specifications (rev 3.0, 3.2.5 "Transaction Ordering
+and Posting") define rules for PCI configuration space transactions
+ordering and posting, that state that configuration writes have to
+be non-posted transactions.
+
+Current ioremap interface on ARM provides mapping functions that
+provide "bufferable" writes transactions (ie ioremap uses MT_DEVICE
+memory type) aka posted writes, so PCI host controller drivers have
+no arch interface to remap PCI configuration space with memory
+attributes that comply with the PCI specifications for configuration
+space.
+
+Implement an ARM specific pci_remap_cfgspace() interface that allows to
+map PCI config memory regions with MT_UNCACHED memory type (ie strongly
+ordered - non-posted writes), providing a remap function that complies
+with PCI specifications for config space transactions.
 
 Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Pratyush Anand <pratyush.anand@gmail.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>
 ---
- drivers/pci/dwc/pcie-spear13xx.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/arm/include/asm/io.h | 10 ++++++++++
+ arch/arm/mm/ioremap.c     |  7 +++++++
+ 2 files changed, 17 insertions(+)
 
-diff --git a/drivers/pci/dwc/pcie-spear13xx.c b/drivers/pci/dwc/pcie-spear13xx.c
-index 348f9c5..ea676a1 100644
---- a/drivers/pci/dwc/pcie-spear13xx.c
-+++ b/drivers/pci/dwc/pcie-spear13xx.c
-@@ -271,7 +271,7 @@ static int spear13xx_pcie_probe(struct platform_device *pdev)
- 	}
+diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+index 42871fb..74d1b09 100644
+--- a/arch/arm/include/asm/io.h
++++ b/arch/arm/include/asm/io.h
+@@ -187,6 +187,16 @@ static inline void pci_ioremap_set_mem_type(int mem_type) {}
+ extern int pci_ioremap_io(unsigned int offset, phys_addr_t phys_addr);
  
- 	dbi_base = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
--	pci->dbi_base = devm_ioremap_resource(dev, dbi_base);
-+	pci->dbi_base = devm_pci_remap_cfg_resource(dev, dbi_base);
- 	if (IS_ERR(pci->dbi_base)) {
- 		dev_err(dev, "couldn't remap dbi base %p\n", dbi_base);
- 		ret = PTR_ERR(pci->dbi_base);
+ /*
++ * PCI configuration space mapping function.
++ *
++ * PCI specifications does not allow configuration write
++ * transactions to be posted. Add an arch specific
++ * pci_remap_cfgspace definition that is implemented
++ * through strongly ordered memory mappings.
++ */
++#define pci_remap_cfgspace pci_remap_cfgspace
++void __iomem *pci_remap_cfgspace(resource_size_t res_cookie, size_t size);
++/*
+  * Now, pick up the machine-defined IO definitions
+  */
+ #ifdef CONFIG_NEED_MACH_IO_H
+diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
+index ff0eed2..fc91205 100644
+--- a/arch/arm/mm/ioremap.c
++++ b/arch/arm/mm/ioremap.c
+@@ -481,6 +481,13 @@ int pci_ioremap_io(unsigned int offset, phys_addr_t phys_addr)
+ 				  __pgprot(get_mem_type(pci_ioremap_mem_type)->prot_pte));
+ }
+ EXPORT_SYMBOL_GPL(pci_ioremap_io);
++
++void __iomem *pci_remap_cfgspace(resource_size_t res_cookie, size_t size)
++{
++	return arch_ioremap_caller(res_cookie, size, MT_UNCACHED,
++				   __builtin_return_address(0));
++}
++EXPORT_SYMBOL_GPL(pci_remap_cfgspace);
+ #endif
+ 
+ /*
 -- 
 2.10.0
