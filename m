@@ -1,120 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:33150 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751646AbdB0TOR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 14:14:17 -0500
-Date: Mon, 27 Feb 2017 19:17:01 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 21/28] x86: Check for memory encryption on the APs
-Message-ID: <20170227181701.2lynk4rm77yk4msf@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154647.19244.18733.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-qk0-f176.google.com ([209.85.220.176]:34199 "EHLO
+        mail-qk0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751341AbdB0W0n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2017 17:26:43 -0500
+Received: by mail-qk0-f176.google.com with SMTP id s186so120867439qkb.1
+        for <linux-arch@vger.kernel.org>; Mon, 27 Feb 2017 14:25:02 -0800 (PST)
+Subject: Re: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap
+ function
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
+From: Ray Jui <ray.jui@broadcom.com>
+Message-ID: <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
+Date: Mon, 27 Feb 2017 13:21:39 -0800
 MIME-Version: 1.0
+In-Reply-To: <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170216154647.19244.18733.stgit@tlendack-t1.amdoffice.net>
+Content-Language: en-US
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170227181701.bL2vEm1Bq6hRqcslf2WQ00Qb8FH5n795-QHf0pRhGJw@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Ray Jui <rjui@broadcom.com>, Jon Mason <jonmason@broadcom.com>
+Message-ID: <20170227212139.EDkfOCKohYxEd9LYk-fvR549l4hS3u2NuxeN1wfVTfo@z>
 
-On Thu, Feb 16, 2017 at 09:46:47AM -0600, Tom Lendacky wrote:
-> Add support to check if memory encryption is active in the kernel and that
-> it has been enabled on the AP. If memory encryption is active in the kernel
-> but has not been enabled on the AP, then set the SYS_CFG MSR bit to enable
-> memory encryption on that AP and allow the AP to continue start up.
+Hi Lorenzo,
+
+On 2/27/2017 7:14 AM, Lorenzo Pieralisi wrote:
+> PCI configuration space should be mapped with a memory region type that
+> generates on the CPU host bus non-posted write transations. Update the
+> driver to use the devm_pci_remap_cfg* interface to make sure the correct
+> memory mappings for PCI configuration space are used.
 > 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Ray Jui <rjui@broadcom.com>
+> Cc: Jon Mason <jonmason@broadcom.com>
 > ---
->  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
->  arch/x86/realmode/init.c             |    4 ++++
->  arch/x86/realmode/rm/trampoline_64.S |   17 +++++++++++++++++
->  3 files changed, 33 insertions(+)
+>  drivers/pci/host/pcie-iproc-platform.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 > 
-> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
-> index 230e190..4f7ef53 100644
-> --- a/arch/x86/include/asm/realmode.h
-> +++ b/arch/x86/include/asm/realmode.h
-> @@ -1,6 +1,15 @@
->  #ifndef _ARCH_X86_REALMODE_H
->  #define _ARCH_X86_REALMODE_H
+> diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
+> index f4909bb..b48d0db 100644
+> --- a/drivers/pci/host/pcie-iproc-platform.c
+> +++ b/drivers/pci/host/pcie-iproc-platform.c
+> @@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
+>  		return ret;
+>  	}
 >  
-> +/*
-> + * Flag bit definitions for use with the flags field of the trampoline header
-> + * int the CONFIG_X86_64 variant.
+> -	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
+> +	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
+> +					     resource_size(&reg));
 
-s/int/in/
+Note these are NOT config space registers; instead, they are host
+controller registers. iProc PCIe controller access config space
+registers indirectly through two of the controller registers instead of
+directly mapped.
 
-> + */
-> +#define TH_FLAGS_SME_ACTIVE_BIT		0
-> +#define TH_FLAGS_SME_ACTIVE		BIT(TH_FLAGS_SME_ACTIVE_BIT)
-> +
-> +#ifndef __ASSEMBLY__
-> +
->  #include <linux/types.h>
->  #include <asm/io.h>
->  
-> @@ -38,6 +47,7 @@ struct trampoline_header {
->  	u64 start;
->  	u64 efer;
->  	u32 cr4;
-> +	u32 flags;
->  #endif
->  };
->  
-> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
->  void set_real_mode_mem(phys_addr_t mem, size_t size);
->  void reserve_real_mode(void);
->  
-> +#endif /* __ASSEMBLY__ */
-> +
->  #endif /* _ARCH_X86_REALMODE_H */
-> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-> index 21d7506..5010089 100644
-> --- a/arch/x86/realmode/init.c
-> +++ b/arch/x86/realmode/init.c
-> @@ -102,6 +102,10 @@ static void __init setup_real_mode(void)
->  	trampoline_cr4_features = &trampoline_header->cr4;
->  	*trampoline_cr4_features = mmu_cr4_features;
->  
-> +	trampoline_header->flags = 0;
-> +	if (sme_active())
-> +		trampoline_header->flags |= TH_FLAGS_SME_ACTIVE;
-> +
->  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
->  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
->  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
-> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
-> index dac7b20..a88c3d1 100644
-> --- a/arch/x86/realmode/rm/trampoline_64.S
-> +++ b/arch/x86/realmode/rm/trampoline_64.S
-> @@ -30,6 +30,7 @@
->  #include <asm/msr.h>
->  #include <asm/segment.h>
->  #include <asm/processor-flags.h>
-> +#include <asm/realmode.h>
->  #include "realmode.h"
->  
->  	.text
-> @@ -92,6 +93,21 @@ ENTRY(startup_32)
->  	movl	%edx, %fs
->  	movl	%edx, %gs
->  
-> +	/* Check for memory encryption support */
+Thanks,
 
-Let's add some blurb here about this being a safety net in case BIOS
-f*cks up. Which wouldn't be that far-fetched... :-)
+Ray
 
-> +	bt	$TH_FLAGS_SME_ACTIVE_BIT, pa_tr_flags
-> +	jnc	.Ldone
-> +	movl	$MSR_K8_SYSCFG, %ecx
-> +	rdmsr
-> +	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
-> +	jc	.Ldone
-
--- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+>  	if (!pcie->base) {
+>  		dev_err(dev, "unable to map controller registers\n");
+>  		return -ENOMEM;
+> 
