@@ -1,129 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54218 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:54620 "EHLO foss.arm.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751173AbdB0PPc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 27 Feb 2017 10:15:32 -0500
+        id S1751452AbdB0PP5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 27 Feb 2017 10:15:57 -0500
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 00/20] PCI: fix config and I/O Address space memory mappings
-Date: Mon, 27 Feb 2017 15:14:11 +0000
-Message-ID: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+Subject: [PATCH 18/20] PCI: tegra: update PCI config space remap function
+Date: Mon, 27 Feb 2017 15:14:29 +0000
+Message-ID: <20170227151436.18698-19-lorenzo.pieralisi@arm.com>
+In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Pratyush Anand <pratyush.anand@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Russell King <linux@armlinux.org.uk>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Catalin Marinas <catalin.marinas@arm.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>, John Garry <john.garry@huawei.com>
-Message-ID: <20170227151411.m19zFU5kHPY_qQ7I3rCLkjCwY9u9P2YvBMX-hrYcDnM@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Thierry Reding <thierry.reding@gmail.com>
+Message-ID: <20170227151429.cCcueG2uwa3w8A3WKhunllqnT6l7tHlwI8iSxZOOX_c@z>
 
-PCI local bus specifications (Rev3.0, 3.2.5 "Transaction Ordering
-and Posting") strictly require PCI configuration and I/O Address space
-write transactions to be non-posted.
+PCI configuration space should be mapped with a memory region type that
+generates on the CPU host bus non-posted write transations. Update the
+driver to use correct memory mapping attributes to map config space
+regions to enforce configuration space non-posted writes behaviour.
 
-Current crop of DT/ACPI PCI host controllers drivers relies on
-the ioremap interface to map ECAM and ECAM-derivative PCI config
-regions and pci_remap_iospace() to create a VMA for mapping
-PCI host bridge I/O Address space transactions to CPU virtual address
-space.
-
-On some platforms (ie ARM/ARM64) ioremap fails to comply with the PCI
-configuration non-posted write transactions requirement, because it
-provides a memory mapping that issues "bufferable" or, in PCI terms
-"posted" write transactions. Likewise, the current pci_remap_iospace()
-implementation maps the physical address range that the PCI translates
-to I/O space cycles to virtual address space through pgprot_device()
-attributes that on eg ARM64 provides a memory mapping issuing
-posted writes transactions, which is not PCI specifications compliant.
-
-This patch series[1] addresses both issues in one go:
-
-- It updates the pci_remap_iospace() function to use a page mapping
-  that guarantees non-posted write transactions for I/O space addresses
-- It adds a kernel API to remap PCI config space resources, so that
-  architecture can override it with a mapping implementation that
-  guarantees PCI specifications compliancy wrt non-posted write
-  configuration transactions
-- It updates all PCI host controller implementations (and the generic
-  ECAM layer) to use the newly introduced mapping interface
-
-Tested on Juno ECAM based interface (DT/ACPI).
-
-Non-ECAM PCI host controller drivers patches need checking to make
-sure that:
-
-- I patched the correct resource region mapping for config space
-- There are not any other ways to ensure posted-write completion
-  in the respective pci_ops that make the relevant patch unnecessary
-
-[1] git://git.kernel.org/pub/scm/linux/kernel/git/lpieralisi/linux.git pci/config-io-mappings-fix
-
-Cc: Pratyush Anand <pratyush.anand@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Jingoo Han <jingoohan1@gmail.com>
+Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Mingkai Hu <mingkai.hu@freescale.com>
-Cc: Tanmay Inamdar <tinamdar@apm.com>
-Cc: Murali Karicheri <m-karicheri2@ti.com>
-Cc: Russell King <linux@armlinux.org.uk>
-Cc: Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>
-Cc: Ray Jui <rjui@broadcom.com>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>
-Cc: Shawn Lin <shawn.lin@rock-chips.com>
-Cc: Minghuan Lian <minghuan.Lian@freescale.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Jon Mason <jonmason@broadcom.com>
-Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Cc: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Cc: Joao Pinto <Joao.Pinto@synopsys.com>
 Cc: Thierry Reding <thierry.reding@gmail.com>
-Cc: Michal Simek <michal.simek@xilinx.com>
-Cc: Stanimir Varbanov <svarbanov@mm-sol.com>
-Cc: Zhou Wang <wangzhou1@hisilicon.com>
-Cc: Roy Zang <tie-fei.zang@freescale.com>
+---
+ drivers/pci/host/pci-tegra.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Lorenzo Pieralisi (20):
-  PCI: remove __weak tag from pci_remap_iospace()
-  PCI: fix pci_remap_iospace() remap attribute
-  asm-generic/io.h: add PCI config space remap interface
-  ARM64: implement pci_remap_cfgspace() interface
-  ARM: implement pci_remap_cfgspace() interface
-  PCI: ECAM: use pci_remap_cfgspace() to map config region
-  PCI: implement Devres interface to map PCI config space
-  PCI: xilinx: update PCI config space remap function
-  PCI: xilinx-nwl: update PCI config space remap function
-  PCI: spear13xx: update PCI config space remap function
-  PCI: rockchip: update PCI config space remap function
-  PCI: qcom: update PCI config space remap function
-  PCI: iproc-platform: update PCI config space remap function
-  PCI: hisi: update PCI config space remap function
-  PCI: designware: update PCI config space remap function
-  PCI: armada8k: update PCI config space remap function
-  PCI: xgene: update PCI config space remap function
-  PCI: tegra: update PCI config space remap function
-  PCI: layerscape: update PCI config space remap function
-  PCI: keystone-dw: update PCI config space remap function
-
- Documentation/driver-model/devres.txt  |  6 ++-
- arch/arm/include/asm/io.h              | 10 ++++
- arch/arm/mm/ioremap.c                  |  7 +++
- arch/arm64/include/asm/io.h            | 10 ++++
- drivers/pci/dwc/pci-keystone-dw.c      |  2 +-
- drivers/pci/dwc/pci-layerscape.c       |  2 +-
- drivers/pci/dwc/pcie-armada8k.c        |  2 +-
- drivers/pci/dwc/pcie-designware-host.c | 12 +++--
- drivers/pci/dwc/pcie-hisi.c            |  3 +-
- drivers/pci/dwc/pcie-qcom.c            |  2 +-
- drivers/pci/dwc/pcie-spear13xx.c       |  2 +-
- drivers/pci/ecam.c                     |  5 +-
- drivers/pci/host/pci-tegra.c           |  4 +-
- drivers/pci/host/pci-xgene.c           |  4 +-
- drivers/pci/host/pcie-iproc-platform.c |  3 +-
- drivers/pci/host/pcie-rockchip.c       |  2 +-
- drivers/pci/host/pcie-xilinx-nwl.c     |  2 +-
- drivers/pci/host/pcie-xilinx.c         |  2 +-
- drivers/pci/pci.c                      | 86 +++++++++++++++++++++++++++++++++-
- include/asm-generic/io.h               |  9 ++++
- include/linux/pci.h                    |  5 ++
- 21 files changed, 154 insertions(+), 26 deletions(-)
-
+diff --git a/drivers/pci/host/pci-tegra.c b/drivers/pci/host/pci-tegra.c
+index ed8a93f..2618f87 100644
+--- a/drivers/pci/host/pci-tegra.c
++++ b/drivers/pci/host/pci-tegra.c
+@@ -380,7 +380,7 @@ static struct tegra_pcie_bus *tegra_pcie_bus_alloc(struct tegra_pcie *pcie,
+ 						   unsigned int busnr)
+ {
+ 	struct device *dev = pcie->dev;
+-	pgprot_t prot = pgprot_device(PAGE_KERNEL);
++	pgprot_t prot = pgprot_noncached(PAGE_KERNEL);
+ 	phys_addr_t cs = pcie->cs->start;
+ 	struct tegra_pcie_bus *bus;
+ 	unsigned int i;
+@@ -1962,7 +1962,7 @@ static int tegra_pcie_parse_dt(struct tegra_pcie *pcie)
+ 		rp->pcie = pcie;
+ 		rp->np = port;
+ 
+-		rp->base = devm_ioremap_resource(dev, &rp->regs);
++		rp->base = devm_pci_remap_cfg_resource(dev, &rp->regs);
+ 		if (IS_ERR(rp->base))
+ 			return PTR_ERR(rp->base);
+ 
 -- 
 2.10.0
