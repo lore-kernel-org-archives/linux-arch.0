@@ -1,40 +1,34 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: [PATCH 09/20] PCI: xilinx-nwl: update PCI config space remap function
-Date: Mon, 27 Feb 2017 15:14:20 +0000
-Message-ID: <20170227151436.18698-10-lorenzo.pieralisi@arm.com>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: Force cast get_user() setting x to 0
+Date: Mon, 27 Feb 2017 16:52:41 +0100
+Message-ID: <CAK8P3a2B45hyQj0OvToUXg7fXi8bDCtYs7ZJChQ6gdwN9NDcfg@mail.gmail.com>
+References: <20170217165229.17768-1-stephen.boyd@linaro.org> <148798589245.16996.9285242756855195986@sboyd-linaro>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+In-Reply-To: <148798589245.16996.9285242756855195986@sboyd-linaro>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Michal Simek <michal.simek@xilinx.com>
+To: Stephen Boyd <stephen.boyd@linaro.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-PCI configuration space should be mapped with a memory region type that
-generates on the CPU host bus non-posted write transations. Update the
-driver to use the devm_pci_remap_cfg* interface to make sure the correct
-memory mappings for PCI configuration space are used.
+On Sat, Feb 25, 2017 at 2:24 AM, Stephen Boyd <stephen.boyd@linaro.org> wrote:
+> Quoting Stephen Boyd (2017-02-17 08:52:29)
+>> If we call get_user() with an __le* or __be* type sparse will
+>> complain when we assign the result to 0 on the faulting path.
+>> Let's force cast here so that sparse doesn't complain. This
+>> mirrors what we do in __get_user() as well.
+>>
+>> Signed-off-by: Stephen Boyd <stephen.boyd@linaro.org>
+>> ---
+>>
+>> I made a similar fix to arm64 headers, and it looks like asm-generic
+>> would need the same fix.
+>
+> I suppose we can ignore this. I was using sparse v0.5.0 but it seems
+> that later versions of sparse don't complain here anymore as Luc has
+> pointed out.
 
-Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>
-Cc: Michal Simek <michal.simek@xilinx.com>
----
- drivers/pci/host/pcie-xilinx-nwl.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Ok, thanks for the follow-up.
 
-diff --git a/drivers/pci/host/pcie-xilinx-nwl.c b/drivers/pci/host/pcie-xilinx-nwl.c
-index 4c3e0ab..4b16b26 100644
---- a/drivers/pci/host/pcie-xilinx-nwl.c
-+++ b/drivers/pci/host/pcie-xilinx-nwl.c
-@@ -761,7 +761,7 @@ static int nwl_pcie_parse_dt(struct nwl_pcie *pcie,
- 	pcie->phys_pcie_reg_base = res->start;
- 
- 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "cfg");
--	pcie->ecam_base = devm_ioremap_resource(dev, res);
-+	pcie->ecam_base = devm_pci_remap_cfg_resource(dev, res);
- 	if (IS_ERR(pcie->ecam_base))
- 		return PTR_ERR(pcie->ecam_base);
- 	pcie->phys_ecam_base = res->start;
--- 
-2.10.0
+   Arnd
