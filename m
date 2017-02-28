@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34424 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34426 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751511AbdCACnA (ORCPT
+        with ESMTP id S1751537AbdCACnA (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 21:43:00 -0500
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v8 06/11] uapi: includes linux/types.h before exporting files
-Date: Tue, 28 Feb 2017 21:47:32 +0100
-Message-ID: <1488314857-28327-7-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v8 04/11] Makefile.headersinst: cleanup input files
+Date: Tue, 28 Feb 2017 21:47:30 +0100
+Message-ID: <1488314857-28327-5-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <20170228024844.GA28691@altlinux.org>
  <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
@@ -14,104 +14,75 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, mmarek@suse.com
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170228204732.RzvxUrvE19VFT4eJnre_IjiHnI2rRXDJJ9AFW_tLvxw@z>
+Message-ID: <20170228204730.BdlBdbk-z_912-KBwH8gAf5fLBHqQ6EvGRy2WVV4sSQ@z>
 
-Some files will be exported after the next patch. 0-day tests report the
-following warning/error:
-./usr/include/linux/bcache.h:8: include of <linux/types.h> is preferred over <asm/types.h>
-./usr/include/linux/bcache.h:11: found __[us]{8,16,32,64} type without #include <linux/types.h>
-./usr/include/linux/qrtr.h:8: found __[us]{8,16,32,64} type without #include <linux/types.h>
-./usr/include/linux/cryptouser.h:39: found __[us]{8,16,32,64} type without #include <linux/types.h>
-./usr/include/linux/pr.h:14: found __[us]{8,16,32,64} type without #include <linux/types.h>
-./usr/include/linux/btrfs_tree.h:337: found __[us]{8,16,32,64} type without #include <linux/types.h>
-./usr/include/rdma/bnxt_re-abi.h:45: found __[us]{8,16,32,64} type without #include <linux/types.h>
+After the last four patches, all exported headers are under uapi/, thus
+input-files2 are not needed anymore.
+The side effect is that input-files1-name is exactly header-y.
+
+Note also that input-files3-name is genhdr-y.
 
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 ---
- include/uapi/linux/bcache.h     | 2 +-
- include/uapi/linux/btrfs_tree.h | 2 ++
- include/uapi/linux/cryptouser.h | 2 ++
- include/uapi/linux/pr.h         | 2 ++
- include/uapi/linux/qrtr.h       | 1 +
- include/uapi/rdma/bnxt_re-abi.h | 2 ++
- 6 files changed, 10 insertions(+), 1 deletion(-)
+ scripts/Makefile.headersinst | 34 +++++++++++-----------------------
+ 1 file changed, 11 insertions(+), 23 deletions(-)
 
-diff --git a/include/uapi/linux/bcache.h b/include/uapi/linux/bcache.h
-index 22b6ad31c706..e3bb0635e94a 100644
---- a/include/uapi/linux/bcache.h
-+++ b/include/uapi/linux/bcache.h
-@@ -5,7 +5,7 @@
-  * Bcache on disk data structures
-  */
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index 1106d6ca3a38..3e20d03432d2 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
+ srcdir        := $(srctree)/$(obj)
+ gendir        := $(objtree)/$(gen)
  
--#include <asm/types.h>
-+#include <linux/types.h>
+-oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
+-
+ # all headers files for this dir
+ header-y      := $(filter-out $(generic-y), $(header-y))
+ all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
+ output-files  := $(addprefix $(installdir)/, $(all-files))
  
- #define BITMASK(name, type, field, offset, size)		\
- static inline __u64 name(const type *k)				\
-diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
-index d5ad15a106a7..6a261cb52d95 100644
---- a/include/uapi/linux/btrfs_tree.h
-+++ b/include/uapi/linux/btrfs_tree.h
-@@ -1,6 +1,8 @@
- #ifndef _BTRFS_CTREE_H_
- #define _BTRFS_CTREE_H_
+-input-files1  := $(foreach hdr, $(header-y), \
+-		   $(if $(wildcard $(srcdir)/$(hdr)), \
+-			$(wildcard $(srcdir)/$(hdr))) \
+-		   )
+-input-files1-name := $(notdir $(input-files1))
+-input-files2  := $(foreach hdr, $(header-y), \
+-		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
+-			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
+-				$(wildcard $(oldsrcdir)/$(hdr)), \
+-				$(error Missing UAPI file $(srcdir)/$(hdr))) \
+-		   ))
+-input-files2-name := $(notdir $(input-files2))
+-input-files3  := $(foreach hdr, $(genhdr-y), \
+-		   $(if	$(wildcard $(gendir)/$(hdr)), \
+-			$(wildcard $(gendir)/$(hdr)), \
+-			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
+-		   ))
+-input-files3-name := $(notdir $(input-files3))
++# Check that all expected files exist
++$(foreach hdr, $(header-y), \
++  $(if $(wildcard $(srcdir)/$(hdr)),, \
++       $(error Missing UAPI file $(srcdir)/$(hdr)) \
++   ))
++$(foreach hdr, $(genhdr-y), \
++  $(if	$(wildcard $(gendir)/$(hdr)),, \
++       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
++  ))
  
-+#include <linux/types.h>
-+
- /*
-  * This header contains the structure definitions and constants used
-  * by file system objects that can be retrieved using
-diff --git a/include/uapi/linux/cryptouser.h b/include/uapi/linux/cryptouser.h
-index 11d21fce14d6..c6a09c5261e7 100644
---- a/include/uapi/linux/cryptouser.h
-+++ b/include/uapi/linux/cryptouser.h
-@@ -18,6 +18,8 @@
-  * 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
-  */
- 
-+#include <linux/types.h>
-+
- /* Netlink configuration messages.  */
- enum {
- 	CRYPTO_MSG_BASE = 0x10,
-diff --git a/include/uapi/linux/pr.h b/include/uapi/linux/pr.h
-index 57d7c0f916b6..645ef3cf3dd0 100644
---- a/include/uapi/linux/pr.h
-+++ b/include/uapi/linux/pr.h
-@@ -1,6 +1,8 @@
- #ifndef _UAPI_PR_H
- #define _UAPI_PR_H
- 
-+#include <linux/types.h>
-+
- enum pr_type {
- 	PR_WRITE_EXCLUSIVE		= 1,
- 	PR_EXCLUSIVE_ACCESS		= 2,
-diff --git a/include/uapi/linux/qrtr.h b/include/uapi/linux/qrtr.h
-index 66c0748d26e2..b14ee91ec387 100644
---- a/include/uapi/linux/qrtr.h
-+++ b/include/uapi/linux/qrtr.h
-@@ -1,6 +1,7 @@
- #ifndef _LINUX_QRTR_H
- #define _LINUX_QRTR_H
- 
-+#include <linux/types.h>
- #include <linux/socket.h>
- 
- struct sockaddr_qrtr {
-diff --git a/include/uapi/rdma/bnxt_re-abi.h b/include/uapi/rdma/bnxt_re-abi.h
-index e2c8a3f0ccec..74018bd18d72 100644
---- a/include/uapi/rdma/bnxt_re-abi.h
-+++ b/include/uapi/rdma/bnxt_re-abi.h
-@@ -39,6 +39,8 @@
- #ifndef __BNXT_RE_UVERBS_ABI_H__
- #define __BNXT_RE_UVERBS_ABI_H__
- 
-+#include <linux/types.h>
-+
- #define BNXT_RE_ABI_VERSION	1
- 
- struct bnxt_re_uctx_resp {
+ # Work out what needs to be removed
+ oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
+@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
+ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+                             file$(if $(word 2, $(all-files)),s))
+       cmd_install = \
+-        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
+-        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
+-        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
++        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
++        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
+         for F in $(wrapper-files); do                                   \
+                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
+         done;                                                           \
 -- 
 2.8.1
