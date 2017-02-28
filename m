@@ -1,100 +1,101 @@
-From: Ray Jui <ray.jui@broadcom.com>
-Subject: Re: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap
- function
-Date: Tue, 28 Feb 2017 09:42:20 -0800
-Message-ID: <e6ce59d4-59af-7c18-4589-342ac08aa88c@broadcom.com>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
- <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
- <20170228105428.GD7439@red-moon>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170228105428.GD7439@red-moon>
-Content-Language: en-US
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-arch@vger.kernel.org, Jon Mason <jonmason@broadcom.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Ray Jui <rjui@broadcom.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-arm-kernel@lists.infradead.org
+From: Khalid Aziz <khalid.aziz@oracle.com>
+Subject: [PATCH v6 2/4] mm: Add functions to support extra actions on swap in/out
+Date: Tue, 28 Feb 2017 11:35:21 -0700
+Message-ID: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+References: <cover.1488232591.git.khalid.aziz@oracle.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1488232591.git.khalid.aziz@oracle.com>
+In-Reply-To: <cover.1488232591.git.khalid.aziz@oracle.com>
+References: <cover.1488232591.git.khalid.aziz@oracle.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
+Cc: Khalid Aziz <khalid.aziz@oracle.com>, kirill.shutemov@linux.intel.com, mhocko@suse.com, jmarchan@redhat.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
 List-Id: linux-arch.vger.kernel.org
 
+If a processor supports special metadata for a page, for example ADI
+version tags on SPARC M7, this metadata must be saved when the page is
+swapped out. The same metadata must be restored when the page is swapped
+back in. This patch adds two new architecture specific functions -
+arch_do_swap_page() to be called when a page is swapped in,
+arch_unmap_one() to be called when a page is being unmapped for swap
+out.
 
+Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Cc: Khalid Aziz <khalid@gonehiking.org>
+---
+v5:
+	- Replaced set_swp_pte() function with new architecture
+	  functions arch_do_swap_page() and arch_unmap_one()
 
-On 2/28/2017 2:54 AM, Lorenzo Pieralisi wrote:
-> Hi Ray,
-> 
-> On Mon, Feb 27, 2017 at 01:21:39PM -0800, Ray Jui wrote:
->> Hi Lorenzo,
->>
->> On 2/27/2017 7:14 AM, Lorenzo Pieralisi wrote:
->>> PCI configuration space should be mapped with a memory region type that
->>> generates on the CPU host bus non-posted write transations. Update the
->>> driver to use the devm_pci_remap_cfg* interface to make sure the correct
->>> memory mappings for PCI configuration space are used.
->>>
->>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
->>> Cc: Bjorn Helgaas <bhelgaas@google.com>
->>> Cc: Ray Jui <rjui@broadcom.com>
->>> Cc: Jon Mason <jonmason@broadcom.com>
->>> ---
->>>  drivers/pci/host/pcie-iproc-platform.c | 3 ++-
->>>  1 file changed, 2 insertions(+), 1 deletion(-)
->>>
->>> diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
->>> index f4909bb..b48d0db 100644
->>> --- a/drivers/pci/host/pcie-iproc-platform.c
->>> +++ b/drivers/pci/host/pcie-iproc-platform.c
->>> @@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
->>>  		return ret;
->>>  	}
->>>  
->>> -	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
->>> +	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
->>> +					     resource_size(&reg));
->>
->> Note these are NOT config space registers; instead, they are host
->> controller registers. iProc PCIe controller access config space
->> registers indirectly through two of the controller registers instead of
->> directly mapped.
-> 
-> Yes but IIUC those registers that allow indirection live in the address
-> space pointed at by pcie->base, right ? Question is whether it is fine
-> to access those registers through mappings resulting on posted writes
-> and that's a question I need your help to answer as I said in the cover
-> letter.
+ include/asm-generic/pgtable.h | 16 ++++++++++++++++
+ mm/memory.c                   |  1 +
+ mm/rmap.c                     |  2 ++
+ 3 files changed, 19 insertions(+)
 
-This I'll need to check with our ASIC team, and it may take a while.
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 18af2bc..5764d8f 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -282,6 +282,22 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif
+ 
++#ifndef __HAVE_ARCH_DO_SWAP_PAGE
++static inline void arch_do_swap_page(struct mm_struct *mm, unsigned long addr,
++				     pte_t pte, pte_t orig_pte)
++{
++
++}
++#endif
++
++#ifndef __HAVE_ARCH_UNMAP_ONE
++static inline void arch_unmap_one(struct mm_struct *mm, unsigned long addr,
++				  pte_t pte, pte_t orig_pte)
++{
++
++}
++#endif
++
+ #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
+ #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index 6bf2b47..b086c76 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
+ 	if (pte_swp_soft_dirty(vmf->orig_pte))
+ 		pte = pte_mksoft_dirty(pte);
+ 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
++	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
+ 	vmf->orig_pte = pte;
+ 	if (page == swapcache) {
+ 		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
+diff --git a/mm/rmap.c b/mm/rmap.c
+index 91619fd..192c41a 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 		swp_pte = swp_entry_to_pte(entry);
+ 		if (pte_soft_dirty(pteval))
+ 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
++		arch_unmap_one(mm, address, swp_pte, pteval);
+ 		set_pte_at(mm, address, pte, swp_pte);
+ 	} else if (PageAnon(page)) {
+ 		swp_entry_t entry = { .val = page_private(page) };
+@@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
+ 		swp_pte = swp_entry_to_pte(entry);
+ 		if (pte_soft_dirty(pteval))
+ 			swp_pte = pte_swp_mksoft_dirty(swp_pte);
++		arch_unmap_one(mm, address, swp_pte, pteval);
+ 		set_pte_at(mm, address, pte, swp_pte);
+ 	} else
+ 		dec_mm_counter(mm, mm_counter_file(page));
+-- 
+2.7.4
 
-Note indirect access to the config registers is done with two registers
-within pcie->base, one specifies the
-address/bus/device/function/read/write direction and the other specifies
-the data. All other registers in the block pointed to by pcie->base
-really have nothing to do with config register access. They are used for
-other block related configurations.
-
-Thanks,
-
-Ray
-
-> 
-> Thanks a lot for flagging this up, that's exactly the feedback I need.
-> 
-> Lorenzo
-> 
->>
->> Thanks,
->>
->> Ray
->>
->>>  	if (!pcie->base) {
->>>  		dev_err(dev, "unable to map controller registers\n");
->>>  		return -ENOMEM;
->>>
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
