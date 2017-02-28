@@ -1,99 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f50.google.com ([74.125.82.50]:34941 "EHLO
-        mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751497AbdCACdd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 21:33:33 -0500
-Received: by mail-wm0-f50.google.com with SMTP id v186so99417309wmd.0
-        for <linux-arch@vger.kernel.org>; Tue, 28 Feb 2017 18:33:30 -0800 (PST)
-Subject: Re: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap
- function
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
- <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
- <20170228105428.GD7439@red-moon>
-From: Ray Jui <ray.jui@broadcom.com>
-Message-ID: <e6ce59d4-59af-7c18-4589-342ac08aa88c@broadcom.com>
-Date: Tue, 28 Feb 2017 09:42:20 -0800
-MIME-Version: 1.0
-In-Reply-To: <20170228105428.GD7439@red-moon>
-Content-Type: text/plain; charset=utf-8
-Content-Language: en-US
-Content-Transfer-Encoding: 7bit
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34427 "EHLO
+        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751524AbdCACnA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 21:43:00 -0500
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v8 09/11] smc_diag.h: fix include from userland
+Date: Tue, 28 Feb 2017 21:47:35 +0100
+Message-ID: <1488314857-28327-10-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
+References: <20170228024844.GA28691@altlinux.org>
+ <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Ray Jui <rjui@broadcom.com>, Jon Mason <jonmason@broadcom.com>
-Message-ID: <20170228174220.aOiqBQii8GMT1VwK-3BsVjb1IU0b5heACLSXZLUVrI4@z>
+To: arnd@arndb.de, mmarek@suse.com
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
+Message-ID: <20170228204735.9alDoMBUKChnRwHfIZ9r3BQq23ozP5llYenRmPTbu8A@z>
 
+This patch prepares the uapi export by fixing the following error:
 
+.../linux/smc_diag.h:6:27: fatal error: rdma/ib_verbs.h: No such file or directory
+ #include <rdma/ib_verbs.h>
 
-On 2/28/2017 2:54 AM, Lorenzo Pieralisi wrote:
-> Hi Ray,
-> 
-> On Mon, Feb 27, 2017 at 01:21:39PM -0800, Ray Jui wrote:
->> Hi Lorenzo,
->>
->> On 2/27/2017 7:14 AM, Lorenzo Pieralisi wrote:
->>> PCI configuration space should be mapped with a memory region type that
->>> generates on the CPU host bus non-posted write transations. Update the
->>> driver to use the devm_pci_remap_cfg* interface to make sure the correct
->>> memory mappings for PCI configuration space are used.
->>>
->>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
->>> Cc: Bjorn Helgaas <bhelgaas@google.com>
->>> Cc: Ray Jui <rjui@broadcom.com>
->>> Cc: Jon Mason <jonmason@broadcom.com>
->>> ---
->>>  drivers/pci/host/pcie-iproc-platform.c | 3 ++-
->>>  1 file changed, 2 insertions(+), 1 deletion(-)
->>>
->>> diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
->>> index f4909bb..b48d0db 100644
->>> --- a/drivers/pci/host/pcie-iproc-platform.c
->>> +++ b/drivers/pci/host/pcie-iproc-platform.c
->>> @@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
->>>  		return ret;
->>>  	}
->>>  
->>> -	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
->>> +	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
->>> +					     resource_size(&reg));
->>
->> Note these are NOT config space registers; instead, they are host
->> controller registers. iProc PCIe controller access config space
->> registers indirectly through two of the controller registers instead of
->> directly mapped.
-> 
-> Yes but IIUC those registers that allow indirection live in the address
-> space pointed at by pcie->base, right ? Question is whether it is fine
-> to access those registers through mappings resulting on posted writes
-> and that's a question I need your help to answer as I said in the cover
-> letter.
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+---
+ include/rdma/ib_verbs.h           | 3 +--
+ include/uapi/linux/smc_diag.h     | 2 +-
+ include/uapi/rdma/ib_user_verbs.h | 2 ++
+ 3 files changed, 4 insertions(+), 3 deletions(-)
 
-This I'll need to check with our ASIC team, and it may take a while.
-
-Note indirect access to the config registers is done with two registers
-within pcie->base, one specifies the
-address/bus/device/function/read/write direction and the other specifies
-the data. All other registers in the block pointed to by pcie->base
-really have nothing to do with config register access. They are used for
-other block related configurations.
-
-Thanks,
-
-Ray
-
-> 
-> Thanks a lot for flagging this up, that's exactly the feedback I need.
-> 
-> Lorenzo
-> 
->>
->> Thanks,
->>
->> Ray
->>
->>>  	if (!pcie->base) {
->>>  		dev_err(dev, "unable to map controller registers\n");
->>>  		return -ENOMEM;
->>>
+diff --git a/include/rdma/ib_verbs.h b/include/rdma/ib_verbs.h
+index 0f1813c13687..50f276a4afdc 100644
+--- a/include/rdma/ib_verbs.h
++++ b/include/rdma/ib_verbs.h
+@@ -61,6 +61,7 @@
+ #include <linux/mmu_notifier.h>
+ #include <linux/uaccess.h>
+ #include <linux/cgroup_rdma.h>
++#include <uapi/rdma/ib_user_verbs.h>
+ 
+ extern struct workqueue_struct *ib_wq;
+ extern struct workqueue_struct *ib_comp_wq;
+@@ -1838,8 +1839,6 @@ enum ib_mad_result {
+ 	IB_MAD_RESULT_CONSUMED = 1 << 2  /* Packet consumed: stop processing */
+ };
+ 
+-#define IB_DEVICE_NAME_MAX 64
+-
+ struct ib_port_cache {
+ 	struct ib_pkey_cache  *pkey;
+ 	struct ib_gid_table   *gid;
+diff --git a/include/uapi/linux/smc_diag.h b/include/uapi/linux/smc_diag.h
+index 0063919fea34..87712bfaa9dd 100644
+--- a/include/uapi/linux/smc_diag.h
++++ b/include/uapi/linux/smc_diag.h
+@@ -3,7 +3,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/inet_diag.h>
+-#include <rdma/ib_verbs.h>
++#include <rdma/ib_user_verbs.h>
+ 
+ /* Request structure */
+ struct smc_diag_req {
+diff --git a/include/uapi/rdma/ib_user_verbs.h b/include/uapi/rdma/ib_user_verbs.h
+index 997f904c7692..8edce2b65903 100644
+--- a/include/uapi/rdma/ib_user_verbs.h
++++ b/include/uapi/rdma/ib_user_verbs.h
+@@ -1124,4 +1124,6 @@ struct ib_uverbs_ex_destroy_rwq_ind_table  {
+ 	__u32 ind_tbl_handle;
+ };
+ 
++#define IB_DEVICE_NAME_MAX 64
++
+ #endif /* IB_USER_VERBS_H */
+-- 
+2.8.1
