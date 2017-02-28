@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34179 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34178 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751950AbdB1VQr (ORCPT
+        with ESMTP id S1751954AbdB1VQr (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 16:16:47 -0500
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v8 03/11] x86: stop exporting msr-index.h to userland
-Date: Tue, 28 Feb 2017 21:47:29 +0100
-Message-ID: <1488314857-28327-4-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v8 05/11] Makefile.headersinst: remove destination-y option
+Date: Tue, 28 Feb 2017 21:47:31 +0100
+Message-ID: <1488314857-28327-6-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <20170228024844.GA28691@altlinux.org>
  <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
@@ -14,32 +14,78 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, mmarek@suse.com
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170228204729.8w0-mVa6b4AH0YMPI4txKtxHzg96KS3y1tSOUQk48xY@z>
+Message-ID: <20170228204731.oUgGPIbg_LbBpErdVj5iVxCUViNqiHTocUwj6RQOMxs@z>
 
-Even if this file was not in an uapi directory, it was exported because
-it was listed in the Kbuild file.
+This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
+for exported headers") but never used in-tree.
 
-Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
-Suggested-by: Borislav Petkov <bp@alien8.de>
-CC: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Acked-by: Ingo Molnar <mingo@kernel.org>
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Paul Bolle <pebolle@tiscali.nl>
 ---
- arch/x86/include/uapi/asm/Kbuild | 1 -
- 1 file changed, 1 deletion(-)
+ Documentation/kbuild/makefiles.txt | 23 ++++-------------------
+ scripts/Makefile.headersinst       |  2 +-
+ 2 files changed, 5 insertions(+), 20 deletions(-)
 
-diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
-index 3dec769cadf7..1c532b3f18ea 100644
---- a/arch/x86/include/uapi/asm/Kbuild
-+++ b/arch/x86/include/uapi/asm/Kbuild
-@@ -27,7 +27,6 @@ header-y += ldt.h
- header-y += mce.h
- header-y += mman.h
- header-y += msgbuf.h
--header-y += msr-index.h
- header-y += msr.h
- header-y += mtrr.h
- header-y += param.h
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 9b9c4797fc55..37b525d329ae 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -46,9 +46,8 @@ This document describes the Linux kernel Makefiles.
+ 	=== 7 Kbuild syntax for exported headers
+ 		--- 7.1 header-y
+ 		--- 7.2 genhdr-y
+-		--- 7.3 destination-y
+-		--- 7.4 generic-y
+-		--- 7.5 generated-y
++		--- 7.3 generic-y
++		--- 7.4 generated-y
+ 
+ 	=== 8 Kbuild Variables
+ 	=== 9 Makefile language
+@@ -1295,21 +1294,7 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 			#include/linux/Kbuild
+ 			genhdr-y += version.h
+ 
+-	--- 7.3 destination-y
+-
+-	When an architecture has a set of exported headers that needs to be
+-	exported to a different directory destination-y is used.
+-	destination-y specifies the destination directory for all exported
+-	headers in the file where it is present.
+-
+-		Example:
+-			#arch/xtensa/platforms/s6105/include/platform/Kbuild
+-			destination-y := include/linux
+-
+-	In the example above all exported headers in the Kbuild file
+-	will be located in the directory "include/linux" when exported.
+-
+-	--- 7.4 generic-y
++	--- 7.3 generic-y
+ 
+ 	If an architecture uses a verbatim copy of a header from
+ 	include/asm-generic then this is listed in the file
+@@ -1336,7 +1321,7 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 		Example: termios.h
+ 			#include <asm-generic/termios.h>
+ 
+-	--- 7.5 generated-y
++	--- 7.4 generated-y
+ 
+ 	If an architecture generates other header files alongside generic-y
+ 	wrappers, and not included in genhdr-y, then generated-y specifies
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index 3e20d03432d2..876b42cfede4 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -14,7 +14,7 @@ kbuild-file := $(srctree)/$(obj)/Kbuild
+ include $(kbuild-file)
+ 
+ # called may set destination dir (when installing to asm/)
+-_dst := $(if $(destination-y),$(destination-y),$(if $(dst),$(dst),$(obj)))
++_dst := $(if $(dst),$(dst),$(obj))
+ 
+ old-kbuild-file := $(srctree)/$(subst uapi/,,$(obj))/Kbuild
+ ifneq ($(wildcard $(old-kbuild-file)),)
 -- 
 2.8.1
