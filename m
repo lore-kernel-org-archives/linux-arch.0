@@ -1,121 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2nam03on0065.outbound.protection.outlook.com ([104.47.42.65]:17600
-        "EHLO NAM03-BY2-obe.outbound.protection.outlook.com"
+Received: from mail-bn3nam01on0053.outbound.protection.outlook.com ([104.47.33.53]:38124
+        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751450AbdB1XlS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Feb 2017 18:41:18 -0500
-Subject: Re: [RFC PATCH v4 19/28] swiotlb: Add warnings for use of bounce
- buffers with SME
+        id S1751451AbdCAA3z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Feb 2017 19:29:55 -0500
+Subject: Re: [RFC PATCH v4 16/28] x86: Add support for changing memory
+ encryption attribute
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154619.19244.76653.stgit@tlendack-t1.amdoffice.net>
- <20170227175259.whl75utazbzxp7jo@pd.tnic>
+ <20170216154535.19244.6294.stgit@tlendack-t1.amdoffice.net>
+ <20170222185215.atbntnyw7252kkbk@pd.tnic>
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <9b5af67b-0969-5402-cc01-3ea98f41b748@amd.com>
-Date: Tue, 28 Feb 2017 17:19:51 -0600
+Message-ID: <409ec9f1-896d-a9f0-0e4c-4d102cbf86cf@amd.com>
+Date: Tue, 28 Feb 2017 16:46:15 -0600
 MIME-Version: 1.0
-In-Reply-To: <20170227175259.whl75utazbzxp7jo@pd.tnic>
+In-Reply-To: <20170222185215.atbntnyw7252kkbk@pd.tnic>
 Content-Type: text/plain; charset="utf-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170228231951.aQp1OjwMqoUqf1NBpACOGjAv-4imIZ9Is7hmw24o71M@z>
+Message-ID: <20170228224615.f_2NcF676Kl5jBfdp6MjKdoRWj5Y8JShK6Z8hafGehQ@z>
 
-On 2/27/2017 11:52 AM, Borislav Petkov wrote:
-> On Thu, Feb 16, 2017 at 09:46:19AM -0600, Tom Lendacky wrote:
->> Add warnings to let the user know when bounce buffers are being used for
->> DMA when SME is active.  Since the bounce buffers are not in encrypted
->> memory, these notifications are to allow the user to determine some
->> appropriate action - if necessary.
->>
+On 2/22/2017 12:52 PM, Borislav Petkov wrote:
+> On Thu, Feb 16, 2017 at 09:45:35AM -0600, Tom Lendacky wrote:
+>> Add support for changing the memory encryption attribute for one or more
+>> memory pages.
+>
+> "This will be useful when we, ...., for example."
+
+Yup, will expand on the "why".
+
+>
 >> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 >> ---
->>  arch/x86/include/asm/mem_encrypt.h |   11 +++++++++++
->>  include/linux/dma-mapping.h        |   11 +++++++++++
->>  include/linux/mem_encrypt.h        |    6 ++++++
->>  lib/swiotlb.c                      |    3 +++
->>  4 files changed, 31 insertions(+)
+>>  arch/x86/include/asm/cacheflush.h |    3 ++
+>>  arch/x86/mm/pageattr.c            |   66 +++++++++++++++++++++++++++++++++++++
+>>  2 files changed, 69 insertions(+)
 >>
->> diff --git a/arch/x86/include/asm/mem_encrypt.h b/arch/x86/include/asm/mem_encrypt.h
->> index 87e816f..5a17f1b 100644
->> --- a/arch/x86/include/asm/mem_encrypt.h
->> +++ b/arch/x86/include/asm/mem_encrypt.h
->> @@ -26,6 +26,11 @@ static inline bool sme_active(void)
->>  	return (sme_me_mask) ? true : false;
+>> diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
+>> index 872877d..33ae60a 100644
+>> --- a/arch/x86/include/asm/cacheflush.h
+>> +++ b/arch/x86/include/asm/cacheflush.h
+>> @@ -12,6 +12,7 @@
+>>   * Executability : eXeutable, NoteXecutable
+>>   * Read/Write    : ReadOnly, ReadWrite
+>>   * Presence      : NotPresent
+>> + * Encryption    : Encrypted, Decrypted
+>>   *
+>>   * Within a category, the attributes are mutually exclusive.
+>>   *
+>> @@ -47,6 +48,8 @@
+>>  int set_memory_rw(unsigned long addr, int numpages);
+>>  int set_memory_np(unsigned long addr, int numpages);
+>>  int set_memory_4k(unsigned long addr, int numpages);
+>> +int set_memory_encrypted(unsigned long addr, int numpages);
+>> +int set_memory_decrypted(unsigned long addr, int numpages);
+>>
+>>  int set_memory_array_uc(unsigned long *addr, int addrinarray);
+>>  int set_memory_array_wc(unsigned long *addr, int addrinarray);
+>> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+>> index 91c5c63..9710f5c 100644
+>> --- a/arch/x86/mm/pageattr.c
+>> +++ b/arch/x86/mm/pageattr.c
+>> @@ -1742,6 +1742,72 @@ int set_memory_4k(unsigned long addr, int numpages)
+>>  					__pgprot(0), 1, 0, NULL);
 >>  }
 >>
->> +static inline u64 sme_dma_mask(void)
+>> +static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
 >> +{
->> +	return ((u64)sme_me_mask << 1) - 1;
+>> +	struct cpa_data cpa;
+>> +	unsigned long start;
+>> +	int ret;
+>> +
+>> +	/* Nothing to do if the _PAGE_ENC attribute is zero */
+>> +	if (_PAGE_ENC == 0)
+>
+> Why not:
+>
+> 	if (!sme_active())
+>
+> ?
+
+Yup, it would be more clear.
+
+>
+>> +		return 0;
+>> +
+>> +	/* Save original start address since it will be modified */
+>
+> That's obvious - it is a small-enough function to fit on the screen. No
+> need for the comment.
+
+Ok.
+
+>
+>> +	start = addr;
+>> +
+>> +	memset(&cpa, 0, sizeof(cpa));
+>> +	cpa.vaddr = &addr;
+>> +	cpa.numpages = numpages;
+>> +	cpa.mask_set = enc ? __pgprot(_PAGE_ENC) : __pgprot(0);
+>> +	cpa.mask_clr = enc ? __pgprot(0) : __pgprot(_PAGE_ENC);
+>> +	cpa.pgd = init_mm.pgd;
+>> +
+>> +	/* Should not be working on unaligned addresses */
+>> +	if (WARN_ONCE(*cpa.vaddr & ~PAGE_MASK,
+>> +		      "misaligned address: %#lx\n", *cpa.vaddr))
+>
+> Use addr here so that you don't have to deref. gcc is probably smart
+> enough but the code should look more readable this way too.
+>
+
+Ok.
+
+>> +		*cpa.vaddr &= PAGE_MASK;
+>
+> I know, you must use cpa.vaddr here but if you move that alignment check
+> over the cpa assignment, you can use addr solely.
+
+Ok.
+
+>
+>> +
+>> +	/* Must avoid aliasing mappings in the highmem code */
+>> +	kmap_flush_unused();
+>> +	vm_unmap_aliases();
+>> +
+>> +	/*
+>> +	 * Before changing the encryption attribute, we need to flush caches.
+>> +	 */
+>> +	if (static_cpu_has(X86_FEATURE_CLFLUSH))
+>> +		cpa_flush_range(start, numpages, 1);
+>> +	else
+>> +		cpa_flush_all(1);
+>
+> I guess we don't really need the distinction since a SME CPU most
+> definitely implies CLFLUSH support but ok, let's be careful.
+>
+>> +
+>> +	ret = __change_page_attr_set_clr(&cpa, 1);
+>> +
+>> +	/*
+>> +	 * After changing the encryption attribute, we need to flush TLBs
+>> +	 * again in case any speculative TLB caching occurred (but no need
+>> +	 * to flush caches again).  We could just use cpa_flush_all(), but
+>> +	 * in case TLB flushing gets optimized in the cpa_flush_range()
+>> +	 * path use the same logic as above.
+>> +	 */
+>> +	if (static_cpu_has(X86_FEATURE_CLFLUSH))
+>> +		cpa_flush_range(start, numpages, 0);
+>> +	else
+>> +		cpa_flush_all(0);
+>> +
+>> +	return ret;
 >> +}
->> +
->>  void __init sme_early_encrypt(resource_size_t paddr,
->>  			      unsigned long size);
->>  void __init sme_early_decrypt(resource_size_t paddr,
->> @@ -53,6 +58,12 @@ static inline bool sme_active(void)
->>  {
->>  	return false;
->>  }
->> +
->> +static inline u64 sme_dma_mask(void)
->> +{
->> +	return 0ULL;
->> +}
->> +
->>  #endif
->>
->>  static inline void __init sme_early_encrypt(resource_size_t paddr,
->> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
->> index 10c5a17..130bef7 100644
->> --- a/include/linux/dma-mapping.h
->> +++ b/include/linux/dma-mapping.h
->> @@ -10,6 +10,7 @@
->>  #include <linux/scatterlist.h>
->>  #include <linux/kmemcheck.h>
->>  #include <linux/bug.h>
->> +#include <linux/mem_encrypt.h>
->>
->>  /**
->>   * List of possible attributes associated with a DMA mapping. The semantics
->> @@ -557,6 +558,11 @@ static inline int dma_set_mask(struct device *dev, u64 mask)
->>
->>  	if (!dev->dma_mask || !dma_supported(dev, mask))
->>  		return -EIO;
->> +
->> +	if (sme_active() && (mask < sme_dma_mask()))
->> +		dev_warn(dev,
->> +			 "SME is active, device will require DMA bounce buffers\n");
->> +
->
-> Yes, definitely _once() here.
-
-Setting the mask is a probe/init type event, so I think not having the
-_once() would be better so that all devices that set a mask to something
-less than the SME encryption mask would be identified.  This isn't done
-for every DMA, etc.
-
->
-> It could be extended later to be per-device if the need arises.
->
-> Also, a bit above in this function, we test if (ops->set_dma_mask) so
-> device drivers which supply even an empty ->set_dma_mask will circumvent
-> this check.
->
-> It probably doesn't matter all that much right now because the
-> only driver I see right now defining this method, though, is
-> ethernet/intel/fm10k/fm10k_pf.c and some other arches' functionality
-> which is unrelated here.
-
-Device drivers don't supply set_dma_mask() since that is part of the
-dma_map_ops structure. The fm10k_pf.c file function is unrelated to this
-(it's part of an internal driver structure). The dma_map_ops structure
-is setup by the arch or an iommu.
-
-Thanks,
-Tom
-
->
-> But still...
->
 >
