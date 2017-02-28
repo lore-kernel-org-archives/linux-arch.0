@@ -1,51 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:34188 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751906AbdB1VYU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 16:24:20 -0500
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v8 07/11] btrfs_tree.h: fix include from userland
-Date: Tue, 28 Feb 2017 21:47:33 +0100
-Message-ID: <1488314857-28327-8-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <20170228024844.GA28691@altlinux.org>
- <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail-sn1nam02on0070.outbound.protection.outlook.com ([104.47.36.70]:59104
+        "EHLO NAM02-SN1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751465AbdB1Wfg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Feb 2017 17:35:36 -0500
+Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
+ of an address
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+ <20170220200955.32e2wqxgulswnr55@pd.tnic>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Message-ID: <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
+Date: Tue, 28 Feb 2017 16:34:39 -0600
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20170220200955.32e2wqxgulswnr55@pd.tnic>
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, mmarek@suse.com
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170228204733.2x2VJRcc7ppOtFN-25K1KUdOhhtRZbCGn2tG6f74t5A@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170228223439.qcm65rt7fZbzPCdkU4Cb68_U32kR_SRT5xfBGFKPz3Q@z>
 
-This patch prepares the uapi export by fixing the following errors:
+On 2/20/2017 2:09 PM, Borislav Petkov wrote:
+> On Thu, Feb 16, 2017 at 09:44:30AM -0600, Tom Lendacky wrote:
+>> This patch adds support to return the E820 type associated with an address
+>
+> s/This patch adds/Add/
+>
+>> range.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/e820/api.h   |    2 ++
+>>  arch/x86/include/asm/e820/types.h |    2 ++
+>>  arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
+>>  3 files changed, 27 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+>> index 8e0f8b8..7c1bdc9 100644
+>> --- a/arch/x86/include/asm/e820/api.h
+>> +++ b/arch/x86/include/asm/e820/api.h
+>> @@ -38,6 +38,8 @@
+>>  extern void e820__reallocate_tables(void);
+>>  extern void e820__register_nosave_regions(unsigned long limit_pfn);
+>>
+>> +extern enum e820_type e820__get_entry_type(u64 start, u64 end);
+>> +
+>>  /*
+>>   * Returns true iff the specified range [start,end) is completely contained inside
+>>   * the ISA region.
+>> diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
+>> index 4adeed0..bf49591 100644
+>> --- a/arch/x86/include/asm/e820/types.h
+>> +++ b/arch/x86/include/asm/e820/types.h
+>> @@ -7,6 +7,8 @@
+>>   * These are the E820 types known to the kernel:
+>>   */
+>>  enum e820_type {
+>> +	E820_TYPE_INVALID	= 0,
+>> +
+>
+> Now this is strange - ACPI spec doesn't explicitly say that range type 0
+> is invalid. Am I looking at the wrong place?
+>
+> "Table 15-312 Address Range Types12" in ACPI spec 6.
+>
+> If 0 is really the invalid entry, then e820_print_type() needs updating
+> too. And then the invalid-entry-add should be a separate patch.
 
-.../linux/btrfs_tree.h:283:2: error: #error "UUID items require BTRFS_UUID_SIZE == 16!"
- #error "UUID items require BTRFS_UUID_SIZE == 16!"
+The 0 return (originally) was to indicate that an e820 entry for the
+range wasn't found. This series just gave it a name.  So it's not that
+the type field held a 0.  Since 0 isn't defined in the ACPI spec I don't
+see an issue with creating it and I can add a comment to the effect that
+this value is used for the type when an e820 entry isn't found. I could
+always rename it to E820_TYPE_NOT_FOUND if that would help.
 
-.../linux/btrfs_tree.h:390:12: error: ‘BTRFS_UUID_SIZE’ undeclared here (not in a function)
-  __u8 uuid[BTRFS_UUID_SIZE];
-            ^
-.../linux/btrfs_tree.h:796:16: error: ‘BTRFS_DEV_STAT_VALUES_MAX’ undeclared here (not in a function)
-  __le64 values[BTRFS_DEV_STAT_VALUES_MAX];
+Or if we want to guard against ACPI adding a type 0 in the future, I
+could make the function return an int and then return -EINVAL if an e820
+entry isn't found.  This might be the better option.
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- include/uapi/linux/btrfs_tree.h | 1 +
- 1 file changed, 1 insertion(+)
+Thanks,
+Tom
 
-diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
-index 6a261cb52d95..6a754ada59af 100644
---- a/include/uapi/linux/btrfs_tree.h
-+++ b/include/uapi/linux/btrfs_tree.h
-@@ -2,6 +2,7 @@
- #define _BTRFS_CTREE_H_
- 
- #include <linux/types.h>
-+#include <linux/btrfs.h>
- 
- /*
-  * This header contains the structure definitions and constants used
--- 
-2.8.1
+
+>
+>>  	E820_TYPE_RAM		= 1,
+>>  	E820_TYPE_RESERVED	= 2,
+>>  	E820_TYPE_ACPI		= 3,
+>
