@@ -1,158 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn3nam01on0053.outbound.protection.outlook.com ([104.47.33.53]:38124
-        "EHLO NAM01-BN3-obe.outbound.protection.outlook.com"
+Received: from mail-sn1nam01on0047.outbound.protection.outlook.com ([104.47.32.47]:14800
+        "EHLO NAM01-SN1-obe.outbound.protection.outlook.com"
         rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-        id S1751451AbdCAA3z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Tue, 28 Feb 2017 19:29:55 -0500
-Subject: Re: [RFC PATCH v4 16/28] x86: Add support for changing memory
- encryption attribute
+        id S1751392AbdCABLB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 28 Feb 2017 20:11:01 -0500
+Subject: Re: [RFC PATCH v4 21/28] x86: Check for memory encryption on the APs
 References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154535.19244.6294.stgit@tlendack-t1.amdoffice.net>
- <20170222185215.atbntnyw7252kkbk@pd.tnic>
+ <20170216154647.19244.18733.stgit@tlendack-t1.amdoffice.net>
+ <20170227181701.2lynk4rm77yk4msf@pd.tnic>
 From: Tom Lendacky <thomas.lendacky@amd.com>
-Message-ID: <409ec9f1-896d-a9f0-0e4c-4d102cbf86cf@amd.com>
-Date: Tue, 28 Feb 2017 16:46:15 -0600
+Message-ID: <5f461d57-9232-1cb3-d4d9-9b8a39d00b12@amd.com>
+Date: Tue, 28 Feb 2017 17:28:48 -0600
 MIME-Version: 1.0
-In-Reply-To: <20170222185215.atbntnyw7252kkbk@pd.tnic>
+In-Reply-To: <20170227181701.2lynk4rm77yk4msf@pd.tnic>
 Content-Type: text/plain; charset="utf-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Borislav Petkov <bp@alien8.de>
 Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170228224615.f_2NcF676Kl5jBfdp6MjKdoRWj5Y8JShK6Z8hafGehQ@z>
+Message-ID: <20170228232848.EEo0JeM3SvWEw33qif2EgpSqC3LkstYBoYndmp7wlbQ@z>
 
-On 2/22/2017 12:52 PM, Borislav Petkov wrote:
-> On Thu, Feb 16, 2017 at 09:45:35AM -0600, Tom Lendacky wrote:
->> Add support for changing the memory encryption attribute for one or more
->> memory pages.
->
-> "This will be useful when we, ...., for example."
-
-Yup, will expand on the "why".
-
->
+On 2/27/2017 12:17 PM, Borislav Petkov wrote:
+> On Thu, Feb 16, 2017 at 09:46:47AM -0600, Tom Lendacky wrote:
+>> Add support to check if memory encryption is active in the kernel and that
+>> it has been enabled on the AP. If memory encryption is active in the kernel
+>> but has not been enabled on the AP, then set the SYS_CFG MSR bit to enable
+>> memory encryption on that AP and allow the AP to continue start up.
+>>
 >> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
 >> ---
->>  arch/x86/include/asm/cacheflush.h |    3 ++
->>  arch/x86/mm/pageattr.c            |   66 +++++++++++++++++++++++++++++++++++++
->>  2 files changed, 69 insertions(+)
+>>  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
+>>  arch/x86/realmode/init.c             |    4 ++++
+>>  arch/x86/realmode/rm/trampoline_64.S |   17 +++++++++++++++++
+>>  3 files changed, 33 insertions(+)
 >>
->> diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
->> index 872877d..33ae60a 100644
->> --- a/arch/x86/include/asm/cacheflush.h
->> +++ b/arch/x86/include/asm/cacheflush.h
->> @@ -12,6 +12,7 @@
->>   * Executability : eXeutable, NoteXecutable
->>   * Read/Write    : ReadOnly, ReadWrite
->>   * Presence      : NotPresent
->> + * Encryption    : Encrypted, Decrypted
->>   *
->>   * Within a category, the attributes are mutually exclusive.
->>   *
->> @@ -47,6 +48,8 @@
->>  int set_memory_rw(unsigned long addr, int numpages);
->>  int set_memory_np(unsigned long addr, int numpages);
->>  int set_memory_4k(unsigned long addr, int numpages);
->> +int set_memory_encrypted(unsigned long addr, int numpages);
->> +int set_memory_decrypted(unsigned long addr, int numpages);
+>> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+>> index 230e190..4f7ef53 100644
+>> --- a/arch/x86/include/asm/realmode.h
+>> +++ b/arch/x86/include/asm/realmode.h
+>> @@ -1,6 +1,15 @@
+>>  #ifndef _ARCH_X86_REALMODE_H
+>>  #define _ARCH_X86_REALMODE_H
 >>
->>  int set_memory_array_uc(unsigned long *addr, int addrinarray);
->>  int set_memory_array_wc(unsigned long *addr, int addrinarray);
->> diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
->> index 91c5c63..9710f5c 100644
->> --- a/arch/x86/mm/pageattr.c
->> +++ b/arch/x86/mm/pageattr.c
->> @@ -1742,6 +1742,72 @@ int set_memory_4k(unsigned long addr, int numpages)
->>  					__pgprot(0), 1, 0, NULL);
->>  }
+>> +/*
+>> + * Flag bit definitions for use with the flags field of the trampoline header
+>> + * int the CONFIG_X86_64 variant.
+>
+> s/int/in/
+
+Fixed.
+
+>
+>> + */
+>> +#define TH_FLAGS_SME_ACTIVE_BIT		0
+>> +#define TH_FLAGS_SME_ACTIVE		BIT(TH_FLAGS_SME_ACTIVE_BIT)
+>> +
+>> +#ifndef __ASSEMBLY__
+>> +
+>>  #include <linux/types.h>
+>>  #include <asm/io.h>
 >>
->> +static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
->> +{
->> +	struct cpa_data cpa;
->> +	unsigned long start;
->> +	int ret;
+>> @@ -38,6 +47,7 @@ struct trampoline_header {
+>>  	u64 start;
+>>  	u64 efer;
+>>  	u32 cr4;
+>> +	u32 flags;
+>>  #endif
+>>  };
+>>
+>> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
+>>  void set_real_mode_mem(phys_addr_t mem, size_t size);
+>>  void reserve_real_mode(void);
+>>
+>> +#endif /* __ASSEMBLY__ */
 >> +
->> +	/* Nothing to do if the _PAGE_ENC attribute is zero */
->> +	if (_PAGE_ENC == 0)
+>>  #endif /* _ARCH_X86_REALMODE_H */
+>> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
+>> index 21d7506..5010089 100644
+>> --- a/arch/x86/realmode/init.c
+>> +++ b/arch/x86/realmode/init.c
+>> @@ -102,6 +102,10 @@ static void __init setup_real_mode(void)
+>>  	trampoline_cr4_features = &trampoline_header->cr4;
+>>  	*trampoline_cr4_features = mmu_cr4_features;
+>>
+>> +	trampoline_header->flags = 0;
+>> +	if (sme_active())
+>> +		trampoline_header->flags |= TH_FLAGS_SME_ACTIVE;
+>> +
+>>  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
+>>  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
+>>  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
+>> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
+>> index dac7b20..a88c3d1 100644
+>> --- a/arch/x86/realmode/rm/trampoline_64.S
+>> +++ b/arch/x86/realmode/rm/trampoline_64.S
+>> @@ -30,6 +30,7 @@
+>>  #include <asm/msr.h>
+>>  #include <asm/segment.h>
+>>  #include <asm/processor-flags.h>
+>> +#include <asm/realmode.h>
+>>  #include "realmode.h"
+>>
+>>  	.text
+>> @@ -92,6 +93,21 @@ ENTRY(startup_32)
+>>  	movl	%edx, %fs
+>>  	movl	%edx, %gs
+>>
+>> +	/* Check for memory encryption support */
 >
-> Why not:
->
-> 	if (!sme_active())
->
-> ?
+> Let's add some blurb here about this being a safety net in case BIOS
+> f*cks up. Which wouldn't be that far-fetched... :-)
 
-Yup, it would be more clear.
+That's a good idea, I'll expand on that.  I probably won't be that
+direct in my comment though :)
+
+Thanks,
+Tom
 
 >
->> +		return 0;
->> +
->> +	/* Save original start address since it will be modified */
->
-> That's obvious - it is a small-enough function to fit on the screen. No
-> need for the comment.
-
-Ok.
-
->
->> +	start = addr;
->> +
->> +	memset(&cpa, 0, sizeof(cpa));
->> +	cpa.vaddr = &addr;
->> +	cpa.numpages = numpages;
->> +	cpa.mask_set = enc ? __pgprot(_PAGE_ENC) : __pgprot(0);
->> +	cpa.mask_clr = enc ? __pgprot(0) : __pgprot(_PAGE_ENC);
->> +	cpa.pgd = init_mm.pgd;
->> +
->> +	/* Should not be working on unaligned addresses */
->> +	if (WARN_ONCE(*cpa.vaddr & ~PAGE_MASK,
->> +		      "misaligned address: %#lx\n", *cpa.vaddr))
->
-> Use addr here so that you don't have to deref. gcc is probably smart
-> enough but the code should look more readable this way too.
->
-
-Ok.
-
->> +		*cpa.vaddr &= PAGE_MASK;
->
-> I know, you must use cpa.vaddr here but if you move that alignment check
-> over the cpa assignment, you can use addr solely.
-
-Ok.
-
->
->> +
->> +	/* Must avoid aliasing mappings in the highmem code */
->> +	kmap_flush_unused();
->> +	vm_unmap_aliases();
->> +
->> +	/*
->> +	 * Before changing the encryption attribute, we need to flush caches.
->> +	 */
->> +	if (static_cpu_has(X86_FEATURE_CLFLUSH))
->> +		cpa_flush_range(start, numpages, 1);
->> +	else
->> +		cpa_flush_all(1);
->
-> I guess we don't really need the distinction since a SME CPU most
-> definitely implies CLFLUSH support but ok, let's be careful.
->
->> +
->> +	ret = __change_page_attr_set_clr(&cpa, 1);
->> +
->> +	/*
->> +	 * After changing the encryption attribute, we need to flush TLBs
->> +	 * again in case any speculative TLB caching occurred (but no need
->> +	 * to flush caches again).  We could just use cpa_flush_all(), but
->> +	 * in case TLB flushing gets optimized in the cpa_flush_range()
->> +	 * path use the same logic as above.
->> +	 */
->> +	if (static_cpu_has(X86_FEATURE_CLFLUSH))
->> +		cpa_flush_range(start, numpages, 0);
->> +	else
->> +		cpa_flush_all(0);
->> +
->> +	return ret;
->> +}
+>> +	bt	$TH_FLAGS_SME_ACTIVE_BIT, pa_tr_flags
+>> +	jnc	.Ldone
+>> +	movl	$MSR_K8_SYSCFG, %ecx
+>> +	rdmsr
+>> +	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
+>> +	jc	.Ldone
 >
