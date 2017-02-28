@@ -1,55 +1,100 @@
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: Re: [PATCH v7 7/8] uapi: export all headers under uapi directories
-Date: Tue, 28 Feb 2017 16:47:40 +0100
-Message-ID: <485a42ed-d3d2-f60c-a6ad-21c491fd88dd@6wind.com>
-References: <CAK8P3a3mrqWQnpOjUA8kRO4ksjH7yB6Q5XiHmt1fukJMwD_yUw@mail.gmail.com>
- <1487954956-23318-1-git-send-email-nicolas.dichtel@6wind.com>
- <1487954956-23318-8-git-send-email-nicolas.dichtel@6wind.com>
- <56b1003e-1ac9-9ed3-f204-01e609427b98@6wind.com>
- <20170228024844.GA28691@altlinux.org>
-Reply-To: nicolas.dichtel@6wind.com
+From: Ray Jui <ray.jui@broadcom.com>
+Subject: Re: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap
+ function
+Date: Tue, 28 Feb 2017 09:42:20 -0800
+Message-ID: <e6ce59d4-59af-7c18-4589-342ac08aa88c@broadcom.com>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
+ <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
+ <20170228105428.GD7439@red-moon>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20170228024844.GA28691@altlinux.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20170228105428.GD7439@red-moon>
+Content-Language: en-US
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: linux-arch@vger.kernel.org, Jon Mason <jonmason@broadcom.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Ray Jui <rjui@broadcom.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Le 28/02/2017 à 03:48, Dmitry V. Levin a écrit :
-> On Mon, Feb 27, 2017 at 05:01:55PM +0100, Nicolas Dichtel wrote:
-[snip]
->> Is there any chance to get this series in before the rc1?
-> 
-> Note that the following newly exported headers have userspace compilation
-> errors:
-> 
-> /usr/include/drm/armada_drm.h:26:2: error: unknown type name 'uint32_t'
->   uint32_t handle;
-> 
-> /usr/include/linux/btrfs_tree.h:390:12: error: 'BTRFS_UUID_SIZE' undeclared here (not in a function)
->   __u8 uuid[BTRFS_UUID_SIZE];
-> 
-> /usr/include/linux/cryptouser.h:58:16: error: 'CRYPTO_MAX_ALG_NAME' undeclared here (not in a function)
->   char cru_name[CRYPTO_MAX_ALG_NAME];
-> 
-> /usr/include/linux/kfd_ioctl.h:33:2: error: unknown type name 'uint32_t'
->   uint32_t major_version; /* from KFD */
-> 
-> /usr/include/linux/smc_diag.h:6:27: fatal error: rdma/ib_verbs.h: No such file or directory
->  #include <rdma/ib_verbs.h>
-> 
-> /usr/include/linux/wil6210_uapi.h:73:2: error: unknown type name 'uint32_t'
->   uint32_t op; /* enum wil_memio_op */
-> 
-> I think they should be fixed first.
-Sure. Thanks for pointing this out. I will send a v8.
-
-I'm still wondering if Michal will take this series or if it will go through
-another tree.
 
 
-Regards,
-Nicolas
+On 2/28/2017 2:54 AM, Lorenzo Pieralisi wrote:
+> Hi Ray,
+> 
+> On Mon, Feb 27, 2017 at 01:21:39PM -0800, Ray Jui wrote:
+>> Hi Lorenzo,
+>>
+>> On 2/27/2017 7:14 AM, Lorenzo Pieralisi wrote:
+>>> PCI configuration space should be mapped with a memory region type that
+>>> generates on the CPU host bus non-posted write transations. Update the
+>>> driver to use the devm_pci_remap_cfg* interface to make sure the correct
+>>> memory mappings for PCI configuration space are used.
+>>>
+>>> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+>>> Cc: Bjorn Helgaas <bhelgaas@google.com>
+>>> Cc: Ray Jui <rjui@broadcom.com>
+>>> Cc: Jon Mason <jonmason@broadcom.com>
+>>> ---
+>>>  drivers/pci/host/pcie-iproc-platform.c | 3 ++-
+>>>  1 file changed, 2 insertions(+), 1 deletion(-)
+>>>
+>>> diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
+>>> index f4909bb..b48d0db 100644
+>>> --- a/drivers/pci/host/pcie-iproc-platform.c
+>>> +++ b/drivers/pci/host/pcie-iproc-platform.c
+>>> @@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
+>>>  		return ret;
+>>>  	}
+>>>  
+>>> -	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
+>>> +	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
+>>> +					     resource_size(&reg));
+>>
+>> Note these are NOT config space registers; instead, they are host
+>> controller registers. iProc PCIe controller access config space
+>> registers indirectly through two of the controller registers instead of
+>> directly mapped.
+> 
+> Yes but IIUC those registers that allow indirection live in the address
+> space pointed at by pcie->base, right ? Question is whether it is fine
+> to access those registers through mappings resulting on posted writes
+> and that's a question I need your help to answer as I said in the cover
+> letter.
+
+This I'll need to check with our ASIC team, and it may take a while.
+
+Note indirect access to the config registers is done with two registers
+within pcie->base, one specifies the
+address/bus/device/function/read/write direction and the other specifies
+the data. All other registers in the block pointed to by pcie->base
+really have nothing to do with config register access. They are used for
+other block related configurations.
+
+Thanks,
+
+Ray
+
+> 
+> Thanks a lot for flagging this up, that's exactly the feedback I need.
+> 
+> Lorenzo
+> 
+>>
+>> Thanks,
+>>
+>> Ray
+>>
+>>>  	if (!pcie->base) {
+>>>  		dev_err(dev, "unable to map controller registers\n");
+>>>  		return -ENOMEM;
+>>>
