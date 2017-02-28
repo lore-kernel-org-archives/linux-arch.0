@@ -1,55 +1,93 @@
-From: Brendan Gregg <brendan.d.gregg@gmail.com>
-Subject: Re: [PATCH 11/13] fs: fix unsigned enum warning with gcc-4.2
-Date: Tue, 28 Feb 2017 13:53:10 -0800
-Message-ID: <CAE40pde6EcxiJtD627FVxRzjPADWXv2L7v8K2uUPvzmhC4JPYg@mail.gmail.com>
-References: <20161216105634.235457-1-arnd@arndb.de> <20161216105634.235457-12-arnd@arndb.de>
- <CAE40pdenVkk-JerdB905nyupoDDPiQk9qv4p1Jv62kcj3-dKhQ@mail.gmail.com>
+From: Tom Lendacky <thomas.lendacky@amd.com>
+Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
+ of an address
+Date: Tue, 28 Feb 2017 16:34:39 -0600
+Message-ID: <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+ <20170220200955.32e2wqxgulswnr55@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:36434 "EHLO
-        mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751154AbdB1V50 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 16:57:26 -0500
-In-Reply-To: <CAE40pdenVkk-JerdB905nyupoDDPiQk9qv4p1Jv62kcj3-dKhQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-arm-kernel@vger.kernel.org, Russell King <rmk+kernel@armlinux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, kernel-build-reports@lists.linaro.org, kvmarm@lists.cs.columbia.edu
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170220200955.32e2wqxgulswnr55@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S.
+ Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter
+ Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@li>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 3, 2017 at 2:47 PM, Brendan Gregg <brendan.d.gregg@gmail.com> wrote:
+On 2/20/2017 2:09 PM, Borislav Petkov wrote:
+> On Thu, Feb 16, 2017 at 09:44:30AM -0600, Tom Lendacky wrote:
+>> This patch adds support to return the E820 type associated with an address
 >
-> On Fri, Dec 16, 2016 at 2:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> >
-> > With arm-linux-gcc-4.2, almost every file we build in the kernel ends
-> > up with this warning:
-> >
-> > include/linux/fs.h:2648: warning: comparison of unsigned expression < 0 is always false
-> >
+> s/This patch adds/Add/
 >
-> Thanks, I'd like to see this fixed as a similar warning gets printed
-> whenever running many of the bcc/BPF tools, which gets annoying and is
-> user-visible. eg:
+>> range.
+>>
+>> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+>> ---
+>>  arch/x86/include/asm/e820/api.h   |    2 ++
+>>  arch/x86/include/asm/e820/types.h |    2 ++
+>>  arch/x86/kernel/e820.c            |   26 +++++++++++++++++++++++---
+>>  3 files changed, 27 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/arch/x86/include/asm/e820/api.h b/arch/x86/include/asm/e820/api.h
+>> index 8e0f8b8..7c1bdc9 100644
+>> --- a/arch/x86/include/asm/e820/api.h
+>> +++ b/arch/x86/include/asm/e820/api.h
+>> @@ -38,6 +38,8 @@
+>>  extern void e820__reallocate_tables(void);
+>>  extern void e820__register_nosave_regions(unsigned long limit_pfn);
+>>
+>> +extern enum e820_type e820__get_entry_type(u64 start, u64 end);
+>> +
+>>  /*
+>>   * Returns true iff the specified range [start,end) is completely contained inside
+>>   * the ISA region.
+>> diff --git a/arch/x86/include/asm/e820/types.h b/arch/x86/include/asm/e820/types.h
+>> index 4adeed0..bf49591 100644
+>> --- a/arch/x86/include/asm/e820/types.h
+>> +++ b/arch/x86/include/asm/e820/types.h
+>> @@ -7,6 +7,8 @@
+>>   * These are the E820 types known to the kernel:
+>>   */
+>>  enum e820_type {
+>> +	E820_TYPE_INVALID	= 0,
+>> +
 >
-> # /usr/share/bcc/tools/xfsslower 1
-> In file included from /virtual/main.c:3:
-> /lib/modules/4.8.6-300.fc25.x86_64/build/include/linux/fs.h:2677:9:
-> warning: comparison of unsigned enum expression < 0 is always false
-> [-Wtautological-compare]
->         if (id < 0 || id >= READING_MAX_ID)
->             ~~ ^ ~
-> 1 warning generated.
-> Tracing XFS operations slower than 1 ms
-> TIME     COMM           PID    T BYTES   OFF_KB   LAT(ms) FILENAME
-> 14:44:27 cksum          4414   R 65536   0           1.02 chcon
-> 14:44:27 cksum          4414   R 65536   0           1.20 cpio
-> 14:44:27 cksum          4414   R 65536   0           1.01 diff
-> 14:44:27 cksum          4414   R 65536   0           1.15 dir
-> [...]
+> Now this is strange - ACPI spec doesn't explicitly say that range type 0
+> is invalid. Am I looking at the wrong place?
 >
-> This patch fixes the warning.
+> "Table 15-312 Address Range Types12" in ACPI spec 6.
+>
+> If 0 is really the invalid entry, then e820_print_type() needs updating
+> too. And then the invalid-entry-add should be a separate patch.
+
+The 0 return (originally) was to indicate that an e820 entry for the
+range wasn't found. This series just gave it a name.  So it's not that
+the type field held a 0.  Since 0 isn't defined in the ACPI spec I don't
+see an issue with creating it and I can add a comment to the effect that
+this value is used for the type when an e820 entry isn't found. I could
+always rename it to E820_TYPE_NOT_FOUND if that would help.
+
+Or if we want to guard against ACPI adding a type 0 in the future, I
+could make the function return an int and then return -EINVAL if an e820
+entry isn't found.  This might be the better option.
+
+Thanks,
+Tom
+
+
+>
+>>  	E820_TYPE_RAM		= 1,
+>>  	E820_TYPE_RESERVED	= 2,
+>>  	E820_TYPE_ACPI		= 3,
 >
 
-What's the status of this patch? I still get these warnings on latest. Thanks,
-
-Brendan
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
