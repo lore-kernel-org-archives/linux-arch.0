@@ -1,16 +1,17 @@
 From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
- space
-Date: Tue, 28 Feb 2017 10:43:51 +0000
-Message-ID: <20170228104351.GC7439@red-moon>
+Subject: Re: [PATCH 13/20] PCI: iproc-platform: update PCI config space remap
+ function
+Date: Tue, 28 Feb 2017 10:54:28 +0000
+Message-ID: <20170228105428.GD7439@red-moon>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-14-lorenzo.pieralisi@arm.com>
+ <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+In-Reply-To: <84a0b24b-3c88-b750-dd9e-1607bc67a0a8@broadcom.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,177 +21,62 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Catalin Marinas <catalin.marinas@arm.com>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch@vger.kernel.org, Joao Pinto <Joao.Pinto@synopsys.com>, Jonathan Corbet <corbet@lwn.net>, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Jingoo Han <jingoohan1@gmail.com>, linux-kernel@vger.ke
+To: Ray Jui <ray.jui@broadcom.com>
+Cc: linux-arch@vger.kernel.org, Jon Mason <jonmason@broadcom.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Ray Jui <rjui@broadcom.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Arnd, all,
+Hi Ray,
 
-On Mon, Feb 27, 2017 at 03:14:18PM +0000, Lorenzo Pieralisi wrote:
-> The introduction of the pci_remap_cfgspace() interface allows
-> PCI host controller drivers to map PCI config space through a
-> dedicated kernel interface. Current PCI host controller drivers
-> use the devm_ioremap_* Devres interfaces to map PCI configuration
-> space regions so in order to update them to the new
-> pci_remap_cfgspace() mapping interface a new set of Devres interfaces
-> should be implemented so that PCI host controller drivers can make
-> use of them.
+On Mon, Feb 27, 2017 at 01:21:39PM -0800, Ray Jui wrote:
+> Hi Lorenzo,
 > 
-> Introduce two new functions in the PCI kernel layer and Devres
-> documentation:
+> On 2/27/2017 7:14 AM, Lorenzo Pieralisi wrote:
+> > PCI configuration space should be mapped with a memory region type that
+> > generates on the CPU host bus non-posted write transations. Update the
+> > driver to use the devm_pci_remap_cfg* interface to make sure the correct
+> > memory mappings for PCI configuration space are used.
+> > 
+> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Ray Jui <rjui@broadcom.com>
+> > Cc: Jon Mason <jonmason@broadcom.com>
+> > ---
+> >  drivers/pci/host/pcie-iproc-platform.c | 3 ++-
+> >  1 file changed, 2 insertions(+), 1 deletion(-)
+> > 
+> > diff --git a/drivers/pci/host/pcie-iproc-platform.c b/drivers/pci/host/pcie-iproc-platform.c
+> > index f4909bb..b48d0db 100644
+> > --- a/drivers/pci/host/pcie-iproc-platform.c
+> > +++ b/drivers/pci/host/pcie-iproc-platform.c
+> > @@ -67,7 +67,8 @@ static int iproc_pcie_pltfm_probe(struct platform_device *pdev)
+> >  		return ret;
+> >  	}
+> >  
+> > -	pcie->base = devm_ioremap(dev, reg.start, resource_size(&reg));
+> > +	pcie->base = devm_pci_remap_cfgspace(dev, reg.start,
+> > +					     resource_size(&reg));
 > 
-> - devm_pci_remap_cfgspace()
-> - devm_pci_remap_cfg_resource()
-> 
-> so that PCI host controller drivers can make use of them to map
-> PCI configuration space regions.
-> 
-> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-> ---
->  Documentation/driver-model/devres.txt |  6 ++-
->  drivers/pci/pci.c                     | 82 +++++++++++++++++++++++++++++++++++
->  include/linux/pci.h                   |  5 +++
->  3 files changed, 91 insertions(+), 2 deletions(-)
-> 
-> diff --git a/Documentation/driver-model/devres.txt b/Documentation/driver-model/devres.txt
-> index bf34d5b..e72587f 100644
-> --- a/Documentation/driver-model/devres.txt
-> +++ b/Documentation/driver-model/devres.txt
-> @@ -342,8 +342,10 @@ PER-CPU MEM
->    devm_free_percpu()
->  
->  PCI
-> -  pcim_enable_device()	: after success, all PCI ops become managed
-> -  pcim_pin_device()	: keep PCI device enabled after release
-> +  devm_pci_remap_cfgspace()	: ioremap PCI configuration space
-> +  devm_pci_remap_cfg_resource()	: ioremap PCI configuration space resource
-> +  pcim_enable_device()		: after success, all PCI ops become managed
-> +  pcim_pin_device()		: keep PCI device enabled after release
->  
->  PHY
->    devm_usb_get_phy()
-> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> index bfb3c6e..1e435c2 100644
-> --- a/drivers/pci/pci.c
-> +++ b/drivers/pci/pci.c
-> @@ -3401,6 +3401,88 @@ void pci_unmap_iospace(struct resource *res)
->  #endif
->  }
->  
-> +/**
-> + * devm_pci_remap_cfgspace - Managed pci_remap_cfgspace()
-> + * @dev: Generic device to remap IO address for
-> + * @offset: BUS offset to map
-> + * @size: Size of map
-> + *
-> + * Managed pci_remap_cfgspace().  Map is automatically unmapped on driver
-> + * detach.
-> + */
-> +void __iomem *devm_pci_remap_cfgspace(struct device *dev,
-> +				      resource_size_t offset,
-> +				      resource_size_t size)
-> +{
-> +	void __iomem **ptr, *addr;
-> +
-> +	ptr = devres_alloc(devm_ioremap_release, sizeof(*ptr), GFP_KERNEL);
-> +	if (!ptr)
-> +		return NULL;
-> +
-> +	addr = pci_remap_cfgspace(offset, size);
+> Note these are NOT config space registers; instead, they are host
+> controller registers. iProc PCIe controller access config space
+> registers indirectly through two of the controller registers instead of
+> directly mapped.
 
-Provided this series is acceptable as-is, I noticed that I have
-to add a #define for pci_remap_cfgspace() on all arches that do
-not include asm-generic/io.h in their asm/io.h, I missed that,
-please shout if you see an easier way to implement a
-pci_remap_cfgspace() fall-back to ioremap_nocache() on all arches
-that do not override it.
+Yes but IIUC those registers that allow indirection live in the address
+space pointed at by pcie->base, right ? Question is whether it is fine
+to access those registers through mappings resulting on posted writes
+and that's a question I need your help to answer as I said in the cover
+letter.
 
-Thanks !
+Thanks a lot for flagging this up, that's exactly the feedback I need.
+
 Lorenzo
 
-> +	if (addr) {
-> +		*ptr = addr;
-> +		devres_add(dev, ptr);
-> +	} else
-> +		devres_free(ptr);
-> +
-> +	return addr;
-> +}
-> +EXPORT_SYMBOL(devm_pci_remap_cfgspace);
-> +
-> +/**
-> + * devm_pci_remap_cfg_resource - check, request region and ioremap cfg resource
-> + * @dev: generic device to handle the resource for
-> + * @res: configuration space resource to be handled
-> + *
-> + * Checks that a resource is a valid memory region, requests the memory
-> + * region and ioremaps with pci_remap_cfgspace() API that ensures the
-> + * proper PCI configuration space memory attributes are guaranteed.
-> + *
-> + * All operations are managed and will be undone on driver detach.
-> + *
-> + * Returns a pointer to the remapped memory or an ERR_PTR() encoded error code
-> + * on failure. Usage example:
-> + *
-> + *	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-> + *	base = devm_pci_remap_cfg_resource(&pdev->dev, res);
-> + *	if (IS_ERR(base))
-> + *		return PTR_ERR(base);
-> + */
-> +void __iomem *devm_pci_remap_cfg_resource(struct device *dev,
-> +					  struct resource *res)
-> +{
-> +	resource_size_t size;
-> +	const char *name;
-> +	void __iomem *dest_ptr;
-> +
-> +	BUG_ON(!dev);
-> +
-> +	if (!res || resource_type(res) != IORESOURCE_MEM) {
-> +		dev_err(dev, "invalid resource\n");
-> +		return IOMEM_ERR_PTR(-EINVAL);
-> +	}
-> +
-> +	size = resource_size(res);
-> +	name = res->name ?: dev_name(dev);
-> +
-> +	if (!devm_request_mem_region(dev, res->start, size, name)) {
-> +		dev_err(dev, "can't request region for resource %pR\n", res);
-> +		return IOMEM_ERR_PTR(-EBUSY);
-> +	}
-> +
-> +	dest_ptr = devm_pci_remap_cfgspace(dev, res->start, size);
-> +	if (!dest_ptr) {
-> +		dev_err(dev, "ioremap failed for resource %pR\n", res);
-> +		devm_release_mem_region(dev, res->start, size);
-> +		dest_ptr = IOMEM_ERR_PTR(-ENOMEM);
-> +	}
-> +
-> +	return dest_ptr;
-> +}
-> +EXPORT_SYMBOL(devm_pci_remap_cfg_resource);
-> +
->  static void __pci_set_master(struct pci_dev *dev, bool enable)
->  {
->  	u16 old_cmd, cmd;
-> diff --git a/include/linux/pci.h b/include/linux/pci.h
-> index 282ed32..5a3588b 100644
-> --- a/include/linux/pci.h
-> +++ b/include/linux/pci.h
-> @@ -1199,6 +1199,11 @@ unsigned long pci_address_to_pio(phys_addr_t addr);
->  phys_addr_t pci_pio_to_address(unsigned long pio);
->  int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
->  void pci_unmap_iospace(struct resource *res);
-> +void __iomem *devm_pci_remap_cfgspace(struct device *dev,
-> +				      resource_size_t offset,
-> +				      resource_size_t size);
-> +void __iomem *devm_pci_remap_cfg_resource(struct device *dev,
-> +					  struct resource *res);
->  
->  static inline pci_bus_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
->  {
-> -- 
-> 2.10.0
 > 
+> Thanks,
+> 
+> Ray
+> 
+> >  	if (!pcie->base) {
+> >  		dev_err(dev, "unable to map controller registers\n");
+> >  		return -ENOMEM;
+> > 
