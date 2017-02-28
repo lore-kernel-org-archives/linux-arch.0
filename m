@@ -1,70 +1,41 @@
-From: Khalid Aziz <khalid.aziz@oracle.com>
-Subject: [PATCH v6 1/4] signals, sparc: Add signal codes for ADI violations
-Date: Tue, 28 Feb 2017 11:35:20 -0700
-Message-ID: <ffb01067b3829adb7752347dc4674730cd0820d8.1488232597.git.khalid.aziz@oracle.com>
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:33088 "EHLO
-        aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751186AbdB1Sj5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2017 13:39:57 -0500
-In-Reply-To: <cover.1488232591.git.khalid.aziz@oracle.com>
-In-Reply-To: <cover.1488232591.git.khalid.aziz@oracle.com>
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, davem@davemloft.net
-Cc: Khalid Aziz <khalid.aziz@oracle.com>, hpa@zytor.com, 0x7f454c46@gmail.com, dave.hansen@linux.intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v8 03/11] x86: stop exporting msr-index.h to userland
+Date: Tue, 28 Feb 2017 21:47:29 +0100
+Message-ID: <1488314857-28327-4-git-send-email-nicolas.dichtel@6wind.com>
+References: <20170228024844.GA28691@altlinux.org>
+ <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: arnd@arndb.de, mmarek@suse.com
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-SPARC M7 processor introduces a new feature - Application Data
-Integrity (ADI). ADI allows MMU to  catch rogue accesses to memory.
-When a rogue access occurs, MMU blocks the access and raises an
-exception. In response to the exception, kernel sends the offending
-task a SIGSEGV with si_code that indicates the nature of exception.
-This patch adds three new signal codes specific to ADI feature:
+Even if this file was not in an uapi directory, it was exported because
+it was listed in the Kbuild file.
 
-1. ADI is not enabled for the address and task attempted to access
-   memory using ADI
-2. Task attempted to access memory using wrong ADI tag and caused
-   a deferred exception.
-3. Task attempted to access memory using wrong ADI tag and caused
-   a precise exception.
-
-Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-Cc: Khalid Aziz <khalid@gonehiking.org>
+Fixes: b72e7464e4cf ("x86/uapi: Do not export <asm/msr-index.h> as part of the user API headers")
+Suggested-by: Borislav Petkov <bp@alien8.de>
+CC: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Acked-by: Ingo Molnar <mingo@kernel.org>
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/kernel/signal_compat.c    | 2 +-
- include/uapi/asm-generic/siginfo.h | 5 ++++-
- 2 files changed, 5 insertions(+), 2 deletions(-)
+ arch/x86/include/uapi/asm/Kbuild | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/x86/kernel/signal_compat.c b/arch/x86/kernel/signal_compat.c
-index ec1f756..d1e860c 100644
---- a/arch/x86/kernel/signal_compat.c
-+++ b/arch/x86/kernel/signal_compat.c
-@@ -26,7 +26,7 @@ static inline void signal_compat_build_tests(void)
- 	 */
- 	BUILD_BUG_ON(NSIGILL  != 8);
- 	BUILD_BUG_ON(NSIGFPE  != 8);
--	BUILD_BUG_ON(NSIGSEGV != 4);
-+	BUILD_BUG_ON(NSIGSEGV != 7);
- 	BUILD_BUG_ON(NSIGBUS  != 5);
- 	BUILD_BUG_ON(NSIGTRAP != 4);
- 	BUILD_BUG_ON(NSIGCHLD != 6);
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index 1abaf62..2446864 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -213,7 +213,10 @@ typedef struct siginfo {
- #define SEGV_ACCERR	(__SI_FAULT|2)	/* invalid permissions for mapped object */
- #define SEGV_BNDERR	(__SI_FAULT|3)  /* failed address bound checks */
- #define SEGV_PKUERR	(__SI_FAULT|4)  /* failed protection key checks */
--#define NSIGSEGV	4
-+#define SEGV_ACCADI	(__SI_FAULT|5)	/* ADI not enabled for mapped object */
-+#define SEGV_ADIDERR	(__SI_FAULT|6)	/* Disrupting MCD error */
-+#define SEGV_ADIPERR	(__SI_FAULT|7)	/* Precise MCD exception */
-+#define NSIGSEGV	7
- 
- /*
-  * SIGBUS si_codes
+diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
+index 3dec769cadf7..1c532b3f18ea 100644
+--- a/arch/x86/include/uapi/asm/Kbuild
++++ b/arch/x86/include/uapi/asm/Kbuild
+@@ -27,7 +27,6 @@ header-y += ldt.h
+ header-y += mce.h
+ header-y += mman.h
+ header-y += msgbuf.h
+-header-y += msr-index.h
+ header-y += msr.h
+ header-y += mtrr.h
+ header-y += param.h
 -- 
-2.7.4
+2.8.1
+
