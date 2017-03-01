@@ -1,132 +1,54 @@
-From: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Subject: Re: [RFC PATCH v4 21/28] x86: Check for memory encryption on the APs
-Date: Tue, 28 Feb 2017 17:28:48 -0600
-Message-ID: <5f461d57-9232-1cb3-d4d9-9b8a39d00b12@amd.com>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154647.19244.18733.stgit@tlendack-t1.amdoffice.net>
-	<20170227181701.2lynk4rm77yk4msf@pd.tnic>
+From: Herbert Xu <herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org>
+Subject: Re: [PATCH v8 08/11] cryptouser.h: fix include from userland
+Date: Wed, 1 Mar 2017 12:52:41 +0800
+Message-ID: <20170301045241.GB9156@gondor.apana.org.au>
+References: <20170228024844.GA28691@altlinux.org>
+ <1488314857-28327-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1488314857-28327-9-git-send-email-nicolas.dichtel@6wind.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20170227181701.2lynk4rm77yk4msf-fF5Pk5pvG8Y@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter
-	Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S.
-	Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-rdma-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1488314857-28327-9-git-send-email-nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+Sender: linux-rdma-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Nicolas Dichtel <nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+Cc: arnd-r2nGTMty4D4@public.gmane.org, mmarek-IBi9RG/b67k@public.gmane.org, linux-kbuild-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, airlied-cv59FeDIM0c@public.gmane.org, davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org, linux-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org, slash.tmp-GANU6spQydw@public.gmane.org, daniel.vetter-/w4YWyX8dFk@public.gmane.org, rmk+kernel-I+IVW8TIWO2tmTQ+vhA3Yw@public.gmane.org, msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, jengelh-9+2X+4sQBs8@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, tklauser-93Khv+1bN0NyDzI6CaY1VQ@public.gmane.org, mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org, mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, ldv-u2l5PoMzF/Vg9hUCZPvPmw@public.gmane.org, linux-rdma-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2/27/2017 12:17 PM, Borislav Petkov wrote:
-> On Thu, Feb 16, 2017 at 09:46:47AM -0600, Tom Lendacky wrote:
->> Add support to check if memory encryption is active in the kernel and that
->> it has been enabled on the AP. If memory encryption is active in the kernel
->> but has not been enabled on the AP, then set the SYS_CFG MSR bit to enable
->> memory encryption on that AP and allow the AP to continue start up.
->>
->> Signed-off-by: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
->> ---
->>  arch/x86/include/asm/realmode.h      |   12 ++++++++++++
->>  arch/x86/realmode/init.c             |    4 ++++
->>  arch/x86/realmode/rm/trampoline_64.S |   17 +++++++++++++++++
->>  3 files changed, 33 insertions(+)
->>
->> diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
->> index 230e190..4f7ef53 100644
->> --- a/arch/x86/include/asm/realmode.h
->> +++ b/arch/x86/include/asm/realmode.h
->> @@ -1,6 +1,15 @@
->>  #ifndef _ARCH_X86_REALMODE_H
->>  #define _ARCH_X86_REALMODE_H
->>
->> +/*
->> + * Flag bit definitions for use with the flags field of the trampoline header
->> + * int the CONFIG_X86_64 variant.
->
-> s/int/in/
+On Tue, Feb 28, 2017 at 09:47:34PM +0100, Nicolas Dichtel wrote:
+> This patch prepares the uapi export by fixing the following error:
+> 
+> .../linux/cryptouser.h:58:16: error: ‘CRYPTO_MAX_ALG_NAME’ undeclared here (not in a function)
+>   char cru_name[CRYPTO_MAX_ALG_NAME];
+> 
+> Signed-off-by: Nicolas Dichtel <nicolas.dichtel-pdR9zngts4EAvxtiuMwx3w@public.gmane.org>
+> ---
+>  include/linux/crypto.h          | 2 +-
+>  include/uapi/linux/cryptouser.h | 7 +++++++
+>  2 files changed, 8 insertions(+), 1 deletion(-)
+> 
+> diff --git a/include/linux/crypto.h b/include/linux/crypto.h
+> index c0b0cf3d2d2f..4cf29a35bb4b 100644
+> --- a/include/linux/crypto.h
+> +++ b/include/linux/crypto.h
+> @@ -24,6 +24,7 @@
+>  #include <linux/slab.h>
+>  #include <linux/string.h>
+>  #include <linux/uaccess.h>
+> +#include <uapi/linux/cryptouser.h>
 
-Fixed.
+Nack.  cryptouser is just one interface in the crypto API.  It
+should not be included by every single crypto user in the kernel.
 
->
->> + */
->> +#define TH_FLAGS_SME_ACTIVE_BIT		0
->> +#define TH_FLAGS_SME_ACTIVE		BIT(TH_FLAGS_SME_ACTIVE_BIT)
->> +
->> +#ifndef __ASSEMBLY__
->> +
->>  #include <linux/types.h>
->>  #include <asm/io.h>
->>
->> @@ -38,6 +47,7 @@ struct trampoline_header {
->>  	u64 start;
->>  	u64 efer;
->>  	u32 cr4;
->> +	u32 flags;
->>  #endif
->>  };
->>
->> @@ -69,4 +79,6 @@ static inline size_t real_mode_size_needed(void)
->>  void set_real_mode_mem(phys_addr_t mem, size_t size);
->>  void reserve_real_mode(void);
->>
->> +#endif /* __ASSEMBLY__ */
->> +
->>  #endif /* _ARCH_X86_REALMODE_H */
->> diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
->> index 21d7506..5010089 100644
->> --- a/arch/x86/realmode/init.c
->> +++ b/arch/x86/realmode/init.c
->> @@ -102,6 +102,10 @@ static void __init setup_real_mode(void)
->>  	trampoline_cr4_features = &trampoline_header->cr4;
->>  	*trampoline_cr4_features = mmu_cr4_features;
->>
->> +	trampoline_header->flags = 0;
->> +	if (sme_active())
->> +		trampoline_header->flags |= TH_FLAGS_SME_ACTIVE;
->> +
->>  	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
->>  	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
->>  	trampoline_pgd[511] = init_level4_pgt[511].pgd;
->> diff --git a/arch/x86/realmode/rm/trampoline_64.S b/arch/x86/realmode/rm/trampoline_64.S
->> index dac7b20..a88c3d1 100644
->> --- a/arch/x86/realmode/rm/trampoline_64.S
->> +++ b/arch/x86/realmode/rm/trampoline_64.S
->> @@ -30,6 +30,7 @@
->>  #include <asm/msr.h>
->>  #include <asm/segment.h>
->>  #include <asm/processor-flags.h>
->> +#include <asm/realmode.h>
->>  #include "realmode.h"
->>
->>  	.text
->> @@ -92,6 +93,21 @@ ENTRY(startup_32)
->>  	movl	%edx, %fs
->>  	movl	%edx, %gs
->>
->> +	/* Check for memory encryption support */
->
-> Let's add some blurb here about this being a safety net in case BIOS
-> f*cks up. Which wouldn't be that far-fetched... :-)
+You could perhaps introduce a new file under uapi just for this.
 
-That's a good idea, I'll expand on that.  I probably won't be that
-direct in my comment though :)
-
-Thanks,
-Tom
-
->
->> +	bt	$TH_FLAGS_SME_ACTIVE_BIT, pa_tr_flags
->> +	jnc	.Ldone
->> +	movl	$MSR_K8_SYSCFG, %ecx
->> +	rdmsr
->> +	bts	$MSR_K8_SYSCFG_MEM_ENCRYPT_BIT, %eax
->> +	jc	.Ldone
->
+Cheers,
+-- 
+Email: Herbert Xu <herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+--
+To unsubscribe from this list: send the line "unsubscribe linux-rdma" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
