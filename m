@@ -1,167 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35536 "EHLO mx1.redhat.com"
+Received: from mail.skyhub.de ([5.9.137.197]:48816 "EHLO mail.skyhub.de"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751786AbdCAJep (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Mar 2017 04:34:45 -0500
-Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
- in/out
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
- <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-From: Jerome Marchand <jmarchan@redhat.com>
-Message-ID: <b8aae071-12ad-52ee-d97f-b273ae7c8838@redhat.com>
-Date: Wed, 1 Mar 2017 10:24:50 +0100
+        id S1750709AbdCALiF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Mar 2017 06:38:05 -0500
+Date: Wed, 1 Mar 2017 12:17:58 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 21/28] x86: Check for memory encryption on the APs
+Message-ID: <20170301111758.ye2nnssvflylrwkk@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154647.19244.18733.stgit@tlendack-t1.amdoffice.net>
+ <20170227181701.2lynk4rm77yk4msf@pd.tnic>
+ <5f461d57-9232-1cb3-d4d9-9b8a39d00b12@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-Content-Type: multipart/signed; micalg=pgp-sha256;
- protocol="application/pgp-signature";
- boundary="3fdK7FiognWmN71ecarFblO7MOkPHav81"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <5f461d57-9232-1cb3-d4d9-9b8a39d00b12@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <20170301092450.CWrTRcnQ3dUc3CbdTvaU8sujepGFrTIzoY7xuj96n7k@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170301111758.LUZBV3kFeYO98tiAUjESe7Iyulsr9MHIP08xx1A2k8g@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---3fdK7FiognWmN71ecarFblO7MOkPHav81
-Content-Type: multipart/mixed; boundary="wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm";
- protected-headers="v1"
-From: Jerome Marchand <jmarchan@redhat.com>
-To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org,
- davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, vbabka@suse.cz,
- dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com,
- hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com,
- vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, sparclinux@vger.kernel.org,
- Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <b8aae071-12ad-52ee-d97f-b273ae7c8838@redhat.com>
-Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
- in/out
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
- <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+On Tue, Feb 28, 2017 at 05:28:48PM -0600, Tom Lendacky wrote:
+> That's a good idea, I'll expand on that.  I probably won't be that
+> direct in my comment though :)
 
---wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+You either haven't dealt with firmware long enough or you're much better
+person than me. :-)))
 
-On 02/28/2017 07:35 PM, Khalid Aziz wrote:
-> If a processor supports special metadata for a page, for example ADI
-> version tags on SPARC M7, this metadata must be saved when the page is
-> swapped out. The same metadata must be restored when the page is swappe=
-d
-> back in. This patch adds two new architecture specific functions -
-> arch_do_swap_page() to be called when a page is swapped in,
-> arch_unmap_one() to be called when a page is being unmapped for swap
-> out.
->=20
-> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-> Cc: Khalid Aziz <khalid@gonehiking.org>
+-- 
+Regards/Gruss,
+    Boris.
 
-This looks much better than your original version.
-
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
-
-Thanks,
-Jerome
-
-> ---
-> v5:
-> 	- Replaced set_swp_pte() function with new architecture
-> 	  functions arch_do_swap_page() and arch_unmap_one()
->=20
->  include/asm-generic/pgtable.h | 16 ++++++++++++++++
->  mm/memory.c                   |  1 +
->  mm/rmap.c                     |  2 ++
->  3 files changed, 19 insertions(+)
->=20
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtabl=
-e.h
-> index 18af2bc..5764d8f 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -282,6 +282,22 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_=
-b)
->  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
-> =20
-> +#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-> +static inline void arch_do_swap_page(struct mm_struct *mm, unsigned lo=
-ng addr,
-> +				     pte_t pte, pte_t orig_pte)
-> +{
-> +
-> +}
-> +#endif
-> +
-> +#ifndef __HAVE_ARCH_UNMAP_ONE
-> +static inline void arch_unmap_one(struct mm_struct *mm, unsigned long =
-addr,
-> +				  pte_t pte, pte_t orig_pte)
-> +{
-> +
-> +}
-> +#endif
-> +
->  #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
->  #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
->  #endif
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6bf2b47..b086c76 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
->  	if (pte_swp_soft_dirty(vmf->orig_pte))
->  		pte =3D pte_mksoft_dirty(pte);
->  	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-> +	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
->  	vmf->orig_pte =3D pte;
->  	if (page =3D=3D swapcache) {
->  		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
-> diff --git a/mm/rmap.c b/mm/rmap.c
-> index 91619fd..192c41a 100644
-> --- a/mm/rmap.c
-> +++ b/mm/rmap.c
-> @@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, st=
-ruct vm_area_struct *vma,
->  		swp_pte =3D swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte =3D pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else if (PageAnon(page)) {
->  		swp_entry_t entry =3D { .val =3D page_private(page) };
-> @@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, st=
-ruct vm_area_struct *vma,
->  		swp_pte =3D swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte =3D pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else
->  		dec_mm_counter(mm, mm_counter_file(page));
->=20
-
-
-
---wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm--
-
---3fdK7FiognWmN71ecarFblO7MOkPHav81
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAEBCAAGBQJYtpNiAAoJEHTzHJCtsuoCKRQH/jKRGrEsuxwR1cB6lW3R6o0g
-TTprDDeNtwawyJFR9fO51Rcv1Y/3JXV3As8pG+jzeSOU+S8EISnRgTE3BDRYDexG
-eA7V/B0pQn0Kkrt7QwdA6bTzZ+MWPpvvWE2x9JcIFGDIGpexwVRlJL4FRy97q7Q2
-NgK2V+pSaUayRdWsLHY9yfeoE7ngemRO+O6Z6VGU8ipZAGnqQQCccQKfhf3BaP70
-cade6iFSLOUOAseE/Czn3Us69QU4g5pFczHFJb1bpQdcEFT9EiRgNJqZQvnJT6ml
-2EPXHwNzQhn+P5lgQjBGu0l+MHI42/YPUB1bAKAeBtUzK7UkotzHYOLnsk35TnU=
-=ec1Z
------END PGP SIGNATURE-----
-
---3fdK7FiognWmN71ecarFblO7MOkPHav81--
+Good mailing practices for 400: avoid top-posting and trim the reply.
