@@ -1,38 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f194.google.com ([74.125.82.194]:36478 "EHLO
-        mail-ot0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752486AbdCAQ04 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 11:26:56 -0500
+Received: from mail-ot0-f193.google.com ([74.125.82.193]:34385 "EHLO
+        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752658AbdCAQ07 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 11:26:59 -0500
 MIME-Version: 1.0
-In-Reply-To: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+In-Reply-To: <20170226010156.GA28831@altlinux.org>
+References: <20170226010156.GA28831@altlinux.org>
 From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 1 Mar 2017 17:18:27 +0100
-Message-ID: <CAK8P3a2ULkNH39UJAeZSuw2kS+7wNyySs1RaY74ELGm498NmnA@mail.gmail.com>
-Subject: Re: [PATCH 00/20] PCI: fix config and I/O Address space memory mappings
+Date: Wed, 1 Mar 2017 17:20:50 +0100
+Message-ID: <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
+Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: linux-pci <linux-pci@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Russell King <linux@armlinux.org.uk>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Catalin Marinas <catalin.marinas@arm.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>, John Garry <john.garry@huawei.com>
-Message-ID: <20170301161827.QooO624mrFDQWh5BiLMEo-JqiJNKtlPPL5FAb3z_2VY@z>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170301162050.Fp5LNlqZucIakWlfnPhu9-XKRr0IkblG4h2OwPmaS8E@z>
 
-On Mon, Feb 27, 2017 at 4:14 PM, Lorenzo Pieralisi
-<lorenzo.pieralisi@arm.com> wrote:
-
-> This patch series[1] addresses both issues in one go:
+On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
+> userspace compilation errors like this:
 >
-> - It updates the pci_remap_iospace() function to use a page mapping
->   that guarantees non-posted write transactions for I/O space addresses
-> - It adds a kernel API to remap PCI config space resources, so that
->   architecture can override it with a mapping implementation that
->   guarantees PCI specifications compliancy wrt non-posted write
->   configuration transactions
-> - It updates all PCI host controller implementations (and the generic
->   ECAM layer) to use the newly introduced mapping interface
+> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
+>   size_t ss_size;
 >
-> Tested on Juno ECAM based interface (DT/ACPI).
+> As no uapi header provides a definition of size_t, inclusion
+> of <stddef.h> seems to be the most conservative fix available.
+>
+> On the kernel side size_t is typedef'ed to __kernel_size_t, so
+> an alternative fix would be to change the type of sigaltstack.ss_size
+> from size_t to __kernel_size_t for all architectures except those where
+> sizeof(size_t) < sizeof(__kernel_size_t), namely, x32 and mips n32.
+>
+> On x32 and mips n32, however, #include <stddef.h> seems to be the most
+> straightforward way to obtain the definition for sigaltstack.ss_size's
+> type.
+>
+> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 
-This looks all good to me, nice work!
+I'm not sure if this is the best fix. We generally should not include one
+standard header from another standard header. Would it be possible
+to use __kernel_size_t instead of size_t?
 
-    Arnd
+     Arnd
