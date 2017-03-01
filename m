@@ -1,45 +1,430 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ot0-f193.google.com ([74.125.82.193]:34385 "EHLO
-        mail-ot0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752658AbdCAQ07 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 11:26:59 -0500
+Received: from mail.skyhub.de ([5.9.137.197]:33358 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751537AbdCARuB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 1 Mar 2017 12:50:01 -0500
+Date: Wed, 1 Mar 2017 18:36:23 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 27/28] x86: Add support to encrypt the kernel
+ in-place
+Message-ID: <20170301173623.zcf35xgyrhmo25a7@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154808.19244.475.stgit@tlendack-t1.amdoffice.net>
 MIME-Version: 1.0
-In-Reply-To: <20170226010156.GA28831@altlinux.org>
-References: <20170226010156.GA28831@altlinux.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Wed, 1 Mar 2017 17:20:50 +0100
-Message-ID: <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
-Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20170216154808.19244.475.stgit@tlendack-t1.amdoffice.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
-Message-ID: <20170301162050.Fp5LNlqZucIakWlfnPhu9-XKRr0IkblG4h2OwPmaS8E@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170301173623.8SZNZ9wW943ERsO1htwMjxsb4rYkxUmrEJa99TRWx1o@z>
 
-On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
-> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
-> userspace compilation errors like this:
->
-> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
->   size_t ss_size;
->
-> As no uapi header provides a definition of size_t, inclusion
-> of <stddef.h> seems to be the most conservative fix available.
->
-> On the kernel side size_t is typedef'ed to __kernel_size_t, so
-> an alternative fix would be to change the type of sigaltstack.ss_size
-> from size_t to __kernel_size_t for all architectures except those where
-> sizeof(size_t) < sizeof(__kernel_size_t), namely, x32 and mips n32.
->
-> On x32 and mips n32, however, #include <stddef.h> seems to be the most
-> straightforward way to obtain the definition for sigaltstack.ss_size's
-> type.
->
-> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+On Thu, Feb 16, 2017 at 09:48:08AM -0600, Tom Lendacky wrote:
+> This patch adds the support to encrypt the kernel in-place. This is
+> done by creating new page mappings for the kernel - a decrypted
+> write-protected mapping and an encrypted mapping. The kernel is encyrpted
 
-I'm not sure if this is the best fix. We generally should not include one
-standard header from another standard header. Would it be possible
-to use __kernel_size_t instead of size_t?
+s/encyrpted/encrypted/
 
-     Arnd
+> by copying the kernel through a temporary buffer.
+
+"... by copying it... "
+
+> 
+> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+> ---
+
+...
+
+> +ENTRY(sme_encrypt_execute)
+> +
+> +#ifdef CONFIG_AMD_MEM_ENCRYPT
+> +	/*
+> +	 * Entry parameters:
+> +	 *   RDI - virtual address for the encrypted kernel mapping
+> +	 *   RSI - virtual address for the decrypted kernel mapping
+> +	 *   RDX - length of kernel
+> +	 *   RCX - address of the encryption workarea
+
+						     , including:
+
+> +	 *     - stack page (PAGE_SIZE)
+> +	 *     - encryption routine page (PAGE_SIZE)
+> +	 *     - intermediate copy buffer (PMD_PAGE_SIZE)
+> +	 *    R8 - address of the pagetables to use for encryption
+> +	 */
+> +
+> +	/* Set up a one page stack in the non-encrypted memory area */
+> +	movq	%rcx, %rax
+> +	addq	$PAGE_SIZE, %rax
+> +	movq	%rsp, %rbp
+
+%rbp is callee-saved and you're overwriting it here. You need to push it
+first.
+
+> +	movq	%rax, %rsp
+> +	push	%rbp
+> +
+> +	push	%r12
+> +	push	%r13
+
+In general, just do all pushes on function entry and the pops on exit,
+like the compiler does.
+
+> +	movq	%rdi, %r10
+> +	movq	%rsi, %r11
+> +	movq	%rdx, %r12
+> +	movq	%rcx, %r13
+> +
+> +	/* Copy encryption routine into the workarea */
+> +	movq	%rax, %rdi
+> +	leaq	.Lencrypt_start(%rip), %rsi
+> +	movq	$(.Lencrypt_stop - .Lencrypt_start), %rcx
+> +	rep	movsb
+> +
+> +	/* Setup registers for call */
+> +	movq	%r10, %rdi
+> +	movq	%r11, %rsi
+> +	movq	%r8, %rdx
+> +	movq	%r12, %rcx
+> +	movq	%rax, %r8
+> +	addq	$PAGE_SIZE, %r8
+> +
+> +	/* Call the encryption routine */
+> +	call	*%rax
+> +
+> +	pop	%r13
+> +	pop	%r12
+> +
+> +	pop	%rsp			/* Restore original stack pointer */
+> +.Lencrypt_exit:
+
+Please put side comments like this here:
+
+ENTRY(sme_encrypt_execute)
+
+#ifdef CONFIG_AMD_MEM_ENCRYPT
+        /*
+         * Entry parameters:
+         *   RDI - virtual address for the encrypted kernel mapping
+         *   RSI - virtual address for the decrypted kernel mapping
+         *   RDX - length of kernel
+         *   RCX - address of the encryption workarea
+         *     - stack page (PAGE_SIZE)
+         *     - encryption routine page (PAGE_SIZE)
+         *     - intermediate copy buffer (PMD_PAGE_SIZE)
+         *    R8 - address of the pagetables to use for encryption
+         */
+
+        /* Set up a one page stack in the non-encrypted memory area */
+        movq    %rcx, %rax                      # %rax = workarea
+        addq    $PAGE_SIZE, %rax                # %rax += 4096
+        movq    %rsp, %rbp                      # stash stack ptr
+        movq    %rax, %rsp                      # set new stack
+        push    %rbp                            # needs to happen before the mov %rsp, %rbp
+
+        push    %r12
+        push    %r13
+
+        movq    %rdi, %r10                      # encrypted kernel
+        movq    %rsi, %r11                      # decrypted kernel
+        movq    %rdx, %r12                      # kernel length
+        movq    %rcx, %r13                      # workarea
+	...
+
+and so on.
+
+...
+
+> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
+> index 25af15d..07cbb90 100644
+> --- a/arch/x86/kernel/mem_encrypt_init.c
+> +++ b/arch/x86/kernel/mem_encrypt_init.c
+> @@ -16,9 +16,200 @@
+>  #ifdef CONFIG_AMD_MEM_ENCRYPT
+>  
+>  #include <linux/mem_encrypt.h>
+> +#include <linux/mm.h>
+> +
+> +#include <asm/sections.h>
+> +
+> +extern void sme_encrypt_execute(unsigned long, unsigned long, unsigned long,
+> +				void *, pgd_t *);
+
+This belongs into mem_encrypt.h. And I think it already came up: please
+use names for those params.
+
+> +
+> +#define PGD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PUD_FLAGS	_KERNPG_TABLE_NOENC
+> +#define PMD_FLAGS	__PAGE_KERNEL_LARGE_EXEC
+> +
+> +static void __init *sme_pgtable_entry(pgd_t *pgd, void *next_page,
+> +				      void *vaddr, pmdval_t pmd_val)
+> +{
+
+sme_populate() or so sounds better.
+
+> +	pud_t *pud;
+> +	pmd_t *pmd;
+> +
+> +	pgd += pgd_index((unsigned long)vaddr);
+> +	if (pgd_none(*pgd)) {
+> +		pud = next_page;
+> +		memset(pud, 0, sizeof(*pud) * PTRS_PER_PUD);
+> +		native_set_pgd(pgd,
+> +			       native_make_pgd((unsigned long)pud + PGD_FLAGS));
+
+Let it stick out, no need for those "stairs" in the vertical alignment :)
+
+> +		next_page += sizeof(*pud) * PTRS_PER_PUD;
+> +	} else {
+> +		pud = (pud_t *)(native_pgd_val(*pgd) & ~PTE_FLAGS_MASK);
+> +	}
+> +
+> +	pud += pud_index((unsigned long)vaddr);
+> +	if (pud_none(*pud)) {
+> +		pmd = next_page;
+> +		memset(pmd, 0, sizeof(*pmd) * PTRS_PER_PMD);
+> +		native_set_pud(pud,
+> +			       native_make_pud((unsigned long)pmd + PUD_FLAGS));
+> +		next_page += sizeof(*pmd) * PTRS_PER_PMD;
+> +	} else {
+> +		pmd = (pmd_t *)(native_pud_val(*pud) & ~PTE_FLAGS_MASK);
+> +	}
+> +
+> +	pmd += pmd_index((unsigned long)vaddr);
+> +	if (pmd_none(*pmd) || !pmd_large(*pmd))
+> +		native_set_pmd(pmd, native_make_pmd(pmd_val));
+> +
+> +	return next_page;
+> +}
+> +
+> +static unsigned long __init sme_pgtable_calc(unsigned long start,
+> +					     unsigned long end)
+> +{
+> +	unsigned long addr, total;
+> +
+> +	total = 0;
+> +	addr = start;
+> +	while (addr < end) {
+> +		unsigned long pgd_end;
+> +
+> +		pgd_end = (addr & PGDIR_MASK) + PGDIR_SIZE;
+> +		if (pgd_end > end)
+> +			pgd_end = end;
+> +
+> +		total += sizeof(pud_t) * PTRS_PER_PUD * 2;
+> +
+> +		while (addr < pgd_end) {
+> +			unsigned long pud_end;
+> +
+> +			pud_end = (addr & PUD_MASK) + PUD_SIZE;
+> +			if (pud_end > end)
+> +				pud_end = end;
+> +
+> +			total += sizeof(pmd_t) * PTRS_PER_PMD * 2;
+
+That "* 2" is?
+
+> +
+> +			addr = pud_end;
+
+So			addr += PUD_SIZE;
+
+?
+
+> +		}
+> +
+> +		addr = pgd_end;
+
+So		addr += PGD_SIZE;
+
+?
+
+> +	total += sizeof(pgd_t) * PTRS_PER_PGD;
+> +
+> +	return total;
+> +}
+>  
+>  void __init sme_encrypt_kernel(void)
+>  {
+> +	pgd_t *pgd;
+> +	void *workarea, *next_page, *vaddr;
+> +	unsigned long kern_start, kern_end, kern_len;
+> +	unsigned long index, paddr, pmd_flags;
+> +	unsigned long exec_size, full_size;
+> +
+> +	/* If SME is not active then no need to prepare */
+
+That comment is obvious.
+
+> +	if (!sme_active())
+> +		return;
+> +
+> +	/* Set the workarea to be after the kernel */
+> +	workarea = (void *)ALIGN(__pa_symbol(_end), PMD_PAGE_SIZE);
+> +
+> +	/*
+> +	 * Prepare for encrypting the kernel by building new pagetables with
+> +	 * the necessary attributes needed to encrypt the kernel in place.
+> +	 *
+> +	 *   One range of virtual addresses will map the memory occupied
+> +	 *   by the kernel as encrypted.
+> +	 *
+> +	 *   Another range of virtual addresses will map the memory occupied
+> +	 *   by the kernel as decrypted and write-protected.
+> +	 *
+> +	 *     The use of write-protect attribute will prevent any of the
+> +	 *     memory from being cached.
+> +	 */
+> +
+> +	/* Physical address gives us the identity mapped virtual address */
+> +	kern_start = __pa_symbol(_text);
+> +	kern_end = ALIGN(__pa_symbol(_end), PMD_PAGE_SIZE) - 1;
+
+So
+	kern_end = (unsigned long)workarea - 1;
+
+?
+
+Also, you can make that workarea be unsigned long and cast it to void *
+only when needed so that you don't need to cast it in here for the
+calculations.
+
+> +	kern_len = kern_end - kern_start + 1;
+> +
+> +	/*
+> +	 * Calculate required number of workarea bytes needed:
+> +	 *   executable encryption area size:
+> +	 *     stack page (PAGE_SIZE)
+> +	 *     encryption routine page (PAGE_SIZE)
+> +	 *     intermediate copy buffer (PMD_PAGE_SIZE)
+> +	 *   pagetable structures for workarea (in case not currently mapped)
+> +	 *   pagetable structures for the encryption of the kernel
+> +	 */
+> +	exec_size = (PAGE_SIZE * 2) + PMD_PAGE_SIZE;
+> +
+> +	full_size = exec_size;
+> +	full_size += ALIGN(exec_size, PMD_PAGE_SIZE) / PMD_PAGE_SIZE *
+> +		     sizeof(pmd_t) * PTRS_PER_PMD;
+> +	full_size += sme_pgtable_calc(kern_start, kern_end + exec_size);
+> +
+> +	next_page = workarea + exec_size;
+
+So next_page is the next free page after the workarea, correct? Because
+of all things, *that* certainly needs a comment. It took me a while to
+decipher what's going on here and I'm still not 100% clear.
+
+> +	/* Make sure the current pagetables have entries for the workarea */
+> +	pgd = (pgd_t *)native_read_cr3();
+> +	paddr = (unsigned long)workarea;
+> +	while (paddr < (unsigned long)workarea + full_size) {
+> +		vaddr = (void *)paddr;
+> +		next_page = sme_pgtable_entry(pgd, next_page, vaddr,
+> +					      paddr + PMD_FLAGS);
+> +
+> +		paddr += PMD_PAGE_SIZE;
+> +	}
+> +	native_write_cr3(native_read_cr3());
+
+Why not
+
+	native_write_cr3((unsigned long)pgd);
+
+?
+
+Now you can actually acknowledge that the code block in between changed
+the hierarchy in pgd and you're reloading it.
+
+> +	/* Calculate a PGD index to be used for the decrypted mapping */
+> +	index = (pgd_index(kern_end + full_size) + 1) & (PTRS_PER_PGD - 1);
+> +	index <<= PGDIR_SHIFT;
+
+So call it decrypt_mapping_pgd or so. index doesn't say anything. Also,
+move it right above where it is being used. This function is very hard
+to follow as it is.
+
+> +	/* Set and clear the PGD */
+
+This needs more text: we're building a new temporary pagetable which
+will have A, B and C mapped into it and blablabla...
+
+> +	pgd = next_page;
+> +	memset(pgd, 0, sizeof(*pgd) * PTRS_PER_PGD);
+> +	next_page += sizeof(*pgd) * PTRS_PER_PGD;
+> +
+> +	/* Add encrypted (identity) mappings for the kernel */
+> +	pmd_flags = PMD_FLAGS | _PAGE_ENC;
+> +	paddr = kern_start;
+> +	while (paddr < kern_end) {
+> +		vaddr = (void *)paddr;
+> +		next_page = sme_pgtable_entry(pgd, next_page, vaddr,
+> +					      paddr + pmd_flags);
+> +
+> +		paddr += PMD_PAGE_SIZE;
+> +	}
+> +
+> +	/* Add decrypted (non-identity) mappings for the kernel */
+> +	pmd_flags = (PMD_FLAGS & ~_PAGE_CACHE_MASK) | (_PAGE_PAT | _PAGE_PWT);
+> +	paddr = kern_start;
+> +	while (paddr < kern_end) {
+> +		vaddr = (void *)(paddr + index);
+> +		next_page = sme_pgtable_entry(pgd, next_page, vaddr,
+> +					      paddr + pmd_flags);
+> +
+> +		paddr += PMD_PAGE_SIZE;
+> +	}
+> +
+> +	/* Add the workarea to both mappings */
+> +	paddr = kern_end + 1;
+
+	paddr = (unsigned long)workarea;
+
+Now this makes sense when I read the comment above it.
+
+> +	while (paddr < (kern_end + exec_size)) {
+
+... which actually wants that exec_size to be called workarea_size. Then
+it'll make more sense.
+
+And then the thing above:
+
+	next_page = workarea + exec_size;
+
+would look like:
+
+	next_page = workarea + workarea_size;
+
+which would make even more sense. And since you have stuff called _start
+and _end, you can do:
+
+	next_page = workarea_start + workarea_size;
+
+and not it would make most sense. Eva! :-)
+
+> +		vaddr = (void *)paddr;
+> +		next_page = sme_pgtable_entry(pgd, next_page, vaddr,
+> +					      paddr + PMD_FLAGS);
+> +
+> +		vaddr = (void *)(paddr + index);
+> +		next_page = sme_pgtable_entry(pgd, next_page, vaddr,
+> +					      paddr + PMD_FLAGS);
+> +
+> +		paddr += PMD_PAGE_SIZE;
+> +	}
+> +
+> +	/* Perform the encryption */
+> +	sme_encrypt_execute(kern_start, kern_start + index, kern_len,
+> +			    workarea, pgd);
+> +
+
+Phew, that's one tough patch to review. I'd like to review it again in
+your next submission.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
