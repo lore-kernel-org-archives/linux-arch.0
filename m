@@ -1,168 +1,69 @@
-From: Jerome Marchand <jmarchan@redhat.com>
-Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
- in/out
-Date: Wed, 1 Mar 2017 10:24:50 +0100
-Message-ID: <b8aae071-12ad-52ee-d97f-b273ae7c8838@redhat.com>
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
- <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+From: Dave Young <dyoung-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [RFC PATCH v4 26/28] x86: Allow kexec to be used with SME
+Date: Wed, 1 Mar 2017 17:25:36 +0800
+Message-ID: <20170301092536.GB8353@dhcp-128-65.nay.redhat.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+	<20170216154755.19244.51276.stgit@tlendack-t1.amdoffice.net>
+	<20170217155756.GJ30272@char.us.ORACLE.com>
+	<d2f16b24-f2ef-a22b-3c72-2d8ad585553e@amd.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- protocol="application/pgp-signature";
- boundary="3fdK7FiognWmN71ecarFblO7MOkPHav81"
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org, davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, vbabka@suse.cz, dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com, hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com, vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, Khalid Aziz <khalid@gonehiking.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <d2f16b24-f2ef-a22b-3c72-2d8ad585553e-5C7GfCeVMHo@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---3fdK7FiognWmN71ecarFblO7MOkPHav81
-Content-Type: multipart/mixed; boundary="wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm";
- protected-headers="v1"
-From: Jerome Marchand <jmarchan@redhat.com>
-To: Khalid Aziz <khalid.aziz@oracle.com>, akpm@linux-foundation.org,
- davem@davemloft.net, arnd@arndb.de
-Cc: kirill.shutemov@linux.intel.com, mhocko@suse.com, vbabka@suse.cz,
- dan.j.williams@intel.com, lstoakes@gmail.com, dave.hansen@linux.intel.com,
- hannes@cmpxchg.org, mgorman@suse.de, hughd@google.com,
- vdavydov.dev@gmail.com, minchan@kernel.org, namit@vmware.com,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, sparclinux@vger.kernel.org,
- Khalid Aziz <khalid@gonehiking.org>
-Message-ID: <b8aae071-12ad-52ee-d97f-b273ae7c8838@redhat.com>
-Subject: Re: [PATCH v6 2/4] mm: Add functions to support extra actions on swap
- in/out
-References: <cover.1488232591.git.khalid.aziz@oracle.com>
- <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
-In-Reply-To: <4c4da87ff45b98e236cdfef66055b876074dabfb.1488232597.git.khalid.aziz@oracle.com>
+Hi Tom,
 
---wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+On 02/17/17 at 10:43am, Tom Lendacky wrote:
+> On 2/17/2017 9:57 AM, Konrad Rzeszutek Wilk wrote:
+> > On Thu, Feb 16, 2017 at 09:47:55AM -0600, Tom Lendacky wrote:
+> > > Provide support so that kexec can be used to boot a kernel when SME is
+> > > enabled.
+> > 
+> > Is the point of kexec and kdump to ehh, dump memory ? But if the
+> > rest of the memory is encrypted you won't get much, will you?
+> 
+> Kexec can be used to reboot a system without going back through BIOS.
+> So you can use kexec without using kdump.
+> 
+> For kdump, just taking a quick look, the option to enable memory
+> encryption can be provided on the crash kernel command line and then
 
-On 02/28/2017 07:35 PM, Khalid Aziz wrote:
-> If a processor supports special metadata for a page, for example ADI
-> version tags on SPARC M7, this metadata must be saved when the page is
-> swapped out. The same metadata must be restored when the page is swappe=
-d
-> back in. This patch adds two new architecture specific functions -
-> arch_do_swap_page() to be called when a page is swapped in,
-> arch_unmap_one() to be called when a page is being unmapped for swap
-> out.
->=20
-> Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
-> Cc: Khalid Aziz <khalid@gonehiking.org>
+Is there a simple way to get the SME status? Probably add some sysfs
+file for this purpose.
 
-This looks much better than your original version.
+> crash kernel can would be able to copy the memory decrypted if the
+> pagetable is set up properly. It looks like currently ioremap_cache()
+> is used to map the old memory page.  That might be able to be changed
+> to a memremap() so that the encryption bit is set in the mapping. That
+> will mean that memory that is not marked encrypted (EFI tables, swiotlb
+> memory, etc) would not be read correctly.
 
-Acked-by: Jerome Marchand <jmarchan@redhat.com>
+Manage to store info about those ranges which are not encrypted so that
+memremap can handle them?
 
-Thanks,
-Jerome
+> 
+> > 
+> > Would it make sense to include some printk to the user if they
+> > are setting up kdump that they won't get anything out of it?
+> 
+> Probably a good idea to add something like that.
 
-> ---
-> v5:
-> 	- Replaced set_swp_pte() function with new architecture
-> 	  functions arch_do_swap_page() and arch_unmap_one()
->=20
->  include/asm-generic/pgtable.h | 16 ++++++++++++++++
->  mm/memory.c                   |  1 +
->  mm/rmap.c                     |  2 ++
->  3 files changed, 19 insertions(+)
->=20
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtabl=
-e.h
-> index 18af2bc..5764d8f 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -282,6 +282,22 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_=
-b)
->  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
-> =20
-> +#ifndef __HAVE_ARCH_DO_SWAP_PAGE
-> +static inline void arch_do_swap_page(struct mm_struct *mm, unsigned lo=
-ng addr,
-> +				     pte_t pte, pte_t orig_pte)
-> +{
-> +
-> +}
-> +#endif
-> +
-> +#ifndef __HAVE_ARCH_UNMAP_ONE
-> +static inline void arch_unmap_one(struct mm_struct *mm, unsigned long =
-addr,
-> +				  pte_t pte, pte_t orig_pte)
-> +{
-> +
-> +}
-> +#endif
-> +
->  #ifndef __HAVE_ARCH_PGD_OFFSET_GATE
->  #define pgd_offset_gate(mm, addr)	pgd_offset(mm, addr)
->  #endif
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 6bf2b47..b086c76 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -2658,6 +2658,7 @@ int do_swap_page(struct vm_fault *vmf)
->  	if (pte_swp_soft_dirty(vmf->orig_pte))
->  		pte =3D pte_mksoft_dirty(pte);
->  	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, pte);
-> +	arch_do_swap_page(vma->vm_mm, vmf->address, pte, vmf->orig_pte);
->  	vmf->orig_pte =3D pte;
->  	if (page =3D=3D swapcache) {
->  		do_page_add_anon_rmap(page, vma, vmf->address, exclusive);
-> diff --git a/mm/rmap.c b/mm/rmap.c
-> index 91619fd..192c41a 100644
-> --- a/mm/rmap.c
-> +++ b/mm/rmap.c
-> @@ -1538,6 +1538,7 @@ static int try_to_unmap_one(struct page *page, st=
-ruct vm_area_struct *vma,
->  		swp_pte =3D swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte =3D pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else if (PageAnon(page)) {
->  		swp_entry_t entry =3D { .val =3D page_private(page) };
-> @@ -1571,6 +1572,7 @@ static int try_to_unmap_one(struct page *page, st=
-ruct vm_area_struct *vma,
->  		swp_pte =3D swp_entry_to_pte(entry);
->  		if (pte_soft_dirty(pteval))
->  			swp_pte =3D pte_swp_mksoft_dirty(swp_pte);
-> +		arch_unmap_one(mm, address, swp_pte, pteval);
->  		set_pte_at(mm, address, pte, swp_pte);
->  	} else
->  		dec_mm_counter(mm, mm_counter_file(page));
->=20
+It will break kdump functionality, it should be fixed instead of
+just adding printk to warn user..
 
-
-
---wQcfFPeJenbmiIFrbJVXaBVSD47eJjtBm--
-
---3fdK7FiognWmN71ecarFblO7MOkPHav81
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAEBCAAGBQJYtpNiAAoJEHTzHJCtsuoCKRQH/jKRGrEsuxwR1cB6lW3R6o0g
-TTprDDeNtwawyJFR9fO51Rcv1Y/3JXV3As8pG+jzeSOU+S8EISnRgTE3BDRYDexG
-eA7V/B0pQn0Kkrt7QwdA6bTzZ+MWPpvvWE2x9JcIFGDIGpexwVRlJL4FRy97q7Q2
-NgK2V+pSaUayRdWsLHY9yfeoE7ngemRO+O6Z6VGU8ipZAGnqQQCccQKfhf3BaP70
-cade6iFSLOUOAseE/Czn3Us69QU4g5pFczHFJb1bpQdcEFT9EiRgNJqZQvnJT6ml
-2EPXHwNzQhn+P5lgQjBGu0l+MHI42/YPUB1bAKAeBtUzK7UkotzHYOLnsk35TnU=
-=ec1Z
------END PGP SIGNATURE-----
-
---3fdK7FiognWmN71ecarFblO7MOkPHav81--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks
+Dave
