@@ -1,171 +1,231 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
- Memory Encryption
-Date: Wed, 1 Mar 2017 19:40:56 +0100
-Message-ID: <20170301184055.gl3iic3gir6zzb23@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 03/20] asm-generic: Drop getrlimit and setrlimit syscalls from
+ default list
+Date: Thu,  2 Mar 2017 00:49:11 +0530
+Message-ID: <1488395968-14313-4-git-send-email-ynorov@caviumnetworks.com>
+References: <1488395968-14313-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1488395968-14313-1-git-send-email-ynorov@caviumnetworks.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>, Andrew Pinski <Andrew.Pinski@caviumnetworks.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Metcalf <cmetcalf@ezchip.com>, Yury Norov <ynorov@caviumnetworks.com>, linux@lists.openrisc.net, linux-hexagon@vger.kernel.org, philipp.tomsich@theobroma-systems.com, Joseph Myers <joseph@codesourcery.com>, linux-arch@vger.kernel.org, Chen Liqin <liqin.linux@gmail.com>, zhouchengming1@huawei.com, Guan Xuetao <gxt@mprc.pku.edu.cn>, Steve Ellcey <sellcey@caviumnetworks.com>, linux-c6x-dev@linux-c6x.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Prasun.Kapoor@caviumnetworks.com, Andreas Schwab <schwab@suse.de>, agraf@suse.de, szabolcs.nagy@arm.com, geert@linux-m68k.org, Lennox Wu <lennox.wu@gmail.com>, Mark Salter <msalter@redhat.com>, linux-snps-arc@lists.infradead.org, uclinux-h8-devel@lists.sourceforge.jp, Adam Borowski <kilobyte@a>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 16, 2017 at 09:48:25AM -0600, Tom Lendacky wrote:
-> This patch adds the support to check if SME has been enabled and if
-> memory encryption should be activated (checking of command line option
-> based on the configuration of the default state).  If memory encryption
-> is to be activated, then the encryption mask is set and the kernel is
-> encrypted "in place."
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/kernel/head_64.S          |    1 +
->  arch/x86/kernel/mem_encrypt_init.c |   71 +++++++++++++++++++++++++++++++++++-
->  arch/x86/mm/mem_encrypt.c          |    2 +
->  3 files changed, 73 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-> index edd2f14..e6820e7 100644
-> --- a/arch/x86/kernel/head_64.S
-> +++ b/arch/x86/kernel/head_64.S
-> @@ -97,6 +97,7 @@ startup_64:
->  	 * Save the returned mask in %r12 for later use.
->  	 */
->  	push	%rsi
-> +	movq	%rsi, %rdi
->  	call	sme_enable
->  	pop	%rsi
->  	movq	%rax, %r12
-> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
-> index 07cbb90..35c5e3d 100644
-> --- a/arch/x86/kernel/mem_encrypt_init.c
-> +++ b/arch/x86/kernel/mem_encrypt_init.c
-> @@ -19,6 +19,12 @@
->  #include <linux/mm.h>
->  
->  #include <asm/sections.h>
-> +#include <asm/processor-flags.h>
-> +#include <asm/msr.h>
-> +#include <asm/cmdline.h>
-> +
-> +static char sme_cmdline_arg_on[] __initdata = "mem_encrypt=on";
-> +static char sme_cmdline_arg_off[] __initdata = "mem_encrypt=off";
->  
->  extern void sme_encrypt_execute(unsigned long, unsigned long, unsigned long,
->  				void *, pgd_t *);
-> @@ -217,8 +223,71 @@ unsigned long __init sme_get_me_mask(void)
->  	return sme_me_mask;
->  }
->  
-> -unsigned long __init sme_enable(void)
-> +unsigned long __init sme_enable(void *boot_data)
+The newer prlimit64 syscall provides all the functionality provided by
+the getrlimit and setrlimit syscalls and adds the pid of target process,
+so future architectures won't need to include getrlimit and setrlimit.
 
-unsigned long __init sme_enable(struct boot_params *bp)
+Therefore drop getrlimit and setrlimit syscalls from the generic syscall
+list unless __ARCH_WANT_SET_GET_RLIMIT is defined by the architecture's
+unistd.h prior to including asm-generic/unistd.h, and adjust all architectures
+using the generic syscall list to define it so that no in-tree architectures
+are affected.
 
-works too.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-snps-arc@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
+Cc: linux-metag@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: linux@lists.openrisc.net
+Cc: Chen Liqin <liqin.linux@gmail.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Chris Metcalf <cmetcalf@mellanox.com>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: nios2-dev@lists.rocketboards.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: uclinux-h8-devel@lists.sourceforge.jp
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Mark Salter <msalter@redhat.com> [c6x]
+Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
+Acked-by: Ley Foon Tan <lftan@altera.com> [nios2]
+Acked-by: Stafford Horne <shorne@gmail.com> [openrisc]
+Acked-by: Vineet Gupta <vgupta@synopsys.com> #arch/arc bits
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
+ arch/arc/include/uapi/asm/unistd.h       | 1 +
+ arch/arm64/include/uapi/asm/unistd.h     | 1 +
+ arch/c6x/include/uapi/asm/unistd.h       | 1 +
+ arch/h8300/include/uapi/asm/unistd.h     | 1 +
+ arch/hexagon/include/uapi/asm/unistd.h   | 1 +
+ arch/metag/include/uapi/asm/unistd.h     | 1 +
+ arch/nios2/include/uapi/asm/unistd.h     | 1 +
+ arch/openrisc/include/uapi/asm/unistd.h  | 1 +
+ arch/score/include/uapi/asm/unistd.h     | 1 +
+ arch/tile/include/uapi/asm/unistd.h      | 1 +
+ arch/unicore32/include/uapi/asm/unistd.h | 1 +
+ include/uapi/asm-generic/unistd.h        | 5 +++++
+ 12 files changed, 16 insertions(+)
 
-And then you need to correct the function signature in the
-!CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
-
-unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
-
->  {
-> +	struct boot_params *bp = boot_data;
-> +	unsigned int eax, ebx, ecx, edx;
-> +	unsigned long cmdline_ptr;
-> +	bool enable_if_found;
-> +	void *cmdline_arg;
-> +	u64 msr;
-> +
-> +	/* Check for an AMD processor */
-> +	eax = 0;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if ((ebx != 0x68747541) || (edx != 0x69746e65) || (ecx != 0x444d4163))
-> +		goto out;
-> +
-> +	/* Check for the SME support leaf */
-> +	eax = 0x80000000;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if (eax < 0x8000001f)
-> +		goto out;
-> +
-> +	/*
-> +	 * Check for the SME feature:
-> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
-> +	 *     Secure Memory Encryption support
-> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-> +	 *     Pagetable bit position used to indicate encryption
-> +	 */
-> +	eax = 0x8000001f;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if (!(eax & 1))
-> +		goto out;
-> +
-> +	/* Check if SME is enabled */
-> +	msr = native_read_msr(MSR_K8_SYSCFG);
-
-This native_read_msr() wankery is adding this check:
-
-	if (msr_tracepoint_active(__tracepoint_read_msr))
-
-and here it is clearly too early for tracepoints. Please use __rdmsr()
-which is purely doing the MSR operation. (... and exception handling for
-when the RDMSR itself raises an exception but we're very early here too
-so the MSR better be there, otherwise we'll blow up).
-
-> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-> +		goto out;
-> +
-> +	/*
-> +	 * Fixups have not been to applied phys_base yet, so we must obtain
-
-		...    not been applied to phys_base yet ...
-
-> +	 * the address to the SME command line option in the following way.
-> +	 */
-> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT)) {
-> +		asm ("lea sme_cmdline_arg_off(%%rip), %0"
-> +		     : "=r" (cmdline_arg)
-> +		     : "p" (sme_cmdline_arg_off));
-> +		enable_if_found = false;
-> +	} else {
-> +		asm ("lea sme_cmdline_arg_on(%%rip), %0"
-> +		     : "=r" (cmdline_arg)
-> +		     : "p" (sme_cmdline_arg_on));
-> +		enable_if_found = true;
-> +	}
-> +
-> +	cmdline_ptr = bp->hdr.cmd_line_ptr | ((u64)bp->ext_cmd_line_ptr << 32);
-> +
-> +	if (cmdline_find_option_bool((char *)cmdline_ptr, cmdline_arg))
-> +		sme_me_mask = enable_if_found ? 1UL << (ebx & 0x3f) : 0;
-> +	else
-> +		sme_me_mask = enable_if_found ? 0 : 1UL << (ebx & 0x3f);
-
-I have a better idea: you can copy __cmdline_find_option() +
-cmdline_find_option() to arch/x86/lib/cmdline.c in a pre-patch. Then,
-pass in a buffer and check for "on" and "off". This way you don't
-have to misuse the _bool() variant for something which is actually
-"option=argument".
-
-Thanks.
-
+diff --git a/arch/arc/include/uapi/asm/unistd.h b/arch/arc/include/uapi/asm/unistd.h
+index 9a34136..ac64965 100644
+--- a/arch/arc/include/uapi/asm/unistd.h
++++ b/arch/arc/include/uapi/asm/unistd.h
+@@ -16,6 +16,7 @@
+ #define _UAPI_ASM_ARC_UNISTD_H
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #define __ARCH_WANT_SYS_EXECVE
+ #define __ARCH_WANT_SYS_CLONE
+ #define __ARCH_WANT_SYS_VFORK
+diff --git a/arch/arm64/include/uapi/asm/unistd.h b/arch/arm64/include/uapi/asm/unistd.h
+index 043d17a..48355a6 100644
+--- a/arch/arm64/include/uapi/asm/unistd.h
++++ b/arch/arm64/include/uapi/asm/unistd.h
+@@ -15,5 +15,6 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ 
+ #include <asm-generic/unistd.h>
+diff --git a/arch/c6x/include/uapi/asm/unistd.h b/arch/c6x/include/uapi/asm/unistd.h
+index 12d73d9..f676231 100644
+--- a/arch/c6x/include/uapi/asm/unistd.h
++++ b/arch/c6x/include/uapi/asm/unistd.h
+@@ -15,6 +15,7 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #define __ARCH_WANT_SYS_CLONE
+ 
+ /* Use the standard ABI for syscalls. */
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
+index 7dd20ef..2f98394 100644
+--- a/arch/h8300/include/uapi/asm/unistd.h
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -1,5 +1,6 @@
+ #define __ARCH_NOMMU
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ 
+ #include <asm-generic/unistd.h>
+diff --git a/arch/hexagon/include/uapi/asm/unistd.h b/arch/hexagon/include/uapi/asm/unistd.h
+index 2151760..52d585c 100644
+--- a/arch/hexagon/include/uapi/asm/unistd.h
++++ b/arch/hexagon/include/uapi/asm/unistd.h
+@@ -28,6 +28,7 @@
+ 
+ #define sys_mmap2 sys_mmap_pgoff
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #define __ARCH_WANT_SYS_EXECVE
+ #define __ARCH_WANT_SYS_CLONE
+ #define __ARCH_WANT_SYS_VFORK
+diff --git a/arch/metag/include/uapi/asm/unistd.h b/arch/metag/include/uapi/asm/unistd.h
+index 459b6ec..16b5cb3 100644
+--- a/arch/metag/include/uapi/asm/unistd.h
++++ b/arch/metag/include/uapi/asm/unistd.h
+@@ -8,6 +8,7 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ 
+ /* Use the standard ABI for syscalls. */
+ #include <asm-generic/unistd.h>
+diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
+index 51a32c7..b0dda4d 100644
+--- a/arch/nios2/include/uapi/asm/unistd.h
++++ b/arch/nios2/include/uapi/asm/unistd.h
+@@ -18,6 +18,7 @@
+  #define sys_mmap2 sys_mmap_pgoff
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ 
+ /* Use the standard ABI for syscalls */
+ #include <asm-generic/unistd.h>
+diff --git a/arch/openrisc/include/uapi/asm/unistd.h b/arch/openrisc/include/uapi/asm/unistd.h
+index 471905b..6812d81 100644
+--- a/arch/openrisc/include/uapi/asm/unistd.h
++++ b/arch/openrisc/include/uapi/asm/unistd.h
+@@ -21,6 +21,7 @@
+ #define sys_mmap2 sys_mmap_pgoff
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #define __ARCH_WANT_SYS_FORK
+ #define __ARCH_WANT_SYS_CLONE
+ 
+diff --git a/arch/score/include/uapi/asm/unistd.h b/arch/score/include/uapi/asm/unistd.h
+index d4008c3..7ad1bdc 100644
+--- a/arch/score/include/uapi/asm/unistd.h
++++ b/arch/score/include/uapi/asm/unistd.h
+@@ -1,6 +1,7 @@
+ #define __ARCH_HAVE_MMU
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #define __ARCH_WANT_SYSCALL_NO_AT
+ #define __ARCH_WANT_SYSCALL_NO_FLAGS
+ #define __ARCH_WANT_SYSCALL_OFF_T
+diff --git a/arch/tile/include/uapi/asm/unistd.h b/arch/tile/include/uapi/asm/unistd.h
+index 24e9187..cf0505f 100644
+--- a/arch/tile/include/uapi/asm/unistd.h
++++ b/arch/tile/include/uapi/asm/unistd.h
+@@ -13,6 +13,7 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ #if !defined(__LP64__) || defined(__SYSCALL_COMPAT)
+ /* Use the flavor of this syscall that matches the 32-bit API better. */
+ #define __ARCH_WANT_SYNC_FILE_RANGE2
+diff --git a/arch/unicore32/include/uapi/asm/unistd.h b/arch/unicore32/include/uapi/asm/unistd.h
+index 9cf71c7..76ece52 100644
+--- a/arch/unicore32/include/uapi/asm/unistd.h
++++ b/arch/unicore32/include/uapi/asm/unistd.h
+@@ -11,6 +11,7 @@
+  */
+ 
+ #define __ARCH_WANT_RENAMEAT
++#define __ARCH_WANT_SET_GET_RLIMIT
+ 
+ #ifndef CONFIG_UNICORE32_OLDABI
+ 
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index a6062be..d65e232 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -465,10 +465,15 @@ __SYSCALL(__NR_uname, sys_newuname)
+ __SYSCALL(__NR_sethostname, sys_sethostname)
+ #define __NR_setdomainname 162
+ __SYSCALL(__NR_setdomainname, sys_setdomainname)
++
++#ifdef __ARCH_WANT_SET_GET_RLIMIT
++/* getrlimit and setrlimit are superseded with prlimit64 */
+ #define __NR_getrlimit 163
+ __SC_COMP(__NR_getrlimit, sys_getrlimit, compat_sys_getrlimit)
+ #define __NR_setrlimit 164
+ __SC_COMP(__NR_setrlimit, sys_setrlimit, compat_sys_setrlimit)
++#endif
++
+ #define __NR_getrusage 165
+ __SC_COMP(__NR_getrusage, sys_getrusage, compat_sys_getrusage)
+ #define __NR_umask 166
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.7.4
