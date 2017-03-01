@@ -1,170 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([5.9.137.197]:34996 "EHLO mail.skyhub.de"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751485AbdCASq6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 1 Mar 2017 13:46:58 -0500
-Date: Wed, 1 Mar 2017 19:40:56 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 28/28] x86: Add support to make use of Secure
- Memory Encryption
-Message-ID: <20170301184055.gl3iic3gir6zzb23@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:36617 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751387AbdCAX63 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 18:58:29 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20170216154825.19244.32545.stgit@tlendack-t1.amdoffice.net>
+In-Reply-To: <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com> <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Thu, 2 Mar 2017 01:54:42 +0200
+Message-ID: <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config space
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
-Message-ID: <20170301184056.2FBfpfKHrVKSkUeRJlmNw2fb0kdTshYEjig4Embri68@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170301235442.uIY1vI1sH5hrbrWq19KyM6Yg2Ej4Mqdkdcrq-tI3lT8@z>
 
-On Thu, Feb 16, 2017 at 09:48:25AM -0600, Tom Lendacky wrote:
-> This patch adds the support to check if SME has been enabled and if
-> memory encryption should be activated (checking of command line option
-> based on the configuration of the default state).  If memory encryption
-> is to be activated, then the encryption mask is set and the kernel is
-> encrypted "in place."
-> 
-> Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
-> ---
->  arch/x86/kernel/head_64.S          |    1 +
->  arch/x86/kernel/mem_encrypt_init.c |   71 +++++++++++++++++++++++++++++++++++-
->  arch/x86/mm/mem_encrypt.c          |    2 +
->  3 files changed, 73 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-> index edd2f14..e6820e7 100644
-> --- a/arch/x86/kernel/head_64.S
-> +++ b/arch/x86/kernel/head_64.S
-> @@ -97,6 +97,7 @@ startup_64:
->  	 * Save the returned mask in %r12 for later use.
->  	 */
->  	push	%rsi
-> +	movq	%rsi, %rdi
->  	call	sme_enable
->  	pop	%rsi
->  	movq	%rax, %r12
-> diff --git a/arch/x86/kernel/mem_encrypt_init.c b/arch/x86/kernel/mem_encrypt_init.c
-> index 07cbb90..35c5e3d 100644
-> --- a/arch/x86/kernel/mem_encrypt_init.c
-> +++ b/arch/x86/kernel/mem_encrypt_init.c
-> @@ -19,6 +19,12 @@
->  #include <linux/mm.h>
->  
->  #include <asm/sections.h>
-> +#include <asm/processor-flags.h>
-> +#include <asm/msr.h>
-> +#include <asm/cmdline.h>
-> +
-> +static char sme_cmdline_arg_on[] __initdata = "mem_encrypt=on";
-> +static char sme_cmdline_arg_off[] __initdata = "mem_encrypt=off";
->  
->  extern void sme_encrypt_execute(unsigned long, unsigned long, unsigned long,
->  				void *, pgd_t *);
-> @@ -217,8 +223,71 @@ unsigned long __init sme_get_me_mask(void)
->  	return sme_me_mask;
->  }
->  
-> -unsigned long __init sme_enable(void)
-> +unsigned long __init sme_enable(void *boot_data)
+On Mon, Feb 27, 2017 at 5:14 PM, Lorenzo Pieralisi
+<lorenzo.pieralisi@arm.com> wrote:
+> The introduction of the pci_remap_cfgspace() interface allows
+> PCI host controller drivers to map PCI config space through a
+> dedicated kernel interface. Current PCI host controller drivers
+> use the devm_ioremap_* Devres interfaces to map PCI configuration
+> space regions so in order to update them to the new
+> pci_remap_cfgspace() mapping interface a new set of Devres interfaces
+> should be implemented so that PCI host controller drivers can make
+> use of them.
+>
+> Introduce two new functions in the PCI kernel layer and Devres
+> documentation:
+>
+> - devm_pci_remap_cfgspace()
+> - devm_pci_remap_cfg_resource()
+>
+> so that PCI host controller drivers can make use of them to map
+> PCI configuration space regions.
 
-unsigned long __init sme_enable(struct boot_params *bp)
+Wouldn't you like to be consistent with current PCI API, i.e.:
+1. devm_*() functions called pcim_*() in PCI.
+2. If you may notice there is no separate pcim_*map*() stuff, they are
+dynamically adapting to the case.
 
-works too.
-
-And then you need to correct the function signature in the
-!CONFIG_AMD_MEM_ENCRYPT case, at the end of this file, too:
-
-unsigned long __init sme_enable(struct boot_params *bp)		{ return 0; }
-
->  {
-> +	struct boot_params *bp = boot_data;
-> +	unsigned int eax, ebx, ecx, edx;
-> +	unsigned long cmdline_ptr;
-> +	bool enable_if_found;
-> +	void *cmdline_arg;
-> +	u64 msr;
-> +
-> +	/* Check for an AMD processor */
-> +	eax = 0;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if ((ebx != 0x68747541) || (edx != 0x69746e65) || (ecx != 0x444d4163))
-> +		goto out;
-> +
-> +	/* Check for the SME support leaf */
-> +	eax = 0x80000000;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if (eax < 0x8000001f)
-> +		goto out;
-> +
-> +	/*
-> +	 * Check for the SME feature:
-> +	 *   CPUID Fn8000_001F[EAX] - Bit 0
-> +	 *     Secure Memory Encryption support
-> +	 *   CPUID Fn8000_001F[EBX] - Bits 5:0
-> +	 *     Pagetable bit position used to indicate encryption
-> +	 */
-> +	eax = 0x8000001f;
-> +	ecx = 0;
-> +	native_cpuid(&eax, &ebx, &ecx, &edx);
-> +	if (!(eax & 1))
-> +		goto out;
-> +
-> +	/* Check if SME is enabled */
-> +	msr = native_read_msr(MSR_K8_SYSCFG);
-
-This native_read_msr() wankery is adding this check:
-
-	if (msr_tracepoint_active(__tracepoint_read_msr))
-
-and here it is clearly too early for tracepoints. Please use __rdmsr()
-which is purely doing the MSR operation. (... and exception handling for
-when the RDMSR itself raises an exception but we're very early here too
-so the MSR better be there, otherwise we'll blow up).
-
-> +	if (!(msr & MSR_K8_SYSCFG_MEM_ENCRYPT))
-> +		goto out;
-> +
-> +	/*
-> +	 * Fixups have not been to applied phys_base yet, so we must obtain
-
-		...    not been applied to phys_base yet ...
-
-> +	 * the address to the SME command line option in the following way.
-> +	 */
-> +	if (IS_ENABLED(CONFIG_AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT)) {
-> +		asm ("lea sme_cmdline_arg_off(%%rip), %0"
-> +		     : "=r" (cmdline_arg)
-> +		     : "p" (sme_cmdline_arg_off));
-> +		enable_if_found = false;
-> +	} else {
-> +		asm ("lea sme_cmdline_arg_on(%%rip), %0"
-> +		     : "=r" (cmdline_arg)
-> +		     : "p" (sme_cmdline_arg_on));
-> +		enable_if_found = true;
-> +	}
-> +
-> +	cmdline_ptr = bp->hdr.cmd_line_ptr | ((u64)bp->ext_cmd_line_ptr << 32);
-> +
-> +	if (cmdline_find_option_bool((char *)cmdline_ptr, cmdline_arg))
-> +		sme_me_mask = enable_if_found ? 1UL << (ebx & 0x3f) : 0;
-> +	else
-> +		sme_me_mask = enable_if_found ? 0 : 1UL << (ebx & 0x3f);
-
-I have a better idea: you can copy __cmdline_find_option() +
-cmdline_find_option() to arch/x86/lib/cmdline.c in a pre-patch. Then,
-pass in a buffer and check for "on" and "off". This way you don't
-have to misuse the _bool() variant for something which is actually
-"option=argument".
-
-Thanks.
+?
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+With Best Regards,
+Andy Shevchenko
