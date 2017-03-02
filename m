@@ -1,71 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59586 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753124AbdCBOIC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Mar 2017 09:08:02 -0500
-Date: Thu, 2 Mar 2017 14:07:48 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 03/14] arm64: Use set_memory.h header
-Message-ID: <20170302140747.GK19632@leverpostej>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
- <1488413706-9739-4-git-send-email-labbott@redhat.com>
+Received: from mail-qk0-f171.google.com ([209.85.220.171]:33026 "EHLO
+        mail-qk0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752576AbdCBOMx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 09:12:53 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1488413706-9739-4-git-send-email-labbott@redhat.com>
+In-Reply-To: <20170302120546.GB17277@red-moon>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-8-lorenzo.pieralisi@arm.com> <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+ <20170302120546.GB17277@red-moon>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Date: Thu, 2 Mar 2017 14:50:00 +0200
+Message-ID: <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
+Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config space
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170302140748.bgWoyytbmc0oeejsOEwzBC7CZYmDPUB4shdO7xPtq30@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Tejun Heo <tj@kernel.org>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170302125000.FEzTsmwDXCfVhA5FgDixUC3KEXTgG37m0XBgBAGtqz8@z>
 
-On Wed, Mar 01, 2017 at 04:14:55PM -0800, Laura Abbott wrote:
-> 
-> The set_memory_* functions have moved to set_memory.h. Use that header
-> explicitly.
-> 
-> Signed-off-by: Laura Abbott <labbott@redhat.com>
-> ---
->  arch/arm64/mm/pageattr.c      | 1 +
->  arch/arm64/net/bpf_jit_comp.c | 1 +
->  2 files changed, 2 insertions(+)
-> 
-> diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
-> index 8def55e..12ab86d 100644
-> --- a/arch/arm64/mm/pageattr.c
-> +++ b/arch/arm64/mm/pageattr.c
-> @@ -18,6 +18,7 @@
->  
->  #include <asm/pgtable.h>
->  #include <asm/tlbflush.h>
-> +#include <asm/set_memory.h>
+On Thu, Mar 2, 2017 at 2:05 PM, Lorenzo Pieralisi
+<lorenzo.pieralisi@arm.com> wrote:
+> On Thu, Mar 02, 2017 at 01:54:42AM +0200, Andy Shevchenko wrote:
+>> On Mon, Feb 27, 2017 at 5:14 PM, Lorenzo Pieralisi
+>> <lorenzo.pieralisi@arm.com> wrote:
 
-Nit: alphabetical order, please.
++Cc: Tejun, who is initial author of PCI managed resources implementation.
 
->  
->  struct page_change_data {
->  	pgprot_t set_mask;
-> diff --git a/arch/arm64/net/bpf_jit_comp.c b/arch/arm64/net/bpf_jit_comp.c
-> index a785554..84e4a91 100644
-> --- a/arch/arm64/net/bpf_jit_comp.c
-> +++ b/arch/arm64/net/bpf_jit_comp.c
-> @@ -26,6 +26,7 @@
->  
->  #include <asm/byteorder.h>
->  #include <asm/cacheflush.h>
-> +#include <asm/set_memory.h>
->  #include <asm/debug-monitors.h>
+> I thought about that and did not do it because here we are remapping
+> resources that are _not_ PCI bus resources (ie it is not PCI BARs we
+> are remapping), keeping the devm_* prefix would be more consistent
+> to the typical device drivers remapping functions pattern (ie a
+> typical PCI host controller driver would mix devm_ and pcim_ calls
+> which is a bit hard to parse), that was my rationale.
+>
+> I am not too fussed about that either way, I am happy to update it to
+> pcim_* though, it is Bjorn/Arnd's decision.
 
-Nit: likewise.
+I would vote for pcim_*() variant.
 
-Otherwise, this looks fine to me. FWIW:
+>> 2. If you may notice there is no separate pcim_*map*() stuff, they are
+>> dynamically adapting to the case.
+>
+> I do not understand what you mean here I would ask you to elaborate
+> a bit more please so that I can do something about it.
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+Oh, sorry, there are two examples currently, i.e.
+pci_enable_msi()/pci_enable_msix() and pci_request_region*() which has
+no "m" in the name, but are managed on release by pcim_release().
+Some developers consider this as a bad idea, but so far no patch has
+been sent to introduce pcim_*() variants of those.
 
-Mark.
+So, regarding to your stuff, I would stick with "pcim" prefix.
 
->  
->  #include "bpf_jit.h"
-> -- 
-> 2.7.4
-> 
+-- 
+With Best Regards,
+Andy Shevchenko
