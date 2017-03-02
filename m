@@ -1,7 +1,7 @@
 From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv2 05/14] x86: Use set_memory.h header
-Date: Wed,  1 Mar 2017 16:14:57 -0800
-Message-ID: <1488413706-9739-6-git-send-email-labbott@redhat.com>
+Subject: [PATCHv2 06/14] agp: Use set_memory.h header
+Date: Wed,  1 Mar 2017 16:14:58 -0800
+Message-ID: <1488413706-9739-7-git-send-email-labbott@redhat.com>
 References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -17,8 +17,8 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Takashi Iwai <tiwai@suse.com>, Wim Van Sebroeck <wim@iguana.be>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Laura Abbott <labbott@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>
+To: David Airlie <airlied@linux.ie>
+Cc: Mark Rutland <mark.rutland@arm.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Takashi Iwai <tiwai@suse.com>, Wim Van Sebroeck <wim@iguana.be>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Ingo Molnar <mingo@redhat.com>, Laura Abbott <labbott@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundatio>
 List-Id: linux-arch.vger.kernel.org
 
 
@@ -27,186 +27,73 @@ explicitly.
 
 Signed-off-by: Laura Abbott <labbott@redhat.com>
 ---
- arch/x86/kernel/amd_gart_64.c      | 2 +-
- arch/x86/kernel/cpu/amd.c          | 2 +-
- arch/x86/kernel/cpu/bugs.c         | 2 +-
- arch/x86/kernel/ftrace.c           | 2 +-
- arch/x86/kernel/machine_kexec_64.c | 1 +
- arch/x86/mm/init.c                 | 2 +-
- arch/x86/mm/init_64.c              | 2 +-
- arch/x86/mm/ioremap.c              | 2 +-
- arch/x86/mm/pageattr.c             | 1 +
- arch/x86/net/bpf_jit_comp.c        | 1 +
- arch/x86/pci/pcbios.c              | 2 +-
- arch/x86/platform/efi/efi.c        | 2 +-
- arch/x86/realmode/init.c           | 2 +-
- 13 files changed, 13 insertions(+), 10 deletions(-)
+ drivers/char/agp/amd-k7-agp.c | 1 +
+ drivers/char/agp/ati-agp.c    | 1 +
+ drivers/char/agp/generic.c    | 2 +-
+ drivers/char/agp/intel-gtt.c  | 1 +
+ drivers/char/agp/sworks-agp.c | 1 +
+ 5 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/amd_gart_64.c b/arch/x86/kernel/amd_gart_64.c
-index 82dfe32..6c81048 100644
---- a/arch/x86/kernel/amd_gart_64.c
-+++ b/arch/x86/kernel/amd_gart_64.c
-@@ -35,7 +35,7 @@
- #include <asm/proto.h>
- #include <asm/iommu.h>
- #include <asm/gart.h>
+diff --git a/drivers/char/agp/amd-k7-agp.c b/drivers/char/agp/amd-k7-agp.c
+index 3661a51..5fbd333 100644
+--- a/drivers/char/agp/amd-k7-agp.c
++++ b/drivers/char/agp/amd-k7-agp.c
+@@ -9,6 +9,7 @@
+ #include <linux/page-flags.h>
+ #include <linux/mm.h>
+ #include <linux/slab.h>
++#include <asm/set_memory.h>
+ #include "agp.h"
+ 
+ #define AMD_MMBASE_BAR	1
+diff --git a/drivers/char/agp/ati-agp.c b/drivers/char/agp/ati-agp.c
+index 75a9786..0b5ec7a 100644
+--- a/drivers/char/agp/ati-agp.c
++++ b/drivers/char/agp/ati-agp.c
+@@ -10,6 +10,7 @@
+ #include <linux/slab.h>
+ #include <linux/agp_backend.h>
+ #include <asm/agp.h>
++#include <asm/set_memory.h>
+ #include "agp.h"
+ 
+ #define ATI_GART_MMBASE_BAR	1
+diff --git a/drivers/char/agp/generic.c b/drivers/char/agp/generic.c
+index f002fa5..c38f38c6 100644
+--- a/drivers/char/agp/generic.c
++++ b/drivers/char/agp/generic.c
+@@ -39,7 +39,7 @@
+ #include <linux/sched.h>
+ #include <linux/slab.h>
+ #include <asm/io.h>
 -#include <asm/cacheflush.h>
 +#include <asm/set_memory.h>
- #include <asm/swiotlb.h>
- #include <asm/dma.h>
- #include <asm/amd_nb.h>
-diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
-index 4e95b2e..f77f7f4 100644
---- a/arch/x86/kernel/cpu/amd.c
-+++ b/arch/x86/kernel/cpu/amd.c
-@@ -15,7 +15,7 @@
- 
- #ifdef CONFIG_X86_64
- # include <asm/mmconfig.h>
--# include <asm/cacheflush.h>
-+# include <asm/set_memory.h>
- #endif
- 
- #include "cpu.h"
-diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
-index a44ef52..0af86d9 100644
---- a/arch/x86/kernel/cpu/bugs.c
-+++ b/arch/x86/kernel/cpu/bugs.c
-@@ -17,7 +17,7 @@
- #include <asm/paravirt.h>
- #include <asm/alternative.h>
  #include <asm/pgtable.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
+ #include "agp.h"
  
- void __init check_bugs(void)
- {
-diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
-index 8639bb2..da9f2b0 100644
---- a/arch/x86/kernel/ftrace.c
-+++ b/arch/x86/kernel/ftrace.c
-@@ -24,7 +24,7 @@
- 
- #include <trace/syscall.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/kprobes.h>
- #include <asm/ftrace.h>
- #include <asm/nops.h>
-diff --git a/arch/x86/kernel/machine_kexec_64.c b/arch/x86/kernel/machine_kexec_64.c
-index 307b1f4..8887311 100644
---- a/arch/x86/kernel/machine_kexec_64.c
-+++ b/arch/x86/kernel/machine_kexec_64.c
-@@ -27,6 +27,7 @@
- #include <asm/debugreg.h>
- #include <asm/kexec-bzimage64.h>
- #include <asm/setup.h>
-+#include <asm/set_memory.h>
- 
- #ifdef CONFIG_KEXEC_FILE
- static struct kexec_file_ops *kexec_file_loaders[] = {
-diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
-index 22af912..adbfb09 100644
---- a/arch/x86/mm/init.c
-+++ b/arch/x86/mm/init.c
-@@ -5,7 +5,7 @@
- #include <linux/memblock.h>
- #include <linux/bootmem.h>	/* for max_low_pfn */
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/e820.h>
- #include <asm/init.h>
- #include <asm/page.h>
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 15173d3..7eef172 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -50,7 +50,7 @@
- #include <asm/sections.h>
- #include <asm/kdebug.h>
- #include <asm/numa.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/init.h>
- #include <asm/uv/uv.h>
- #include <asm/setup.h>
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 7aaa263..8ae010c 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -13,7 +13,7 @@
- #include <linux/vmalloc.h>
- #include <linux/mmiotrace.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/e820.h>
- #include <asm/fixmap.h>
- #include <asm/pgtable.h>
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 28d4213..bfcdd45 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -24,6 +24,7 @@
- #include <asm/pgalloc.h>
- #include <asm/proto.h>
- #include <asm/pat.h>
+diff --git a/drivers/char/agp/intel-gtt.c b/drivers/char/agp/intel-gtt.c
+index 9702c78f..9776f28 100644
+--- a/drivers/char/agp/intel-gtt.c
++++ b/drivers/char/agp/intel-gtt.c
+@@ -25,6 +25,7 @@
+ #include "agp.h"
+ #include "intel-agp.h"
+ #include <drm/intel-gtt.h>
 +#include <asm/set_memory.h>
  
  /*
-  * The current flushing context - we pass it instead of 5 arguments:
-diff --git a/arch/x86/net/bpf_jit_comp.c b/arch/x86/net/bpf_jit_comp.c
-index 32322ce..a63e6af 100644
---- a/arch/x86/net/bpf_jit_comp.c
-+++ b/arch/x86/net/bpf_jit_comp.c
-@@ -12,6 +12,7 @@
- #include <linux/filter.h>
- #include <linux/if_vlan.h>
- #include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <linux/bpf.h>
- 
- int bpf_jit_enable __read_mostly;
-diff --git a/arch/x86/pci/pcbios.c b/arch/x86/pci/pcbios.c
-index 1d97cea..4d510a6 100644
---- a/arch/x86/pci/pcbios.c
-+++ b/arch/x86/pci/pcbios.c
-@@ -9,7 +9,7 @@
- #include <linux/uaccess.h>
- #include <asm/pci_x86.h>
- #include <asm/pci-functions.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- 
- /* BIOS32 signature: "_32_" */
- #define BIOS32_SIGNATURE	(('_' << 0) + ('3' << 8) + ('2' << 16) + ('_' << 24))
-diff --git a/arch/x86/platform/efi/efi.c b/arch/x86/platform/efi/efi.c
-index 565dff3..6867d88 100644
---- a/arch/x86/platform/efi/efi.c
-+++ b/arch/x86/platform/efi/efi.c
-@@ -48,7 +48,7 @@
- #include <asm/setup.h>
- #include <asm/efi.h>
- #include <asm/time.h>
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/tlbflush.h>
- #include <asm/x86_init.h>
- #include <asm/uv/uv.h>
-diff --git a/arch/x86/realmode/init.c b/arch/x86/realmode/init.c
-index 5db706f1..a163a90 100644
---- a/arch/x86/realmode/init.c
-+++ b/arch/x86/realmode/init.c
-@@ -2,7 +2,7 @@
+  * If we have Intel graphics, we're not going to have anything other than
+diff --git a/drivers/char/agp/sworks-agp.c b/drivers/char/agp/sworks-agp.c
+index 9b163b4..03be4ac 100644
+--- a/drivers/char/agp/sworks-agp.c
++++ b/drivers/char/agp/sworks-agp.c
+@@ -9,6 +9,7 @@
  #include <linux/slab.h>
- #include <linux/memblock.h>
- 
--#include <asm/cacheflush.h>
+ #include <linux/jiffies.h>
+ #include <linux/agp_backend.h>
 +#include <asm/set_memory.h>
- #include <asm/pgtable.h>
- #include <asm/realmode.h>
- #include <asm/tlbflush.h>
+ #include "agp.h"
+ 
+ #define SVWRKS_COMMAND		0x04
 -- 
 2.7.4
