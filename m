@@ -1,80 +1,66 @@
-From: Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>
-Subject: Re: [RFC PATCH v4 27/28] x86: Add support to encrypt the kernel
-	in-place
-Date: Thu, 2 Mar 2017 19:51:51 +0100
-Message-ID: <20170302185151.nllxa4hty3tukfkr@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
-	<20170216154808.19244.475.stgit@tlendack-t1.amdoffice.net>
-	<20170301173623.zcf35xgyrhmo25a7@pd.tnic>
-	<cc72330f-ab5b-229f-2962-5d27490aba7d@amd.com>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
+ space
+Date: Thu, 2 Mar 2017 14:24:06 -0500
+Message-ID: <20170302192406.GA8519@wtj.duckdns.org>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+ <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+ <20170302120546.GB17277@red-moon>
+ <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <cc72330f-ab5b-229f-2962-5d27490aba7d-5C7GfCeVMHo@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>
-Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+In-Reply-To: <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Jonathan Corbet <corbet@lwn.net>, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Bjorn Helgaas <bhelgaas@google.com>M
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 02, 2017 at 12:30:31PM -0600, Tom Lendacky wrote:
-> The "* 2" here and above is that a PUD and a PMD is needed for both
-> the encrypted and decrypted mappings. I'll add a comment to clarify
-> that.
+Hello,
 
-Ah, makes sense. Definitely needs a comment.
+On Thu, Mar 02, 2017 at 02:50:00PM +0200, Andy Shevchenko wrote:
+> > I thought about that and did not do it because here we are remapping
+> > resources that are _not_ PCI bus resources (ie it is not PCI BARs we
+> > are remapping), keeping the devm_* prefix would be more consistent
+> > to the typical device drivers remapping functions pattern (ie a
+> > typical PCI host controller driver would mix devm_ and pcim_ calls
+> > which is a bit hard to parse), that was my rationale.
+> >
+> > I am not too fussed about that either way, I am happy to update it to
+> > pcim_* though, it is Bjorn/Arnd's decision.
+> 
+> I would vote for pcim_*() variant.
 
-> Yup, I can do that here too (but need PGDIR_SIZE).
+Me too, for brevity.
 
-Right, I did test and wanted to write PGDIR_SIZE but then ... I guess
-something distracted me :-)
-
-> So next_page is the first free page within the workarea in which a
-> pagetable entry (PGD, PUD or PMD) can be created when we are populating
-> the new mappings or adding the workarea to the current mapping.  Any
-> new pagetable structures that are created will use this value.
-
-Ok, so I guess this needs an overview comment with maybe some ascii
-showing how workarea, exec_size, full_size and all those other things
-play together.
-
-> Ok, I'll work on the comment.  Something along the line of:
+> >> 2. If you may notice there is no separate pcim_*map*() stuff, they are
+> >> dynamically adapting to the case.
+> >
+> > I do not understand what you mean here I would ask you to elaborate
+> > a bit more please so that I can do something about it.
+> 
+> Oh, sorry, there are two examples currently, i.e.
+> pci_enable_msi()/pci_enable_msix() and pci_request_region*() which has
+> no "m" in the name, but are managed on release by pcim_release().
+> Some developers consider this as a bad idea, but so far no patch has
+> been sent to introduce pcim_*() variants of those.
 >
-> /*
->  * The encrypted mapping of the kernel will use identity mapped
->  * virtual addresses.  A different PGD index/entry must be used to
->  * get different pagetable entries for the decrypted mapping.
->  * Choose the next PGD index and convert it to a virtual address
->  * to be used as the base of the mapping.
+> So, regarding to your stuff, I would stick with "pcim" prefix.
 
-Better.
-
-> Except the workarea size includes both the encryption execution
-> size and the pagetable structure size.  I'll work on this to try
-> and clarify it better.
-
-That's a useful piece of info, yap, the big picture could use some more
-explanation.
-
-> Most definitely.  I appreciate the feedback since I'm very close to
-> the code and have an understanding of what I'm doing. I'd like to be
-> sure that everyone can easily understand what is happening.
-
-Nice!
+Sounds good to me.
 
 Thanks.
 
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
+tejun
