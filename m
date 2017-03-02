@@ -1,43 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.armlinux.org.uk ([78.32.30.218]:44048 "EHLO
-        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752318AbdCBMZz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 07:25:55 -0500
-Date: Thu, 2 Mar 2017 12:06:16 +0000
-From: Russell King - ARM Linux <linux@armlinux.org.uk>
-Subject: Re: [PATCHv2 14/14] treewide: Decouple cacheflush.h and set_memory.h
-Message-ID: <20170302120616.GK21222@n2100.armlinux.org.uk>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
- <1488413706-9739-15-git-send-email-labbott@redhat.com>
+Received: from mail-oi0-f68.google.com ([209.85.218.68]:35612 "EHLO
+        mail-oi0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752749AbdCBNPB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 08:15:01 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1488413706-9739-15-git-send-email-labbott@redhat.com>
+In-Reply-To: <20170302002253.GC27132@altlinux.org>
+References: <CAK8P3a3Ptm68i43BT5+kWptDw1koPwexpuFwH3-1naj_xi+arQ@mail.gmail.com>
+ <20170302002253.GC27132@altlinux.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Date: Thu, 2 Mar 2017 14:14:59 +0100
+Message-ID: <CAK8P3a1_QLguZ6XEGC9TdGUmF0R3bKaU2EiJ6m+Gf=KpYnmqqw@mail.gmail.com>
+Subject: Re: [PATCH 3/3] uapi: fix asm/shmbuf.h userspace compilation errors
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170302120616.dlSPpw7jVPYZKmLFVsm0_HKnWri3f5zA55qIWIraV-Y@z>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170302131459.IKMzjo9cS9dpan_BqS6uki3DH8dbd1ZAbdiHvXiD6UE@z>
 
-On Wed, Mar 01, 2017 at 04:15:06PM -0800, Laura Abbott wrote:
-> diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
-> index 1cb9d11..d69bebf 100644
-> --- a/arch/arm/include/asm/cacheflush.h
-> +++ b/arch/arm/include/asm/cacheflush.h
-> @@ -16,7 +16,6 @@
->  #include <asm/shmparam.h>
->  #include <asm/cachetype.h>
->  #include <asm/outercache.h>
-> -#include <asm/set_memory.h>
->  
->  #define CACHE_COLOUR(vaddr)	((vaddr & (SHMLBA - 1)) >> PAGE_SHIFT)
->  
+On Thu, Mar 2, 2017 at 1:22 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+> Include <asm/ipcbuf.h> to fix asm/shmbuf.h userspace compilation errors
+> like this:
+>
+> /usr/include/asm-generic/shmbuf.h:26:20: error: field 'shm_perm' has incomplete type
+>   struct ipc64_perm shm_perm; /* operation perms */
+> /usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name '__kernel_time_t'
+>   __kernel_time_t  shm_atime; /* last attach time */
+> /usr/include/asm-generic/shmbuf.h:32:2: error: unknown type name '__kernel_time_t'
+>   __kernel_time_t  shm_dtime; /* last detach time */
+> /usr/include/asm-generic/shmbuf.h:36:2: error: unknown type name '__kernel_time_t'
+>   __kernel_time_t  shm_ctime; /* last change time */
+> /usr/include/asm-generic/shmbuf.h:40:2: error: unknown type name '__kernel_pid_t'
+>   __kernel_pid_t  shm_cpid; /* pid of creator */
+> /usr/include/asm-generic/shmbuf.h:41:2: error: unknown type name '__kernel_pid_t'
+>   __kernel_pid_t  shm_lpid; /* pid of last operator */
+> /usr/include/asm-generic/shmbuf.h:42:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shm_nattch; /* no. of current attaches */
+> /usr/include/asm-generic/shmbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused4;
+> /usr/include/asm-generic/shmbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused5;
+> /usr/include/asm-generic/shmbuf.h:48:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shmmax;
+> /usr/include/asm-generic/shmbuf.h:49:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shmmin;
+> /usr/include/asm-generic/shmbuf.h:50:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shmmni;
+> /usr/include/asm-generic/shmbuf.h:51:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shmseg;
+> /usr/include/asm-generic/shmbuf.h:52:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t shmall;
+> /usr/include/asm-generic/shmbuf.h:53:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused1;
+> /usr/include/asm-generic/shmbuf.h:54:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused2;
+> /usr/include/asm-generic/shmbuf.h:55:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused3;
+> /usr/include/asm-generic/shmbuf.h:56:2: error: unknown type name '__kernel_ulong_t'
+>   __kernel_ulong_t __unused4;
+>
+> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+> ---
 
-Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
-
-Thanks.
-
--- 
-RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
