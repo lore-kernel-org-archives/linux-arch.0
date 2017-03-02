@@ -1,20 +1,25 @@
 From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv2 11/14] module: Use set_memory.h header
-Date: Wed,  1 Mar 2017 16:15:03 -0800
-Message-ID: <1488413706-9739-12-git-send-email-labbott@redhat.com>
+Subject: [PATCHv2 09/14] watchdog: hpwdt: Use set_memory.h header
+Date: Wed,  1 Mar 2017 16:15:01 -0800
+Message-ID: <1488413706-9739-10-git-send-email-labbott@redhat.com>
 References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f173.google.com ([209.85.220.173]:34187 "EHLO
-        mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1753486AbdCBAWs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 19:22:48 -0500
-Received: by mail-qk0-f173.google.com with SMTP id s186so98855475qkb.1
-        for <linux-arch@vger.kernel.org>; Wed, 01 Mar 2017 16:22:05 -0800 (PST)
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1488413706-9739-1-git-send-email-labbott@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jessica Yu <jeyu@redhat.com>
-Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>linux
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>
+Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Takashi Iwai <tiwai@suse.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Laura Abbott <labbott@redhat.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@dave>
+List-Id: linux-arch.vger.kernel.org
 
 
 set_memory_* functions have moved to set_memory.h. Switch to this
@@ -22,20 +27,21 @@ explicitly.
 
 Signed-off-by: Laura Abbott <labbott@redhat.com>
 ---
- kernel/module.c | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/watchdog/hpwdt.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/module.c b/kernel/module.c
-index 7eba6de..c0f04b3 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -49,6 +49,7 @@
- #include <linux/rculist.h>
- #include <linux/uaccess.h>
- #include <asm/cacheflush.h>
+diff --git a/drivers/watchdog/hpwdt.c b/drivers/watchdog/hpwdt.c
+index 70c7194..67fbe35 100644
+--- a/drivers/watchdog/hpwdt.c
++++ b/drivers/watchdog/hpwdt.c
+@@ -34,7 +34,7 @@
+ #include <linux/nmi.h>
+ #include <linux/kdebug.h>
+ #include <linux/notifier.h>
+-#include <asm/cacheflush.h>
 +#include <asm/set_memory.h>
- #include <asm/mmu_context.h>
- #include <linux/license.h>
- #include <asm/sections.h>
+ #endif /* CONFIG_HPWDT_NMI_DECODING */
+ #include <asm/nmi.h>
+ #include <asm/frame.h>
 -- 
 2.7.4
