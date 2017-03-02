@@ -1,39 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lhrrgout.huawei.com ([194.213.3.17]:11621 "EHLO
-        lhrrgout.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750703AbdCBL7E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 06:59:04 -0500
-From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
-Subject: RE: [PATCH 14/20] PCI: hisi: update PCI config space remap function
-Date: Thu, 2 Mar 2017 11:53:44 +0000
-Message-ID: <EE11001F9E5DDD47B7634E2F8A612F2E1FA96D4D@lhreml507-mbx>
+Received: from foss.arm.com ([217.140.101.70]:58524 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751982AbdCBMDQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Mar 2017 07:03:16 -0500
+Date: Thu, 2 Mar 2017 11:49:37 +0000
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Subject: Re: [PATCH 14/20] PCI: hisi: update PCI config space remap function
+Message-ID: <20170302114937.GA17277@red-moon>
 References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
  <20170227151436.18698-15-lorenzo.pieralisi@arm.com>
  <EE11001F9E5DDD47B7634E2F8A612F2E1FA96A69@lhreml507-mbx>
- <20170302114937.GA17277@red-moon>
-In-Reply-To: <20170302114937.GA17277@red-moon>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <EE11001F9E5DDD47B7634E2F8A612F2E1FA96A69@lhreml507-mbx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+To: Gabriele Paoloni <gabriele.paoloni@huawei.com>
 Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, "Wangzhou (B)" <wangzhou1@hisilicon.com>
-Message-ID: <20170302115344.1MGngUTO44wGvq-Hq_NX--Ssg3fembSUTh9b7SsWgG4@z>
+Message-ID: <20170302114937.TXnyMGJ3QNQLhgFsXwJO4q8VeeOpiS14dS5ws7gJf-Y@z>
 
-[...]
+Hi Gabriele,
 
+On Thu, Mar 02, 2017 at 10:56:16AM +0000, Gabriele Paoloni wrote:
+> Hi Lorenzo
 > 
-> I will fold the changes into v2 (and I hope other host controllers
-> maintainers will follow suit - I do not have enough knowledge of
-> all host bridges drivers internals to understand what ioremap calls
-> need patching).
-
-Ok great, many thanks!
-
-Gab
-
+> Many thanks for putting all of this together.
 > 
-> Thanks !
-> Lorenzo
+> > -----Original Message-----
+> > From: Lorenzo Pieralisi [mailto:lorenzo.pieralisi@arm.com]
+> > Sent: 27 February 2017 15:14
+> > To: linux-pci@vger.kernel.org; linux-arm-kernel@lists.infradead.org
+> > Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; Lorenzo
+> > Pieralisi; Bjorn Helgaas; Gabriele Paoloni; Wangzhou (B)
+> > Subject: [PATCH 14/20] PCI: hisi: update PCI config space remap
+> > function
+> > 
+> > PCI configuration space should be mapped with a memory region type that
+> > generates on the CPU host bus non-posted write transations. Update the
+> > driver to use the devm_pci_remap_cfg* interface to make sure the
+> > correct
+> > memory mappings for PCI configuration space are used.
+> > 
+> > Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+> > Cc: Zhou Wang <wangzhou1@hisilicon.com>
+> > ---
+> >  drivers/pci/dwc/pcie-hisi.c | 3 +--
+> >  1 file changed, 1 insertion(+), 2 deletions(-)
+> > 
+> > diff --git a/drivers/pci/dwc/pcie-hisi.c b/drivers/pci/dwc/pcie-hisi.c
+> > index e3e4fed..8042780 100644
+> > --- a/drivers/pci/dwc/pcie-hisi.c
+> > +++ b/drivers/pci/dwc/pcie-hisi.c
+> > @@ -294,10 +294,9 @@ static int hisi_pcie_probe(struct platform_device
+> > *pdev)
+> >  	}
+> > 
+> >  	reg = platform_get_resource_byname(pdev, IORESOURCE_MEM,
+> > "rc_dbi");
+> > -	pci->dbi_base = devm_ioremap_resource(dev, reg);
+> > +	pci->dbi_base = devm_pci_remap_cfg_resource(dev, reg);
+> >  	if (IS_ERR(pci->dbi_base))
+> >  		return PTR_ERR(pci->dbi_base);
+> > -
+> >  	platform_set_drvdata(pdev, hisi_pcie);
+> > 
+> >  	ret = hisi_add_pcie_port(hisi_pcie, pdev);
+> > --
+> > 2.10.0
+> 
+> I think you missed a couple of places where cfg space is ioremapped.
+> I have added these and merged with your changes in the patch below:
+> 
+> Thanks again
+> Gab
+> 
+> ---------------------------------
+> From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Date: Tue, 21 Feb 2017 15:24:34 +0000
+> Subject: [PATCH 09/15] PCI: hisi: update PCI config space remap function
+> 
+> PCI configuration space should be mapped with a memory region type that
+> generates on the CPU host bus non-posted write transations. Update the
+> driver to use the devm_pci_remap_cfg* interface to make sure the correct
+> memory mappings for PCI configuration space are used.
+> 
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+> Cc: Zhou Wang <wangzhou1@hisilicon.com>
+> ---
+>  drivers/pci/dwc/pcie-hisi.c | 7 +++----
+>  1 file changed, 3 insertions(+), 4 deletions(-)
+> 
+> diff --git a/drivers/pci/dwc/pcie-hisi.c b/drivers/pci/dwc/pcie-hisi.c
+> index e3e4fed..a5b542c 100644
+> --- a/drivers/pci/dwc/pcie-hisi.c
+> +++ b/drivers/pci/dwc/pcie-hisi.c
+> @@ -99,7 +99,7 @@ static int hisi_pcie_init(struct pci_config_window *cfg)
+>  		return -ENOMEM;
+>  	}
+>  
+> -	reg_base = devm_ioremap(dev, res->start, resource_size(res));
+> +	reg_base = devm_pci_remap_cfgspace(dev, res->start, resource_size(res));
+>  	if (!reg_base)
+>  		return -ENOMEM;
+>  
+> @@ -294,10 +294,9 @@ static int hisi_pcie_probe(struct platform_device *pdev)
+>  	}
+>  
+>  	reg = platform_get_resource_byname(pdev, IORESOURCE_MEM, "rc_dbi");
+> -	pci->dbi_base = devm_ioremap_resource(dev, reg);
+> +	pci->dbi_base = devm_pci_remap_cfg_resource(dev, reg);
+>  	if (IS_ERR(pci->dbi_base))
+>  		return PTR_ERR(pci->dbi_base);
+> -
+>  	platform_set_drvdata(pdev, hisi_pcie);
+>  
+>  	ret = hisi_add_pcie_port(hisi_pcie, pdev);
+> @@ -358,7 +357,7 @@ static int hisi_pcie_platform_init(struct pci_config_window *cfg)
+>  		return -EINVAL;
+>  	}
+>  
+> -	reg_base = devm_ioremap(dev, res->start, resource_size(res));
+> +	reg_base = devm_pci_remap_cfgspace(dev, res->start, resource_size(res));
+>  	if (!reg_base)
+>  		return -ENOMEM;
+
+I will fold the changes into v2 (and I hope other host controllers
+maintainers will follow suit - I do not have enough knowledge of
+all host bridges drivers internals to understand what ioremap calls
+need patching).
+
+Thanks !
+Lorenzo
