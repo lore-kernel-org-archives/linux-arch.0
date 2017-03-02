@@ -1,217 +1,50 @@
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH] uapi: fix another asm/shmbuf.h userspace compilation error
-Date: Thu, 2 Mar 2017 03:46:07 +0300
-Message-ID: <20170302004607.GE27132@altlinux.org>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCHv2 00/14] set_memory_* functions header refactor
+Date: Thu, 2 Mar 2017 08:34:26 +0100
+Message-ID: <20170302073426.GA7265@osiris>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org
+In-Reply-To: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Laura Abbott <labbott@redhat.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Wim Van Sebroeck <wim@iguana.be>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Takashi Iwai <tiwai@suse.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
-compilation errors like this:
+On Wed, Mar 01, 2017 at 04:14:52PM -0800, Laura Abbott wrote:
+> Hi,
+> 
+> This is v2 of my proposal to move set_memory_* function prototypes out of
+> cacheflush.h and into their own header file. This came out of a comment
+> Russell made while reviewing RODATA test cases
+> http://lists.infradead.org/pipermail/linux-arm-kernel/2017-January/480855.html
+> While the final result of that series was the rodata code was refactored into
+> its own header file, the set_memory_* APIs are still out of place.
+> 
+> This version refactored the common set_memory_* functions into an asm-generic
+> header. s390x added some features so it can't just use the asm-generic header.
+> I debated how much more to try and shove into the asm-generic version (e.g.
+> stub prototypes for the ARM nommu case, set_kernel_text_*) but decided to stick
+> with just the basics for this version.
+> 
+> I split out the cacheflush.h -> set_memory.h conversions into separate patches
+> to hopefully make merging easier. Worst case, the final patch to completely
+> separate the two can be delayed if there are more problems found. I'd like
+> for this to eventually go through the -mm tree so I'd like Acks where
+> appropriate.
+> 
+> As always, feedback appreciated.
 
-/usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_t'
-  size_t   shm_segsz; /* size of segment (bytes) */
-
-x32 is the only architecture where sizeof(size_t) is less than
-sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
-__kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
-of x32 and 64-bit alignment of the field following shm_segsz, this
-change doesn't break ABI, and the difference doesn't manifest itself
-easily.
-
-Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
----
- include/uapi/asm-generic/shmbuf.h      | 2 +-
- arch/alpha/include/uapi/asm/shmbuf.h   | 2 +-
- arch/avr32/include/uapi/asm/shmbuf.h   | 2 +-
- arch/frv/include/uapi/asm/shmbuf.h     | 2 +-
- arch/ia64/include/uapi/asm/shmbuf.h    | 2 +-
- arch/m32r/include/uapi/asm/shmbuf.h    | 2 +-
- arch/mips/include/uapi/asm/shmbuf.h    | 2 +-
- arch/mn10300/include/uapi/asm/shmbuf.h | 2 +-
- arch/powerpc/include/uapi/asm/shmbuf.h | 2 +-
- arch/s390/include/uapi/asm/shmbuf.h    | 2 +-
- arch/sparc/include/uapi/asm/shmbuf.h   | 2 +-
- arch/xtensa/include/uapi/asm/shmbuf.h  | 4 ++--
- 12 files changed, 13 insertions(+), 13 deletions(-)
-
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 2a6d508..0756934 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
-@@ -25,7 +25,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- #if __BITS_PER_LONG != 64
- 	unsigned long		__unused1;
-diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
-index 6156099..e32ed1f 100644
---- a/arch/alpha/include/uapi/asm/shmbuf.h
-+++ b/arch/alpha/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/avr32/include/uapi/asm/shmbuf.h b/arch/avr32/include/uapi/asm/shmbuf.h
-index c8e5234..2804f25 100644
---- a/arch/avr32/include/uapi/asm/shmbuf.h
-+++ b/arch/avr32/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
-index 943746c..2af199f 100644
---- a/arch/frv/include/uapi/asm/shmbuf.h
-+++ b/arch/frv/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/ia64/include/uapi/asm/shmbuf.h b/arch/ia64/include/uapi/asm/shmbuf.h
-index ca81d77e..8e35495 100644
---- a/arch/ia64/include/uapi/asm/shmbuf.h
-+++ b/arch/ia64/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/m32r/include/uapi/asm/shmbuf.h b/arch/m32r/include/uapi/asm/shmbuf.h
-index 714de6e..fa36b9e 100644
---- a/arch/m32r/include/uapi/asm/shmbuf.h
-+++ b/arch/m32r/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/mips/include/uapi/asm/shmbuf.h b/arch/mips/include/uapi/asm/shmbuf.h
-index f47d193..95c53ff 100644
---- a/arch/mips/include/uapi/asm/shmbuf.h
-+++ b/arch/mips/include/uapi/asm/shmbuf.h
-@@ -14,7 +14,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	__kernel_time_t		shm_ctime;	/* last change time */
-diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
-index 71df684..e156878 100644
---- a/arch/mn10300/include/uapi/asm/shmbuf.h
-+++ b/arch/mn10300/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-diff --git a/arch/powerpc/include/uapi/asm/shmbuf.h b/arch/powerpc/include/uapi/asm/shmbuf.h
-index 7937289..a2425e5 100644
---- a/arch/powerpc/include/uapi/asm/shmbuf.h
-+++ b/arch/powerpc/include/uapi/asm/shmbuf.h
-@@ -38,7 +38,7 @@ struct shmid64_ds {
- #ifndef __powerpc64__
- 	unsigned long		__unused4;
- #endif
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/s390/include/uapi/asm/shmbuf.h b/arch/s390/include/uapi/asm/shmbuf.h
-index 9ce1d9f..9ddf9e0 100644
---- a/arch/s390/include/uapi/asm/shmbuf.h
-+++ b/arch/s390/include/uapi/asm/shmbuf.h
-@@ -15,7 +15,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- #ifndef __s390x__
- 	unsigned long		__unused1;
-diff --git a/arch/sparc/include/uapi/asm/shmbuf.h b/arch/sparc/include/uapi/asm/shmbuf.h
-index f651952..ed72656 100644
---- a/arch/sparc/include/uapi/asm/shmbuf.h
-+++ b/arch/sparc/include/uapi/asm/shmbuf.h
-@@ -27,7 +27,7 @@ struct shmid64_ds {
- 	__kernel_time_t		shm_dtime;	/* last detach time */
- 	PADDING(__pad3)
- 	__kernel_time_t		shm_ctime;	/* last change time */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
- 	unsigned long		shm_nattch;	/* no. of current attaches */
-diff --git a/arch/xtensa/include/uapi/asm/shmbuf.h b/arch/xtensa/include/uapi/asm/shmbuf.h
-index ad90d05..8d9206e 100644
---- a/arch/xtensa/include/uapi/asm/shmbuf.h
-+++ b/arch/xtensa/include/uapi/asm/shmbuf.h
-@@ -24,7 +24,7 @@
- #if defined (__XTENSA_EL__)
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
-@@ -40,7 +40,7 @@ struct shmid64_ds {
- #elif defined (__XTENSA_EB__)
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- 	unsigned long		__unused1;
- 	__kernel_time_t		shm_dtime;	/* last detach time */
--- 
-ldv
+For the s390 bits:
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
