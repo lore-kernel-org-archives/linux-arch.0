@@ -1,36 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f65.google.com ([209.85.218.65]:34428 "EHLO
-        mail-oi0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752422AbdCBNO6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 08:14:58 -0500
+Received: from foss.arm.com ([217.140.101.70]:59586 "EHLO foss.arm.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1753124AbdCBOIC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Thu, 2 Mar 2017 09:08:02 -0500
+Date: Thu, 2 Mar 2017 14:07:48 +0000
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 03/14] arm64: Use set_memory.h header
+Message-ID: <20170302140747.GK19632@leverpostej>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+ <1488413706-9739-4-git-send-email-labbott@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20170302004607.GE27132@altlinux.org>
-References: <20170302004607.GE27132@altlinux.org>
-From: Arnd Bergmann <arnd@arndb.de>
-Date: Thu, 2 Mar 2017 14:07:20 +0100
-Message-ID: <CAK8P3a1=-Q=gVRyk+PwqxTeTPXa4yrmqWKG7SyZng2d7bcbG=g@mail.gmail.com>
-Subject: Re: [PATCH] uapi: fix another asm/shmbuf.h userspace compilation error
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1488413706-9739-4-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>, Tony Luck <tony.luck@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20170302130720.SBZpkOKWrYgyYcK4UiaUJOeF414bvFDHDD9QSvXTd_4@z>
+To: Laura Abbott <labbott@redhat.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170302140748.bgWoyytbmc0oeejsOEwzBC7CZYmDPUB4shdO7xPtq30@z>
 
-On Thu, Mar 2, 2017 at 1:46 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
-> Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
-> compilation errors like this:
->
-> /usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_t'
->   size_t   shm_segsz; /* size of segment (bytes) */
->
-> x32 is the only architecture where sizeof(size_t) is less than
-> sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
-> __kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
-> of x32 and 64-bit alignment of the field following shm_segsz, this
-> change doesn't break ABI, and the difference doesn't manifest itself
-> easily.
->
-> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+On Wed, Mar 01, 2017 at 04:14:55PM -0800, Laura Abbott wrote:
+> 
+> The set_memory_* functions have moved to set_memory.h. Use that header
+> explicitly.
+> 
+> Signed-off-by: Laura Abbott <labbott@redhat.com>
+> ---
+>  arch/arm64/mm/pageattr.c      | 1 +
+>  arch/arm64/net/bpf_jit_comp.c | 1 +
+>  2 files changed, 2 insertions(+)
+> 
+> diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
+> index 8def55e..12ab86d 100644
+> --- a/arch/arm64/mm/pageattr.c
+> +++ b/arch/arm64/mm/pageattr.c
+> @@ -18,6 +18,7 @@
+>  
+>  #include <asm/pgtable.h>
+>  #include <asm/tlbflush.h>
+> +#include <asm/set_memory.h>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Nit: alphabetical order, please.
+
+>  
+>  struct page_change_data {
+>  	pgprot_t set_mask;
+> diff --git a/arch/arm64/net/bpf_jit_comp.c b/arch/arm64/net/bpf_jit_comp.c
+> index a785554..84e4a91 100644
+> --- a/arch/arm64/net/bpf_jit_comp.c
+> +++ b/arch/arm64/net/bpf_jit_comp.c
+> @@ -26,6 +26,7 @@
+>  
+>  #include <asm/byteorder.h>
+>  #include <asm/cacheflush.h>
+> +#include <asm/set_memory.h>
+>  #include <asm/debug-monitors.h>
+
+Nit: likewise.
+
+Otherwise, this looks fine to me. FWIW:
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+Mark.
+
+>  
+>  #include "bpf_jit.h"
+> -- 
+> 2.7.4
+> 
