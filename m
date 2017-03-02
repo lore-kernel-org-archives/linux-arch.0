@@ -1,67 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58640 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1750892AbdCBMJQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Mar 2017 07:09:16 -0500
-Date: Thu, 2 Mar 2017 12:05:46 +0000
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
- space
-Message-ID: <20170302120546.GB17277@red-moon>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
- <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+Received: from pandora.armlinux.org.uk ([78.32.30.218]:44048 "EHLO
+        pandora.armlinux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752276AbdCBMYT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 07:24:19 -0500
+Date: Thu, 2 Mar 2017 12:07:09 +0000
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCHv2 01/14] treewide: Move set_memory_* functions away from
+ cacheflush.h
+Message-ID: <20170302120709.GL21222@n2100.armlinux.org.uk>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+ <1488413706-9739-2-git-send-email-labbott@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+In-Reply-To: <1488413706-9739-2-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170302120546.sIaesNOlh0kAYbXkkF3rKrpvVIem2wCpn0WBsr0DbuQ@z>
+To: Laura Abbott <labbott@redhat.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20170302120709.yMrr2zQMWtWNdfRn62NAIAJGl08xHEMMSxpY_ElkVQs@z>
 
-Hi Andy,
+On Wed, Mar 01, 2017 at 04:14:53PM -0800, Laura Abbott wrote:
+> diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+> index 02454fa..1cb9d11 100644
+> --- a/arch/arm/include/asm/cacheflush.h
+> +++ b/arch/arm/include/asm/cacheflush.h
+> @@ -16,6 +16,7 @@
+>  #include <asm/shmparam.h>
+>  #include <asm/cachetype.h>
+>  #include <asm/outercache.h>
+> +#include <asm/set_memory.h>
+>  
+>  #define CACHE_COLOUR(vaddr)	((vaddr & (SHMLBA - 1)) >> PAGE_SHIFT)
+>  
+> @@ -478,26 +479,6 @@ static inline void __sync_cache_range_r(volatile void *p, size_t size)
+>  	: : : "r0","r1","r2","r3","r4","r5","r6","r7", \
+>  	      "r9","r10","lr","memory" )
+>  
+> -#ifdef CONFIG_MMU
+> -int set_memory_ro(unsigned long addr, int numpages);
+> -int set_memory_rw(unsigned long addr, int numpages);
+> -int set_memory_x(unsigned long addr, int numpages);
+> -int set_memory_nx(unsigned long addr, int numpages);
+> -#else
+> -static inline int set_memory_ro(unsigned long addr, int numpages) { return 0; }
+> -static inline int set_memory_rw(unsigned long addr, int numpages) { return 0; }
+> -static inline int set_memory_x(unsigned long addr, int numpages) { return 0; }
+> -static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
+> -#endif
+> -
+> -#ifdef CONFIG_STRICT_KERNEL_RWX
+> -void set_kernel_text_rw(void);
+> -void set_kernel_text_ro(void);
+> -#else
+> -static inline void set_kernel_text_rw(void) { }
+> -static inline void set_kernel_text_ro(void) { }
+> -#endif
+> -
+>  void flush_uprobe_xol_access(struct page *page, unsigned long uaddr,
+>  			     void *kaddr, unsigned long len);
+>  
+> diff --git a/arch/arm/include/asm/set_memory.h b/arch/arm/include/asm/set_memory.h
+> new file mode 100644
+> index 0000000..5aa4315
+> --- /dev/null
+> +++ b/arch/arm/include/asm/set_memory.h
+> @@ -0,0 +1,32 @@
+> +/*
+> + * Copyright (C) 1999-2002 Russell King
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +
+> +#ifndef _ASMARM_SET_MEMORY_H
+> +#define _ASMARM_SET_MEMORY_H
+> +
+> +#ifdef CONFIG_MMU
+> +int set_memory_ro(unsigned long addr, int numpages);
+> +int set_memory_rw(unsigned long addr, int numpages);
+> +int set_memory_x(unsigned long addr, int numpages);
+> +int set_memory_nx(unsigned long addr, int numpages);
+> +#else
+> +static inline int set_memory_ro(unsigned long addr, int numpages) { return 0; }
+> +static inline int set_memory_rw(unsigned long addr, int numpages) { return 0; }
+> +static inline int set_memory_x(unsigned long addr, int numpages) { return 0; }
+> +static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
+> +#endif
+> +
+> +#ifdef CONFIG_STRICT_KERNEL_RWX
+> +void set_kernel_text_rw(void);
+> +void set_kernel_text_ro(void);
+> +#else
+> +static inline void set_kernel_text_rw(void) { }
+> +static inline void set_kernel_text_ro(void) { }
+> +#endif
+> +
+> +#endif
 
-On Thu, Mar 02, 2017 at 01:54:42AM +0200, Andy Shevchenko wrote:
-> On Mon, Feb 27, 2017 at 5:14 PM, Lorenzo Pieralisi
-> <lorenzo.pieralisi@arm.com> wrote:
-> > The introduction of the pci_remap_cfgspace() interface allows
-> > PCI host controller drivers to map PCI config space through a
-> > dedicated kernel interface. Current PCI host controller drivers
-> > use the devm_ioremap_* Devres interfaces to map PCI configuration
-> > space regions so in order to update them to the new
-> > pci_remap_cfgspace() mapping interface a new set of Devres interfaces
-> > should be implemented so that PCI host controller drivers can make
-> > use of them.
-> >
-> > Introduce two new functions in the PCI kernel layer and Devres
-> > documentation:
-> >
-> > - devm_pci_remap_cfgspace()
-> > - devm_pci_remap_cfg_resource()
-> >
-> > so that PCI host controller drivers can make use of them to map
-> > PCI configuration space regions.
-> 
-> Wouldn't you like to be consistent with current PCI API, i.e.:
-> 1. devm_*() functions called pcim_*() in PCI.
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-I thought about that and did not do it because here we are remapping
-resources that are _not_ PCI bus resources (ie it is not PCI BARs we
-are remapping), keeping the devm_* prefix would be more consistent
-to the typical device drivers remapping functions pattern (ie a
-typical PCI host controller driver would mix devm_ and pcim_ calls
-which is a bit hard to parse), that was my rationale.
+Thanks.
 
-I am not too fussed about that either way, I am happy to update it to
-pcim_* though, it is Bjorn/Arnd's decision.
-
-> 2. If you may notice there is no separate pcim_*map*() stuff, they are
-> dynamically adapting to the case.
-
-I do not understand what you mean here I would ask you to elaborate
-a bit more please so that I can do something about it.
-
-Thanks !
-Lorenzo
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
