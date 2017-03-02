@@ -1,64 +1,39 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
- space
-Date: Thu, 2 Mar 2017 14:50:00 +0200
-Message-ID: <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
- <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
- <20170302120546.GB17277@red-moon>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] uapi: fix another asm/shmbuf.h userspace compilation error
+Date: Thu, 2 Mar 2017 14:07:20 +0100
+Message-ID: <CAK8P3a1=-Q=gVRyk+PwqxTeTPXa4yrmqWKG7SyZng2d7bcbG=g@mail.gmail.com>
+References: <20170302004607.GE27132@altlinux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20170302120546.GB17277@red-moon>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Tejun Heo <tj@kernel.org>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Joao Pinto <Joao.Pinto@synopsys.com>, Jonathan Corbet <corbet@lwn.net>, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <20170302004607.GE27132@altlinux.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-xtensa@linux-xtensa.org, Heiko Carstens <heiko.carstens@de.ibm.com>, David Howells <dhowells@redhat.com>, Max Filippov <jcmvbkbc@gmail.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch <linux-arch@vger.kernel.org>, linux-s390@vger.kernel.org, linux-am33-list@redhat.com, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Zankel <chris@zankel.net>, Tony Luck <tony.luck@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mip>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 2, 2017 at 2:05 PM, Lorenzo Pieralisi
-<lorenzo.pieralisi@arm.com> wrote:
-> On Thu, Mar 02, 2017 at 01:54:42AM +0200, Andy Shevchenko wrote:
->> On Mon, Feb 27, 2017 at 5:14 PM, Lorenzo Pieralisi
->> <lorenzo.pieralisi@arm.com> wrote:
-
-+Cc: Tejun, who is initial author of PCI managed resources implementation.
-
-> I thought about that and did not do it because here we are remapping
-> resources that are _not_ PCI bus resources (ie it is not PCI BARs we
-> are remapping), keeping the devm_* prefix would be more consistent
-> to the typical device drivers remapping functions pattern (ie a
-> typical PCI host controller driver would mix devm_ and pcim_ calls
-> which is a bit hard to parse), that was my rationale.
+On Thu, Mar 2, 2017 at 1:46 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+> Replace size_t with __kernel_size_t to fix asm/shmbuf.h userspace
+> compilation errors like this:
 >
-> I am not too fussed about that either way, I am happy to update it to
-> pcim_* though, it is Bjorn/Arnd's decision.
-
-I would vote for pcim_*() variant.
-
->> 2. If you may notice there is no separate pcim_*map*() stuff, they are
->> dynamically adapting to the case.
+> /usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name 'size_t'
+>   size_t   shm_segsz; /* size of segment (bytes) */
 >
-> I do not understand what you mean here I would ask you to elaborate
-> a bit more please so that I can do something about it.
+> x32 is the only architecture where sizeof(size_t) is less than
+> sizeof(__kernel_size_t), but as the kernel treats shm_segsz field as
+> __kernel_size_t anyway, UAPI should follow.  Thanks to little-endiannes
+> of x32 and 64-bit alignment of the field following shm_segsz, this
+> change doesn't break ABI, and the difference doesn't manifest itself
+> easily.
+>
+> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
 
-Oh, sorry, there are two examples currently, i.e.
-pci_enable_msi()/pci_enable_msix() and pci_request_region*() which has
-no "m" in the name, but are managed on release by pcim_release().
-Some developers consider this as a bad idea, but so far no patch has
-been sent to introduce pcim_*() variants of those.
-
-So, regarding to your stuff, I would stick with "pcim" prefix.
-
--- 
-With Best Regards,
-Andy Shevchenko
+Acked-by: Arnd Bergmann <arnd@arndb.de>
