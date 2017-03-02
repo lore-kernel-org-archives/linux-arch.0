@@ -1,60 +1,66 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/3] uapi: fix asm/shmbuf.h userspace compilation errors
-Date: Thu, 2 Mar 2017 14:14:59 +0100
-Message-ID: <CAK8P3a1_QLguZ6XEGC9TdGUmF0R3bKaU2EiJ6m+Gf=KpYnmqqw@mail.gmail.com>
-References: <CAK8P3a3Ptm68i43BT5+kWptDw1koPwexpuFwH3-1naj_xi+arQ@mail.gmail.com>
- <20170302002253.GC27132@altlinux.org>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCHv2 03/14] arm64: Use set_memory.h header
+Date: Thu, 2 Mar 2017 14:07:48 +0000
+Message-ID: <20170302140747.GK19632@leverpostej>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+ <1488413706-9739-4-git-send-email-labbott@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20170302002253.GC27132@altlinux.org>
-Sender: sparclinux-owner@vger.kernel.org
-To: "Dmitry V. Levin" <ldv@altlinux.org>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1488413706-9739-4-git-send-email-labbott@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Laura Abbott <labbott@redhat.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@armlinux.org.uk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Dani
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 2, 2017 at 1:22 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
-> Include <asm/ipcbuf.h> to fix asm/shmbuf.h userspace compilation errors
-> like this:
->
-> /usr/include/asm-generic/shmbuf.h:26:20: error: field 'shm_perm' has incomplete type
->   struct ipc64_perm shm_perm; /* operation perms */
-> /usr/include/asm-generic/shmbuf.h:28:2: error: unknown type name '__kernel_time_t'
->   __kernel_time_t  shm_atime; /* last attach time */
-> /usr/include/asm-generic/shmbuf.h:32:2: error: unknown type name '__kernel_time_t'
->   __kernel_time_t  shm_dtime; /* last detach time */
-> /usr/include/asm-generic/shmbuf.h:36:2: error: unknown type name '__kernel_time_t'
->   __kernel_time_t  shm_ctime; /* last change time */
-> /usr/include/asm-generic/shmbuf.h:40:2: error: unknown type name '__kernel_pid_t'
->   __kernel_pid_t  shm_cpid; /* pid of creator */
-> /usr/include/asm-generic/shmbuf.h:41:2: error: unknown type name '__kernel_pid_t'
->   __kernel_pid_t  shm_lpid; /* pid of last operator */
-> /usr/include/asm-generic/shmbuf.h:42:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shm_nattch; /* no. of current attaches */
-> /usr/include/asm-generic/shmbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused4;
-> /usr/include/asm-generic/shmbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused5;
-> /usr/include/asm-generic/shmbuf.h:48:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shmmax;
-> /usr/include/asm-generic/shmbuf.h:49:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shmmin;
-> /usr/include/asm-generic/shmbuf.h:50:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shmmni;
-> /usr/include/asm-generic/shmbuf.h:51:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shmseg;
-> /usr/include/asm-generic/shmbuf.h:52:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t shmall;
-> /usr/include/asm-generic/shmbuf.h:53:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused1;
-> /usr/include/asm-generic/shmbuf.h:54:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused2;
-> /usr/include/asm-generic/shmbuf.h:55:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused3;
-> /usr/include/asm-generic/shmbuf.h:56:2: error: unknown type name '__kernel_ulong_t'
->   __kernel_ulong_t __unused4;
->
-> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+On Wed, Mar 01, 2017 at 04:14:55PM -0800, Laura Abbott wrote:
+> 
+> The set_memory_* functions have moved to set_memory.h. Use that header
+> explicitly.
+> 
+> Signed-off-by: Laura Abbott <labbott@redhat.com>
 > ---
+>  arch/arm64/mm/pageattr.c      | 1 +
+>  arch/arm64/net/bpf_jit_comp.c | 1 +
+>  2 files changed, 2 insertions(+)
+> 
+> diff --git a/arch/arm64/mm/pageattr.c b/arch/arm64/mm/pageattr.c
+> index 8def55e..12ab86d 100644
+> --- a/arch/arm64/mm/pageattr.c
+> +++ b/arch/arm64/mm/pageattr.c
+> @@ -18,6 +18,7 @@
+>  
+>  #include <asm/pgtable.h>
+>  #include <asm/tlbflush.h>
+> +#include <asm/set_memory.h>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Nit: alphabetical order, please.
+
+>  
+>  struct page_change_data {
+>  	pgprot_t set_mask;
+> diff --git a/arch/arm64/net/bpf_jit_comp.c b/arch/arm64/net/bpf_jit_comp.c
+> index a785554..84e4a91 100644
+> --- a/arch/arm64/net/bpf_jit_comp.c
+> +++ b/arch/arm64/net/bpf_jit_comp.c
+> @@ -26,6 +26,7 @@
+>  
+>  #include <asm/byteorder.h>
+>  #include <asm/cacheflush.h>
+> +#include <asm/set_memory.h>
+>  #include <asm/debug-monitors.h>
+
+Nit: likewise.
+
+Otherwise, this looks fine to me. FWIW:
+
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+
+Mark.
+
+>  
+>  #include "bpf_jit.h"
+> -- 
+> 2.7.4
+> 
