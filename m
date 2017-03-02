@@ -1,15 +1,15 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCHv2 05/14] x86: Use set_memory.h header
-Date: Thu, 2 Mar 2017 09:01:26 +0100
-Message-ID: <20170302080126.GA9574@gmail.com>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
- <1488413706-9739-6-git-send-email-labbott@redhat.com>
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Subject: RE: [PATCH 14/20] PCI: hisi: update PCI config space remap function
+Date: Thu, 2 Mar 2017 10:56:16 +0000
+Message-ID: <EE11001F9E5DDD47B7634E2F8A612F2E1FA96A69@lhreml507-mbx>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-15-lorenzo.pieralisi@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1488413706-9739-6-git-send-email-labbott@redhat.com>
+In-Reply-To: <20170227151436.18698-15-lorenzo.pieralisi@arm.com>
+Content-Language: en-US
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,36 +19,116 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Laura Abbott <labbott@redhat.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Takashi Iwai <tiwai@suse.com>, Wim Van Sebroeck <wim@iguana.be>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Russell King <linux@armlinux.org.uk>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, "Wangzhou (B)" <wangzhou1@hisilicon.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+Hi Lorenzo
 
-* Laura Abbott <labbott@redhat.com> wrote:
+Many thanks for putting all of this together.
 
+> -----Original Message-----
+> From: Lorenzo Pieralisi [mailto:lorenzo.pieralisi@arm.com]
+> Sent: 27 February 2017 15:14
+> To: linux-pci@vger.kernel.org; linux-arm-kernel@lists.infradead.org
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; Lorenzo
+> Pieralisi; Bjorn Helgaas; Gabriele Paoloni; Wangzhou (B)
+> Subject: [PATCH 14/20] PCI: hisi: update PCI config space remap
+> function
 > 
-> set_memory_* functions have moved to set_memory.h. Switch to this
-> explicitly.
+> PCI configuration space should be mapped with a memory region type that
+> generates on the CPU host bus non-posted write transations. Update the
+> driver to use the devm_pci_remap_cfg* interface to make sure the
+> correct
+> memory mappings for PCI configuration space are used.
 > 
-> Signed-off-by: Laura Abbott <labbott@redhat.com>
+> Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+> Cc: Zhou Wang <wangzhou1@hisilicon.com>
 > ---
->  arch/x86/kernel/amd_gart_64.c      | 2 +-
->  arch/x86/kernel/cpu/amd.c          | 2 +-
->  arch/x86/kernel/cpu/bugs.c         | 2 +-
->  arch/x86/kernel/ftrace.c           | 2 +-
->  arch/x86/kernel/machine_kexec_64.c | 1 +
->  arch/x86/mm/init.c                 | 2 +-
->  arch/x86/mm/init_64.c              | 2 +-
->  arch/x86/mm/ioremap.c              | 2 +-
->  arch/x86/mm/pageattr.c             | 1 +
->  arch/x86/net/bpf_jit_comp.c        | 1 +
->  arch/x86/pci/pcbios.c              | 2 +-
->  arch/x86/platform/efi/efi.c        | 2 +-
->  arch/x86/realmode/init.c           | 2 +-
->  13 files changed, 13 insertions(+), 10 deletions(-)
+>  drivers/pci/dwc/pcie-hisi.c | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/drivers/pci/dwc/pcie-hisi.c b/drivers/pci/dwc/pcie-hisi.c
+> index e3e4fed..8042780 100644
+> --- a/drivers/pci/dwc/pcie-hisi.c
+> +++ b/drivers/pci/dwc/pcie-hisi.c
+> @@ -294,10 +294,9 @@ static int hisi_pcie_probe(struct platform_device
+> *pdev)
+>  	}
+> 
+>  	reg = platform_get_resource_byname(pdev, IORESOURCE_MEM,
+> "rc_dbi");
+> -	pci->dbi_base = devm_ioremap_resource(dev, reg);
+> +	pci->dbi_base = devm_pci_remap_cfg_resource(dev, reg);
+>  	if (IS_ERR(pci->dbi_base))
+>  		return PTR_ERR(pci->dbi_base);
+> -
+>  	platform_set_drvdata(pdev, hisi_pcie);
+> 
+>  	ret = hisi_add_pcie_port(hisi_pcie, pdev);
+> --
+> 2.10.0
 
-Acked-by: Ingo Molnar <mingo@kernel.org>
+I think you missed a couple of places where cfg space is ioremapped.
+I have added these and merged with your changes in the patch below:
 
-Thanks,
+Thanks again
+Gab
 
-	Ingo
+---------------------------------
+From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Date: Tue, 21 Feb 2017 15:24:34 +0000
+Subject: [PATCH 09/15] PCI: hisi: update PCI config space remap function
+
+PCI configuration space should be mapped with a memory region type that
+generates on the CPU host bus non-posted write transations. Update the
+driver to use the devm_pci_remap_cfg* interface to make sure the correct
+memory mappings for PCI configuration space are used.
+
+Signed-off-by: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Signed-off-by: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Cc: Zhou Wang <wangzhou1@hisilicon.com>
+---
+ drivers/pci/dwc/pcie-hisi.c | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/pci/dwc/pcie-hisi.c b/drivers/pci/dwc/pcie-hisi.c
+index e3e4fed..a5b542c 100644
+--- a/drivers/pci/dwc/pcie-hisi.c
++++ b/drivers/pci/dwc/pcie-hisi.c
+@@ -99,7 +99,7 @@ static int hisi_pcie_init(struct pci_config_window *cfg)
+ 		return -ENOMEM;
+ 	}
+ 
+-	reg_base = devm_ioremap(dev, res->start, resource_size(res));
++	reg_base = devm_pci_remap_cfgspace(dev, res->start, resource_size(res));
+ 	if (!reg_base)
+ 		return -ENOMEM;
+ 
+@@ -294,10 +294,9 @@ static int hisi_pcie_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	reg = platform_get_resource_byname(pdev, IORESOURCE_MEM, "rc_dbi");
+-	pci->dbi_base = devm_ioremap_resource(dev, reg);
++	pci->dbi_base = devm_pci_remap_cfg_resource(dev, reg);
+ 	if (IS_ERR(pci->dbi_base))
+ 		return PTR_ERR(pci->dbi_base);
+-
+ 	platform_set_drvdata(pdev, hisi_pcie);
+ 
+ 	ret = hisi_add_pcie_port(hisi_pcie, pdev);
+@@ -358,7 +357,7 @@ static int hisi_pcie_platform_init(struct pci_config_window *cfg)
+ 		return -EINVAL;
+ 	}
+ 
+-	reg_base = devm_ioremap(dev, res->start, resource_size(res));
++	reg_base = devm_pci_remap_cfgspace(dev, res->start, resource_size(res));
+ 	if (!reg_base)
+ 		return -ENOMEM;
+ 
+-- 
+2.7.4
