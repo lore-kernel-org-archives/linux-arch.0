@@ -1,88 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:37115 "EHLO
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:37116 "EHLO
         proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750972AbdCBURb (ORCPT
+        with ESMTP id S1750989AbdCBURb (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 15:17:31 -0500
 From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v9 04/11] Makefile.headersinst: cleanup input files
-Date: Thu,  2 Mar 2017 17:56:35 +0100
-Message-ID: <1488473802-13354-5-git-send-email-nicolas.dichtel@6wind.com>
+Subject: [PATCH v9 07/11] btrfs_tree.h: fix include from userland
+Date: Thu,  2 Mar 2017 17:56:38 +0100
+Message-ID: <1488473802-13354-8-git-send-email-nicolas.dichtel@6wind.com>
 In-Reply-To: <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
 References: <20170301045241.GB9156@gondor.apana.org.au>
  <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, mmarek@suse.com
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170302165635.Zg2Mi2TH4VHtUN523rGPhVbGwwaIjRyD7aPfDo7i7HA@z>
+Message-ID: <20170302165638.hsqvg-Kkma9BZxC5dwQM6zuBO_1KX3MOCfddpdNTkIg@z>
 
-After the last four patches, all exported headers are under uapi/, thus
-input-files2 are not needed anymore.
-The side effect is that input-files1-name is exactly header-y.
+This patch prepares the uapi export by fixing the following errors:
 
-Note also that input-files3-name is genhdr-y.
+.../linux/btrfs_tree.h:283:2: error: #error "UUID items require BTRFS_UUID_SIZE == 16!"
+ #error "UUID items require BTRFS_UUID_SIZE == 16!"
+
+.../linux/btrfs_tree.h:390:12: error: ‘BTRFS_UUID_SIZE’ undeclared here (not in a function)
+  __u8 uuid[BTRFS_UUID_SIZE];
+            ^
+.../linux/btrfs_tree.h:796:16: error: ‘BTRFS_DEV_STAT_VALUES_MAX’ undeclared here (not in a function)
+  __le64 values[BTRFS_DEV_STAT_VALUES_MAX];
 
 Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 ---
- scripts/Makefile.headersinst | 34 +++++++++++-----------------------
- 1 file changed, 11 insertions(+), 23 deletions(-)
+ include/uapi/linux/btrfs_tree.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 1106d6ca3a38..3e20d03432d2 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -40,31 +40,20 @@ wrapper-files := $(filter $(header-y), $(generic-y))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
+diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
+index 6a261cb52d95..6a754ada59af 100644
+--- a/include/uapi/linux/btrfs_tree.h
++++ b/include/uapi/linux/btrfs_tree.h
+@@ -2,6 +2,7 @@
+ #define _BTRFS_CTREE_H_
  
--oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
--
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
- all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
- output-files  := $(addprefix $(installdir)/, $(all-files))
+ #include <linux/types.h>
++#include <linux/btrfs.h>
  
--input-files1  := $(foreach hdr, $(header-y), \
--		   $(if $(wildcard $(srcdir)/$(hdr)), \
--			$(wildcard $(srcdir)/$(hdr))) \
--		   )
--input-files1-name := $(notdir $(input-files1))
--input-files2  := $(foreach hdr, $(header-y), \
--		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
--			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
--				$(wildcard $(oldsrcdir)/$(hdr)), \
--				$(error Missing UAPI file $(srcdir)/$(hdr))) \
--		   ))
--input-files2-name := $(notdir $(input-files2))
--input-files3  := $(foreach hdr, $(genhdr-y), \
--		   $(if	$(wildcard $(gendir)/$(hdr)), \
--			$(wildcard $(gendir)/$(hdr)), \
--			$(error Missing generated UAPI file $(gendir)/$(hdr)) \
--		   ))
--input-files3-name := $(notdir $(input-files3))
-+# Check that all expected files exist
-+$(foreach hdr, $(header-y), \
-+  $(if $(wildcard $(srcdir)/$(hdr)),, \
-+       $(error Missing UAPI file $(srcdir)/$(hdr)) \
-+   ))
-+$(foreach hdr, $(genhdr-y), \
-+  $(if	$(wildcard $(gendir)/$(hdr)),, \
-+       $(error Missing generated UAPI file $(gendir)/$(hdr)) \
-+  ))
- 
- # Work out what needs to be removed
- oldheaders    := $(patsubst $(installdir)/%,%,$(wildcard $(installdir)/*.h))
-@@ -78,9 +67,8 @@ printdir = $(patsubst $(INSTALL_HDR_PATH)/%/,%,$(dir $@))
- quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
--        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
-+        $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(header-y); \
-+        $(CONFIG_SHELL) $< $(installdir) $(gendir) $(genhdr-y); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
-         done;                                                           \
+ /*
+  * This header contains the structure definitions and constants used
 -- 
 2.8.1
