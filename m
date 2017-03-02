@@ -1,63 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:34702 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1754905AbdCBSA6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Mar 2017 13:00:58 -0500
-Date: Thu, 2 Mar 2017 18:00:57 +0000
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 00/20] PCI: fix config and I/O Address space memory
- mappings
-Message-ID: <20170302180057.GA8094@red-moon>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <CAK8P3a2ULkNH39UJAeZSuw2kS+7wNyySs1RaY74ELGm498NmnA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a2ULkNH39UJAeZSuw2kS+7wNyySs1RaY74ELGm498NmnA@mail.gmail.com>
+Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:37104 "EHLO
+        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751262AbdCBS5U (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 13:57:20 -0500
+From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Subject: [PATCH v9 09/11] smc_diag.h: fix include from userland
+Date: Thu,  2 Mar 2017 17:56:40 +0100
+Message-ID: <1488473802-13354-10-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+References: <20170301045241.GB9156@gondor.apana.org.au>
+ <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-pci <linux-pci@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Pratyush Anand <pratyush.anand@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Will Deacon <will.deacon@arm.com>, Jingoo Han <jingoohan1@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Russell King <linux@armlinux.org.uk>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Catalin Marinas <catalin.marinas@arm.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>, John Garry <john.garry@huawei.com>
-Message-ID: <20170302180057.PPT-VMHBKJQjcV-sWe_puVxOIklcMMdjpPLN0mij6Qc@z>
+To: arnd@arndb.de, mmarek@suse.com
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
+Message-ID: <20170302165640.w_iAzzPVq8ymWs-eBLfGPKuHz-DIKMJz8NfIHx8iqOk@z>
 
-On Wed, Mar 01, 2017 at 05:18:27PM +0100, Arnd Bergmann wrote:
-> On Mon, Feb 27, 2017 at 4:14 PM, Lorenzo Pieralisi
-> <lorenzo.pieralisi@arm.com> wrote:
-> 
-> > This patch series[1] addresses both issues in one go:
-> >
-> > - It updates the pci_remap_iospace() function to use a page mapping
-> >   that guarantees non-posted write transactions for I/O space addresses
-> > - It adds a kernel API to remap PCI config space resources, so that
-> >   architecture can override it with a mapping implementation that
-> >   guarantees PCI specifications compliancy wrt non-posted write
-> >   configuration transactions
-> > - It updates all PCI host controller implementations (and the generic
-> >   ECAM layer) to use the newly introduced mapping interface
-> >
-> > Tested on Juno ECAM based interface (DT/ACPI).
-> 
-> This looks all good to me, nice work!
+This patch prepares the uapi export by fixing the following error:
 
-Thanks a lot Arnd. There is a pending issue to complete the series,
-that is related to asm-generic/io.h, which is not included by all
-arches, therefore, on top of adding a default inline for
-pci_remap_cfg_space() in asm-generic/io.h I will have to patch
-all arches that do not include asm-generic/io.h (eg x86) to
-make the series completely functional - ie I will have to add a
+.../linux/smc_diag.h:6:27: fatal error: rdma/ib_verbs.h: No such file or directory
+ #include <rdma/ib_verbs.h>
 
-#define pci_remap_cfgspace ioremap_nocache
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+---
+ include/rdma/ib_verbs.h           | 3 +--
+ include/uapi/linux/smc_diag.h     | 2 +-
+ include/uapi/rdma/ib_user_verbs.h | 2 ++
+ 3 files changed, 4 insertions(+), 3 deletions(-)
 
-in every given asm/io.h that does not include <asm-generic/io.h>
-
-Another option would consist in adding the default inline for
-pci_remap_cfg_space() in asm-generic/pci_iomap.h which seems to
-be included by all arches.
-
-I think the first option, even if it requires more extensive
-patching is more complete but please all let me know how
-you want me to fix this niggle, I am not sure I grasp the background
-policy behind asm-generic files entirely so I'd better ask.
-
-Thanks !
-Lorenzo
+diff --git a/include/rdma/ib_verbs.h b/include/rdma/ib_verbs.h
+index 0f1813c13687..50f276a4afdc 100644
+--- a/include/rdma/ib_verbs.h
++++ b/include/rdma/ib_verbs.h
+@@ -61,6 +61,7 @@
+ #include <linux/mmu_notifier.h>
+ #include <linux/uaccess.h>
+ #include <linux/cgroup_rdma.h>
++#include <uapi/rdma/ib_user_verbs.h>
+ 
+ extern struct workqueue_struct *ib_wq;
+ extern struct workqueue_struct *ib_comp_wq;
+@@ -1838,8 +1839,6 @@ enum ib_mad_result {
+ 	IB_MAD_RESULT_CONSUMED = 1 << 2  /* Packet consumed: stop processing */
+ };
+ 
+-#define IB_DEVICE_NAME_MAX 64
+-
+ struct ib_port_cache {
+ 	struct ib_pkey_cache  *pkey;
+ 	struct ib_gid_table   *gid;
+diff --git a/include/uapi/linux/smc_diag.h b/include/uapi/linux/smc_diag.h
+index 0063919fea34..87712bfaa9dd 100644
+--- a/include/uapi/linux/smc_diag.h
++++ b/include/uapi/linux/smc_diag.h
+@@ -3,7 +3,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/inet_diag.h>
+-#include <rdma/ib_verbs.h>
++#include <rdma/ib_user_verbs.h>
+ 
+ /* Request structure */
+ struct smc_diag_req {
+diff --git a/include/uapi/rdma/ib_user_verbs.h b/include/uapi/rdma/ib_user_verbs.h
+index 997f904c7692..8edce2b65903 100644
+--- a/include/uapi/rdma/ib_user_verbs.h
++++ b/include/uapi/rdma/ib_user_verbs.h
+@@ -1124,4 +1124,6 @@ struct ib_uverbs_ex_destroy_rwq_ind_table  {
+ 	__u32 ind_tbl_handle;
+ };
+ 
++#define IB_DEVICE_NAME_MAX 64
++
+ #endif /* IB_USER_VERBS_H */
+-- 
+2.8.1
