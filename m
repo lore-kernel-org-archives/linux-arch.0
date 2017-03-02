@@ -1,51 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:37116 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1750989AbdCBURb (ORCPT
+Received: from mail-wr0-f195.google.com ([209.85.128.195]:35332 "EHLO
+        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751148AbdCBURb (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 15:17:31 -0500
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v9 07/11] btrfs_tree.h: fix include from userland
-Date: Thu,  2 Mar 2017 17:56:38 +0100
-Message-ID: <1488473802-13354-8-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <20170301045241.GB9156@gondor.apana.org.au>
- <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+Date: Thu, 2 Mar 2017 21:08:00 +0100
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
+ space
+Message-ID: <20170302200800.GA21303@ulmo.ba.sec>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+ <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+ <20170302120546.GB17277@red-moon>
+ <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
+ <20170302192406.GA8519@wtj.duckdns.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="2fHTh5uZTiUOsy+g"
+Content-Disposition: inline
+In-Reply-To: <20170302192406.GA8519@wtj.duckdns.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, mmarek@suse.com
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170302165638.hsqvg-Kkma9BZxC5dwQM6zuBO_1KX3MOCfddpdNTkIg@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: Andy Shevchenko <andy.shevchenko@gmail.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170302200800.qpE0U4n6J7xd8h-jqHI0rsBMt1a0gyhtpV1wFQSNCtY@z>
 
-This patch prepares the uapi export by fixing the following errors:
 
-.../linux/btrfs_tree.h:283:2: error: #error "UUID items require BTRFS_UUID_SIZE == 16!"
- #error "UUID items require BTRFS_UUID_SIZE == 16!"
+--2fHTh5uZTiUOsy+g
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-.../linux/btrfs_tree.h:390:12: error: ‘BTRFS_UUID_SIZE’ undeclared here (not in a function)
-  __u8 uuid[BTRFS_UUID_SIZE];
-            ^
-.../linux/btrfs_tree.h:796:16: error: ‘BTRFS_DEV_STAT_VALUES_MAX’ undeclared here (not in a function)
-  __le64 values[BTRFS_DEV_STAT_VALUES_MAX];
+On Thu, Mar 02, 2017 at 02:24:06PM -0500, Tejun Heo wrote:
+> Hello,
+>=20
+> On Thu, Mar 02, 2017 at 02:50:00PM +0200, Andy Shevchenko wrote:
+> > > I thought about that and did not do it because here we are remapping
+> > > resources that are _not_ PCI bus resources (ie it is not PCI BARs we
+> > > are remapping), keeping the devm_* prefix would be more consistent
+> > > to the typical device drivers remapping functions pattern (ie a
+> > > typical PCI host controller driver would mix devm_ and pcim_ calls
+> > > which is a bit hard to parse), that was my rationale.
+> > >
+> > > I am not too fussed about that either way, I am happy to update it to
+> > > pcim_* though, it is Bjorn/Arnd's decision.
+> >=20
+> > I would vote for pcim_*() variant.
+>=20
+> Me too, for brevity.
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
----
- include/uapi/linux/btrfs_tree.h | 1 +
- 1 file changed, 1 insertion(+)
+devm_* is equally brief. Also, all existing pcim_*() functions take a
+struct pci_dev * as their first argument, because they operate on the
+PCI devices. However in this case the devm_pci_remap_*() functions do
+not operate on PCI devices. Rather they operate on the struct device
+that represents the PCI host bridge. Therefore I think devm_ is more
+appropriate here.
 
-diff --git a/include/uapi/linux/btrfs_tree.h b/include/uapi/linux/btrfs_tree.h
-index 6a261cb52d95..6a754ada59af 100644
---- a/include/uapi/linux/btrfs_tree.h
-+++ b/include/uapi/linux/btrfs_tree.h
-@@ -2,6 +2,7 @@
- #define _BTRFS_CTREE_H_
- 
- #include <linux/types.h>
-+#include <linux/btrfs.h>
- 
- /*
-  * This header contains the structure definitions and constants used
--- 
-2.8.1
+Thierry
+
+--2fHTh5uZTiUOsy+g
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAABCAAdFiEEiOrDCAFJzPfAjcif3SOs138+s6EFAli4e50ACgkQ3SOs138+
+s6GNuA//fAb3QI6abNRkCmASOctClqDiO1meyvngmoqLymMYTyIhT4iuVWlXmUHu
+QESNy10gY57D8xhjFKNemzp18/GuY0BTZClWBzJHjSits4rH2qGD/x4LOpfxrHbm
+NRf+Yh/C4NLeGYFl04ds3MtbSh5MPuf3XmbR7IzMSKxvBSO90SBw9q3GjKb2Eokr
+7LV0I5qFEiwiRvgBYFj6vjU5DA9Fg5Is5msK7psHMLh5t6Dy9skHWgB2wRnzsuOc
+91uplo72htr9puZ4EBNirOOb5dYEILAoPkSPJiFut/09GYV+Ywxp7rmgfvp+N/M+
+7YQcRvcGQFP4KhMz5EmCcZH7BFRtZ3sbHVqFf5F0nFkfPhQG+zJgWEjP8v8r5EYE
+2iNp3Cq0Sa+AkIsyHKmBqwcqLmFkjZesgyvvtoSa/ByvQpGLY5hpTGlKvUjLozyB
+aJ1EG/g3QaHPOd1hYPj08cbl48t+g+m+Pcq1CfORvTQhXnOB6z+PzEqUnnfBcvrj
+yybtp7EGx6+7SpOFcomi4Fl337XQOJF4fH/KipX+sYHib+fP65WLBTQXajf8pgQ8
+J0KYqrL164+geCiaZSazoSTMSoGS2KGvU75xjTxTyQ0kuthtrTAZEFDxgfwiRmpK
+wHrxAnQvr9v68FZXihw//W+uMzSmgY8w0jK6L7ptGJUt4fGkByI=
+=3s6b
+-----END PGP SIGNATURE-----
+
+--2fHTh5uZTiUOsy+g--
