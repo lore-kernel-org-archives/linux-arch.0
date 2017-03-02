@@ -1,86 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59886 "EHLO foss.arm.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1752978AbdCBOTT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Mar 2017 09:19:19 -0500
-Date: Thu, 2 Mar 2017 14:11:50 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCHv2 01/14] treewide: Move set_memory_* functions away from
- cacheflush.h
-Message-ID: <20170302141150.GL19632@leverpostej>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
- <1488413706-9739-2-git-send-email-labbott@redhat.com>
+Received: from mail-qk0-f193.google.com ([209.85.220.193]:34861 "EHLO
+        mail-qk0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751229AbdCBPqv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 10:46:51 -0500
+Received: by mail-qk0-f193.google.com with SMTP id n127so19884834qkf.2
+        for <linux-arch@vger.kernel.org>; Thu, 02 Mar 2017 07:46:50 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1488413706-9739-2-git-send-email-labbott@redhat.com>
+In-Reply-To: <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
+References: <20170226010156.GA28831@altlinux.org> <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
+From: "Carlos O'Donell" <carlos@systemhalted.org>
+Date: Thu, 2 Mar 2017 10:22:18 -0500
+Message-ID: <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com>
+Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20170302141150.p5ACJdJPyXifQT2tpv0qGeqMv0v1Shf455Jt2Nl2jF0@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Dmitry V. Levin" <ldv@altlinux.org>, Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, linux-parisc <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170302152218.rxuPkcxN7rA_DPF8XJp2Fuze8pUwZ_XEMZpPsIOwuHA@z>
 
-On Wed, Mar 01, 2017 at 04:14:53PM -0800, Laura Abbott wrote:
-> diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
-> index a12f1af..e419965 100644
-> --- a/arch/arm64/include/asm/Kbuild
-> +++ b/arch/arm64/include/asm/Kbuild
-> @@ -27,6 +27,7 @@ generic-y += preempt.h
->  generic-y += resource.h
->  generic-y += rwsem.h
->  generic-y += segment.h
-> +generic-y += set_memory.h
->  generic-y += sembuf.h
->  generic-y += serial.h
+On Wed, Mar 1, 2017 at 11:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
+>> userspace compilation errors like this:
+>>
+>> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
+>>   size_t ss_size;
+>>
+>> As no uapi header provides a definition of size_t, inclusion
+>> of <stddef.h> seems to be the most conservative fix available.
+>>
+>> On the kernel side size_t is typedef'ed to __kernel_size_t, so
+>> an alternative fix would be to change the type of sigaltstack.ss_size
+>> from size_t to __kernel_size_t for all architectures except those where
+>> sizeof(size_t) < sizeof(__kernel_size_t), namely, x32 and mips n32.
+>>
+>> On x32 and mips n32, however, #include <stddef.h> seems to be the most
+>> straightforward way to obtain the definition for sigaltstack.ss_size's
+>> type.
+>>
+>> Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+>
+> I'm not sure if this is the best fix. We generally should not include one
+> standard header from another standard header. Would it be possible
+> to use __kernel_size_t instead of size_t?
 
-Nit: alphabetical order, please.
+In glibc we handle this with special use of __need_size_t with GCC's
+provided stddef.h.
 
->  generic-y += shmbuf.h
-> diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
-> index 5a2a6ee..7db6962 100644
-> --- a/arch/arm64/include/asm/cacheflush.h
-> +++ b/arch/arm64/include/asm/cacheflush.h
-> @@ -20,6 +20,7 @@
->  #define __ASM_CACHEFLUSH_H
->  
->  #include <linux/mm.h>
-> +#include <asm/set_memory.h>
->  
->  /*
->   * This flag is used to indicate that the page pointed to by a pte is clean
-> @@ -150,9 +151,4 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
->  {
->  }
->  
-> -int set_memory_ro(unsigned long addr, int numpages);
-> -int set_memory_rw(unsigned long addr, int numpages);
-> -int set_memory_x(unsigned long addr, int numpages);
-> -int set_memory_nx(unsigned long addr, int numpages);
-> -
->  #endif
+For example glibc's signal.h does this:
 
-> diff --git a/include/asm-generic/set_memory.h b/include/asm-generic/set_memory.h
-> new file mode 100644
-> index 0000000..83e81f8
-> --- /dev/null
-> +++ b/include/asm-generic/set_memory.h
-> @@ -0,0 +1,12 @@
-> +#ifndef __ASM_SET_MEMORY_H
-> +#define __ASM_SET_MEMORY_H
-> +
-> +/*
-> + * Functions to change memory attributes.
-> + */
-> +int set_memory_ro(unsigned long addr, int numpages);
-> +int set_memory_rw(unsigned long addr, int numpages);
-> +int set_memory_x(unsigned long addr, int numpages);
-> +int set_memory_nx(unsigned long addr, int numpages);
-> +
-> +#endif
+# define __need_size_t
+# include <stddef.h>
 
-Otherwise, this looks fine to me. FWIW:
+And...
 
-Acked-by: Mark Rutland <mark.rutland@arm.com>
+/* Any one of these symbols __need_* means that GNU libc
+   wants us just to define one data type.  So don't define
+   the symbols that indicate this file's entire job has been done.  */
+#if (!defined(__need_wchar_t) && !defined(__need_size_t)        \
+     && !defined(__need_ptrdiff_t) && !defined(__need_NULL)     \
+     && !defined(__need_wint_t))
 
-Thanks,
-Mark.
+The idea being that the type you want is really defined by stddef.h,
+but you just one the one type.
+
+Changing the fundamental type causes the issues you see in patch v2
+where sizeof(size_t) < sizeof(__kernel_size_t).
+
+It will only lead to problem substituting the wrong type.
+
+Cheers,
+Carlos.
