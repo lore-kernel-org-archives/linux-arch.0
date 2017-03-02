@@ -1,17 +1,15 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
- space
-Date: Thu, 2 Mar 2017 12:05:46 +0000
-Message-ID: <20170302120546.GB17277@red-moon>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
- <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+From: Russell King - ARM Linux <linux@armlinux.org.uk>
+Subject: Re: [PATCHv2 14/14] treewide: Decouple cacheflush.h and set_memory.h
+Date: Thu, 2 Mar 2017 12:06:16 +0000
+Message-ID: <20170302120616.GK21222@n2100.armlinux.org.uk>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+ <1488413706-9739-15-git-send-email-labbott@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
-In-Reply-To: <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+In-Reply-To: <1488413706-9739-15-git-send-email-labbott@redhat.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -21,51 +19,29 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc: Wenrui Li <wenrui.li@rock-chips.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Shawn Lin <shawn.lin@rock-chips.com>, Will Deacon <will.deacon@arm.com>, Michal Simek <michal.simek@xilinx.com>, Thierry Reding <thierry.reding@gmail.com>, Tanmay Inamdar <tinamdar@apm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Joao Pinto <Joao.Pinto@synopsys.com>, Jonathan Corbet <corbet@lwn.net>, Pratyush Anand <pratyush.anand@gmail.com>, Russell King <linux@armlinux.org.uk>, Jon Mason <jonmason@broadcom.com>, Murali Karicheri <m-karicheri2@ti.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, John Garry <john.garry@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Mingkai Hu <mingkai.hu@freescale.com>, linux-arm
+To: Laura Abbott <labbott@redhat.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, David Airlie <airlied@linux.ie>, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, Wim Van Sebroeck <wim@iguana.be>, "H. Peter Anvin" <hpa@zytor.com>, linux-watchdog@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Daniel Borkmann <daniel@iogearbox.net>, x86@kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Ingo Molnar <mingo@redhat.com>, Guenter Roeck <linux@roeck-us.net>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Takashi Iwai <tiwai@suse.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemlo>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andy,
+On Wed, Mar 01, 2017 at 04:15:06PM -0800, Laura Abbott wrote:
+> diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+> index 1cb9d11..d69bebf 100644
+> --- a/arch/arm/include/asm/cacheflush.h
+> +++ b/arch/arm/include/asm/cacheflush.h
+> @@ -16,7 +16,6 @@
+>  #include <asm/shmparam.h>
+>  #include <asm/cachetype.h>
+>  #include <asm/outercache.h>
+> -#include <asm/set_memory.h>
+>  
+>  #define CACHE_COLOUR(vaddr)	((vaddr & (SHMLBA - 1)) >> PAGE_SHIFT)
+>  
 
-On Thu, Mar 02, 2017 at 01:54:42AM +0200, Andy Shevchenko wrote:
-> On Mon, Feb 27, 2017 at 5:14 PM, Lorenzo Pieralisi
-> <lorenzo.pieralisi@arm.com> wrote:
-> > The introduction of the pci_remap_cfgspace() interface allows
-> > PCI host controller drivers to map PCI config space through a
-> > dedicated kernel interface. Current PCI host controller drivers
-> > use the devm_ioremap_* Devres interfaces to map PCI configuration
-> > space regions so in order to update them to the new
-> > pci_remap_cfgspace() mapping interface a new set of Devres interfaces
-> > should be implemented so that PCI host controller drivers can make
-> > use of them.
-> >
-> > Introduce two new functions in the PCI kernel layer and Devres
-> > documentation:
-> >
-> > - devm_pci_remap_cfgspace()
-> > - devm_pci_remap_cfg_resource()
-> >
-> > so that PCI host controller drivers can make use of them to map
-> > PCI configuration space regions.
-> 
-> Wouldn't you like to be consistent with current PCI API, i.e.:
-> 1. devm_*() functions called pcim_*() in PCI.
+Acked-by: Russell King <rmk+kernel@armlinux.org.uk>
 
-I thought about that and did not do it because here we are remapping
-resources that are _not_ PCI bus resources (ie it is not PCI BARs we
-are remapping), keeping the devm_* prefix would be more consistent
-to the typical device drivers remapping functions pattern (ie a
-typical PCI host controller driver would mix devm_ and pcim_ calls
-which is a bit hard to parse), that was my rationale.
+Thanks.
 
-I am not too fussed about that either way, I am happy to update it to
-pcim_* though, it is Bjorn/Arnd's decision.
-
-> 2. If you may notice there is no separate pcim_*map*() stuff, they are
-> dynamically adapting to the case.
-
-I do not understand what you mean here I would ask you to elaborate
-a bit more please so that I can do something about it.
-
-Thanks !
-Lorenzo
+-- 
+RMK's Patch system: http://www.armlinux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
