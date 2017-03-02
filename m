@@ -1,31 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga07.intel.com ([134.134.136.100]:10861 "EHLO mga07.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1751055AbdCBLGa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Thu, 2 Mar 2017 06:06:30 -0500
-From: Alexander Shishkin <alexander.shishkin@linux.intel.com>
-Subject: Re: [PATCHv2 08/14] intel_th: Use set_memory.h header
-In-Reply-To: <1488413706-9739-9-git-send-email-labbott@redhat.com>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com> <1488413706-9739-9-git-send-email-labbott@redhat.com>
-Date: Thu, 02 Mar 2017 13:06:21 +0200
-Message-ID: <878too2b0y.fsf@ashishki-desk.ger.corp.intel.com>
+Received: from lhrrgout.huawei.com ([194.213.3.17]:11621 "EHLO
+        lhrrgout.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1750703AbdCBL7E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 06:59:04 -0500
+From: Gabriele Paoloni <gabriele.paoloni@huawei.com>
+Subject: RE: [PATCH 14/20] PCI: hisi: update PCI config space remap function
+Date: Thu, 2 Mar 2017 11:53:44 +0000
+Message-ID: <EE11001F9E5DDD47B7634E2F8A612F2E1FA96D4D@lhreml507-mbx>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-15-lorenzo.pieralisi@arm.com>
+ <EE11001F9E5DDD47B7634E2F8A612F2E1FA96A69@lhreml507-mbx>
+ <20170302114937.GA17277@red-moon>
+In-Reply-To: <20170302114937.GA17277@red-moon>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <labbott@redhat.com>
-Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170302110621.t3fCYeTNZ-iz-xXCCpOBintFtFBADLJf6DIsOnW0uYk@z>
+To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, "Wangzhou (B)" <wangzhou1@hisilicon.com>
+Message-ID: <20170302115344.1MGngUTO44wGvq-Hq_NX--Ssg3fembSUTh9b7SsWgG4@z>
 
-Laura Abbott <labbott@redhat.com> writes:
+[...]
 
-> set_memory_* functions have moved to set_memory.h. Switch to this
-> explicitly.
->
-> Signed-off-by: Laura Abbott <labbott@redhat.com>
+> 
+> I will fold the changes into v2 (and I hope other host controllers
+> maintainers will follow suit - I do not have enough knowledge of
+> all host bridges drivers internals to understand what ioremap calls
+> need patching).
 
-Acked-by: Alexander Shishkin <alexander.shishkin@linux.intel.com>
+Ok great, many thanks!
 
-Thanks,
---
-Alex
+Gab
+
+> 
+> Thanks !
+> Lorenzo
