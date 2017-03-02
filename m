@@ -1,91 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from host.76.145.23.62.rev.coltfrance.com ([62.23.145.76]:37106 "EHLO
-        proxy.6wind.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751262AbdCBTC4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 14:02:56 -0500
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Subject: [PATCH v9 05/11] Makefile.headersinst: remove destination-y option
-Date: Thu,  2 Mar 2017 17:56:36 +0100
-Message-ID: <1488473802-13354-6-git-send-email-nicolas.dichtel@6wind.com>
-In-Reply-To: <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
-References: <20170301045241.GB9156@gondor.apana.org.au>
- <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail-it0-f68.google.com ([209.85.214.68]:36831 "EHLO
+        mail-it0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752083AbdCBT02 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 14:26:28 -0500
+Date: Thu, 2 Mar 2017 14:24:06 -0500
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
+ space
+Message-ID: <20170302192406.GA8519@wtj.duckdns.org>
+References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
+ <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
+ <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
+ <20170302120546.GB17277@red-moon>
+ <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, mmarek@suse.com
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, nicolas.dichtel@6wind.com, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org
-Message-ID: <20170302165636.on3w3ijODeAqfxGZUgoNLFkkQmRfS8lbNzXYd17Ox3U@z>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Thierry Reding <thierry.reding@gmail.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
+Message-ID: <20170302192406.8FVa6275Ch6WGTktBwfORu0u8fhX3-5brVjHIloGOv0@z>
 
-This option was added in commit c7bb349e7c25 ("kbuild: introduce destination-y
-for exported headers") but never used in-tree.
+Hello,
 
-Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Acked-by: Paul Bolle <pebolle@tiscali.nl>
----
- Documentation/kbuild/makefiles.txt | 23 ++++-------------------
- scripts/Makefile.headersinst       |  2 +-
- 2 files changed, 5 insertions(+), 20 deletions(-)
+On Thu, Mar 02, 2017 at 02:50:00PM +0200, Andy Shevchenko wrote:
+> > I thought about that and did not do it because here we are remapping
+> > resources that are _not_ PCI bus resources (ie it is not PCI BARs we
+> > are remapping), keeping the devm_* prefix would be more consistent
+> > to the typical device drivers remapping functions pattern (ie a
+> > typical PCI host controller driver would mix devm_ and pcim_ calls
+> > which is a bit hard to parse), that was my rationale.
+> >
+> > I am not too fussed about that either way, I am happy to update it to
+> > pcim_* though, it is Bjorn/Arnd's decision.
+> 
+> I would vote for pcim_*() variant.
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index 9b9c4797fc55..37b525d329ae 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -46,9 +46,8 @@ This document describes the Linux kernel Makefiles.
- 	=== 7 Kbuild syntax for exported headers
- 		--- 7.1 header-y
- 		--- 7.2 genhdr-y
--		--- 7.3 destination-y
--		--- 7.4 generic-y
--		--- 7.5 generated-y
-+		--- 7.3 generic-y
-+		--- 7.4 generated-y
- 
- 	=== 8 Kbuild Variables
- 	=== 9 Makefile language
-@@ -1295,21 +1294,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 			#include/linux/Kbuild
- 			genhdr-y += version.h
- 
--	--- 7.3 destination-y
--
--	When an architecture has a set of exported headers that needs to be
--	exported to a different directory destination-y is used.
--	destination-y specifies the destination directory for all exported
--	headers in the file where it is present.
--
--		Example:
--			#arch/xtensa/platforms/s6105/include/platform/Kbuild
--			destination-y := include/linux
--
--	In the example above all exported headers in the Kbuild file
--	will be located in the directory "include/linux" when exported.
--
--	--- 7.4 generic-y
-+	--- 7.3 generic-y
- 
- 	If an architecture uses a verbatim copy of a header from
- 	include/asm-generic then this is listed in the file
-@@ -1336,7 +1321,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 		Example: termios.h
- 			#include <asm-generic/termios.h>
- 
--	--- 7.5 generated-y
-+	--- 7.4 generated-y
- 
- 	If an architecture generates other header files alongside generic-y
- 	wrappers, and not included in genhdr-y, then generated-y specifies
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 3e20d03432d2..876b42cfede4 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -14,7 +14,7 @@ kbuild-file := $(srctree)/$(obj)/Kbuild
- include $(kbuild-file)
- 
- # called may set destination dir (when installing to asm/)
--_dst := $(if $(destination-y),$(destination-y),$(if $(dst),$(dst),$(obj)))
-+_dst := $(if $(dst),$(dst),$(obj))
- 
- old-kbuild-file := $(srctree)/$(subst uapi/,,$(obj))/Kbuild
- ifneq ($(wildcard $(old-kbuild-file)),)
+Me too, for brevity.
+
+> >> 2. If you may notice there is no separate pcim_*map*() stuff, they are
+> >> dynamically adapting to the case.
+> >
+> > I do not understand what you mean here I would ask you to elaborate
+> > a bit more please so that I can do something about it.
+> 
+> Oh, sorry, there are two examples currently, i.e.
+> pci_enable_msi()/pci_enable_msix() and pci_request_region*() which has
+> no "m" in the name, but are managed on release by pcim_release().
+> Some developers consider this as a bad idea, but so far no patch has
+> been sent to introduce pcim_*() variants of those.
+>
+> So, regarding to your stuff, I would stick with "pcim" prefix.
+
+Sounds good to me.
+
+Thanks.
+
 -- 
-2.8.1
+tejun
