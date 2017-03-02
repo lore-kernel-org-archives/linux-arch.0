@@ -1,230 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vmicros1.altlinux.org ([194.107.17.57]:58186 "EHLO
-        vmicros1.altlinux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752865AbdCBAWt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 19:22:49 -0500
-Date: Thu, 2 Mar 2017 03:22:03 +0300
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: [PATCH 1/3] uapi: fix asm/msgbuf.h userspace compilation errors
-Message-ID: <20170302002202.GA27132@altlinux.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAK8P3a3Ptm68i43BT5+kWptDw1koPwexpuFwH3-1naj_xi+arQ@mail.gmail.com>
+Received: from mail-qk0-f171.google.com ([209.85.220.171]:32779 "EHLO
+        mail-qk0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1753553AbdCBAWs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Mar 2017 19:22:48 -0500
+Received: by mail-qk0-f171.google.com with SMTP id n127so99129047qkf.0
+        for <linux-arch@vger.kernel.org>; Wed, 01 Mar 2017 16:22:09 -0800 (PST)
+From: Laura Abbott <labbott@redhat.com>
+Subject: [PATCHv2 07/14] drm: Use set_memory.h header
+Date: Wed,  1 Mar 2017 16:14:59 -0800
+Message-ID: <1488413706-9739-8-git-send-email-labbott@redhat.com>
+In-Reply-To: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org
-Message-ID: <20170302002203.vi6NxnpOOqZZreVWWA22gmbleBKdXgthCmk45y2iPv8@z>
+To: David Airlie <airlied@linux.ie>
+Cc: Laura Abbott <labbott@redhat.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170302001459.NWQAqC7KEQqYvk_dbySHuSpOypnpDe74qE9Cx1qdi8Y@z>
 
-Include <asm/ipcbuf.h> to fix asm/msgbuf.h userspace compilation errors
-like this:
 
-/usr/include/asm-generic/msgbuf.h:25:20: error: field 'msg_perm' has incomplete type
-  struct ipc64_perm msg_perm;
-/usr/include/asm-generic/msgbuf.h:26:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t msg_stime; /* last msgsnd time */
-/usr/include/asm-generic/msgbuf.h:30:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t msg_rtime; /* last msgrcv time */
-/usr/include/asm-generic/msgbuf.h:34:2: error: unknown type name '__kernel_time_t'
-  __kernel_time_t msg_ctime; /* last change time */
-/usr/include/asm-generic/msgbuf.h:38:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t msg_cbytes; /* current number of bytes on queue */
-/usr/include/asm-generic/msgbuf.h:39:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t msg_qnum; /* number of messages in queue */
-/usr/include/asm-generic/msgbuf.h:40:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t msg_qbytes; /* max number of bytes on queue */
-/usr/include/asm-generic/msgbuf.h:41:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t msg_lspid; /* pid of last msgsnd */
-/usr/include/asm-generic/msgbuf.h:42:2: error: unknown type name '__kernel_pid_t'
-  __kernel_pid_t msg_lrpid; /* last receive pid */
-/usr/include/asm-generic/msgbuf.h:43:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused4;
-/usr/include/asm-generic/msgbuf.h:44:2: error: unknown type name '__kernel_ulong_t'
-  __kernel_ulong_t __unused5;
+set_memory_* functions have moved to set_memory.h. Switch to this
+explicitly.
 
-Signed-off-by: Dmitry V. Levin <ldv@altlinux.org>
+Signed-off-by: Laura Abbott <labbott@redhat.com>
 ---
- include/uapi/asm-generic/msgbuf.h      | 1 +
- arch/alpha/include/uapi/asm/msgbuf.h   | 2 ++
- arch/avr32/include/uapi/asm/msgbuf.h   | 2 ++
- arch/frv/include/uapi/asm/msgbuf.h     | 2 ++
- arch/ia64/include/uapi/asm/msgbuf.h    | 2 ++
- arch/m32r/include/uapi/asm/msgbuf.h    | 2 ++
- arch/mips/include/uapi/asm/msgbuf.h    | 1 +
- arch/mn10300/include/uapi/asm/msgbuf.h | 2 ++
- arch/parisc/include/uapi/asm/msgbuf.h  | 1 +
- arch/powerpc/include/uapi/asm/msgbuf.h | 2 ++
- arch/s390/include/uapi/asm/msgbuf.h    | 2 ++
- arch/sparc/include/uapi/asm/msgbuf.h   | 2 ++
- arch/xtensa/include/uapi/asm/msgbuf.h  | 2 ++
- 13 files changed, 23 insertions(+)
+ drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c | 1 +
+ drivers/gpu/drm/gma500/gtt.c             | 1 +
+ drivers/gpu/drm/gma500/psb_drv.c         | 1 +
+ drivers/gpu/drm/radeon/radeon_gart.c     | 1 +
+ drivers/gpu/drm/ttm/ttm_page_alloc.c     | 1 +
+ drivers/gpu/drm/ttm/ttm_page_alloc_dma.c | 1 +
+ drivers/gpu/drm/ttm/ttm_tt.c             | 1 +
+ 7 files changed, 7 insertions(+)
 
-diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
-index f55ecc4..f3c3b43 100644
---- a/include/uapi/asm-generic/msgbuf.h
-+++ b/include/uapi/asm-generic/msgbuf.h
-@@ -1,6 +1,7 @@
- #ifndef __ASM_GENERIC_MSGBUF_H
- #define __ASM_GENERIC_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
- #include <asm/bitsperlong.h>
- /*
-  * generic msqid64_ds structure.
-diff --git a/arch/alpha/include/uapi/asm/msgbuf.h b/arch/alpha/include/uapi/asm/msgbuf.h
-index 9849650..8de899a 100644
---- a/arch/alpha/include/uapi/asm/msgbuf.h
-+++ b/arch/alpha/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ALPHA_MSGBUF_H
- #define _ALPHA_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /* 
-  * The msqid64_ds structure for alpha architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/avr32/include/uapi/asm/msgbuf.h b/arch/avr32/include/uapi/asm/msgbuf.h
-index 9eae6ef..45cdffb 100644
---- a/arch/avr32/include/uapi/asm/msgbuf.h
-+++ b/arch/avr32/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _UAPI__ASM_AVR32_MSGBUF_H
- #define _UAPI__ASM_AVR32_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for i386 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/frv/include/uapi/asm/msgbuf.h b/arch/frv/include/uapi/asm/msgbuf.h
-index 97ceb55..92d6656 100644
---- a/arch/frv/include/uapi/asm/msgbuf.h
-+++ b/arch/frv/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_MSGBUF_H
- #define _ASM_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for FR-V architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/ia64/include/uapi/asm/msgbuf.h b/arch/ia64/include/uapi/asm/msgbuf.h
-index 6c64c0d..9a31b60 100644
---- a/arch/ia64/include/uapi/asm/msgbuf.h
-+++ b/arch/ia64/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_IA64_MSGBUF_H
- #define _ASM_IA64_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for IA-64 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/m32r/include/uapi/asm/msgbuf.h b/arch/m32r/include/uapi/asm/msgbuf.h
-index 0d5a877..4786c0c 100644
---- a/arch/m32r/include/uapi/asm/msgbuf.h
-+++ b/arch/m32r/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_M32R_MSGBUF_H
- #define _ASM_M32R_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for m32r architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/mips/include/uapi/asm/msgbuf.h b/arch/mips/include/uapi/asm/msgbuf.h
-index df849e8..c84a388 100644
---- a/arch/mips/include/uapi/asm/msgbuf.h
-+++ b/arch/mips/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_MSGBUF_H
- #define _ASM_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
+index 964d2a94..2479ccc 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gart.c
+@@ -27,6 +27,7 @@
+  */
+ #include <drm/drmP.h>
+ #include <drm/amdgpu_drm.h>
++#include <asm/set_memory.h>
+ #include "amdgpu.h"
  
  /*
-  * The msqid64_ds structure for the MIPS architecture.
-diff --git a/arch/mn10300/include/uapi/asm/msgbuf.h b/arch/mn10300/include/uapi/asm/msgbuf.h
-index 8b60245..f1c5dd5 100644
---- a/arch/mn10300/include/uapi/asm/msgbuf.h
-+++ b/arch/mn10300/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_MSGBUF_H
- #define _ASM_MSGBUF_H
+diff --git a/drivers/gpu/drm/gma500/gtt.c b/drivers/gpu/drm/gma500/gtt.c
+index 3f4f424..3949b09 100644
+--- a/drivers/gpu/drm/gma500/gtt.c
++++ b/drivers/gpu/drm/gma500/gtt.c
+@@ -21,6 +21,7 @@
  
-+#include <asm/ipcbuf.h>
-+
+ #include <drm/drmP.h>
+ #include <linux/shmem_fs.h>
++#include <asm/set_memory.h>
+ #include "psb_drv.h"
+ #include "blitter.h"
+ 
+diff --git a/drivers/gpu/drm/gma500/psb_drv.c b/drivers/gpu/drm/gma500/psb_drv.c
+index 5ee93ff..1f9b35a 100644
+--- a/drivers/gpu/drm/gma500/psb_drv.c
++++ b/drivers/gpu/drm/gma500/psb_drv.c
+@@ -35,6 +35,7 @@
+ #include <linux/pm_runtime.h>
+ #include <acpi/video.h>
+ #include <linux/module.h>
++#include <asm/set_memory.h>
+ 
+ static struct drm_driver driver;
+ static int psb_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent);
+diff --git a/drivers/gpu/drm/radeon/radeon_gart.c b/drivers/gpu/drm/radeon/radeon_gart.c
+index c4777c8..dcf8042 100644
+--- a/drivers/gpu/drm/radeon/radeon_gart.c
++++ b/drivers/gpu/drm/radeon/radeon_gart.c
+@@ -27,6 +27,7 @@
+  */
+ #include <drm/drmP.h>
+ #include <drm/radeon_drm.h>
++#include <asm/set_memory.h>
+ #include "radeon.h"
+ 
  /*
-  * The msqid64_ds structure for MN10300 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/parisc/include/uapi/asm/msgbuf.h b/arch/parisc/include/uapi/asm/msgbuf.h
-index 2e83ac7..c70f1d3 100644
---- a/arch/parisc/include/uapi/asm/msgbuf.h
-+++ b/arch/parisc/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,7 @@
- #ifndef _PARISC_MSGBUF_H
- #define _PARISC_MSGBUF_H
+diff --git a/drivers/gpu/drm/ttm/ttm_page_alloc.c b/drivers/gpu/drm/ttm/ttm_page_alloc.c
+index a37de5d..04d8b43 100644
+--- a/drivers/gpu/drm/ttm/ttm_page_alloc.c
++++ b/drivers/gpu/drm/ttm/ttm_page_alloc.c
+@@ -51,6 +51,7 @@
+ #if IS_ENABLED(CONFIG_AGP)
+ #include <asm/agp.h>
+ #endif
++#include <asm/set_memory.h>
  
-+#include <asm/ipcbuf.h>
- #include <asm/bitsperlong.h>
+ #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
+ #define SMALL_ALLOCATION		16
+diff --git a/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c b/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
+index cec4b4b..d6e4cb7 100644
+--- a/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
++++ b/drivers/gpu/drm/ttm/ttm_page_alloc_dma.c
+@@ -53,6 +53,7 @@
+ #if IS_ENABLED(CONFIG_AGP)
+ #include <asm/agp.h>
+ #endif
++#include <asm/set_memory.h>
  
- /* 
-diff --git a/arch/powerpc/include/uapi/asm/msgbuf.h b/arch/powerpc/include/uapi/asm/msgbuf.h
-index dd76743..3b87d25 100644
---- a/arch/powerpc/include/uapi/asm/msgbuf.h
-+++ b/arch/powerpc/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_POWERPC_MSGBUF_H
- #define _ASM_POWERPC_MSGBUF_H
+ #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
+ #define SMALL_ALLOCATION		4
+diff --git a/drivers/gpu/drm/ttm/ttm_tt.c b/drivers/gpu/drm/ttm/ttm_tt.c
+index aee3c00..668ae6f 100644
+--- a/drivers/gpu/drm/ttm/ttm_tt.c
++++ b/drivers/gpu/drm/ttm/ttm_tt.c
+@@ -44,6 +44,7 @@
+ #include <drm/ttm/ttm_bo_driver.h>
+ #include <drm/ttm/ttm_placement.h>
+ #include <drm/ttm/ttm_page_alloc.h>
++#include <asm/set_memory.h>
  
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for the PowerPC architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/s390/include/uapi/asm/msgbuf.h b/arch/s390/include/uapi/asm/msgbuf.h
-index 1bbdee9..ab04112 100644
---- a/arch/s390/include/uapi/asm/msgbuf.h
-+++ b/arch/s390/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _S390_MSGBUF_H
- #define _S390_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /* 
-  * The msqid64_ds structure for S/390 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/sparc/include/uapi/asm/msgbuf.h b/arch/sparc/include/uapi/asm/msgbuf.h
-index efc7cbe9..699f631 100644
---- a/arch/sparc/include/uapi/asm/msgbuf.h
-+++ b/arch/sparc/include/uapi/asm/msgbuf.h
-@@ -1,6 +1,8 @@
- #ifndef _SPARC_MSGBUF_H
- #define _SPARC_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- /*
-  * The msqid64_ds structure for sparc64 architecture.
-  * Note extra padding because this structure is passed back and forth
-diff --git a/arch/xtensa/include/uapi/asm/msgbuf.h b/arch/xtensa/include/uapi/asm/msgbuf.h
-index 693c967..b75458b 100644
---- a/arch/xtensa/include/uapi/asm/msgbuf.h
-+++ b/arch/xtensa/include/uapi/asm/msgbuf.h
-@@ -17,6 +17,8 @@
- #ifndef _XTENSA_MSGBUF_H
- #define _XTENSA_MSGBUF_H
- 
-+#include <asm/ipcbuf.h>
-+
- struct msqid64_ds {
- 	struct ipc64_perm msg_perm;
- #ifdef __XTENSA_EB__
+ /**
+  * Allocates storage for pointers to the pages that back the ttm.
 -- 
-ldv
+2.7.4
