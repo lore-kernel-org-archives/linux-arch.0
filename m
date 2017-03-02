@@ -1,81 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f195.google.com ([209.85.128.195]:35332 "EHLO
-        mail-wr0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751148AbdCBURb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 15:17:31 -0500
-Date: Thu, 2 Mar 2017 21:08:00 +0100
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH 07/20] PCI: implement Devres interface to map PCI config
- space
-Message-ID: <20170302200800.GA21303@ulmo.ba.sec>
-References: <20170227151436.18698-1-lorenzo.pieralisi@arm.com>
- <20170227151436.18698-8-lorenzo.pieralisi@arm.com>
- <CAHp75VfdE6_W+DxhejorLxra2JQDGF3cG0uBedyOohhmcLiKLg@mail.gmail.com>
- <20170302120546.GB17277@red-moon>
- <CAHp75VfoZTr5L3z5_SXW58W2Ate5nCWSzP8hAA051fVwizSjag@mail.gmail.com>
- <20170302192406.GA8519@wtj.duckdns.org>
+Received: from www62.your-server.de ([213.133.104.62]:58350 "EHLO
+        www62.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1752543AbdCBU1g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 15:27:36 -0500
+Message-ID: <58B87FE9.3090206@iogearbox.net>
+Date: Thu, 02 Mar 2017 21:26:17 +0100
+From: Daniel Borkmann <daniel@iogearbox.net>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-        protocol="application/pgp-signature"; boundary="2fHTh5uZTiUOsy+g"
-Content-Disposition: inline
-In-Reply-To: <20170302192406.GA8519@wtj.duckdns.org>
+Subject: Re: [PATCHv2 10/14] bpf: Use set_memory.h header
+References: <1488413706-9739-1-git-send-email-labbott@redhat.com> <1488413706-9739-11-git-send-email-labbott@redhat.com>
+In-Reply-To: <1488413706-9739-11-git-send-email-labbott@redhat.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Andy Shevchenko <andy.shevchenko@gmail.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Russell King <linux@armlinux.org.uk>, Pratyush Anand <pratyush.anand@gmail.com>, Jingoo Han <jingoohan1@gmail.com>, Mingkai Hu <mingkai.hu@freescale.com>, John Garry <john.garry@huawei.com>, Tanmay Inamdar <tinamdar@apm.com>, Murali Karicheri <m-karicheri2@ti.com>, Bharat Kumar Gogada <bharat.kumar.gogada@xilinx.com>, Ray Jui <rjui@broadcom.com>, Wenrui Li <wenrui.li@rock-chips.com>, Shawn Lin <shawn.lin@rock-chips.com>, Minghuan Lian <minghuan.Lian@freescale.com>, Jon Mason <jonmason@broadcom.com>, Gabriele Paoloni <gabriele.paoloni@huawei.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Joao Pinto <Joao.Pinto@synopsys.com>, Michal Simek <michal.simek@xilinx.com>, Stanimir Varbanov <svarbanov@mm-sol.com>, Zhou Wang <wangzhou1@hisilicon.com>, Roy Zang <tie-fei.zang@freescale.com>
-Message-ID: <20170302200800.qpE0U4n6J7xd8h-jqHI0rsBMt1a0gyhtpV1wFQSNCtY@z>
+To: Laura Abbott <labbott@redhat.com>, "David S. Miller" <davem@davemloft.net>
+Cc: Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20170302202617.-oePakCW1g8YGCFtlvSxYCPExmXM7_M4QeOT8Z7kJeM@z>
 
+On 03/02/2017 01:15 AM, Laura Abbott wrote:
+> set_memory_* functions have moved to set_memory.h. Switch to this
+> explicitly.
+>
+> Signed-off-by: Laura Abbott <labbott@redhat.com>
 
---2fHTh5uZTiUOsy+g
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Thu, Mar 02, 2017 at 02:24:06PM -0500, Tejun Heo wrote:
-> Hello,
->=20
-> On Thu, Mar 02, 2017 at 02:50:00PM +0200, Andy Shevchenko wrote:
-> > > I thought about that and did not do it because here we are remapping
-> > > resources that are _not_ PCI bus resources (ie it is not PCI BARs we
-> > > are remapping), keeping the devm_* prefix would be more consistent
-> > > to the typical device drivers remapping functions pattern (ie a
-> > > typical PCI host controller driver would mix devm_ and pcim_ calls
-> > > which is a bit hard to parse), that was my rationale.
-> > >
-> > > I am not too fussed about that either way, I am happy to update it to
-> > > pcim_* though, it is Bjorn/Arnd's decision.
-> >=20
-> > I would vote for pcim_*() variant.
->=20
-> Me too, for brevity.
-
-devm_* is equally brief. Also, all existing pcim_*() functions take a
-struct pci_dev * as their first argument, because they operate on the
-PCI devices. However in this case the devm_pci_remap_*() functions do
-not operate on PCI devices. Rather they operate on the struct device
-that represents the PCI host bridge. Therefore I think devm_ is more
-appropriate here.
-
-Thierry
-
---2fHTh5uZTiUOsy+g
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQIzBAABCAAdFiEEiOrDCAFJzPfAjcif3SOs138+s6EFAli4e50ACgkQ3SOs138+
-s6GNuA//fAb3QI6abNRkCmASOctClqDiO1meyvngmoqLymMYTyIhT4iuVWlXmUHu
-QESNy10gY57D8xhjFKNemzp18/GuY0BTZClWBzJHjSits4rH2qGD/x4LOpfxrHbm
-NRf+Yh/C4NLeGYFl04ds3MtbSh5MPuf3XmbR7IzMSKxvBSO90SBw9q3GjKb2Eokr
-7LV0I5qFEiwiRvgBYFj6vjU5DA9Fg5Is5msK7psHMLh5t6Dy9skHWgB2wRnzsuOc
-91uplo72htr9puZ4EBNirOOb5dYEILAoPkSPJiFut/09GYV+Ywxp7rmgfvp+N/M+
-7YQcRvcGQFP4KhMz5EmCcZH7BFRtZ3sbHVqFf5F0nFkfPhQG+zJgWEjP8v8r5EYE
-2iNp3Cq0Sa+AkIsyHKmBqwcqLmFkjZesgyvvtoSa/ByvQpGLY5hpTGlKvUjLozyB
-aJ1EG/g3QaHPOd1hYPj08cbl48t+g+m+Pcq1CfORvTQhXnOB6z+PzEqUnnfBcvrj
-yybtp7EGx6+7SpOFcomi4Fl337XQOJF4fH/KipX+sYHib+fP65WLBTQXajf8pgQ8
-J0KYqrL164+geCiaZSazoSTMSoGS2KGvU75xjTxTyQ0kuthtrTAZEFDxgfwiRmpK
-wHrxAnQvr9v68FZXihw//W+uMzSmgY8w0jK6L7ptGJUt4fGkByI=
-=3s6b
------END PGP SIGNATURE-----
-
---2fHTh5uZTiUOsy+g--
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
