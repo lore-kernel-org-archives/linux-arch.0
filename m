@@ -1,95 +1,42 @@
-From: "Dmitry V. Levin" <ldv@altlinux.org>
-Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
-Date: Thu, 2 Mar 2017 18:48:45 +0300
-Message-ID: <20170302154845.GB3503@altlinux.org>
-References: <20170226010156.GA28831@altlinux.org> <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com> <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com>
+From: Paolo Bonzini <pbonzini-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [RFC PATCH v4 19/28] swiotlb: Add warnings for use of bounce
+	buffers with SME
+Date: Thu, 2 Mar 2017 18:01:26 +0100
+Message-ID: <ecc3f246-3626-3788-25f0-9178e38b92b1@redhat.com>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+	<20170216154619.19244.76653.stgit@tlendack-t1.amdoffice.net>
+	<20170217155955.GK30272@char.us.ORACLE.com>
+	<17c8099a-5495-5f1d-4c8a-bd9f5d2c5e58@amd.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=x-unknown;
-        protocol="application/pgp-signature"; boundary="BwCQnh7xodEAoBMC"
-Return-path: <linux-mips-bounce@linux-mips.org>
-Content-Disposition: inline
-In-Reply-To: <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Carlos O'Donell <carlos@systemhalted.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <17c8099a-5495-5f1d-4c8a-bd9f5d2c5e58-5C7GfCeVMHo@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Tom Lendacky <thomas.lendacky-5C7GfCeVMHo@public.gmane.org>, Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: linux-efi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Brijesh Singh <brijesh.singh-5C7GfCeVMHo@public.gmane.org>, Toshimitsu Kani <toshi.kani-ZPxbGqLxI0U@public.gmane.org>, =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Fleming <matt-mF/unelCI9GS6iBeEJttW/XRex20P6io@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Alexander Potapenko <glider-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Larry Woodman <lwoodman-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kvm-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kasan-dev-/JYPxA39Uh5TLH3MbocFFw@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrey Ryabinin <aryabinin-5HdwGun5lf+gSpxsJD1C4w@public.gmane.org>, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Andy Lutomirski <luto-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Dmitry Vyukov <dvyukov-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
 
---BwCQnh7xodEAoBMC
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Thu, Mar 02, 2017 at 10:22:18AM -0500, Carlos O'Donell wrote:
-> On Wed, Mar 1, 2017 at 11:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wro=
-te:
-> >> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
-> >> userspace compilation errors like this:
-> >>
-> >> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
-> >>   size_t ss_size;
-> >>
-> >> As no uapi header provides a definition of size_t, inclusion
-> >> of <stddef.h> seems to be the most conservative fix available.
-[...]
-> > I'm not sure if this is the best fix. We generally should not include o=
-ne
-> > standard header from another standard header. Would it be possible
-> > to use __kernel_size_t instead of size_t?
->=20
-> In glibc we handle this with special use of __need_size_t with GCC's
-> provided stddef.h.
->=20
-> For example glibc's signal.h does this:
->=20
-> # define __need_size_t
-> # include <stddef.h>
+On 17/02/2017 17:51, Tom Lendacky wrote:
+> 
+> It's meant just to notify the user about the condition. The user could
+> then decide to use an alternative device that supports a greater DMA
+> range (I can probably change it to a dev_warn_once() so that a device
+> is identified).  I would be nice if I could issue this message once per
+> device that experienced this.  I didn't see anything that would do
+> that, though.
 
-Just to make it clear, do you suggest this approach for asm/signal.h as wel=
-l?
+dev_warn_once would print once only, not once per device.  But if you
+leave the dev_warn elsewhere, this can be just pr_warn_once.
 
-[...]
-> Changing the fundamental type causes the issues you see in patch v2
-> where sizeof(size_t) < sizeof(__kernel_size_t).
->=20
-> It will only lead to problem substituting the wrong type.
-
-I don't see any appetite for creating more ABIs like x32 with
-sizeof(size_t) < sizeof(__kernel_size_t), so v2 approach
-is not going to be any different from v1 in maintenance.
-
-
---=20
-ldv
-
---BwCQnh7xodEAoBMC
-Content-Type: application/pgp-signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-
-iQIcBAEBCAAGBQJYuD7dAAoJEAVFT+BVnCUIun8QAIu2KR6DO6sDdAmLkPIEycqY
-ZpD4t47B0iHa7P8alfr3RIhu36O4Py9o/VByWQTxs/BTGOcUnQWczMjQr7shKtHW
-47qjSZTv23e17hae1Z6WOuFPn3uFU4EBun66kkuUqdZ4sFx40x/ODjXohG6GUxxd
-clVZ694NPDFWCU00LZlowh+JIkoxeL0PpdiLkCJzFC/i0/CuKXU5pmWH+5z5/UlL
-tNusg5EVA6bPi+toK/IWe/s/dUMIat1GLdqh9Qx0D5BfvNHHE9fK4DlcnEorISZt
-fUs4TokqUP84mhzsoNQPVVdCyFeQiusc4YYNMO8T52G4ghgFJoJ627uA69pRdEzN
-FVetUUPwFIZ/Z2NU8rfjJLXr0oWhelm+UnGITslKHFEr9lXnvEbE2odfExZo+O18
-XFIvc+g3hZ9s5DOU8Oe37TgpiDlaUbBVFtj0CuHWVNJsx9iDzZS5n8NKEABjaaej
-npWjXcOYAW4mMpQCOb3pMmij0ALU0Pd4iKU3a9utISonwPzoyAhTZcEud7EOCK+h
-JrFlLSBp3pRX5gno+6sb0BkhgyXTpdqcmuqmLH4kYp2PesfJs54hzNK/WMXGNT4i
-waAbG6eD4BKNBX1d3VjfmfoKUnr1MxGu3Z/kHRabE11pRTuTug7Vv8cvk6Mr6EuJ
-oqIAlHG3dRVMHy3ZauCa
-=5bs6
------END PGP SIGNATURE-----
-
---BwCQnh7xodEAoBMC--
+Paolo
