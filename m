@@ -1,52 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wr0-f174.google.com ([209.85.128.174]:34945 "EHLO
-        mail-wr0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751754AbdCCRQG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2017 12:16:06 -0500
-Received: by mail-wr0-f174.google.com with SMTP id g10so77990816wrg.2
-        for <linux-arch@vger.kernel.org>; Fri, 03 Mar 2017 09:16:05 -0800 (PST)
-Reply-To: nicolas.dichtel@6wind.com
-Subject: Re: [PATCH v9 00/11] uapi: export all headers under uapi directories
-References: <20170301045241.GB9156@gondor.apana.org.au>
- <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
-From: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Message-ID: <152f560b-c583-4aa4-a913-42c18a3cbd5f@6wind.com>
-Date: Fri, 3 Mar 2017 18:07:41 +0100
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39947 "EHLO
+        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
+        by vger.kernel.org with ESMTP id S1751083AbdCCR1y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2017 12:27:54 -0500
+Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
+        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v23E4BAb020765
+        for <linux-arch@vger.kernel.org>; Fri, 3 Mar 2017 09:08:55 -0500
+Received: from e06smtp09.uk.ibm.com (e06smtp09.uk.ibm.com [195.75.94.105])
+        by mx0b-001b2d01.pphosted.com with ESMTP id 28xs8fhwcn-1
+        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
+        for <linux-arch@vger.kernel.org>; Fri, 03 Mar 2017 09:08:55 -0500
+Received: from localhost
+        by e06smtp09.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+        Fri, 3 Mar 2017 14:08:52 -0000
+Date: Fri, 3 Mar 2017 15:08:37 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/3] futex: remove duplicated code
+References: <20170303122712.13353-1-jslaby@suse.cz>
 MIME-Version: 1.0
-In-Reply-To: <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20170303122712.13353-1-jslaby@suse.cz>
+Message-ID: <20170303140837.GF5319@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, mmarek@suse.com
-Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, herbert@gondor.apana.org.au, linux-rdma@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20170303170741.6dRf0d1q91X6i2UdSBUlymh04o26YFQMcZOZCgKOVXw@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20170303140837.sdLS0mHu1J1J8vJqrLj1f_OPyem_e3tF_UI77MS1580@z>
 
-Le 02/03/2017 à 17:56, Nicolas Dichtel a écrit :
-> Patches #1 and #2 are just cleanup: some exported headers were still under
-> a non-uapi directory. Patch #3 is a fix to avoid exporting a file that was
-> not under an uapi directory.
-> After these three patches, all exported headers are under an uapi directory:
-> path #4 stops searching files in non uapi directories.
-> The patch #5 was spotted by code review: there is no in-tree user of this
-> functionality.
-> Patch #6 fixes some warnings/errors reported by 0-day tests.
-> Patch #7 to #9 fix some errors when the corresponding files are included by
-> userland.
-> Patches #10 and #11 remove the need to list explicitly headers. Now all files
-> under an uapi directory are exported.
+On Fri, Mar 03, 2017 at 01:27:10PM +0100, Jiri Slaby wrote:
+> There is code duplicated over all architecture's headers for
+> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> and comparison of the result.
 > 
-> This series has been tested with a 'make headers_install' on x86 and a
-> 'make headers_install_all'. I've checked the result of both commands.
+> Remove this duplication and leave up to the arches only the needed
+> assembly which is now in arch_futex_atomic_op_inuser.
 > 
-> This patch is built against linus tree. If I must rebase it against the kbuild
-> tree, just tell me.
-> Michal, is this series going through your tree?
-I'm a bit pushy on this, but it would be nice to get this series in before the
-rc1. In fact, it would certainly be better to have this living some times in
--next, but it would probably generate a lot of conflicts in linux-next. OTOH
-those conflicts would be easy to solve.
+> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> remove pointless access_ok() checks") as access_ok there returns true.
+> We introduce it back to the helper for the sake of simplicity (it gets
+> optimized away anyway).
+> 
+> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+> ---
+>  arch/s390/include/asm/futex.h       | 23 ++++-------------
+>  include/asm-generic/futex.h         | 50 +++++++------------------------------
+>  kernel/futex.c                      | 36 ++++++++++++++++++++++++++
 
+Looks good to me and still boots on s390. Therefore for the s390 bits:
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Regards,
-Nicolas
+Thanks!
