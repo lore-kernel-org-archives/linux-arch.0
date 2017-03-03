@@ -1,37 +1,31 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
- of an address
-Date: Fri, 3 Mar 2017 10:52:23 +0100
-Message-ID: <20170303095223.eri4u4l7agofqri7@pd.tnic>
-References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
- <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
- <20170220200955.32e2wqxgulswnr55@pd.tnic>
- <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
+From: Herbert Xu <herbert@gondor.apana.org.au>
+Subject: Re: [PATCH v9 08/11] cryptouser.h: fix include from userland
+Date: Fri, 3 Mar 2017 17:35:38 +0800
+Message-ID: <20170303093538.GA26163@gondor.apana.org.au>
+References: <20170301045241.GB9156@gondor.apana.org.au>
+ <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
+ <1488473802-13354-9-git-send-email-nicolas.dichtel@6wind.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Return-path: <owner-linux-mm@kvack.org>
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
-Sender: owner-linux-mm@kvack.org
-To: Tom Lendacky <thomas.lendacky@amd.com>
-Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>
+In-Reply-To: <1488473802-13354-9-git-send-email-nicolas.dichtel@6wind.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, linux-rdma@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 28, 2017 at 04:34:39PM -0600, Tom Lendacky wrote:
-> Or if we want to guard against ACPI adding a type 0 in the future, I
-> could make the function return an int and then return -EINVAL if an e820
-> entry isn't found.  This might be the better option.
+On Thu, Mar 02, 2017 at 05:56:39PM +0100, Nicolas Dichtel wrote:
+> This patch prepares the uapi export by fixing the following error:
+> 
+> .../linux/cryptouser.h:58:16: error: ‘CRYPTO_MAX_ALG_NAME’ undeclared here (not in a function)
+>   char cru_name[CRYPTO_MAX_ALG_NAME];
+> 
+> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
 
-Yap, think so too. I don't trust specs anyway :)
-
+Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
 -- 
-Regards/Gruss,
-    Boris.
-
-Good mailing practices for 400: avoid top-posting and trim the reply.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Email: Herbert Xu <herbert@gondor.apana.org.au>
+Home Page: http://gondor.apana.org.au/~herbert/
+PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
