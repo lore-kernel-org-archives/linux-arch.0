@@ -1,36 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from helcar.hengli.com.au ([209.40.204.226]:56763 "EHLO
-        helcar.apana.org.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-        with ESMTP id S1751340AbdCCJ6E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2017 04:58:04 -0500
-Date: Fri, 3 Mar 2017 17:35:38 +0800
-From: Herbert Xu <herbert@gondor.apana.org.au>
-Subject: Re: [PATCH v9 08/11] cryptouser.h: fix include from userland
-Message-ID: <20170303093538.GA26163@gondor.apana.org.au>
-References: <20170301045241.GB9156@gondor.apana.org.au>
- <1488473802-13354-1-git-send-email-nicolas.dichtel@6wind.com>
- <1488473802-13354-9-git-send-email-nicolas.dichtel@6wind.com>
+Received: from mail-he1eur01on0052.outbound.protection.outlook.com ([104.47.0.52]:4896
+        "EHLO EUR01-HE1-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S1751524AbdCCP1z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Mar 2017 10:27:55 -0500
+Subject: Re: [PATCH 1/3] futex: remove duplicated code
+References: <20170303122712.13353-1-jslaby@suse.cz>
+From: Chris Metcalf <cmetcalf@mellanox.com>
+Message-ID: <8d435487-62a6-ebab-f45f-567d79237e9a@mellanox.com>
+Date: Fri, 3 Mar 2017 09:48:52 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1488473802-13354-9-git-send-email-nicolas.dichtel@6wind.com>
+In-Reply-To: <20170303122712.13353-1-jslaby@suse.cz>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Dichtel <nicolas.dichtel@6wind.com>
-Cc: arnd@arndb.de, mmarek@suse.com, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@linux.ie, davem@davemloft.net, linux@armlinux.org.uk, bp@alien8.de, slash.tmp@free.fr, daniel.vetter@ffwll.ch, rmk+kernel@armlinux.org.uk, msalter@redhat.com, jengelh@inai.de, hch@infradead.org, tklauser@distanz.ch, mpe@ellerman.id.au, mingo@kernel.org, tglx@linutronix.de, ldv@altlinux.org, linux-rdma@vger.kernel.org
-Message-ID: <20170303093538.h_r-EFAZ1R0dBUkRDivp6djtflTs2C8Cu9gLnegXooY@z>
+To: Jiri Slaby <jslaby@suse.cz>, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+Message-ID: <20170303144852.5uteXtBHAeaxKs21OwIdLUyLwrZVWL9FSuVT_D26rFA@z>
 
-On Thu, Mar 02, 2017 at 05:56:39PM +0100, Nicolas Dichtel wrote:
-> This patch prepares the uapi export by fixing the following error:
-> 
-> .../linux/cryptouser.h:58:16: error: ‘CRYPTO_MAX_ALG_NAME’ undeclared here (not in a function)
->   char cru_name[CRYPTO_MAX_ALG_NAME];
-> 
-> Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+On 3/3/2017 7:27 AM, Jiri Slaby wrote:
+> There is code duplicated over all architecture's headers for
+> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
+> and comparison of the result.
+>
+> Remove this duplication and leave up to the arches only the needed
+> assembly which is now in arch_futex_atomic_op_inuser.
+>
+> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
+> remove pointless access_ok() checks") as access_ok there returns true.
+> We introduce it back to the helper for the sake of simplicity (it gets
+> optimized away anyway).
+>
+> Signed-off-by: Jiri Slaby<jslaby@suse.cz>
 
-Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+Acked-by: Chris Metcalf <cmetcalf@mellanox.com> [for tile]
+
 -- 
-Email: Herbert Xu <herbert@gondor.apana.org.au>
-Home Page: http://gondor.apana.org.au/~herbert/
-PGP Key: http://gondor.apana.org.au/~herbert/pubkey.txt
+Chris Metcalf, Mellanox Technologies
+http://www.mellanox.com
