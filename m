@@ -1,56 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f180.google.com ([209.85.220.180]:34124 "EHLO
-        mail-qk0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1751135AbdCBVbp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Mar 2017 16:31:45 -0500
-Received: by mail-qk0-f180.google.com with SMTP id s186so146057279qkb.1
-        for <linux-arch@vger.kernel.org>; Thu, 02 Mar 2017 13:31:41 -0800 (PST)
-From: Laura Abbott <labbott@redhat.com>
-Subject: [PATCHv2 02/14] arm: Use set_memory.h header
-Date: Wed,  1 Mar 2017 16:14:54 -0800
-Message-ID: <1488413706-9739-3-git-send-email-labbott@redhat.com>
-In-Reply-To: <1488413706-9739-1-git-send-email-labbott@redhat.com>
-References: <1488413706-9739-1-git-send-email-labbott@redhat.com>
+Received: from mail.skyhub.de ([5.9.137.197]:44624 "EHLO mail.skyhub.de"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1751975AbdCCJxN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Fri, 3 Mar 2017 04:53:13 -0500
+Date: Fri, 3 Mar 2017 10:52:23 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [RFC PATCH v4 11/28] x86: Add support to determine the E820 type
+ of an address
+Message-ID: <20170303095223.eri4u4l7agofqri7@pd.tnic>
+References: <20170216154158.19244.66630.stgit@tlendack-t1.amdoffice.net>
+ <20170216154430.19244.95519.stgit@tlendack-t1.amdoffice.net>
+ <20170220200955.32e2wqxgulswnr55@pd.tnic>
+ <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <e6146786-16c5-99ab-52c9-2bdd50c7d9ba@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@armlinux.org.uk>
-Cc: Laura Abbott <labbott@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Kees Cook <keescook@chromium.org>, Mark Rutland <mark.rutland@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, Alexander Shishkin <alexander.shishkin@linux.intel.com>, Wim Van Sebroeck <wim@iguana.be>, Guenter Roeck <linux@roeck-us.net>, linux-watchdog@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Daniel Borkmann <daniel@iogearbox.net>, Jessica Yu <jeyu@redhat.com>, Takashi Iwai <tiwai@suse.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20170302001454.hWCITUWnM20pdk4IDRgDdrFJlMsXuZOLHeED0Q7JoSo@z>
+To: Tom Lendacky <thomas.lendacky@amd.com>
+Cc: linux-arch@vger.kernel.org, linux-efi@vger.kernel.org, kvm@vger.kernel.org, linux-doc@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Rik van Riel <riel@redhat.com>, Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>, Toshimitsu Kani <toshi.kani@hpe.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Matt Fleming <matt@codeblueprint.co.uk>, "Michael S. Tsirkin" <mst@redhat.com>, Joerg Roedel <joro@8bytes.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Brijesh Singh <brijesh.singh@amd.com>, Ingo Molnar <mingo@redhat.com>, Alexander Potapenko <glider@google.com>, Andy Lutomirski <luto@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Andrey Ryabinin <aryabinin@virtuozzo.com>, Thomas Gleixner <tglx@linutronix.de>, Larry Woodman <lwoodman@redhat.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170303095223.4eOpkaPgciA4dJ7adjx_qClOmBJkWFIu9QQThoNnmyI@z>
 
+On Tue, Feb 28, 2017 at 04:34:39PM -0600, Tom Lendacky wrote:
+> Or if we want to guard against ACPI adding a type 0 in the future, I
+> could make the function return an int and then return -EINVAL if an e820
+> entry isn't found.  This might be the better option.
 
-set_memory_* functions have moved to set_memory.h. Switch to this
-explicitly
+Yap, think so too. I don't trust specs anyway :)
 
-Signed-off-by: Laura Abbott <labbott@redhat.com>
----
- arch/arm/mm/pageattr.c    | 1 +
- arch/arm/net/bpf_jit_32.c | 2 +-
- 2 files changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/mm/pageattr.c b/arch/arm/mm/pageattr.c
-index 3b69f26..1403cb4 100644
---- a/arch/arm/mm/pageattr.c
-+++ b/arch/arm/mm/pageattr.c
-@@ -15,6 +15,7 @@
- 
- #include <asm/pgtable.h>
- #include <asm/tlbflush.h>
-+#include <asm/set_memory.h>
- 
- struct page_change_data {
- 	pgprot_t set_mask;
-diff --git a/arch/arm/net/bpf_jit_32.c b/arch/arm/net/bpf_jit_32.c
-index 93d0b6d..c200910 100644
---- a/arch/arm/net/bpf_jit_32.c
-+++ b/arch/arm/net/bpf_jit_32.c
-@@ -17,7 +17,7 @@
- #include <linux/slab.h>
- #include <linux/if_vlan.h>
- 
--#include <asm/cacheflush.h>
-+#include <asm/set_memory.h>
- #include <asm/hwcap.h>
- #include <asm/opcodes.h>
- 
 -- 
-2.7.4
+Regards/Gruss,
+    Boris.
+
+Good mailing practices for 400: avoid top-posting and trim the reply.
