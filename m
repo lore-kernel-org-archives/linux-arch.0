@@ -1,54 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:39947 "EHLO
-        mx0a-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-FAIL)
-        by vger.kernel.org with ESMTP id S1751083AbdCCR1y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2017 12:27:54 -0500
-Received: from pps.filterd (m0098420.ppops.net [127.0.0.1])
-        by mx0b-001b2d01.pphosted.com (8.16.0.20/8.16.0.20) with SMTP id v23E4BAb020765
-        for <linux-arch@vger.kernel.org>; Fri, 3 Mar 2017 09:08:55 -0500
-Received: from e06smtp09.uk.ibm.com (e06smtp09.uk.ibm.com [195.75.94.105])
-        by mx0b-001b2d01.pphosted.com with ESMTP id 28xs8fhwcn-1
-        (version=TLSv1.2 cipher=AES256-SHA bits=256 verify=NOT)
-        for <linux-arch@vger.kernel.org>; Fri, 03 Mar 2017 09:08:55 -0500
-Received: from localhost
-        by e06smtp09.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-        for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-        Fri, 3 Mar 2017 14:08:52 -0000
-Date: Fri, 3 Mar 2017 15:08:37 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 1/3] futex: remove duplicated code
-References: <20170303122712.13353-1-jslaby@suse.cz>
+Received: from mail-qk0-f194.google.com ([209.85.220.194]:36218 "EHLO
+        mail-qk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S1751677AbdCDBYL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Mar 2017 20:24:11 -0500
+Received: by mail-qk0-f194.google.com with SMTP id n141so7661769qke.3
+        for <linux-arch@vger.kernel.org>; Fri, 03 Mar 2017 17:23:21 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170303122712.13353-1-jslaby@suse.cz>
-Message-ID: <20170303140837.GF5319@osiris>
+In-Reply-To: <20170302154845.GB3503@altlinux.org>
+References: <20170226010156.GA28831@altlinux.org> <CAK8P3a0YX3RGAqWN0mwUJtBsqUX0C+QRtJLrT_UA=wX6Z+q0DA@mail.gmail.com>
+ <CAE2sS1h9QNV+31GMSv8aahJYOb9hFtFp5Aj-yVOfg7cjBHr_kg@mail.gmail.com> <20170302154845.GB3503@altlinux.org>
+From: "Carlos O'Donell" <carlos@systemhalted.org>
+Date: Fri, 3 Mar 2017 20:23:20 -0500
+Message-ID: <CAE2sS1i-xezJu2hHfzOxpCMZHc2J+dsturtqFPMRWHa6mm6ccQ@mail.gmail.com>
+Subject: Re: [PATCH] uapi: fix asm/signal.h userspace compilation errors
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170303140837.sdLS0mHu1J1J8vJqrLj1f_OPyem_e3tF_UI77MS1580@z>
+To: "Dmitry V. Levin" <ldv@altlinux.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, Linux ARM <linux-arm-kernel@lists.infradead.org>, linux-cris-kernel@axis.com, uclinux-h8-devel@lists.sourceforge.jp, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, linux-parisc <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20170304012320.ttzWUEObRvsMarAM8HyVX8t3DfUHs2A5sVKurNuOSVo@z>
 
-On Fri, Mar 03, 2017 at 01:27:10PM +0100, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
-> 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
-> 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
-> 
-> Signed-off-by: Jiri Slaby <jslaby@suse.cz>
-> ---
->  arch/s390/include/asm/futex.h       | 23 ++++-------------
->  include/asm-generic/futex.h         | 50 +++++++------------------------------
->  kernel/futex.c                      | 36 ++++++++++++++++++++++++++
+On Thu, Mar 2, 2017 at 10:48 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+> On Thu, Mar 02, 2017 at 10:22:18AM -0500, Carlos O'Donell wrote:
+>> On Wed, Mar 1, 2017 at 11:20 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> > On Sun, Feb 26, 2017 at 2:01 AM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>> >> Include <stddef.h> (guarded by #ifndef __KERNEL__) to fix asm/signal.h
+>> >> userspace compilation errors like this:
+>> >>
+>> >> /usr/include/asm/signal.h:126:2: error: unknown type name 'size_t'
+>> >>   size_t ss_size;
+>> >>
+>> >> As no uapi header provides a definition of size_t, inclusion
+>> >> of <stddef.h> seems to be the most conservative fix available.
+> [...]
+>> > I'm not sure if this is the best fix. We generally should not include one
+>> > standard header from another standard header. Would it be possible
+>> > to use __kernel_size_t instead of size_t?
+>>
+>> In glibc we handle this with special use of __need_size_t with GCC's
+>> provided stddef.h.
+>>
+>> For example glibc's signal.h does this:
+>>
+>> # define __need_size_t
+>> # include <stddef.h>
+>
+> Just to make it clear, do you suggest this approach for asm/signal.h as well?
 
-Looks good to me and still boots on s390. Therefore for the s390 bits:
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+The kernel is duplicating userspace headers in the UAPI implementation
+and running into exactly the same problems we have already solved in
+userspace. We currently have no better solution than the "__need_*"
+interface for avoiding the duplication of the type definitions and the
+problems that come with that.
 
-Thanks!
+I am taking this up with senior glibc developers on libc-alpha to see
+if we have a better suggestion. If you give me 72 hours I'll either
+have a better suggestion or the acknowledgement that my suggestion is
+the best practical solution we have.
+
+Note that in a GNU userspace stddef.h here comes from gcc, which
+completes the implementation of the C development environment that
+provides the types you need. The use of "__need_size_t" is a collusion
+between the components of the implementation and use by the Linux
+kernel would mean expecting something specific to a GNU
+implementation.
+
+I might suggest you use include/uapi/linux/libc-compat.h in an attempt
+to abstract away the GNU-specific magic for getting just size_t from
+stddef.h. That way you have documented the places that other runtime
+authors need to fill out for things to work.
+
+Cheers,
+Carlos.
