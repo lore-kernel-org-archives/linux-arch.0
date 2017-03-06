@@ -1,190 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:11614 "EHLO mga05.intel.com"
+Received: from mga04.intel.com ([192.55.52.120]:11538 "EHLO mga04.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753776AbdCFOAc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 09:00:32 -0500
+        id S1754134AbdCFOAR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 09:00:17 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 16/33] x86/mm/pat: handle additional page table
-Date: Mon,  6 Mar 2017 16:53:40 +0300
-Message-ID: <20170306135357.3124-17-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 11/33] x86/ident_map: add 5-level paging support
+Date: Mon,  6 Mar 2017 16:53:35 +0300
+Message-ID: <20170306135357.3124-12-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135340.ebBrvKE_tFF4_fS9TfSQ8-2QNi5Oq0x4xnWjGS42jFM@z>
+Message-ID: <20170306135335.2OqOcl8_5D5f7kEVYffXJpReWNKBC8YinLcutfRduuc@z>
 
-Straight-forward extension of existing code to support additional page
-table level.
+Nothing special: just handle one more level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/pageattr.c | 56 ++++++++++++++++++++++++++++++++++++--------------
- 1 file changed, 41 insertions(+), 15 deletions(-)
+ arch/x86/mm/ident_map.c | 47 ++++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 40 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index 28d42130243c..eb0ad12cdfde 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -346,6 +346,7 @@ static inline pgprot_t static_protections(pgprot_t prot, unsigned long address,
- pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
- 			     unsigned int *level)
- {
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	pmd_t *pmd;
- 
-@@ -354,7 +355,15 @@ pte_t *lookup_address_in_pgd(pgd_t *pgd, unsigned long address,
- 	if (pgd_none(*pgd))
- 		return NULL;
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (p4d_none(*p4d))
-+		return NULL;
-+
-+	*level = PG_LEVEL_512G;
-+	if (p4d_large(*p4d) || !p4d_present(*p4d))
-+		return (pte_t *)p4d;
-+
-+	pud = pud_offset(p4d, address);
- 	if (pud_none(*pud))
- 		return NULL;
- 
-@@ -406,13 +415,18 @@ static pte_t *_lookup_address_cpa(struct cpa_data *cpa, unsigned long address,
- pmd_t *lookup_pmd_address(unsigned long address)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 
- 	pgd = pgd_offset_k(address);
- 	if (pgd_none(*pgd))
- 		return NULL;
- 
--	pud = pud_offset(pgd, address);
-+	p4d = p4d_offset(pgd, address);
-+	if (p4d_none(*p4d) || p4d_large(*p4d) || !p4d_present(*p4d))
-+		return NULL;
-+
-+	pud = pud_offset(p4d, address);
- 	if (pud_none(*pud) || pud_large(*pud) || !pud_present(*pud))
- 		return NULL;
- 
-@@ -477,11 +491,13 @@ static void __set_pmd_pte(pte_t *kpte, unsigned long address, pte_t pte)
- 
- 		list_for_each_entry(page, &pgd_list, lru) {
- 			pgd_t *pgd;
-+			p4d_t *p4d;
- 			pud_t *pud;
- 			pmd_t *pmd;
- 
- 			pgd = (pgd_t *)page_address(page) + pgd_index(address);
--			pud = pud_offset(pgd, address);
-+			p4d = p4d_offset(pgd, address);
-+			pud = pud_offset(p4d, address);
- 			pmd = pmd_offset(pud, address);
- 			set_pte_atomic((pte_t *)pmd, pte);
- 		}
-@@ -836,9 +852,9 @@ static void unmap_pmd_range(pud_t *pud, unsigned long start, unsigned long end)
- 			pud_clear(pud);
+diff --git a/arch/x86/mm/ident_map.c b/arch/x86/mm/ident_map.c
+index 4473cb4f8b90..2c9a62282fb1 100644
+--- a/arch/x86/mm/ident_map.c
++++ b/arch/x86/mm/ident_map.c
+@@ -45,6 +45,34 @@ static int ident_pud_init(struct x86_mapping_info *info, pud_t *pud_page,
+ 	return 0;
  }
  
--static void unmap_pud_range(pgd_t *pgd, unsigned long start, unsigned long end)
-+static void unmap_pud_range(p4d_t *p4d, unsigned long start, unsigned long end)
- {
--	pud_t *pud = pud_offset(pgd, start);
-+	pud_t *pud = pud_offset(p4d, start);
- 
- 	/*
- 	 * Not on a GB page boundary?
-@@ -1004,8 +1020,8 @@ static long populate_pmd(struct cpa_data *cpa,
- 	return num_pages;
- }
- 
--static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
--			 pgprot_t pgprot)
-+static int populate_pud(struct cpa_data *cpa, unsigned long start, p4d_t *p4d,
-+			pgprot_t pgprot)
- {
- 	pud_t *pud;
- 	unsigned long end;
-@@ -1026,7 +1042,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
- 		cur_pages = (pre_end - start) >> PAGE_SHIFT;
- 		cur_pages = min_t(int, (int)cpa->numpages, cur_pages);
- 
--		pud = pud_offset(pgd, start);
-+		pud = pud_offset(p4d, start);
- 
- 		/*
- 		 * Need a PMD page?
-@@ -1047,7 +1063,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
- 	if (cpa->numpages == cur_pages)
- 		return cur_pages;
- 
--	pud = pud_offset(pgd, start);
-+	pud = pud_offset(p4d, start);
- 	pud_pgprot = pgprot_4k_2_large(pgprot);
- 
- 	/*
-@@ -1067,7 +1083,7 @@ static long populate_pud(struct cpa_data *cpa, unsigned long start, pgd_t *pgd,
- 	if (start < end) {
- 		long tmp;
- 
--		pud = pud_offset(pgd, start);
-+		pud = pud_offset(p4d, start);
- 		if (pud_none(*pud))
- 			if (alloc_pmd_page(pud))
- 				return -1;
-@@ -1090,33 +1106,43 @@ static int populate_pgd(struct cpa_data *cpa, unsigned long addr)
- {
- 	pgprot_t pgprot = __pgprot(_KERNPG_TABLE);
- 	pud_t *pud = NULL;	/* shut up gcc */
-+	p4d_t *p4d;
- 	pgd_t *pgd_entry;
- 	long ret;
- 
- 	pgd_entry = cpa->pgd + pgd_index(addr);
- 
-+	if (pgd_none(*pgd_entry)) {
-+		p4d = (p4d_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
-+		if (!p4d)
-+			return -1;
++static int ident_p4d_init(struct x86_mapping_info *info, p4d_t *p4d_page,
++			  unsigned long addr, unsigned long end)
++{
++	unsigned long next;
 +
-+		set_pgd(pgd_entry, __pgd(__pa(p4d) | _KERNPG_TABLE));
++	for (; addr < end; addr = next) {
++		p4d_t *p4d = p4d_page + p4d_index(addr);
++		pud_t *pud;
++
++		next = (addr & P4D_MASK) + P4D_SIZE;
++		if (next > end)
++			next = end;
++
++		if (p4d_present(*p4d)) {
++			pud = pud_offset(p4d, 0);
++			ident_pud_init(info, pud, addr, next);
++			continue;
++		}
++		pud = (pud_t *)info->alloc_pgt_page(info->context);
++		if (!pud)
++			return -ENOMEM;
++		ident_pud_init(info, pud, addr, next);
++		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
 +	}
 +
- 	/*
--	 * Allocate a PUD page and hand it down for mapping.
-+	 * Allocate a P4D page and hand it down for mapping.
- 	 */
--	if (pgd_none(*pgd_entry)) {
-+	p4d = p4d_offset(pgd_entry, addr);
-+	if (p4d_none(*p4d)) {
- 		pud = (pud_t *)get_zeroed_page(GFP_KERNEL | __GFP_NOTRACK);
- 		if (!pud)
- 			return -1;
++	return 0;
++}
++
+ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
+ 			      unsigned long pstart, unsigned long pend)
+ {
+@@ -55,27 +83,32 @@ int kernel_ident_mapping_init(struct x86_mapping_info *info, pgd_t *pgd_page,
  
--		set_pgd(pgd_entry, __pgd(__pa(pud) | _KERNPG_TABLE));
-+		set_p4d(p4d, __p4d(__pa(pud) | _KERNPG_TABLE));
+ 	for (; addr < end; addr = next) {
+ 		pgd_t *pgd = pgd_page + pgd_index(addr);
+-		pud_t *pud;
++		p4d_t *p4d;
+ 
+ 		next = (addr & PGDIR_MASK) + PGDIR_SIZE;
+ 		if (next > end)
+ 			next = end;
+ 
+ 		if (pgd_present(*pgd)) {
+-			pud = pud_offset(pgd, 0);
+-			result = ident_pud_init(info, pud, addr, next);
++			p4d = p4d_offset(pgd, 0);
++			result = ident_p4d_init(info, p4d, addr, next);
+ 			if (result)
+ 				return result;
+ 			continue;
+ 		}
+ 
+-		pud = (pud_t *)info->alloc_pgt_page(info->context);
+-		if (!pud)
++		p4d = (p4d_t *)info->alloc_pgt_page(info->context);
++		if (!p4d)
+ 			return -ENOMEM;
+-		result = ident_pud_init(info, pud, addr, next);
++		result = ident_p4d_init(info, p4d, addr, next);
+ 		if (result)
+ 			return result;
+-		set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++		if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
++			set_pgd(pgd, __pgd(__pa(p4d) | _KERNPG_TABLE));
++		} else {
++			pud_t *pud = pud_offset(p4d, 0);
++			set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE));
++		}
  	}
  
- 	pgprot_val(pgprot) &= ~pgprot_val(cpa->mask_clr);
- 	pgprot_val(pgprot) |=  pgprot_val(cpa->mask_set);
- 
--	ret = populate_pud(cpa, addr, pgd_entry, pgprot);
-+	ret = populate_pud(cpa, addr, p4d, pgprot);
- 	if (ret < 0) {
- 		/*
- 		 * Leave the PUD page in place in case some other CPU or thread
- 		 * already found it, but remove any useless entries we just
- 		 * added to it.
- 		 */
--		unmap_pud_range(pgd_entry, addr,
-+		unmap_pud_range(p4d, addr,
- 				addr + (cpa->numpages << PAGE_SHIFT));
- 		return ret;
- 	}
+ 	return 0;
 -- 
 2.11.0
