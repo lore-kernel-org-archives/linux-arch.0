@@ -1,157 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:21957 "EHLO mga11.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:32470 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753814AbdCFN6D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 08:58:03 -0500
+        id S1753184AbdCFN5w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 08:57:52 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 31/33] x86/mm: add support for 5-level paging for KASLR
-Date: Mon,  6 Mar 2017 16:53:55 +0300
-Message-ID: <20170306135357.3124-32-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 03/33] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
+Date: Mon,  6 Mar 2017 16:53:27 +0300
+Message-ID: <20170306135357.3124-4-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135355.jn52AdiNb4cCuuIkKWvWWQ_B1txGfvpXTbPdHN-bsvo@z>
+Message-ID: <20170306135327.ZLNbwOmHc8XQrnEQCkHsO1_wv5QF15skloyvCAgoEbk@z>
 
-With 5-level paging randomization happens on P4D level instead of PUD.
+We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
+abstraction for properly (in opposite to 5level-fixup.h hack) folded
+p4d level. The new header will be included from pgtable-nopud.h.
 
-Maximum amount of physical memory also bumped to 52-bits for 5-level
-paging.
+If an architecture uses <asm-generic/nop*d.h>, we cannot use
+5level-fixup.h directly to quickly convert the architecture to 5-level
+paging as it would conflict with pgtable-nop4d.h.
+
+With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
+inclusion <asm-genenric/nop*d.h> to use 5level-fixup.h.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/x86/mm/kaslr.c | 82 ++++++++++++++++++++++++++++++++++++++++-------------
- 1 file changed, 63 insertions(+), 19 deletions(-)
+ include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable-nopud.h      |  5 +++
+ 2 files changed, 67 insertions(+)
+ create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
 
-diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
-index 887e57182716..662e5c4b21c8 100644
---- a/arch/x86/mm/kaslr.c
-+++ b/arch/x86/mm/kaslr.c
-@@ -6,12 +6,12 @@
-  *
-  * Entropy is generated using the KASLR early boot functions now shared in
-  * the lib directory (originally written by Kees Cook). Randomization is
-- * done on PGD & PUD page table levels to increase possible addresses. The
-- * physical memory mapping code was adapted to support PUD level virtual
-- * addresses. This implementation on the best configuration provides 30,000
-- * possible virtual addresses in average for each memory region. An additional
-- * low memory page is used to ensure each CPU can start with a PGD aligned
-- * virtual address (for realmode).
-+ * done on PGD & P4D/PUD page table levels to increase possible addresses.
-+ * The physical memory mapping code was adapted to support P4D/PUD level
-+ * virtual addresses. This implementation on the best configuration provides
-+ * 30,000 possible virtual addresses in average for each memory region.
-+ * An additional low memory page is used to ensure each CPU can start with
-+ * a PGD aligned virtual address (for realmode).
-  *
-  * The order of each memory region is not changed. The feature looks at
-  * the available space for the regions based on different configuration
-@@ -70,7 +70,8 @@ static __initdata struct kaslr_memory_region {
- 	unsigned long *base;
- 	unsigned long size_tb;
- } kaslr_regions[] = {
--	{ &page_offset_base, 64/* Maximum */ },
-+	{ &page_offset_base,
-+		1 << (__PHYSICAL_MASK_SHIFT - TB_SHIFT) /* Maximum */ },
- 	{ &vmalloc_base, VMALLOC_SIZE_TB },
- 	{ &vmemmap_base, 1 },
- };
-@@ -142,7 +143,10 @@ void __init kernel_randomize_memory(void)
- 		 */
- 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
- 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
--		entropy = (rand % (entropy + 1)) & PUD_MASK;
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			entropy = (rand % (entropy + 1)) & P4D_MASK;
-+		else
-+			entropy = (rand % (entropy + 1)) & PUD_MASK;
- 		vaddr += entropy;
- 		*kaslr_regions[i].base = vaddr;
- 
-@@ -151,27 +155,21 @@ void __init kernel_randomize_memory(void)
- 		 * randomization alignment.
- 		 */
- 		vaddr += get_padding(&kaslr_regions[i]);
--		vaddr = round_up(vaddr + 1, PUD_SIZE);
-+		if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+			vaddr = round_up(vaddr + 1, P4D_SIZE);
-+		else
-+			vaddr = round_up(vaddr + 1, PUD_SIZE);
- 		remain_entropy -= entropy;
- 	}
- }
- 
--/*
-- * Create PGD aligned trampoline table to allow real mode initialization
-- * of additional CPUs. Consume only 1 low memory page.
-- */
--void __meminit init_trampoline(void)
-+static void __meminit init_trampoline_pud(void)
- {
- 	unsigned long paddr, paddr_next;
- 	pgd_t *pgd;
- 	pud_t *pud_page, *pud_page_tramp;
- 	int i;
- 
--	if (!kaslr_memory_enabled()) {
--		init_trampoline_default();
--		return;
--	}
--
- 	pud_page_tramp = alloc_low_page();
- 
- 	paddr = 0;
-@@ -192,3 +190,49 @@ void __meminit init_trampoline(void)
- 	set_pgd(&trampoline_pgd_entry,
- 		__pgd(_KERNPG_TABLE | __pa(pud_page_tramp)));
- }
+diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
+new file mode 100644
+index 000000000000..752fb7511750
+--- /dev/null
++++ b/include/asm-generic/pgtable-nop4d-hack.h
+@@ -0,0 +1,62 @@
++#ifndef _PGTABLE_NOP4D_HACK_H
++#define _PGTABLE_NOP4D_HACK_H
 +
-+static void __meminit init_trampoline_p4d(void)
-+{
-+	unsigned long paddr, paddr_next;
-+	pgd_t *pgd;
-+	p4d_t *p4d_page, *p4d_page_tramp;
-+	int i;
++#ifndef __ASSEMBLY__
++#include <asm-generic/5level-fixup.h>
 +
-+	p4d_page_tramp = alloc_low_page();
-+
-+	paddr = 0;
-+	pgd = pgd_offset_k((unsigned long)__va(paddr));
-+	p4d_page = (p4d_t *) pgd_page_vaddr(*pgd);
-+
-+	for (i = p4d_index(paddr); i < PTRS_PER_P4D; i++, paddr = paddr_next) {
-+		p4d_t *p4d, *p4d_tramp;
-+		unsigned long vaddr = (unsigned long)__va(paddr);
-+
-+		p4d_tramp = p4d_page_tramp + p4d_index(paddr);
-+		p4d = p4d_page + p4d_index(vaddr);
-+		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
-+
-+		*p4d_tramp = *p4d;
-+	}
-+
-+	set_pgd(&trampoline_pgd_entry,
-+		__pgd(_KERNPG_TABLE | __pa(p4d_page_tramp)));
-+}
++#define __PAGETABLE_PUD_FOLDED
 +
 +/*
-+ * Create PGD aligned trampoline table to allow real mode initialization
-+ * of additional CPUs. Consume only 1 low memory page.
++ * Having the pud type consist of a pgd gets the size right, and allows
++ * us to conceptually access the pgd entry that this pud is folded into
++ * without casting.
 + */
-+void __meminit init_trampoline(void)
++typedef struct { pgd_t pgd; } pud_t;
++
++#define PUD_SHIFT	PGDIR_SHIFT
++#define PTRS_PER_PUD	1
++#define PUD_SIZE	(1UL << PUD_SHIFT)
++#define PUD_MASK	(~(PUD_SIZE-1))
++
++/*
++ * The "pgd_xxx()" functions here are trivial for a folded two-level
++ * setup: the pud is never bad, and a pud always exists (as it's folded
++ * into the pgd entry)
++ */
++static inline int pgd_none(pgd_t pgd)		{ return 0; }
++static inline int pgd_bad(pgd_t pgd)		{ return 0; }
++static inline int pgd_present(pgd_t pgd)	{ return 1; }
++static inline void pgd_clear(pgd_t *pgd)	{ }
++#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
++
++#define pgd_populate(mm, pgd, pud)		do { } while (0)
++/*
++ * (puds are folded into pgds so this doesn't get actually called,
++ * but the define is needed for a generic inline function.)
++ */
++#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
++
++static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
 +{
-+
-+	if (!kaslr_memory_enabled()) {
-+		init_trampoline_default();
-+		return;
-+	}
-+
-+	if (IS_ENABLED(CONFIG_X86_5LEVEL))
-+		init_trampoline_p4d();
-+	else
-+		init_trampoline_pud();
++	return (pud_t *)pgd;
 +}
++
++#define pud_val(x)				(pgd_val((x).pgd))
++#define __pud(x)				((pud_t) { __pgd(x) })
++
++#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
++#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
++
++/*
++ * allocating and freeing a pud is trivial: the 1-entry pud is
++ * inside the pgd, so has no extra memory associated with it.
++ */
++#define pud_alloc_one(mm, address)		NULL
++#define pud_free(mm, x)				do { } while (0)
++#define __pud_free_tlb(tlb, x, a)		do { } while (0)
++
++#undef  pud_addr_end
++#define pud_addr_end(addr, end)			(end)
++
++#endif /* __ASSEMBLY__ */
++#endif /* _PGTABLE_NOP4D_HACK_H */
+diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+index 810431d8351b..5e49430a30a4 100644
+--- a/include/asm-generic/pgtable-nopud.h
++++ b/include/asm-generic/pgtable-nopud.h
+@@ -3,6 +3,10 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
++#ifdef __ARCH_USE_5LEVEL_HACK
++#include <asm-generic/pgtable-nop4d-hack.h>
++#else
++
+ #define __PAGETABLE_PUD_FOLDED
+ 
+ /*
+@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
+ #define pud_addr_end(addr, end)			(end)
+ 
+ #endif /* __ASSEMBLY__ */
++#endif /* !__ARCH_USE_5LEVEL_HACK */
+ #endif /* _PGTABLE_NOPUD_H */
 -- 
 2.11.0
