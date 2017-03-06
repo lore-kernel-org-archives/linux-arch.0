@@ -1,106 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.43]:64442 "EHLO mga05.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:21957 "EHLO mga11.intel.com"
         rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753790AbdCFOAB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 09:00:01 -0500
+        id S1753814AbdCFN6D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 08:58:03 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 15/33] x86/efi: handle p4d in EFI pagetables
-Date: Mon,  6 Mar 2017 16:53:39 +0300
-Message-ID: <20170306135357.3124-16-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 31/33] x86/mm: add support for 5-level paging for KASLR
+Date: Mon,  6 Mar 2017 16:53:55 +0300
+Message-ID: <20170306135357.3124-32-kirill.shutemov@linux.intel.com>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135339.fZd0d8WfsbgDk1Vv8MyPgJQhRJg4p_cFF7ggDFgBPlo@z>
+Message-ID: <20170306135355.jn52AdiNb4cCuuIkKWvWWQ_B1txGfvpXTbPdHN-bsvo@z>
 
-Allocate additional page table level and change efi_sync_low_kernel_mappings()
-to make syncing logic work with additional page table level.
+With 5-level paging randomization happens on P4D level instead of PUD.
+
+Maximum amount of physical memory also bumped to 52-bits for 5-level
+paging.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/platform/efi/efi_64.c | 33 +++++++++++++++++++++++----------
- 1 file changed, 23 insertions(+), 10 deletions(-)
+ arch/x86/mm/kaslr.c | 82 ++++++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 63 insertions(+), 19 deletions(-)
 
-diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
-index 8544dae3d1b4..34d019f75239 100644
---- a/arch/x86/platform/efi/efi_64.c
-+++ b/arch/x86/platform/efi/efi_64.c
-@@ -135,6 +135,7 @@ static pgd_t *efi_pgd;
- int __init efi_alloc_page_tables(void)
- {
- 	pgd_t *pgd;
-+	p4d_t *p4d;
- 	pud_t *pud;
- 	gfp_t gfp_mask;
+diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
+index 887e57182716..662e5c4b21c8 100644
+--- a/arch/x86/mm/kaslr.c
++++ b/arch/x86/mm/kaslr.c
+@@ -6,12 +6,12 @@
+  *
+  * Entropy is generated using the KASLR early boot functions now shared in
+  * the lib directory (originally written by Kees Cook). Randomization is
+- * done on PGD & PUD page table levels to increase possible addresses. The
+- * physical memory mapping code was adapted to support PUD level virtual
+- * addresses. This implementation on the best configuration provides 30,000
+- * possible virtual addresses in average for each memory region. An additional
+- * low memory page is used to ensure each CPU can start with a PGD aligned
+- * virtual address (for realmode).
++ * done on PGD & P4D/PUD page table levels to increase possible addresses.
++ * The physical memory mapping code was adapted to support P4D/PUD level
++ * virtual addresses. This implementation on the best configuration provides
++ * 30,000 possible virtual addresses in average for each memory region.
++ * An additional low memory page is used to ensure each CPU can start with
++ * a PGD aligned virtual address (for realmode).
+  *
+  * The order of each memory region is not changed. The feature looks at
+  * the available space for the regions based on different configuration
+@@ -70,7 +70,8 @@ static __initdata struct kaslr_memory_region {
+ 	unsigned long *base;
+ 	unsigned long size_tb;
+ } kaslr_regions[] = {
+-	{ &page_offset_base, 64/* Maximum */ },
++	{ &page_offset_base,
++		1 << (__PHYSICAL_MASK_SHIFT - TB_SHIFT) /* Maximum */ },
+ 	{ &vmalloc_base, VMALLOC_SIZE_TB },
+ 	{ &vmemmap_base, 1 },
+ };
+@@ -142,7 +143,10 @@ void __init kernel_randomize_memory(void)
+ 		 */
+ 		entropy = remain_entropy / (ARRAY_SIZE(kaslr_regions) - i);
+ 		prandom_bytes_state(&rand_state, &rand, sizeof(rand));
+-		entropy = (rand % (entropy + 1)) & PUD_MASK;
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			entropy = (rand % (entropy + 1)) & P4D_MASK;
++		else
++			entropy = (rand % (entropy + 1)) & PUD_MASK;
+ 		vaddr += entropy;
+ 		*kaslr_regions[i].base = vaddr;
  
-@@ -147,15 +148,20 @@ int __init efi_alloc_page_tables(void)
- 		return -ENOMEM;
- 
- 	pgd = efi_pgd + pgd_index(EFI_VA_END);
-+	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END);
-+	if (!p4d) {
-+		free_page((unsigned long)efi_pgd);
-+		return -ENOMEM;
-+	}
- 
--	pud = pud_alloc_one(NULL, 0);
-+	pud = pud_alloc(&init_mm, p4d, EFI_VA_END);
- 	if (!pud) {
-+		if (CONFIG_PGTABLE_LEVELS > 4)
-+			free_page((unsigned long) pgd_page_vaddr(*pgd));
- 		free_page((unsigned long)efi_pgd);
- 		return -ENOMEM;
+@@ -151,27 +155,21 @@ void __init kernel_randomize_memory(void)
+ 		 * randomization alignment.
+ 		 */
+ 		vaddr += get_padding(&kaslr_regions[i]);
+-		vaddr = round_up(vaddr + 1, PUD_SIZE);
++		if (IS_ENABLED(CONFIG_X86_5LEVEL))
++			vaddr = round_up(vaddr + 1, P4D_SIZE);
++		else
++			vaddr = round_up(vaddr + 1, PUD_SIZE);
+ 		remain_entropy -= entropy;
  	}
- 
--	pgd_populate(NULL, pgd, pud);
--
- 	return 0;
  }
  
-@@ -190,6 +196,18 @@ void efi_sync_low_kernel_mappings(void)
- 	num_entries = pgd_index(EFI_VA_END) - pgd_index(PAGE_OFFSET);
- 	memcpy(pgd_efi, pgd_k, sizeof(pgd_t) * num_entries);
+-/*
+- * Create PGD aligned trampoline table to allow real mode initialization
+- * of additional CPUs. Consume only 1 low memory page.
+- */
+-void __meminit init_trampoline(void)
++static void __meminit init_trampoline_pud(void)
+ {
+ 	unsigned long paddr, paddr_next;
+ 	pgd_t *pgd;
+ 	pud_t *pud_page, *pud_page_tramp;
+ 	int i;
  
-+	/* The same story as with PGD entries */
-+	BUILD_BUG_ON(p4d_index(EFI_VA_END) != p4d_index(MODULES_END));
-+	BUILD_BUG_ON((EFI_VA_START & P4D_MASK) != (EFI_VA_END & P4D_MASK));
-+
-+	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
-+	pgd_k = pgd_offset_k(EFI_VA_END);
-+	p4d_efi = p4d_offset(pgd_efi, 0);
-+	p4d_k = p4d_offset(pgd_k, 0);
-+
-+	num_entries = p4d_index(EFI_VA_END);
-+	memcpy(p4d_efi, p4d_k, sizeof(p4d_t) * num_entries);
-+
- 	/*
- 	 * We share all the PUD entries apart from those that map the
- 	 * EFI regions. Copy around them.
-@@ -197,20 +215,15 @@ void efi_sync_low_kernel_mappings(void)
- 	BUILD_BUG_ON((EFI_VA_START & ~PUD_MASK) != 0);
- 	BUILD_BUG_ON((EFI_VA_END & ~PUD_MASK) != 0);
- 
--	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
--	p4d_efi = p4d_offset(pgd_efi, 0);
-+	p4d_efi = p4d_offset(pgd_efi, EFI_VA_END);
-+	p4d_k = p4d_offset(pgd_k, EFI_VA_END);
- 	pud_efi = pud_offset(p4d_efi, 0);
+-	if (!kaslr_memory_enabled()) {
+-		init_trampoline_default();
+-		return;
+-	}
 -
--	pgd_k = pgd_offset_k(EFI_VA_END);
--	p4d_k = p4d_offset(pgd_k, 0);
- 	pud_k = pud_offset(p4d_k, 0);
+ 	pud_page_tramp = alloc_low_page();
  
- 	num_entries = pud_index(EFI_VA_END);
- 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
- 
--	p4d_efi = p4d_offset(pgd_efi, EFI_VA_START);
- 	pud_efi = pud_offset(p4d_efi, EFI_VA_START);
--	p4d_k = p4d_offset(pgd_k, EFI_VA_START);
- 	pud_k = pud_offset(p4d_k, EFI_VA_START);
- 
- 	num_entries = PTRS_PER_PUD - pud_index(EFI_VA_START);
+ 	paddr = 0;
+@@ -192,3 +190,49 @@ void __meminit init_trampoline(void)
+ 	set_pgd(&trampoline_pgd_entry,
+ 		__pgd(_KERNPG_TABLE | __pa(pud_page_tramp)));
+ }
++
++static void __meminit init_trampoline_p4d(void)
++{
++	unsigned long paddr, paddr_next;
++	pgd_t *pgd;
++	p4d_t *p4d_page, *p4d_page_tramp;
++	int i;
++
++	p4d_page_tramp = alloc_low_page();
++
++	paddr = 0;
++	pgd = pgd_offset_k((unsigned long)__va(paddr));
++	p4d_page = (p4d_t *) pgd_page_vaddr(*pgd);
++
++	for (i = p4d_index(paddr); i < PTRS_PER_P4D; i++, paddr = paddr_next) {
++		p4d_t *p4d, *p4d_tramp;
++		unsigned long vaddr = (unsigned long)__va(paddr);
++
++		p4d_tramp = p4d_page_tramp + p4d_index(paddr);
++		p4d = p4d_page + p4d_index(vaddr);
++		paddr_next = (paddr & P4D_MASK) + P4D_SIZE;
++
++		*p4d_tramp = *p4d;
++	}
++
++	set_pgd(&trampoline_pgd_entry,
++		__pgd(_KERNPG_TABLE | __pa(p4d_page_tramp)));
++}
++
++/*
++ * Create PGD aligned trampoline table to allow real mode initialization
++ * of additional CPUs. Consume only 1 low memory page.
++ */
++void __meminit init_trampoline(void)
++{
++
++	if (!kaslr_memory_enabled()) {
++		init_trampoline_default();
++		return;
++	}
++
++	if (IS_ENABLED(CONFIG_X86_5LEVEL))
++		init_trampoline_p4d();
++	else
++		init_trampoline_pud();
++}
 -- 
 2.11.0
