@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 20/33] x86: detect 5-level paging support
-Date: Mon,  6 Mar 2017 16:53:44 +0300
-Message-ID: <20170306135357.3124-21-kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 15/33] x86/efi: handle p4d in EFI pagetables
+Date: Mon,  6 Mar 2017 16:53:39 +0300
+Message-ID: <20170306135357.3124-16-kirill.shutemov@linux.intel.com>
 References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
@@ -10,127 +10,93 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-5-level paging support is required from hardware when compiled with
-CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
+Allocate additional page table level and change efi_sync_low_kernel_mappings()
+to make syncing logic work with additional page table level.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
 ---
- arch/x86/boot/cpucheck.c                 |  9 +++++++++
- arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
- arch/x86/include/asm/disabled-features.h |  8 +++++++-
- arch/x86/include/asm/required-features.h |  8 +++++++-
- 4 files changed, 33 insertions(+), 4 deletions(-)
+ arch/x86/platform/efi/efi_64.c | 33 +++++++++++++++++++++++----------
+ 1 file changed, 23 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
-index 4ad7d70e8739..8f0c4c9fc904 100644
---- a/arch/x86/boot/cpucheck.c
-+++ b/arch/x86/boot/cpucheck.c
-@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
- 	0, /* REQUIRED_MASK5 not implemented in this file */
- 	REQUIRED_MASK6,
- 	0, /* REQUIRED_MASK7 not implemented in this file */
-+	0, /* REQUIRED_MASK8 not implemented in this file */
-+	0, /* REQUIRED_MASK9 not implemented in this file */
-+	0, /* REQUIRED_MASK10 not implemented in this file */
-+	0, /* REQUIRED_MASK11 not implemented in this file */
-+	0, /* REQUIRED_MASK12 not implemented in this file */
-+	0, /* REQUIRED_MASK13 not implemented in this file */
-+	0, /* REQUIRED_MASK14 not implemented in this file */
-+	0, /* REQUIRED_MASK15 not implemented in this file */
-+	REQUIRED_MASK16,
- };
- 
- #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
-diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-index 6687ab953257..9e77c23c2422 100644
---- a/arch/x86/boot/cpuflags.c
-+++ b/arch/x86/boot/cpuflags.c
-@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
- # define EBX_REG "=b"
- #endif
- 
--static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-+static inline void cpuid_count(u32 id, u32 count,
-+		u32 *a, u32 *b, u32 *c, u32 *d)
+diff --git a/arch/x86/platform/efi/efi_64.c b/arch/x86/platform/efi/efi_64.c
+index 8544dae3d1b4..34d019f75239 100644
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@ -135,6 +135,7 @@ static pgd_t *efi_pgd;
+ int __init efi_alloc_page_tables(void)
  {
- 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
- 		     "cpuid					\n\t"
- 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
- 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
--		    : "a" (id)
-+		    : "a" (id), "c" (count)
- 	);
+ 	pgd_t *pgd;
++	p4d_t *p4d;
+ 	pud_t *pud;
+ 	gfp_t gfp_mask;
+ 
+@@ -147,15 +148,20 @@ int __init efi_alloc_page_tables(void)
+ 		return -ENOMEM;
+ 
+ 	pgd = efi_pgd + pgd_index(EFI_VA_END);
++	p4d = p4d_alloc(&init_mm, pgd, EFI_VA_END);
++	if (!p4d) {
++		free_page((unsigned long)efi_pgd);
++		return -ENOMEM;
++	}
+ 
+-	pud = pud_alloc_one(NULL, 0);
++	pud = pud_alloc(&init_mm, p4d, EFI_VA_END);
+ 	if (!pud) {
++		if (CONFIG_PGTABLE_LEVELS > 4)
++			free_page((unsigned long) pgd_page_vaddr(*pgd));
+ 		free_page((unsigned long)efi_pgd);
+ 		return -ENOMEM;
+ 	}
+ 
+-	pgd_populate(NULL, pgd, pud);
+-
+ 	return 0;
  }
  
-+#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
+@@ -190,6 +196,18 @@ void efi_sync_low_kernel_mappings(void)
+ 	num_entries = pgd_index(EFI_VA_END) - pgd_index(PAGE_OFFSET);
+ 	memcpy(pgd_efi, pgd_k, sizeof(pgd_t) * num_entries);
+ 
++	/* The same story as with PGD entries */
++	BUILD_BUG_ON(p4d_index(EFI_VA_END) != p4d_index(MODULES_END));
++	BUILD_BUG_ON((EFI_VA_START & P4D_MASK) != (EFI_VA_END & P4D_MASK));
 +
- void get_cpuflags(void)
- {
- 	u32 max_intel_level, max_amd_level;
-@@ -108,6 +111,11 @@ void get_cpuflags(void)
- 				cpu.model += ((tfms >> 16) & 0xf) << 4;
- 		}
- 
-+		if (max_intel_level >= 0x00000007) {
-+			cpuid_count(0x00000007, 0, &ignored, &ignored,
-+					&cpu.flags[16], &ignored);
-+		}
++	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
++	pgd_k = pgd_offset_k(EFI_VA_END);
++	p4d_efi = p4d_offset(pgd_efi, 0);
++	p4d_k = p4d_offset(pgd_k, 0);
 +
- 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
- 		      &ignored);
- 
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 85599ad4d024..fc0960236fc3 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -36,6 +36,12 @@
- # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
- #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
- 
-+#ifdef CONFIG_X86_5LEVEL
-+#define DISABLE_LA57	0
-+#else
-+#define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
-+#endif
++	num_entries = p4d_index(EFI_VA_END);
++	memcpy(p4d_efi, p4d_k, sizeof(p4d_t) * num_entries);
 +
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -55,7 +61,7 @@
- #define DISABLED_MASK13	0
- #define DISABLED_MASK14	0
- #define DISABLED_MASK15	0
--#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
-+#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
- #define DISABLED_MASK17	0
- #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 	/*
+ 	 * We share all the PUD entries apart from those that map the
+ 	 * EFI regions. Copy around them.
+@@ -197,20 +215,15 @@ void efi_sync_low_kernel_mappings(void)
+ 	BUILD_BUG_ON((EFI_VA_START & ~PUD_MASK) != 0);
+ 	BUILD_BUG_ON((EFI_VA_END & ~PUD_MASK) != 0);
  
-diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
-index fac9a5c0abe9..d91ba04dd007 100644
---- a/arch/x86/include/asm/required-features.h
-+++ b/arch/x86/include/asm/required-features.h
-@@ -53,6 +53,12 @@
- # define NEED_MOVBE	0
- #endif
+-	pgd_efi = efi_pgd + pgd_index(EFI_VA_END);
+-	p4d_efi = p4d_offset(pgd_efi, 0);
++	p4d_efi = p4d_offset(pgd_efi, EFI_VA_END);
++	p4d_k = p4d_offset(pgd_k, EFI_VA_END);
+ 	pud_efi = pud_offset(p4d_efi, 0);
+-
+-	pgd_k = pgd_offset_k(EFI_VA_END);
+-	p4d_k = p4d_offset(pgd_k, 0);
+ 	pud_k = pud_offset(p4d_k, 0);
  
-+#ifdef CONFIG_X86_5LEVEL
-+# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
-+#else
-+# define NEED_LA57	0
-+#endif
-+
- #ifdef CONFIG_X86_64
- #ifdef CONFIG_PARAVIRT
- /* Paravirtualized systems may not have PSE or PGE available */
-@@ -98,7 +104,7 @@
- #define REQUIRED_MASK13	0
- #define REQUIRED_MASK14	0
- #define REQUIRED_MASK15	0
--#define REQUIRED_MASK16	0
-+#define REQUIRED_MASK16	(NEED_LA57)
- #define REQUIRED_MASK17	0
- #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
+ 	num_entries = pud_index(EFI_VA_END);
+ 	memcpy(pud_efi, pud_k, sizeof(pud_t) * num_entries);
  
+-	p4d_efi = p4d_offset(pgd_efi, EFI_VA_START);
+ 	pud_efi = pud_offset(p4d_efi, EFI_VA_START);
+-	p4d_k = p4d_offset(pgd_k, EFI_VA_START);
+ 	pud_k = pud_offset(p4d_k, EFI_VA_START);
+ 
+ 	num_entries = PTRS_PER_PUD - pud_index(EFI_VA_START);
 -- 
 2.11.0
 
