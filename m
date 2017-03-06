@@ -1,140 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga06.intel.com ([134.134.136.31]:10864 "EHLO mga06.intel.com"
-        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-        id S1753072AbdCFN5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-        Mon, 6 Mar 2017 08:57:45 -0500
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 20/33] x86: detect 5-level paging support
-Date: Mon,  6 Mar 2017 16:53:44 +0300
-Message-ID: <20170306135357.3124-21-kirill.shutemov@linux.intel.com>
-In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
-References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+Received: from mail-db5eur01on0136.outbound.protection.outlook.com ([104.47.2.136]:16539
+        "EHLO EUR01-DB5-obe.outbound.protection.outlook.com"
+        rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+        id S932090AbdCFOTV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 09:19:21 -0500
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and
+ PR_GET_MAX_VADDR
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+ <CALCETrVKKU_eJVH3scF=89z98dba8iHwuNfdUPE9Hx=-3b_+Pg@mail.gmail.com>
+ <CAJwJo6ajrum1AkMS4Mu7nXBzAui_9+fjARBN8NpsFEdA+ZeN7A@mail.gmail.com>
+ <20170221124217.GB13174@node.shutemov.name>
+ <CAJwJo6YUA0i8AsQ+sKJZcJSsUGwGFuNxOWB71_n4KJ2dDyKbCQ@mail.gmail.com>
+ <20170306141746.GA27719@node.shutemov.name>
+From: Dmitry Safonov <dsafonov@virtuozzo.com>
+Message-ID: <f5bb3006-e0df-d27c-d9d4-a5500c305fab@virtuozzo.com>
+Date: Mon, 6 Mar 2017 17:15:27 +0300
+MIME-Version: 1.0
+In-Reply-To: <20170306141746.GA27719@node.shutemov.name>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20170306135344.c4c1IDBbRYX2g-hWQbQNs0qOWa5rgzX_r-YOKoPm3wk@z>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>, Dmitry Safonov <0x7f454c46@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20170306141527.I7nJ4A5mkEf9hoieIN9d7huH1ieQfY8PTZq2_drMqSc@z>
 
-5-level paging support is required from hardware when compiled with
-CONFIG_X86_5LEVEL=y. We may implement runtime switch support later.
+On 03/06/2017 05:17 PM, Kirill A. Shutemov wrote:
+> On Mon, Mar 06, 2017 at 05:00:28PM +0300, Dmitry Safonov wrote:
+>> 2017-02-21 15:42 GMT+03:00 Kirill A. Shutemov <kirill@shutemov.name>:
+>>> On Tue, Feb 21, 2017 at 02:54:20PM +0300, Dmitry Safonov wrote:
+>>>> 2017-02-17 19:50 GMT+03:00 Andy Lutomirski <luto@amacapital.net>:
+>>>>> On Fri, Feb 17, 2017 at 6:13 AM, Kirill A. Shutemov
+>>>>> <kirill.shutemov@linux.intel.com> wrote:
+>>>>>> This patch introduces two new prctl(2) handles to manage maximum virtual
+>>>>>> address available to userspace to map.
+>>>> ...
+>>>>> Anyway, can you and Dmitry try to reconcile your patches?
+>>>>
+>>>> So, how can I help that?
+>>>> Is there the patch's version, on which I could rebase?
+>>>> Here are BTW the last patches, which I will resend with trivial ifdef-fixup
+>>>> after the merge window:
+>>>> http://marc.info/?i=20170214183621.2537-1-dsafonov%20()%20virtuozzo%20!%20com
+>>>
+>>> Could you check if this patch collides with anything you do:
+>>>
+>>> http://lkml.kernel.org/r/20170220131515.GA9502@node.shutemov.name
+>>
+>> Ok, sorry for the late reply - it was the merge window anyway and I've got
+>> urgent work to do.
+>>
+>> Let's see:
+>>
+>> I'll need minor merge fixup here:
+>>> -#define TASK_UNMAPPED_BASE (PAGE_ALIGN(TASK_SIZE / 3))
+>>> +#define TASK_UNMAPPED_BASE (PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
+>> while in my patches:
+>>> +#define __TASK_UNMAPPED_BASE(task_size)        (PAGE_ALIGN(task_size / 3))
+>>> +#define TASK_UNMAPPED_BASE             __TASK_UNMAPPED_BASE(TASK_SIZE)
+>>
+>> This should be just fine with my changes:
+>>> - info.high_limit = end;
+>>> + info.high_limit = min(end, DEFAULT_MAP_WINDOW);
+>>
+>> This will need another minor fixup:
+>>> -#define MAX_GAP (TASK_SIZE/6*5)
+>>> +#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
+>> I've moved it from macro to mmap_base() as local var,
+>> which depends on task_size parameter.
+>>
+>> That's all, as far as I can see at this moment.
+>> Does not seems hard to fix. So I suggest sending patches sets
+>> in parallel, the second accepted will rebase the set.
+>> Is it convenient for you?
+>
+> Works for me.
+>
+> In fact, I've just sent v4 of the patchset.
+>
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/boot/cpucheck.c                 |  9 +++++++++
- arch/x86/boot/cpuflags.c                 | 12 ++++++++++--
- arch/x86/include/asm/disabled-features.h |  8 +++++++-
- arch/x86/include/asm/required-features.h |  8 +++++++-
- 4 files changed, 33 insertions(+), 4 deletions(-)
+Ok, thanks.
 
-diff --git a/arch/x86/boot/cpucheck.c b/arch/x86/boot/cpucheck.c
-index 4ad7d70e8739..8f0c4c9fc904 100644
---- a/arch/x86/boot/cpucheck.c
-+++ b/arch/x86/boot/cpucheck.c
-@@ -44,6 +44,15 @@ static const u32 req_flags[NCAPINTS] =
- 	0, /* REQUIRED_MASK5 not implemented in this file */
- 	REQUIRED_MASK6,
- 	0, /* REQUIRED_MASK7 not implemented in this file */
-+	0, /* REQUIRED_MASK8 not implemented in this file */
-+	0, /* REQUIRED_MASK9 not implemented in this file */
-+	0, /* REQUIRED_MASK10 not implemented in this file */
-+	0, /* REQUIRED_MASK11 not implemented in this file */
-+	0, /* REQUIRED_MASK12 not implemented in this file */
-+	0, /* REQUIRED_MASK13 not implemented in this file */
-+	0, /* REQUIRED_MASK14 not implemented in this file */
-+	0, /* REQUIRED_MASK15 not implemented in this file */
-+	REQUIRED_MASK16,
- };
- 
- #define A32(a, b, c, d) (((d) << 24)+((c) << 16)+((b) << 8)+(a))
-diff --git a/arch/x86/boot/cpuflags.c b/arch/x86/boot/cpuflags.c
-index 6687ab953257..9e77c23c2422 100644
---- a/arch/x86/boot/cpuflags.c
-+++ b/arch/x86/boot/cpuflags.c
-@@ -70,16 +70,19 @@ int has_eflag(unsigned long mask)
- # define EBX_REG "=b"
- #endif
- 
--static inline void cpuid(u32 id, u32 *a, u32 *b, u32 *c, u32 *d)
-+static inline void cpuid_count(u32 id, u32 count,
-+		u32 *a, u32 *b, u32 *c, u32 *d)
- {
- 	asm volatile(".ifnc %%ebx,%3 ; movl  %%ebx,%3 ; .endif	\n\t"
- 		     "cpuid					\n\t"
- 		     ".ifnc %%ebx,%3 ; xchgl %%ebx,%3 ; .endif	\n\t"
- 		    : "=a" (*a), "=c" (*c), "=d" (*d), EBX_REG (*b)
--		    : "a" (id)
-+		    : "a" (id), "c" (count)
- 	);
- }
- 
-+#define cpuid(id, a, b, c, d) cpuid_count(id, 0, a, b, c, d)
-+
- void get_cpuflags(void)
- {
- 	u32 max_intel_level, max_amd_level;
-@@ -108,6 +111,11 @@ void get_cpuflags(void)
- 				cpu.model += ((tfms >> 16) & 0xf) << 4;
- 		}
- 
-+		if (max_intel_level >= 0x00000007) {
-+			cpuid_count(0x00000007, 0, &ignored, &ignored,
-+					&cpu.flags[16], &ignored);
-+		}
-+
- 		cpuid(0x80000000, &max_amd_level, &ignored, &ignored,
- 		      &ignored);
- 
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index 85599ad4d024..fc0960236fc3 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -36,6 +36,12 @@
- # define DISABLE_OSPKE		(1<<(X86_FEATURE_OSPKE & 31))
- #endif /* CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS */
- 
-+#ifdef CONFIG_X86_5LEVEL
-+#define DISABLE_LA57	0
-+#else
-+#define DISABLE_LA57	(1<<(X86_FEATURE_LA57 & 31))
-+#endif
-+
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -55,7 +61,7 @@
- #define DISABLED_MASK13	0
- #define DISABLED_MASK14	0
- #define DISABLED_MASK15	0
--#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE)
-+#define DISABLED_MASK16	(DISABLE_PKU|DISABLE_OSPKE|DISABLE_LA57)
- #define DISABLED_MASK17	0
- #define DISABLED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
- 
-diff --git a/arch/x86/include/asm/required-features.h b/arch/x86/include/asm/required-features.h
-index fac9a5c0abe9..d91ba04dd007 100644
---- a/arch/x86/include/asm/required-features.h
-+++ b/arch/x86/include/asm/required-features.h
-@@ -53,6 +53,12 @@
- # define NEED_MOVBE	0
- #endif
- 
-+#ifdef CONFIG_X86_5LEVEL
-+# define NEED_LA57	(1<<(X86_FEATURE_LA57 & 31))
-+#else
-+# define NEED_LA57	0
-+#endif
-+
- #ifdef CONFIG_X86_64
- #ifdef CONFIG_PARAVIRT
- /* Paravirtualized systems may not have PSE or PGE available */
-@@ -98,7 +104,7 @@
- #define REQUIRED_MASK13	0
- #define REQUIRED_MASK14	0
- #define REQUIRED_MASK15	0
--#define REQUIRED_MASK16	0
-+#define REQUIRED_MASK16	(NEED_LA57)
- #define REQUIRED_MASK17	0
- #define REQUIRED_MASK_CHECK BUILD_BUG_ON_ZERO(NCAPINTS != 18)
- 
 -- 
-2.11.0
+              Dmitry
