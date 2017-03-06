@@ -1,46 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-197-64-233.tingfiber.com ([216.197.64.233]:43530 "EHLO
-        brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1752425AbdCFCO7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Mar 2017 21:14:59 -0500
-Date: Sun, 5 Mar 2017 20:52:07 -0500
-From: Rich Felker <dalias@libc.org>
-Subject: Re: [PATCH 1/3] futex: remove duplicated code
-Message-ID: <20170306015207.GN1520@brightrain.aerifal.cx>
-References: <20170303122712.13353-1-jslaby@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20170303122712.13353-1-jslaby@suse.cz>
+Received: from mga04.intel.com ([192.55.52.120]:22784 "EHLO mga04.intel.com"
+        rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+        id S1752673AbdCFN5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Mon, 6 Mar 2017 08:57:44 -0500
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 17/33] x86/kasan: prepare clear_pgds() to switch to <asm-generic/pgtable-nop4d.h>
+Date: Mon,  6 Mar 2017 16:53:41 +0300
+Message-ID: <20170306135357.3124-18-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@mellanox.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, linux-arm-kernel@lists.infradead.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, openrisc@lists.librecores.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20170306015207.FTtnRVMKvXfzeLWVcQAmg-_0jw6fRTqPRpQoTYhwQYM@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>
+Message-ID: <20170306135341.l224tik3PaVhvkVEVJiK2oPZhuzwoXw1vonzFlFRHR4@z>
 
-On Fri, Mar 03, 2017 at 01:27:10PM +0100, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
-> 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
-> 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
+With folded p4d, pgd_clear() is nop. Change clear_pgds() to use
+p4d_clear() instead.
 
-Overall I'm in favor of this patch, and it's close to what I had in
-mind in the commit message for
-00b73d8d1b7131da03aec73011a7286f566fe87f. But I'd actually like to see
-it go further. These ops are mainly (only?) used for the (almost never
-used) FUTEX_WAKE_OP operation, and there's very little sense in trying
-to optimize them with dedicated arch-specific forms like "lock xadd".
-Instead the entire logic should be in an arch-generic file, and all
-the arch should need to provide is a cmpxchg-on-user-memory primitive
-for it to use. On most archs, the same cmpxchg used in kernelspace
-should also work for user addresses, meaning a huge amount of
-unmaintained, largely untested, junk code can be removed.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+---
+ arch/x86/mm/kasan_init_64.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-Rich
+diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
+index 8d63d7a104c3..733f8ba6a01f 100644
+--- a/arch/x86/mm/kasan_init_64.c
++++ b/arch/x86/mm/kasan_init_64.c
+@@ -32,8 +32,15 @@ static int __init map_range(struct range *range)
+ static void __init clear_pgds(unsigned long start,
+ 			unsigned long end)
+ {
+-	for (; start < end; start += PGDIR_SIZE)
+-		pgd_clear(pgd_offset_k(start));
++	pgd_t *pgd;
++
++	for (; start < end; start += PGDIR_SIZE) {
++		pgd = pgd_offset_k(start);
++		if (CONFIG_PGTABLE_LEVELS < 5)
++			p4d_clear(p4d_offset(pgd, start));
++		else
++			pgd_clear(pgd);
++	}
+ }
+ 
+ static void __init kasan_map_early_shadow(pgd_t *pgd)
+-- 
+2.11.0
