@@ -1,49 +1,42 @@
-From: Rich Felker <dalias@libc.org>
-Subject: Re: [PATCH 1/3] futex: remove duplicated code
-Date: Sun, 5 Mar 2017 20:52:07 -0500
-Message-ID: <20170306015207.GN1520@brightrain.aerifal.cx>
-References: <20170303122712.13353-1-jslaby@suse.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
-Content-Disposition: inline
-In-Reply-To: <20170303122712.13353-1-jslaby@suse.cz>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Jiri Slaby <jslaby@suse.cz>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCHv4 01/33] x86/cpufeature: Add 5-level paging detection
+Date: Mon,  6 Mar 2017 16:53:25 +0300
+Message-ID: <20170306135357.3124-2-kirill.shutemov@linux.intel.com>
+References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 03, 2017 at 01:27:10PM +0100, Jiri Slaby wrote:
-> There is code duplicated over all architecture's headers for
-> futex_atomic_op_inuser. Namely op decoding, access_ok check for uaddr,
-> and comparison of the result.
-> 
-> Remove this duplication and leave up to the arches only the needed
-> assembly which is now in arch_futex_atomic_op_inuser.
-> 
-> Note that s390 removed access_ok check in d12a29703 ("s390/uaccess:
-> remove pointless access_ok() checks") as access_ok there returns true.
-> We introduce it back to the helper for the sake of simplicity (it gets
-> optimized away anyway).
+Look for 'la57' in /proc/cpuinfo to see if your machine supports 5-level
+paging.
 
-Overall I'm in favor of this patch, and it's close to what I had in
-mind in the commit message for
-00b73d8d1b7131da03aec73011a7286f566fe87f. But I'd actually like to see
-it go further. These ops are mainly (only?) used for the (almost never
-used) FUTEX_WAKE_OP operation, and there's very little sense in trying
-to optimize them with dedicated arch-specific forms like "lock xadd".
-Instead the entire logic should be in an arch-generic file, and all
-the arch should need to provide is a cmpxchg-on-user-memory primitive
-for it to use. On most archs, the same cmpxchg used in kernelspace
-should also work for user addresses, meaning a huge amount of
-unmaintained, largely untested, junk code can be removed.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+---
+ arch/x86/include/asm/cpufeatures.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Rich
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 4e7772387c6e..b04bb6dfed7f 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -289,7 +289,8 @@
+ #define X86_FEATURE_PKU		(16*32+ 3) /* Protection Keys for Userspace */
+ #define X86_FEATURE_OSPKE	(16*32+ 4) /* OS Protection Keys Enable */
+ #define X86_FEATURE_AVX512_VPOPCNTDQ (16*32+14) /* POPCNT for vectors of DW/QW */
+-#define X86_FEATURE_RDPID	(16*32+ 22) /* RDPID instruction */
++#define X86_FEATURE_LA57	(16*32+16) /* 5-level page tables */
++#define X86_FEATURE_RDPID	(16*32+22) /* RDPID instruction */
+ 
+ /* AMD-defined CPU features, CPUID level 0x80000007 (ebx), word 17 */
+ #define X86_FEATURE_OVERFLOW_RECOV (17*32+0) /* MCA overflow recovery support */
+-- 
+2.11.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
