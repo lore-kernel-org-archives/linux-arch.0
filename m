@@ -1,7 +1,7 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 5/7] asm-generic: introduce <asm-generic/pgtable-nop4d.h>
-Date: Mon,  6 Mar 2017 23:45:12 +0300
-Message-ID: <20170306204514.1852-6-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 3/7] asm-generic: introduce __ARCH_USE_5LEVEL_HACK
+Date: Mon,  6 Mar 2017 23:45:10 +0300
+Message-ID: <20170306204514.1852-4-kirill.shutemov@linux.intel.com>
 References: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20170306204514.1852-1-kirill.shutemov@linux.intel.com>
@@ -10,193 +10,113 @@ To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-fo
 Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Like with pgtable-nopud.h for 4-level paging, this new header is base
-for converting an architectures to properly folded p4d_t level.
+We are going to introduce <asm-generic/pgtable-nop4d.h> to provide
+abstraction for properly (in opposite to 5level-fixup.h hack) folded
+p4d level. The new header will be included from pgtable-nopud.h.
+
+If an architecture uses <asm-generic/nop*d.h>, we cannot use
+5level-fixup.h directly to quickly convert the architecture to 5-level
+paging as it would conflict with pgtable-nop4d.h.
+
+With this patch an architecture can define __ARCH_USE_5LEVEL_HACK before
+inclusion <asm-genenric/nop*d.h> to use 5level-fixup.h.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- include/asm-generic/pgtable-nop4d.h | 56 +++++++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable-nopud.h | 43 ++++++++++++++--------------
- include/asm-generic/tlb.h           | 14 ++++++++--
- 3 files changed, 89 insertions(+), 24 deletions(-)
- create mode 100644 include/asm-generic/pgtable-nop4d.h
+ include/asm-generic/pgtable-nop4d-hack.h | 62 ++++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable-nopud.h      |  5 +++
+ 2 files changed, 67 insertions(+)
+ create mode 100644 include/asm-generic/pgtable-nop4d-hack.h
 
-diff --git a/include/asm-generic/pgtable-nop4d.h b/include/asm-generic/pgtable-nop4d.h
+diff --git a/include/asm-generic/pgtable-nop4d-hack.h b/include/asm-generic/pgtable-nop4d-hack.h
 new file mode 100644
-index 000000000000..de364ecb8df6
+index 000000000000..752fb7511750
 --- /dev/null
-+++ b/include/asm-generic/pgtable-nop4d.h
-@@ -0,0 +1,56 @@
-+#ifndef _PGTABLE_NOP4D_H
-+#define _PGTABLE_NOP4D_H
++++ b/include/asm-generic/pgtable-nop4d-hack.h
+@@ -0,0 +1,62 @@
++#ifndef _PGTABLE_NOP4D_HACK_H
++#define _PGTABLE_NOP4D_HACK_H
 +
 +#ifndef __ASSEMBLY__
++#include <asm-generic/5level-fixup.h>
 +
-+#define __PAGETABLE_P4D_FOLDED
++#define __PAGETABLE_PUD_FOLDED
 +
-+typedef struct { pgd_t pgd; } p4d_t;
++/*
++ * Having the pud type consist of a pgd gets the size right, and allows
++ * us to conceptually access the pgd entry that this pud is folded into
++ * without casting.
++ */
++typedef struct { pgd_t pgd; } pud_t;
 +
-+#define P4D_SHIFT	PGDIR_SHIFT
-+#define PTRS_PER_P4D	1
-+#define P4D_SIZE	(1UL << P4D_SHIFT)
-+#define P4D_MASK	(~(P4D_SIZE-1))
++#define PUD_SHIFT	PGDIR_SHIFT
++#define PTRS_PER_PUD	1
++#define PUD_SIZE	(1UL << PUD_SHIFT)
++#define PUD_MASK	(~(PUD_SIZE-1))
 +
 +/*
 + * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * setup: the p4d is never bad, and a p4d always exists (as it's folded
++ * setup: the pud is never bad, and a pud always exists (as it's folded
 + * into the pgd entry)
 + */
 +static inline int pgd_none(pgd_t pgd)		{ return 0; }
 +static inline int pgd_bad(pgd_t pgd)		{ return 0; }
 +static inline int pgd_present(pgd_t pgd)	{ return 1; }
 +static inline void pgd_clear(pgd_t *pgd)	{ }
-+#define p4d_ERROR(p4d)				(pgd_ERROR((p4d).pgd))
++#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
 +
-+#define pgd_populate(mm, pgd, p4d)		do { } while (0)
++#define pgd_populate(mm, pgd, pud)		do { } while (0)
 +/*
-+ * (p4ds are folded into pgds so this doesn't get actually called,
++ * (puds are folded into pgds so this doesn't get actually called,
 + * but the define is needed for a generic inline function.)
 + */
-+#define set_pgd(pgdptr, pgdval)	set_p4d((p4d_t *)(pgdptr), (p4d_t) { pgdval })
++#define set_pgd(pgdptr, pgdval)	set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
 +
-+static inline p4d_t *p4d_offset(pgd_t *pgd, unsigned long address)
++static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
 +{
-+	return (p4d_t *)pgd;
++	return (pud_t *)pgd;
 +}
 +
-+#define p4d_val(x)				(pgd_val((x).pgd))
-+#define __p4d(x)				((p4d_t) { __pgd(x) })
++#define pud_val(x)				(pgd_val((x).pgd))
++#define __pud(x)				((pud_t) { __pgd(x) })
 +
-+#define pgd_page(pgd)				(p4d_page((p4d_t){ pgd }))
-+#define pgd_page_vaddr(pgd)			(p4d_page_vaddr((p4d_t){ pgd }))
++#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
++#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
 +
 +/*
-+ * allocating and freeing a p4d is trivial: the 1-entry p4d is
++ * allocating and freeing a pud is trivial: the 1-entry pud is
 + * inside the pgd, so has no extra memory associated with it.
 + */
-+#define p4d_alloc_one(mm, address)		NULL
-+#define p4d_free(mm, x)				do { } while (0)
-+#define __p4d_free_tlb(tlb, x, a)		do { } while (0)
++#define pud_alloc_one(mm, address)		NULL
++#define pud_free(mm, x)				do { } while (0)
++#define __pud_free_tlb(tlb, x, a)		do { } while (0)
 +
-+#undef  p4d_addr_end
-+#define p4d_addr_end(addr, end)			(end)
++#undef  pud_addr_end
++#define pud_addr_end(addr, end)			(end)
 +
 +#endif /* __ASSEMBLY__ */
-+#endif /* _PGTABLE_NOP4D_H */
++#endif /* _PGTABLE_NOP4D_HACK_H */
 diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
-index 5e49430a30a4..c2b9b96d6268 100644
+index 810431d8351b..5e49430a30a4 100644
 --- a/include/asm-generic/pgtable-nopud.h
 +++ b/include/asm-generic/pgtable-nopud.h
-@@ -6,53 +6,54 @@
- #ifdef __ARCH_USE_5LEVEL_HACK
- #include <asm-generic/pgtable-nop4d-hack.h>
- #else
-+#include <asm-generic/pgtable-nop4d.h>
+@@ -3,6 +3,10 @@
  
+ #ifndef __ASSEMBLY__
+ 
++#ifdef __ARCH_USE_5LEVEL_HACK
++#include <asm-generic/pgtable-nop4d-hack.h>
++#else
++
  #define __PAGETABLE_PUD_FOLDED
  
  /*
-- * Having the pud type consist of a pgd gets the size right, and allows
-- * us to conceptually access the pgd entry that this pud is folded into
-+ * Having the pud type consist of a p4d gets the size right, and allows
-+ * us to conceptually access the p4d entry that this pud is folded into
-  * without casting.
-  */
--typedef struct { pgd_t pgd; } pud_t;
-+typedef struct { p4d_t p4d; } pud_t;
+@@ -58,4 +62,5 @@ static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
+ #define pud_addr_end(addr, end)			(end)
  
--#define PUD_SHIFT	PGDIR_SHIFT
-+#define PUD_SHIFT	P4D_SHIFT
- #define PTRS_PER_PUD	1
- #define PUD_SIZE  	(1UL << PUD_SHIFT)
- #define PUD_MASK  	(~(PUD_SIZE-1))
- 
- /*
-- * The "pgd_xxx()" functions here are trivial for a folded two-level
-+ * The "p4d_xxx()" functions here are trivial for a folded two-level
-  * setup: the pud is never bad, and a pud always exists (as it's folded
-- * into the pgd entry)
-+ * into the p4d entry)
-  */
--static inline int pgd_none(pgd_t pgd)		{ return 0; }
--static inline int pgd_bad(pgd_t pgd)		{ return 0; }
--static inline int pgd_present(pgd_t pgd)	{ return 1; }
--static inline void pgd_clear(pgd_t *pgd)	{ }
--#define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
-+static inline int p4d_none(p4d_t p4d)		{ return 0; }
-+static inline int p4d_bad(p4d_t p4d)		{ return 0; }
-+static inline int p4d_present(p4d_t p4d)	{ return 1; }
-+static inline void p4d_clear(p4d_t *p4d)	{ }
-+#define pud_ERROR(pud)				(p4d_ERROR((pud).p4d))
- 
--#define pgd_populate(mm, pgd, pud)		do { } while (0)
-+#define p4d_populate(mm, p4d, pud)		do { } while (0)
- /*
-- * (puds are folded into pgds so this doesn't get actually called,
-+ * (puds are folded into p4ds so this doesn't get actually called,
-  * but the define is needed for a generic inline function.)
-  */
--#define set_pgd(pgdptr, pgdval)			set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
-+#define set_p4d(p4dptr, p4dval)	set_pud((pud_t *)(p4dptr), (pud_t) { p4dval })
- 
--static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
-+static inline pud_t *pud_offset(p4d_t *p4d, unsigned long address)
- {
--	return (pud_t *)pgd;
-+	return (pud_t *)p4d;
- }
- 
--#define pud_val(x)				(pgd_val((x).pgd))
--#define __pud(x)				((pud_t) { __pgd(x) } )
-+#define pud_val(x)				(p4d_val((x).p4d))
-+#define __pud(x)				((pud_t) { __p4d(x) })
- 
--#define pgd_page(pgd)				(pud_page((pud_t){ pgd }))
--#define pgd_page_vaddr(pgd)			(pud_page_vaddr((pud_t){ pgd }))
-+#define p4d_page(p4d)				(pud_page((pud_t){ p4d }))
-+#define p4d_page_vaddr(p4d)			(pud_page_vaddr((pud_t){ p4d }))
- 
- /*
-  * allocating and freeing a pud is trivial: the 1-entry pud is
-- * inside the pgd, so has no extra memory associated with it.
-+ * inside the p4d, so has no extra memory associated with it.
-  */
- #define pud_alloc_one(mm, address)		NULL
- #define pud_free(mm, x)				do { } while (0)
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 4329bc6ef04b..8afa4335e5b2 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -270,6 +270,12 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
- 		__pte_free_tlb(tlb, ptep, address);		\
- 	} while (0)
- 
-+#define pmd_free_tlb(tlb, pmdp, address)			\
-+	do {							\
-+		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
-+		__pmd_free_tlb(tlb, pmdp, address);		\
-+	} while (0)
-+
- #ifndef __ARCH_HAS_4LEVEL_HACK
- #define pud_free_tlb(tlb, pudp, address)			\
- 	do {							\
-@@ -278,11 +284,13 @@ static inline void tlb_remove_check_page_size_change(struct mmu_gather *tlb,
- 	} while (0)
- #endif
- 
--#define pmd_free_tlb(tlb, pmdp, address)			\
-+#ifndef __ARCH_HAS_5LEVEL_HACK
-+#define p4d_free_tlb(tlb, pudp, address)			\
- 	do {							\
--		__tlb_adjust_range(tlb, address, PAGE_SIZE);	\
--		__pmd_free_tlb(tlb, pmdp, address);		\
-+		__tlb_adjust_range(tlb, address, PAGE_SIZE);		\
-+		__p4d_free_tlb(tlb, pudp, address);		\
- 	} while (0)
-+#endif
- 
- #define tlb_migrate_finish(mm) do {} while (0)
- 
+ #endif /* __ASSEMBLY__ */
++#endif /* !__ARCH_USE_5LEVEL_HACK */
+ #endif /* _PGTABLE_NOPUD_H */
 -- 
 2.11.0
 
