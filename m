@@ -1,68 +1,71 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCHv4 26/33] x86/kasan: extend to support 5-level paging
-Date: Mon,  6 Mar 2017 16:53:50 +0300
-Message-ID: <20170306135357.3124-27-kirill.shutemov@linux.intel.com>
-References: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+From: Dmitry Safonov <0x7f454c46@gmail.com>
+Subject: Re: [PATCHv3 33/33] mm, x86: introduce PR_SET_MAX_VADDR and PR_GET_MAX_VADDR
+Date: Mon, 6 Mar 2017 17:00:28 +0300
+Message-ID: <CAJwJo6YUA0i8AsQ+sKJZcJSsUGwGFuNxOWB71_n4KJ2dDyKbCQ@mail.gmail.com>
+References: <20170217141328.164563-1-kirill.shutemov@linux.intel.com>
+ <20170217141328.164563-34-kirill.shutemov@linux.intel.com>
+ <CALCETrVKKU_eJVH3scF=89z98dba8iHwuNfdUPE9Hx=-3b_+Pg@mail.gmail.com>
+ <CAJwJo6ajrum1AkMS4Mu7nXBzAui_9+fjARBN8NpsFEdA+ZeN7A@mail.gmail.com> <20170221124217.GB13174@node.shutemov.name>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20170306135357.3124-1-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20170221124217.GB13174@node.shutemov.name>
 Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Vyukov <dvyukov@google.com>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Dmitry Safonov <dsafonov@virtuozzo.com>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Andi Kleen <ak@linux.intel.com>, Dave Hansen <dave.hansen@intel.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch bring support for non-folded additional page table level.
+2017-02-21 15:42 GMT+03:00 Kirill A. Shutemov <kirill@shutemov.name>:
+> On Tue, Feb 21, 2017 at 02:54:20PM +0300, Dmitry Safonov wrote:
+>> 2017-02-17 19:50 GMT+03:00 Andy Lutomirski <luto@amacapital.net>:
+>> > On Fri, Feb 17, 2017 at 6:13 AM, Kirill A. Shutemov
+>> > <kirill.shutemov@linux.intel.com> wrote:
+>> >> This patch introduces two new prctl(2) handles to manage maximum virtual
+>> >> address available to userspace to map.
+>> ...
+>> > Anyway, can you and Dmitry try to reconcile your patches?
+>>
+>> So, how can I help that?
+>> Is there the patch's version, on which I could rebase?
+>> Here are BTW the last patches, which I will resend with trivial ifdef-fixup
+>> after the merge window:
+>> http://marc.info/?i=20170214183621.2537-1-dsafonov%20()%20virtuozzo%20!%20com
+>
+> Could you check if this patch collides with anything you do:
+>
+> http://lkml.kernel.org/r/20170220131515.GA9502@node.shutemov.name
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Dmitry Vyukov <dvyukov@google.com
----
- arch/x86/mm/kasan_init_64.c | 18 ++++++++++++++++--
- 1 file changed, 16 insertions(+), 2 deletions(-)
+Ok, sorry for the late reply - it was the merge window anyway and I've got
+urgent work to do.
 
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index 733f8ba6a01f..bcabc56e0dc4 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -50,8 +50,18 @@ static void __init kasan_map_early_shadow(pgd_t *pgd)
- 	unsigned long end = KASAN_SHADOW_END;
- 
- 	for (i = pgd_index(start); start < end; i++) {
--		pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud)
--				| _KERNPG_TABLE);
-+		switch (CONFIG_PGTABLE_LEVELS) {
-+		case 4:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_pud) |
-+					_KERNPG_TABLE);
-+			break;
-+		case 5:
-+			pgd[i] = __pgd(__pa_nodebug(kasan_zero_p4d) |
-+					_KERNPG_TABLE);
-+			break;
-+		default:
-+			BUILD_BUG();
-+		}
- 		start += PGDIR_SIZE;
- 	}
- }
-@@ -79,6 +89,7 @@ void __init kasan_early_init(void)
- 	pteval_t pte_val = __pa_nodebug(kasan_zero_page) | __PAGE_KERNEL;
- 	pmdval_t pmd_val = __pa_nodebug(kasan_zero_pte) | _KERNPG_TABLE;
- 	pudval_t pud_val = __pa_nodebug(kasan_zero_pmd) | _KERNPG_TABLE;
-+	p4dval_t p4d_val = __pa_nodebug(kasan_zero_pud) | _KERNPG_TABLE;
- 
- 	for (i = 0; i < PTRS_PER_PTE; i++)
- 		kasan_zero_pte[i] = __pte(pte_val);
-@@ -89,6 +100,9 @@ void __init kasan_early_init(void)
- 	for (i = 0; i < PTRS_PER_PUD; i++)
- 		kasan_zero_pud[i] = __pud(pud_val);
- 
-+	for (i = 0; CONFIG_PGTABLE_LEVELS >= 5 && i < PTRS_PER_P4D; i++)
-+		kasan_zero_p4d[i] = __p4d(p4d_val);
-+
- 	kasan_map_early_shadow(early_level4_pgt);
- 	kasan_map_early_shadow(init_level4_pgt);
- }
+Let's see:
+
+I'll need minor merge fixup here:
+>-#define TASK_UNMAPPED_BASE (PAGE_ALIGN(TASK_SIZE / 3))
+>+#define TASK_UNMAPPED_BASE (PAGE_ALIGN(DEFAULT_MAP_WINDOW / 3))
+while in my patches:
+>+#define __TASK_UNMAPPED_BASE(task_size)        (PAGE_ALIGN(task_size / 3))
+>+#define TASK_UNMAPPED_BASE             __TASK_UNMAPPED_BASE(TASK_SIZE)
+
+This should be just fine with my changes:
+>- info.high_limit = end;
+>+ info.high_limit = min(end, DEFAULT_MAP_WINDOW);
+
+This will need another minor fixup:
+>-#define MAX_GAP (TASK_SIZE/6*5)
+>+#define MAX_GAP (DEFAULT_MAP_WINDOW/6*5)
+I've moved it from macro to mmap_base() as local var,
+which depends on task_size parameter.
+
+That's all, as far as I can see at this moment.
+Does not seems hard to fix. So I suggest sending patches sets
+in parallel, the second accepted will rebase the set.
+Is it convenient for you?
+If you have/will have some questions about my patches, I'll be
+open to answer.
+
 -- 
-2.11.0
+             Dmitry
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
